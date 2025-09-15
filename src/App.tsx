@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import Estimates from "./pages/Estimates";
 import Quotes from "./pages/Quotes";
 import Expenses from "./pages/Expenses";
+import Vendors from "./pages/Vendors";
 import ProfitAnalysis from "./pages/ProfitAnalysis";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
@@ -27,6 +28,7 @@ const App = () => (
               <Route path="/estimates" element={<Estimates />} />
               <Route path="/quotes" element={<Quotes />} />
               <Route path="/expenses" element={<Expenses />} />
+              <Route path="/vendors" element={<Vendors />} />
               <Route path="/profit-analysis" element={<ProfitAnalysis />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
