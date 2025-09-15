@@ -37,8 +37,8 @@ export const QuotesList = ({ quotes, estimates, onDelete, onCompare }: QuotesLis
     const estimate = getEstimateForQuote(quote);
     if (!estimate) return { amount: 0, percentage: 0, status: 'exact' };
     
-    const difference = quote.total - estimate.total;
-    const percentage = estimate.total > 0 ? (difference / estimate.total) * 100 : 0;
+    const difference = quote.total - estimate.total_amount;
+    const percentage = estimate.total_amount > 0 ? (difference / estimate.total_amount) * 100 : 0;
     
     return {
       amount: Math.abs(difference),
@@ -191,7 +191,7 @@ export const QuotesList = ({ quotes, estimates, onDelete, onCompare }: QuotesLis
                   <div>
                     <div className="text-muted-foreground">Estimate Total</div>
                     <div className="font-medium">
-                      {estimate ? `$${estimate.total.toFixed(2)}` : 'N/A'}
+                      {estimate ? `$${estimate.total_amount.toFixed(2)}` : 'N/A'}
                     </div>
                   </div>
                 </div>

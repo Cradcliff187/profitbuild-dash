@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { ProjectSelector } from "./ProjectSelector";
 import { LineItemRow } from "./LineItemRow";
-import { Estimate, LineItem } from "@/types/estimate";
+import { Estimate, LineItem, LineItemCategory } from "@/types/estimate";
 import { Quote, QuoteLineItem } from "@/types/quote";
 import { useToast } from "@/hooks/use-toast";
 
@@ -53,7 +53,7 @@ export const QuoteForm = ({ estimates, onSave, onCancel }: QuoteFormProps) => {
 
   const createNewQuoteLineItem = (): QuoteLineItem => ({
     id: Date.now().toString() + Math.random(),
-    category: 'Labor (Internal)',
+    category: 'labor_internal',
     description: '',
     quantity: 0,
     rate: 0,
@@ -81,19 +81,19 @@ export const QuoteForm = ({ estimates, onSave, onCancel }: QuoteFormProps) => {
     lineItems.forEach(item => {
       const itemTotal = item.quantity * item.rate;
       switch (item.category) {
-        case 'Labor (Internal)':
+        case 'labor_internal':
           newSubtotals.labor += itemTotal;
           break;
-        case 'Subcontractors':
+        case 'subcontractors':
           newSubtotals.subcontractors += itemTotal;
           break;
-        case 'Materials':
+        case 'materials':
           newSubtotals.materials += itemTotal;
           break;
-        case 'Equipment':
+        case 'equipment':
           newSubtotals.equipment += itemTotal;
           break;
-        case 'Other':
+        case 'other':
           newSubtotals.other += itemTotal;
           break;
       }
@@ -159,8 +159,8 @@ export const QuoteForm = ({ estimates, onSave, onCancel }: QuoteFormProps) => {
     const quote: Quote = {
       id: Date.now().toString(),
       estimateId: selectedEstimate.id,
-      projectName: selectedEstimate.projectName,
-      client: selectedEstimate.client,
+      projectName: selectedEstimate.project_name || '',
+      client: selectedEstimate.client_name || '',
       quotedBy: quotedBy.trim(),
       dateReceived,
       quoteNumber: generateQuoteNumber(),
@@ -196,11 +196,11 @@ export const QuoteForm = ({ estimates, onSave, onCancel }: QuoteFormProps) => {
             />
             {selectedEstimate && (
               <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                <div className="font-medium">{selectedEstimate.projectName}</div>
+                <div className="font-medium">{selectedEstimate.project_name}</div>
                 <div className="text-muted-foreground">
-                  Client: {selectedEstimate.client} • 
-                  Estimate Total: ${selectedEstimate.total.toFixed(2)} • 
-                  {selectedEstimate.estimateNumber}
+                  Client: {selectedEstimate.client_name} • 
+                  Estimate Total: ${selectedEstimate.total_amount.toFixed(2)} • 
+                  {selectedEstimate.estimate_number}
                 </div>
               </div>
             )}
@@ -273,8 +273,8 @@ export const QuoteForm = ({ estimates, onSave, onCancel }: QuoteFormProps) => {
                   {lineItems.map(lineItem => (
                     <LineItemRow
                       key={lineItem.id}
-                      lineItem={lineItem}
-                      onUpdate={updateLineItem}
+                      lineItem={lineItem as any}
+                      onUpdate={updateLineItem as any}
                       onRemove={removeLineItem}
                     />
                   ))}

@@ -38,15 +38,15 @@ export const mapCSVToExpenses = (
   fileName: string
 ): Expense[] => {
   return data.map((row, index) => {
-    const dateStr = mapping.date ? row[mapping.date] : '';
+    const dateStr = mapping.expense_date ? row[mapping.expense_date] : '';
     const amountStr = mapping.amount ? row[mapping.amount] : '0';
     
     // Parse date
-    let date = new Date();
+    let expense_date = new Date();
     if (dateStr) {
       const parsedDate = new Date(dateStr);
       if (!isNaN(parsedDate.getTime())) {
-        date = parsedDate;
+        expense_date = parsedDate;
       }
     }
 
@@ -62,20 +62,17 @@ export const mapCSVToExpenses = (
 
     return {
       id: crypto.randomUUID(),
-      projectId,
+      project_id: projectId,
       description,
       category,
-      type: 'Unplanned' as const, // Default to unplanned, user can change later
+      transaction_type: 'expense' as const,
       amount,
-      date,
-      vendor: mapping.vendor ? row[mapping.vendor] : undefined,
-      createdAt: new Date(),
-      source: 'csv_import' as const,
-      csvData: {
-        originalRow: row,
-        importedAt: new Date(),
-        fileName
-      }
+      expense_date,
+      vendor_id: mapping.vendor_id && row[mapping.vendor_id] ? row[mapping.vendor_id].trim() : undefined,
+      invoice_number: undefined,
+      is_planned: false,
+      created_at: new Date(),
+      updated_at: new Date()
     };
   });
 };
@@ -84,16 +81,19 @@ const categorizeExpense = (description: string): ExpenseCategory => {
   const desc = description.toLowerCase();
   
   if (desc.includes('labor') || desc.includes('wage') || desc.includes('payroll')) {
-    return 'Labor (Internal)';
+    return 'labor_internal';
+  }
+  if (desc.includes('contractor') || desc.includes('subcontractor')) {
+    return 'subcontractors';
   }
   if (desc.includes('material') || desc.includes('supply') || desc.includes('lumber') || desc.includes('concrete')) {
-    return 'Materials';
+    return 'materials';
   }
   if (desc.includes('equipment') || desc.includes('rental') || desc.includes('tool') || desc.includes('machinery')) {
-    return 'Equipment';
+    return 'equipment';
   }
   
-  return 'Other';
+  return 'other';
 };
 
 export const validateCSVData = (data: CSVRow[], mapping: ColumnMapping): string[] => {

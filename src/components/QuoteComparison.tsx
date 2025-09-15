@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Quote } from "@/types/quote";
-import { Estimate } from "@/types/estimate";
+import { Estimate, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 import { ComparisonData } from "@/types/quote";
 
 interface QuoteComparisonProps {
@@ -15,47 +15,66 @@ interface QuoteComparisonProps {
 }
 
 export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProps) => {
+  // Helper function to calculate estimate totals from line items
+  const calculateEstimateTotals = (estimate: Estimate) => {
+    const subtotals = {
+      labor_internal: 0,
+      subcontractors: 0,
+      materials: 0,
+      equipment: 0,
+      other: 0
+    };
+
+    estimate.lineItems.forEach(item => {
+      subtotals[item.category] += item.total;
+    });
+
+    const total = Object.values(subtotals).reduce((sum, val) => sum + val, 0);
+    return { subtotals, total };
+  };
+
   const calculateComparison = (): ComparisonData => {
-    const estimateTotal = estimate.total;
+    const estimateTotals = calculateEstimateTotals(estimate);
+    const estimateTotal = estimateTotals.total;
     const quoteTotal = quote.total;
     const difference = quoteTotal - estimateTotal;
     const percentageDiff = estimateTotal > 0 ? (difference / estimateTotal) * 100 : 0;
 
     const categoryComparisons = {
-      "Labor (Internal)": {
-        estimate: estimate.subtotals.labor,
+      labor_internal: {
+        estimate: estimateTotals.subtotals.labor_internal,
         quote: quote.subtotals.labor,
-        difference: quote.subtotals.labor - estimate.subtotals.labor,
-        percentageDiff: estimate.subtotals.labor > 0 ? 
-          ((quote.subtotals.labor - estimate.subtotals.labor) / estimate.subtotals.labor) * 100 : 0
+        difference: quote.subtotals.labor - estimateTotals.subtotals.labor_internal,
+        percentageDiff: estimateTotals.subtotals.labor_internal > 0 ? 
+          ((quote.subtotals.labor - estimateTotals.subtotals.labor_internal) / estimateTotals.subtotals.labor_internal) * 100 : 0
       },
-      "Subcontractors": {
-        estimate: estimate.subtotals.subcontractors,
+      subcontractors: {
+        estimate: estimateTotals.subtotals.subcontractors,
         quote: quote.subtotals.subcontractors,
-        difference: quote.subtotals.subcontractors - estimate.subtotals.subcontractors,
-        percentageDiff: estimate.subtotals.subcontractors > 0 ? 
-          ((quote.subtotals.subcontractors - estimate.subtotals.subcontractors) / estimate.subtotals.subcontractors) * 100 : 0
+        difference: quote.subtotals.subcontractors - estimateTotals.subtotals.subcontractors,
+        percentageDiff: estimateTotals.subtotals.subcontractors > 0 ? 
+          ((quote.subtotals.subcontractors - estimateTotals.subtotals.subcontractors) / estimateTotals.subtotals.subcontractors) * 100 : 0
       },
-      Materials: {
-        estimate: estimate.subtotals.materials,
+      materials: {
+        estimate: estimateTotals.subtotals.materials,
         quote: quote.subtotals.materials,
-        difference: quote.subtotals.materials - estimate.subtotals.materials,
-        percentageDiff: estimate.subtotals.materials > 0 ? 
-          ((quote.subtotals.materials - estimate.subtotals.materials) / estimate.subtotals.materials) * 100 : 0
+        difference: quote.subtotals.materials - estimateTotals.subtotals.materials,
+        percentageDiff: estimateTotals.subtotals.materials > 0 ? 
+          ((quote.subtotals.materials - estimateTotals.subtotals.materials) / estimateTotals.subtotals.materials) * 100 : 0
       },
-      Equipment: {
-        estimate: estimate.subtotals.equipment,
+      equipment: {
+        estimate: estimateTotals.subtotals.equipment,
         quote: quote.subtotals.equipment,
-        difference: quote.subtotals.equipment - estimate.subtotals.equipment,
-        percentageDiff: estimate.subtotals.equipment > 0 ? 
-          ((quote.subtotals.equipment - estimate.subtotals.equipment) / estimate.subtotals.equipment) * 100 : 0
+        difference: quote.subtotals.equipment - estimateTotals.subtotals.equipment,
+        percentageDiff: estimateTotals.subtotals.equipment > 0 ? 
+          ((quote.subtotals.equipment - estimateTotals.subtotals.equipment) / estimateTotals.subtotals.equipment) * 100 : 0
       },
-      Other: {
-        estimate: estimate.subtotals.other,
+      other: {
+        estimate: estimateTotals.subtotals.other,
         quote: quote.subtotals.other,
-        difference: quote.subtotals.other - estimate.subtotals.other,
-        percentageDiff: estimate.subtotals.other > 0 ? 
-          ((quote.subtotals.other - estimate.subtotals.other) / estimate.subtotals.other) * 100 : 0
+        difference: quote.subtotals.other - estimateTotals.subtotals.other,
+        percentageDiff: estimateTotals.subtotals.other > 0 ? 
+          ((quote.subtotals.other - estimateTotals.subtotals.other) / estimateTotals.subtotals.other) * 100 : 0
       }
     };
 
@@ -114,7 +133,7 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
           <CardContent>
             <div className="text-2xl font-bold">${comparison.estimateTotal.toFixed(2)}</div>
             <div className="text-sm text-muted-foreground mt-1">
-              {estimate.estimateNumber} • {format(estimate.date, "MMM dd, yyyy")}
+              {estimate.estimate_number} • {format(estimate.date_created, "MMM dd, yyyy")}
             </div>
           </CardContent>
         </Card>
@@ -173,7 +192,7 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
               
               return (
                 <div key={category} className="space-y-3">
-                  <h4 className="font-semibold text-lg">{category}</h4>
+                  <h4 className="font-semibold text-lg">{CATEGORY_DISPLAY_MAP[category]}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-muted/50 p-3 rounded-lg">
                       <div className="text-sm text-muted-foreground">Estimate</div>
@@ -205,7 +224,7 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
                       </Badge>
                     </div>
                   </div>
-                  {category !== "Other" && <Separator />}
+                  {category !== "other" && <Separator />}
                 </div>
               );
             })}

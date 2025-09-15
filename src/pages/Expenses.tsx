@@ -15,7 +15,7 @@ type ViewMode = 'dashboard' | 'upload' | 'form' | 'list' | 'tracker';
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [estimates, setEstimates] = useState<Estimate[]>([]);
+  const [estimates, setEstimates] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
   const [loading, setLoading] = useState(true);
@@ -24,6 +24,7 @@ const Expenses = () => {
   // Load expenses from Supabase
   useEffect(() => {
     loadExpenses();
+    loadEstimates();
   }, []);
 
   const loadExpenses = async () => {
@@ -63,6 +64,24 @@ const Expenses = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadEstimates = async () => {
+    try {
+      const { data: estimates, error } = await supabase
+        .from('estimates')
+        .select(`
+          *,
+          projects(project_name, client_name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      setEstimates(estimates || []);
+    } catch (error) {
+      console.error('Error loading estimates:', error);
     }
   };
 
@@ -152,7 +171,7 @@ const Expenses = () => {
           </TabsList>
 
           <TabsContent value="dashboard">
-            <ExpenseDashboard expenses={expenses} />
+            <ExpenseDashboard expenses={expenses} estimates={estimates} />
           </TabsContent>
 
           <TabsContent value="list">
@@ -167,11 +186,12 @@ const Expenses = () => {
           <TabsContent value="upload">
             <ExpenseUpload
               onExpensesImported={handleExpensesImported}
+              estimates={estimates}
             />
           </TabsContent>
 
           <TabsContent value="tracker">
-            <ProjectExpenseTracker expenses={expenses} />
+            <ProjectExpenseTracker expenses={expenses} estimates={estimates} />
           </TabsContent>
         </Tabs>
       )}

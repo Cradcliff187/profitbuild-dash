@@ -16,12 +16,12 @@ export function calculateProjectProfit(
   );
   
   // Calculate actual expenses for this project
-  const projectExpenses = expenses.filter(e => e.projectId === estimate.id);
+  const projectExpenses = expenses.filter(e => e.project_id === estimate.id);
   const actualExpenses = projectExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   
   // Calculate profits
   const quoteTotal = bestQuote?.total || 0;
-  const estimatedProfit = quoteTotal - estimate.total;
+  const estimatedProfit = quoteTotal - estimate.total_amount;
   const actualProfit = quoteTotal - actualExpenses;
   const profitMargin = quoteTotal > 0 ? (actualProfit / quoteTotal) * 100 : 0;
   const profitVariance = actualProfit - estimatedProfit;
@@ -36,16 +36,16 @@ export function calculateProjectProfit(
   
   return {
     projectId: estimate.id,
-    projectName: estimate.projectName,
-    client: estimate.client,
-    estimateTotal: estimate.total,
+    projectName: estimate.project_name || '',
+    client: estimate.client_name || '',
+    estimateTotal: estimate.total_amount,
     quoteTotal,
     actualExpenses,
     estimatedProfit,
     actualProfit,
     profitMargin,
     profitVariance,
-    projectStartDate: estimate.date,
+    projectStartDate: estimate.date_created,
     projectEndDate: status === 'Complete' ? new Date() : undefined,
     status
   };
