@@ -68,6 +68,15 @@ export interface ColumnMapping {
   transaction_type?: string;
 }
 
+// QuickBooks specific mapping
+export interface QBColumnMapping {
+  date?: string;
+  transaction_type?: string;
+  project_wo_number?: string;
+  amount?: string;
+  name?: string;
+}
+
 // Legacy support for existing code
 export interface LegacyExpense {
   id: string;

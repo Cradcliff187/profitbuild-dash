@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
-import { CSVRow, ColumnMapping, Expense, ExpenseCategory } from '@/types/expense';
+import { CSVRow, ColumnMapping, Expense, ExpenseCategory, TransactionType } from '@/types/expense';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ParseResult {
   data: CSVRow[];
@@ -118,4 +119,206 @@ export const validateCSVData = (data: CSVRow[], mapping: ColumnMapping): string[
   });
 
   return errors;
+};
+
+// QuickBooks-specific interfaces
+export interface QBParseResult {
+  data: QBTransaction[];
+  errors: string[];
+  headers: string[];
+}
+
+export interface QBTransaction {
+  date: string;
+  transaction_type: string;
+  project_wo_number: string;
+  amount: string;
+  name: string;
+  [key: string]: string;
+}
+
+export interface QBImportResult {
+  total: number;
+  successful: number;
+  failed: number;
+  expenses: Expense[];
+  unmatchedProjects: string[];
+  unmatchedVendors: string[];
+  errors: string[];
+}
+
+// Parse QuickBooks CSV (skip first 4 rows)
+export const parseQuickBooksCSV = (file: File): Promise<QBParseResult> => {
+  return new Promise((resolve) => {
+    Papa.parse(file, {
+      skipEmptyLines: true,
+      complete: (results) => {
+        // Skip first 4 rows (QuickBooks headers)
+        const dataRows = results.data.slice(4);
+        
+        // Assume the 5th row contains column headers
+        const headers = dataRows[0] as string[];
+        const actualData = dataRows.slice(1);
+
+        // Map to QB transaction format
+        const transactions: QBTransaction[] = actualData.map((row: any) => {
+          const transaction: QBTransaction = {} as QBTransaction;
+          headers.forEach((header, index) => {
+            const cleanHeader = header.toLowerCase().trim();
+            if (cleanHeader.includes('date')) {
+              transaction.date = row[index] || '';
+            } else if (cleanHeader.includes('type') || cleanHeader.includes('transaction')) {
+              transaction.transaction_type = row[index] || '';
+            } else if (cleanHeader.includes('project') || cleanHeader.includes('job') || cleanHeader.includes('wo')) {
+              transaction.project_wo_number = row[index] || '';
+            } else if (cleanHeader.includes('amount') || cleanHeader.includes('total')) {
+              transaction.amount = row[index] || '0';
+            } else if (cleanHeader.includes('name') || cleanHeader.includes('payee') || cleanHeader.includes('vendor')) {
+              transaction.name = row[index] || '';
+            }
+            transaction[header] = row[index] || '';
+          });
+          return transaction;
+        });
+
+        resolve({
+          data: transactions,
+          errors: results.errors.map(error => `Row ${error.row}: ${error.message}`),
+          headers
+        });
+      },
+      error: (error) => {
+        resolve({
+          data: [],
+          errors: [error.message],
+          headers: []
+        });
+      }
+    });
+  });
+};
+
+// Map QuickBooks transaction type to our internal type
+const mapQBTransactionType = (qbType: string): TransactionType => {
+  const type = qbType.toLowerCase().trim();
+  
+  if (type.includes('bill')) return 'bill';
+  if (type.includes('check')) return 'check';
+  if (type.includes('credit card') || type.includes('credit_card')) return 'credit_card';
+  if (type.includes('cash')) return 'cash';
+  
+  return 'expense'; // default
+};
+
+// Map QuickBooks transactions to expenses
+export const mapQuickBooksToExpenses = async (
+  transactions: QBTransaction[],
+  fileName: string
+): Promise<QBImportResult> => {
+  const result: QBImportResult = {
+    total: transactions.length,
+    successful: 0,
+    failed: 0,
+    expenses: [],
+    unmatchedProjects: [],
+    unmatchedVendors: [],
+    errors: []
+  };
+
+  try {
+    // Load projects and vendors for matching
+    const [projectsResponse, vendorsResponse] = await Promise.all([
+      supabase.from('projects').select('id, project_number, project_name'),
+      supabase.from('vendors').select('id, vendor_name, full_name')
+    ]);
+
+    const projects = projectsResponse.data || [];
+    const vendors = vendorsResponse.data || [];
+
+    // Find a default project for unmatched transactions
+    let defaultProject = projects.find(p => p.project_name.toLowerCase().includes('misc') || p.project_name.toLowerCase().includes('general'));
+    if (!defaultProject && projects.length > 0) {
+      defaultProject = projects[0]; // Use first project as fallback
+    }
+
+    if (!defaultProject) {
+      result.errors.push('No projects found in database. Please create at least one project before importing.');
+      return result;
+    }
+
+    for (const transaction of transactions) {
+      try {
+        // Parse date
+        let expense_date = new Date();
+        if (transaction.date) {
+          const parsedDate = new Date(transaction.date);
+          if (!isNaN(parsedDate.getTime())) {
+            expense_date = parsedDate;
+          }
+        }
+
+        // Parse amount - handle negative values and clean formatting
+        const cleanAmount = transaction.amount.replace(/[$,()]/g, '');
+        let amount = Math.abs(parseFloat(cleanAmount) || 0);
+
+        // Match project
+        let matchedProject = defaultProject;
+        if (transaction.project_wo_number) {
+          const foundProject = projects.find(p => 
+            p.project_number.toLowerCase() === transaction.project_wo_number.toLowerCase()
+          );
+          if (foundProject) {
+            matchedProject = foundProject;
+          } else {
+            if (!result.unmatchedProjects.includes(transaction.project_wo_number)) {
+              result.unmatchedProjects.push(transaction.project_wo_number);
+            }
+          }
+        }
+
+        // Match vendor
+        let vendorId: string | undefined;
+        if (transaction.name) {
+          const foundVendor = vendors.find(v => 
+            v.vendor_name.toLowerCase() === transaction.name.toLowerCase() ||
+            (v.full_name && v.full_name.toLowerCase() === transaction.name.toLowerCase())
+          );
+          if (foundVendor) {
+            vendorId = foundVendor.id;
+          } else {
+            if (!result.unmatchedVendors.includes(transaction.name)) {
+              result.unmatchedVendors.push(transaction.name);
+            }
+          }
+        }
+
+        // Create expense
+        const expense: Expense = {
+          id: crypto.randomUUID(),
+          project_id: matchedProject.id,
+          description: `${transaction.name || 'QB Import'} - ${transaction.transaction_type}`,
+          category: categorizeExpense(transaction.name || ''),
+          transaction_type: mapQBTransactionType(transaction.transaction_type),
+          amount,
+          expense_date,
+          vendor_id: vendorId,
+          is_planned: false,
+          created_at: new Date(),
+          updated_at: new Date()
+        };
+
+        result.expenses.push(expense);
+        result.successful++;
+
+      } catch (error) {
+        result.failed++;
+        result.errors.push(`Failed to process transaction: ${error}`);
+      }
+    }
+
+  } catch (error) {
+    result.errors.push(`Database error: ${error}`);
+  }
+
+  return result;
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, Plus, Upload, BarChart3, List } from "lucide-react";
+import { Receipt, Plus, Upload, BarChart3, List, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ExpenseDashboard } from "@/components/ExpenseDashboard";
@@ -7,6 +7,7 @@ import { ExpenseUpload } from "@/components/ExpenseUpload";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpensesList } from "@/components/ExpensesList";
 import { ProjectExpenseTracker } from "@/components/ProjectExpenseTracker";
+import { TransactionImportModal } from "@/components/TransactionImportModal";
 import { Expense } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +20,7 @@ const Expenses = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
   const [loading, setLoading] = useState(true);
+  const [showTransactionImport, setShowTransactionImport] = useState(false);
   const { toast } = useToast();
 
   // Load expenses from Supabase
@@ -137,10 +139,20 @@ const Expenses = () => {
             <p className="text-muted-foreground">Track project costs and manage expenses</p>
           </div>
         </div>
-        <Button onClick={handleCreateNew} className="flex items-center space-x-2">
-          <Plus className="h-4 w-4" />
-          <span>Add Expense</span>
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button 
+            onClick={() => setShowTransactionImport(true)} 
+            variant="outline"
+            className="flex items-center space-x-2"
+          >
+            <FileDown className="h-4 w-4" />
+            <span>Import Transactions</span>
+          </Button>
+          <Button onClick={handleCreateNew} className="flex items-center space-x-2">
+            <Plus className="h-4 w-4" />
+            <span>Add Expense</span>
+          </Button>
+        </div>
       </div>
 
       {viewMode === 'form' ? (
@@ -195,6 +207,12 @@ const Expenses = () => {
           </TabsContent>
         </Tabs>
       )}
+      
+      <TransactionImportModal
+        open={showTransactionImport}
+        onOpenChange={setShowTransactionImport}
+        onTransactionsImported={handleExpensesImported}
+      />
     </div>
   );
 };
