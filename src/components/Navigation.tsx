@@ -1,10 +1,11 @@
 import { NavLink } from "react-router-dom";
-import { Building2, FileText, Calculator, Receipt, TrendingUp, Users } from "lucide-react";
+import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Navigation = () => {
   const navItems = [
     { to: "/", label: "Dashboard", icon: Building2 },
+    { to: "/work-orders", label: "Work Orders", icon: Wrench },
     { to: "/estimates", label: "Estimates", icon: Calculator },
     { to: "/quotes", label: "Quotes", icon: FileText },
     { to: "/expenses", label: "Expenses", icon: Receipt },

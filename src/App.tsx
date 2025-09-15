@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
+import WorkOrders from "./pages/WorkOrders";
 import Estimates from "./pages/Estimates";
 import Quotes from "./pages/Quotes";
 import Expenses from "./pages/Expenses";
@@ -25,6 +26,7 @@ const App = () => (
           <main className="container mx-auto px-4 py-8">
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/work-orders" element={<WorkOrders />} />
               <Route path="/estimates" element={<Estimates />} />
               <Route path="/quotes" element={<Quotes />} />
               <Route path="/expenses" element={<Expenses />} />

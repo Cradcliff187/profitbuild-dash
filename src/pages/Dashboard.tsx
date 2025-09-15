@@ -3,11 +3,14 @@ import { Plus, TrendingUp, Building, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import WorkOrdersList from "@/components/WorkOrdersList";
+import CreateWorkOrderModal from "@/components/CreateWorkOrderModal";
 
 type ProjectStatus = "Estimating" | "In Progress" | "Complete";
 
@@ -46,6 +49,7 @@ const Dashboard = () => {
   ]);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showCreateWorkOrderModal, setShowCreateWorkOrderModal] = useState(false);
   const [newProject, setNewProject] = useState({
     name: "",
     client: "",
@@ -191,42 +195,76 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Projects List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Project List</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {projects.map((project) => (
-              <div
-                key={project.id}
-                className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3">
-                    <h3 className="font-semibold">{project.name}</h3>
-                    <Badge className={getStatusColor(project.status)}>
-                      {project.status}
-                    </Badge>
+      {/* Projects Tabs */}
+      <Tabs defaultValue="all-projects" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="all-projects">All Projects</TabsTrigger>
+          <TabsTrigger value="work-orders">Work Orders</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="all-projects">
+          <Card>
+            <CardHeader>
+              <CardTitle>All Projects</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {projects.map((project) => (
+                  <div
+                    key={project.id}
+                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <h3 className="font-semibold">{project.name}</h3>
+                        <Badge className={getStatusColor(project.status)}>
+                          {project.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Client: {project.client}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold">${project.profit.toLocaleString()}</div>
+                      <div className="text-sm text-muted-foreground">Profit</div>
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">Client: {project.client}</p>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold">${project.profit.toLocaleString()}</div>
-                  <div className="text-sm text-muted-foreground">Profit</div>
-                </div>
+                ))}
+                
+                {projects.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No projects yet. Add your first project to get started!
+                  </div>
+                )}
               </div>
-            ))}
-            
-            {projects.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                No projects yet. Add your first project to get started!
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="work-orders">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle>Work Orders</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Quick projects with optional estimates
+                </p>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              <Button onClick={() => setShowCreateWorkOrderModal(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create Work Order
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <WorkOrdersList />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <CreateWorkOrderModal 
+        open={showCreateWorkOrderModal}
+        onOpenChange={setShowCreateWorkOrderModal}
+      />
     </div>
   );
 };
