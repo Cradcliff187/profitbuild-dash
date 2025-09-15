@@ -8,78 +8,72 @@ import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpensesList } from "@/components/ExpensesList";
 import { ProjectExpenseTracker } from "@/components/ProjectExpenseTracker";
 import { Expense } from "@/types/expense";
-import { Estimate } from "@/types/estimate";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 type ViewMode = 'dashboard' | 'upload' | 'form' | 'list' | 'tracker';
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Load data from localStorage on mount
+  // Load expenses from Supabase
   useEffect(() => {
-    const savedExpenses = localStorage.getItem('expenses');
-    const savedEstimates = localStorage.getItem('estimates');
-    
-    if (savedExpenses) {
-      try {
-        const parsedExpenses = JSON.parse(savedExpenses).map((expense: any) => ({
-          ...expense,
-          date: new Date(expense.date),
-          createdAt: new Date(expense.createdAt),
-        }));
-        setExpenses(parsedExpenses);
-      } catch (error) {
-        console.error('Failed to parse expenses from localStorage:', error);
-      }
-    }
-
-    if (savedEstimates) {
-      try {
-        const parsedEstimates = JSON.parse(savedEstimates).map((estimate: any) => ({
-          ...estimate,
-          date: new Date(estimate.date),
-          createdAt: new Date(estimate.createdAt),
-        }));
-        setEstimates(parsedEstimates);
-      } catch (error) {
-        console.error('Failed to parse estimates from localStorage:', error);
-      }
-    }
+    loadExpenses();
   }, []);
 
-  // Save expenses to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('expenses', JSON.stringify(expenses));
-  }, [expenses]);
+  const loadExpenses = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('expenses')
+        .select(`
+          *,
+          vendors (
+            vendor_name
+          ),
+          projects (
+            project_name
+          )
+        `)
+        .order('expense_date', { ascending: false });
+
+      if (error) throw error;
+
+      const transformedExpenses: Expense[] = (data || []).map(expense => ({
+        ...expense,
+        expense_date: new Date(expense.expense_date),
+        created_at: new Date(expense.created_at),
+        updated_at: new Date(expense.updated_at),
+        vendor_name: expense.vendors?.vendor_name,
+        project_name: expense.projects?.project_name,
+      }));
+
+      setExpenses(transformedExpenses);
+    } catch (error) {
+      console.error('Error loading expenses:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load expenses.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSaveExpense = (expense: Expense) => {
-    const existingIndex = expenses.findIndex(e => e.id === expense.id);
-    if (existingIndex >= 0) {
-      const updatedExpenses = [...expenses];
-      updatedExpenses[existingIndex] = expense;
-      setExpenses(updatedExpenses);
-      toast({
-        title: "Expense Updated",
-        description: "The expense has been successfully updated.",
-      });
-    } else {
-      setExpenses([...expenses, expense]);
-      toast({
-        title: "Expense Added",
-        description: "The expense has been successfully added.",
-      });
-    }
+    // Refresh the expenses list
+    loadExpenses();
     setViewMode('list');
     setSelectedExpense(undefined);
   };
 
   const handleExpensesImported = (importedExpenses: Expense[]) => {
-    setExpenses([...expenses, ...importedExpenses]);
+    loadExpenses(); // Refresh to show imported expenses
     setViewMode('list');
   };
 
@@ -90,10 +84,6 @@ const Expenses = () => {
 
   const handleDeleteExpense = (id: string) => {
     setExpenses(expenses.filter(e => e.id !== id));
-    toast({
-      title: "Expense Deleted",
-      description: "The expense has been successfully deleted.",
-    });
   };
 
   const handleCreateNew = () => {
@@ -105,6 +95,17 @@ const Expenses = () => {
     setSelectedExpense(undefined);
     setViewMode('dashboard');
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading expenses...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -124,7 +125,6 @@ const Expenses = () => {
 
       {viewMode === 'form' ? (
         <ExpenseForm
-          estimates={estimates}
           expense={selectedExpense}
           onSave={handleSaveExpense}
           onCancel={handleCancel}
@@ -151,27 +151,26 @@ const Expenses = () => {
           </TabsList>
 
           <TabsContent value="dashboard">
-            <ExpenseDashboard expenses={expenses} estimates={estimates} />
+            <ExpenseDashboard expenses={expenses} />
           </TabsContent>
 
           <TabsContent value="list">
             <ExpensesList
               expenses={expenses}
-              estimates={estimates}
               onEdit={handleEditExpense}
               onDelete={handleDeleteExpense}
+              onRefresh={loadExpenses}
             />
           </TabsContent>
 
           <TabsContent value="upload">
             <ExpenseUpload
-              estimates={estimates}
               onExpensesImported={handleExpensesImported}
             />
           </TabsContent>
 
           <TabsContent value="tracker">
-            <ProjectExpenseTracker expenses={expenses} estimates={estimates} />
+            <ProjectExpenseTracker expenses={expenses} />
           </TabsContent>
         </Tabs>
       )}

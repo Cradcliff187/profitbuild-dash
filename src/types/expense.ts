@@ -1,36 +1,52 @@
-export type ExpenseCategory = 'Labor (Internal)' | 'Subcontractors' | 'Materials' | 'Equipment' | 'Other';
-export type ExpenseType = 'Planned' | 'Unplanned';
+// Database enum values - must match Supabase
+export type ExpenseCategory = 'labor_internal' | 'subcontractors' | 'materials' | 'equipment' | 'other';
+export type TransactionType = 'expense' | 'bill' | 'check' | 'credit_card' | 'cash';
+
+// Display mapping for UI
+export const EXPENSE_CATEGORY_DISPLAY: Record<ExpenseCategory, string> = {
+  'labor_internal': 'Labor (Internal)',
+  'subcontractors': 'Subcontractors', 
+  'materials': 'Materials',
+  'equipment': 'Equipment',
+  'other': 'Other'
+};
+
+export const TRANSACTION_TYPE_DISPLAY: Record<TransactionType, string> = {
+  'expense': 'Expense',
+  'bill': 'Bill',
+  'check': 'Check',
+  'credit_card': 'Credit Card',
+  'cash': 'Cash'
+};
 
 export interface Expense {
   id: string;
-  projectId: string;
-  description: string;
+  project_id: string;
+  description?: string;
   category: ExpenseCategory;
-  type: ExpenseType;
+  transaction_type: TransactionType;
   amount: number;
-  date: Date;
-  vendor?: string;
-  invoiceNumber?: string;
-  estimateLineItemId?: string;
-  createdAt: Date;
-  source: 'manual' | 'csv_import';
-  csvData?: {
-    originalRow: any;
-    importedAt: Date;
-    fileName: string;
-  };
+  expense_date: Date;
+  vendor_id?: string;
+  invoice_number?: string;
+  is_planned?: boolean;
+  created_at: Date;
+  updated_at: Date;
+  // Additional fields for display (populated from joins)
+  vendor_name?: string;
+  project_name?: string;
 }
 
 export interface ProjectExpenseSummary {
-  projectId: string;
-  projectName: string;
-  estimateTotal: number;
-  actualExpenses: number;
-  plannedExpenses: number;
-  unplannedExpenses: number;
+  project_id: string;
+  project_name: string;
+  estimate_total: number;
+  actual_expenses: number;
+  planned_expenses: number;
+  unplanned_expenses: number;
   variance: number;
-  percentageSpent: number;
-  categoryBreakdown: {
+  percentage_spent: number;
+  category_breakdown: {
     [key in ExpenseCategory]: {
       estimated: number;
       actual: number;
@@ -44,9 +60,31 @@ export interface CSVRow {
 }
 
 export interface ColumnMapping {
-  date?: string;
+  expense_date?: string;
   description?: string;
   amount?: string;
-  vendor?: string;
+  vendor_id?: string;
   category?: string;
+  transaction_type?: string;
+}
+
+// Legacy support for existing code
+export interface LegacyExpense {
+  id: string;
+  projectId: string;
+  description: string;
+  category: 'Labor (Internal)' | 'Subcontractors' | 'Materials' | 'Equipment' | 'Other';
+  type: 'Planned' | 'Unplanned';
+  amount: number;
+  date: Date;
+  vendor?: string;
+  invoiceNumber?: string;
+  estimateLineItemId?: string;
+  createdAt: Date;
+  source: 'manual' | 'csv_import';
+  csvData?: {
+    originalRow: any;
+    importedAt: Date;
+    fileName: string;
+  };
 }

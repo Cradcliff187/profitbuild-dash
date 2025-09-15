@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, Filter, Search, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,50 +7,99 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Expense, ExpenseCategory, ExpenseType } from '@/types/expense';
-import { Estimate } from '@/types/estimate';
+import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from '@/types/expense';
+import { Project } from '@/types/project';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface ExpensesListProps {
   expenses: Expense[];
-  estimates: Estimate[];
   onEdit: (expense: Expense) => void;
   onDelete: (id: string) => void;
+  onRefresh: () => void;
 }
 
-export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, estimates, onEdit, onDelete }) => {
+export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEdit, onDelete, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<ExpenseCategory | 'All'>('All');
-  const [filterType, setFilterType] = useState<ExpenseType | 'All'>('All');
+  const [filterTransactionType, setFilterTransactionType] = useState<TransactionType | 'All'>('All');
   const [filterProject, setFilterProject] = useState<string>('All');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const { toast } = useToast();
+
+  // Load projects for filter dropdown
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .order('project_name');
+
+        const transformedProjects = (data || []).map(project => ({
+          ...project,
+          start_date: project.start_date ? new Date(project.start_date) : undefined,
+          end_date: project.end_date ? new Date(project.end_date) : undefined,
+          created_at: new Date(project.created_at),
+          updated_at: new Date(project.updated_at),
+        }));
+        setProjects(transformedProjects);
+      } catch (error) {
+        console.error('Error loading projects:', error);
+      }
+    };
+
+    loadProjects();
+  }, []);
 
   const filteredExpenses = expenses.filter(expense => {
-    const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         expense.vendor?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         expense.vendor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         expense.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'All' || expense.category === filterCategory;
-    const matchesType = filterType === 'All' || expense.type === filterType;
-    const matchesProject = filterProject === 'All' || expense.projectId === filterProject;
+    const matchesTransactionType = filterTransactionType === 'All' || expense.transaction_type === filterTransactionType;
+    const matchesProject = filterProject === 'All' || expense.project_id === filterProject;
 
-    return matchesSearch && matchesCategory && matchesType && matchesProject;
+    return matchesSearch && matchesCategory && matchesTransactionType && matchesProject;
   });
 
-  const getProjectName = (projectId: string) => {
-    const estimate = estimates.find(e => e.id === projectId);
-    return estimate ? estimate.projectName : 'Unknown Project';
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      onDelete(id);
+      toast({
+        title: "Expense Deleted",
+        description: "The expense has been successfully deleted.",
+      });
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete expense.",
+        variant: "destructive",
+      });
+    }
   };
 
   const exportToCsv = () => {
-    const headers = ['Date', 'Project', 'Description', 'Category', 'Type', 'Amount', 'Vendor', 'Invoice Number'];
+    const headers = ['Date', 'Project', 'Description', 'Category', 'Transaction Type', 'Amount', 'Vendor', 'Invoice Number'];
     const csvContent = [
       headers.join(','),
       ...filteredExpenses.map(expense => [
-        expense.date.toLocaleDateString(),
-        `"${getProjectName(expense.projectId)}"`,
-        `"${expense.description}"`,
-        expense.category,
-        expense.type,
+        expense.expense_date.toLocaleDateString(),
+        `"${expense.project_name || 'Unknown Project'}"`,
+        `"${expense.description || ''}"`,
+        EXPENSE_CATEGORY_DISPLAY[expense.category],
+        TRANSACTION_TYPE_DISPLAY[expense.transaction_type],
         expense.amount.toFixed(2),
-        `"${expense.vendor || ''}"`,
-        `"${expense.invoiceNumber || ''}"`
+        `"${expense.vendor_name || ''}"`,
+        `"${expense.invoice_number || ''}"`
       ].join(','))
     ].join('\n');
 
@@ -102,9 +151,9 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, estimates,
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Projects</SelectItem>
-                {estimates.map(estimate => (
-                  <SelectItem key={estimate.id} value={estimate.id}>
-                    {estimate.projectName}
+                {projects.map(project => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.project_name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -116,21 +165,25 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, estimates,
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Categories</SelectItem>
-                <SelectItem value="Labor">Labor</SelectItem>
-                <SelectItem value="Materials">Materials</SelectItem>
-                <SelectItem value="Equipment">Equipment</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+                {Object.entries(EXPENSE_CATEGORY_DISPLAY).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
-            <Select value={filterType} onValueChange={(value) => setFilterType(value as ExpenseType | 'All')}>
+            <Select value={filterTransactionType} onValueChange={(value) => setFilterTransactionType(value as TransactionType | 'All')}>
               <SelectTrigger>
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Types</SelectItem>
-                <SelectItem value="Planned">Planned</SelectItem>
-                <SelectItem value="Unplanned">Unplanned</SelectItem>
+                {Object.entries(TRANSACTION_TYPE_DISPLAY).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -171,35 +224,35 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, estimates,
                 </TableHeader>
                 <TableBody>
                   {filteredExpenses
-                    .sort((a, b) => b.date.getTime() - a.date.getTime())
+                    .sort((a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime())
                     .map((expense) => (
                     <TableRow key={expense.id}>
-                      <TableCell>{expense.date.toLocaleDateString()}</TableCell>
+                      <TableCell>{new Date(expense.expense_date).toLocaleDateString()}</TableCell>
                       <TableCell className="font-medium">
-                        {getProjectName(expense.projectId)}
+                        {expense.project_name || 'Unknown Project'}
                       </TableCell>
                       <TableCell>
                         <div>
                           <p className="font-medium">{expense.description}</p>
-                          {expense.invoiceNumber && (
+                          {expense.invoice_number && (
                             <p className="text-xs text-muted-foreground">
-                              Invoice: {expense.invoiceNumber}
+                              Invoice: {expense.invoice_number}
                             </p>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{expense.category}</Badge>
+                        <Badge variant="outline">{EXPENSE_CATEGORY_DISPLAY[expense.category]}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={expense.type === 'Planned' ? 'default' : 'secondary'}>
-                          {expense.type}
+                        <Badge variant="secondary">
+                          {TRANSACTION_TYPE_DISPLAY[expense.transaction_type]}
                         </Badge>
                       </TableCell>
                       <TableCell className="font-medium">
                         ${expense.amount.toFixed(2)}
                       </TableCell>
-                      <TableCell>{expense.vendor || '-'}</TableCell>
+                      <TableCell>{expense.vendor_name || '-'}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
                           <Button
@@ -224,7 +277,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, estimates,
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => onDelete(expense.id)}>
+                                <AlertDialogAction onClick={() => handleDelete(expense.id)}>
                                   Delete
                                 </AlertDialogAction>
                               </AlertDialogFooter>
