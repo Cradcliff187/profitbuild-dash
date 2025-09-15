@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Building2, FileText, Calculator, Receipt } from "lucide-react";
+import { Building2, FileText, Calculator, Receipt, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Navigation = () => {
@@ -8,6 +8,7 @@ const Navigation = () => {
     { to: "/estimates", label: "Estimates", icon: Calculator },
     { to: "/quotes", label: "Quotes", icon: FileText },
     { to: "/expenses", label: "Expenses", icon: Receipt },
+    { to: "/profit-analysis", label: "Profit Analysis", icon: TrendingUp },
   ];
 
   return (
