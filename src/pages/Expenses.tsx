@@ -15,6 +15,7 @@ type ViewMode = 'dashboard' | 'upload' | 'form' | 'list' | 'tracker';
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
   const [loading, setLoading] = useState(true);

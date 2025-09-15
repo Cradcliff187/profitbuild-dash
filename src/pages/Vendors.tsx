@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { VendorForm } from "@/components/VendorForm";
 import { VendorsList } from "@/components/VendorsList";
+import { VendorImportModal } from "@/components/VendorImportModal";
 import type { Vendor } from "@/types/vendor";
 
 const Vendors = () => {
   const [showForm, setShowForm] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | undefined>(undefined);
   const [refreshList, setRefreshList] = useState(false);
 
@@ -23,6 +25,11 @@ const Vendors = () => {
   const handleFormSuccess = () => {
     setShowForm(false);
     setSelectedVendor(undefined);
+    setRefreshList(true);
+  };
+
+  const handleImportSuccess = () => {
+    setShowImportModal(false);
     setRefreshList(true);
   };
 
@@ -43,10 +50,16 @@ const Vendors = () => {
           <p className="text-muted-foreground">Manage your construction vendors</p>
         </div>
         {!showForm && (
-          <Button onClick={handleAddNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Vendor
-          </Button>
+          <div className="flex space-x-2">
+            <Button onClick={handleAddNew}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Vendor
+            </Button>
+            <Button variant="outline" onClick={() => setShowImportModal(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Import CSV
+            </Button>
+          </div>
         )}
       </div>
 
@@ -63,6 +76,12 @@ const Vendors = () => {
           onRefreshComplete={handleRefreshComplete}
         />
       )}
+
+      <VendorImportModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={handleImportSuccess}
+      />
     </div>
   );
 };

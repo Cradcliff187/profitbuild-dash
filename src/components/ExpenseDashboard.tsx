@@ -13,21 +13,21 @@ interface ExpenseDashboardProps {
 export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, estimates }) => {
   // Calculate summary statistics
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const plannedExpenses = expenses.filter(e => e.type === 'Planned').reduce((sum, e) => sum + e.amount, 0);
-  const unplannedExpenses = expenses.filter(e => e.type === 'Unplanned').reduce((sum, e) => sum + e.amount, 0);
+  const plannedExpenses = expenses.filter(e => e.is_planned === true).reduce((sum, e) => sum + e.amount, 0);
+  const unplannedExpenses = expenses.filter(e => e.is_planned === false).reduce((sum, e) => sum + e.amount, 0);
   const thisMonthExpenses = expenses.filter(e => {
     const now = new Date();
-    const expenseDate = new Date(e.date);
+    const expenseDate = new Date(e.expense_date);
     return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear();
   }).reduce((sum, e) => sum + e.amount, 0);
 
-  const totalEstimated = estimates.reduce((sum, estimate) => sum + estimate.total, 0);
+  const totalEstimated = estimates.reduce((sum, estimate) => sum + estimate.total_amount, 0);
   const budgetVariance = totalExpenses - totalEstimated;
   const budgetUtilization = totalEstimated > 0 ? (totalExpenses / totalEstimated) * 100 : 0;
 
   // Recent expenses (last 5)
   const recentExpenses = expenses
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
   // Category breakdown
@@ -38,15 +38,14 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
 
   // Project breakdown
   const projectTotals = expenses.reduce((acc, expense) => {
-    const estimate = estimates.find(e => e.id === expense.projectId);
-    const projectName = estimate ? estimate.projectName : 'Unknown Project';
+    const projectName = expense.project_name || 'Unknown Project';
     acc[projectName] = (acc[projectName] || 0) + expense.amount;
     return acc;
   }, {} as Record<string, number>);
 
   const getProjectName = (projectId: string) => {
-    const estimate = estimates.find(e => e.id === projectId);
-    return estimate ? estimate.projectName : 'Unknown Project';
+    const expense = expenses.find(e => e.project_id === projectId);
+    return expense?.project_name || 'Unknown Project';
   };
 
   return (
@@ -127,13 +126,13 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
                     <div className="flex-1">
                       <p className="font-medium text-sm">{expense.description}</p>
                       <p className="text-xs text-muted-foreground">
-                        {getProjectName(expense.projectId)} • {new Date(expense.date).toLocaleDateString()}
+                        {expense.project_name || 'Unknown Project'} • {new Date(expense.expense_date).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-medium">${expense.amount.toFixed(2)}</p>
-                      <Badge variant={expense.type === 'Planned' ? 'default' : 'secondary'} className="text-xs">
-                        {expense.type}
+                      <Badge variant={expense.is_planned ? 'default' : 'secondary'} className="text-xs">
+                        {expense.is_planned ? 'Planned' : 'Unplanned'}
                       </Badge>
                     </div>
                   </div>
@@ -198,8 +197,8 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
                 .sort(([,a], [,b]) => b - a)
                 .map(([projectName, amount]) => {
                   const percentage = totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0;
-                  const estimate = estimates.find(e => e.projectName === projectName);
-                  const estimatedAmount = estimate ? estimate.total : 0;
+                  const estimate = estimates.find(e => e.project_name === projectName);
+                  const estimatedAmount = estimate ? estimate.total_amount : 0;
                   const variance = amount - estimatedAmount;
                   
                   return (

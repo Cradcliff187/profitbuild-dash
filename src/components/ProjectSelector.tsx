@@ -45,9 +45,9 @@ export const ProjectSelector = ({
             <FolderOpen className="mr-2 h-4 w-4 text-muted-foreground" />
             {selectedEstimate ? (
               <div className="flex flex-col items-start">
-                <span className="font-medium">{selectedEstimate.projectName}</span>
+                <span className="font-medium">{selectedEstimate.project_name}</span>
                 <span className="text-sm text-muted-foreground">
-                  {selectedEstimate.client} • {selectedEstimate.estimateNumber}
+                  {selectedEstimate.estimate_number}
                 </span>
               </div>
             ) : (
@@ -66,7 +66,7 @@ export const ProjectSelector = ({
               {estimates.map((estimate) => (
                 <CommandItem
                   key={estimate.id}
-                  value={`${estimate.projectName} ${estimate.client} ${estimate.estimateNumber}`}
+                  value={`${estimate.project_name} ${estimate.estimate_number}`}
                   onSelect={() => {
                     onSelect(estimate);
                     setOpen(false);
@@ -79,9 +79,9 @@ export const ProjectSelector = ({
                     )}
                   />
                   <div className="flex flex-col">
-                    <span className="font-medium">{estimate.projectName}</span>
+                    <span className="font-medium">{estimate.project_name}</span>
                     <span className="text-sm text-muted-foreground">
-                      {estimate.client} • {estimate.estimateNumber} • ${estimate.total.toFixed(2)}
+                      {estimate.estimate_number} • ${estimate.total_amount.toFixed(2)}
                     </span>
                   </div>
                 </CommandItem>

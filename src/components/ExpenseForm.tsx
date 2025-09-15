@@ -72,7 +72,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
           .select('*')
           .order('created_at', { ascending: false });
 
-        const transformedProjects = (data || []).map(project => ({
+        const transformedProjects = (projectsData || []).map(project => ({
           ...project,
           start_date: project.start_date ? new Date(project.start_date) : undefined,
           end_date: project.end_date ? new Date(project.end_date) : undefined,

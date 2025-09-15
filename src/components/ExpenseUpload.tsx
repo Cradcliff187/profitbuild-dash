@@ -169,7 +169,7 @@ export const ExpenseUpload: React.FC<ExpenseUploadProps> = ({ estimates, onExpen
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Date Column</label>
-                <Select value={mapping.date || ''} onValueChange={(value) => setMapping({...mapping, date: value})}>
+                <Select value={mapping.expense_date || ''} onValueChange={(value) => setMapping({...mapping, expense_date: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select date column" />
                   </SelectTrigger>
@@ -211,7 +211,7 @@ export const ExpenseUpload: React.FC<ExpenseUploadProps> = ({ estimates, onExpen
 
               <div>
                 <label className="text-sm font-medium">Vendor Column</label>
-                <Select value={mapping.vendor || ''} onValueChange={(value) => setMapping({...mapping, vendor: value})}>
+                <Select value={mapping.vendor_id || ''} onValueChange={(value) => setMapping({...mapping, vendor_id: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select vendor column" />
                   </SelectTrigger>
@@ -275,9 +275,9 @@ export const ExpenseUpload: React.FC<ExpenseUploadProps> = ({ estimates, onExpen
                     <TableRow key={index}>
                       <TableCell>{mapping.description ? row[mapping.description] : '-'}</TableCell>
                       <TableCell>${mapping.amount ? parseFloat(row[mapping.amount].replace(/[$,]/g, '') || '0').toFixed(2) : '0.00'}</TableCell>
-                      <TableCell>{mapping.date ? new Date(row[mapping.date]).toLocaleDateString() : '-'}</TableCell>
+                      <TableCell>{mapping.expense_date ? new Date(row[mapping.expense_date]).toLocaleDateString() : '-'}</TableCell>
                       <TableCell>Auto-detected</TableCell>
-                      <TableCell>{mapping.vendor ? row[mapping.vendor] : '-'}</TableCell>
+                      <TableCell>{mapping.vendor_id ? row[mapping.vendor_id] : '-'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
