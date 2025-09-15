@@ -8,35 +8,61 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Construction-themed professional color palette */
+    --background: 0 0% 98%;
+    --foreground: 210 15% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 210 15% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 210 15% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Professional blue as primary */
+    --primary: 213 94% 28%;
+    --primary-foreground: 0 0% 98%;
+    
+    /* Construction orange accent */
+    --construction: 25 95% 53%;
+    --construction-foreground: 0 0% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 210 20% 92%;
+    --secondary-foreground: 210 15% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 15% 95%;
+    --muted-foreground: 210 10% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 25 95% 53%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Success for completed projects */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
 
-    --radius: 0.5rem;
+    /* Warning for in-progress */
+    --warning: 43 96% 56%;
+    --warning-foreground: 210 15% 15%;
+
+    --border: 210 15% 88%;
+    --input: 210 15% 88%;
+    --ring: 213 94% 28%;
+
+    --radius: 0.75rem;
+
+    /* Professional gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(213 94% 35%));
+    --gradient-construction: linear-gradient(135deg, hsl(var(--construction)), hsl(25 95% 60%));
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(210 15% 96%));
+
+    /* Professional shadows */
+    --shadow-card: 0 4px 6px -1px hsl(210 15% 15% / 0.1), 0 2px 4px -1px hsl(210 15% 15% / 0.06);
+    --shadow-elevated: 0 10px 25px -3px hsl(210 15% 15% / 0.1), 0 4px 6px -2px hsl(210 15% 15% / 0.05);
+
+    /* Smooth transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
 
