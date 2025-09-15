@@ -14,16 +14,515 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      companies: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          quickbooks_company_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          quickbooks_company_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          quickbooks_company_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      estimate_line_items: {
+        Row: {
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string | null
+          description: string
+          estimate_id: string
+          id: string
+          quantity: number | null
+          quickbooks_item_id: string | null
+          rate: number | null
+          sort_order: number | null
+          total: number | null
+          unit: string | null
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          description: string
+          estimate_id: string
+          id?: string
+          quantity?: number | null
+          quickbooks_item_id?: string | null
+          rate?: number | null
+          sort_order?: number | null
+          total?: number | null
+          unit?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          description?: string
+          estimate_id?: string
+          id?: string
+          quantity?: number | null
+          quickbooks_item_id?: string | null
+          rate?: number | null
+          sort_order?: number | null
+          total?: number | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_line_items_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          date_created: string | null
+          estimate_number: string
+          id: string
+          notes: string | null
+          project_id: string
+          revision_number: number | null
+          status: Database["public"]["Enums"]["estimate_status"] | null
+          total_amount: number | null
+          updated_at: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          date_created?: string | null
+          estimate_number: string
+          id?: string
+          notes?: string | null
+          project_id: string
+          revision_number?: number | null
+          status?: Database["public"]["Enums"]["estimate_status"] | null
+          total_amount?: number | null
+          updated_at?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          date_created?: string | null
+          estimate_number?: string
+          id?: string
+          notes?: string | null
+          project_id?: string
+          revision_number?: number | null
+          status?: Database["public"]["Enums"]["estimate_status"] | null
+          total_amount?: number | null
+          updated_at?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          account_full_name: string | null
+          account_name: string | null
+          amount: number
+          attachment_url: string | null
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string | null
+          description: string | null
+          expense_date: string | null
+          id: string
+          invoice_number: string | null
+          is_planned: boolean | null
+          project_id: string
+          quickbooks_transaction_id: string | null
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+          updated_at: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          account_full_name?: string | null
+          account_name?: string | null
+          amount: number
+          attachment_url?: string | null
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          description?: string | null
+          expense_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          is_planned?: boolean | null
+          project_id: string
+          quickbooks_transaction_id?: string | null
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          account_full_name?: string | null
+          account_name?: string | null
+          amount?: number
+          attachment_url?: string | null
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          description?: string | null
+          expense_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          is_planned?: boolean | null
+          project_id?: string
+          quickbooks_transaction_id?: string | null
+          transaction_type?: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          address: string | null
+          client_name: string
+          company_id: string
+          created_at: string | null
+          end_date: string | null
+          id: string
+          project_name: string
+          project_number: string
+          project_type: Database["public"]["Enums"]["project_type"] | null
+          quickbooks_job_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          client_name: string
+          company_id: string
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          project_name: string
+          project_number: string
+          project_type?: Database["public"]["Enums"]["project_type"] | null
+          quickbooks_job_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          client_name?: string
+          company_id?: string
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          project_name?: string
+          project_number?: string
+          project_type?: Database["public"]["Enums"]["project_type"] | null
+          quickbooks_job_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quickbooks_sync_log: {
+        Row: {
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string
+          error_message: string | null
+          id: string
+          quickbooks_id: string | null
+          status: Database["public"]["Enums"]["sync_status"] | null
+          sync_type: Database["public"]["Enums"]["sync_type"]
+          synced_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type: string
+          error_message?: string | null
+          id?: string
+          quickbooks_id?: string | null
+          status?: Database["public"]["Enums"]["sync_status"] | null
+          sync_type: Database["public"]["Enums"]["sync_type"]
+          synced_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          error_message?: string | null
+          id?: string
+          quickbooks_id?: string | null
+          status?: Database["public"]["Enums"]["sync_status"] | null
+          sync_type?: Database["public"]["Enums"]["sync_type"]
+          synced_at?: string | null
+        }
+        Relationships: []
+      }
+      quote_line_items: {
+        Row: {
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string | null
+          description: string | null
+          estimate_line_item_id: string | null
+          id: string
+          quantity: number | null
+          quote_id: string
+          rate: number | null
+          sort_order: number | null
+          total: number | null
+          unit: string | null
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          description?: string | null
+          estimate_line_item_id?: string | null
+          id?: string
+          quantity?: number | null
+          quote_id: string
+          rate?: number | null
+          sort_order?: number | null
+          total?: number | null
+          unit?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          description?: string | null
+          estimate_line_item_id?: string | null
+          id?: string
+          quantity?: number | null
+          quote_id?: string
+          rate?: number | null
+          sort_order?: number | null
+          total?: number | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_line_items_estimate_line_item_id_fkey"
+            columns: ["estimate_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_line_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          attachment_url: string | null
+          created_at: string | null
+          date_expires: string | null
+          date_received: string | null
+          estimate_id: string
+          id: string
+          notes: string | null
+          project_id: string
+          quote_number: string
+          status: Database["public"]["Enums"]["quote_status"] | null
+          total_amount: number | null
+          updated_at: string | null
+          vendor_id: string
+        }
+        Insert: {
+          attachment_url?: string | null
+          created_at?: string | null
+          date_expires?: string | null
+          date_received?: string | null
+          estimate_id: string
+          id?: string
+          notes?: string | null
+          project_id: string
+          quote_number: string
+          status?: Database["public"]["Enums"]["quote_status"] | null
+          total_amount?: number | null
+          updated_at?: string | null
+          vendor_id: string
+        }
+        Update: {
+          attachment_url?: string | null
+          created_at?: string | null
+          date_expires?: string | null
+          date_received?: string | null
+          estimate_id?: string
+          id?: string
+          notes?: string | null
+          project_id?: string
+          quote_number?: string
+          status?: Database["public"]["Enums"]["quote_status"] | null
+          total_amount?: number | null
+          updated_at?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          account_number: string | null
+          billing_address: string | null
+          company_id: string
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          is_active: boolean | null
+          phone_numbers: string | null
+          quickbooks_vendor_id: string | null
+          updated_at: string | null
+          vendor_name: string
+        }
+        Insert: {
+          account_number?: string | null
+          billing_address?: string | null
+          company_id: string
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          phone_numbers?: string | null
+          quickbooks_vendor_id?: string | null
+          updated_at?: string | null
+          vendor_name: string
+        }
+        Update: {
+          account_number?: string | null
+          billing_address?: string | null
+          company_id?: string
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          phone_numbers?: string | null
+          quickbooks_vendor_id?: string | null
+          updated_at?: string | null
+          vendor_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_company_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      estimate_status: "draft" | "sent" | "approved" | "rejected" | "expired"
+      expense_category:
+        | "labor_internal"
+        | "subcontractors"
+        | "materials"
+        | "equipment"
+        | "other"
+      project_status:
+        | "estimating"
+        | "quoted"
+        | "in_progress"
+        | "complete"
+        | "cancelled"
+      project_type: "construction_project" | "work_order"
+      quote_status: "pending" | "accepted" | "rejected" | "expired"
+      sync_status: "success" | "failed" | "pending"
+      sync_type: "import" | "export"
+      transaction_type: "expense" | "bill" | "check" | "credit_card" | "cash"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +649,27 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      estimate_status: ["draft", "sent", "approved", "rejected", "expired"],
+      expense_category: [
+        "labor_internal",
+        "subcontractors",
+        "materials",
+        "equipment",
+        "other",
+      ],
+      project_status: [
+        "estimating",
+        "quoted",
+        "in_progress",
+        "complete",
+        "cancelled",
+      ],
+      project_type: ["construction_project", "work_order"],
+      quote_status: ["pending", "accepted", "rejected", "expired"],
+      sync_status: ["success", "failed", "pending"],
+      sync_type: ["import", "export"],
+      transaction_type: ["expense", "bill", "check", "credit_card", "cash"],
+    },
   },
 } as const
