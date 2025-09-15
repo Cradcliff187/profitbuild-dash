@@ -1,35 +1,74 @@
 import { useState, useEffect } from "react";
 import { Calculator } from "lucide-react";
-import { EstimateForm } from "@/components/EstimateForm";
+import { ProjectForm } from "@/components/ProjectForm";
+import { ProjectEstimateForm } from "@/components/ProjectEstimateForm";
 import { EstimatesList } from "@/components/EstimatesList";
 import { Estimate } from "@/types/estimate";
+import { Project } from "@/types/project";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-type ViewMode = 'list' | 'create' | 'edit' | 'view';
+type ViewMode = 'list' | 'create-project' | 'create-estimate' | 'edit' | 'view';
 
 const Estimates = () => {
+  const { toast } = useToast();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate | null>(null);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
-  // Load estimates from localStorage on mount
+  // Load estimates from Supabase
   useEffect(() => {
-    const savedEstimates = localStorage.getItem('estimates');
-    if (savedEstimates) {
-      const parsedEstimates = JSON.parse(savedEstimates);
-      // Convert date strings back to Date objects
-      const estimatesWithDates = parsedEstimates.map((estimate: any) => ({
-        ...estimate,
-        date: new Date(estimate.date),
-        createdAt: new Date(estimate.createdAt)
-      }));
-      setEstimates(estimatesWithDates);
-    }
+    loadEstimates();
   }, []);
 
-  // Save estimates to localStorage whenever estimates change
-  useEffect(() => {
-    localStorage.setItem('estimates', JSON.stringify(estimates));
-  }, [estimates]);
+  const loadEstimates = async () => {
+    try {
+      const { data: estimatesData, error } = await supabase
+        .from('estimates')
+        .select(`
+          *,
+          projects (
+            project_name,
+            client_name
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedEstimates = estimatesData?.map((est: any) => ({
+        id: est.id,
+        project_id: est.project_id,
+        estimate_number: est.estimate_number,
+        date_created: new Date(est.date_created),
+        total_amount: est.total_amount,
+        status: est.status,
+        notes: est.notes,
+        valid_until: est.valid_until ? new Date(est.valid_until) : undefined,
+        revision_number: est.revision_number,
+        lineItems: [], // Will be loaded separately when needed
+        created_at: new Date(est.created_at),
+        updated_at: new Date(est.updated_at),
+        project_name: est.projects?.project_name,
+        client_name: est.projects?.client_name
+      })) || [];
+
+      setEstimates(formattedEstimates);
+    } catch (error) {
+      console.error('Error loading estimates:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load estimates.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSaveProject = (project: Project) => {
+    setCurrentProject(project);
+    // Projects are saved in ProjectForm component
+  };
 
   const handleSaveEstimate = (estimate: Estimate) => {
     if (selectedEstimate) {
@@ -41,11 +80,29 @@ const Estimates = () => {
     }
     setViewMode('list');
     setSelectedEstimate(null);
+    setCurrentProject(null);
+    loadEstimates(); // Refresh the list
   };
 
   const handleCreateNew = () => {
     setSelectedEstimate(null);
-    setViewMode('create');
+    setCurrentProject(null);
+    setViewMode('create-project');
+  };
+
+  const handleContinueToEstimate = (project: Project) => {
+    setCurrentProject(project);
+    setViewMode('create-estimate');
+  };
+
+  const handleContinueToExpenses = (project: Project) => {
+    // Navigate to expenses page with project context
+    toast({
+      title: "Project Created",
+      description: `Work order ${project.project_number} created. You can now track expenses.`
+    });
+    setViewMode('list');
+    setCurrentProject(null);
   };
 
   const handleEdit = (estimate: Estimate) => {
@@ -65,6 +122,7 @@ const Estimates = () => {
   const handleCancel = () => {
     setViewMode('list');
     setSelectedEstimate(null);
+    setCurrentProject(null);
   };
 
   return (
@@ -87,8 +145,18 @@ const Estimates = () => {
         />
       )}
 
-      {(viewMode === 'create' || viewMode === 'edit') && (
-        <EstimateForm
+      {viewMode === 'create-project' && (
+        <ProjectForm
+          onSave={handleSaveProject}
+          onCancel={handleCancel}
+          onContinueToEstimate={handleContinueToEstimate}
+          onContinueToExpenses={handleContinueToExpenses}
+        />
+      )}
+
+      {viewMode === 'create-estimate' && currentProject && (
+        <ProjectEstimateForm
+          project={currentProject}
           onSave={handleSaveEstimate}
           onCancel={handleCancel}
         />

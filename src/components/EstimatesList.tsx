@@ -59,8 +59,8 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
         <CardContent className="text-center py-12">
           <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
           <h3 className="text-lg font-semibold mb-2">No Estimates Yet</h3>
-          <p className="text-muted-foreground mb-6">Create your first estimate to get started.</p>
-          <Button onClick={onCreateNew}>Create First Estimate</Button>
+          <p className="text-muted-foreground mb-6">Create your first project to get started.</p>
+          <Button onClick={onCreateNew}>Create First Project</Button>
         </CardContent>
       </Card>
     );
@@ -73,7 +73,7 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
           <h2 className="text-2xl font-bold text-foreground">Estimates</h2>
           <p className="text-muted-foreground">{estimates.length} estimate{estimates.length === 1 ? '' : 's'} created</p>
         </div>
-        <Button onClick={onCreateNew}>Create New Estimate</Button>
+        <Button onClick={onCreateNew}>Create New Project</Button>
       </div>
 
       <div className="grid gap-6">
@@ -82,45 +82,31 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle className="text-lg">{estimate.projectName}</CardTitle>
+                  <CardTitle className="text-lg">{estimate.project_name}</CardTitle>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                    <span>Client: {estimate.client}</span>
+                    <span>Client: {estimate.client_name}</span>
                     <span>•</span>
-                    <span>{estimate.estimateNumber}</span>
+                    <span>{estimate.estimate_number}</span>
                     <span>•</span>
-                    <span>{format(estimate.date, 'MMM dd, yyyy')}</span>
+                    <span>{format(estimate.date_created, 'MMM dd, yyyy')}</span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-primary">${estimate.total.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-primary">${estimate.total_amount.toFixed(2)}</div>
                   <div className="text-sm text-muted-foreground">{estimate.lineItems.length} line item{estimate.lineItems.length === 1 ? '' : 's'}</div>
                 </div>
               </div>
             </CardHeader>
             
             <CardContent className="pt-0">
-              {/* Category breakdown */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {estimate.subtotals.labor > 0 && (
-                  <Badge variant="secondary" className={getCategoryBadgeColor('Labor')}>
-                    Labor: ${estimate.subtotals.labor.toFixed(2)}
-                  </Badge>
-                )}
-                {estimate.subtotals.materials > 0 && (
-                  <Badge variant="secondary" className={getCategoryBadgeColor('Materials')}>
-                    Materials: ${estimate.subtotals.materials.toFixed(2)}
-                  </Badge>
-                )}
-                {estimate.subtotals.equipment > 0 && (
-                  <Badge variant="secondary" className={getCategoryBadgeColor('Equipment')}>
-                    Equipment: ${estimate.subtotals.equipment.toFixed(2)}
-                  </Badge>
-                )}
-                {estimate.subtotals.other > 0 && (
-                  <Badge variant="secondary" className={getCategoryBadgeColor('Other')}>
-                    Other: ${estimate.subtotals.other.toFixed(2)}
-                  </Badge>
-                )}
+              {/* Status badge */}
+              <div className="flex items-center gap-2 mb-4">
+                <Badge variant="outline" className="text-sm">
+                  Status: {estimate.status}
+                </Badge>
+                <Badge variant="secondary" className="text-sm">
+                  Revision: {estimate.revision_number}
+                </Badge>
               </div>
 
               {/* Actions */}
