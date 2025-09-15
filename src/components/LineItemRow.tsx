@@ -11,7 +11,8 @@ interface LineItemRowProps {
 }
 
 const categoryColors = {
-  Labor: "border-l-blue-500",
+  "Labor (Internal)": "border-l-blue-500",
+  "Subcontractors": "border-l-amber-500",
   Materials: "border-l-green-500", 
   Equipment: "border-l-orange-500",
   Other: "border-l-purple-500"
@@ -36,7 +37,8 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Labor">Labor</SelectItem>
+            <SelectItem value="Labor (Internal)">Labor (Internal)</SelectItem>
+            <SelectItem value="Subcontractors">Subcontractors</SelectItem>
             <SelectItem value="Materials">Materials</SelectItem>
             <SelectItem value="Equipment">Equipment</SelectItem>
             <SelectItem value="Other">Other</SelectItem>

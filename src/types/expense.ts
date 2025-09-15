@@ -1,4 +1,4 @@
-export type ExpenseCategory = 'Labor' | 'Materials' | 'Equipment' | 'Other';
+export type ExpenseCategory = 'Labor (Internal)' | 'Subcontractors' | 'Materials' | 'Equipment' | 'Other';
 export type ExpenseType = 'Planned' | 'Unplanned';
 
 export interface Expense {

@@ -26,6 +26,7 @@ export const EstimateForm = ({ onSave, onCancel }: EstimateFormProps) => {
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [subtotals, setSubtotals] = useState({
     labor: 0,
+    subcontractors: 0,
     materials: 0,
     equipment: 0,
     other: 0
@@ -36,7 +37,7 @@ export const EstimateForm = ({ onSave, onCancel }: EstimateFormProps) => {
     return `EST-${Date.now().toString().slice(-6)}`;
   };
 
-  const createNewLineItem = (category: LineItemCategory = 'Labor'): LineItem => ({
+  const createNewLineItem = (category: LineItemCategory = 'Labor (Internal)'): LineItem => ({
     id: Date.now().toString() + Math.random(),
     category,
     description: '',
@@ -56,6 +57,7 @@ export const EstimateForm = ({ onSave, onCancel }: EstimateFormProps) => {
     // Calculate totals whenever line items change
     const newSubtotals = {
       labor: 0,
+      subcontractors: 0,
       materials: 0,
       equipment: 0,
       other: 0
@@ -64,8 +66,11 @@ export const EstimateForm = ({ onSave, onCancel }: EstimateFormProps) => {
     lineItems.forEach(item => {
       const itemTotal = item.quantity * item.rate;
       switch (item.category) {
-        case 'Labor':
+        case 'Labor (Internal)':
           newSubtotals.labor += itemTotal;
+          break;
+        case 'Subcontractors':
+          newSubtotals.subcontractors += itemTotal;
           break;
         case 'Materials':
           newSubtotals.materials += itemTotal;
@@ -241,10 +246,14 @@ export const EstimateForm = ({ onSave, onCancel }: EstimateFormProps) => {
           <Card className="bg-muted/50">
             <CardContent className="p-4">
               <div className="space-y-3">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Labor:</span>
                     <span className="font-medium">${subtotals.labor.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subcontractors:</span>
+                    <span className="font-medium">${subtotals.subcontractors.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Materials:</span>

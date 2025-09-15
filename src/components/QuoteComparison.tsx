@@ -22,12 +22,19 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
     const percentageDiff = estimateTotal > 0 ? (difference / estimateTotal) * 100 : 0;
 
     const categoryComparisons = {
-      Labor: {
+      "Labor (Internal)": {
         estimate: estimate.subtotals.labor,
         quote: quote.subtotals.labor,
         difference: quote.subtotals.labor - estimate.subtotals.labor,
         percentageDiff: estimate.subtotals.labor > 0 ? 
           ((quote.subtotals.labor - estimate.subtotals.labor) / estimate.subtotals.labor) * 100 : 0
+      },
+      "Subcontractors": {
+        estimate: estimate.subtotals.subcontractors,
+        quote: quote.subtotals.subcontractors,
+        difference: quote.subtotals.subcontractors - estimate.subtotals.subcontractors,
+        percentageDiff: estimate.subtotals.subcontractors > 0 ? 
+          ((quote.subtotals.subcontractors - estimate.subtotals.subcontractors) / estimate.subtotals.subcontractors) * 100 : 0
       },
       Materials: {
         estimate: estimate.subtotals.materials,

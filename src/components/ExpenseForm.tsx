@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 const expenseSchema = z.object({
   projectId: z.string().min(1, 'Project is required'),
   description: z.string().min(1, 'Description is required'),
-  category: z.enum(['Labor', 'Materials', 'Equipment', 'Other']),
+  category: z.enum(['Labor (Internal)', 'Subcontractors', 'Materials', 'Equipment', 'Other']),
   type: z.enum(['Planned', 'Unplanned']),
   amount: z.string().min(1, 'Amount is required'),
   date: z.date(),
@@ -44,7 +44,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ estimates, expense, on
     defaultValues: {
       projectId: expense?.projectId || '',
       description: expense?.description || '',
-      category: expense?.category || 'Materials',
+      category: expense?.category || 'Labor (Internal)',
       type: expense?.type || 'Unplanned',
       amount: expense?.amount.toString() || '',
       date: expense?.date || new Date(),
@@ -118,7 +118,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ estimates, expense, on
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Labor">Labor</SelectItem>
+                        <SelectItem value="Labor (Internal)">Labor (Internal)</SelectItem>
+                        <SelectItem value="Subcontractors">Subcontractors</SelectItem>
                         <SelectItem value="Materials">Materials</SelectItem>
                         <SelectItem value="Equipment">Equipment</SelectItem>
                         <SelectItem value="Other">Other</SelectItem>

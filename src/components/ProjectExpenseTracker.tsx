@@ -23,9 +23,14 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
     const percentageSpent = estimate.total > 0 ? (actualExpenses / estimate.total) * 100 : 0;
 
     const categoryBreakdown = {
-      Labor: {
+      "Labor (Internal)": {
         estimated: estimate.subtotals.labor,
-        actual: projectExpenses.filter(e => e.category === 'Labor').reduce((sum, e) => sum + e.amount, 0),
+        actual: projectExpenses.filter(e => e.category === 'Labor (Internal)').reduce((sum, e) => sum + e.amount, 0),
+        variance: 0
+      },
+      Subcontractors: {
+        estimated: estimate.subtotals.subcontractors,
+        actual: projectExpenses.filter(e => e.category === 'Subcontractors').reduce((sum, e) => sum + e.amount, 0),
         variance: 0
       },
       Materials: {

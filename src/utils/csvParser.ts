@@ -84,7 +84,7 @@ const categorizeExpense = (description: string): ExpenseCategory => {
   const desc = description.toLowerCase();
   
   if (desc.includes('labor') || desc.includes('wage') || desc.includes('payroll')) {
-    return 'Labor';
+    return 'Labor (Internal)';
   }
   if (desc.includes('material') || desc.includes('supply') || desc.includes('lumber') || desc.includes('concrete')) {
     return 'Materials';

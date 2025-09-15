@@ -21,6 +21,7 @@ export interface Quote {
   lineItems: QuoteLineItem[];
   subtotals: {
     labor: number;
+    subcontractors: number;
     materials: number;
     equipment: number;
     other: number;

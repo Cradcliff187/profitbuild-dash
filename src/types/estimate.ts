@@ -1,6 +1,6 @@
 export interface LineItem {
   id: string;
-  category: 'Labor' | 'Materials' | 'Equipment' | 'Other';
+  category: 'Labor (Internal)' | 'Subcontractors' | 'Materials' | 'Equipment' | 'Other';
   description: string;
   quantity: number;
   rate: number;
@@ -16,6 +16,7 @@ export interface Estimate {
   lineItems: LineItem[];
   subtotals: {
     labor: number;
+    subcontractors: number;
     materials: number;
     equipment: number;
     other: number;
