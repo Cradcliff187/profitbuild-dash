@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calculator } from "lucide-react";
 import { EstimateForm } from "@/components/EstimateForm";
 import { EstimatesList } from "@/components/EstimatesList";
@@ -10,6 +10,26 @@ const Estimates = () => {
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate | null>(null);
+
+  // Load estimates from localStorage on mount
+  useEffect(() => {
+    const savedEstimates = localStorage.getItem('estimates');
+    if (savedEstimates) {
+      const parsedEstimates = JSON.parse(savedEstimates);
+      // Convert date strings back to Date objects
+      const estimatesWithDates = parsedEstimates.map((estimate: any) => ({
+        ...estimate,
+        date: new Date(estimate.date),
+        createdAt: new Date(estimate.createdAt)
+      }));
+      setEstimates(estimatesWithDates);
+    }
+  }, []);
+
+  // Save estimates to localStorage whenever estimates change
+  useEffect(() => {
+    localStorage.setItem('estimates', JSON.stringify(estimates));
+  }, [estimates]);
 
   const handleSaveEstimate = (estimate: Estimate) => {
     if (selectedEstimate) {
