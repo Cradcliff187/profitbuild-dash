@@ -24,6 +24,7 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
   const [clientName, setClientName] = useState("");
   const [address, setAddress] = useState("");
   const [projectType, setProjectType] = useState<ProjectType>('construction_project');
+  const [jobType, setJobType] = useState("");
   const [projectNumber, setProjectNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -53,6 +54,7 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
           client_name: clientName.trim(),
           address: address.trim() || null,
           project_type: projectType,
+          job_type: jobType.trim() || null,
           project_number: projectNumber,
           status: 'estimating' as const,
           company_id: '00000000-0000-0000-0000-000000000000' // Placeholder, RLS will handle
@@ -68,6 +70,8 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
         client_name: insertedProject.client_name,
         address: insertedProject.address,
         project_type: insertedProject.project_type,
+        job_type: insertedProject.job_type,
+        qb_formatted_number: insertedProject.qb_formatted_number,
         project_number: insertedProject.project_number,
         status: insertedProject.status as any,
         company_id: insertedProject.company_id,
@@ -193,6 +197,17 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
                 </SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Job Type */}
+          <div className="space-y-2">
+            <Label htmlFor="jobType">Job Type</Label>
+            <Input
+              id="jobType"
+              value={jobType}
+              onChange={(e) => setJobType(e.target.value)}
+              placeholder="e.g., Residential, Commercial, Renovation"
+            />
           </div>
 
           {/* Next Steps Info */}

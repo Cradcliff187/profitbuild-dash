@@ -230,10 +230,12 @@ export type Database = {
           created_at: string | null
           end_date: string | null
           id: string
+          job_type: string | null
           last_synced_at: string | null
           project_name: string
           project_number: string
           project_type: Database["public"]["Enums"]["project_type"] | null
+          qb_formatted_number: string | null
           quickbooks_job_id: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["project_status"] | null
@@ -247,10 +249,12 @@ export type Database = {
           created_at?: string | null
           end_date?: string | null
           id?: string
+          job_type?: string | null
           last_synced_at?: string | null
           project_name: string
           project_number: string
           project_type?: Database["public"]["Enums"]["project_type"] | null
+          qb_formatted_number?: string | null
           quickbooks_job_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
@@ -264,10 +268,12 @@ export type Database = {
           created_at?: string | null
           end_date?: string | null
           id?: string
+          job_type?: string | null
           last_synced_at?: string | null
           project_name?: string
           project_number?: string
           project_type?: Database["public"]["Enums"]["project_type"] | null
+          qb_formatted_number?: string | null
           quickbooks_job_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
@@ -283,6 +289,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      quickbooks_account_mappings: {
+        Row: {
+          app_category: Database["public"]["Enums"]["expense_category"]
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          qb_account_full_path: string
+          qb_account_name: string
+          updated_at: string
+        }
+        Insert: {
+          app_category: Database["public"]["Enums"]["expense_category"]
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          qb_account_full_path: string
+          qb_account_name: string
+          updated_at?: string
+        }
+        Update: {
+          app_category?: Database["public"]["Enums"]["expense_category"]
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          qb_account_full_path?: string
+          qb_account_name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       quickbooks_sync_log: {
         Row: {
@@ -461,6 +500,7 @@ export type Database = {
           phone_numbers: string | null
           quickbooks_vendor_id: string | null
           sync_status: Database["public"]["Enums"]["sync_status"] | null
+          terms: string | null
           updated_at: string | null
           vendor_name: string
         }
@@ -477,6 +517,7 @@ export type Database = {
           phone_numbers?: string | null
           quickbooks_vendor_id?: string | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
+          terms?: string | null
           updated_at?: string | null
           vendor_name: string
         }
@@ -493,6 +534,7 @@ export type Database = {
           phone_numbers?: string | null
           quickbooks_vendor_id?: string | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
+          terms?: string | null
           updated_at?: string | null
           vendor_name?: string
         }

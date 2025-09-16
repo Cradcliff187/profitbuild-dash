@@ -2,9 +2,11 @@ export interface Project {
   id: string;
   project_name: string;
   project_number: string;
+  qb_formatted_number?: string;
   client_name: string;
   address?: string;
   project_type: ProjectType;
+  job_type?: string;
   status: ProjectStatus;
   start_date?: Date;
   end_date?: Date;
@@ -32,6 +34,7 @@ export interface CreateProjectRequest {
   client_name: string;
   address?: string;
   project_type: ProjectType;
+  job_type?: string;
   start_date?: Date;
   end_date?: Date;
 }

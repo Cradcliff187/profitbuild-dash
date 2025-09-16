@@ -6,6 +6,7 @@ export interface Vendor {
   billing_address?: string;
   full_name?: string;
   account_number?: string;
+  terms?: string;
   is_active: boolean;
   company_id: string;
   quickbooks_vendor_id?: string;
@@ -22,6 +23,7 @@ export interface CreateVendorData {
   billing_address?: string;
   full_name?: string;
   account_number?: string;
+  terms?: string;
 }
 
 export interface UpdateVendorData extends Partial<CreateVendorData> {

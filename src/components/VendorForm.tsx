@@ -16,6 +16,7 @@ const vendorSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   phone_numbers: z.string().optional(),
   billing_address: z.string().optional(),
+  terms: z.string().optional(),
 });
 
 type VendorFormData = z.infer<typeof vendorSchema>;
@@ -37,6 +38,7 @@ export const VendorForm = ({ vendor, onSuccess, onCancel }: VendorFormProps) => 
       email: vendor?.email || "",
       phone_numbers: vendor?.phone_numbers || "",
       billing_address: vendor?.billing_address || "",
+      terms: vendor?.terms || "Net 30",
     },
   });
 
@@ -50,6 +52,7 @@ export const VendorForm = ({ vendor, onSuccess, onCancel }: VendorFormProps) => 
           email: data.email || null,
           phone_numbers: data.phone_numbers || null,
           billing_address: data.billing_address || null,
+          terms: data.terms || "Net 30",
         };
 
         const { error } = await supabase
@@ -76,6 +79,7 @@ export const VendorForm = ({ vendor, onSuccess, onCancel }: VendorFormProps) => 
           email: data.email || null,
           phone_numbers: data.phone_numbers || null,
           billing_address: data.billing_address || null,
+          terms: data.terms || "Net 30",
           company_id: companyData,
         };
 
@@ -154,7 +158,7 @@ export const VendorForm = ({ vendor, onSuccess, onCancel }: VendorFormProps) => 
               )}
             />
 
-            <FormField
+             <FormField
               control={form.control}
               name="billing_address"
               render={({ field }) => (
@@ -162,6 +166,20 @@ export const VendorForm = ({ vendor, onSuccess, onCancel }: VendorFormProps) => 
                   <FormLabel>Billing Address</FormLabel>
                   <FormControl>
                     <Textarea {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="terms"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Terms</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Net 30, Net 15, COD" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
