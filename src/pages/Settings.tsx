@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Settings as SettingsIcon, User, Bell, Shield, Database } from "lucide-react";
+import { AccountMappingsManager } from "@/components/AccountMappingsManager";
 
 const Settings = () => {
   return (
@@ -110,6 +111,8 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
+
+        <AccountMappingsManager />
 
         <Card>
           <CardHeader>
