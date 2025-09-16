@@ -7,21 +7,38 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Expense, ProjectExpenseSummary, EXPENSE_CATEGORY_DISPLAY } from '@/types/expense';
 import { Estimate } from '@/types/estimate';
 import { VarianceBadge } from '@/components/ui/variance-badge';
+import { Database } from '@/integrations/supabase/types';
 
 interface ProjectExpenseTrackerProps {
   expenses: Expense[];
   estimates: Estimate[];
+  changeOrders?: Database['public']['Tables']['change_orders']['Row'][];
 }
 
-export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ expenses, estimates }) => {
+export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ expenses, estimates, changeOrders = [] }) => {
   const calculateProjectSummary = (estimate: Estimate): ProjectExpenseSummary => {
     const projectExpenses = expenses.filter(e => e.project_id === estimate.project_id);
     const actualExpenses = projectExpenses.reduce((sum, e) => sum + e.amount, 0);
     const plannedExpenses = projectExpenses.filter(e => e.is_planned === true).reduce((sum, e) => sum + e.amount, 0);
     const unplannedExpenses = projectExpenses.filter(e => e.is_planned === false).reduce((sum, e) => sum + e.amount, 0);
     
-    const variance = actualExpenses - estimate.total_amount;
-    const percentageSpent = estimate.total_amount > 0 ? (actualExpenses / estimate.total_amount) * 100 : 0;
+    // Get approved change orders for this project
+    const projectChangeOrders = changeOrders.filter(co => 
+      co.project_id === estimate.project_id && 
+      co.status === 'approved' &&
+      co.amount !== null
+    );
+    
+    // Sum approved change order amounts
+    const approvedChangeOrdersTotal = projectChangeOrders.reduce((sum, co) => 
+      sum + (co.amount || 0), 0
+    );
+    
+    // Calculate revised contract total
+    const revisedContractTotal = estimate.total_amount + approvedChangeOrdersTotal;
+    
+    const variance = actualExpenses - revisedContractTotal;
+    const percentageSpent = revisedContractTotal > 0 ? (actualExpenses / revisedContractTotal) * 100 : 0;
 
     const categoryBreakdown = {
       labor_internal: {
@@ -61,6 +78,8 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
       project_id: estimate.project_id || estimate.id,
       project_name: estimate.project_name || 'Unknown Project',
       estimate_total: estimate.total_amount,
+      approved_change_orders: approvedChangeOrdersTotal,
+      revised_contract_total: revisedContractTotal,
       actual_expenses: actualExpenses,
       planned_expenses: plannedExpenses,
       unplanned_expenses: unplannedExpenses,
@@ -72,8 +91,10 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
 
   const projectSummaries = estimates.map(calculateProjectSummary);
   const totalEstimated = projectSummaries.reduce((sum, p) => sum + p.estimate_total, 0);
+  const totalApprovedChanges = projectSummaries.reduce((sum, p) => sum + p.approved_change_orders, 0);
+  const totalRevisedContract = projectSummaries.reduce((sum, p) => sum + p.revised_contract_total, 0);
   const totalActual = projectSummaries.reduce((sum, p) => sum + p.actual_expenses, 0);
-  const totalVariance = totalActual - totalEstimated;
+  const totalVariance = totalActual - totalRevisedContract;
 
   const getVarianceColor = (variance: number) => {
     if (variance > 0) return 'text-red-600';
@@ -89,36 +110,43 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
 
   return (
     <div className="space-y-6">
+      {/* Contract Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Contract Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Original Contract</div>
+              <div className="text-xl font-semibold">${totalEstimated.toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Approved Changes</div>
+              <div className="text-xl font-semibold text-blue-600">+${totalApprovedChanges.toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Revised Contract</div>
+              <div className="text-2xl font-bold">${totalRevisedContract.toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Total Actual</div>
+              <div className="text-xl font-semibold">${totalActual.toFixed(2)}</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Overall Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Estimated</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalEstimated.toFixed(2)}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Actual</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalActual.toFixed(2)}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Variance</CardTitle>
+            <CardTitle className="text-sm font-medium">Variance vs Revised</CardTitle>
           </CardHeader>
           <CardContent>
             <VarianceBadge 
               variance={totalVariance}
-              percentage={(totalVariance / totalEstimated) * 100}
+              percentage={totalRevisedContract > 0 ? (totalVariance / totalRevisedContract) * 100 : 0}
               className="text-base font-bold"
             />
           </CardContent>
@@ -131,7 +159,19 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {totalEstimated > 0 ? ((totalActual / totalEstimated) * 100).toFixed(1) : '0'}%
+              {totalRevisedContract > 0 ? ((totalActual / totalRevisedContract) * 100).toFixed(1) : '0'}%
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Change Orders Impact</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {totalEstimated > 0 ? ((totalApprovedChanges / totalEstimated) * 100).toFixed(1) : '0'}%
             </div>
           </CardContent>
         </Card>
@@ -142,7 +182,8 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Projects are currently ${totalVariance.toFixed(2)} over budget. Review project expenses and consider adjusting scope or budgets.
+            Projects are currently ${totalVariance.toFixed(2)} over the revised contract total 
+            (including approved change orders). Review project expenses and consider scope adjustments.
           </AlertDescription>
         </Alert>
       )}
@@ -161,10 +202,29 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Contract Breakdown */}
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2 text-sm">Contract Summary</h4>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Original:</span>
+                    <div className="font-semibold">${summary.estimate_total.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Changes:</span>
+                    <div className="font-semibold text-blue-600">+${summary.approved_change_orders.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Revised:</span>
+                    <div className="font-bold">${summary.revised_contract_total.toFixed(2)}</div>
+                  </div>
+                </div>
+              </div>
+
               {/* Budget Progress */}
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span>Budget Progress</span>
+                  <span>Budget Progress vs Revised Contract</span>
                   <span>{summary.percentage_spent.toFixed(1)}%</span>
                 </div>
                 <Progress 
@@ -172,7 +232,7 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
                   className={summary.percentage_spent > 100 ? 'bg-red-100' : ''}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>Estimated: ${summary.estimate_total.toFixed(2)}</span>
+                  <span>Revised Contract: ${summary.revised_contract_total.toFixed(2)}</span>
                   <span>Actual: ${summary.actual_expenses.toFixed(2)}</span>
                 </div>
               </div>

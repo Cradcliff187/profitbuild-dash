@@ -17,6 +17,7 @@ type ViewMode = 'dashboard' | 'upload' | 'form' | 'list' | 'tracker';
 const Expenses = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [estimates, setEstimates] = useState<any[]>([]);
+  const [changeOrders, setChangeOrders] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
   const [loading, setLoading] = useState(true);
@@ -25,29 +26,32 @@ const Expenses = () => {
 
   // Load expenses from Supabase
   useEffect(() => {
-    loadExpenses();
-    loadEstimates();
+    fetchData();
   }, []);
 
-  const loadExpenses = async () => {
+  const fetchData = async () => {
     try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('expenses')
-        .select(`
-          *,
-          vendors (
-            vendor_name
-          ),
-          projects (
-            project_name
-          )
-        `)
-        .order('expense_date', { ascending: false });
+      const [expensesResult, estimatesResult, changeOrdersResult] = await Promise.all([
+        supabase.from('expenses')
+          .select(`
+            *,
+            vendors(vendor_name),
+            projects(project_name)
+          `),
+        supabase.from('estimates')
+          .select(`
+            *,
+            projects(project_name, client_name)
+          `),
+        supabase.from('change_orders')
+          .select('*')
+      ]);
 
-      if (error) throw error;
+      if (expensesResult.error) throw expensesResult.error;
+      if (estimatesResult.error) throw estimatesResult.error;
+      if (changeOrdersResult.error) throw changeOrdersResult.error;
 
-      const transformedExpenses: Expense[] = (data || []).map(expense => ({
+      const transformedExpenses: Expense[] = (expensesResult.data || []).map(expense => ({
         ...expense,
         expense_date: new Date(expense.expense_date),
         created_at: new Date(expense.created_at),
@@ -57,11 +61,13 @@ const Expenses = () => {
       }));
 
       setExpenses(transformedExpenses);
+      setEstimates(estimatesResult.data || []);
+      setChangeOrders(changeOrdersResult.data || []);
     } catch (error) {
-      console.error('Error loading expenses:', error);
+      console.error('Error loading data:', error);
       toast({
         title: "Error",
-        description: "Failed to load expenses.",
+        description: "Failed to load data.",
         variant: "destructive",
       });
     } finally {
@@ -69,33 +75,15 @@ const Expenses = () => {
     }
   };
 
-  const loadEstimates = async () => {
-    try {
-      const { data: estimates, error } = await supabase
-        .from('estimates')
-        .select(`
-          *,
-          projects(project_name, client_name)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      setEstimates(estimates || []);
-    } catch (error) {
-      console.error('Error loading estimates:', error);
-    }
-  };
-
   const handleSaveExpense = (expense: Expense) => {
     // Refresh the expenses list
-    loadExpenses();
+    fetchData();
     setViewMode('list');
     setSelectedExpense(undefined);
   };
 
   const handleExpensesImported = (importedExpenses: Expense[]) => {
-    loadExpenses(); // Refresh to show imported expenses
+    fetchData(); // Refresh to show imported expenses
     setViewMode('list');
   };
 
@@ -191,7 +179,7 @@ const Expenses = () => {
               expenses={expenses}
               onEdit={handleEditExpense}
               onDelete={handleDeleteExpense}
-              onRefresh={loadExpenses}
+              onRefresh={fetchData}
             />
           </TabsContent>
 
@@ -203,7 +191,7 @@ const Expenses = () => {
           </TabsContent>
 
           <TabsContent value="tracker">
-            <ProjectExpenseTracker expenses={expenses} estimates={estimates} />
+            <ProjectExpenseTracker expenses={expenses} estimates={estimates} changeOrders={changeOrders} />
           </TabsContent>
         </Tabs>
       )}

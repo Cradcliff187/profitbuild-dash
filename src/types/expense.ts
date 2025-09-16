@@ -41,6 +41,8 @@ export interface ProjectExpenseSummary {
   project_id: string;
   project_name: string;
   estimate_total: number;
+  approved_change_orders: number;
+  revised_contract_total: number;
   actual_expenses: number;
   planned_expenses: number;
   unplanned_expenses: number;
