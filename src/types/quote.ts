@@ -30,6 +30,7 @@ export interface Quote {
   };
   total: number;
   notes?: string;
+  attachment_url?: string; // PDF attachment URL from Supabase storage
   createdAt: Date;
 }
 

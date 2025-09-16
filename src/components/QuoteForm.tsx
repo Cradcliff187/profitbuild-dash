@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { ProjectSelector } from "./ProjectSelector";
 import { VendorSelector } from "./VendorSelector";
 import { LineItemRow } from "./LineItemRow";
+import { PdfUpload } from "./PdfUpload";
 import { Estimate, LineItem, LineItemCategory } from "@/types/estimate";
 import { Quote, QuoteLineItem } from "@/types/quote";
 import { Vendor } from "@/types/vendor";
@@ -31,6 +32,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   const [quotedBy, setQuotedBy] = useState("");
   const [dateReceived, setDateReceived] = useState<Date>(new Date());
   const [notes, setNotes] = useState("");
+  const [attachmentUrl, setAttachmentUrl] = useState<string>("");
+  const [attachmentFileName, setAttachmentFileName] = useState<string>("");
   const [lineItems, setLineItems] = useState<QuoteLineItem[]>([]);
   const [subtotals, setSubtotals] = useState({
     labor: 0,
@@ -73,6 +76,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       setDateReceived(initialQuote.dateReceived);
       setNotes(initialQuote.notes || "");
       setLineItems(initialQuote.lineItems);
+      setAttachmentUrl(initialQuote.attachment_url || "");
+      setAttachmentFileName(initialQuote.attachment_url ? "Attached PDF" : "");
       // Note: selectedVendor will be set when VendorSelector loads vendors
     }
   }, [initialQuote, estimates]);
@@ -187,6 +192,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       subtotals,
       total,
       notes: notes.trim() || undefined,
+      attachment_url: attachmentUrl || undefined,
       createdAt: initialQuote?.createdAt || new Date()
     };
 
@@ -345,6 +351,22 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Additional notes about this quote..."
                   rows={3}
+                />
+              </div>
+
+              {/* PDF Upload */}
+              <div className="space-y-2">
+                <Label>Quote Attachment</Label>
+                <PdfUpload
+                  onUpload={(url, fileName) => {
+                    setAttachmentUrl(url);
+                    setAttachmentFileName(fileName);
+                  }}
+                  existingFile={attachmentUrl ? { url: attachmentUrl, name: attachmentFileName } : undefined}
+                  onRemove={() => {
+                    setAttachmentUrl("");
+                    setAttachmentFileName("");
+                  }}
                 />
               </div>
             </>
