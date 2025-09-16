@@ -46,13 +46,20 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
       return 'awaiting-quotes';
     }
     
-    const lowestQuote = Math.min(...estimate.quotes.map(q => q.total_amount));
-    
-    if (lowestQuote < estimate.total_amount) {
+    // Check if any quote is under budget
+    const hasUnderBudgetQuote = estimate.quotes.some(q => q.total_amount < estimate.total_amount);
+    if (hasUnderBudgetQuote) {
       return 'under-budget';
-    } else {
+    }
+    
+    // Check if ALL quotes are over budget
+    const allQuotesOverBudget = estimate.quotes.every(q => q.total_amount > estimate.total_amount);
+    if (allQuotesOverBudget) {
       return 'over-budget';
     }
+    
+    // If we reach here, all quotes equal the estimate (edge case)
+    return 'awaiting-quotes';
   };
 
   const getCategoryBadgeColor = (category: string) => {
