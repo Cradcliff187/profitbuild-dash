@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import WorkOrdersList from "@/components/WorkOrdersList";
 import CreateWorkOrderModal from "@/components/CreateWorkOrderModal";
 import { calculateProjectProfit } from "@/utils/profitCalculations";
+import { getBudgetAlertThreshold } from "@/utils/budgetUtils";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
@@ -196,13 +197,16 @@ const Dashboard = () => {
           ? ((profitData.actualExpenses - estimate.total_amount) / estimate.total_amount) * 100
           : 0;
 
+        // Get the configurable budget threshold
+        const threshold = getBudgetAlertThreshold();
+        
         // Determine which budget was exceeded
         let budgetType: 'estimate' | 'quote' | 'both' | undefined;
-        if (quoteOveragePercentage > 10 && estimateOveragePercentage > 10) {
+        if (quoteOveragePercentage > threshold && estimateOveragePercentage > threshold) {
           budgetType = 'both';
-        } else if (quoteOveragePercentage > 10) {
+        } else if (quoteOveragePercentage > threshold) {
           budgetType = 'quote';
-        } else if (estimateOveragePercentage > 10) {
+        } else if (estimateOveragePercentage > threshold) {
           budgetType = 'estimate';
         }
 
@@ -221,10 +225,11 @@ const Dashboard = () => {
         };
       });
 
-      // Identify projects over budget by >10% (either estimate or quote)
+      // Identify projects over budget by configurable threshold (either estimate or quote)
+      const threshold = getBudgetAlertThreshold();
       const overBudget = projectsWithProfitData.filter(project => 
-        (project.overagePercentage && project.overagePercentage > 10) ||
-        (project.estimateOveragePercentage && project.estimateOveragePercentage > 10)
+        (project.overagePercentage && project.overagePercentage > threshold) ||
+        (project.estimateOveragePercentage && project.estimateOveragePercentage > threshold)
       );
 
       setProjects(formattedProjects);

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +7,23 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Settings as SettingsIcon, User, Bell, Shield, Database } from "lucide-react";
 import { AccountMappingsManager } from "@/components/AccountMappingsManager";
+import { getBudgetAlertThreshold, setBudgetAlertThreshold } from "@/utils/budgetUtils";
 
 const Settings = () => {
+  const [budgetThreshold, setBudgetThresholdState] = useState<number>(10);
+
+  useEffect(() => {
+    setBudgetThresholdState(getBudgetAlertThreshold());
+  }, []);
+
+  const handleThresholdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseFloat(e.target.value);
+    if (!isNaN(value) && value > 0 && value <= 100) {
+      setBudgetThresholdState(value);
+      setBudgetAlertThreshold(value);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <header className="flex items-center space-x-2">
@@ -108,6 +124,23 @@ const Settings = () => {
             <div className="space-y-2">
               <Label>Default Currency</Label>
               <Input placeholder="USD" defaultValue="USD" />
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <Label htmlFor="budgetThreshold">Budget Alert Threshold (%)</Label>
+              <Input 
+                id="budgetThreshold"
+                type="number" 
+                min="1"
+                max="100"
+                step="0.1"
+                value={budgetThreshold}
+                onChange={handleThresholdChange}
+                placeholder="10"
+              />
+              <p className="text-sm text-muted-foreground">
+                Alert when actual expenses exceed estimates or quotes by this percentage
+              </p>
             </div>
           </CardContent>
         </Card>
