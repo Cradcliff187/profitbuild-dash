@@ -6,6 +6,7 @@ import { QuotesList } from "@/components/QuotesList";
 import { QuoteComparison } from "@/components/QuoteComparison";
 import { Quote } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const Quotes = () => {
@@ -14,57 +15,226 @@ const Quotes = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<Quote>();
+  const [loading, setLoading] = useState(true);
 
-  // Load data from localStorage on mount
+  // Load data from Supabase on mount
   useEffect(() => {
-    const savedQuotes = localStorage.getItem('quotes');
-    if (savedQuotes) {
-      const parsedQuotes = JSON.parse(savedQuotes);
-      // Convert date strings back to Date objects
-      const quotesWithDates = parsedQuotes.map((quote: any) => ({
-        ...quote,
-        dateReceived: new Date(quote.dateReceived),
-        createdAt: new Date(quote.createdAt)
-      }));
-      setQuotes(quotesWithDates);
-    }
-
-    const savedEstimates = localStorage.getItem('estimates');
-    if (savedEstimates) {
-      const parsedEstimates = JSON.parse(savedEstimates);
-      // Convert date strings back to Date objects
-      const estimatesWithDates = parsedEstimates.map((estimate: any) => ({
-        ...estimate,
-        date: new Date(estimate.date),
-        createdAt: new Date(estimate.createdAt)
-      }));
-      setEstimates(estimatesWithDates);
-    }
+    fetchData();
   }, []);
 
-  // Save quotes to localStorage whenever quotes change
-  useEffect(() => {
-    localStorage.setItem('quotes', JSON.stringify(quotes));
-  }, [quotes]);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch quotes with related data
+      const { data: quotesData, error: quotesError } = await supabase
+        .from('quotes')
+        .select(`
+          *,
+          vendors(vendor_name),
+          projects(project_name, client_name),
+          quote_line_items(*)
+        `);
+      
+      if (quotesError) throw quotesError;
 
-  const handleSaveQuote = (quote: Quote) => {
-    if (selectedQuote) {
-      // Editing existing quote
-      setQuotes(prev => prev.map(q => q.id === quote.id ? quote : q));
-    } else {
-      // Creating new quote
-      setQuotes(prev => [...prev, quote]);
+      // Fetch estimates with related data
+      const { data: estimatesData, error: estimatesError } = await supabase
+        .from('estimates')
+        .select(`
+          *,
+          projects(project_name, client_name)
+        `);
+
+      if (estimatesError) throw estimatesError;
+
+      // Transform quotes to match the expected Quote type
+      const transformedQuotes: Quote[] = (quotesData || []).map(quote => ({
+        id: quote.id,
+        project_id: quote.project_id,
+        estimate_id: quote.estimate_id,
+        projectName: quote.projects?.project_name || '',
+        client: quote.projects?.client_name || '',
+        vendor_id: quote.vendor_id,
+        quotedBy: quote.vendors?.vendor_name || '',
+        dateReceived: new Date(quote.date_received),
+        quoteNumber: quote.quote_number,
+        lineItems: quote.quote_line_items?.map((item: any) => ({
+          id: item.id,
+          estimateLineItemId: item.estimate_line_item_id,
+          category: item.category,
+          description: item.description,
+          quantity: item.quantity,
+          rate: item.rate,
+          total: item.total
+        })) || [],
+        subtotals: {
+          labor: 0,
+          subcontractors: 0,
+          materials: 0,
+          equipment: 0,
+          other: 0
+        },
+        total: quote.total_amount,
+        notes: quote.notes,
+        attachment_url: quote.attachment_url,
+        createdAt: new Date(quote.created_at)
+      }));
+
+      // Transform estimates to match the expected Estimate type
+      const transformedEstimates: Estimate[] = (estimatesData || []).map(estimate => ({
+        id: estimate.id,
+        project_id: estimate.project_id,
+        project_name: estimate.projects?.project_name || '',
+        client_name: estimate.projects?.client_name || '',
+        estimate_number: estimate.estimate_number,
+        revision_number: estimate.revision_number,
+        date: new Date(estimate.date_created),
+        date_created: new Date(estimate.date_created),
+        total_amount: estimate.total_amount,
+        status: estimate.status,
+        notes: estimate.notes,
+        created_at: new Date(estimate.created_at),
+        updated_at: new Date(estimate.updated_at),
+        createdAt: new Date(estimate.created_at),
+        lineItems: []
+      }));
+
+      setQuotes(transformedQuotes);
+      setEstimates(transformedEstimates);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load quotes and estimates.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-    setView('list');
-    setSelectedQuote(undefined);
   };
 
-  const handleDeleteQuote = (quoteId: string) => {
-    setQuotes(prev => prev.filter(q => q.id !== quoteId));
-    toast({
-      title: "Quote Deleted",
-      description: "The quote has been successfully deleted."
-    });
+  const handleSaveQuote = async (quote: Quote) => {
+    try {
+      if (selectedQuote) {
+        // Update existing quote
+        const { error } = await supabase
+          .from('quotes')
+          .update({
+            project_id: quote.project_id,
+            estimate_id: quote.estimate_id,
+            vendor_id: quote.vendor_id,
+            quote_number: quote.quoteNumber,
+            date_received: quote.dateReceived.toISOString().split('T')[0],
+            total_amount: quote.total,
+            notes: quote.notes,
+            attachment_url: quote.attachment_url,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', quote.id);
+
+        if (error) throw error;
+        
+        // Update line items - delete existing and insert new ones
+        await supabase.from('quote_line_items').delete().eq('quote_id', quote.id);
+        
+        if (quote.lineItems.length > 0) {
+          const { error: lineItemsError } = await supabase
+            .from('quote_line_items')
+            .insert(quote.lineItems.map(item => ({
+              quote_id: quote.id,
+              estimate_line_item_id: item.estimateLineItemId,
+              category: item.category,
+              description: item.description,
+              quantity: item.quantity,
+              rate: item.rate,
+              total: item.total,
+              sort_order: 0
+            })));
+
+          if (lineItemsError) throw lineItemsError;
+        }
+      } else {
+        // Create new quote
+        const { data: quoteData, error: quoteError } = await supabase
+          .from('quotes')
+          .insert({
+            project_id: quote.project_id,
+            estimate_id: quote.estimate_id,
+            vendor_id: quote.vendor_id,
+            quote_number: quote.quoteNumber,
+            date_received: quote.dateReceived.toISOString().split('T')[0],
+            total_amount: quote.total,
+            notes: quote.notes,
+            attachment_url: quote.attachment_url,
+            status: 'pending'
+          })
+          .select()
+          .single();
+
+        if (quoteError) throw quoteError;
+
+        // Insert line items
+        if (quote.lineItems.length > 0) {
+          const { error: lineItemsError } = await supabase
+            .from('quote_line_items')
+            .insert(quote.lineItems.map(item => ({
+              quote_id: quoteData.id,
+              estimate_line_item_id: item.estimateLineItemId,
+              category: item.category,
+              description: item.description,
+              quantity: item.quantity,
+              rate: item.rate,
+              total: item.total,
+              sort_order: 0
+            })));
+
+          if (lineItemsError) throw lineItemsError;
+        }
+      }
+
+      await fetchData(); // Refresh the data
+      setView('list');
+      setSelectedQuote(undefined);
+      
+      toast({
+        title: selectedQuote ? "Quote Updated" : "Quote Created",
+        description: `Quote ${quote.quoteNumber} has been ${selectedQuote ? 'updated' : 'created'} successfully.`
+      });
+    } catch (error) {
+      console.error('Error saving quote:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save quote. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteQuote = async (quoteId: string) => {
+    try {
+      // Delete line items first
+      await supabase.from('quote_line_items').delete().eq('quote_id', quoteId);
+      
+      // Delete the quote
+      const { error } = await supabase.from('quotes').delete().eq('id', quoteId);
+      
+      if (error) throw error;
+      
+      await fetchData(); // Refresh the data
+      
+      toast({
+        title: "Quote Deleted",
+        description: "The quote has been successfully deleted."
+      });
+    } catch (error) {
+      console.error('Error deleting quote:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete quote. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditQuote = (quote: Quote) => {
@@ -79,6 +249,17 @@ const Quotes = () => {
 
   const selectedEstimate = selectedQuote ? 
     estimates.find(est => est.project_id === selectedQuote.project_id) : undefined;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading quotes...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
