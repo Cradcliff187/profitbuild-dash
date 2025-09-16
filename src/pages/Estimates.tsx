@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { Calculator } from "lucide-react";
 import { ProjectForm } from "@/components/ProjectForm";
 import { ProjectEstimateForm } from "@/components/ProjectEstimateForm";
+import { EstimateForm } from "@/components/EstimateForm";
 import { EstimatesList } from "@/components/EstimatesList";
 import { Estimate } from "@/types/estimate";
 import { Project } from "@/types/project";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-type ViewMode = 'list' | 'create-project' | 'create-estimate' | 'edit' | 'view';
+type ViewMode = 'list' | 'create-project' | 'create-estimate' | 'create-unified' | 'edit' | 'view';
 
 const Estimates = () => {
   const { toast } = useToast();
@@ -87,6 +88,12 @@ const Estimates = () => {
   const handleCreateNew = () => {
     setSelectedEstimate(null);
     setCurrentProject(null);
+    setViewMode('create-unified');
+  };
+
+  const handleCreateWithProject = () => {
+    setSelectedEstimate(null);
+    setCurrentProject(null);
     setViewMode('create-project');
   };
 
@@ -139,9 +146,17 @@ const Estimates = () => {
         <EstimatesList
           estimates={estimates}
           onCreateNew={handleCreateNew}
+          onCreateWithProject={handleCreateWithProject}
           onEdit={handleEdit}
           onView={handleView}
           onDelete={handleDelete}
+        />
+      )}
+
+      {viewMode === 'create-unified' && (
+        <EstimateForm
+          onSave={handleSaveEstimate}
+          onCancel={handleCancel}
         />
       )}
 

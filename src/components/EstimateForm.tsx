@@ -1,0 +1,635 @@
+import { useState, useEffect } from "react";
+import { Calculator, Building2, Save, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
+import { Project, ProjectType, generateProjectNumber } from "@/types/project";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface EstimateFormProps {
+  onSave: (estimate: Estimate) => void;
+  onCancel: () => void;
+}
+
+type ProjectMode = 'existing' | 'new';
+
+export const EstimateForm = ({ onSave, onCancel }: EstimateFormProps) => {
+  const { toast } = useToast();
+  
+  // Project selection mode
+  const [projectMode, setProjectMode] = useState<ProjectMode>('new');
+  const [existingProjects, setExistingProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  
+  // New project fields
+  const [projectName, setProjectName] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [address, setAddress] = useState("");
+  const [projectType, setProjectType] = useState<ProjectType>('construction_project');
+  const [jobType, setJobType] = useState("");
+  const [projectNumber, setProjectNumber] = useState("");
+  
+  // Estimate fields
+  const [date, setDate] = useState<Date>(new Date());
+  const [validUntil, setValidUntil] = useState<Date | undefined>(undefined);
+  const [notes, setNotes] = useState("");
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setProjectNumber(generateProjectNumber());
+    loadExistingProjects();
+  }, []);
+
+  const loadExistingProjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('status', 'estimating')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      const projects = data?.map(p => ({
+        ...p,
+        created_at: new Date(p.created_at),
+        updated_at: new Date(p.updated_at),
+        start_date: p.start_date ? new Date(p.start_date) : undefined,
+        end_date: p.end_date ? new Date(p.end_date) : undefined,
+      })) || [];
+      
+      setExistingProjects(projects);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+  };
+
+  const generateEstimateNumber = (projectNum: string) => {
+    return `EST-${projectNum}-${Date.now().toString().slice(-4)}`;
+  };
+
+  const createNewLineItem = (category: LineItemCategory = 'labor_internal'): LineItem => ({
+    id: Date.now().toString() + Math.random(),
+    category,
+    description: '',
+    quantity: 1,
+    rate: 0,
+    total: 0,
+    unit: '',
+    sort_order: lineItems.length
+  });
+
+  useEffect(() => {
+    if (lineItems.length === 0) {
+      setLineItems([createNewLineItem()]);
+    }
+  }, []);
+
+  const updateLineItem = (id: string, field: keyof LineItem, value: any) => {
+    setLineItems(prev =>
+      prev.map(item => {
+        if (item.id === id) {
+          const updated = { ...item, [field]: value };
+          if (field === 'quantity' || field === 'rate') {
+            updated.total = updated.quantity * updated.rate;
+          }
+          return updated;
+        }
+        return item;
+      })
+    );
+  };
+
+  const removeLineItem = (id: string) => {
+    if (lineItems.length > 1) {
+      setLineItems(prev => prev.filter(item => item.id !== id));
+    }
+  };
+
+  const addLineItem = () => {
+    setLineItems(prev => [...prev, createNewLineItem()]);
+  };
+
+  const calculateTotal = () => {
+    return lineItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+  };
+
+  const validateForm = () => {
+    const validLineItems = lineItems.filter(item => item.description.trim());
+    
+    if (validLineItems.length === 0) {
+      toast({
+        title: "Missing Line Items",
+        description: "Please add at least one line item with a description.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (projectMode === 'new') {
+      if (!projectName.trim() || !clientName.trim()) {
+        toast({
+          title: "Missing Project Information",
+          description: "Please fill in project name and client name.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    } else {
+      if (!selectedProjectId) {
+        toast({
+          title: "No Project Selected",
+          description: "Please select an existing project.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    
+    try {
+      let finalProjectId = selectedProjectId;
+      let project: Project;
+      
+      // Create project first if needed
+      if (projectMode === 'new') {
+        const { data: insertedProject, error: projectError } = await supabase
+          .from('projects')
+          .insert({
+            project_name: projectName.trim(),
+            client_name: clientName.trim(),
+            address: address.trim() || null,
+            project_type: projectType,
+            job_type: jobType.trim() || null,
+            project_number: projectNumber,
+            status: 'estimating' as const,
+            company_id: '00000000-0000-0000-0000-000000000000' // RLS will handle
+          })
+          .select()
+          .single();
+
+        if (projectError) throw projectError;
+        
+        finalProjectId = insertedProject.id;
+        project = {
+          ...insertedProject,
+          created_at: new Date(insertedProject.created_at),
+          updated_at: new Date(insertedProject.updated_at),
+          start_date: insertedProject.start_date ? new Date(insertedProject.start_date) : undefined,
+          end_date: insertedProject.end_date ? new Date(insertedProject.end_date) : undefined,
+        };
+      } else {
+        project = existingProjects.find(p => p.id === finalProjectId)!;
+      }
+
+      // Create estimate
+      const estimateNumber = generateEstimateNumber(project.project_number);
+      const totalAmount = calculateTotal();
+      const validLineItems = lineItems.filter(item => item.description.trim());
+      
+      const { data: estimateData, error: estimateError } = await supabase
+        .from('estimates')
+        .insert({
+          project_id: finalProjectId,
+          estimate_number: estimateNumber,
+          date_created: date.toISOString().split('T')[0],
+          total_amount: totalAmount,
+          status: 'draft' as const,
+          notes: notes.trim() || undefined,
+          valid_until: validUntil?.toISOString().split('T')[0],
+          revision_number: 1
+        })
+        .select()
+        .single();
+
+      if (estimateError) throw estimateError;
+
+      // Create line items
+      const lineItemsData = validLineItems.map((item, index) => ({
+        estimate_id: estimateData.id,
+        category: item.category,
+        description: item.description.trim(),
+        quantity: item.quantity,
+        rate: item.rate,
+        total: item.quantity * item.rate,
+        unit: item.unit || undefined,
+        sort_order: index
+      }));
+
+      const { error: lineItemsError } = await supabase
+        .from('estimate_line_items')
+        .insert(lineItemsData);
+
+      if (lineItemsError) throw lineItemsError;
+
+      const newEstimate: Estimate = {
+        id: estimateData.id,
+        project_id: estimateData.project_id,
+        estimate_number: estimateData.estimate_number,
+        date_created: new Date(estimateData.date_created),
+        total_amount: estimateData.total_amount,
+        status: estimateData.status as any,
+        notes: estimateData.notes,
+        valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
+        revision_number: estimateData.revision_number,
+        lineItems: validLineItems,
+        created_at: new Date(estimateData.created_at),
+        updated_at: new Date(estimateData.updated_at),
+        project_name: project.project_name,
+        client_name: project.client_name
+      };
+
+      onSave(newEstimate);
+      
+      toast({
+        title: "Estimate Created",
+        description: `Estimate ${estimateNumber} has been created successfully.`
+      });
+
+    } catch (error) {
+      console.error('Error creating estimate:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create estimate. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const regenerateProjectNumber = () => {
+    setProjectNumber(generateProjectNumber());
+  };
+
+  const selectedProject = existingProjects.find(p => p.id === selectedProjectId);
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="h-5 w-5" />
+            Create New Estimate
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Project Selection */}
+          <div className="space-y-4">
+            <Label>Project Selection</Label>
+            <RadioGroup value={projectMode} onValueChange={(value: ProjectMode) => setProjectMode(value)}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="existing" id="existing" />
+                <Label htmlFor="existing">Use existing project</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="new" id="new" />
+                <Label htmlFor="new">Create new project</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {/* Existing Project Selection */}
+          {projectMode === 'existing' && (
+            <div className="space-y-2">
+              <Label>Select Project</Label>
+              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose an existing project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {existingProjects.map(project => (
+                    <SelectItem key={project.id} value={project.id}>
+                      <div className="flex flex-col items-start">
+                        <span>{project.project_name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {project.project_number} • {project.client_name}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {selectedProject && (
+                <Card className="bg-muted/50">
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium">Project:</span> {selectedProject.project_name}
+                      </div>
+                      <div>
+                        <span className="font-medium">Client:</span> {selectedProject.client_name}
+                      </div>
+                      <div>
+                        <span className="font-medium">Number:</span> {selectedProject.project_number}
+                      </div>
+                      <div>
+                        <span className="font-medium">Type:</span> {selectedProject.project_type.replace('_', ' ')}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* New Project Fields */}
+          {projectMode === 'new' && (
+            <Card className="border-dashed">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Building2 className="h-4 w-4" />
+                  New Project Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Project Number */}
+                <div className="space-y-2">
+                  <Label>Project Number</Label>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-lg px-4 py-2 font-mono">
+                      {projectNumber}
+                    </Badge>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={regenerateProjectNumber}
+                    >
+                      Regenerate
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Basic Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="projectName">Project Name *</Label>
+                    <Input
+                      id="projectName"
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      placeholder="Enter project name"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="clientName">Client Name *</Label>
+                    <Input
+                      id="clientName"
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      placeholder="Enter client name"
+                    />
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div className="space-y-2">
+                  <Label htmlFor="address">Project Address</Label>
+                  <Textarea
+                    id="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Enter project address"
+                    rows={2}
+                  />
+                </div>
+
+                {/* Project Type and Job Type */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Project Type</Label>
+                    <Select value={projectType} onValueChange={(value: ProjectType) => setProjectType(value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="construction_project">Construction Project</SelectItem>
+                        <SelectItem value="work_order">Work Order</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="jobType">Job Type</Label>
+                    <Input
+                      id="jobType"
+                      value={jobType}
+                      onChange={(e) => setJobType(e.target.value)}
+                      placeholder="e.g., Residential, Commercial"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Separator />
+
+          {/* Estimate Details */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Estimate Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Estimate Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {date ? format(date, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={(date) => date && setDate(date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Valid Until (Optional)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !validUntil && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {validUntil ? format(validUntil, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={validUntil}
+                      onSelect={setValidUntil}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Input
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Additional notes"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Line Items */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Line Items</h3>
+              <Button onClick={addLineItem} variant="outline" size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Line Item
+              </Button>
+            </div>
+
+            {/* Line Items Header */}
+            <div className="grid grid-cols-12 gap-4 p-2 text-sm font-medium text-muted-foreground border-b">
+              <div className="col-span-2">Category</div>
+              <div className="col-span-4">Description</div>
+              <div className="col-span-2">Quantity</div>
+              <div className="col-span-2">Rate</div>
+              <div className="col-span-1 text-right">Total</div>
+              <div className="col-span-1"></div>
+            </div>
+
+            {/* Line Items */}
+            <div className="space-y-3">
+              {lineItems.map(lineItem => (
+                <div key={lineItem.id} className="grid grid-cols-12 gap-4 items-center">
+                  <div className="col-span-2">
+                    <Select
+                      value={lineItem.category}
+                      onValueChange={(value: LineItemCategory) => updateLineItem(lineItem.id, 'category', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(CATEGORY_DISPLAY_MAP).map(([key, display]) => (
+                          <SelectItem key={key} value={key}>
+                            {display}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="col-span-4">
+                    <Input
+                      value={lineItem.description}
+                      onChange={(e) => updateLineItem(lineItem.id, 'description', e.target.value)}
+                      placeholder="Description"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <Input
+                      type="number"
+                      value={lineItem.quantity}
+                      onChange={(e) => updateLineItem(lineItem.id, 'quantity', parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <Input
+                      type="number"
+                      value={lineItem.rate}
+                      onChange={(e) => updateLineItem(lineItem.id, 'rate', parseFloat(e.target.value) || 0)}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  
+                  <div className="col-span-1 text-right font-medium">
+                    ${(lineItem.quantity * lineItem.rate).toFixed(2)}
+                  </div>
+                  
+                  <div className="col-span-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeLineItem(lineItem.id)}
+                      disabled={lineItems.length <= 1}
+                    >
+                      ×
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Total */}
+          <Card className="bg-muted/50">
+            <CardContent className="p-4">
+              <div className="flex justify-between items-center text-lg font-bold">
+                <span>Estimate Total:</span>
+                <span className="text-primary">${calculateTotal().toFixed(2)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-4">
+            <Button onClick={handleSave} className="flex-1" disabled={isLoading}>
+              <Save className="h-4 w-4 mr-2" />
+              {isLoading ? "Creating..." : "Create Estimate"}
+            </Button>
+            <Button onClick={onCancel} variant="outline" disabled={isLoading}>
+              Cancel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
