@@ -30,7 +30,7 @@ export const QuotesList = ({ quotes, estimates, onDelete, onCompare }: QuotesLis
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const getEstimateForQuote = (quote: Quote): Estimate | undefined => {
-    return estimates.find(est => est.id === quote.estimateId);
+    return estimates.find(est => est.project_id === quote.project_id);
   };
 
   const getBudgetVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {

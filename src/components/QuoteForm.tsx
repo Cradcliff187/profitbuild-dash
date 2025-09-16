@@ -158,7 +158,8 @@ export const QuoteForm = ({ estimates, onSave, onCancel }: QuoteFormProps) => {
 
     const quote: Quote = {
       id: Date.now().toString(),
-      estimateId: selectedEstimate.id,
+      project_id: selectedEstimate.project_id,
+      estimate_id: selectedEstimate.id,
       projectName: selectedEstimate.project_name || '',
       client: selectedEstimate.client_name || '',
       quotedBy: quotedBy.trim(),

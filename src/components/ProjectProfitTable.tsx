@@ -113,12 +113,12 @@ export default function ProjectProfitTable({ data }: ProjectProfitTableProps) {
               ) : (
                 sortedData.map((project) => (
                   <TableRow key={project.projectId}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{project.projectName}</div>
-                        <div className="text-sm text-muted-foreground">{project.client}</div>
-                      </div>
-                    </TableCell>
+                     <TableCell>
+                       <div>
+                         <div className="font-medium">{project.projectName}</div>
+                         <div className="text-sm text-muted-foreground">{project.client}</div>
+                       </div>
+                     </TableCell>
                     <TableCell>
                       {getStatusBadge(project.status)}
                     </TableCell>

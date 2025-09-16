@@ -66,7 +66,7 @@ const Quotes = () => {
   };
 
   const selectedEstimate = selectedQuote ? 
-    estimates.find(est => est.id === selectedQuote.estimateId) : undefined;
+    estimates.find(est => est.project_id === selectedQuote.project_id) : undefined;
 
   return (
     <div className="space-y-8">

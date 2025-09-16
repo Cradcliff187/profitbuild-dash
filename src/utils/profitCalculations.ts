@@ -9,14 +9,14 @@ export function calculateProjectProfit(
   expenses: Expense[]
 ): ProjectProfitData {
   // Find the best quote for this project (lowest total)
-  const projectQuotes = quotes.filter(q => q.estimateId === estimate.id);
+  const projectQuotes = quotes.filter(q => q.project_id === estimate.project_id);
   const bestQuote = projectQuotes.reduce((best, current) => 
     current.total < best.total ? current : best, 
     projectQuotes[0] || { total: 0, quotedBy: 'No Quote', dateReceived: new Date() }
   );
   
   // Calculate actual expenses for this project
-  const projectExpenses = expenses.filter(e => e.project_id === estimate.id);
+  const projectExpenses = expenses.filter(e => e.project_id === estimate.project_id);
   const actualExpenses = projectExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   
   // Calculate profits
@@ -35,9 +35,9 @@ export function calculateProjectProfit(
   }
   
   return {
-    projectId: estimate.id,
-    projectName: estimate.project_name || '',
-    client: estimate.client_name || '',
+    projectId: estimate.project_id,
+    projectName: estimate.project_name || `Project for ${estimate.estimate_number}`,
+    client: estimate.client_name || 'Unknown Client',
     estimateTotal: estimate.total_amount,
     quoteTotal,
     actualExpenses,

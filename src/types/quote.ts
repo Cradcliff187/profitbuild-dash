@@ -12,9 +12,10 @@ export interface QuoteLineItem {
 
 export interface Quote {
   id: string;
-  estimateId: string; // Links to original estimate
-  projectName: string; // Copied from estimate
-  client: string; // Copied from estimate
+  project_id: string; // Links to project
+  estimate_id?: string; // Optional link to specific estimate
+  projectName: string; // Copied from project
+  client: string; // Copied from project
   quotedBy: string; // Subcontractor name
   dateReceived: Date;
   quoteNumber: string;
