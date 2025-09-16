@@ -10,6 +10,7 @@ import Quotes from "./pages/Quotes";
 import Expenses from "./pages/Expenses";
 import Vendors from "./pages/Vendors";
 import ProfitAnalysis from "./pages/ProfitAnalysis";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
 
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/expenses" element={<Expenses />} />
               <Route path="/vendors" element={<Vendors />} />
               <Route path="/profit-analysis" element={<ProfitAnalysis />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
