@@ -1,6 +1,7 @@
 import Papa from 'papaparse';
 import { CSVRow, ColumnMapping, Expense, ExpenseCategory, TransactionType } from '@/types/expense';
 import { supabase } from '@/integrations/supabase/client';
+import { fuzzyMatchVendor, PartialVendor } from '@/utils/fuzzyVendorMatcher';
 
 // Robust amount parser for QuickBooks and other CSV formats
 const parseQuickBooksAmount = (amount: string | number): number => {
@@ -152,6 +153,13 @@ export interface QBTransaction {
   [key: string]: string;
 }
 
+export interface VendorMatchInfo {
+  qbName: string;
+  matchedVendor: PartialVendor;
+  confidence: number;
+  matchType: 'exact' | 'fuzzy' | 'auto';
+}
+
 export interface QBImportResult {
   total: number;
   successful: number;
@@ -159,6 +167,14 @@ export interface QBImportResult {
   expenses: Expense[];
   unmatchedProjects: string[];
   unmatchedVendors: string[];
+  fuzzyMatches: VendorMatchInfo[];
+  lowConfidenceMatches: Array<{
+    qbName: string;
+    suggestions: Array<{
+      vendor: PartialVendor;
+      confidence: number;
+    }>;
+  }>;
   errors: string[];
 }
 
@@ -237,6 +253,8 @@ export const mapQuickBooksToExpenses = async (
     expenses: [],
     unmatchedProjects: [],
     unmatchedVendors: [],
+    fuzzyMatches: [],
+    lowConfidenceMatches: [],
     errors: []
   };
 
@@ -290,16 +308,40 @@ export const mapQuickBooksToExpenses = async (
           }
         }
 
-        // Match vendor
+        // Match vendor with fuzzy matching
         let vendorId: string | undefined;
         if (transaction.name) {
-          const foundVendor = vendors.find(v => 
-            v.vendor_name.toLowerCase() === transaction.name.toLowerCase() ||
-            (v.full_name && v.full_name.toLowerCase() === transaction.name.toLowerCase())
-          );
-          if (foundVendor) {
-            vendorId = foundVendor.id;
+          const matchResult = fuzzyMatchVendor(transaction.name, vendors);
+          
+          if (matchResult.bestMatch) {
+            vendorId = matchResult.bestMatch.vendor.id;
+            
+            // Record the match info
+            result.fuzzyMatches.push({
+              qbName: transaction.name,
+              matchedVendor: matchResult.bestMatch.vendor,
+              confidence: matchResult.bestMatch.confidence,
+              matchType: matchResult.bestMatch.confidence >= 85 ? 'auto' : 
+                        matchResult.bestMatch.matchType === 'exact' ? 'exact' : 'fuzzy'
+            });
+          } else if (matchResult.matches.length > 0) {
+            // Has suggestions but no auto-match
+            const suggestions = matchResult.matches
+              .filter(match => match.confidence >= 40)
+              .slice(0, 3) // Top 3 suggestions
+              .map(match => ({
+                vendor: match.vendor,
+                confidence: match.confidence
+              }));
+            
+            if (suggestions.length > 0) {
+              result.lowConfidenceMatches.push({
+                qbName: transaction.name,
+                suggestions
+              });
+            }
           } else {
+            // No matches found
             if (!result.unmatchedVendors.includes(transaction.name)) {
               result.unmatchedVendors.push(transaction.name);
             }

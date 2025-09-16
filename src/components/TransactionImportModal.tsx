@@ -7,7 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Upload, FileDown, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
-import { parseQuickBooksCSV, mapQuickBooksToExpenses, QBParseResult, QBImportResult } from "@/utils/csvParser";
+import { parseQuickBooksCSV, mapQuickBooksToExpenses, QBParseResult, QBImportResult, VendorMatchInfo } from "@/utils/csvParser";
+import { PartialVendor } from "@/utils/fuzzyVendorMatcher";
 import { Expense } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -253,6 +254,69 @@ export const TransactionImportModal: React.FC<TransactionImportModalProps> = ({
             <strong>Unmatched Projects:</strong> {importResult.unmatchedProjects.join(', ')}
             <br />
             These transactions were assigned to a default project. Review and reassign as needed.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Fuzzy Match Results */}
+      {importResult && importResult.fuzzyMatches.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              Vendor Matches Found ({importResult.fuzzyMatches.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-32 overflow-y-auto">
+              {importResult.fuzzyMatches.map((match, index) => (
+                <div key={index} className="flex items-center justify-between text-sm">
+                  <span className="font-medium">{match.qbName}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">→</span>
+                    <span>{match.matchedVendor.vendor_name}</span>
+                    <Badge 
+                      variant={match.confidence >= 85 ? "default" : "secondary"}
+                      className="text-xs"
+                    >
+                      {Math.round(match.confidence)}%
+                      {match.matchType === 'exact' ? ' exact' : 
+                       match.matchType === 'auto' ? ' auto' : ' fuzzy'}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Low Confidence Matches */}
+      {importResult && importResult.lowConfidenceMatches.length > 0 && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Potential Vendor Matches:</strong>
+            <div className="mt-2 space-y-2">
+              {importResult.lowConfidenceMatches.map((item, index) => (
+                <div key={index} className="text-sm">
+                  <span className="font-medium">{item.qbName}</span>
+                  <div className="ml-4 mt-1">
+                    {item.suggestions.map((suggestion, suggestionIndex) => (
+                      <div key={suggestionIndex} className="flex items-center gap-2">
+                        <span className="text-muted-foreground">• {suggestion.vendor.vendor_name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {Math.round(suggestion.confidence)}%
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-xs">
+              Review these potential matches and update your vendor records as needed.
+            </p>
           </AlertDescription>
         </Alert>
       )}
