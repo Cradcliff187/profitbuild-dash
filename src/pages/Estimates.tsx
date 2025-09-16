@@ -25,7 +25,8 @@ const Estimates = () => {
 
   const loadEstimates = async () => {
     try {
-      const { data: estimatesData, error } = await supabase
+      // First get estimates with project data
+      const { data: estimatesData, error: estimatesError } = await supabase
         .from('estimates')
         .select(`
           *,
@@ -36,7 +37,23 @@ const Estimates = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (estimatesError) throw estimatesError;
+
+      // Then get quotes for each estimate
+      const { data: quotesData, error: quotesError } = await supabase
+        .from('quotes')
+        .select('id, estimate_id, total_amount');
+
+      if (quotesError) throw quotesError;
+
+      // Create a map of quotes by estimate_id
+      const quotesByEstimate = (quotesData || []).reduce((acc: any, quote: any) => {
+        if (!acc[quote.estimate_id]) {
+          acc[quote.estimate_id] = [];
+        }
+        acc[quote.estimate_id].push(quote);
+        return acc;
+      }, {});
 
       const formattedEstimates = estimatesData?.map((est: any) => ({
         id: est.id,
@@ -52,7 +69,8 @@ const Estimates = () => {
         created_at: new Date(est.created_at),
         updated_at: new Date(est.updated_at),
         project_name: est.projects?.project_name,
-        client_name: est.projects?.client_name
+        client_name: est.projects?.client_name,
+        quotes: quotesByEstimate[est.id] || []
       })) || [];
 
       setEstimates(formattedEstimates);

@@ -8,9 +8,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format } from "date-fns";
 import { Estimate } from "@/types/estimate";
 import { useToast } from "@/hooks/use-toast";
+import { QuoteStatusBadge, QuoteStatus } from "@/components/QuoteStatusBadge";
 
 interface EstimatesListProps {
-  estimates: Estimate[];
+  estimates: (Estimate & { quotes?: Array<{ id: string; total_amount: number }> })[];
   onEdit: (estimate: Estimate) => void;
   onDelete: (id: string) => void;
   onView: (estimate: Estimate) => void;
@@ -38,6 +39,20 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
     }
     setDeleteDialogOpen(false);
     setEstimateToDelete(null);
+  };
+
+  const getQuoteStatus = (estimate: Estimate & { quotes?: Array<{ id: string; total_amount: number }> }): QuoteStatus => {
+    if (!estimate.quotes || estimate.quotes.length === 0) {
+      return 'awaiting-quotes';
+    }
+    
+    const lowestQuote = Math.min(...estimate.quotes.map(q => q.total_amount));
+    
+    if (lowestQuote < estimate.total_amount) {
+      return 'under-budget';
+    } else {
+      return 'over-budget';
+    }
   };
 
   const getCategoryBadgeColor = (category: string) => {
@@ -149,8 +164,9 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
             </CardHeader>
             
             <CardContent className="pt-0">
-              {/* Status badge */}
-              <div className="flex items-center gap-2 mb-4">
+              {/* Status badges */}
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
+                <QuoteStatusBadge status={getQuoteStatus(estimate)} />
                 <Badge variant="outline" className="text-sm">
                   Status: {estimate.status}
                 </Badge>
