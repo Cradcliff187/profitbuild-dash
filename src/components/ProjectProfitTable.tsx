@@ -1,13 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ProjectProfitData } from '@/types/profit';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowUpDown, TrendingUp, TrendingDown } from 'lucide-react';
+import { SyncStatusBadge } from '@/components/SyncStatusBadge';
+import { markProjectAsSynced, resetProjectSyncStatus } from '@/utils/syncUtils';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProjectProfitTableProps {
   data: ProjectProfitData[];
+}
+
+interface ProjectSyncData {
+  id: string;
+  sync_status: 'success' | 'failed' | 'pending' | null;
+  last_synced_at: string | null;
 }
 
 type SortField = 'projectName' | 'actualProfit' | 'profitMargin' | 'profitVariance' | 'status';
@@ -16,6 +26,35 @@ type SortDirection = 'asc' | 'desc';
 export default function ProjectProfitTable({ data }: ProjectProfitTableProps) {
   const [sortField, setSortField] = useState<SortField>('actualProfit');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [projectSyncData, setProjectSyncData] = useState<Record<string, ProjectSyncData>>({});
+  const { toast } = useToast();
+
+  // Fetch sync data for all projects
+  useEffect(() => {
+    const fetchProjectSyncData = async () => {
+      if (data.length === 0) return;
+      
+      const projectIds = data.map(p => p.projectId);
+      const { data: syncData, error } = await supabase
+        .from('projects')
+        .select('id, sync_status, last_synced_at')
+        .in('id', projectIds);
+
+      if (error) {
+        console.error('Error fetching project sync data:', error);
+        return;
+      }
+
+      const syncDataMap = syncData.reduce((acc, project) => {
+        acc[project.id] = project;
+        return acc;
+      }, {} as Record<string, ProjectSyncData>);
+
+      setProjectSyncData(syncDataMap);
+    };
+
+    fetchProjectSyncData();
+  }, [data]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -23,6 +62,66 @@ export default function ProjectProfitTable({ data }: ProjectProfitTableProps) {
     } else {
       setSortField(field);
       setSortDirection('desc');
+    }
+  };
+
+  const handleMarkProjectAsSynced = async (projectId: string) => {
+    try {
+      const { error } = await markProjectAsSynced(projectId);
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Project marked as synced",
+      });
+
+      // Refresh sync data
+      const { data: syncData } = await supabase
+        .from('projects')
+        .select('id, sync_status, last_synced_at')
+        .eq('id', projectId)
+        .single();
+
+      if (syncData) {
+        setProjectSyncData(prev => ({ ...prev, [projectId]: syncData }));
+      }
+    } catch (error) {
+      console.error("Error marking project as synced:", error);
+      toast({
+        title: "Error",
+        description: "Failed to mark project as synced",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResetProjectSync = async (projectId: string) => {
+    try {
+      const { error } = await resetProjectSyncStatus(projectId);
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Project sync status reset",
+      });
+
+      // Refresh sync data
+      const { data: syncData } = await supabase
+        .from('projects')
+        .select('id, sync_status, last_synced_at')
+        .eq('id', projectId)
+        .single();
+
+      if (syncData) {
+        setProjectSyncData(prev => ({ ...prev, [projectId]: syncData }));
+      }
+    } catch (error) {
+      console.error("Error resetting project sync:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reset project sync status",
+        variant: "destructive",
+      });
     }
   };
 
@@ -114,9 +213,18 @@ export default function ProjectProfitTable({ data }: ProjectProfitTableProps) {
                 sortedData.map((project) => (
                   <TableRow key={project.projectId}>
                      <TableCell>
-                       <div>
-                         <div className="font-medium">{project.projectName}</div>
-                         <div className="text-sm text-muted-foreground">{project.client}</div>
+                       <div className="flex items-center gap-2">
+                         <div>
+                           <div className="font-medium">{project.projectName}</div>
+                           <div className="text-sm text-muted-foreground">{project.client}</div>
+                         </div>
+                         <SyncStatusBadge
+                           status={projectSyncData[project.projectId]?.sync_status}
+                           lastSyncedAt={projectSyncData[project.projectId]?.last_synced_at}
+                           showActions={true}
+                           onMarkAsSynced={() => handleMarkProjectAsSynced(project.projectId)}
+                           onResetSync={() => handleResetProjectSync(project.projectId)}
+                         />
                        </div>
                      </TableCell>
                     <TableCell>

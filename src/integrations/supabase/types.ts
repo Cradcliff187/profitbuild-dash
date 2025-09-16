@@ -230,12 +230,14 @@ export type Database = {
           created_at: string | null
           end_date: string | null
           id: string
+          last_synced_at: string | null
           project_name: string
           project_number: string
           project_type: Database["public"]["Enums"]["project_type"] | null
           quickbooks_job_id: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["project_status"] | null
+          sync_status: Database["public"]["Enums"]["sync_status"] | null
           updated_at: string | null
         }
         Insert: {
@@ -245,12 +247,14 @@ export type Database = {
           created_at?: string | null
           end_date?: string | null
           id?: string
+          last_synced_at?: string | null
           project_name: string
           project_number: string
           project_type?: Database["public"]["Enums"]["project_type"] | null
           quickbooks_job_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
+          sync_status?: Database["public"]["Enums"]["sync_status"] | null
           updated_at?: string | null
         }
         Update: {
@@ -260,12 +264,14 @@ export type Database = {
           created_at?: string | null
           end_date?: string | null
           id?: string
+          last_synced_at?: string | null
           project_name?: string
           project_number?: string
           project_type?: Database["public"]["Enums"]["project_type"] | null
           quickbooks_job_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
+          sync_status?: Database["public"]["Enums"]["sync_status"] | null
           updated_at?: string | null
         }
         Relationships: [
@@ -451,8 +457,10 @@ export type Database = {
           full_name: string | null
           id: string
           is_active: boolean | null
+          last_synced_at: string | null
           phone_numbers: string | null
           quickbooks_vendor_id: string | null
+          sync_status: Database["public"]["Enums"]["sync_status"] | null
           updated_at: string | null
           vendor_name: string
         }
@@ -465,8 +473,10 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean | null
+          last_synced_at?: string | null
           phone_numbers?: string | null
           quickbooks_vendor_id?: string | null
+          sync_status?: Database["public"]["Enums"]["sync_status"] | null
           updated_at?: string | null
           vendor_name: string
         }
@@ -479,8 +489,10 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean | null
+          last_synced_at?: string | null
           phone_numbers?: string | null
           quickbooks_vendor_id?: string | null
+          sync_status?: Database["public"]["Enums"]["sync_status"] | null
           updated_at?: string | null
           vendor_name?: string
         }

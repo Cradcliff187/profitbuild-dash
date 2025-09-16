@@ -10,6 +10,8 @@ export interface Project {
   end_date?: Date;
   company_id: string;
   quickbooks_job_id?: string;
+  sync_status?: 'success' | 'failed' | 'pending' | null;
+  last_synced_at?: string | null;
   created_at: Date;
   updated_at: Date;
 }

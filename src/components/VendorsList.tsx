@@ -6,6 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { SyncStatusBadge } from "@/components/SyncStatusBadge";
+import { markVendorAsSynced, resetVendorSyncStatus } from "@/utils/syncUtils";
 import type { Vendor } from "@/types/vendor";
 
 interface VendorsListProps {
@@ -78,6 +80,48 @@ export const VendorsList = ({ onEdit, refresh, onRefreshComplete }: VendorsListP
     }
   };
 
+  const handleMarkAsSynced = async (vendorId: string) => {
+    try {
+      const { error } = await markVendorAsSynced(vendorId);
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Vendor marked as synced",
+      });
+
+      fetchVendors();
+    } catch (error) {
+      console.error("Error marking vendor as synced:", error);
+      toast({
+        title: "Error",
+        description: "Failed to mark vendor as synced",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResetSync = async (vendorId: string) => {
+    try {
+      const { error } = await resetVendorSyncStatus(vendorId);
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Sync status reset",
+      });
+
+      fetchVendors();
+    } catch (error) {
+      console.error("Error resetting sync status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reset sync status",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -105,6 +149,7 @@ export const VendorsList = ({ onEdit, refresh, onRefreshComplete }: VendorsListP
                 <TableHead>Vendor Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
+                <TableHead>Sync Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -114,6 +159,15 @@ export const VendorsList = ({ onEdit, refresh, onRefreshComplete }: VendorsListP
                   <TableCell className="font-medium">{vendor.vendor_name}</TableCell>
                   <TableCell>{vendor.email || "-"}</TableCell>
                   <TableCell>{vendor.phone_numbers || "-"}</TableCell>
+                  <TableCell>
+                    <SyncStatusBadge
+                      status={vendor.sync_status}
+                      lastSyncedAt={vendor.last_synced_at}
+                      showActions={true}
+                      onMarkAsSynced={() => handleMarkAsSynced(vendor.id)}
+                      onResetSync={() => handleResetSync(vendor.id)}
+                    />
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button
