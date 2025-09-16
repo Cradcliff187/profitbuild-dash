@@ -4,6 +4,8 @@ import { ProjectForm } from "@/components/ProjectForm";
 import { ProjectEditForm } from "@/components/ProjectEditForm";
 import { ProjectsList } from "@/components/ProjectsList";
 import { ProjectProfitMargin } from "@/components/ProjectProfitMargin";
+import { ChangeOrdersList } from "@/components/ChangeOrdersList";
+import { ChangeOrderForm } from "@/components/ChangeOrderForm";
 import { Project } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
@@ -11,8 +13,10 @@ import { Expense } from "@/types/expense";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateProjectProfit } from "@/utils/profitCalculations";
+import type { Database } from "@/integrations/supabase/types";
 
 type ViewMode = 'list' | 'create' | 'edit';
+type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 
 const Projects = () => {
   const { toast } = useToast();
@@ -26,6 +30,9 @@ const Projects = () => {
     contractAmount: number;
     actualCosts: number;
   } | null>(null);
+  const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
+  const [showChangeOrderForm, setShowChangeOrderForm] = useState(false);
+  const [editingChangeOrder, setEditingChangeOrder] = useState<ChangeOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load projects from Supabase
@@ -38,17 +45,19 @@ const Projects = () => {
       setIsLoading(true);
       
       // Load all related data
-      const [projectsRes, estimatesRes, quotesRes, expensesRes] = await Promise.all([
+      const [projectsRes, estimatesRes, quotesRes, expensesRes, changeOrdersRes] = await Promise.all([
         supabase.from('projects').select('*').order('created_at', { ascending: false }),
         supabase.from('estimates').select('*'),
         supabase.from('quotes').select('*'),
-        supabase.from('expenses').select('*')
+        supabase.from('expenses').select('*'),
+        supabase.from('change_orders').select('*')
       ]);
 
       if (projectsRes.error) throw projectsRes.error;
       if (estimatesRes.error) throw estimatesRes.error;
       if (quotesRes.error) throw quotesRes.error;
       if (expensesRes.error) throw expensesRes.error;
+      if (changeOrdersRes.error) throw changeOrdersRes.error;
 
       const formattedProjects = projectsRes.data?.map((project: any) => ({
         id: project.id,
@@ -141,6 +150,7 @@ const Projects = () => {
       setEstimates(formattedEstimates);
       setQuotes(formattedQuotes);
       setExpenses(formattedExpenses);
+      setChangeOrders(changeOrdersRes.data || []);
     } catch (error) {
       console.error('Error loading projects:', error);
       toast({
@@ -200,6 +210,29 @@ const Projects = () => {
   const handleCancel = () => {
     setViewMode('list');
     setSelectedProject(null);
+    setShowChangeOrderForm(false);
+    setEditingChangeOrder(null);
+  };
+
+  const handleCreateChangeOrder = () => {
+    setEditingChangeOrder(null);
+    setShowChangeOrderForm(true);
+  };
+
+  const handleEditChangeOrder = (changeOrder: ChangeOrder) => {
+    setEditingChangeOrder(changeOrder);
+    setShowChangeOrderForm(true);
+  };
+
+  const handleChangeOrderSuccess = () => {
+    setShowChangeOrderForm(false);
+    setEditingChangeOrder(null);
+    loadProjects(); // Refresh data
+  };
+
+  const handleChangeOrderCancel = () => {
+    setShowChangeOrderForm(false);
+    setEditingChangeOrder(null);
   };
 
   const handleContinueToEstimate = (project: Project) => {
@@ -257,13 +290,62 @@ const Projects = () => {
 
       {viewMode === 'edit' && selectedProject && (
         <div className="space-y-6">
+          {/* Project Change Orders Summary */}
+          {(() => {
+            const projectChangeOrders = changeOrders.filter(co => co.project_id === selectedProject.id);
+            const approvedTotal = projectChangeOrders
+              .filter(co => co.status === 'approved')
+              .reduce((sum, co) => sum + (Number(co.amount) || 0), 0);
+            
+            if (approvedTotal > 0) {
+              return (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-blue-900">Project Change Orders</h3>
+                      <p className="text-sm text-blue-700">
+                        {projectChangeOrders.filter(co => co.status === 'approved').length} approved change orders
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-blue-900">
+                        +${approvedTotal.toLocaleString('en-US', { 
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2 
+                        })}
+                      </div>
+                      <div className="text-sm text-blue-700">Total Approved Changes</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               <ProjectEditForm
                 project={selectedProject}
                 onSave={handleSaveProject}
                 onCancel={handleCancel}
               />
+              
+              {/* Change Orders Section */}
+              {showChangeOrderForm ? (
+                <ChangeOrderForm
+                  projectId={selectedProject.id}
+                  changeOrder={editingChangeOrder}
+                  onSuccess={handleChangeOrderSuccess}
+                  onCancel={handleChangeOrderCancel}
+                />
+              ) : (
+                <ChangeOrdersList
+                  projectId={selectedProject.id}
+                  onEdit={handleEditChangeOrder}
+                  onCreateNew={handleCreateChangeOrder}
+                />
+              )}
             </div>
             {selectedProjectProfit && selectedProjectProfit.contractAmount > 0 && (
               <div className="lg:col-span-1">
