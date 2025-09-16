@@ -3,17 +3,29 @@ import { Building2 } from "lucide-react";
 import { ProjectForm } from "@/components/ProjectForm";
 import { ProjectEditForm } from "@/components/ProjectEditForm";
 import { ProjectsList } from "@/components/ProjectsList";
+import { ProjectProfitMargin } from "@/components/ProjectProfitMargin";
 import { Project } from "@/types/project";
+import { Estimate } from "@/types/estimate";
+import { Quote } from "@/types/quote";
+import { Expense } from "@/types/expense";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { calculateProjectProfit } from "@/utils/profitCalculations";
 
 type ViewMode = 'list' | 'create' | 'edit';
 
 const Projects = () => {
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [estimates, setEstimates] = useState<Estimate[]>([]);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedProjectProfit, setSelectedProjectProfit] = useState<{
+    contractAmount: number;
+    actualCosts: number;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load projects from Supabase
@@ -24,14 +36,21 @@ const Projects = () => {
   const loadProjects = async () => {
     try {
       setIsLoading(true);
-      const { data: projectsData, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false });
+      
+      // Load all related data
+      const [projectsRes, estimatesRes, quotesRes, expensesRes] = await Promise.all([
+        supabase.from('projects').select('*').order('created_at', { ascending: false }),
+        supabase.from('estimates').select('*'),
+        supabase.from('quotes').select('*'),
+        supabase.from('expenses').select('*')
+      ]);
 
-      if (error) throw error;
+      if (projectsRes.error) throw projectsRes.error;
+      if (estimatesRes.error) throw estimatesRes.error;
+      if (quotesRes.error) throw quotesRes.error;
+      if (expensesRes.error) throw expensesRes.error;
 
-      const formattedProjects = projectsData?.map((project: any) => ({
+      const formattedProjects = projectsRes.data?.map((project: any) => ({
         id: project.id,
         project_name: project.project_name,
         project_number: project.project_number,
@@ -51,7 +70,77 @@ const Projects = () => {
         updated_at: new Date(project.updated_at)
       })) || [];
 
+      const formattedEstimates = estimatesRes.data?.map((estimate: any) => ({
+        id: estimate.id,
+        project_id: estimate.project_id,
+        estimate_number: estimate.estimate_number,
+        revision_number: estimate.revision_number,
+        date_created: new Date(estimate.date_created),
+        valid_until: estimate.valid_until ? new Date(estimate.valid_until) : undefined,
+        status: estimate.status,
+        total_amount: estimate.total_amount,
+        notes: estimate.notes,
+        created_by: estimate.created_by,
+        created_at: new Date(estimate.created_at),
+        updated_at: new Date(estimate.updated_at),
+        project_name: formattedProjects.find(p => p.id === estimate.project_id)?.project_name,
+        client_name: formattedProjects.find(p => p.id === estimate.project_id)?.client_name,
+        lineItems: [] // Add empty array for required property
+      })) || [];
+
+      const formattedQuotes = quotesRes.data?.map((quote: any) => ({
+        id: quote.id,
+        project_id: quote.project_id,
+        estimate_id: quote.estimate_id,
+        vendor_id: quote.vendor_id,
+        quoteNumber: quote.quote_number, // Map to correct property name
+        total: quote.total_amount,
+        date_received: new Date(quote.date_received),
+        date_expires: quote.date_expires ? new Date(quote.date_expires) : undefined,
+        status: quote.status,
+        notes: quote.notes,
+        attachment_url: quote.attachment_url,
+        created_at: new Date(quote.created_at),
+        updated_at: new Date(quote.updated_at),
+        // Add required properties from Quote interface
+        projectName: formattedProjects.find(p => p.id === quote.project_id)?.project_name || '',
+        client: formattedProjects.find(p => p.id === quote.project_id)?.client_name || '',
+        quotedBy: 'Unknown', // Default value
+        dateReceived: new Date(quote.date_received),
+        lineItems: [], // Empty array for line items
+        subtotals: {
+          labor: 0,
+          subcontractors: 0,
+          materials: 0,
+          equipment: 0,
+          other: 0
+        },
+        createdAt: new Date(quote.created_at)
+      })) || [];
+
+      const formattedExpenses = expensesRes.data?.map((expense: any) => ({
+        id: expense.id,
+        project_id: expense.project_id,
+        vendor_id: expense.vendor_id,
+        amount: expense.amount,
+        description: expense.description,
+        expense_date: new Date(expense.expense_date),
+        category: expense.category,
+        transaction_type: expense.transaction_type,
+        invoice_number: expense.invoice_number,
+        account_name: expense.account_name,
+        account_full_name: expense.account_full_name,
+        is_planned: expense.is_planned,
+        attachment_url: expense.attachment_url,
+        quickbooks_transaction_id: expense.quickbooks_transaction_id,
+        created_at: new Date(expense.created_at),
+        updated_at: new Date(expense.updated_at)
+      })) || [];
+
       setProjects(formattedProjects);
+      setEstimates(formattedEstimates);
+      setQuotes(formattedQuotes);
+      setExpenses(formattedExpenses);
     } catch (error) {
       console.error('Error loading projects:', error);
       toast({
@@ -84,6 +173,23 @@ const Projects = () => {
 
   const handleEdit = (project: Project) => {
     setSelectedProject(project);
+    
+    // Calculate profit data for the selected project
+    const projectEstimates = estimates.filter(e => e.project_id === project.id);
+    if (projectEstimates.length > 0) {
+      const estimate = projectEstimates[0];
+      const projectQuotes = quotes.filter(q => q.project_id === project.id);
+      const projectExpenses = expenses.filter(e => e.project_id === project.id);
+      
+      const profitData = calculateProjectProfit(estimate, projectQuotes, projectExpenses);
+      setSelectedProjectProfit({
+        contractAmount: profitData.quoteTotal,
+        actualCosts: profitData.actualExpenses
+      });
+    } else {
+      setSelectedProjectProfit(null);
+    }
+    
     setViewMode('edit');
   };
 
@@ -150,11 +256,26 @@ const Projects = () => {
       )}
 
       {viewMode === 'edit' && selectedProject && (
-        <ProjectEditForm
-          project={selectedProject}
-          onSave={handleSaveProject}
-          onCancel={handleCancel}
-        />
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <ProjectEditForm
+                project={selectedProject}
+                onSave={handleSaveProject}
+                onCancel={handleCancel}
+              />
+            </div>
+            {selectedProjectProfit && selectedProjectProfit.contractAmount > 0 && (
+              <div className="lg:col-span-1">
+                <ProjectProfitMargin
+                  contractAmount={selectedProjectProfit.contractAmount}
+                  actualCosts={selectedProjectProfit.actualCosts}
+                  projectName={selectedProject.project_name}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

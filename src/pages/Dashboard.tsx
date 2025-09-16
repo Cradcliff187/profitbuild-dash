@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, TrendingUp, Building, CheckCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, TrendingUp, Building, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,70 +8,245 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import WorkOrdersList from "@/components/WorkOrdersList";
 import CreateWorkOrderModal from "@/components/CreateWorkOrderModal";
+import { calculateProjectProfit } from "@/utils/profitCalculations";
+import { Estimate } from "@/types/estimate";
+import { Quote } from "@/types/quote";
+import { Expense } from "@/types/expense";
+import { Project } from "@/types/project";
 
-type ProjectStatus = "Estimating" | "In Progress" | "Complete";
-
-interface Project {
+interface ProjectWithProfit {
   id: string;
   name: string;
-  status: ProjectStatus;
+  status: string;
   profit: number;
   client: string;
+  actualCosts: number;
+  quotedAmount: number;
+  overagePercentage?: number;
 }
 
 const Dashboard = () => {
   const { toast } = useToast();
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: "1",
-      name: "Residential Kitchen Remodel",
-      status: "In Progress",
-      profit: 15000,
-      client: "Smith Family",
-    },
-    {
-      id: "2", 
-      name: "Commercial Office Building",
-      status: "Estimating",
-      profit: 0,
-      client: "ABC Corp",
-    },
-    {
-      id: "3",
-      name: "Bathroom Renovation",
-      status: "Complete",
-      profit: 8500,
-      client: "Johnson Residence",
-    },
-  ]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsWithProfit, setProjectsWithProfit] = useState<ProjectWithProfit[]>([]);
+  const [estimates, setEstimates] = useState<Estimate[]>([]);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [overBudgetProjects, setOverBudgetProjects] = useState<ProjectWithProfit[]>([]);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showCreateWorkOrderModal, setShowCreateWorkOrderModal] = useState(false);
   const [newProject, setNewProject] = useState({
     name: "",
     client: "",
-    status: "Estimating" as ProjectStatus,
+    status: "estimating",
   });
 
-  const totalProjects = projects.length;
-  const activeProjects = projects.filter(p => p.status !== "Complete").length;
-  const totalProfit = projects.reduce((sum, p) => sum + p.profit, 0);
+  useEffect(() => {
+    loadAllData();
+  }, []);
 
-  const getStatusColor = (status: ProjectStatus) => {
-    switch (status) {
-      case "Estimating":
-        return "bg-muted text-muted-foreground";
-      case "In Progress":
-        return "bg-warning text-warning-foreground";
-      case "Complete":
-        return "bg-success text-success-foreground";
+  const loadAllData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch all data in parallel
+      const [projectsRes, estimatesRes, quotesRes, expensesRes] = await Promise.all([
+        supabase.from('projects').select('*').order('created_at', { ascending: false }),
+        supabase.from('estimates').select('*'),
+        supabase.from('quotes').select('*'),
+        supabase.from('expenses').select('*')
+      ]);
+
+      if (projectsRes.error) throw projectsRes.error;
+      if (estimatesRes.error) throw estimatesRes.error;
+      if (quotesRes.error) throw quotesRes.error;
+      if (expensesRes.error) throw expensesRes.error;
+
+      const projectsData = projectsRes.data || [];
+      const estimatesData = estimatesRes.data || [];
+      const quotesData = quotesRes.data || [];
+      const expensesData = expensesRes.data || [];
+
+      // Format the data
+      const formattedProjects: Project[] = projectsData.map((project: any) => ({
+        id: project.id,
+        project_name: project.project_name,
+        project_number: project.project_number,
+        qb_formatted_number: project.qb_formatted_number,
+        client_name: project.client_name,
+        address: project.address,
+        project_type: project.project_type,
+        job_type: project.job_type,
+        status: project.status,
+        start_date: project.start_date ? new Date(project.start_date) : undefined,
+        end_date: project.end_date ? new Date(project.end_date) : undefined,
+        company_id: project.company_id,
+        quickbooks_job_id: project.quickbooks_job_id,
+        sync_status: project.sync_status,
+        last_synced_at: project.last_synced_at,
+        created_at: new Date(project.created_at),
+        updated_at: new Date(project.updated_at)
+      }));
+
+      const formattedEstimates: Estimate[] = estimatesData.map((estimate: any) => ({
+        id: estimate.id,
+        project_id: estimate.project_id,
+        estimate_number: estimate.estimate_number,
+        revision_number: estimate.revision_number,
+        date_created: new Date(estimate.date_created),
+        valid_until: estimate.valid_until ? new Date(estimate.valid_until) : undefined,
+        status: estimate.status,
+        total_amount: estimate.total_amount,
+        notes: estimate.notes,
+        created_by: estimate.created_by,
+        created_at: new Date(estimate.created_at),
+        updated_at: new Date(estimate.updated_at),
+        project_name: formattedProjects.find(p => p.id === estimate.project_id)?.project_name,
+        client_name: formattedProjects.find(p => p.id === estimate.project_id)?.client_name,
+        lineItems: [] // Add empty array for required property
+      }));
+
+      const formattedQuotes: Quote[] = quotesData.map((quote: any) => ({
+        id: quote.id,
+        project_id: quote.project_id,
+        estimate_id: quote.estimate_id,
+        vendor_id: quote.vendor_id,
+        quoteNumber: quote.quote_number, // Map to correct property name
+        total: quote.total_amount,
+        date_received: new Date(quote.date_received),
+        date_expires: quote.date_expires ? new Date(quote.date_expires) : undefined,
+        status: quote.status,
+        notes: quote.notes,
+        attachment_url: quote.attachment_url,
+        created_at: new Date(quote.created_at),
+        updated_at: new Date(quote.updated_at),
+        // Add required properties from Quote interface
+        projectName: formattedProjects.find(p => p.id === quote.project_id)?.project_name || '',
+        client: formattedProjects.find(p => p.id === quote.project_id)?.client_name || '',
+        quotedBy: 'Unknown', // Default value
+        dateReceived: new Date(quote.date_received),
+        lineItems: [], // Empty array for line items
+        subtotals: {
+          labor: 0,
+          subcontractors: 0,
+          materials: 0,
+          equipment: 0,
+          other: 0
+        },
+        createdAt: new Date(quote.created_at)
+      }));
+
+      const formattedExpenses: Expense[] = expensesData.map((expense: any) => ({
+        id: expense.id,
+        project_id: expense.project_id,
+        vendor_id: expense.vendor_id,
+        amount: expense.amount,
+        description: expense.description,
+        expense_date: new Date(expense.expense_date),
+        category: expense.category,
+        transaction_type: expense.transaction_type,
+        invoice_number: expense.invoice_number,
+        account_name: expense.account_name,
+        account_full_name: expense.account_full_name,
+        is_planned: expense.is_planned,
+        attachment_url: expense.attachment_url,
+        quickbooks_transaction_id: expense.quickbooks_transaction_id,
+        created_at: new Date(expense.created_at),
+        updated_at: new Date(expense.updated_at)
+      }));
+
+      // Calculate profit data and identify over-budget projects
+      const projectsWithProfitData: ProjectWithProfit[] = formattedProjects.map(project => {
+        const projectEstimates = formattedEstimates.filter(e => e.project_id === project.id);
+        const projectQuotes = formattedQuotes.filter(q => q.project_id === project.id);
+        const projectExpenses = formattedExpenses.filter(e => e.project_id === project.id);
+        
+        if (projectEstimates.length === 0) {
+          return {
+            id: project.id,
+            name: project.project_name,
+            status: project.status,
+            profit: 0,
+            client: project.client_name,
+            actualCosts: 0,
+            quotedAmount: 0
+          };
+        }
+
+        const estimate = projectEstimates[0]; // Use first estimate
+        const profitData = calculateProjectProfit(estimate, projectQuotes, projectExpenses);
+        
+        const overagePercentage = profitData.quoteTotal > 0 
+          ? ((profitData.actualExpenses - profitData.quoteTotal) / profitData.quoteTotal) * 100
+          : 0;
+
+        return {
+          id: project.id,
+          name: project.project_name,
+          status: project.status,
+          profit: profitData.actualProfit,
+          client: project.client_name,
+          actualCosts: profitData.actualExpenses,
+          quotedAmount: profitData.quoteTotal,
+          overagePercentage: overagePercentage > 0 ? overagePercentage : undefined
+        };
+      });
+
+      // Identify projects over budget by >10%
+      const overBudget = projectsWithProfitData.filter(project => 
+        project.overagePercentage && project.overagePercentage > 10
+      );
+
+      setProjects(formattedProjects);
+      setProjectsWithProfit(projectsWithProfitData);
+      setEstimates(formattedEstimates);
+      setQuotes(formattedQuotes);
+      setExpenses(formattedExpenses);
+      setOverBudgetProjects(overBudget);
+      
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleAddProject = () => {
+  const totalProjects = projects.length;
+  const activeProjects = projects.filter(p => p.status !== "complete").length;
+  const totalProfit = projectsWithProfit.reduce((sum, p) => sum + p.profit, 0);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "estimating":
+        return "bg-muted text-muted-foreground";
+      case "in_progress":
+      case "quoted":
+      case "approved":
+        return "bg-warning text-warning-foreground";
+      case "complete":
+        return "bg-success text-success-foreground";
+      case "on_hold":
+        return "bg-muted text-muted-foreground";
+      case "cancelled":
+        return "bg-destructive text-destructive-foreground";
+      default:
+        return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const handleAddProject = async () => {
     if (!newProject.name || !newProject.client) {
       toast({
         title: "Error",
@@ -81,26 +256,66 @@ const Dashboard = () => {
       return;
     }
 
-    const project: Project = {
-      id: Date.now().toString(),
-      name: newProject.name,
-      status: newProject.status,
-      profit: 0,
-      client: newProject.client,
-    };
+    // Create project in Supabase
+    try {
+      const { error } = await supabase.from('projects').insert({
+        project_name: newProject.name,
+        project_number: `PRJ-${Date.now()}`,
+        client_name: newProject.client,
+        status: newProject.status as 'estimating' | 'quoted' | 'in_progress' | 'complete' | 'cancelled',
+        project_type: 'construction_project',
+        company_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' // This should come from user context
+      });
 
-    setProjects(prev => [...prev, project]);
-    setNewProject({ name: "", client: "", status: "Estimating" });
-    setIsDialogOpen(false);
-    
-    toast({
-      title: "Success",
-      description: "Project added successfully",
-    });
+      if (error) throw error;
+
+      await loadAllData(); // Reload data
+      setNewProject({ name: "", client: "", status: "estimating" });
+      setIsDialogOpen(false);
+      
+      toast({
+        title: "Success",
+        description: "Project added successfully",
+      });
+    } catch (error) {
+      console.error('Error creating project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create project.",
+        variant: "destructive"
+      });
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="flex justify-center items-center py-12">
+          <div className="text-muted-foreground">Loading dashboard data...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
+      {/* Budget Alert Banner */}
+      {overBudgetProjects.length > 0 && (
+        <Alert className="border-destructive bg-destructive/10">
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+          <AlertDescription className="text-destructive font-medium">
+            <strong>WARNING:</strong> {overBudgetProjects.length} project{overBudgetProjects.length > 1 ? 's are' : ' is'} over budget:
+            {overBudgetProjects.map((project, index) => (
+              <div key={project.id} className="mt-1">
+                {project.name} is {project.overagePercentage?.toFixed(1)}% over budget. 
+                Actual: ${project.actualCosts.toLocaleString()}, Quoted: ${project.quotedAmount.toLocaleString()}, 
+                Overage: ${(project.actualCosts - project.quotedAmount).toLocaleString()}
+              </div>
+            ))}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -142,15 +357,19 @@ const Dashboard = () => {
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={newProject.status}
-                  onValueChange={(value) => setNewProject(prev => ({ ...prev, status: value as ProjectStatus }))}
+                  onValueChange={(value) => setNewProject(prev => ({ ...prev, status: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Estimating">Estimating</SelectItem>
-                    <SelectItem value="In Progress">In Progress</SelectItem>
-                    <SelectItem value="Complete">Complete</SelectItem>
+                    <SelectItem value="estimating">Estimating</SelectItem>
+                    <SelectItem value="quoted">Quoted</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="complete">Complete</SelectItem>
+                    <SelectItem value="on_hold">On Hold</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -209,7 +428,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {projects.map((project) => (
+                {projectsWithProfit.map((project) => (
                   <div
                     key={project.id}
                     className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
@@ -218,19 +437,37 @@ const Dashboard = () => {
                       <div className="flex items-center space-x-3">
                         <h3 className="font-semibold">{project.name}</h3>
                         <Badge className={getStatusColor(project.status)}>
-                          {project.status}
+                          {project.status.replace('_', ' ')}
                         </Badge>
+                        {project.overagePercentage && project.overagePercentage > 10 && (
+                          <Badge className="bg-destructive text-destructive-foreground">
+                            {project.overagePercentage.toFixed(1)}% Over Budget
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground">Client: {project.client}</p>
+                      {project.quotedAmount > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Quoted: ${project.quotedAmount.toLocaleString()} | 
+                          Actual: ${project.actualCosts.toLocaleString()}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">${project.profit.toLocaleString()}</div>
+                      <div className={`font-semibold ${project.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${project.profit.toLocaleString()}
+                      </div>
                       <div className="text-sm text-muted-foreground">Profit</div>
+                      {project.quotedAmount > 0 && (
+                        <div className={`text-xs ${project.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {((project.profit / project.quotedAmount) * 100).toFixed(1)}% margin
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
                 
-                {projects.length === 0 && (
+                {projectsWithProfit.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     No projects yet. Add your first project to get started!
                   </div>
