@@ -9,6 +9,7 @@ import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { markProjectAsSynced, resetProjectSyncStatus } from '@/utils/syncUtils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { VarianceBadge } from '@/components/ui/variance-badge';
 
 interface ProjectProfitTableProps {
   data: ProjectProfitData[];
@@ -242,15 +243,13 @@ export default function ProjectProfitTable({ data }: ProjectProfitTableProps) {
                     <TableCell className={`text-right font-medium ${getProfitColor(project.profitMargin)}`}>
                       {project.profitMargin.toFixed(1)}%
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {getVarianceIcon(project.profitVariance)}
-                        <span className={getProfitColor(project.profitVariance)}>
-                          ${Math.abs(project.profitVariance).toLocaleString()}
-                        </span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                     <TableCell className="text-right">
+                       <VarianceBadge 
+                         variance={project.profitVariance}
+                         percentage={(project.profitVariance / project.estimatedProfit) * 100}
+                       />
+                     </TableCell>
+                   </TableRow>
                 ))
               )}
             </TableBody>

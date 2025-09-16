@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { VarianceBadge } from "@/components/ui/variance-badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +23,17 @@ import { Project, ProjectStatus, ProjectType } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+interface ProjectWithVariance extends Project {
+  estimateTotal?: number;
+  quoteTotal?: number;
+  actualExpenses?: number;
+  variance?: number;
+  variancePercentage?: number;
+  varianceType?: 'estimate' | 'quote';
+}
+
 interface ProjectsListProps {
-  projects: Project[];
+  projects: ProjectWithVariance[];
   onEdit: (project: Project) => void;
   onDelete: (projectId: string) => void;
   onCreateNew: () => void;
@@ -238,13 +248,22 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
             </CardHeader>
             
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Badge className={getStatusColor(project.status)}>
-                  {project.status.replace('_', ' ').toUpperCase()}
-                </Badge>
-                <Badge variant="outline">
-                  {project.project_type.replace('_', ' ')}
-                </Badge>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Badge className={getStatusColor(project.status)}>
+                    {project.status.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                  <Badge variant="outline">
+                    {project.project_type.replace('_', ' ')}
+                  </Badge>
+                </div>
+                {project.variance && project.variancePercentage && (
+                  <VarianceBadge 
+                    variance={project.variance}
+                    percentage={project.variancePercentage}
+                    type={project.varianceType}
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-sm">

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Expense, ProjectExpenseSummary, EXPENSE_CATEGORY_DISPLAY } from '@/types/expense';
 import { Estimate } from '@/types/estimate';
+import { VarianceBadge } from '@/components/ui/variance-badge';
 
 interface ProjectExpenseTrackerProps {
   expenses: Expense[];
@@ -113,12 +114,13 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Variance</CardTitle>
-            {getVarianceIcon(totalVariance)}
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${getVarianceColor(totalVariance)}`}>
-              ${Math.abs(totalVariance).toFixed(2)} {totalVariance >= 0 ? 'over' : 'under'}
-            </div>
+            <VarianceBadge 
+              variance={totalVariance}
+              percentage={(totalVariance / totalEstimated) * 100}
+              className="text-base font-bold"
+            />
           </CardContent>
         </Card>
 

@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { Estimate } from "@/types/estimate";
 import { useToast } from "@/hooks/use-toast";
 import { QuoteStatusBadge, QuoteStatus } from "@/components/QuoteStatusBadge";
+import { VarianceBadge } from "@/components/ui/variance-badge";
 
 interface EstimatesListProps {
   estimates: (Estimate & { quotes?: Array<{ id: string; total_amount: number }> })[];
@@ -60,6 +61,22 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
     
     // If we reach here, all quotes equal the estimate (edge case)
     return 'awaiting-quotes';
+  };
+
+  const getBestQuoteVariance = (estimate: Estimate & { quotes?: Array<{ id: string; total_amount: number }> }) => {
+    if (!estimate.quotes || estimate.quotes.length === 0) {
+      return null;
+    }
+    
+    // Find the best (lowest) quote
+    const bestQuote = estimate.quotes.reduce((best, current) => 
+      current.total_amount < best.total_amount ? current : best
+    );
+    
+    const variance = bestQuote.total_amount - estimate.total_amount;
+    const percentage = (variance / estimate.total_amount) * 100;
+    
+    return { variance, percentage };
   };
 
   const getCategoryBadgeColor = (category: string) => {
@@ -180,6 +197,16 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
                 <Badge variant="secondary" className="text-sm">
                   Revision: {estimate.revision_number}
                 </Badge>
+                {(() => {
+                  const variance = getBestQuoteVariance(estimate);
+                  return variance && (
+                    <VarianceBadge 
+                      variance={variance.variance}
+                      percentage={variance.percentage}
+                      type="quote"
+                    />
+                  );
+                })()}
               </div>
 
               {/* Actions */}

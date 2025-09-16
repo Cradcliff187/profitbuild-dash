@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Quote } from "@/types/quote";
 import { Estimate, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 import { ComparisonData } from "@/types/quote";
+import { VarianceBadge } from "@/components/ui/variance-badge";
 
 interface QuoteComparisonProps {
   quote: Quote;
@@ -159,25 +160,17 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold flex items-center gap-2 ${getDifferenceColor(comparison.difference)}`}>
-              {getDifferenceIcon(comparison.difference)}
-              {comparison.difference >= 0 ? '+' : ''}${comparison.difference.toFixed(2)}
+            <div className="flex items-center gap-2">
+              <VarianceBadge 
+                variance={comparison.difference}
+                percentage={comparison.percentageDiff}
+                type="estimate"
+                className="text-base font-bold"
+              />
             </div>
             <div className="text-sm text-muted-foreground mt-1">
-              {Math.abs(comparison.percentageDiff).toFixed(1)}% {comparison.difference > 0 ? 'above' : comparison.difference < 0 ? 'below' : 'of'} estimate
+              Quote vs Estimate comparison
             </div>
-            <Badge 
-              variant={
-                comparison.difference > 0 ? "destructive" : 
-                comparison.difference < 0 ? "default" : 
-                "secondary"
-              }
-              className="mt-2"
-            >
-              {comparison.difference > 0 ? "Overrun" : 
-               comparison.difference < 0 ? "Savings" : 
-               "On Budget"}
-            </Badge>
           </CardContent>
         </Card>
       </div>
@@ -206,9 +199,12 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
                     </div>
                     <div className="bg-muted/50 p-3 rounded-lg">
                       <div className="text-sm text-muted-foreground">Difference</div>
-                      <div className={`font-semibold flex items-center gap-2 ${getDifferenceColor(categoryData.difference)}`}>
-                        {getDifferenceIcon(categoryData.difference)}
-                        {formatDifference(categoryData.difference, categoryData.percentageDiff)}
+                      <div className="font-semibold">
+                        <VarianceBadge 
+                          variance={categoryData.difference}
+                          percentage={categoryData.percentageDiff}
+                          className="text-sm"
+                        />
                       </div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-lg">

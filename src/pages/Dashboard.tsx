@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, TrendingUp, Building, CheckCircle, AlertTriangle } from "lucide-react";
+import { VarianceBadge } from "@/components/ui/variance-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -460,10 +461,21 @@ const Dashboard = () => {
                         <Badge className={getStatusColor(project.status)}>
                           {project.status.replace('_', ' ')}
                         </Badge>
-                        {project.overagePercentage && project.overagePercentage > 10 && (
-                          <Badge className="bg-destructive text-destructive-foreground">
-                            {project.overagePercentage.toFixed(1)}% Over Budget
-                          </Badge>
+                        {/* Show variance badge for quote overage */}
+                        {project.overagePercentage && project.overagePercentage > 0 && (
+                          <VarianceBadge 
+                            variance={project.actualCosts - project.quotedAmount}
+                            percentage={project.overagePercentage}
+                            type="quote"
+                          />
+                        )}
+                        {/* Show variance badge for estimate overage if no quote variance */}
+                        {!project.overagePercentage && project.estimateOveragePercentage && project.estimateOveragePercentage > 0 && (
+                          <VarianceBadge 
+                            variance={project.actualCosts - project.estimateAmount}
+                            percentage={project.estimateOveragePercentage}
+                            type="estimate"
+                          />
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">Client: {project.client}</p>
