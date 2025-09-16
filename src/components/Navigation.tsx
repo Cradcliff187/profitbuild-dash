@@ -6,6 +6,7 @@ const Navigation = () => {
   const navItems = [
     { to: "/", label: "Dashboard", icon: Building2 },
     { to: "/work-orders", label: "Work Orders", icon: Wrench },
+    { to: "/projects", label: "Projects", icon: Building2 },
     { to: "/estimates", label: "Estimates", icon: Calculator },
     { to: "/quotes", label: "Quotes", icon: FileText },
     { to: "/expenses", label: "Expenses", icon: Receipt },

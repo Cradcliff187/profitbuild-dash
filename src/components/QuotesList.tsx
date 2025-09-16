@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, FileText, Trash2, ArrowUpDown } from "lucide-react";
+import { Eye, FileText, Trash2, ArrowUpDown, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,11 +21,12 @@ import { Estimate } from "@/types/estimate";
 interface QuotesListProps {
   quotes: Quote[];
   estimates: Estimate[];
+  onEdit: (quote: Quote) => void;
   onDelete: (quoteId: string) => void;
   onCompare: (quote: Quote) => void;
 }
 
-export const QuotesList = ({ quotes, estimates, onDelete, onCompare }: QuotesListProps) => {
+export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare }: QuotesListProps) => {
   const [sortBy, setSortBy] = useState<'date' | 'project' | 'total'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -139,6 +140,14 @@ export const QuotesList = ({ quotes, estimates, onDelete, onCompare }: QuotesLis
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEdit(quote)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"

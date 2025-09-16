@@ -160,6 +160,14 @@ const Estimates = () => {
         />
       )}
 
+      {viewMode === 'edit' && selectedEstimate && (
+        <EstimateForm
+          initialEstimate={selectedEstimate}
+          onSave={handleSaveEstimate}
+          onCancel={handleCancel}
+        />
+      )}
+
       {viewMode === 'create-project' && (
         <ProjectForm
           onSave={handleSaveProject}

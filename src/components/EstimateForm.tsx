@@ -20,13 +20,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface EstimateFormProps {
+  initialEstimate?: Estimate; // For editing mode
   onSave: (estimate: Estimate) => void;
   onCancel: () => void;
 }
 
 type ProjectMode = 'existing' | 'new';
 
-export const EstimateForm = ({ onSave, onCancel }: EstimateFormProps) => {
+export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateFormProps) => {
   const { toast } = useToast();
   
   // Project selection mode
@@ -50,16 +51,26 @@ export const EstimateForm = ({ onSave, onCancel }: EstimateFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    setProjectNumber(generateProjectNumber());
+    if (initialEstimate) {
+      // Load existing estimate for editing
+      setDate(initialEstimate.date_created);
+      setValidUntil(initialEstimate.valid_until);
+      setNotes(initialEstimate.notes || "");
+      setProjectMode('existing');
+      setSelectedProjectId(initialEstimate.project_id);
+      // Load line items - need to fetch from database
+      loadEstimateLineItems(initialEstimate.id);
+    } else {
+      setProjectNumber(generateProjectNumber());
+    }
     loadExistingProjects();
-  }, []);
+  }, [initialEstimate]);
 
   const loadExistingProjects = async () => {
     try {
       const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .eq('status', 'estimating')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -75,6 +86,33 @@ export const EstimateForm = ({ onSave, onCancel }: EstimateFormProps) => {
       setExistingProjects(projects);
     } catch (error) {
       console.error('Error loading projects:', error);
+    }
+  };
+
+  const loadEstimateLineItems = async (estimateId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('estimate_line_items')
+        .select('*')
+        .eq('estimate_id', estimateId)
+        .order('sort_order');
+
+      if (error) throw error;
+
+      const items = data?.map(item => ({
+        id: item.id,
+        category: item.category,
+        description: item.description,
+        quantity: item.quantity,
+        rate: item.rate,
+        total: item.total,
+        unit: item.unit,
+        sort_order: item.sort_order
+      })) || [];
+
+      setLineItems(items);
+    } catch (error) {
+      console.error('Error loading line items:', error);
     }
   };
 
@@ -171,6 +209,72 @@ export const EstimateForm = ({ onSave, onCancel }: EstimateFormProps) => {
     try {
       let finalProjectId = selectedProjectId;
       let project: Project;
+      
+      if (initialEstimate) {
+        // Update existing estimate
+        const totalAmount = calculateTotal();
+        const validLineItems = lineItems.filter(item => item.description.trim());
+        
+        const { data: estimateData, error: estimateError } = await supabase
+          .from('estimates')
+          .update({
+            date_created: date.toISOString().split('T')[0],
+            total_amount: totalAmount,
+            notes: notes.trim() || undefined,
+            valid_until: validUntil?.toISOString().split('T')[0],
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', initialEstimate.id)
+          .select()
+          .single();
+
+        if (estimateError) throw estimateError;
+
+        // Delete existing line items and create new ones
+        const { error: deleteError } = await supabase
+          .from('estimate_line_items')
+          .delete()
+          .eq('estimate_id', initialEstimate.id);
+
+        if (deleteError) throw deleteError;
+
+        // Create new line items
+        const lineItemsData = validLineItems.map((item, index) => ({
+          estimate_id: initialEstimate.id,
+          category: item.category,
+          description: item.description.trim(),
+          quantity: item.quantity,
+          rate: item.rate,
+          total: item.quantity * item.rate,
+          unit: item.unit || undefined,
+          sort_order: index
+        }));
+
+        const { error: lineItemsError } = await supabase
+          .from('estimate_line_items')
+          .insert(lineItemsData);
+
+        if (lineItemsError) throw lineItemsError;
+
+        const updatedEstimate: Estimate = {
+          ...initialEstimate,
+          date_created: new Date(estimateData.date_created),
+          total_amount: estimateData.total_amount,
+          notes: estimateData.notes,
+          valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
+          lineItems: validLineItems,
+          updated_at: new Date(estimateData.updated_at)
+        };
+
+        onSave(updatedEstimate);
+        
+        toast({
+          title: "Estimate Updated",
+          description: `Estimate ${initialEstimate.estimate_number} has been updated successfully.`
+        });
+
+        return;
+      }
       
       // Create project first if needed
       if (projectMode === 'new') {
@@ -291,7 +395,7 @@ export const EstimateForm = ({ onSave, onCancel }: EstimateFormProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5" />
-            Create New Estimate
+            {initialEstimate ? 'Edit Estimate' : 'Create New Estimate'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">

@@ -1,0 +1,299 @@
+import { useState, useEffect } from "react";
+import { Building2, Edit, Trash2, Plus, Filter } from "lucide-react";
+import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Project, ProjectStatus, ProjectType } from "@/types/project";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface ProjectsListProps {
+  projects: Project[];
+  onEdit: (project: Project) => void;
+  onDelete: (projectId: string) => void;
+  onCreateNew: () => void;
+  onRefresh: () => void;
+}
+
+export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefresh }: ProjectsListProps) => {
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | "all">("all");
+  const [typeFilter, setTypeFilter] = useState<ProjectType | "all">("all");
+
+  const getStatusColor = (status: ProjectStatus) => {
+    switch (status) {
+      case 'estimating':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'quoted':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'approved':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'in_progress':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'complete':
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'on_hold':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete project",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Project deleted successfully",
+      });
+      onDelete(projectId);
+      onRefresh();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredProjects = projects.filter(project => {
+    const matchesSearch = 
+      project.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.project_number.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all" || project.status === statusFilter;
+    const matchesType = typeFilter === "all" || project.project_type === typeFilter;
+    
+    return matchesSearch && matchesStatus && matchesType;
+  });
+
+  if (projects.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-12">
+          <div className="text-center text-muted-foreground">
+            <Building2 className="h-16 w-16 mx-auto mb-4 opacity-50" />
+            <h3 className="text-lg font-semibold mb-2">No Projects Yet</h3>
+            <p className="mb-4">Create your first project to get started.</p>
+            <Button onClick={onCreateNew}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Project
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header and Filters */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Projects ({filteredProjects.length})
+            </CardTitle>
+            <Button onClick={onCreateNew}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Project
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="search">Search Projects</Label>
+              <Input
+                id="search"
+                placeholder="Search by name, client, or number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Status Filter</Label>
+              <Select value={statusFilter} onValueChange={(value: ProjectStatus | "all") => setStatusFilter(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="estimating">Estimating</SelectItem>
+                  <SelectItem value="quoted">Quoted</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="complete">Complete</SelectItem>
+                  <SelectItem value="on_hold">On Hold</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Type Filter</Label>
+              <Select value={typeFilter} onValueChange={(value: ProjectType | "all") => setTypeFilter(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="construction_project">Construction Project</SelectItem>
+                  <SelectItem value="work_order">Work Order</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>&nbsp;</Label>
+              <Button variant="outline" onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("all");
+                setTypeFilter("all");
+              }}>
+                <Filter className="h-4 w-4 mr-2" />
+                Clear Filters
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Projects Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {filteredProjects.map((project) => (
+          <Card key={project.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="text-lg">{project.project_name}</CardTitle>
+                  <div className="text-sm text-muted-foreground">
+                    {project.project_number} • {project.client_name}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onEdit(project)}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{project.project_name}"? 
+                          This will also delete all associated estimates, expenses, and quotes.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteProject(project.id)}>
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Badge className={getStatusColor(project.status)}>
+                  {project.status.replace('_', ' ').toUpperCase()}
+                </Badge>
+                <Badge variant="outline">
+                  {project.project_type.replace('_', ' ')}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Type</p>
+                  <p className="font-medium">
+                    {project.project_type === 'construction_project' ? 'Construction' : 'Work Order'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Job Type</p>
+                  <p className="font-medium">{project.job_type || 'Not specified'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Start Date</p>
+                  <p className="font-medium">
+                    {project.start_date ? format(project.start_date, "MMM dd, yyyy") : 'Not set'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Created</p>
+                  <p className="font-medium">
+                    {format(project.created_at, "MMM dd, yyyy")}
+                  </p>
+                </div>
+              </div>
+
+              {project.address && (
+                <div>
+                  <p className="text-muted-foreground text-sm">Address</p>
+                  <p className="text-sm">{project.address}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {filteredProjects.length === 0 && projects.length > 0 && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center text-muted-foreground">
+              <Filter className="h-16 w-16 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-semibold mb-2">No Projects Match Your Filters</h3>
+              <p>Try adjusting your search criteria or clear the filters.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};

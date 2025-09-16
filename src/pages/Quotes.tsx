@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const Quotes = () => {
   const { toast } = useToast();
-  const [view, setView] = useState<'list' | 'create' | 'compare'>('list');
+  const [view, setView] = useState<'list' | 'create' | 'edit' | 'compare'>('list');
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<Quote>();
@@ -48,8 +48,15 @@ const Quotes = () => {
   }, [quotes]);
 
   const handleSaveQuote = (quote: Quote) => {
-    setQuotes(prev => [...prev, quote]);
+    if (selectedQuote) {
+      // Editing existing quote
+      setQuotes(prev => prev.map(q => q.id === quote.id ? quote : q));
+    } else {
+      // Creating new quote
+      setQuotes(prev => [...prev, quote]);
+    }
     setView('list');
+    setSelectedQuote(undefined);
   };
 
   const handleDeleteQuote = (quoteId: string) => {
@@ -58,6 +65,11 @@ const Quotes = () => {
       title: "Quote Deleted",
       description: "The quote has been successfully deleted."
     });
+  };
+
+  const handleEditQuote = (quote: Quote) => {
+    setSelectedQuote(quote);
+    setView('edit');
   };
 
   const handleCompareQuote = (quote: Quote) => {
@@ -78,6 +90,7 @@ const Quotes = () => {
             <h1 className="text-3xl font-bold text-foreground">Quotes</h1>
             <p className="text-muted-foreground">
               {view === 'create' ? 'Create new quote' : 
+               view === 'edit' ? 'Edit quote' :
                view === 'compare' ? 'Compare estimate vs quote' : 
                'Manage project quotes and compare against estimates'}
             </p>
@@ -110,10 +123,20 @@ const Quotes = () => {
         />
       )}
 
+      {view === 'edit' && selectedQuote && (
+        <QuoteForm
+          estimates={estimates}
+          initialQuote={selectedQuote}
+          onSave={handleSaveQuote}
+          onCancel={() => { setView('list'); setSelectedQuote(undefined); }}
+        />
+      )}
+
       {view === 'list' && (
         <QuotesList
           quotes={quotes}
           estimates={estimates}
+          onEdit={handleEditQuote}
           onDelete={handleDeleteQuote}
           onCompare={handleCompareQuote}
         />

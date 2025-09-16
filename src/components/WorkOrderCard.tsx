@@ -1,7 +1,18 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, DollarSign, FileText, Plus, CheckCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { CalendarDays, DollarSign, FileText, Plus, CheckCircle, Trash2 } from "lucide-react";
 import { Project, ProjectStatus } from "@/types/project";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,6 +95,36 @@ const WorkOrderCard = ({ workOrder, onUpdate }: WorkOrderCardProps) => {
     }
   };
 
+  const handleDeleteWorkOrder = async () => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', workOrder.id);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete work order",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Work order deleted successfully",
+      });
+      onUpdate();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
@@ -149,16 +190,44 @@ const WorkOrderCard = ({ workOrder, onUpdate }: WorkOrderCardProps) => {
           </Button>
           
           {workOrder.status !== 'complete' && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleMarkComplete}
-              className="gap-1"
-            >
-              <CheckCircle className="h-3 w-3" />
-              Mark Complete
-            </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleMarkComplete}
+                      className="gap-1"
+                    >
+                      <CheckCircle className="h-3 w-3" />
+                      Mark Complete
+                    </Button>
           )}
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Work Order</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this work order? 
+                            This action will also remove all associated estimates and expenses.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteWorkOrder}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
         </div>
       </CardContent>
     </Card>

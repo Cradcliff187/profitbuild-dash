@@ -17,11 +17,12 @@ import { useToast } from "@/hooks/use-toast";
 
 interface QuoteFormProps {
   estimates: Estimate[];
+  initialQuote?: Quote; // For editing mode
   onSave: (quote: Quote) => void;
   onCancel: () => void;
 }
 
-export const QuoteForm = ({ estimates, onSave, onCancel }: QuoteFormProps) => {
+export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFormProps) => {
   const { toast } = useToast();
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate>();
   const [quotedBy, setQuotedBy] = useState("");
@@ -61,12 +62,24 @@ export const QuoteForm = ({ estimates, onSave, onCancel }: QuoteFormProps) => {
   });
 
   useEffect(() => {
-    if (selectedEstimate) {
-      // Pre-populate line items from selected estimate
+    if (initialQuote) {
+      // Load existing quote for editing
+      const estimate = estimates.find(e => e.id === initialQuote.estimate_id);
+      setSelectedEstimate(estimate);
+      setQuotedBy(initialQuote.quotedBy);
+      setDateReceived(initialQuote.dateReceived);
+      setNotes(initialQuote.notes || "");
+      setLineItems(initialQuote.lineItems);
+    }
+  }, [initialQuote, estimates]);
+
+  useEffect(() => {
+    if (selectedEstimate && !initialQuote) {
+      // Pre-populate line items from selected estimate only for new quotes
       const quoteLineItems = selectedEstimate.lineItems.map(createQuoteLineItemFromEstimate);
       setLineItems(quoteLineItems);
     }
-  }, [selectedEstimate]);
+  }, [selectedEstimate, initialQuote]);
 
   useEffect(() => {
     // Calculate totals whenever line items change
@@ -157,25 +170,25 @@ export const QuoteForm = ({ estimates, onSave, onCancel }: QuoteFormProps) => {
     }
 
     const quote: Quote = {
-      id: Date.now().toString(),
+      id: initialQuote?.id || Date.now().toString(),
       project_id: selectedEstimate.project_id,
       estimate_id: selectedEstimate.id,
       projectName: selectedEstimate.project_name || '',
       client: selectedEstimate.client_name || '',
       quotedBy: quotedBy.trim(),
       dateReceived,
-      quoteNumber: generateQuoteNumber(),
+      quoteNumber: initialQuote?.quoteNumber || generateQuoteNumber(),
       lineItems: lineItems.filter(item => item.description.trim()),
       subtotals,
       total,
       notes: notes.trim() || undefined,
-      createdAt: new Date()
+      createdAt: initialQuote?.createdAt || new Date()
     };
 
     onSave(quote);
     toast({
-      title: "Quote Saved",
-      description: `Quote ${quote.quoteNumber} from ${quote.quotedBy} has been created successfully.`
+      title: initialQuote ? "Quote Updated" : "Quote Saved",
+      description: `Quote ${quote.quoteNumber} from ${quote.quotedBy} has been ${initialQuote ? 'updated' : 'created'} successfully.`
     });
   };
 
@@ -183,7 +196,7 @@ export const QuoteForm = ({ estimates, onSave, onCancel }: QuoteFormProps) => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Create New Quote</CardTitle>
+          <CardTitle>{initialQuote ? 'Edit Quote' : 'Create New Quote'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Project Selection */}

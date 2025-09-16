@@ -9,6 +9,7 @@ import Estimates from "./pages/Estimates";
 import Quotes from "./pages/Quotes";
 import Expenses from "./pages/Expenses";
 import Vendors from "./pages/Vendors";
+import Projects from "./pages/Projects";
 import ProfitAnalysis from "./pages/ProfitAnalysis";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -28,6 +29,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/work-orders" element={<WorkOrders />} />
+              <Route path="/projects" element={<Projects />} />
               <Route path="/estimates" element={<Estimates />} />
               <Route path="/quotes" element={<Quotes />} />
               <Route path="/expenses" element={<Expenses />} />

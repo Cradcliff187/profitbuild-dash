@@ -41,19 +41,7 @@ export interface CreateProjectRequest {
 
 // Utility function to generate project numbers
 export const generateProjectNumber = (): string => {
-  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const numbers = '0123456789';
-  
-  let result = '';
-  // Generate 3 random letters
-  for (let i = 0; i < 3; i++) {
-    result += letters.charAt(Math.floor(Math.random() * letters.length));
-  }
-  result += '-';
-  // Generate 3 random numbers
-  for (let i = 0; i < 3; i++) {
-    result += numbers.charAt(Math.floor(Math.random() * numbers.length));
-  }
-  
-  return result;
+  const numbers = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  const suffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return `${numbers}-${suffix}`; // Format: 125-098
 };
