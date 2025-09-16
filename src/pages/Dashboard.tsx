@@ -27,7 +27,10 @@ interface ProjectWithProfit {
   client: string;
   actualCosts: number;
   quotedAmount: number;
+  estimateAmount: number;
   overagePercentage?: number;
+  estimateOveragePercentage?: number;
+  budgetType?: 'estimate' | 'quote' | 'both';
 }
 
 const Dashboard = () => {
@@ -176,16 +179,32 @@ const Dashboard = () => {
             profit: 0,
             client: project.client_name,
             actualCosts: 0,
-            quotedAmount: 0
+            quotedAmount: 0,
+            estimateAmount: 0
           };
         }
 
         const estimate = projectEstimates[0]; // Use first estimate
         const profitData = calculateProjectProfit(estimate, projectQuotes, projectExpenses);
         
-        const overagePercentage = profitData.quoteTotal > 0 
+        // Calculate both quote and estimate overage percentages
+        const quoteOveragePercentage = profitData.quoteTotal > 0 
           ? ((profitData.actualExpenses - profitData.quoteTotal) / profitData.quoteTotal) * 100
           : 0;
+
+        const estimateOveragePercentage = estimate.total_amount > 0
+          ? ((profitData.actualExpenses - estimate.total_amount) / estimate.total_amount) * 100
+          : 0;
+
+        // Determine which budget was exceeded
+        let budgetType: 'estimate' | 'quote' | 'both' | undefined;
+        if (quoteOveragePercentage > 10 && estimateOveragePercentage > 10) {
+          budgetType = 'both';
+        } else if (quoteOveragePercentage > 10) {
+          budgetType = 'quote';
+        } else if (estimateOveragePercentage > 10) {
+          budgetType = 'estimate';
+        }
 
         return {
           id: project.id,
@@ -195,13 +214,17 @@ const Dashboard = () => {
           client: project.client_name,
           actualCosts: profitData.actualExpenses,
           quotedAmount: profitData.quoteTotal,
-          overagePercentage: overagePercentage > 0 ? overagePercentage : undefined
+          estimateAmount: estimate.total_amount,
+          overagePercentage: quoteOveragePercentage > 0 ? quoteOveragePercentage : undefined,
+          estimateOveragePercentage: estimateOveragePercentage > 0 ? estimateOveragePercentage : undefined,
+          budgetType
         };
       });
 
-      // Identify projects over budget by >10%
+      // Identify projects over budget by >10% (either estimate or quote)
       const overBudget = projectsWithProfitData.filter(project => 
-        project.overagePercentage && project.overagePercentage > 10
+        (project.overagePercentage && project.overagePercentage > 10) ||
+        (project.estimateOveragePercentage && project.estimateOveragePercentage > 10)
       );
 
       setProjects(formattedProjects);
@@ -304,14 +327,7 @@ const Dashboard = () => {
         <Alert className="border-destructive bg-destructive/10">
           <AlertTriangle className="h-4 w-4 text-destructive" />
           <AlertDescription className="text-destructive font-medium">
-            <strong>WARNING:</strong> {overBudgetProjects.length} project{overBudgetProjects.length > 1 ? 's are' : ' is'} over budget:
-            {overBudgetProjects.map((project, index) => (
-              <div key={project.id} className="mt-1">
-                {project.name} is {project.overagePercentage?.toFixed(1)}% over budget. 
-                Actual: ${project.actualCosts.toLocaleString()}, Quoted: ${project.quotedAmount.toLocaleString()}, 
-                Overage: ${(project.actualCosts - project.quotedAmount).toLocaleString()}
-              </div>
-            ))}
+            <strong>WARNING:</strong> {overBudgetProjects.length} project{overBudgetProjects.length > 1 ? 's are' : ' is'} over their estimated/quoted budget
           </AlertDescription>
         </Alert>
       )}
