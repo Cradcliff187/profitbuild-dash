@@ -90,14 +90,14 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
   const comparison = calculateComparison();
 
   const getDifferenceColor = (difference: number) => {
-    if (difference > 0) return "text-destructive";
-    if (difference < 0) return "text-green-600";
+    if (difference > 0) return "text-destructive"; // Higher than estimate = red
+    if (difference < 0) return "text-green-600"; // Lower than estimate = green
     return "text-muted-foreground";
   };
 
   const getDifferenceIcon = (difference: number) => {
-    if (difference > 0) return <TrendingUp className="h-4 w-4" />;
-    if (difference < 0) return <TrendingDown className="h-4 w-4" />;
+    if (difference > 0) return <TrendingUp className="h-4 w-4" />; // Higher = up arrow
+    if (difference < 0) return <TrendingDown className="h-4 w-4" />; // Lower = down arrow
     return null;
   };
 
@@ -161,7 +161,10 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
           <CardContent>
             <div className={`text-2xl font-bold flex items-center gap-2 ${getDifferenceColor(comparison.difference)}`}>
               {getDifferenceIcon(comparison.difference)}
-              ${Math.abs(comparison.difference).toFixed(2)}
+              {comparison.difference >= 0 ? '+' : ''}${comparison.difference.toFixed(2)}
+            </div>
+            <div className="text-sm text-muted-foreground mt-1">
+              {Math.abs(comparison.percentageDiff).toFixed(1)}% {comparison.difference > 0 ? 'above' : comparison.difference < 0 ? 'below' : 'of'} estimate
             </div>
             <Badge 
               variant={
@@ -171,10 +174,9 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
               }
               className="mt-2"
             >
-              {comparison.difference > 0 ? "Over Budget" : 
-               comparison.difference < 0 ? "Under Budget" : 
+              {comparison.difference > 0 ? "Overrun" : 
+               comparison.difference < 0 ? "Savings" : 
                "On Budget"}
-              {comparison.difference !== 0 && ` (${Math.abs(comparison.percentageDiff).toFixed(1)}%)`}
             </Badge>
           </CardContent>
         </Card>

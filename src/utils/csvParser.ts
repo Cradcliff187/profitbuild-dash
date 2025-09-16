@@ -7,7 +7,7 @@ const parseQuickBooksAmount = (amount: string | number): number => {
   if (typeof amount === 'number') return amount;
   if (!amount || typeof amount !== 'string') return 0;
   
-  const cleanAmount = amount.replace(/[,$\s]/g, ''); // Remove commas, currency, spaces
+  const cleanAmount = amount.replace(/[,"$\s]/g, ''); // Remove quotes, commas, currency, spaces
   const isNegative = cleanAmount.includes('(') || cleanAmount.startsWith('-');
   const numericString = cleanAmount.replace(/[()$€£¥-]/g, ''); // Remove all non-numeric except decimal
   const parsedAmount = parseFloat(numericString) || 0;
