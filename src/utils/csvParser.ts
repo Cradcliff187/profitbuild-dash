@@ -2,6 +2,19 @@ import Papa from 'papaparse';
 import { CSVRow, ColumnMapping, Expense, ExpenseCategory, TransactionType } from '@/types/expense';
 import { supabase } from '@/integrations/supabase/client';
 
+// Robust amount parser for QuickBooks and other CSV formats
+const parseQuickBooksAmount = (amount: string | number): number => {
+  if (typeof amount === 'number') return amount;
+  if (!amount || typeof amount !== 'string') return 0;
+  
+  const cleanAmount = amount.replace(/[,$\s]/g, ''); // Remove commas, currency, spaces
+  const isNegative = cleanAmount.includes('(') || cleanAmount.startsWith('-');
+  const numericString = cleanAmount.replace(/[()$€£¥-]/g, ''); // Remove all non-numeric except decimal
+  const parsedAmount = parseFloat(numericString) || 0;
+  
+  return isNegative ? -parsedAmount : parsedAmount;
+};
+
 export interface ParseResult {
   data: CSVRow[];
   errors: string[];
@@ -51,9 +64,8 @@ export const mapCSVToExpenses = (
       }
     }
 
-    // Parse amount - remove currency symbols and commas
-    const cleanAmount = amountStr.replace(/[$,]/g, '');
-    const amount = Math.abs(parseFloat(cleanAmount) || 0);
+    // Parse amount using robust parser
+    const amount = parseQuickBooksAmount(amountStr);
 
     // Get description
     const description = mapping.description ? row[mapping.description] : `Imported expense ${index + 1}`;
@@ -113,8 +125,11 @@ export const validateCSVData = (data: CSVRow[], mapping: ColumnMapping): string[
       errors.push(`Row ${index + 1}: Missing amount`);
     }
     
-    if (mapping.amount && row[mapping.amount] && isNaN(parseFloat(row[mapping.amount].replace(/[$,]/g, '')))) {
-      errors.push(`Row ${index + 1}: Invalid amount format`);
+    if (mapping.amount && row[mapping.amount]) {
+      const parsedAmount = parseQuickBooksAmount(row[mapping.amount]);
+      if (isNaN(parsedAmount)) {
+        errors.push(`Row ${index + 1}: Invalid amount format`);
+      }
     }
   });
 
@@ -257,9 +272,8 @@ export const mapQuickBooksToExpenses = async (
           }
         }
 
-        // Parse amount - handle negative values and clean formatting
-        const cleanAmount = transaction.amount.replace(/[$,()]/g, '');
-        let amount = Math.abs(parseFloat(cleanAmount) || 0);
+        // Parse amount using robust parser
+        const amount = parseQuickBooksAmount(transaction.amount);
 
         // Match project
         let matchedProject = defaultProject;
