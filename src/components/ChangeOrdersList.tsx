@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, Search } from 'lucide-react';
+import { Edit, Trash2, Search, CheckCircle, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,6 +82,72 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
       toast({
         title: "Error",
         description: "Failed to delete change order.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleApprove = async (changeOrder: ChangeOrder) => {
+    try {
+      const { error } = await supabase
+        .from('change_orders')
+        .update({
+          status: 'approved',
+          approved_date: new Date().toISOString().split('T')[0],
+          approved_by: 'current-user-placeholder' // TODO: Replace with actual user ID when auth is implemented
+        })
+        .eq('id', changeOrder.id);
+
+      if (error) throw error;
+
+      setChangeOrders(prev => prev.map(co => 
+        co.id === changeOrder.id 
+          ? { ...co, status: 'approved', approved_date: new Date().toISOString().split('T')[0], approved_by: 'current-user-placeholder' }
+          : co
+      ));
+      
+      toast({
+        title: "Change Order Approved",
+        description: `Change Order ${changeOrder.change_order_number} has been approved.`,
+      });
+    } catch (error) {
+      console.error('Error approving change order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to approve change order.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReject = async (changeOrder: ChangeOrder) => {
+    try {
+      const { error } = await supabase
+        .from('change_orders')
+        .update({
+          status: 'rejected',
+          approved_date: null,
+          approved_by: null
+        })
+        .eq('id', changeOrder.id);
+
+      if (error) throw error;
+
+      setChangeOrders(prev => prev.map(co => 
+        co.id === changeOrder.id 
+          ? { ...co, status: 'rejected', approved_date: null, approved_by: null }
+          : co
+      ));
+      
+      toast({
+        title: "Change Order Rejected",
+        description: `Change Order ${changeOrder.change_order_number} has been rejected.`,
+      });
+    } catch (error) {
+      console.error('Error rejecting change order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject change order.",
         variant: "destructive",
       });
     }
@@ -186,6 +252,52 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
+                          {changeOrder.status === 'pending' && (
+                            <>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="outline" size="sm" className="text-green-600 border-green-200 hover:bg-green-50">
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Approve Change Order</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to approve change order {changeOrder.change_order_number} for ${Number(changeOrder.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleApprove(changeOrder)}>
+                                      Approve
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50">
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Reject Change Order</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to reject change order {changeOrder.change_order_number}? This action can be reversed later if needed.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleReject(changeOrder)} className="bg-red-600 hover:bg-red-700">
+                                      Reject
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
                           {onEdit && (
                             <Button
                               variant="outline"
