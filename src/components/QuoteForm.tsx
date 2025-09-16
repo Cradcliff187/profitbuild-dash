@@ -10,9 +10,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { ProjectSelector } from "./ProjectSelector";
+import { VendorSelector } from "./VendorSelector";
 import { LineItemRow } from "./LineItemRow";
 import { Estimate, LineItem, LineItemCategory } from "@/types/estimate";
 import { Quote, QuoteLineItem } from "@/types/quote";
+import { Vendor } from "@/types/vendor";
 import { useToast } from "@/hooks/use-toast";
 
 interface QuoteFormProps {
@@ -25,6 +27,7 @@ interface QuoteFormProps {
 export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFormProps) => {
   const { toast } = useToast();
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate>();
+  const [selectedVendor, setSelectedVendor] = useState<Vendor>();
   const [quotedBy, setQuotedBy] = useState("");
   const [dateReceived, setDateReceived] = useState<Date>(new Date());
   const [notes, setNotes] = useState("");
@@ -70,6 +73,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       setDateReceived(initialQuote.dateReceived);
       setNotes(initialQuote.notes || "");
       setLineItems(initialQuote.lineItems);
+      // Note: selectedVendor will be set when VendorSelector loads vendors
     }
   }, [initialQuote, estimates]);
 
@@ -151,10 +155,10 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       return;
     }
 
-    if (!quotedBy.trim()) {
+    if (!selectedVendor) {
       toast({
         title: "Missing Information",
-        description: "Please enter the subcontractor name.",
+        description: "Please select a vendor.",
         variant: "destructive"
       });
       return;
@@ -175,7 +179,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       estimate_id: selectedEstimate.id,
       projectName: selectedEstimate.project_name || '',
       client: selectedEstimate.client_name || '',
-      quotedBy: quotedBy.trim(),
+      vendor_id: selectedVendor.id,
+      quotedBy: selectedVendor.vendor_name,
       dateReceived,
       quoteNumber: initialQuote?.quoteNumber || generateQuoteNumber(),
       lineItems: lineItems.filter(item => item.description.trim()),
@@ -222,15 +227,15 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
 
           {/* Quote Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="quotedBy">Subcontractor Name</Label>
-              <Input
-                id="quotedBy"
-                value={quotedBy}
-                onChange={(e) => setQuotedBy(e.target.value)}
-                placeholder="Enter subcontractor name"
-              />
-            </div>
+            <VendorSelector
+              selectedVendorId={selectedVendor?.id}
+              onSelect={(vendor) => {
+                setSelectedVendor(vendor);
+                setQuotedBy(vendor.vendor_name);
+              }}
+              placeholder="Select vendor for this quote..."
+              label="Subcontractor/Vendor"
+            />
             
             <div className="space-y-2">
               <Label>Date Received</Label>
@@ -350,7 +355,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
             <Button 
               onClick={handleSave} 
               className="flex-1"
-              disabled={!selectedEstimate}
+              disabled={!selectedEstimate || !selectedVendor}
             >
               <Save className="h-4 w-4 mr-2" />
               Save Quote
