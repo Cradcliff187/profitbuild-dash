@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      change_orders: {
+        Row: {
+          amount: number | null
+          approved_by: string | null
+          approved_date: string | null
+          change_order_number: string
+          created_at: string | null
+          description: string
+          id: string
+          project_id: string
+          reason_for_change: string | null
+          requested_date: string | null
+          status: Database["public"]["Enums"]["change_order_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          approved_by?: string | null
+          approved_date?: string | null
+          change_order_number: string
+          created_at?: string | null
+          description: string
+          id?: string
+          project_id: string
+          reason_for_change?: string | null
+          requested_date?: string | null
+          status?: Database["public"]["Enums"]["change_order_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          approved_by?: string | null
+          approved_date?: string | null
+          change_order_number?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          project_id?: string
+          reason_for_change?: string | null
+          requested_date?: string | null
+          status?: Database["public"]["Enums"]["change_order_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -559,6 +612,7 @@ export type Database = {
       }
     }
     Enums: {
+      change_order_status: "pending" | "approved" | "rejected"
       estimate_status: "draft" | "sent" | "approved" | "rejected" | "expired"
       expense_category:
         | "labor_internal"
@@ -704,6 +758,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      change_order_status: ["pending", "approved", "rejected"],
       estimate_status: ["draft", "sent", "approved", "rejected", "expired"],
       expense_category: [
         "labor_internal",
