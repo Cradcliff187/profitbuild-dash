@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import type { Payee } from "@/types/payee";
 
@@ -17,6 +19,11 @@ const payeeSchema = z.object({
   phone_numbers: z.string().optional(),
   billing_address: z.string().optional(),
   terms: z.string().optional(),
+  payee_type: z.string().optional(),
+  provides_labor: z.boolean().optional(),
+  provides_materials: z.boolean().optional(),
+  requires_1099: z.boolean().optional(),
+  is_internal: z.boolean().optional(),
 });
 
 type PayeeFormData = z.infer<typeof payeeSchema>;
@@ -39,6 +46,11 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
       phone_numbers: payee?.phone_numbers || "",
       billing_address: payee?.billing_address || "",
       terms: payee?.terms || "Net 30",
+      payee_type: payee?.payee_type || "subcontractor",
+      provides_labor: payee?.provides_labor || false,
+      provides_materials: payee?.provides_materials || false,
+      requires_1099: payee?.requires_1099 || false,
+      is_internal: payee?.is_internal || false,
     },
   });
 
@@ -53,6 +65,11 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
           phone_numbers: data.phone_numbers || null,
           billing_address: data.billing_address || null,
           terms: data.terms || "Net 30",
+          payee_type: data.payee_type || "subcontractor",
+          provides_labor: data.provides_labor || false,
+          provides_materials: data.provides_materials || false,
+          requires_1099: data.requires_1099 || false,
+          is_internal: data.is_internal || false,
         };
 
         const { error } = await supabase
@@ -74,6 +91,11 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
           phone_numbers: data.phone_numbers || null,
           billing_address: data.billing_address || null,
           terms: data.terms || "Net 30",
+          payee_type: data.payee_type || "subcontractor",
+          provides_labor: data.provides_labor || false,
+          provides_materials: data.provides_materials || false,
+          requires_1099: data.requires_1099 || false,
+          is_internal: data.is_internal || false,
         };
 
         const { error } = await supabase
@@ -178,6 +200,104 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="payee_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payee Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payee type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="subcontractor">Subcontractor</SelectItem>
+                      <SelectItem value="supplier">Supplier</SelectItem>
+                      <SelectItem value="employee">Employee</SelectItem>
+                      <SelectItem value="vendor">Vendor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="provides_labor"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Provides Labor</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="provides_materials"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Provides Materials</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="requires_1099"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Requires 1099</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="is_internal"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Internal</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="flex gap-2 pt-4">
               <Button type="submit" disabled={isSubmitting}>

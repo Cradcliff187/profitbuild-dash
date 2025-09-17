@@ -11,6 +11,11 @@ export interface Payee {
   quickbooks_vendor_id?: string;
   sync_status?: 'success' | 'failed' | 'pending' | null;
   last_synced_at?: string | null;
+  payee_type?: string;
+  provides_labor?: boolean;
+  provides_materials?: boolean;
+  requires_1099?: boolean;
+  is_internal?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -23,6 +28,11 @@ export interface CreatePayeeData {
   full_name?: string;
   account_number?: string;
   terms?: string;
+  payee_type?: string;
+  provides_labor?: boolean;
+  provides_materials?: boolean;
+  requires_1099?: boolean;
+  is_internal?: boolean;
 }
 
 export interface UpdatePayeeData extends Partial<CreatePayeeData> {

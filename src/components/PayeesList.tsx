@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SyncStatusBadge } from "@/components/SyncStatusBadge";
@@ -147,8 +148,10 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
             <TableHeader>
               <TableRow>
                 <TableHead>Payee Name</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
+                <TableHead>Services</TableHead>
                 <TableHead>Sync Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -157,8 +160,26 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
               {payees.map((payee) => (
                 <TableRow key={payee.id}>
                   <TableCell className="font-medium">{payee.vendor_name}</TableCell>
+                  <TableCell>
+                    <Badge variant={payee.is_internal ? "default" : "secondary"}>
+                      {payee.payee_type || "subcontractor"}
+                    </Badge>
+                  </TableCell>
                   <TableCell>{payee.email || "-"}</TableCell>
                   <TableCell>{payee.phone_numbers || "-"}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1 flex-wrap">
+                      {payee.provides_labor && (
+                        <Badge variant="outline" className="text-xs">Labor</Badge>
+                      )}
+                      {payee.provides_materials && (
+                        <Badge variant="outline" className="text-xs">Materials</Badge>
+                      )}
+                      {payee.requires_1099 && (
+                        <Badge variant="outline" className="text-xs">1099</Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <SyncStatusBadge
                       status={payee.sync_status}

@@ -251,9 +251,14 @@ export type Database = {
           full_name: string | null
           id: string
           is_active: boolean | null
+          is_internal: boolean | null
           last_synced_at: string | null
+          payee_type: string | null
           phone_numbers: string | null
+          provides_labor: boolean | null
+          provides_materials: boolean | null
           quickbooks_vendor_id: string | null
+          requires_1099: boolean | null
           sync_status: Database["public"]["Enums"]["sync_status"] | null
           terms: string | null
           updated_at: string | null
@@ -267,9 +272,14 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean | null
+          is_internal?: boolean | null
           last_synced_at?: string | null
+          payee_type?: string | null
           phone_numbers?: string | null
+          provides_labor?: boolean | null
+          provides_materials?: boolean | null
           quickbooks_vendor_id?: string | null
+          requires_1099?: boolean | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
           terms?: string | null
           updated_at?: string | null
@@ -283,9 +293,14 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean | null
+          is_internal?: boolean | null
           last_synced_at?: string | null
+          payee_type?: string | null
           phone_numbers?: string | null
+          provides_labor?: boolean | null
+          provides_materials?: boolean | null
           quickbooks_vendor_id?: string | null
+          requires_1099?: boolean | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
           terms?: string | null
           updated_at?: string | null
