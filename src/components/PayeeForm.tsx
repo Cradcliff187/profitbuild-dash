@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import type { Payee } from "@/types/payee";
 
 const payeeSchema = z.object({
@@ -24,6 +29,10 @@ const payeeSchema = z.object({
   provides_materials: z.boolean().optional(),
   requires_1099: z.boolean().optional(),
   is_internal: z.boolean().optional(),
+  insurance_expires: z.date().optional(),
+  license_number: z.string().optional(),
+  permit_issuer: z.boolean().optional(),
+  hourly_rate: z.number().positive().optional().or(z.literal("")),
 });
 
 type PayeeFormData = z.infer<typeof payeeSchema>;
@@ -51,6 +60,10 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
       provides_materials: payee?.provides_materials || false,
       requires_1099: payee?.requires_1099 || false,
       is_internal: payee?.is_internal || false,
+      insurance_expires: payee?.insurance_expires ? new Date(payee.insurance_expires) : undefined,
+      license_number: payee?.license_number || "",
+      permit_issuer: payee?.permit_issuer || false,
+      hourly_rate: payee?.hourly_rate || "",
     },
   });
 
@@ -70,6 +83,10 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
           provides_materials: data.provides_materials || false,
           requires_1099: data.requires_1099 || false,
           is_internal: data.is_internal || false,
+          insurance_expires: data.insurance_expires ? data.insurance_expires.toISOString().split('T')[0] : null,
+          license_number: data.license_number || null,
+          permit_issuer: data.permit_issuer || false,
+          hourly_rate: typeof data.hourly_rate === 'number' ? data.hourly_rate : null,
         };
 
         const { error } = await supabase
@@ -96,6 +113,10 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
           provides_materials: data.provides_materials || false,
           requires_1099: data.requires_1099 || false,
           is_internal: data.is_internal || false,
+          insurance_expires: data.insurance_expires ? data.insurance_expires.toISOString().split('T')[0] : null,
+          license_number: data.license_number || null,
+          permit_issuer: data.permit_issuer || false,
+          hourly_rate: typeof data.hourly_rate === 'number' ? data.hourly_rate : null,
         };
 
         const { error } = await supabase
@@ -293,6 +314,101 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel>Internal</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="license_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>License Number</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Professional license number" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="hourly_rate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hourly Rate</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01"
+                        placeholder="75.00"
+                        {...field} 
+                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : "")}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="insurance_expires"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Insurance Expires</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick expiration date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="permit_issuer"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 self-end pb-2">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Can Issue Permits</FormLabel>
                     </div>
                   </FormItem>
                 )}

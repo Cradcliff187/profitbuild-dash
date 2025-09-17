@@ -16,6 +16,10 @@ export interface Payee {
   provides_materials?: boolean;
   requires_1099?: boolean;
   is_internal?: boolean;
+  insurance_expires?: string | null;
+  license_number?: string;
+  permit_issuer?: boolean;
+  hourly_rate?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -33,6 +37,10 @@ export interface CreatePayeeData {
   provides_materials?: boolean;
   requires_1099?: boolean;
   is_internal?: boolean;
+  insurance_expires?: string | null;
+  license_number?: string;
+  permit_issuer?: boolean;
+  hourly_rate?: number | null;
 }
 
 export interface UpdatePayeeData extends Partial<CreatePayeeData> {

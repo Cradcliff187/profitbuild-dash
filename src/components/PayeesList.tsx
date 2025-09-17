@@ -152,6 +152,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Services</TableHead>
+                <TableHead>Business Info</TableHead>
                 <TableHead>Sync Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -177,6 +178,22 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
                       )}
                       {payee.requires_1099 && (
                         <Badge variant="outline" className="text-xs">1099</Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-1 text-sm">
+                      {payee.license_number && (
+                        <div className="text-muted-foreground">License: {payee.license_number}</div>
+                      )}
+                      {payee.hourly_rate && (
+                        <div className="text-muted-foreground">${payee.hourly_rate}/hr</div>
+                      )}
+                      {payee.permit_issuer && <Badge variant="secondary" className="text-xs">Permit Issuer</Badge>}
+                      {payee.insurance_expires && (
+                        <div className="text-xs text-muted-foreground">
+                          Insurance expires: {new Date(payee.insurance_expires).toLocaleDateString()}
+                        </div>
                       )}
                     </div>
                   </TableCell>

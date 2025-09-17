@@ -249,11 +249,15 @@ export type Database = {
           created_at: string | null
           email: string | null
           full_name: string | null
+          hourly_rate: number | null
           id: string
+          insurance_expires: string | null
           is_active: boolean | null
           is_internal: boolean | null
           last_synced_at: string | null
+          license_number: string | null
           payee_type: string | null
+          permit_issuer: boolean | null
           phone_numbers: string | null
           provides_labor: boolean | null
           provides_materials: boolean | null
@@ -270,11 +274,15 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name?: string | null
+          hourly_rate?: number | null
           id?: string
+          insurance_expires?: string | null
           is_active?: boolean | null
           is_internal?: boolean | null
           last_synced_at?: string | null
+          license_number?: string | null
           payee_type?: string | null
+          permit_issuer?: boolean | null
           phone_numbers?: string | null
           provides_labor?: boolean | null
           provides_materials?: boolean | null
@@ -291,11 +299,15 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name?: string | null
+          hourly_rate?: number | null
           id?: string
+          insurance_expires?: string | null
           is_active?: boolean | null
           is_internal?: boolean | null
           last_synced_at?: string | null
+          license_number?: string | null
           payee_type?: string | null
+          permit_issuer?: boolean | null
           phone_numbers?: string | null
           provides_labor?: boolean | null
           provides_materials?: boolean | null
