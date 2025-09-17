@@ -43,11 +43,12 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
   const [jobType, setJobType] = useState("");
   const [projectNumber, setProjectNumber] = useState("");
   
-  // Estimate fields
-  const [date, setDate] = useState<Date>(new Date());
-  const [validUntil, setValidUntil] = useState<Date | undefined>(undefined);
-  const [notes, setNotes] = useState("");
+  const [date, setDate] = useState<Date>(initialEstimate?.date_created || new Date());
+  const [validUntil, setValidUntil] = useState<Date | undefined>(initialEstimate?.valid_until);
+  const [notes, setNotes] = useState(initialEstimate?.notes || "");
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [contingencyPercent, setContingencyPercent] = useState(initialEstimate?.contingency_percent || 10.0);
+  const [contingencyUsed, setContingencyUsed] = useState(initialEstimate?.contingency_used || 0);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -166,6 +167,11 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     return lineItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
   };
 
+  const calculateContingencyAmount = () => {
+    const total = calculateTotal();
+    return total * (contingencyPercent / 100);
+  };
+
   const validateForm = () => {
     const validLineItems = lineItems.filter(item => item.description.trim());
     
@@ -262,6 +268,9 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
           total_amount: estimateData.total_amount,
           notes: estimateData.notes,
           valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
+          contingency_percent: estimateData.contingency_percent,
+          contingency_amount: estimateData.contingency_amount,
+          contingency_used: estimateData.contingency_used,
           lineItems: validLineItems,
           updated_at: new Date(estimateData.updated_at)
         };
@@ -322,6 +331,8 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
           status: 'draft' as const,
           notes: notes.trim() || undefined,
           valid_until: validUntil?.toISOString().split('T')[0],
+          contingency_percent: contingencyPercent,
+          contingency_used: contingencyUsed,
           revision_number: 1
         })
         .select()
@@ -357,6 +368,9 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         notes: estimateData.notes,
         valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
         revision_number: estimateData.revision_number,
+        contingency_percent: estimateData.contingency_percent,
+        contingency_amount: estimateData.contingency_amount,
+        contingency_used: estimateData.contingency_used,
         lineItems: validLineItems,
         created_at: new Date(estimateData.created_at),
         updated_at: new Date(estimateData.updated_at),
@@ -712,15 +726,63 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
             </div>
           </div>
 
-          {/* Total */}
-          <Card className="bg-muted/50">
-            <CardContent className="p-4">
-              <div className="flex justify-between items-center text-lg font-bold">
-                <span>Estimate Total:</span>
-                <span className="text-primary">${calculateTotal().toFixed(2)}</span>
+          {/* Contingency and Total */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="contingency-percent">Contingency %</Label>
+                <Input
+                  id="contingency-percent"
+                  type="number"
+                  step="0.1"
+                  value={contingencyPercent}
+                  onChange={(e) => setContingencyPercent(parseFloat(e.target.value) || 0)}
+                  className="mt-1"
+                />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <Label htmlFor="contingency-used">Contingency Used</Label>
+                <Input
+                  id="contingency-used"
+                  type="number"
+                  step="0.01"
+                  value={contingencyUsed}
+                  onChange={(e) => setContingencyUsed(parseFloat(e.target.value) || 0)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            
+            <div className="text-right space-y-2">
+              <div>
+                <div className="text-sm text-muted-foreground">Subtotal</div>
+                <div className="text-lg font-semibold">
+                  ${calculateTotal().toLocaleString('en-US', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  })}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Contingency ({contingencyPercent}%)</div>
+                <div className="text-lg font-semibold">
+                  ${calculateContingencyAmount().toLocaleString('en-US', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  })}
+                </div>
+              </div>
+              <div className="border-t pt-2">
+                <div className="text-sm text-muted-foreground">Total with Contingency</div>
+                <div className="text-2xl font-bold">
+                  ${(calculateTotal() + calculateContingencyAmount()).toLocaleString('en-US', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">

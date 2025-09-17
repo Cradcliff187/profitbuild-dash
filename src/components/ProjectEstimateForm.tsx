@@ -28,6 +28,8 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
   const [validUntil, setValidUntil] = useState<Date | undefined>(undefined);
   const [notes, setNotes] = useState("");
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [contingencyPercent, setContingencyPercent] = useState(10.0);
+  const [contingencyUsed, setContingencyUsed] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
   const generateEstimateNumber = () => {
@@ -82,6 +84,11 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
     return lineItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
   };
 
+  const calculateContingencyAmount = () => {
+    const total = calculateTotal();
+    return total * (contingencyPercent / 100);
+  };
+
   const handleSave = async () => {
     const validLineItems = lineItems.filter(item => item.description.trim());
     
@@ -111,6 +118,8 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
           status: 'draft' as const,
           notes: notes.trim() || undefined,
           valid_until: validUntil?.toISOString().split('T')[0],
+          contingency_percent: contingencyPercent,
+          contingency_used: contingencyUsed,
           revision_number: 1
         })
         .select()
@@ -146,6 +155,9 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
         notes: estimateData.notes,
         valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
         revision_number: estimateData.revision_number,
+        contingency_percent: estimateData.contingency_percent,
+        contingency_amount: estimateData.contingency_amount,
+        contingency_used: estimateData.contingency_used,
         lineItems: validLineItems,
         created_at: new Date(estimateData.created_at),
         updated_at: new Date(estimateData.updated_at),
@@ -338,15 +350,62 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
             </div>
           </div>
 
+          {/* Contingency Section */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="contingency-percent">Contingency %</Label>
+              <Input
+                id="contingency-percent"
+                type="number"
+                step="0.1"
+                value={contingencyPercent}
+                onChange={(e) => setContingencyPercent(parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contingency-used">Contingency Used</Label>
+              <Input
+                id="contingency-used"
+                type="number"
+                step="0.01"
+                value={contingencyUsed}
+                onChange={(e) => setContingencyUsed(parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+
           {/* Total */}
-          <Card className="bg-muted/50">
-            <CardContent className="p-4">
-              <div className="flex justify-between items-center text-lg font-bold">
-                <span>Estimate Total:</span>
-                <span className="text-primary">${calculateTotal().toFixed(2)}</span>
+          <div className="space-y-4">
+            <div className="text-right space-y-2">
+              <div>
+                <div className="text-sm text-muted-foreground">Subtotal</div>
+                <div className="text-lg font-semibold">
+                  ${calculateTotal().toLocaleString('en-US', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  })}
+                </div>
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <div className="text-sm text-muted-foreground">Contingency ({contingencyPercent}%)</div>
+                <div className="text-lg font-semibold">
+                  ${calculateContingencyAmount().toLocaleString('en-US', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  })}
+                </div>
+              </div>
+              <div className="border-t pt-2">
+                <div className="text-sm text-muted-foreground">Total with Contingency</div>
+                <div className="text-2xl font-bold text-primary">
+                  ${(calculateTotal() + calculateContingencyAmount()).toLocaleString('en-US', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">

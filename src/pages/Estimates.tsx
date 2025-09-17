@@ -65,6 +65,9 @@ const Estimates = () => {
         notes: est.notes,
         valid_until: est.valid_until ? new Date(est.valid_until) : undefined,
         revision_number: est.revision_number,
+        contingency_percent: est.contingency_percent || 10.0,
+        contingency_amount: est.contingency_amount,
+        contingency_used: est.contingency_used || 0,
         lineItems: [], // Will be loaded separately when needed
         created_at: new Date(est.created_at),
         updated_at: new Date(est.updated_at),

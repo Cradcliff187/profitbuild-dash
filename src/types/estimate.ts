@@ -22,6 +22,10 @@ export interface Estimate {
   lineItems: LineItem[];
   created_at: Date;
   updated_at: Date;
+  // Contingency fields
+  contingency_percent: number;
+  contingency_amount?: number;
+  contingency_used: number;
   // For display purposes (populated from project)
   project_name?: string;
   client_name?: string;
