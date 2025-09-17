@@ -15,7 +15,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from '@/types/expense';
 import { Project } from '@/types/project';
-import { Vendor } from '@/types/vendor';
+import { Payee } from '@/types/payee';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -42,8 +42,8 @@ interface ExpenseFormProps {
 
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCancel }) => {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [vendorOpen, setVendorOpen] = useState(false);
+  const [payees, setPayees] = useState<Payee[]>([]);
+  const [payeeOpen, setPayeeOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -81,15 +81,18 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         }));
         setProjects(transformedProjects);
 
-        // Load vendors
-        const { data: vendorsData, error: vendorsError } = await supabase
-          .from('vendors')
+        // Load payees
+        const { data: payeesData, error: payeesError } = await supabase
+          .from('payees')
           .select('*')
           .eq('is_active', true)
           .order('vendor_name');
 
-        if (vendorsError) throw vendorsError;
-        setVendors(vendorsData || []);
+        if (payeesError) {
+          console.error('Error loading payees:', payeesError);
+        } else {
+          setPayees(payeesData || []);
+        }
       } catch (error) {
         console.error('Error loading data:', error);
         toast({

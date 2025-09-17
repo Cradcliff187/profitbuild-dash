@@ -1,30 +1,30 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Upload } from "lucide-react";
-import { VendorForm } from "@/components/VendorForm";
-import { VendorsList } from "@/components/VendorsList";
-import { VendorImportModal } from "@/components/VendorImportModal";
-import type { Vendor } from "@/types/vendor";
+import { PayeeForm } from "@/components/PayeeForm";
+import { PayeesList } from "@/components/PayeesList";
+import { PayeeImportModal } from "@/components/PayeeImportModal";
+import type { Payee } from "@/types/payee";
 
-const Vendors = () => {
+const Payees = () => {
   const [showForm, setShowForm] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [selectedVendor, setSelectedVendor] = useState<Vendor | undefined>(undefined);
+  const [selectedPayee, setSelectedPayee] = useState<Payee | undefined>(undefined);
   const [refreshList, setRefreshList] = useState(false);
 
   const handleAddNew = () => {
-    setSelectedVendor(undefined);
+    setSelectedPayee(undefined);
     setShowForm(true);
   };
 
-  const handleEdit = (vendor: Vendor) => {
-    setSelectedVendor(vendor);
+  const handleEdit = (payee: Payee) => {
+    setSelectedPayee(payee);
     setShowForm(true);
   };
 
   const handleFormSuccess = () => {
     setShowForm(false);
-    setSelectedVendor(undefined);
+    setSelectedPayee(undefined);
     setRefreshList(true);
   };
 
@@ -35,7 +35,7 @@ const Vendors = () => {
 
   const handleFormCancel = () => {
     setShowForm(false);
-    setSelectedVendor(undefined);
+    setSelectedPayee(undefined);
   };
 
   const handleRefreshComplete = () => {
@@ -46,14 +46,14 @@ const Vendors = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Vendors</h1>
-          <p className="text-muted-foreground">Manage your construction vendors</p>
+          <h1 className="text-3xl font-bold text-foreground">Payees</h1>
+          <p className="text-muted-foreground">Manage your construction payees</p>
         </div>
         {!showForm && (
           <div className="flex space-x-2">
             <Button onClick={handleAddNew}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Vendor
+              Add Payee
             </Button>
             <Button variant="outline" onClick={() => setShowImportModal(true)}>
               <Upload className="h-4 w-4 mr-2" />
@@ -64,20 +64,20 @@ const Vendors = () => {
       </div>
 
       {showForm ? (
-        <VendorForm
-          vendor={selectedVendor}
+        <PayeeForm
+          payee={selectedPayee}
           onSuccess={handleFormSuccess}
           onCancel={handleFormCancel}
         />
       ) : (
-        <VendorsList
+        <PayeesList
           onEdit={handleEdit}
           refresh={refreshList}
           onRefreshComplete={handleRefreshComplete}
         />
       )}
 
-      <VendorImportModal
+      <PayeeImportModal
         open={showImportModal}
         onClose={() => setShowImportModal(false)}
         onSuccess={handleImportSuccess}
@@ -86,4 +86,4 @@ const Vendors = () => {
   );
 };
 
-export default Vendors;
+export default Payees;

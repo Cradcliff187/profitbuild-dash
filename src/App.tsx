@@ -8,7 +8,7 @@ import WorkOrders from "./pages/WorkOrders";
 import Estimates from "./pages/Estimates";
 import Quotes from "./pages/Quotes";
 import Expenses from "./pages/Expenses";
-import Vendors from "./pages/Vendors";
+import Payees from "./pages/Payees";
 import Projects from "./pages/Projects";
 import ProfitAnalysis from "./pages/ProfitAnalysis";
 import Settings from "./pages/Settings";
@@ -33,7 +33,7 @@ const App = () => (
               <Route path="/estimates" element={<Estimates />} />
               <Route path="/quotes" element={<Quotes />} />
               <Route path="/expenses" element={<Expenses />} />
-              <Route path="/vendors" element={<Vendors />} />
+              <Route path="/vendors" element={<Payees />} />
               <Route path="/profit-analysis" element={<ProfitAnalysis />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<NotFound />} />

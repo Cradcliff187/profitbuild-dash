@@ -8,25 +8,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
-  parseVendorCSVFile, 
-  mapCSVToVendors, 
-  validateVendorCSVData,
-  VendorCSVRow, 
-  VendorColumnMapping,
-  VendorImportData
-} from '@/utils/vendorCsvParser';
+  parsePayeeCSVFile, 
+  mapCSVToPayees, 
+  validatePayeeCSVData,
+  PayeeCSVRow, 
+  PayeeColumnMapping,
+  PayeeImportData
+} from '@/utils/payeeCsvParser';
 
-interface VendorImportModalProps {
+interface PayeeImportModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export const VendorImportModal: React.FC<VendorImportModalProps> = ({ open, onClose, onSuccess }) => {
+export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClose, onSuccess }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [csvData, setCsvData] = useState<VendorCSVRow[]>([]);
+  const [csvData, setCsvData] = useState<PayeeCSVRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
-  const [mapping, setMapping] = useState<VendorColumnMapping>({});
+  const [mapping, setMapping] = useState<PayeeColumnMapping>({});
   const [errors, setErrors] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -40,6 +40,8 @@ export const VendorImportModal: React.FC<VendorImportModalProps> = ({ open, onCl
     setHeaders([]);
     setMapping({});
     setErrors([]);
+    setIsUploading(false);
+    setIsImporting(false);
     setStep('upload');
     setImportResults({ success: 0, errors: [] });
   };
@@ -49,17 +51,13 @@ export const VendorImportModal: React.FC<VendorImportModalProps> = ({ open, onCl
     onClose();
   };
 
-  const handleFileSelect = useCallback(async (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      setErrors(['Please select a CSV file']);
-      return;
-    }
-
-    setSelectedFile(file);
+  const handleFileSelect = async (file: File) => {
     setIsUploading(true);
+    setSelectedFile(file);
+    setErrors([]);
     
     try {
-      const result = await parseVendorCSVFile(file);
+      const result = await parsePayeeCSVFile(file);
       if (result.errors.length > 0) {
         setErrors(result.errors);
       } else {
@@ -73,66 +71,74 @@ export const VendorImportModal: React.FC<VendorImportModalProps> = ({ open, onCl
     } finally {
       setIsUploading(false);
     }
-  }, []);
+  };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFileSelect(file);
+    e.stopPropagation();
+    
+    const files = Array.from(e.dataTransfer.files);
+    const csvFile = files.find(f => f.name.endsWith('.csv') || f.type === 'text/csv');
+    
+    if (csvFile) {
+      handleFileSelect(csvFile);
+    } else {
+      setErrors(['Please select a CSV file']);
     }
-  }, [handleFileSelect]);
+  }, []);
 
   const handlePreview = () => {
-    const validationErrors = validateVendorCSVData(csvData, mapping);
+    const validationErrors = validatePayeeCSVData(csvData, mapping);
     if (validationErrors.length > 0) {
       setErrors(validationErrors);
       return;
     }
-
-    setErrors([]);
     setStep('preview');
+    setErrors([]);
   };
 
   const handleImport = async () => {
     if (!selectedFile) return;
 
     setIsImporting(true);
-    const vendors = mapCSVToVendors(csvData, mapping, selectedFile.name);
+    const payees = mapCSVToPayees(csvData, mapping, selectedFile.name);
     
     try {
       let successCount = 0;
       const errorMessages: string[] = [];
 
-      // Import vendors one by one to handle duplicates
-      for (const vendor of vendors) {
+      // Import payees one by one to handle duplicates
+      for (const payee of payees) {
         try {
           const { error } = await supabase
-            .from('vendors')
-            .insert(vendor);
+            .from('payees')
+            .insert([payee]);
 
           if (error) {
-            errorMessages.push(`Failed to import ${vendor.vendor_name}: ${error.message}`);
+            errorMessages.push(`Failed to import ${payee.vendor_name}: ${error.message}`);
           } else {
             successCount++;
           }
-        } catch (error) {
-          errorMessages.push(`Failed to import ${vendor.vendor_name}: ${error}`);
+        } catch (err) {
+          errorMessages.push(`Failed to import ${payee.vendor_name}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       }
 
       setImportResults({ success: successCount, errors: errorMessages });
       setStep('complete');
 
-      toast({
-        title: "Import Complete",
-        description: `Successfully imported ${successCount} vendors`,
-      });
-
+      if (successCount > 0) {
+        toast({
+          title: "Import completed",
+          description: `Successfully imported ${successCount} payee${successCount === 1 ? '' : 's'}${errorMessages.length > 0 ? ` with ${errorMessages.length} error${errorMessages.length === 1 ? '' : 's'}` : ''}`,
+        });
+        onSuccess();
+      }
     } catch (error) {
+      console.error('Import failed:', error);
       toast({
-        title: "Import Failed",
-        description: "Failed to import vendors. Please try again.",
+        title: "Import failed",
+        description: "Failed to import payees. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -140,218 +146,226 @@ export const VendorImportModal: React.FC<VendorImportModalProps> = ({ open, onCl
     }
   };
 
-  const handleComplete = () => {
-    onSuccess();
-    handleClose();
-  };
-
   const previewData = csvData.slice(0, 5);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Import Vendors from CSV</DialogTitle>
-            <Button variant="ghost" size="sm" onClick={handleClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle>Import Payees from CSV</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* File Upload */}
-          {step === 'upload' && (
-            <div className="space-y-4">
-              <div
-                className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
-                onDrop={handleDrop}
-                onDragOver={(e) => e.preventDefault()}
-                onClick={() => document.getElementById('vendor-file-input')?.click()}
-              >
-                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-lg font-medium mb-2">
-                  {selectedFile ? selectedFile.name : 'Drop your CSV file here or click to browse'}
-                </p>
-                <p className="text-muted-foreground">
-                  Supports QuickBooks vendor exports and standard CSV formats
-                </p>
-                <input
-                  id="vendor-file-input"
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                />
-              </div>
-              {isUploading && (
-                <div className="text-center">
-                  <p className="text-muted-foreground">Parsing CSV file...</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Column Mapping */}
-          {step === 'mapping' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Map CSV Columns to Vendor Fields</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Vendor Name *</label>
-                  <Select value={mapping.vendor_name || ''} onValueChange={(value) => setMapping({...mapping, vendor_name: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select vendor name column" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {headers.map(header => (
-                        <SelectItem key={header} value={header}>{header}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Email</label>
-                  <Select value={mapping.email || ''} onValueChange={(value) => setMapping({...mapping, email: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select email column" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {headers.map(header => (
-                        <SelectItem key={header} value={header}>{header}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Phone</label>
-                  <Select value={mapping.phone_numbers || ''} onValueChange={(value) => setMapping({...mapping, phone_numbers: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select phone column" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {headers.map(header => (
-                        <SelectItem key={header} value={header}>{header}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Billing Address</label>
-                  <Select value={mapping.billing_address || ''} onValueChange={(value) => setMapping({...mapping, billing_address: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select address column" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {headers.map(header => (
-                        <SelectItem key={header} value={header}>{header}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex space-x-2">
-                <Button onClick={handlePreview} disabled={!mapping.vendor_name}>
-                  Preview Import
-                </Button>
-                <Button variant="outline" onClick={() => setStep('upload')}>
-                  Back
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Preview */}
-          {step === 'preview' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Preview Import</h3>
-              <p className="text-sm text-muted-foreground">
-                Preview of first 5 vendors (of {csvData.length} total)
+        {step === 'upload' && (
+          <div className="space-y-4">
+            <div 
+              className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400"
+              onDrop={handleDrop}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              onClick={() => document.getElementById('csv-file-input')?.click()}
+            >
+              <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <p className="text-lg font-medium">Drop CSV file here or click to select</p>
+              <p className="text-sm text-gray-500 mt-2">
+                Supports QuickBooks vendor export format and standard CSV files
               </p>
-              
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Vendor Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Billing Address</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {previewData.map((row, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{mapping.vendor_name ? row[mapping.vendor_name] : '-'}</TableCell>
-                        <TableCell>{mapping.email ? row[mapping.email] : '-'}</TableCell>
-                        <TableCell>{mapping.phone_numbers ? row[mapping.phone_numbers] : '-'}</TableCell>
-                        <TableCell>{mapping.billing_address ? row[mapping.billing_address] : '-'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <input
+                id="csv-file-input"
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileSelect(file);
+                }}
+              />
+            </div>
+            
+            {selectedFile && (
+              <div className="flex items-center gap-2 text-sm">
+                <FileText className="h-4 w-4" />
+                <span>{selectedFile.name}</span>
+                <span className="text-gray-500">({Math.round(selectedFile.size / 1024)} KB)</span>
               </div>
+            )}
+            
+            {isUploading && (
+              <div className="text-center">
+                <p>Processing CSV file...</p>
+              </div>
+            )}
+          </div>
+        )}
 
-              <div className="flex space-x-2">
-                <Button onClick={handleImport} disabled={isImporting}>
-                  {isImporting ? 'Importing...' : `Import ${csvData.length} Vendors`}
-                </Button>
-                <Button variant="outline" onClick={() => setStep('mapping')}>
-                  Back to Mapping
-                </Button>
+        {step === 'mapping' && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-medium mb-2">Map CSV Columns</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Map your CSV columns to payee fields. Payee name is required.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Payee Name *</label>
+                <Select value={mapping.vendor_name || ''} onValueChange={(value) => setMapping(prev => ({ ...prev, vendor_name: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select column" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {headers.map(header => (
+                      <SelectItem key={header} value={header}>{header}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <Select value={mapping.email || ''} onValueChange={(value) => setMapping(prev => ({ ...prev, email: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select column (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {headers.map(header => (
+                      <SelectItem key={header} value={header}>{header}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Phone</label>
+                <Select value={mapping.phone_numbers || ''} onValueChange={(value) => setMapping(prev => ({ ...prev, phone_numbers: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select column (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {headers.map(header => (
+                      <SelectItem key={header} value={header}>{header}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Billing Address</label>
+                <Select value={mapping.billing_address || ''} onValueChange={(value) => setMapping(prev => ({ ...prev, billing_address: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select column (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {headers.map(header => (
+                      <SelectItem key={header} value={header}>{header}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          )}
+            
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={() => setStep('upload')}>
+                Back
+              </Button>
+              <Button onClick={handlePreview}>
+                Preview Data
+              </Button>
+            </div>
+          </div>
+        )}
 
-          {/* Complete */}
-          {step === 'complete' && (
-            <div className="space-y-4 text-center">
-              <CheckCircle className="h-16 w-16 mx-auto text-green-600" />
-              <h3 className="text-lg font-semibold">Import Complete!</h3>
-              <div className="space-y-2">
-                <p className="text-green-600 font-medium">
-                  Successfully imported {importResults.success} vendors
-                </p>
-                {importResults.errors.length > 0 && (
-                  <div className="text-left">
-                    <p className="text-orange-600 font-medium mb-2">
-                      {importResults.errors.length} errors occurred:
-                    </p>
-                    <div className="max-h-32 overflow-y-auto text-sm text-muted-foreground">
+        {step === 'preview' && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-medium mb-2">Preview Import Data</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Review the first 5 records before importing {csvData.length} total payees.
+              </p>
+            </div>
+            
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Payee Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Billing Address</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mapCSVToPayees(previewData, mapping, selectedFile?.name || '').map((payee, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{payee.vendor_name}</TableCell>
+                      <TableCell>{payee.email || '-'}</TableCell>
+                      <TableCell>{payee.phone_numbers || '-'}</TableCell>
+                      <TableCell>{payee.billing_address || '-'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={() => setStep('mapping')}>
+                Back to Mapping
+              </Button>
+              <Button onClick={handleImport} disabled={isImporting}>
+                {isImporting ? 'Importing...' : `Import ${csvData.length} Payees`}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 'complete' && (
+          <div className="space-y-4">
+            <div className="text-center">
+              <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Import Complete</h3>
+              <p className="text-gray-600">
+                Successfully imported {importResults.success} payee{importResults.success === 1 ? '' : 's'}
+                {importResults.errors.length > 0 && ` with ${importResults.errors.length} error${importResults.errors.length === 1 ? '' : 's'}`}
+              </p>
+            </div>
+            
+            {importResults.errors.length > 0 && (
+              <div className="max-h-40 overflow-y-auto">
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="space-y-1">
                       {importResults.errors.map((error, index) => (
-                        <p key={index}>• {error}</p>
+                        <div key={index} className="text-sm">{error}</div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  </AlertDescription>
+                </Alert>
               </div>
-              <Button onClick={handleComplete} className="w-full">
+            )}
+            
+            <div className="flex justify-center">
+              <Button onClick={handleClose}>
                 Done
               </Button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Errors */}
-          {errors.length > 0 && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <ul className="list-disc list-inside space-y-1">
-                  {errors.map((error, index) => (
-                    <li key={index}>{error}</li>
-                  ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
+        {errors.length > 0 && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="space-y-1">
+                {errors.map((error, index) => (
+                  <div key={index}>{error}</div>
+                ))}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
       </DialogContent>
     </Dialog>
   );
