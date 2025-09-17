@@ -1,21 +1,21 @@
-import { Vendor } from "@/types/vendor";
+import { Payee } from "@/types/payee";
 
-export interface PartialVendor {
+export interface PartialPayee {
   id: string;
   vendor_name: string;
   full_name?: string;
 }
 
-export interface VendorMatch {
-  vendor: PartialVendor;
+export interface PayeeMatch {
+  payee: PartialPayee;
   confidence: number;
   matchType: 'exact' | 'fuzzy';
 }
 
 export interface FuzzyMatchResult {
   qbName: string;
-  matches: VendorMatch[];
-  bestMatch?: VendorMatch;
+  matches: PayeeMatch[];
+  bestMatch?: PayeeMatch;
 }
 
 // Calculate Levenshtein distance between two strings
@@ -130,25 +130,25 @@ const tokenSimilarity = (str1: string, str2: string): number => {
 };
 
 // Calculate overall confidence score
-const calculateConfidence = (qbName: string, vendor: PartialVendor): number => {
-  const vendorNames = [vendor.vendor_name];
-  if (vendor.full_name) vendorNames.push(vendor.full_name);
+const calculateConfidence = (qbName: string, payee: PartialPayee): number => {
+  const payeeNames = [payee.vendor_name];
+  if (payee.full_name) payeeNames.push(payee.full_name);
   
   let maxConfidence = 0;
   
-  for (const vendorName of vendorNames) {
+  for (const payeeName of payeeNames) {
     // Exact match
-    if (normalizeString(qbName) === normalizeString(vendorName)) {
+    if (normalizeString(qbName) === normalizeString(payeeName)) {
       return 100;
     }
     
     // Calculate different similarity metrics
-    const jaroWinkler = jaroWinklerSimilarity(normalizeString(qbName), normalizeString(vendorName)) * 100;
+    const jaroWinkler = jaroWinklerSimilarity(normalizeString(qbName), normalizeString(payeeName)) * 100;
     
-    const maxLen = Math.max(qbName.length, vendorName.length);
-    const levenshtein = ((maxLen - levenshteinDistance(qbName, vendorName)) / maxLen) * 100;
+    const maxLen = Math.max(qbName.length, payeeName.length);
+    const levenshtein = ((maxLen - levenshteinDistance(qbName, payeeName)) / maxLen) * 100;
     
-    const tokenSim = tokenSimilarity(qbName, vendorName) * 100;
+    const tokenSim = tokenSimilarity(qbName, payeeName) * 100;
     
     // Weight the metrics (Jaro-Winkler is best for names, token similarity for business names)
     const confidence = Math.max(
@@ -163,27 +163,27 @@ const calculateConfidence = (qbName: string, vendor: PartialVendor): number => {
 };
 
 // Main fuzzy matching function
-export const fuzzyMatchVendor = (qbName: string, vendors: PartialVendor[]): FuzzyMatchResult => {
-  const matches: VendorMatch[] = [];
+export const fuzzyMatchPayee = (qbName: string, payees: PartialPayee[]): FuzzyMatchResult => {
+  const matches: PayeeMatch[] = [];
   
-  for (const vendor of vendors) {
+  for (const payee of payees) {
     // Check for exact match first
-    const exactMatch = vendor.vendor_name.toLowerCase() === qbName.toLowerCase() ||
-                      (vendor.full_name && vendor.full_name.toLowerCase() === qbName.toLowerCase());
+    const exactMatch = payee.vendor_name.toLowerCase() === qbName.toLowerCase() ||
+                      (payee.full_name && payee.full_name.toLowerCase() === qbName.toLowerCase());
     
     if (exactMatch) {
       matches.push({
-        vendor,
+        payee,
         confidence: 100,
         matchType: 'exact'
       });
     } else {
       // Calculate fuzzy confidence
-      const confidence = calculateConfidence(qbName, vendor);
+      const confidence = calculateConfidence(qbName, payee);
       
       if (confidence >= 30) { // Only include matches with at least 30% confidence
         matches.push({
-          vendor,
+          payee,
           confidence,
           matchType: 'fuzzy'
         });
@@ -210,7 +210,11 @@ export const fuzzyMatchVendor = (qbName: string, vendors: PartialVendor[]): Fuzz
   return result;
 };
 
-// Batch process multiple vendor names
-export const batchFuzzyMatchVendors = (qbNames: string[], vendors: PartialVendor[]): FuzzyMatchResult[] => {
-  return qbNames.map(qbName => fuzzyMatchVendor(qbName, vendors));
+// Batch process multiple payee names
+export const batchFuzzyMatchPayees = (qbNames: string[], payees: PartialPayee[]): FuzzyMatchResult[] => {
+  return qbNames.map(qbName => fuzzyMatchPayee(qbName, payees));
 };
+
+// Legacy function names for backward compatibility
+export const fuzzyMatchVendor = fuzzyMatchPayee;
+export const batchFuzzyMatchVendors = batchFuzzyMatchPayees;

@@ -1,4 +1,4 @@
-export interface Vendor {
+export interface Payee {
   id: string;
   vendor_name: string;
   email?: string;
@@ -15,7 +15,7 @@ export interface Vendor {
   updated_at: string;
 }
 
-export interface CreateVendorData {
+export interface CreatePayeeData {
   vendor_name: string;
   email?: string;
   phone_numbers?: string;
@@ -25,6 +25,6 @@ export interface CreateVendorData {
   terms?: string;
 }
 
-export interface UpdateVendorData extends Partial<CreateVendorData> {
+export interface UpdatePayeeData extends Partial<CreatePayeeData> {
   id: string;
 }

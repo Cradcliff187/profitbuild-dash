@@ -7,36 +7,36 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SyncStatusBadge } from "@/components/SyncStatusBadge";
-import { markVendorAsSynced, resetVendorSyncStatus } from "@/utils/syncUtils";
-import type { Vendor } from "@/types/vendor";
+import { markPayeeAsSynced, resetPayeeSyncStatus } from "@/utils/syncUtils";
+import type { Payee } from "@/types/payee";
 
-interface VendorsListProps {
-  onEdit: (vendor: Vendor) => void;
+interface PayeesListProps {
+  onEdit: (payee: Payee) => void;
   refresh: boolean;
   onRefreshComplete: () => void;
 }
 
-export const VendorsList = ({ onEdit, refresh, onRefreshComplete }: VendorsListProps) => {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
+export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListProps) => {
+  const [payees, setPayees] = useState<Payee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchVendors = async () => {
+  const fetchPayees = async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from("vendors")
+        .from("payees")
         .select("*")
         .eq("is_active", true)
         .order("vendor_name");
 
       if (error) throw error;
-      setVendors(data || []);
+      setPayees(data || []);
     } catch (error) {
-      console.error("Error fetching vendors:", error);
+      console.error("Error fetching payees:", error);
       toast({
         title: "Error",
-        description: "Failed to load vendors",
+        description: "Failed to load payees",
         variant: "destructive",
       });
     } finally {
@@ -45,65 +45,65 @@ export const VendorsList = ({ onEdit, refresh, onRefreshComplete }: VendorsListP
   };
 
   useEffect(() => {
-    fetchVendors();
+    fetchPayees();
   }, []);
 
   useEffect(() => {
     if (refresh) {
-      fetchVendors();
+      fetchPayees();
       onRefreshComplete();
     }
   }, [refresh, onRefreshComplete]);
 
-  const handleDelete = async (vendorId: string) => {
+  const handleDelete = async (payeeId: string) => {
     try {
       const { error } = await supabase
-        .from("vendors")
+        .from("payees")
         .update({ is_active: false })
-        .eq("id", vendorId);
+        .eq("id", payeeId);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Vendor deleted successfully",
+        description: "Payee deleted successfully",
       });
 
-      fetchVendors();
+      fetchPayees();
     } catch (error) {
-      console.error("Error deleting vendor:", error);
+      console.error("Error deleting payee:", error);
       toast({
         title: "Error",
-        description: "Failed to delete vendor",
+        description: "Failed to delete payee",
         variant: "destructive",
       });
     }
   };
 
-  const handleMarkAsSynced = async (vendorId: string) => {
+  const handleMarkAsSynced = async (payeeId: string) => {
     try {
-      const { error } = await markVendorAsSynced(vendorId);
+      const { error } = await markPayeeAsSynced(payeeId);
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Vendor marked as synced",
+        description: "Payee marked as synced",
       });
 
-      fetchVendors();
+      fetchPayees();
     } catch (error) {
-      console.error("Error marking vendor as synced:", error);
+      console.error("Error marking payee as synced:", error);
       toast({
         title: "Error",
-        description: "Failed to mark vendor as synced",
+        description: "Failed to mark payee as synced",
         variant: "destructive",
       });
     }
   };
 
-  const handleResetSync = async (vendorId: string) => {
+  const handleResetSync = async (payeeId: string) => {
     try {
-      const { error } = await resetVendorSyncStatus(vendorId);
+      const { error } = await resetPayeeSyncStatus(payeeId);
       if (error) throw error;
 
       toast({
@@ -111,7 +111,7 @@ export const VendorsList = ({ onEdit, refresh, onRefreshComplete }: VendorsListP
         description: "Sync status reset",
       });
 
-      fetchVendors();
+      fetchPayees();
     } catch (error) {
       console.error("Error resetting sync status:", error);
       toast({
@@ -126,7 +126,7 @@ export const VendorsList = ({ onEdit, refresh, onRefreshComplete }: VendorsListP
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="text-center">Loading vendors...</div>
+          <div className="text-center">Loading payees...</div>
         </CardContent>
       </Card>
     );
@@ -135,18 +135,18 @@ export const VendorsList = ({ onEdit, refresh, onRefreshComplete }: VendorsListP
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Vendors</CardTitle>
+        <CardTitle>Payees</CardTitle>
       </CardHeader>
       <CardContent>
-        {vendors.length === 0 ? (
+        {payees.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            No vendors found. Add your first vendor to get started.
+            No payees found. Add your first payee to get started.
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Vendor Name</TableHead>
+                <TableHead>Payee Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Sync Status</TableHead>
@@ -154,18 +154,18 @@ export const VendorsList = ({ onEdit, refresh, onRefreshComplete }: VendorsListP
               </TableRow>
             </TableHeader>
             <TableBody>
-              {vendors.map((vendor) => (
-                <TableRow key={vendor.id}>
-                  <TableCell className="font-medium">{vendor.vendor_name}</TableCell>
-                  <TableCell>{vendor.email || "-"}</TableCell>
-                  <TableCell>{vendor.phone_numbers || "-"}</TableCell>
+              {payees.map((payee) => (
+                <TableRow key={payee.id}>
+                  <TableCell className="font-medium">{payee.vendor_name}</TableCell>
+                  <TableCell>{payee.email || "-"}</TableCell>
+                  <TableCell>{payee.phone_numbers || "-"}</TableCell>
                   <TableCell>
                     <SyncStatusBadge
-                      status={vendor.sync_status}
-                      lastSyncedAt={vendor.last_synced_at}
+                      status={payee.sync_status}
+                      lastSyncedAt={payee.last_synced_at}
                       showActions={true}
-                      onMarkAsSynced={() => handleMarkAsSynced(vendor.id)}
-                      onResetSync={() => handleResetSync(vendor.id)}
+                      onMarkAsSynced={() => handleMarkAsSynced(payee.id)}
+                      onResetSync={() => handleResetSync(payee.id)}
                     />
                   </TableCell>
                   <TableCell>
@@ -173,7 +173,7 @@ export const VendorsList = ({ onEdit, refresh, onRefreshComplete }: VendorsListP
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => onEdit(vendor)}
+                        onClick={() => onEdit(payee)}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -185,14 +185,14 @@ export const VendorsList = ({ onEdit, refresh, onRefreshComplete }: VendorsListP
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Vendor</AlertDialogTitle>
+                            <AlertDialogTitle>Delete Payee</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete "{vendor.vendor_name}"? This action cannot be undone.
+                              Are you sure you want to delete "{payee.vendor_name}"? This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(vendor.id)}>
+                            <AlertDialogAction onClick={() => handleDelete(payee.id)}>
                               Delete
                             </AlertDialogAction>
                           </AlertDialogFooter>

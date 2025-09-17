@@ -1,30 +1,30 @@
 import Papa from 'papaparse';
 
-export interface VendorCSVRow {
+export interface PayeeCSVRow {
   [key: string]: string;
 }
 
-export interface VendorColumnMapping {
+export interface PayeeColumnMapping {
   vendor_name?: string;
   email?: string;
   phone_numbers?: string;
   billing_address?: string;
 }
 
-export interface ParsedVendorCSV {
-  data: VendorCSVRow[];
+export interface ParsedPayeeCSV {
+  data: PayeeCSVRow[];
   headers: string[];
   errors: string[];
 }
 
-export const parseVendorCSVFile = (file: File): Promise<ParsedVendorCSV> => {
+export const parsePayeeCSVFile = (file: File): Promise<ParsedPayeeCSV> => {
   return new Promise((resolve) => {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       transform: (value: string) => value.trim(),
       complete: (results) => {
-        let data = results.data as VendorCSVRow[];
+        let data = results.data as PayeeCSVRow[];
         let errors: string[] = [];
         
         // Handle QuickBooks format - skip first 3 rows if they contain header info
@@ -42,7 +42,7 @@ export const parseVendorCSVFile = (file: File): Promise<ParsedVendorCSV> => {
         
         // Validate we have data
         if (data.length === 0) {
-          errors.push('No vendor data found in CSV file');
+          errors.push('No payee data found in CSV file');
         }
         
         // Get headers from the first data row
@@ -74,11 +74,11 @@ export const parseVendorCSVFile = (file: File): Promise<ParsedVendorCSV> => {
   });
 };
 
-export const validateVendorCSVData = (data: VendorCSVRow[], mapping: VendorColumnMapping): string[] => {
+export const validatePayeeCSVData = (data: PayeeCSVRow[], mapping: PayeeColumnMapping): string[] => {
   const errors: string[] = [];
   
   if (!mapping.vendor_name) {
-    errors.push('Vendor name column is required');
+    errors.push('Payee name column is required');
   }
   
   if (data.length === 0) {
@@ -89,44 +89,44 @@ export const validateVendorCSVData = (data: VendorCSVRow[], mapping: VendorColum
   if (mapping.vendor_name) {
     const emptyNames = data.filter(row => !row[mapping.vendor_name!]?.trim());
     if (emptyNames.length > 0) {
-      errors.push(`${emptyNames.length} rows have empty vendor names`);
+      errors.push(`${emptyNames.length} rows have empty payee names`);
     }
   }
   
   return errors;
 };
 
-export interface VendorImportData {
+export interface PayeeImportData {
   vendor_name: string;
   email?: string;
   phone_numbers?: string;
   billing_address?: string;
 }
 
-export const mapCSVToVendors = (
-  data: VendorCSVRow[], 
-  mapping: VendorColumnMapping,
+export const mapCSVToPayees = (
+  data: PayeeCSVRow[], 
+  mapping: PayeeColumnMapping,
   fileName: string
-): VendorImportData[] => {
+): PayeeImportData[] => {
   return data
-    .filter(row => mapping.vendor_name && row[mapping.vendor_name]?.trim()) // Only include rows with vendor names
+    .filter(row => mapping.vendor_name && row[mapping.vendor_name]?.trim()) // Only include rows with payee names
     .map(row => {
-      const vendor: VendorImportData = {
+      const payee: PayeeImportData = {
         vendor_name: row[mapping.vendor_name!]?.trim() || '',
       };
       
       if (mapping.email && row[mapping.email]?.trim()) {
-        vendor.email = row[mapping.email].trim();
+        payee.email = row[mapping.email].trim();
       }
       
       if (mapping.phone_numbers && row[mapping.phone_numbers]?.trim()) {
-        vendor.phone_numbers = row[mapping.phone_numbers].trim();
+        payee.phone_numbers = row[mapping.phone_numbers].trim();
       }
       
       if (mapping.billing_address && row[mapping.billing_address]?.trim()) {
-        vendor.billing_address = row[mapping.billing_address].trim();
+        payee.billing_address = row[mapping.billing_address].trim();
       }
       
-      return vendor;
+      return payee;
     });
 };

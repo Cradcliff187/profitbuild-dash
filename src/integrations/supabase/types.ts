@@ -183,11 +183,11 @@ export type Database = {
           id: string
           invoice_number: string | null
           is_planned: boolean | null
+          payee_id: string | null
           project_id: string
           quickbooks_transaction_id: string | null
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string | null
-          vendor_id: string | null
         }
         Insert: {
           account_full_name?: string | null
@@ -201,11 +201,11 @@ export type Database = {
           id?: string
           invoice_number?: string | null
           is_planned?: boolean | null
+          payee_id?: string | null
           project_id: string
           quickbooks_transaction_id?: string | null
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string | null
-          vendor_id?: string | null
         }
         Update: {
           account_full_name?: string | null
@@ -219,13 +219,20 @@ export type Database = {
           id?: string
           invoice_number?: string | null
           is_planned?: boolean | null
+          payee_id?: string | null
           project_id?: string
           quickbooks_transaction_id?: string | null
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string | null
-          vendor_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_payee_id_fkey"
+            columns: ["payee_id"]
+            isOneToOne: false
+            referencedRelation: "payees"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_project_id_fkey"
             columns: ["project_id"]
@@ -233,14 +240,58 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "expenses_vendor_id_fkey"
-            columns: ["vendor_id"]
-            isOneToOne: false
-            referencedRelation: "vendors"
-            referencedColumns: ["id"]
-          },
         ]
+      }
+      payees: {
+        Row: {
+          account_number: string | null
+          billing_address: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          is_active: boolean | null
+          last_synced_at: string | null
+          phone_numbers: string | null
+          quickbooks_vendor_id: string | null
+          sync_status: Database["public"]["Enums"]["sync_status"] | null
+          terms: string | null
+          updated_at: string | null
+          vendor_name: string
+        }
+        Insert: {
+          account_number?: string | null
+          billing_address?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          phone_numbers?: string | null
+          quickbooks_vendor_id?: string | null
+          sync_status?: Database["public"]["Enums"]["sync_status"] | null
+          terms?: string | null
+          updated_at?: string | null
+          vendor_name: string
+        }
+        Update: {
+          account_number?: string | null
+          billing_address?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          phone_numbers?: string | null
+          quickbooks_vendor_id?: string | null
+          sync_status?: Database["public"]["Enums"]["sync_status"] | null
+          terms?: string | null
+          updated_at?: string | null
+          vendor_name?: string
+        }
+        Relationships: []
       }
       projects: {
         Row: {
@@ -431,12 +482,12 @@ export type Database = {
           estimate_id: string
           id: string
           notes: string | null
+          payee_id: string
           project_id: string
           quote_number: string
           status: Database["public"]["Enums"]["quote_status"] | null
           total_amount: number | null
           updated_at: string | null
-          vendor_id: string
         }
         Insert: {
           attachment_url?: string | null
@@ -446,12 +497,12 @@ export type Database = {
           estimate_id: string
           id?: string
           notes?: string | null
+          payee_id: string
           project_id: string
           quote_number: string
           status?: Database["public"]["Enums"]["quote_status"] | null
           total_amount?: number | null
           updated_at?: string | null
-          vendor_id: string
         }
         Update: {
           attachment_url?: string | null
@@ -461,12 +512,12 @@ export type Database = {
           estimate_id?: string
           id?: string
           notes?: string | null
+          payee_id?: string
           project_id?: string
           quote_number?: string
           status?: Database["public"]["Enums"]["quote_status"] | null
           total_amount?: number | null
           updated_at?: string | null
-          vendor_id?: string
         }
         Relationships: [
           {
@@ -477,71 +528,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "quotes_payee_id_fkey"
+            columns: ["payee_id"]
+            isOneToOne: false
+            referencedRelation: "payees"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "quotes_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "quotes_vendor_id_fkey"
-            columns: ["vendor_id"]
-            isOneToOne: false
-            referencedRelation: "vendors"
-            referencedColumns: ["id"]
-          },
         ]
-      }
-      vendors: {
-        Row: {
-          account_number: string | null
-          billing_address: string | null
-          created_at: string | null
-          email: string | null
-          full_name: string | null
-          id: string
-          is_active: boolean | null
-          last_synced_at: string | null
-          phone_numbers: string | null
-          quickbooks_vendor_id: string | null
-          sync_status: Database["public"]["Enums"]["sync_status"] | null
-          terms: string | null
-          updated_at: string | null
-          vendor_name: string
-        }
-        Insert: {
-          account_number?: string | null
-          billing_address?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_synced_at?: string | null
-          phone_numbers?: string | null
-          quickbooks_vendor_id?: string | null
-          sync_status?: Database["public"]["Enums"]["sync_status"] | null
-          terms?: string | null
-          updated_at?: string | null
-          vendor_name: string
-        }
-        Update: {
-          account_number?: string | null
-          billing_address?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_synced_at?: string | null
-          phone_numbers?: string | null
-          quickbooks_vendor_id?: string | null
-          sync_status?: Database["public"]["Enums"]["sync_status"] | null
-          terms?: string | null
-          updated_at?: string | null
-          vendor_name?: string
-        }
-        Relationships: []
       }
     }
     Views: {

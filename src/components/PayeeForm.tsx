@@ -9,45 +9,45 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import type { Vendor } from "@/types/vendor";
+import type { Payee } from "@/types/payee";
 
-const vendorSchema = z.object({
-  vendor_name: z.string().min(1, "Vendor name is required"),
+const payeeSchema = z.object({
+  vendor_name: z.string().min(1, "Payee name is required"),
   email: z.string().email().optional().or(z.literal("")),
   phone_numbers: z.string().optional(),
   billing_address: z.string().optional(),
   terms: z.string().optional(),
 });
 
-type VendorFormData = z.infer<typeof vendorSchema>;
+type PayeeFormData = z.infer<typeof payeeSchema>;
 
-interface VendorFormProps {
-  vendor?: Vendor;
+interface PayeeFormProps {
+  payee?: Payee;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export const VendorForm = ({ vendor, onSuccess, onCancel }: VendorFormProps) => {
+export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const form = useForm<VendorFormData>({
-    resolver: zodResolver(vendorSchema),
+  const form = useForm<PayeeFormData>({
+    resolver: zodResolver(payeeSchema),
     defaultValues: {
-      vendor_name: vendor?.vendor_name || "",
-      email: vendor?.email || "",
-      phone_numbers: vendor?.phone_numbers || "",
-      billing_address: vendor?.billing_address || "",
-      terms: vendor?.terms || "Net 30",
+      vendor_name: payee?.vendor_name || "",
+      email: payee?.email || "",
+      phone_numbers: payee?.phone_numbers || "",
+      billing_address: payee?.billing_address || "",
+      terms: payee?.terms || "Net 30",
     },
   });
 
-  const onSubmit = async (data: VendorFormData) => {
+  const onSubmit = async (data: PayeeFormData) => {
     setIsSubmitting(true);
     try {
-      if (vendor) {
-        // Update existing vendor
-        const vendorData = {
+      if (payee) {
+        // Update existing payee
+        const payeeData = {
           vendor_name: data.vendor_name,
           email: data.email || null,
           phone_numbers: data.phone_numbers || null,
@@ -56,19 +56,19 @@ export const VendorForm = ({ vendor, onSuccess, onCancel }: VendorFormProps) => 
         };
 
         const { error } = await supabase
-          .from("vendors")
-          .update(vendorData)
-          .eq("id", vendor.id);
+          .from("payees")
+          .update(payeeData)
+          .eq("id", payee.id);
 
         if (error) throw error;
 
         toast({
           title: "Success",
-          description: "Vendor updated successfully",
+          description: "Payee updated successfully",
         });
       } else {
-        // Create new vendor
-        const vendorData = {
+        // Create new payee
+        const payeeData = {
           vendor_name: data.vendor_name,
           email: data.email || null,
           phone_numbers: data.phone_numbers || null,
@@ -77,23 +77,23 @@ export const VendorForm = ({ vendor, onSuccess, onCancel }: VendorFormProps) => 
         };
 
         const { error } = await supabase
-          .from("vendors")
-          .insert([vendorData]);
+          .from("payees")
+          .insert([payeeData]);
 
         if (error) throw error;
 
         toast({
           title: "Success",
-          description: "Vendor created successfully",
+          description: "Payee created successfully",
         });
       }
 
       onSuccess();
     } catch (error) {
-      console.error("Error saving vendor:", error);
+      console.error("Error saving payee:", error);
       toast({
         title: "Error",
-        description: "Failed to save vendor",
+        description: "Failed to save payee",
         variant: "destructive",
       });
     } finally {
@@ -104,7 +104,7 @@ export const VendorForm = ({ vendor, onSuccess, onCancel }: VendorFormProps) => 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{vendor ? "Edit Vendor" : "Add New Vendor"}</CardTitle>
+        <CardTitle>{payee ? "Edit Payee" : "Add New Payee"}</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -114,7 +114,7 @@ export const VendorForm = ({ vendor, onSuccess, onCancel }: VendorFormProps) => 
               name="vendor_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Vendor Name *</FormLabel>
+                  <FormLabel>Payee Name *</FormLabel>
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
@@ -181,7 +181,7 @@ export const VendorForm = ({ vendor, onSuccess, onCancel }: VendorFormProps) => 
 
             <div className="flex gap-2 pt-4">
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : vendor ? "Update Vendor" : "Add Vendor"}
+                {isSubmitting ? "Saving..." : payee ? "Update Payee" : "Add Payee"}
               </Button>
               <Button type="button" variant="outline" onClick={onCancel}>
                 Cancel
