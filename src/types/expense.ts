@@ -27,7 +27,7 @@ export interface Expense {
   transaction_type: TransactionType;
   amount: number;
   expense_date: Date;
-  vendor_id?: string;
+  payee_id?: string;
   invoice_number?: string;
   is_planned?: boolean;
   created_at: Date;

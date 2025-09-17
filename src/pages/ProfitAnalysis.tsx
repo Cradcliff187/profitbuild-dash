@@ -25,13 +25,13 @@ export default function ProfitAnalysisPage() {
         `),
         supabase.from('quotes').select(`
           *,
-          vendors(vendor_name),
+          payees(vendor_name),
           projects(project_name, client_name),
           quote_line_items(*)
         `),
         supabase.from('expenses').select(`
           *,
-          vendors(vendor_name),
+          payees(vendor_name),
           projects(project_name)
         `)
       ]);
@@ -66,8 +66,8 @@ export default function ProfitAnalysisPage() {
         estimate_id: quote.estimate_id,
         projectName: quote.projects?.project_name || '',
         client: quote.projects?.client_name || '',
-        vendor_id: quote.vendor_id,
-        quotedBy: quote.vendors?.vendor_name || '',
+        payee_id: quote.payee_id,
+        quotedBy: quote.payees?.vendor_name || '',
         dateReceived: new Date(quote.date_received),
         quoteNumber: quote.quote_number,
         lineItems: quote.quote_line_items?.map((item: any) => ({
@@ -96,7 +96,7 @@ export default function ProfitAnalysisPage() {
       const transformedExpenses: Expense[] = (expensesResult.data || []).map(expense => ({
         id: expense.id,
         project_id: expense.project_id,
-        vendor_id: expense.vendor_id,
+        payee_id: expense.payee_id,
         category: expense.category,
         transaction_type: expense.transaction_type,
         description: expense.description,
@@ -112,7 +112,7 @@ export default function ProfitAnalysisPage() {
         createdAt: new Date(expense.created_at),
         created_at: new Date(expense.created_at),
         updated_at: new Date(expense.updated_at),
-        vendor_name: expense.vendors?.vendor_name,
+        vendor_name: expense.payees?.vendor_name,
         project_name: expense.projects?.project_name
       }));
 

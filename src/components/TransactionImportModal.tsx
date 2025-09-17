@@ -7,8 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Upload, FileDown, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
-import { parseQuickBooksCSV, mapQuickBooksToExpenses, QBParseResult, QBImportResult, VendorMatchInfo } from "@/utils/csvParser";
-import { PartialVendor } from "@/utils/fuzzyVendorMatcher";
+import { parseQuickBooksCSV, mapQuickBooksToExpenses, QBParseResult, QBImportResult, PayeeMatchInfo } from "@/utils/csvParser";
+import { PartialPayee } from "@/utils/fuzzyPayeeMatcher";
 import { Expense } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -88,7 +88,7 @@ export const TransactionImportModal: React.FC<TransactionImportModalProps> = ({
         transaction_type: expense.transaction_type,
         amount: expense.amount,
         expense_date: expense.expense_date.toISOString().split('T')[0],
-        vendor_id: expense.vendor_id,
+        payee_id: expense.payee_id,
         is_planned: false
       }));
 
@@ -274,7 +274,7 @@ export const TransactionImportModal: React.FC<TransactionImportModalProps> = ({
                   <span className="font-medium">{match.qbName}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">→</span>
-                    <span>{match.matchedVendor.vendor_name}</span>
+                    <span>{match.matchedPayee.vendor_name}</span>
                     <Badge 
                       variant={match.confidence >= 85 ? "default" : "secondary"}
                       className="text-xs"
@@ -304,7 +304,7 @@ export const TransactionImportModal: React.FC<TransactionImportModalProps> = ({
                   <div className="ml-4 mt-1">
                     {item.suggestions.map((suggestion, suggestionIndex) => (
                       <div key={suggestionIndex} className="flex items-center gap-2">
-                        <span className="text-muted-foreground">• {suggestion.vendor.vendor_name}</span>
+                        <span className="text-muted-foreground">• {suggestion.payee.vendor_name}</span>
                         <Badge variant="outline" className="text-xs">
                           {Math.round(suggestion.confidence)}%
                         </Badge>

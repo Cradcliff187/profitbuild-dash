@@ -31,7 +31,7 @@ const Quotes = () => {
         .from('quotes')
         .select(`
           *,
-          vendors(vendor_name),
+          payees(vendor_name),
           projects(project_name, client_name),
           quote_line_items(*)
         `);
@@ -55,8 +55,8 @@ const Quotes = () => {
         estimate_id: quote.estimate_id,
         projectName: quote.projects?.project_name || '',
         client: quote.projects?.client_name || '',
-        vendor_id: quote.vendor_id,
-        quotedBy: quote.vendors?.vendor_name || '',
+        payee_id: quote.payee_id,
+        quotedBy: quote.payees?.vendor_name || '',
         dateReceived: new Date(quote.date_received),
         quoteNumber: quote.quote_number,
         lineItems: quote.quote_line_items?.map((item: any) => ({
@@ -123,7 +123,7 @@ const Quotes = () => {
           .update({
             project_id: quote.project_id,
             estimate_id: quote.estimate_id,
-            vendor_id: quote.vendor_id,
+            payee_id: quote.payee_id,
             quote_number: quote.quoteNumber,
             date_received: quote.dateReceived.toISOString().split('T')[0],
             total_amount: quote.total,
@@ -161,7 +161,7 @@ const Quotes = () => {
           .insert({
             project_id: quote.project_id,
             estimate_id: quote.estimate_id,
-            vendor_id: quote.vendor_id,
+            payee_id: quote.payee_id,
             quote_number: quote.quoteNumber,
             date_received: quote.dateReceived.toISOString().split('T')[0],
             total_amount: quote.total,

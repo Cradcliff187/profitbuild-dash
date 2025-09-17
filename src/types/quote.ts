@@ -16,7 +16,7 @@ export interface Quote {
   estimate_id?: string; // Optional link to specific estimate
   projectName: string; // Copied from project
   client: string; // Copied from project
-  vendor_id: string; // Links to vendor
+  payee_id: string; // Links to payee
   quotedBy: string; // Subcontractor name (derived from vendor)
   dateReceived: Date;
   quoteNumber: string;

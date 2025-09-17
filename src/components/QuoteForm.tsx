@@ -10,12 +10,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { ProjectSelector } from "./ProjectSelector";
-import { VendorSelector } from "./VendorSelector";
+import { PayeeSelector } from "./PayeeSelector";
 import { LineItemRow } from "./LineItemRow";
 import { PdfUpload } from "./PdfUpload";
 import { Estimate, LineItem, LineItemCategory } from "@/types/estimate";
 import { Quote, QuoteLineItem } from "@/types/quote";
-import { Vendor } from "@/types/vendor";
+import { Payee } from "@/types/payee";
 import { useToast } from "@/hooks/use-toast";
 
 interface QuoteFormProps {
@@ -28,7 +28,7 @@ interface QuoteFormProps {
 export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFormProps) => {
   const { toast } = useToast();
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate>();
-  const [selectedVendor, setSelectedVendor] = useState<Vendor>();
+  const [selectedPayee, setSelectedPayee] = useState<Payee>();
   const [quotedBy, setQuotedBy] = useState("");
   const [dateReceived, setDateReceived] = useState<Date>(new Date());
   const [notes, setNotes] = useState("");
@@ -78,7 +78,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       setLineItems(initialQuote.lineItems);
       setAttachmentUrl(initialQuote.attachment_url || "");
       setAttachmentFileName(initialQuote.attachment_url ? "Attached PDF" : "");
-      // Note: selectedVendor will be set when VendorSelector loads vendors
+      // Note: selectedPayee will be set when PayeeSelector loads payees
     }
   }, [initialQuote, estimates]);
 
@@ -160,10 +160,10 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       return;
     }
 
-    if (!selectedVendor) {
+    if (!selectedPayee) {
       toast({
         title: "Missing Information",
-        description: "Please select a vendor.",
+        description: "Please select a payee.",
         variant: "destructive"
       });
       return;
@@ -184,8 +184,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       estimate_id: selectedEstimate.id,
       projectName: selectedEstimate.project_name || '',
       client: selectedEstimate.client_name || '',
-      vendor_id: selectedVendor.id,
-      quotedBy: selectedVendor.vendor_name,
+      payee_id: selectedPayee.id,
+      quotedBy: selectedPayee.vendor_name,
       dateReceived,
       quoteNumber: initialQuote?.quoteNumber || generateQuoteNumber(),
       lineItems: lineItems.filter(item => item.description.trim()),
@@ -233,14 +233,14 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
 
           {/* Quote Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <VendorSelector
-              selectedVendorId={selectedVendor?.id}
-              onSelect={(vendor) => {
-                setSelectedVendor(vendor);
-                setQuotedBy(vendor.vendor_name);
+            <PayeeSelector
+              selectedPayeeId={selectedPayee?.id}
+              onSelect={(payee) => {
+                setSelectedPayee(payee);
+                setQuotedBy(payee.vendor_name);
               }}
-              placeholder="Select vendor for this quote..."
-              label="Subcontractor/Vendor"
+              placeholder="Select payee for this quote..."
+              label="Subcontractor/Payee"
             />
             
             <div className="space-y-2">
@@ -377,7 +377,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
             <Button 
               onClick={handleSave} 
               className="flex-1"
-              disabled={!selectedEstimate || !selectedVendor}
+              disabled={!selectedEstimate || !selectedPayee}
             >
               <Save className="h-4 w-4 mr-2" />
               Save Quote

@@ -1,7 +1,7 @@
 import Papa from 'papaparse';
 import { CSVRow, ColumnMapping, Expense, ExpenseCategory, TransactionType } from '@/types/expense';
 import { supabase } from '@/integrations/supabase/client';
-import { fuzzyMatchVendor, PartialVendor } from '@/utils/fuzzyVendorMatcher';
+import { fuzzyMatchPayee, PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 
 // Robust amount parser for QuickBooks and other CSV formats
 const parseQuickBooksAmount = (amount: string | number): number => {
@@ -153,9 +153,9 @@ export interface QBTransaction {
   [key: string]: string;
 }
 
-export interface VendorMatchInfo {
+export interface PayeeMatchInfo {
   qbName: string;
-  matchedVendor: PartialVendor;
+  matchedPayee: PartialPayee;
   confidence: number;
   matchType: 'exact' | 'fuzzy' | 'auto';
 }
@@ -167,11 +167,11 @@ export interface QBImportResult {
   expenses: Expense[];
   unmatchedProjects: string[];
   unmatchedVendors: string[];
-  fuzzyMatches: VendorMatchInfo[];
+  fuzzyMatches: PayeeMatchInfo[];
   lowConfidenceMatches: Array<{
     qbName: string;
     suggestions: Array<{
-      vendor: PartialVendor;
+      payee: PartialPayee;
       confidence: number;
     }>;
   }>;
@@ -262,11 +262,11 @@ export const mapQuickBooksToExpenses = async (
     // Load projects and vendors for matching
     const [projectsResponse, vendorsResponse] = await Promise.all([
       supabase.from('projects').select('id, project_number, project_name'),
-      supabase.from('vendors').select('id, vendor_name, full_name')
+      supabase.from('payees').select('id, vendor_name, full_name')
     ]);
 
     const projects = projectsResponse.data || [];
-    const vendors = vendorsResponse.data || [];
+    const payees = vendorsResponse.data || [];
 
     // Find a default project for unmatched transactions
     let defaultProject = projects.find(p => p.project_name.toLowerCase().includes('misc') || p.project_name.toLowerCase().includes('general'));
@@ -308,18 +308,18 @@ export const mapQuickBooksToExpenses = async (
           }
         }
 
-        // Match vendor with fuzzy matching
-        let vendorId: string | undefined;
+        // Match payee with fuzzy matching
+        let payeeId: string | undefined;
         if (transaction.name) {
-          const matchResult = fuzzyMatchVendor(transaction.name, vendors);
+          const matchResult = fuzzyMatchPayee(transaction.name, payees);
           
           if (matchResult.bestMatch) {
-            vendorId = matchResult.bestMatch.vendor.id;
+            payeeId = matchResult.bestMatch.payee.id;
             
             // Record the match info
             result.fuzzyMatches.push({
               qbName: transaction.name,
-              matchedVendor: matchResult.bestMatch.vendor,
+              matchedPayee: matchResult.bestMatch.payee,
               confidence: matchResult.bestMatch.confidence,
               matchType: matchResult.bestMatch.confidence >= 85 ? 'auto' : 
                         matchResult.bestMatch.matchType === 'exact' ? 'exact' : 'fuzzy'
@@ -330,7 +330,7 @@ export const mapQuickBooksToExpenses = async (
               .filter(match => match.confidence >= 40)
               .slice(0, 3) // Top 3 suggestions
               .map(match => ({
-                vendor: match.vendor,
+                payee: match.payee,
                 confidence: match.confidence
               }));
             
@@ -357,7 +357,7 @@ export const mapQuickBooksToExpenses = async (
           transaction_type: mapQBTransactionType(transaction.transaction_type),
           amount,
           expense_date,
-          vendor_id: vendorId,
+          payee_id: payeeId,
           is_planned: false,
           created_at: new Date(),
           updated_at: new Date()

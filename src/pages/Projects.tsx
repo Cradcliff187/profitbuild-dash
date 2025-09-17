@@ -101,7 +101,7 @@ const Projects = () => {
         id: quote.id,
         project_id: quote.project_id,
         estimate_id: quote.estimate_id,
-        vendor_id: quote.vendor_id,
+        payee_id: quote.payee_id,
         quoteNumber: quote.quote_number, // Map to correct property name
         total: quote.total_amount,
         date_received: new Date(quote.date_received),

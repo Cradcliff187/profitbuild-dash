@@ -27,7 +27,7 @@ const expenseSchema = z.object({
   transaction_type: z.enum(['expense', 'bill', 'check', 'credit_card', 'cash']),
   amount: z.string().min(1, 'Amount is required'),
   expense_date: z.date(),
-  vendor_id: z.string().optional(),
+  payee_id: z.string().optional(),
   invoice_number: z.string().optional(),
   is_planned: z.boolean().default(false),
 });
@@ -56,7 +56,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
       transaction_type: expense?.transaction_type || 'expense',
       amount: expense?.amount.toString() || '',
       expense_date: expense?.expense_date || new Date(),
-      vendor_id: expense?.vendor_id || '',
+      payee_id: expense?.payee_id || '',
       invoice_number: expense?.invoice_number || '',
       is_planned: expense?.is_planned || false,
     },
@@ -117,7 +117,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         transaction_type: data.transaction_type,
         amount: parseFloat(data.amount),
         expense_date: data.expense_date.toISOString().split('T')[0],
-        vendor_id: data.vendor_id || null,
+        payee_id: data.payee_id || null,
         invoice_number: data.invoice_number || null,
         is_planned: data.is_planned,
       };
@@ -152,7 +152,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         expense_date: new Date(result.expense_date),
         created_at: new Date(result.created_at),
         updated_at: new Date(result.updated_at),
-        vendor_name: result.vendor_id ? vendors.find(v => v.id === result.vendor_id)?.vendor_name : undefined,
+        vendor_name: result.payee_id ? payees.find(v => v.id === result.payee_id)?.vendor_name : undefined,
         project_name: projects.find(p => p.id === result.project_id)?.project_name,
       };
 
@@ -340,11 +340,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="vendor_id"
+                name="payee_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vendor</FormLabel>
-                    <Popover open={vendorOpen} onOpenChange={setVendorOpen}>
+                    <Popover open={payeeOpen} onOpenChange={setPayeeOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
@@ -353,8 +353,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                             className="justify-between"
                           >
                             {field.value
-                              ? vendors.find(vendor => vendor.id === field.value)?.vendor_name || "Select vendor"
-                              : "Select vendor"}
+                              ? payees.find(payee => payee.id === field.value)?.vendor_name || "Select payee"
+                              : "Select payee"}
                             <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </FormControl>
@@ -369,21 +369,21 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                                 value=""
                                 onSelect={() => {
                                   field.onChange("");
-                                  setVendorOpen(false);
+                                  setPayeeOpen(false);
                                 }}
                               >
-                                No vendor
+                                No payee
                               </CommandItem>
-                              {vendors.map((vendor) => (
+                              {payees.map((payee) => (
                                 <CommandItem
-                                  value={vendor.vendor_name}
-                                  key={vendor.id}
+                                  value={payee.vendor_name}
+                                  key={payee.id}
                                   onSelect={() => {
-                                    field.onChange(vendor.id);
-                                    setVendorOpen(false);
+                                    field.onChange(payee.id);
+                                    setPayeeOpen(false);
                                   }}
                                 >
-                                  {vendor.vendor_name}
+                                  {payee.vendor_name}
                                 </CommandItem>
                               ))}
                             </CommandGroup>
