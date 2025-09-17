@@ -27,6 +27,8 @@ export interface Quote {
   valid_until?: Date; // Quote expiration date
   rejection_reason?: string; // Reason for rejection
   estimate_line_item_id?: string; // Link to specific estimate line item
+  includes_materials: boolean; // Whether quote includes materials
+  includes_labor: boolean; // Whether quote includes labor
   lineItems: QuoteLineItem[];
   subtotals: {
     labor: number;

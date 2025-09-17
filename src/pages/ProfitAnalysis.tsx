@@ -75,6 +75,8 @@ export default function ProfitAnalysisPage() {
         valid_until: quote.valid_until ? new Date(quote.valid_until) : undefined,
         rejection_reason: quote.rejection_reason,
         estimate_line_item_id: quote.estimate_line_item_id,
+        includes_materials: quote.includes_materials ?? true,
+        includes_labor: quote.includes_labor ?? true,
         lineItems: quote.quote_line_items?.map((item: any) => ({
           id: item.id,
           estimateLineItemId: item.estimate_line_item_id,

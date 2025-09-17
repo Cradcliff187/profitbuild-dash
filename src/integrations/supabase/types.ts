@@ -509,6 +509,8 @@ export type Database = {
           estimate_id: string
           estimate_line_item_id: string | null
           id: string
+          includes_labor: boolean
+          includes_materials: boolean
           notes: string | null
           payee_id: string
           project_id: string
@@ -527,6 +529,8 @@ export type Database = {
           estimate_id: string
           estimate_line_item_id?: string | null
           id?: string
+          includes_labor?: boolean
+          includes_materials?: boolean
           notes?: string | null
           payee_id: string
           project_id: string
@@ -545,6 +549,8 @@ export type Database = {
           estimate_id?: string
           estimate_line_item_id?: string | null
           id?: string
+          includes_labor?: boolean
+          includes_materials?: boolean
           notes?: string | null
           payee_id?: string
           project_id?: string

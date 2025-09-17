@@ -137,6 +137,8 @@ const Dashboard = () => {
         client: formattedProjects.find(p => p.id === quote.project_id)?.client_name || '',
         quotedBy: 'Unknown', // Default value
         dateReceived: new Date(quote.date_received),
+        includes_materials: quote.includes_materials ?? true,
+        includes_labor: quote.includes_labor ?? true,
         lineItems: [], // Empty array for line items
         subtotals: {
           labor: 0,

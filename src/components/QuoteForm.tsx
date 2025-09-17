@@ -36,9 +36,11 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   const [validUntil, setValidUntil] = useState<Date>();
   const [acceptedDate, setAcceptedDate] = useState<Date>();
   const [rejectionReason, setRejectionReason] = useState("");
-  const [notes, setNotes] = useState("");
-  const [attachmentUrl, setAttachmentUrl] = useState<string>("");
-  const [attachmentFileName, setAttachmentFileName] = useState<string>("");
+  const [notes, setNotes] = useState("")
+  const [attachmentUrl, setAttachmentUrl] = useState<string>("")
+  const [attachmentFileName, setAttachmentFileName] = useState<string>("")
+  const [includesMaterials, setIncludesMaterials] = useState(true)
+  const [includesLabor, setIncludesLabor] = useState(true)
   const [lineItems, setLineItems] = useState<QuoteLineItem[]>([]);
   const [subtotals, setSubtotals] = useState({
     labor: 0,
@@ -87,6 +89,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       setLineItems(initialQuote.lineItems);
       setAttachmentUrl(initialQuote.attachment_url || "");
       setAttachmentFileName(initialQuote.attachment_url ? "Attached PDF" : "");
+      setIncludesMaterials(initialQuote.includes_materials);
+      setIncludesLabor(initialQuote.includes_labor);
       // Note: selectedPayee will be set when PayeeSelector loads payees
     }
   }, [initialQuote, estimates]);
@@ -211,6 +215,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       accepted_date: status === 'accepted' ? (acceptedDate || new Date()) : undefined,
       rejection_reason: status === 'rejected' ? rejectionReason.trim() : undefined,
       quoteNumber: initialQuote?.quoteNumber || generateQuoteNumber(),
+      includes_materials: includesMaterials,
+      includes_labor: includesLabor,
       lineItems: lineItems.filter(item => item.description.trim()),
       subtotals,
       total,
@@ -336,6 +342,33 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                   />
                 </PopoverContent>
               </Popover>
+            </div>
+          </div>
+
+          {/* Quote Includes */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Quote Includes</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="includesMaterials"
+                  checked={includesMaterials}
+                  onChange={(e) => setIncludesMaterials(e.target.checked)}
+                  className="h-4 w-4 text-primary border-border rounded focus:ring-primary"
+                />
+                <Label htmlFor="includesMaterials">Includes Materials</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="includesLabor"
+                  checked={includesLabor}
+                  onChange={(e) => setIncludesLabor(e.target.checked)}
+                  className="h-4 w-4 text-primary border-border rounded focus:ring-primary"
+                />
+                <Label htmlFor="includesLabor">Includes Labor</Label>
+              </div>
             </div>
           </div>
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, FileText, Trash2, ArrowUpDown, Edit } from "lucide-react";
+import { Eye, FileText, Trash2, ArrowUpDown, Edit, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -225,6 +225,33 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare }: Q
                       <div></div>
                     </>
                   )}
+                </div>
+
+                {/* Quote Includes */}
+                <div className="flex items-center gap-6 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Includes:</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {quote.includes_materials ? (
+                      <Check className="h-4 w-4 text-success" />
+                    ) : (
+                      <X className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <span className={quote.includes_materials ? "text-success font-medium" : "text-muted-foreground"}>
+                      Materials
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {quote.includes_labor ? (
+                      <Check className="h-4 w-4 text-success" />
+                    ) : (
+                      <X className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <span className={quote.includes_labor ? "text-success font-medium" : "text-muted-foreground"}>
+                      Labor
+                    </span>
+                  </div>
                 </div>
 
                 {/* Budget Variance */}
