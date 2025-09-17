@@ -67,39 +67,6 @@ export type Database = {
           },
         ]
       }
-      companies: {
-        Row: {
-          address: string | null
-          created_at: string | null
-          email: string | null
-          id: string
-          name: string
-          phone: string | null
-          quickbooks_company_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          address?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          name: string
-          phone?: string | null
-          quickbooks_company_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          address?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          name?: string
-          phone?: string | null
-          quickbooks_company_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       estimate_line_items: {
         Row: {
           category: Database["public"]["Enums"]["expense_category"]
@@ -279,7 +246,6 @@ export type Database = {
         Row: {
           address: string | null
           client_name: string
-          company_id: string
           created_at: string | null
           end_date: string | null
           id: string
@@ -298,7 +264,6 @@ export type Database = {
         Insert: {
           address?: string | null
           client_name: string
-          company_id: string
           created_at?: string | null
           end_date?: string | null
           id?: string
@@ -317,7 +282,6 @@ export type Database = {
         Update: {
           address?: string | null
           client_name?: string
-          company_id?: string
           created_at?: string | null
           end_date?: string | null
           id?: string
@@ -333,20 +297,11 @@ export type Database = {
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "projects_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       quickbooks_account_mappings: {
         Row: {
           app_category: Database["public"]["Enums"]["expense_category"]
-          company_id: string
           created_at: string
           id: string
           is_active: boolean
@@ -356,7 +311,6 @@ export type Database = {
         }
         Insert: {
           app_category: Database["public"]["Enums"]["expense_category"]
-          company_id: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -366,7 +320,6 @@ export type Database = {
         }
         Update: {
           app_category?: Database["public"]["Enums"]["expense_category"]
-          company_id?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -543,7 +496,6 @@ export type Database = {
         Row: {
           account_number: string | null
           billing_address: string | null
-          company_id: string
           created_at: string | null
           email: string | null
           full_name: string | null
@@ -560,7 +512,6 @@ export type Database = {
         Insert: {
           account_number?: string | null
           billing_address?: string | null
-          company_id: string
           created_at?: string | null
           email?: string | null
           full_name?: string | null
@@ -577,7 +528,6 @@ export type Database = {
         Update: {
           account_number?: string | null
           billing_address?: string | null
-          company_id?: string
           created_at?: string | null
           email?: string | null
           full_name?: string | null
@@ -591,25 +541,14 @@ export type Database = {
           updated_at?: string | null
           vendor_name?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "vendors_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      get_user_company_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      [_ in never]: never
     }
     Enums: {
       change_order_status: "pending" | "approved" | "rejected"

@@ -4,7 +4,6 @@ export type ExpenseCategory = Database['public']['Enums']['expense_category'];
 
 export interface QuickBooksAccountMapping {
   id: string;
-  company_id: string;
   app_category: ExpenseCategory;
   qb_account_name: string;
   qb_account_full_path: string;

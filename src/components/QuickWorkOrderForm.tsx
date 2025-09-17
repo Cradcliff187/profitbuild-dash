@@ -43,14 +43,6 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
     setLoading(true);
 
     try {
-      // Get company ID (using the existing function)
-      const { data: companyData, error: companyError } = await supabase
-        .rpc('get_user_company_id');
-
-      if (companyError) {
-        throw new Error('Failed to get company information');
-      }
-
       // Create the work order project
       const { data: project, error: projectError } = await supabase
         .from('projects')
@@ -61,7 +53,6 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
           project_type: 'work_order',
           status: 'in_progress',
           start_date: formData.startDate.toISOString().split('T')[0],
-          company_id: companyData,
         })
         .select()
         .single();

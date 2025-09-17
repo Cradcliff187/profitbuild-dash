@@ -8,7 +8,6 @@ export interface Vendor {
   account_number?: string;
   terms?: string;
   is_active: boolean;
-  company_id: string;
   quickbooks_vendor_id?: string;
   sync_status?: 'success' | 'failed' | 'pending' | null;
   last_synced_at?: string | null;

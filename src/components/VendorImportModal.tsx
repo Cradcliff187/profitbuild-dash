@@ -107,15 +107,9 @@ export const VendorImportModal: React.FC<VendorImportModalProps> = ({ open, onCl
       // Import vendors one by one to handle duplicates
       for (const vendor of vendors) {
         try {
-          // Add company_id using the RPC function
-          const vendorWithCompany = {
-            ...vendor,
-            company_id: await supabase.rpc('get_user_company_id').then(({ data }) => data)
-          };
-
           const { error } = await supabase
             .from('vendors')
-            .insert(vendorWithCompany);
+            .insert(vendor);
 
           if (error) {
             errorMessages.push(`Failed to import ${vendor.vendor_name}: ${error.message}`);

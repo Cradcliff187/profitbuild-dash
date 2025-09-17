@@ -67,12 +67,6 @@ export const VendorForm = ({ vendor, onSuccess, onCancel }: VendorFormProps) => 
           description: "Vendor updated successfully",
         });
       } else {
-        // Get company ID for new vendor
-        const { data: companyData, error: companyError } = await supabase
-          .rpc("get_user_company_id");
-
-        if (companyError) throw companyError;
-
         // Create new vendor
         const vendorData = {
           vendor_name: data.vendor_name,
@@ -80,7 +74,6 @@ export const VendorForm = ({ vendor, onSuccess, onCancel }: VendorFormProps) => 
           phone_numbers: data.phone_numbers || null,
           billing_address: data.billing_address || null,
           terms: data.terms || "Net 30",
-          company_id: companyData,
         };
 
         const { error } = await supabase

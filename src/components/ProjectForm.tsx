@@ -57,7 +57,6 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
           job_type: jobType.trim() || null,
           project_number: projectNumber,
           status: 'estimating' as const,
-          company_id: '00000000-0000-0000-0000-000000000000' // Placeholder, RLS will handle
         })
         .select()
         .single();
@@ -74,7 +73,6 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
         qb_formatted_number: insertedProject.qb_formatted_number,
         project_number: insertedProject.project_number,
         status: insertedProject.status as any,
-        company_id: insertedProject.company_id,
         quickbooks_job_id: insertedProject.quickbooks_job_id,
         created_at: new Date(insertedProject.created_at),
         updated_at: new Date(insertedProject.updated_at),
