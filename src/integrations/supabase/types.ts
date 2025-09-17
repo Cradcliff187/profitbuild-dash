@@ -119,6 +119,9 @@ export type Database = {
       }
       estimates: {
         Row: {
+          contingency_amount: number | null
+          contingency_percent: number | null
+          contingency_used: number | null
           created_at: string | null
           created_by: string | null
           date_created: string | null
@@ -133,6 +136,9 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
+          contingency_amount?: number | null
+          contingency_percent?: number | null
+          contingency_used?: number | null
           created_at?: string | null
           created_by?: string | null
           date_created?: string | null
@@ -147,6 +153,9 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
+          contingency_amount?: number | null
+          contingency_percent?: number | null
+          contingency_used?: number | null
           created_at?: string | null
           created_by?: string | null
           date_created?: string | null
