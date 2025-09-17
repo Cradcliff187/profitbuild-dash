@@ -26,6 +26,11 @@ export interface Estimate {
   contingency_percent: number;
   contingency_amount?: number;
   contingency_used: number;
+  // Versioning fields
+  version_number: number;
+  parent_estimate_id?: string;
+  is_current_version: boolean;
+  valid_for_days: number;
   // For display purposes (populated from project)
   project_name?: string;
   client_name?: string;
@@ -57,6 +62,23 @@ export const CATEGORY_DISPLAY_MAP: Record<LineItemCategory, string> = {
   'equipment': 'Equipment',
   'other': 'Other'
 };
+
+// Version management types
+export interface EstimateVersion {
+  id: string;
+  version_number: number;
+  status: EstimateStatus;
+  date_created: Date;
+  total_amount: number;
+  is_current_version: boolean;
+  valid_until?: Date;
+}
+
+export interface VersionHistory {
+  versions: EstimateVersion[];
+  current_version: EstimateVersion;
+  parent_estimate_id?: string;
+}
 
 // Legacy interface for backward compatibility
 export interface LegacyEstimate {

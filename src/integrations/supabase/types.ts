@@ -127,13 +127,17 @@ export type Database = {
           date_created: string | null
           estimate_number: string
           id: string
+          is_current_version: boolean | null
           notes: string | null
+          parent_estimate_id: string | null
           project_id: string
           revision_number: number | null
           status: Database["public"]["Enums"]["estimate_status"] | null
           total_amount: number | null
           updated_at: string | null
+          valid_for_days: number | null
           valid_until: string | null
+          version_number: number | null
         }
         Insert: {
           contingency_amount?: number | null
@@ -144,13 +148,17 @@ export type Database = {
           date_created?: string | null
           estimate_number: string
           id?: string
+          is_current_version?: boolean | null
           notes?: string | null
+          parent_estimate_id?: string | null
           project_id: string
           revision_number?: number | null
           status?: Database["public"]["Enums"]["estimate_status"] | null
           total_amount?: number | null
           updated_at?: string | null
+          valid_for_days?: number | null
           valid_until?: string | null
+          version_number?: number | null
         }
         Update: {
           contingency_amount?: number | null
@@ -161,15 +169,26 @@ export type Database = {
           date_created?: string | null
           estimate_number?: string
           id?: string
+          is_current_version?: boolean | null
           notes?: string | null
+          parent_estimate_id?: string | null
           project_id?: string
           revision_number?: number | null
           status?: Database["public"]["Enums"]["estimate_status"] | null
           total_amount?: number | null
           updated_at?: string | null
+          valid_for_days?: number | null
           valid_until?: string | null
+          version_number?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "estimates_parent_estimate_id_fkey"
+            columns: ["parent_estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "estimates_project_id_fkey"
             columns: ["project_id"]
@@ -599,7 +618,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_estimate_version: {
+        Args: { new_version_number?: number; source_estimate_id: string }
+        Returns: string
+      }
     }
     Enums: {
       change_order_status: "pending" | "approved" | "rejected"

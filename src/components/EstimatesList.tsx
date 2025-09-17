@@ -197,6 +197,21 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
                 <Badge variant="secondary" className="text-sm">
                   Revision: {estimate.revision_number}
                 </Badge>
+                {estimate.version_number > 1 && (
+                  <Badge variant="outline" className="text-sm">
+                    v{estimate.version_number}
+                  </Badge>
+                )}
+                {!estimate.is_current_version && (
+                  <Badge variant="secondary" className="text-sm">
+                    Previous Version
+                  </Badge>
+                )}
+                {estimate.is_current_version && estimate.version_number > 1 && (
+                  <Badge variant="default" className="text-sm">
+                    Current Version
+                  </Badge>
+                )}
                 {(() => {
                   const variance = getBestQuoteVariance(estimate);
                   return variance && (

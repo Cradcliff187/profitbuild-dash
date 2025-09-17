@@ -68,6 +68,10 @@ const Estimates = () => {
         contingency_percent: est.contingency_percent || 10.0,
         contingency_amount: est.contingency_amount,
         contingency_used: est.contingency_used || 0,
+        version_number: est.version_number || 1,
+        parent_estimate_id: est.parent_estimate_id || undefined,
+        is_current_version: est.is_current_version ?? true,
+        valid_for_days: est.valid_for_days || 30,
         lineItems: [], // Will be loaded separately when needed
         created_at: new Date(est.created_at),
         updated_at: new Date(est.updated_at),
