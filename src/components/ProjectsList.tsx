@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Edit, Trash2, Plus, Filter } from "lucide-react";
+import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,6 +65,22 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  const getMarginColor = (marginPercentage: number | null | undefined) => {
+    if (marginPercentage === null || marginPercentage === undefined) return 'bg-gray-100 text-gray-800 border-gray-200';
+    if (marginPercentage >= 20) return 'bg-green-100 text-green-800 border-green-200';
+    if (marginPercentage >= 10) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    if (marginPercentage >= 0) return 'bg-orange-100 text-orange-800 border-orange-200';
+    return 'bg-red-100 text-red-800 border-red-200';
+  };
+
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined) return 'N/A';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
   };
 
   const handleDeleteProject = async (projectId: string) => {
@@ -265,6 +281,44 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
                   />
                 )}
               </div>
+
+              {/* Margin Information */}
+              {(project.contracted_amount || project.current_margin !== null || project.margin_percentage !== null) && (
+                <div className="border rounded-lg p-3 bg-muted/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Financial Summary</span>
+                    </div>
+                    {project.margin_percentage !== null && project.margin_percentage !== undefined && (
+                      <div className="flex items-center space-x-1">
+                        {project.margin_percentage >= 0 ? (
+                          <TrendingUp className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4 text-red-600" />
+                        )}
+                        <Badge className={getMarginColor(project.margin_percentage)}>
+                          {project.margin_percentage.toFixed(1)}% margin
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Contract Amount</p>
+                      <p className="font-medium">{formatCurrency(project.contracted_amount)}</p>
+                    </div>
+                    {project.current_margin !== null && project.current_margin !== undefined && (
+                      <div>
+                        <p className="text-muted-foreground">Current Profit</p>
+                        <p className={`font-medium ${project.current_margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {project.current_margin >= 0 ? '+' : ''}{formatCurrency(project.current_margin)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>

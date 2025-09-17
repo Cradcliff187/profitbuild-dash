@@ -1,12 +1,19 @@
 import { Estimate } from '@/types/estimate';
 import { Quote } from '@/types/quote';
 import { Expense } from '@/types/expense';
+import { Project } from '@/types/project';
 import { ProjectProfitData, ProfitTrend, ProfitAnalyticsSummary } from '@/types/profit';
 
 export function calculateProjectProfit(
   estimate: Estimate,
   quotes: Quote[],
-  expenses: Expense[]
+  expenses: Expense[],
+  storedProjectData?: {
+    contracted_amount?: number | null;
+    current_margin?: number | null;
+    margin_percentage?: number | null;
+    total_accepted_quotes?: number | null;
+  }
 ): ProjectProfitData {
   // Find the best quote for this project (lowest total)
   const projectQuotes = quotes.filter(q => q.project_id === estimate.project_id);
@@ -19,11 +26,11 @@ export function calculateProjectProfit(
   const projectExpenses = expenses.filter(e => e.project_id === estimate.project_id);
   const actualExpenses = projectExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   
-  // Calculate profits
-  const quoteTotal = bestQuote?.total || 0;
+  // Use stored data if available, otherwise calculate
+  const quoteTotal = storedProjectData?.contracted_amount ?? bestQuote?.total ?? 0;
   const estimatedProfit = quoteTotal - estimate.total_amount;
-  const actualProfit = quoteTotal - actualExpenses;
-  const profitMargin = quoteTotal > 0 ? (actualProfit / quoteTotal) * 100 : 0;
+  const actualProfit = storedProjectData?.current_margin ?? (quoteTotal - actualExpenses);
+  const profitMargin = storedProjectData?.margin_percentage ?? (quoteTotal > 0 ? (actualProfit / quoteTotal) * 100 : 0);
   const profitVariance = actualProfit - estimatedProfit;
   
   // Determine project status
@@ -96,11 +103,21 @@ export function calculateProfitTrends(projectProfits: ProjectProfitData[]): Prof
 export function calculateProfitAnalytics(
   estimates: Estimate[],
   quotes: Quote[],
-  expenses: Expense[]
+  expenses: Expense[],
+  projects?: Project[]
 ): ProfitAnalyticsSummary {
-  const projectProfits = estimates.map(estimate => 
-    calculateProjectProfit(estimate, quotes, expenses)
-  );
+  const projectProfits = estimates.map(estimate => {
+    // Find corresponding project for stored margin data
+    const project = projects?.find(p => p.id === estimate.project_id);
+    const storedProjectData = project ? {
+      contracted_amount: project.contracted_amount,
+      current_margin: project.current_margin,
+      margin_percentage: project.margin_percentage,
+      total_accepted_quotes: project.total_accepted_quotes,
+    } : undefined;
+    
+    return calculateProjectProfit(estimate, quotes, expenses, storedProjectData);
+  });
   
   const totalProfit = projectProfits.reduce((sum, project) => sum + project.actualProfit, 0);
   const totalRevenue = projectProfits.reduce((sum, project) => sum + project.quoteTotal, 0);

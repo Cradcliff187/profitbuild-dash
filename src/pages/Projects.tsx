@@ -75,6 +75,10 @@ const Projects = () => {
         quickbooks_job_id: project.quickbooks_job_id,
         sync_status: project.sync_status,
         last_synced_at: project.last_synced_at,
+        contracted_amount: project.contracted_amount,
+        total_accepted_quotes: project.total_accepted_quotes,
+        current_margin: project.current_margin,
+        margin_percentage: project.margin_percentage,
         created_at: new Date(project.created_at),
         updated_at: new Date(project.updated_at)
       })) || [];
@@ -200,7 +204,17 @@ const Projects = () => {
       const projectQuotes = quotes.filter(q => q.project_id === project.id);
       const projectExpenses = expenses.filter(e => e.project_id === project.id);
       
-      const profitData = calculateProjectProfit(estimate, projectQuotes, projectExpenses);
+      const profitData = calculateProjectProfit(
+        estimate, 
+        projectQuotes, 
+        projectExpenses,
+        {
+          contracted_amount: project.contracted_amount,
+          current_margin: project.current_margin,
+          margin_percentage: project.margin_percentage,
+          total_accepted_quotes: project.total_accepted_quotes,
+        }
+      );
       setSelectedProjectProfit({
         contractAmount: profitData.quoteTotal,
         actualCosts: profitData.actualExpenses
@@ -362,6 +376,12 @@ const Projects = () => {
                   contractAmount={selectedProjectProfit.contractAmount}
                   actualCosts={selectedProjectProfit.actualCosts}
                   projectName={selectedProject.project_name}
+                  project={{
+                    contracted_amount: selectedProject.contracted_amount,
+                    current_margin: selectedProject.current_margin,
+                    margin_percentage: selectedProject.margin_percentage,
+                    total_accepted_quotes: selectedProject.total_accepted_quotes,
+                  }}
                 />
               </div>
             )}

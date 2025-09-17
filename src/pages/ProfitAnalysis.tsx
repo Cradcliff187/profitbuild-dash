@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Estimate } from '@/types/estimate';
 import { Quote } from '@/types/quote';
 import { Expense } from '@/types/expense';
+import { Project } from '@/types/project';
 import { supabase } from '@/integrations/supabase/client';
 import ProfitAnalysis from '@/components/ProfitAnalysis';
 
@@ -9,6 +10,7 @@ export default function ProfitAnalysisPage() {
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,7 +20,7 @@ export default function ProfitAnalysisPage() {
   const fetchData = async () => {
     try {
       // Fetch all data from Supabase
-      const [estimatesResult, quotesResult, expensesResult] = await Promise.all([
+      const [estimatesResult, quotesResult, expensesResult, projectsResult] = await Promise.all([
         supabase.from('estimates').select(`
           *,
           projects(project_name, client_name)
@@ -33,12 +35,14 @@ export default function ProfitAnalysisPage() {
           *,
           payees(vendor_name),
           projects(project_name)
-        `)
+        `),
+        supabase.from('projects').select('*')
       ]);
 
       if (estimatesResult.error) throw estimatesResult.error;
       if (quotesResult.error) throw quotesResult.error;
       if (expensesResult.error) throw expensesResult.error;
+      if (projectsResult.error) throw projectsResult.error;
 
       // Transform estimates
       const transformedEstimates: Estimate[] = (estimatesResult.data || []).map(estimate => ({
@@ -130,9 +134,34 @@ export default function ProfitAnalysisPage() {
         project_name: expense.projects?.project_name
       }));
 
+      // Transform projects
+      const transformedProjects: Project[] = (projectsResult.data || []).map(project => ({
+        id: project.id,
+        project_name: project.project_name,
+        project_number: project.project_number,
+        qb_formatted_number: project.qb_formatted_number,
+        client_name: project.client_name,
+        address: project.address,
+        project_type: project.project_type,
+        job_type: project.job_type,
+        status: project.status,
+        start_date: project.start_date ? new Date(project.start_date) : undefined,
+        end_date: project.end_date ? new Date(project.end_date) : undefined,
+        quickbooks_job_id: project.quickbooks_job_id,
+        sync_status: project.sync_status,
+        last_synced_at: project.last_synced_at,
+        contracted_amount: project.contracted_amount,
+        total_accepted_quotes: project.total_accepted_quotes,
+        current_margin: project.current_margin,
+        margin_percentage: project.margin_percentage,
+        created_at: new Date(project.created_at),
+        updated_at: new Date(project.updated_at)
+      }));
+
       setEstimates(transformedEstimates);
       setQuotes(transformedQuotes);
       setExpenses(transformedExpenses);
+      setProjects(transformedProjects);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -157,6 +186,7 @@ export default function ProfitAnalysisPage() {
         estimates={estimates}
         quotes={quotes}
         expenses={expenses}
+        projects={projects}
       />
     </div>
   );

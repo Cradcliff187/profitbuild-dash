@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Estimate } from '@/types/estimate';
 import { Quote } from '@/types/quote';
 import { Expense } from '@/types/expense';
+import { Project } from '@/types/project';
 import { calculateProfitAnalytics, calculateProjectProfit } from '@/utils/profitCalculations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,17 +14,29 @@ interface ProfitAnalysisProps {
   estimates: Estimate[];
   quotes: Quote[];
   expenses: Expense[];
+  projects?: Project[];
 }
 
-export default function ProfitAnalysis({ estimates, quotes, expenses }: ProfitAnalysisProps) {
+export default function ProfitAnalysis({ estimates, quotes, expenses, projects }: ProfitAnalysisProps) {
   const analytics = useMemo(() => 
-    calculateProfitAnalytics(estimates, quotes, expenses), 
-    [estimates, quotes, expenses]
+    calculateProfitAnalytics(estimates, quotes, expenses, projects), 
+    [estimates, quotes, expenses, projects]
   );
 
   const projectProfits = useMemo(() => 
-    estimates.map(estimate => calculateProjectProfit(estimate, quotes, expenses)),
-    [estimates, quotes, expenses]
+    estimates.map(estimate => {
+      // Find corresponding project for stored margin data
+      const project = projects?.find(p => p.id === estimate.project_id);
+      const storedProjectData = project ? {
+        contracted_amount: project.contracted_amount,
+        current_margin: project.current_margin,
+        margin_percentage: project.margin_percentage,
+        total_accepted_quotes: project.total_accepted_quotes,
+      } : undefined;
+      
+      return calculateProjectProfit(estimate, quotes, expenses, storedProjectData);
+    }),
+    [estimates, quotes, expenses, projects]
   );
 
   const summaryCards = [

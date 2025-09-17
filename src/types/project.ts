@@ -13,6 +13,10 @@ export interface Project {
   quickbooks_job_id?: string;
   sync_status?: 'success' | 'failed' | 'pending' | null;
   last_synced_at?: string | null;
+  contracted_amount?: number | null;
+  total_accepted_quotes?: number | null;
+  current_margin?: number | null;
+  margin_percentage?: number | null;
   created_at: Date;
   updated_at: Date;
 }

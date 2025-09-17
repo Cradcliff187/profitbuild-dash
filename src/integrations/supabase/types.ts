@@ -352,11 +352,14 @@ export type Database = {
         Row: {
           address: string | null
           client_name: string
+          contracted_amount: number | null
           created_at: string | null
+          current_margin: number | null
           end_date: string | null
           id: string
           job_type: string | null
           last_synced_at: string | null
+          margin_percentage: number | null
           project_name: string
           project_number: string
           project_type: Database["public"]["Enums"]["project_type"] | null
@@ -365,16 +368,20 @@ export type Database = {
           start_date: string | null
           status: Database["public"]["Enums"]["project_status"] | null
           sync_status: Database["public"]["Enums"]["sync_status"] | null
+          total_accepted_quotes: number | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
           client_name: string
+          contracted_amount?: number | null
           created_at?: string | null
+          current_margin?: number | null
           end_date?: string | null
           id?: string
           job_type?: string | null
           last_synced_at?: string | null
+          margin_percentage?: number | null
           project_name: string
           project_number: string
           project_type?: Database["public"]["Enums"]["project_type"] | null
@@ -383,16 +390,20 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
+          total_accepted_quotes?: number | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
           client_name?: string
+          contracted_amount?: number | null
           created_at?: string | null
+          current_margin?: number | null
           end_date?: string | null
           id?: string
           job_type?: string | null
           last_synced_at?: string | null
+          margin_percentage?: number | null
           project_name?: string
           project_number?: string
           project_type?: Database["public"]["Enums"]["project_type"] | null
@@ -401,6 +412,7 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
+          total_accepted_quotes?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -618,6 +630,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_project_margins: {
+        Args: { project_id_param: string }
+        Returns: undefined
+      }
       create_estimate_version: {
         Args: { new_version_number?: number; source_estimate_id: string }
         Returns: string
