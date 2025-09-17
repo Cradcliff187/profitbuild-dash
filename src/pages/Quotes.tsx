@@ -59,6 +59,11 @@ const Quotes = () => {
         quotedBy: quote.payees?.vendor_name || '',
         dateReceived: new Date(quote.date_received),
         quoteNumber: quote.quote_number,
+        status: quote.status,
+        accepted_date: quote.accepted_date ? new Date(quote.accepted_date) : undefined,
+        valid_until: quote.valid_until ? new Date(quote.valid_until) : undefined,
+        rejection_reason: quote.rejection_reason,
+        estimate_line_item_id: quote.estimate_line_item_id,
         lineItems: quote.quote_line_items?.map((item: any) => ({
           id: item.id,
           estimateLineItemId: item.estimate_line_item_id,
@@ -126,6 +131,11 @@ const Quotes = () => {
             payee_id: quote.payee_id,
             quote_number: quote.quoteNumber,
             date_received: quote.dateReceived.toISOString().split('T')[0],
+            status: quote.status,
+            accepted_date: quote.accepted_date ? quote.accepted_date.toISOString() : null,
+            valid_until: quote.valid_until ? quote.valid_until.toISOString().split('T')[0] : null,
+            rejection_reason: quote.rejection_reason,
+            estimate_line_item_id: quote.estimate_line_item_id,
             total_amount: quote.total,
             notes: quote.notes,
             attachment_url: quote.attachment_url,
@@ -164,10 +174,14 @@ const Quotes = () => {
             payee_id: quote.payee_id,
             quote_number: quote.quoteNumber,
             date_received: quote.dateReceived.toISOString().split('T')[0],
+            status: quote.status,
+            accepted_date: quote.accepted_date ? quote.accepted_date.toISOString() : null,
+            valid_until: quote.valid_until ? quote.valid_until.toISOString().split('T')[0] : null,
+            rejection_reason: quote.rejection_reason,
+            estimate_line_item_id: quote.estimate_line_item_id,
             total_amount: quote.total,
             notes: quote.notes,
-            attachment_url: quote.attachment_url,
-            status: 'pending'
+            attachment_url: quote.attachment_url
           })
           .select()
           .single();

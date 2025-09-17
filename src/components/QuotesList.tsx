@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Quote } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
+import { QuoteStatusBadge } from "./QuoteStatusBadge";
 
 interface QuotesListProps {
   quotes: Quote[];
@@ -134,7 +135,10 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare }: Q
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <CardTitle className="text-lg">{quote.projectName}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg">{quote.projectName}</CardTitle>
+                      <QuoteStatusBadge status={quote.status} />
+                    </div>
                     <div className="text-sm text-muted-foreground">
                       {quote.client} • {quote.quoteNumber}
                     </div>
@@ -203,6 +207,24 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare }: Q
                       {estimate ? `$${estimate.total_amount.toFixed(2)}` : 'N/A'}
                     </div>
                   </div>
+                  {quote.valid_until && (
+                    <>
+                      <div>
+                        <div className="text-muted-foreground">Valid Until</div>
+                        <div className="font-medium">{format(quote.valid_until, "MMM dd, yyyy")}</div>
+                      </div>
+                      <div></div>
+                    </>
+                  )}
+                  {quote.accepted_date && (
+                    <>
+                      <div>
+                        <div className="text-muted-foreground">Accepted Date</div>
+                        <div className="font-medium">{format(quote.accepted_date, "MMM dd, yyyy")}</div>
+                      </div>
+                      <div></div>
+                    </>
+                  )}
                 </div>
 
                 {/* Budget Variance */}
@@ -232,6 +254,14 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare }: Q
                         Under budget
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Rejection Reason */}
+                {quote.status === 'rejected' && quote.rejection_reason && (
+                  <div className="text-sm p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
+                    <div className="text-red-600 dark:text-red-400 font-medium mb-1">Rejection Reason</div>
+                    <div className="text-red-800 dark:text-red-200">{quote.rejection_reason}</div>
                   </div>
                 )}
 

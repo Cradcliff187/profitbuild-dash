@@ -502,49 +502,58 @@ export type Database = {
       }
       quotes: {
         Row: {
+          accepted_date: string | null
           attachment_url: string | null
           created_at: string | null
-          date_expires: string | null
           date_received: string | null
           estimate_id: string
+          estimate_line_item_id: string | null
           id: string
           notes: string | null
           payee_id: string
           project_id: string
           quote_number: string
+          rejection_reason: string | null
           status: Database["public"]["Enums"]["quote_status"] | null
           total_amount: number | null
           updated_at: string | null
+          valid_until: string | null
         }
         Insert: {
+          accepted_date?: string | null
           attachment_url?: string | null
           created_at?: string | null
-          date_expires?: string | null
           date_received?: string | null
           estimate_id: string
+          estimate_line_item_id?: string | null
           id?: string
           notes?: string | null
           payee_id: string
           project_id: string
           quote_number: string
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["quote_status"] | null
           total_amount?: number | null
           updated_at?: string | null
+          valid_until?: string | null
         }
         Update: {
+          accepted_date?: string | null
           attachment_url?: string | null
           created_at?: string | null
-          date_expires?: string | null
           date_received?: string | null
           estimate_id?: string
+          estimate_line_item_id?: string | null
           id?: string
           notes?: string | null
           payee_id?: string
           project_id?: string
           quote_number?: string
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["quote_status"] | null
           total_amount?: number | null
           updated_at?: string | null
+          valid_until?: string | null
         }
         Relationships: [
           {

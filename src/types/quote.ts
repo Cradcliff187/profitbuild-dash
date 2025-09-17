@@ -10,6 +10,8 @@ export interface QuoteLineItem {
   total: number;
 }
 
+export type QuoteStatus = 'pending' | 'accepted' | 'rejected' | 'expired';
+
 export interface Quote {
   id: string;
   project_id: string; // Links to project
@@ -20,6 +22,11 @@ export interface Quote {
   quotedBy: string; // Subcontractor name (derived from vendor)
   dateReceived: Date;
   quoteNumber: string;
+  status: QuoteStatus;
+  accepted_date?: Date; // When quote was accepted
+  valid_until?: Date; // Quote expiration date
+  rejection_reason?: string; // Reason for rejection
+  estimate_line_item_id?: string; // Link to specific estimate line item
   lineItems: QuoteLineItem[];
   subtotals: {
     labor: number;

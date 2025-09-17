@@ -8,13 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { ProjectSelector } from "./ProjectSelector";
 import { PayeeSelector } from "./PayeeSelector";
 import { LineItemRow } from "./LineItemRow";
 import { PdfUpload } from "./PdfUpload";
 import { Estimate, LineItem, LineItemCategory } from "@/types/estimate";
-import { Quote, QuoteLineItem } from "@/types/quote";
+import { Quote, QuoteLineItem, QuoteStatus } from "@/types/quote";
 import { Payee } from "@/types/payee";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,6 +32,10 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   const [selectedPayee, setSelectedPayee] = useState<Payee>();
   const [quotedBy, setQuotedBy] = useState("");
   const [dateReceived, setDateReceived] = useState<Date>(new Date());
+  const [status, setStatus] = useState<QuoteStatus>('pending');
+  const [validUntil, setValidUntil] = useState<Date>();
+  const [acceptedDate, setAcceptedDate] = useState<Date>();
+  const [rejectionReason, setRejectionReason] = useState("");
   const [notes, setNotes] = useState("");
   const [attachmentUrl, setAttachmentUrl] = useState<string>("");
   const [attachmentFileName, setAttachmentFileName] = useState<string>("");
@@ -74,6 +79,10 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       setSelectedEstimate(estimate);
       setQuotedBy(initialQuote.quotedBy);
       setDateReceived(initialQuote.dateReceived);
+      setStatus(initialQuote.status);
+      setValidUntil(initialQuote.valid_until);
+      setAcceptedDate(initialQuote.accepted_date);
+      setRejectionReason(initialQuote.rejection_reason || "");
       setNotes(initialQuote.notes || "");
       setLineItems(initialQuote.lineItems);
       setAttachmentUrl(initialQuote.attachment_url || "");
@@ -178,6 +187,16 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       return;
     }
 
+    // Validation for status-specific fields
+    if (status === 'rejected' && !rejectionReason.trim()) {
+      toast({
+        title: "Missing Rejection Reason",
+        description: "Please provide a reason when rejecting a quote.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const quote: Quote = {
       id: initialQuote?.id || Date.now().toString(),
       project_id: selectedEstimate.project_id,
@@ -187,6 +206,10 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       payee_id: selectedPayee.id,
       quotedBy: selectedPayee.vendor_name,
       dateReceived,
+      status,
+      valid_until: validUntil,
+      accepted_date: status === 'accepted' ? (acceptedDate || new Date()) : undefined,
+      rejection_reason: status === 'rejected' ? rejectionReason.trim() : undefined,
       quoteNumber: initialQuote?.quoteNumber || generateQuoteNumber(),
       lineItems: lineItems.filter(item => item.description.trim()),
       subtotals,
@@ -270,6 +293,95 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
               </Popover>
             </div>
           </div>
+
+          {/* Quote Status and Dates */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Quote Status</Label>
+              <Select value={status} onValueChange={(value: QuoteStatus) => setStatus(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="accepted">Accepted</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Valid Until (Optional)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !validUntil && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {validUntil ? format(validUntil, "PPP") : <span>No expiration</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={validUntil}
+                    onSelect={setValidUntil}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* Conditional Status Fields */}
+          {status === 'accepted' && (
+            <div className="space-y-2">
+              <Label>Accepted Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !acceptedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {acceptedDate ? format(acceptedDate, "PPP") : <span>Select acceptance date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={acceptedDate}
+                    onSelect={setAcceptedDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {status === 'rejected' && (
+            <div className="space-y-2">
+              <Label htmlFor="rejectionReason">Rejection Reason *</Label>
+              <Textarea
+                id="rejectionReason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Please provide a reason for rejecting this quote..."
+                rows={3}
+                required
+              />
+            </div>
+          )}
 
           {selectedEstimate && (
             <>

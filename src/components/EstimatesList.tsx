@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format } from "date-fns";
 import { Estimate } from "@/types/estimate";
 import { useToast } from "@/hooks/use-toast";
-import { QuoteStatusBadge, QuoteStatus } from "@/components/QuoteStatusBadge";
+import { BudgetComparisonBadge, BudgetComparisonStatus } from "@/components/BudgetComparisonBadge";
 import { VarianceBadge } from "@/components/ui/variance-badge";
 
 interface EstimatesListProps {
@@ -42,7 +42,7 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
     setEstimateToDelete(null);
   };
 
-  const getQuoteStatus = (estimate: Estimate & { quotes?: Array<{ id: string; total_amount: number }> }): QuoteStatus => {
+  const getQuoteStatus = (estimate: Estimate & { quotes?: Array<{ id: string; total_amount: number }> }): BudgetComparisonStatus => {
     if (!estimate.quotes || estimate.quotes.length === 0) {
       return 'awaiting-quotes';
     }
@@ -190,7 +190,7 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
             <CardContent className="pt-0">
               {/* Status badges */}
               <div className="flex items-center gap-2 mb-4 flex-wrap">
-                <QuoteStatusBadge status={getQuoteStatus(estimate)} />
+                <BudgetComparisonBadge status={getQuoteStatus(estimate)} />
                 <Badge variant="outline" className="text-sm">
                   Status: {estimate.status}
                 </Badge>
