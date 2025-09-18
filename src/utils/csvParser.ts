@@ -1,6 +1,7 @@
 import Papa from 'papaparse';
 import { CSVRow, ColumnMapping, Expense, ExpenseCategory, TransactionType } from '@/types/expense';
 import { QuickBooksAccountMapping } from '@/types/quickbooks';
+import { PayeeType } from '@/types/payee';
 import { supabase } from '@/integrations/supabase/client';
 import { fuzzyMatchPayee, PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 import { QB_ACCOUNT_MAPPING, resolveQBAccountCategory } from '@/utils/quickbooksMapping';
@@ -216,8 +217,67 @@ export interface QBImportResult {
     unmapped: number;
   };
   unmappedAccounts: string[];
+  autoCreatedPayees: Array<{
+    qbName: string;
+    payeeId: string;
+    payeeType: PayeeType;
+  }>;
+  autoCreatedCount: number;
   errors: string[];
 }
+
+// Auto-detect payee type from QuickBooks account path
+const detectPayeeTypeFromAccount = (accountPath?: string): PayeeType => {
+  if (!accountPath) return PayeeType.OTHER;
+  
+  const lowerAccount = accountPath.toLowerCase();
+  
+  if (lowerAccount.includes('contract labor') || lowerAccount.includes('subcontractor')) {
+    return PayeeType.SUBCONTRACTOR;
+  }
+  if (lowerAccount.includes('materials') || lowerAccount.includes('supplies')) {
+    return PayeeType.MATERIAL_SUPPLIER;
+  }
+  if (lowerAccount.includes('equipment') || lowerAccount.includes('rental')) {
+    return PayeeType.EQUIPMENT_RENTAL;
+  }
+  if (lowerAccount.includes('permit') || lowerAccount.includes('license')) {
+    return PayeeType.PERMIT_AUTHORITY;
+  }
+  
+  return PayeeType.OTHER;
+};
+
+// Create a new payee from QuickBooks transaction
+const createPayeeFromTransaction = async (
+  qbName: string, 
+  accountPath?: string
+): Promise<string | null> => {
+  const payeeType = detectPayeeTypeFromAccount(accountPath);
+  
+  const payeeData = {
+    vendor_name: qbName,
+    payee_type: payeeType,
+    provides_labor: payeeType === PayeeType.SUBCONTRACTOR,
+    provides_materials: payeeType === PayeeType.MATERIAL_SUPPLIER,
+    requires_1099: payeeType === PayeeType.SUBCONTRACTOR,
+    is_active: true,
+    terms: 'Net 30'
+  };
+  
+  try {
+    const { data, error } = await supabase
+      .from('payees')
+      .insert([payeeData])
+      .select('id')
+      .single();
+    
+    return error ? null : data.id;
+  } catch (error) {
+    console.error('Error creating payee:', error);
+    return null;
+  }
+};
 
 // Detect potential duplicates in transaction data
 const detectDuplicates = (transactions: QBTransaction[]) => {
@@ -336,6 +396,8 @@ export const mapQuickBooksToExpenses = async (
       unmapped: 0
     },
     unmappedAccounts: [],
+    autoCreatedPayees: [],
+    autoCreatedCount: 0,
     errors: []
   };
 
@@ -424,9 +486,22 @@ export const mapQuickBooksToExpenses = async (
               });
             }
           } else {
-            // No matches found
-            if (!result.unmatchedPayees.includes(transaction.name)) {
-              result.unmatchedPayees.push(transaction.name);
+            // No matches found - attempt to auto-create payee
+            const createdPayeeId = await createPayeeFromTransaction(transaction.name, transaction.account_path);
+            if (createdPayeeId) {
+              payeeId = createdPayeeId;
+              const payeeType = detectPayeeTypeFromAccount(transaction.account_path);
+              result.autoCreatedPayees.push({
+                qbName: transaction.name,
+                payeeId: createdPayeeId,
+                payeeType
+              });
+              result.autoCreatedCount++;
+            } else {
+              // Auto-creation failed, add to unmatched
+              if (!result.unmatchedPayees.includes(transaction.name)) {
+                result.unmatchedPayees.push(transaction.name);
+              }
             }
           }
         }
