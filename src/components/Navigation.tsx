@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User } from "lucide-react";
+import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -25,6 +25,7 @@ const Navigation = () => {
     { to: "/estimates", label: "Estimates", icon: Calculator },
     { to: "/quotes", label: "Quotes", icon: FileText },
     { to: "/payees", label: "Payees", icon: Users },
+    { to: "/clients", label: "Clients", icon: UserCheck },
     { to: "/profit-analysis", label: "Profit Analysis", icon: TrendingUp },
     { to: "/settings", label: "Settings", icon: Settings },
   ];

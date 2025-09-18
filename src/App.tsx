@@ -11,6 +11,7 @@ import Estimates from "./pages/Estimates";
 import Quotes from "./pages/Quotes";
 import Expenses from "./pages/Expenses";
 import Payees from "./pages/Payees";
+import Clients from "./pages/Clients";
 import Projects from "./pages/Projects";
 import ProfitAnalysis from "./pages/ProfitAnalysis";
 import Settings from "./pages/Settings";
@@ -43,6 +44,7 @@ const App = () => (
                       <Route path="/quotes" element={<Quotes />} />
                       <Route path="/expenses" element={<Expenses />} />
                       <Route path="/payees" element={<Payees />} />
+                      <Route path="/clients" element={<Clients />} />
                       <Route path="/profit-analysis" element={<ProfitAnalysis />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="*" element={<NotFound />} />

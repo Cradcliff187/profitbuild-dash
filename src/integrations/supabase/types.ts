@@ -79,6 +79,63 @@ export type Database = {
           },
         ]
       }
+      clients: {
+        Row: {
+          billing_address: string | null
+          client_name: string
+          client_type: string | null
+          company_name: string | null
+          contact_person: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          mailing_address: string | null
+          notes: string | null
+          payment_terms: string | null
+          phone: string | null
+          quickbooks_customer_id: string | null
+          tax_exempt: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          billing_address?: string | null
+          client_name: string
+          client_type?: string | null
+          company_name?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          mailing_address?: string | null
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          quickbooks_customer_id?: string | null
+          tax_exempt?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          billing_address?: string | null
+          client_name?: string
+          client_type?: string | null
+          company_name?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          mailing_address?: string | null
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          quickbooks_customer_id?: string | null
+          tax_exempt?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       estimate_line_items: {
         Row: {
           category: Database["public"]["Enums"]["expense_category"]
@@ -555,6 +612,7 @@ export type Database = {
       projects: {
         Row: {
           address: string | null
+          client_id: string | null
           client_name: string
           contingency_remaining: number | null
           contracted_amount: number | null
@@ -580,6 +638,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          client_id?: string | null
           client_name: string
           contingency_remaining?: number | null
           contracted_amount?: number | null
@@ -605,6 +664,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          client_id?: string | null
           client_name?: string
           contingency_remaining?: number | null
           contracted_amount?: number | null
@@ -628,7 +688,15 @@ export type Database = {
           total_accepted_quotes?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quickbooks_account_mappings: {
         Row: {
