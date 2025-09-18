@@ -345,6 +345,63 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     });
   };
 
+  const copyProjectSettings = async (projectId: string) => {
+    try {
+      const { data: projectData, error } = await supabase
+        .from('projects')
+        .select('id, client_id, address, job_type, payment_terms, client_name')
+        .eq('id', projectId)
+        .single();
+
+      if (error) throw error;
+
+      if (projectData) {
+        // Set client if different from current selection
+        if (projectData.client_id && projectData.client_id !== selectedClientId) {
+          setSelectedClientId(projectData.client_id);
+          await loadClientForProject(projectData.client_id);
+        }
+
+        // Copy address if available
+        if (projectData.address) {
+          setAddress(projectData.address);
+        }
+
+        // Copy job type if available
+        if (projectData.job_type) {
+          setJobType(projectData.job_type);
+        }
+
+        // Set default contingency to 10%
+        setContingencyPercent(10);
+
+        toast({
+          title: "Project Settings Applied",
+          description: `Settings copied from project: ${projectData.client_name}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error copying project settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to copy project settings.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleProjectSelection = async (projectId: string) => {
+    setSelectedProjectId(projectId);
+    
+    // Load client data for the project
+    await loadClientForProject(projectId);
+    
+    // Copy project settings to the estimate form
+    if (projectId) {
+      await copyProjectSettings(projectId);
+    }
+  };
+
   const handleCopyFromEstimate = async () => {
     if (!selectedCopyEstimate) return;
 
@@ -1022,7 +1079,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
           {projectMode === 'existing' && (
             <div className="space-y-2">
               <Label>Select Project</Label>
-              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+              <Select value={selectedProjectId} onValueChange={handleProjectSelection}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose an existing project" />
                 </SelectTrigger>
