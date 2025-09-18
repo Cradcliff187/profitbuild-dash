@@ -72,6 +72,16 @@ export const JOB_TYPES = [
   'Maintenance'
 ] as const;
 
+export const PROJECT_STATUSES = [
+  { value: 'estimating', label: 'Estimating' },
+  { value: 'quoted', label: 'Quoted' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'complete', label: 'Complete' },
+  { value: 'on_hold', label: 'On Hold' },
+  { value: 'cancelled', label: 'Cancelled' }
+] as const;
+
 // Utility function to generate project numbers
 export const generateProjectNumber = (): string => {
   const numbers = Math.floor(Math.random() * 1000).toString().padStart(3, '0');

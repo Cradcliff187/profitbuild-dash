@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Project, ProjectType, CreateProjectRequest, generateProjectNumber, JOB_TYPES } from "@/types/project";
+import { Project, ProjectType, ProjectStatus, CreateProjectRequest, generateProjectNumber, JOB_TYPES, PROJECT_STATUSES } from "@/types/project";
 import { Client, PAYMENT_TERMS } from "@/types/client";
 import { ClientSelector } from "@/components/ClientSelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,7 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
   const [selectedClientData, setSelectedClientData] = useState<Client | null>(null);
   const [address, setAddress] = useState("");
   const [projectType, setProjectType] = useState<ProjectType>('construction_project');
+  const [status, setStatus] = useState<ProjectStatus>('estimating');
   const [jobType, setJobType] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("Net 30");
   const [projectNumber, setProjectNumber] = useState("");
@@ -93,7 +94,7 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
           job_type: jobType.trim() || null,
           payment_terms: paymentTerms,
           project_number: projectNumber,
-          status: 'estimating' as const,
+          status: status as any,
           minimum_margin_threshold: minimumMarginThreshold,
           target_margin: targetMargin,
         })
@@ -264,32 +265,47 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
             />
           </div>
 
-          {/* Project Type */}
-          <div className="space-y-2">
-            <Label>Project Type *</Label>
-            <Select value={projectType} onValueChange={(value: ProjectType) => setProjectType(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select project type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="construction_project">
-                  <div className="flex flex-col items-start">
-                    <span>Construction Project</span>
-                    <span className="text-sm text-muted-foreground">Requires estimate creation</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="work_order">
-                  <div className="flex flex-col items-start">
-                    <span>Work Order</span>
-                    <span className="text-sm text-muted-foreground">Skip estimate, go directly to expenses</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Project Type, Status, Job Type */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Project Type *</Label>
+              <Select value={projectType} onValueChange={(value: ProjectType) => setProjectType(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select project type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="construction_project">
+                    <div className="flex flex-col items-start">
+                      <span>Construction Project</span>
+                      <span className="text-sm text-muted-foreground">Requires estimate creation</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="work_order">
+                    <div className="flex flex-col items-start">
+                      <span>Work Order</span>
+                      <span className="text-sm text-muted-foreground">Skip estimate, go directly to expenses</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Job Type and Payment Terms */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={status} onValueChange={(value: ProjectStatus) => setStatus(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROJECT_STATUSES.map((statusOption) => (
+                    <SelectItem key={statusOption.value} value={statusOption.value}>
+                      {statusOption.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="jobType">Job Type</Label>
               <Select value={jobType} onValueChange={setJobType}>
@@ -305,27 +321,28 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="paymentTerms">Payment Terms</Label>
-              <Select value={paymentTerms} onValueChange={setPaymentTerms}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select payment terms" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_TERMS.map((terms) => (
-                    <SelectItem key={terms} value={terms}>
-                      {terms}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedClientData?.payment_terms && (
-                <p className="text-xs text-muted-foreground">
-                  Auto-filled from client default: {selectedClientData.payment_terms}
-                </p>
-              )}
-            </div>
+          {/* Payment Terms */}
+          <div className="space-y-2">
+            <Label htmlFor="paymentTerms">Payment Terms</Label>
+            <Select value={paymentTerms} onValueChange={setPaymentTerms}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select payment terms" />
+              </SelectTrigger>
+              <SelectContent>
+                {PAYMENT_TERMS.map((terms) => (
+                  <SelectItem key={terms} value={terms}>
+                    {terms}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedClientData?.payment_terms && (
+              <p className="text-xs text-muted-foreground">
+                Auto-filled from client default: {selectedClientData.payment_terms}
+              </p>
+            )}
           </div>
 
           {/* Margin Thresholds */}

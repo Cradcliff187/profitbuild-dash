@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Project, ProjectType, ProjectStatus, JOB_TYPES } from "@/types/project";
+import { Project, ProjectType, ProjectStatus, JOB_TYPES, PROJECT_STATUSES } from "@/types/project";
 import { Client } from "@/types/client";
 import { ClientSelector } from "@/components/ClientSelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -288,20 +288,18 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
 
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={status} onValueChange={(value: ProjectStatus) => setStatus(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="estimating">Estimating</SelectItem>
-                  <SelectItem value="quoted">Quoted</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="complete">Complete</SelectItem>
-                  <SelectItem value="on_hold">On Hold</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
+                <Select value={status} onValueChange={(value: ProjectStatus) => setStatus(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROJECT_STATUSES.map((statusOption) => (
+                      <SelectItem key={statusOption.value} value={statusOption.value}>
+                        {statusOption.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
             </div>
 
             <div className="space-y-2">
