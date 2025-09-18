@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Edit, Mail, Phone, MapPin } from "lucide-react";
+import { Plus, Edit, Mail, Phone, MapPin, Upload } from "lucide-react";
 import { Client, ClientType, CLIENT_TYPES } from "@/types/client";
 import { useToast } from "@/hooks/use-toast";
 import { ClientForm } from "./ClientForm";
 import { ClientFilters } from "./ClientFilters";
 import { ClientBulkActions } from "./ClientBulkActions";
+import { ClientImportModal } from "./ClientImportModal";
 
 export const ClientsList = () => {
   const [showForm, setShowForm] = useState(false);
@@ -20,6 +21,7 @@ export const ClientsList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<ClientType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [showImportModal, setShowImportModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -81,6 +83,11 @@ export const ClientsList = () => {
     handleCloseForm();
   };
 
+  const handleImportSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ["clients"] });
+    setShowImportModal(false);
+  };
+
   const getClientTypeLabel = (type: ClientType) => {
     return CLIENT_TYPES.find(t => t.value === type)?.label || type;
   };
@@ -97,10 +104,20 @@ export const ClientsList = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Clients</h1>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Client
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Import CSV
+          </Button>
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Client
+          </Button>
+        </div>
       </div>
 
       <ClientFilters
@@ -224,6 +241,12 @@ export const ClientsList = () => {
           onCancel={handleCloseForm}
         />
       )}
+
+      <ClientImportModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={handleImportSuccess}
+      />
     </div>
   );
 };
