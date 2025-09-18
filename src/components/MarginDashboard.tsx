@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { FileText, CheckCircle, DollarSign, Percent } from 'lucide-react';
+import { FileText, CheckCircle, DollarSign, Percent, Package, Minus, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import type { Project } from '@/types/project';
-import { calculateProjectMargin, type ProjectMargin } from '@/types/margin';
+import { calculateProjectMargin, type ProjectMargin, getContingencyUtilization } from '@/types/margin';
 import { getMarginThresholdStatus, getThresholdStatusColor, getThresholdStatusLabel, formatContingencyRemaining } from '@/utils/thresholdUtils';
 
 interface MarginDashboardProps {
@@ -139,6 +140,21 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
     }).format(amount);
   };
 
+  const getMarginColorClass = (percentage: number): string => {
+    if (percentage >= 20) return 'text-green-600';
+    if (percentage >= 10) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getContingencyUsageColorClass = (usagePercent: number): string => {
+    if (usagePercent >= 80) return 'hsl(var(--destructive))';
+    if (usagePercent >= 50) return 'hsl(var(--warning))';
+    return 'hsl(var(--primary))';
+  };
+
+  const contingencyUsagePercent = getContingencyUtilization(marginData);
+  const marginProgress = Math.min((marginData.margin_percentage / marginData.target_margin) * 100, 100);
+
   return (
     <div className="space-y-6">
       {/* Contract Display Cards */}
@@ -194,9 +210,9 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
             <CardTitle className="text-sm font-medium">Margin Percentage</CardTitle>
             <Percent className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <div className="flex items-center gap-2">
-              <div className="text-2xl font-bold">
+              <div className={`text-4xl font-bold ${getMarginColorClass(marginData.margin_percentage)}`}>
                 {marginData.margin_percentage.toFixed(1)}%
               </div>
               <Badge 
@@ -206,10 +222,94 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
                 {statusLabel}
               </Badge>
             </div>
+            
+            {/* Progress bar showing margin vs target */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Progress to Target</span>
+                <span>{marginData.margin_percentage.toFixed(1)}% / {marginData.target_margin}%</span>
+              </div>
+              <Progress 
+                value={marginProgress}
+                className="h-2"
+              />
+            </div>
+            
             <p className="text-xs text-muted-foreground">Profit margin %</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Contingency Tracker */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Contingency Tracker</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {/* Total Contingency Card */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Contingency</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(marginData.contingency_total)}
+                </div>
+                <p className="text-xs text-muted-foreground">Budgeted buffer</p>
+              </CardContent>
+            </Card>
+
+            {/* Contingency Used Card */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Contingency Used</CardTitle>
+                <Minus className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {formatCurrency(marginData.contingency_used)}
+                </div>
+                <p className="text-xs text-muted-foreground">Utilized so far</p>
+              </CardContent>
+            </Card>
+
+            {/* Contingency Remaining Card */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Contingency Remaining</CardTitle>
+                <Plus className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(marginData.contingency_remaining)}
+                </div>
+                <p className="text-xs text-muted-foreground">Available buffer</p>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Usage progress bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Contingency Usage</span>
+              <span>{contingencyUsagePercent.toFixed(1)}%</span>
+            </div>
+            <Progress 
+              value={contingencyUsagePercent} 
+              className="h-3"
+              style={{
+                ['--progress-foreground' as any]: getContingencyUsageColorClass(contingencyUsagePercent)
+              }}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Used: {formatCurrency(marginData.contingency_used)}</span>
+              <span>Remaining: {formatCurrency(marginData.contingency_remaining)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Project Details */}
       <Card>
@@ -222,15 +322,15 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-sm font-medium text-muted-foreground">Contingency Remaining</div>
-              <div className="text-lg font-semibold">
-                {formatContingencyRemaining(marginData.contingency_remaining)}
-              </div>
-            </div>
-            <div>
               <div className="text-sm font-medium text-muted-foreground">Project Status</div>
               <div className="text-lg font-semibold capitalize">
                 {project.status.replace('_', ' ')}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-medium text-muted-foreground">Target Margin</div>
+              <div className="text-lg font-semibold">
+                {marginData.target_margin}%
               </div>
             </div>
           </div>
