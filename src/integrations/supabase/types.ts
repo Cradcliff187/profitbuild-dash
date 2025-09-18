@@ -352,6 +352,7 @@ export type Database = {
         Row: {
           address: string | null
           client_name: string
+          contingency_remaining: number | null
           contracted_amount: number | null
           created_at: string | null
           current_margin: number | null
@@ -360,6 +361,7 @@ export type Database = {
           job_type: string | null
           last_synced_at: string | null
           margin_percentage: number | null
+          minimum_margin_threshold: number | null
           project_name: string
           project_number: string
           project_type: Database["public"]["Enums"]["project_type"] | null
@@ -368,12 +370,14 @@ export type Database = {
           start_date: string | null
           status: Database["public"]["Enums"]["project_status"] | null
           sync_status: Database["public"]["Enums"]["sync_status"] | null
+          target_margin: number | null
           total_accepted_quotes: number | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
           client_name: string
+          contingency_remaining?: number | null
           contracted_amount?: number | null
           created_at?: string | null
           current_margin?: number | null
@@ -382,6 +386,7 @@ export type Database = {
           job_type?: string | null
           last_synced_at?: string | null
           margin_percentage?: number | null
+          minimum_margin_threshold?: number | null
           project_name: string
           project_number: string
           project_type?: Database["public"]["Enums"]["project_type"] | null
@@ -390,12 +395,14 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
+          target_margin?: number | null
           total_accepted_quotes?: number | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
           client_name?: string
+          contingency_remaining?: number | null
           contracted_amount?: number | null
           created_at?: string | null
           current_margin?: number | null
@@ -404,6 +411,7 @@ export type Database = {
           job_type?: string | null
           last_synced_at?: string | null
           margin_percentage?: number | null
+          minimum_margin_threshold?: number | null
           project_name?: string
           project_number?: string
           project_type?: Database["public"]["Enums"]["project_type"] | null
@@ -412,6 +420,7 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
+          target_margin?: number | null
           total_accepted_quotes?: number | null
           updated_at?: string | null
         }
@@ -630,9 +639,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_contingency_remaining: {
+        Args: { project_id_param: string }
+        Returns: number
+      }
       calculate_project_margins: {
         Args: { project_id_param: string }
         Returns: undefined
+      }
+      check_margin_thresholds: {
+        Args: { project_id_param: string }
+        Returns: string
       }
       create_estimate_version: {
         Args: { new_version_number?: number; source_estimate_id: string }

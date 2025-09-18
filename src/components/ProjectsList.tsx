@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
+import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,7 @@ import {
 import { Project, ProjectStatus, ProjectType } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getMarginThresholdStatus, getThresholdStatusColor, getThresholdStatusLabel, formatContingencyRemaining } from "@/utils/thresholdUtils";
 
 interface ProjectWithVariance extends Project {
   estimateTotal?: number;
@@ -290,18 +291,43 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">Financial Summary</span>
                     </div>
-                    {project.margin_percentage !== null && project.margin_percentage !== undefined && (
+                    <div className="flex items-center space-x-2">
+                      {project.margin_percentage !== null && project.margin_percentage !== undefined && (
+                        <div className="flex items-center space-x-1">
+                          {project.margin_percentage >= 0 ? (
+                            <TrendingUp className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <TrendingDown className="h-4 w-4 text-red-600" />
+                          )}
+                          <Badge className={getMarginColor(project.margin_percentage)}>
+                            {project.margin_percentage.toFixed(1)}% margin
+                          </Badge>
+                        </div>
+                      )}
                       <div className="flex items-center space-x-1">
-                        {project.margin_percentage >= 0 ? (
-                          <TrendingUp className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <TrendingDown className="h-4 w-4 text-red-600" />
-                        )}
-                        <Badge className={getMarginColor(project.margin_percentage)}>
-                          {project.margin_percentage.toFixed(1)}% margin
+                        <Target className="h-4 w-4 text-muted-foreground" />
+                        <Badge 
+                          style={{ 
+                            backgroundColor: getThresholdStatusColor(
+                              getMarginThresholdStatus(
+                                project.margin_percentage,
+                                project.minimum_margin_threshold || 10.0,
+                                project.target_margin || 20.0
+                              )
+                            ),
+                            color: 'white'
+                          }}
+                        >
+                          {getThresholdStatusLabel(
+                            getMarginThresholdStatus(
+                              project.margin_percentage,
+                              project.minimum_margin_threshold || 10.0,
+                              project.target_margin || 20.0
+                            )
+                          )}
                         </Badge>
                       </div>
-                    )}
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
@@ -317,6 +343,14 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
                       </div>
                     )}
                   </div>
+                  {project.contingency_remaining !== null && project.contingency_remaining !== undefined && (
+                    <div className="mt-2 pt-2 border-t">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Contingency Remaining</span>
+                        <span className="font-medium">{formatContingencyRemaining(project.contingency_remaining)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

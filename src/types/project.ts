@@ -17,6 +17,9 @@ export interface Project {
   total_accepted_quotes?: number | null;
   current_margin?: number | null;
   margin_percentage?: number | null;
+  contingency_remaining?: number | null;
+  minimum_margin_threshold?: number | null;
+  target_margin?: number | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -40,6 +43,21 @@ export interface CreateProjectRequest {
   job_type?: string;
   start_date?: Date;
   end_date?: Date;
+  minimum_margin_threshold?: number;
+  target_margin?: number;
+}
+
+export type MarginThresholdStatus = 
+  | 'critical'
+  | 'at_risk'
+  | 'on_target'
+  | 'excellent'
+  | 'unknown';
+
+export interface MarginThreshold {
+  minimum: number;
+  target: number;
+  status: MarginThresholdStatus;
 }
 
 // Utility function to generate project numbers

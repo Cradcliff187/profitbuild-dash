@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Target, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { getMarginThresholdStatus, getThresholdStatusColor, getThresholdStatusLabel, formatContingencyRemaining } from "@/utils/thresholdUtils";
 
 interface ProjectProfitMarginProps {
   contractAmount: number;
@@ -11,6 +12,9 @@ interface ProjectProfitMarginProps {
     current_margin?: number | null;
     margin_percentage?: number | null;
     total_accepted_quotes?: number | null;
+    contingency_remaining?: number | null;
+    minimum_margin_threshold?: number | null;
+    target_margin?: number | null;
   };
 }
 
@@ -24,6 +28,9 @@ export const ProjectProfitMargin = ({
   const storedMargin = project?.current_margin;
   const storedMarginPercentage = project?.margin_percentage;
   const storedContractAmount = project?.contracted_amount;
+  const contingencyRemaining = project?.contingency_remaining;
+  const minimumThreshold = project?.minimum_margin_threshold || 10.0;
+  const targetThreshold = project?.target_margin || 20.0;
   
   const displayContractAmount = storedContractAmount ?? contractAmount;
   const calculatedProfit = displayContractAmount - actualCosts;
@@ -35,6 +42,11 @@ export const ProjectProfitMargin = ({
   const isProfit = profit >= 0;
   
   const isUsingStoredData = storedMargin !== null && storedMargin !== undefined;
+  
+  // Get threshold status
+  const thresholdStatus = getMarginThresholdStatus(profitPercentage, minimumThreshold, targetThreshold);
+  const thresholdColor = getThresholdStatusColor(thresholdStatus);
+  const thresholdLabel = getThresholdStatusLabel(thresholdStatus);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -73,15 +85,27 @@ export const ProjectProfitMargin = ({
             <div className={`text-lg font-medium ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
               {profitPercentage.toFixed(1)}% margin
             </div>
-            <Badge 
-              className={`mt-2 ${
-                isProfit 
-                  ? 'bg-green-100 text-green-800 hover:bg-green-100' 
-                  : 'bg-red-100 text-red-800 hover:bg-red-100'
-              }`}
-            >
-              {isProfit ? 'Profitable' : 'Loss'}
-            </Badge>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge 
+                className={`${
+                  isProfit 
+                    ? 'bg-green-100 text-green-800 hover:bg-green-100' 
+                    : 'bg-red-100 text-red-800 hover:bg-red-100'
+                }`}
+              >
+                {isProfit ? 'Profitable' : 'Loss'}
+              </Badge>
+              <Badge 
+                style={{ 
+                  backgroundColor: thresholdColor,
+                  color: 'white'
+                }}
+                className="flex items-center gap-1"
+              >
+                <Target className="h-3 w-3" />
+                {thresholdLabel}
+              </Badge>
+            </div>
           </div>
 
           {/* Breakdown */}
@@ -94,12 +118,40 @@ export const ProjectProfitMargin = ({
               <span className="text-muted-foreground">Actual Costs:</span>
               <span className="font-medium">{formatCurrency(actualCosts)}</span>
             </div>
+            {contingencyRemaining !== null && contingencyRemaining !== undefined && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Contingency Remaining:</span>
+                <span className="font-medium">{formatContingencyRemaining(contingencyRemaining)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm border-t pt-2">
               <span className="font-medium">Net Profit/Loss:</span>
               <span className={`font-bold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
                 {isProfit ? '+' : '-'}{formatCurrency(Math.abs(profit))}
               </span>
             </div>
+          </div>
+          
+          {/* Threshold Information */}
+          <div className="border-t pt-4">
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-muted-foreground">Minimum Threshold:</span>
+                <div className="font-medium">{minimumThreshold}%</div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Target Margin:</span>
+                <div className="font-medium">{targetThreshold}%</div>
+              </div>
+            </div>
+            {thresholdStatus === 'critical' && (
+              <div className="flex items-center gap-2 mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+                <span className="text-red-800 text-xs font-medium">
+                  Margin below minimum threshold
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Visual Progress Bar */}

@@ -26,6 +26,8 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
   const [projectType, setProjectType] = useState<ProjectType>('construction_project');
   const [jobType, setJobType] = useState("");
   const [projectNumber, setProjectNumber] = useState("");
+  const [minimumMarginThreshold, setMinimumMarginThreshold] = useState(10.0);
+  const [targetMargin, setTargetMargin] = useState(20.0);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -57,6 +59,8 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
           job_type: jobType.trim() || null,
           project_number: projectNumber,
           status: 'estimating' as const,
+          minimum_margin_threshold: minimumMarginThreshold,
+          target_margin: targetMargin,
         })
         .select()
         .single();
@@ -207,6 +211,48 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
               placeholder="e.g., Residential, Commercial, Renovation"
             />
           </div>
+
+          {/* Margin Thresholds */}
+          <Card className="bg-muted/20">
+            <CardContent className="p-4 space-y-4">
+              <div>
+                <Label className="text-sm font-semibold">Margin Thresholds</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Set profit margin targets and minimum acceptable levels for this project
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="minimumMargin">Minimum Margin (%)</Label>
+                  <Input
+                    id="minimumMargin"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={minimumMarginThreshold}
+                    onChange={(e) => setMinimumMarginThreshold(parseFloat(e.target.value) || 10.0)}
+                    placeholder="10.0"
+                  />
+                  <p className="text-xs text-muted-foreground">Alert threshold for low margins</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="targetMargin">Target Margin (%)</Label>
+                  <Input
+                    id="targetMargin"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={targetMargin}
+                    onChange={(e) => setTargetMargin(parseFloat(e.target.value) || 20.0)}
+                    placeholder="20.0"
+                  />
+                  <p className="text-xs text-muted-foreground">Target profit percentage</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Next Steps Info */}
           <Card className="bg-muted/50">
