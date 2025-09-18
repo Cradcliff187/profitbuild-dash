@@ -37,7 +37,7 @@ export default function Auth() {
   // Redirect authenticated users to dashboard
   useEffect(() => {
     if (user) {
-      navigate('/dashboard');
+      navigate('/');
     }
   }, [user, navigate]);
 

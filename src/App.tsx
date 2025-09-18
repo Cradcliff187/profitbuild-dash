@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
@@ -36,6 +36,7 @@ const App = () => (
                   <main className="container mx-auto px-4 py-8">
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
+                      <Route path="/dashboard" element={<Navigate to="/" replace />} />
                       <Route path="/work-orders" element={<WorkOrders />} />
                       <Route path="/projects" element={<Projects />} />
                       <Route path="/estimates" element={<Estimates />} />
