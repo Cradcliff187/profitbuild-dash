@@ -317,27 +317,45 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             <FormField
               control={form.control}
               name="includes_contingency"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Use Project Contingency</FormLabel>
-                    <p className="text-sm text-muted-foreground">
-                      This change order will be funded from project contingency
-                      {contingencyRemaining > 0 && (
-                        <span className="block">
-                          Remaining contingency: ${contingencyRemaining.toFixed(2)}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const costImpactValue = form.watch("cost_impact") || 0;
+                const usesContingency = field.value;
+                const contingencyAfterUse = contingencyRemaining - (usesContingency ? costImpactValue : 0);
+                const showContingencyWarning = usesContingency && costImpactValue > contingencyRemaining;
+                
+                return (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Use Contingency</FormLabel>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>This change order will be funded from project contingency</p>
+                        {contingencyRemaining > 0 && (
+                          <div className="space-y-1">
+                            <p>Remaining contingency: ${contingencyRemaining.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                            {usesContingency && costImpactValue > 0 && (
+                              <p className={`${showContingencyWarning ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                                After this change: ${Math.max(contingencyAfterUse, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                {showContingencyWarning && " (Exceeds available contingency!)"}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {usesContingency && (
+                          <p className="text-blue-600 text-xs">
+                            ℹ️ This cost won't directly impact project margin as it uses allocated contingency
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </FormItem>
+                );
+              }}
             />
 
 

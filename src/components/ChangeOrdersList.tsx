@@ -155,10 +155,12 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
     }
   };
 
-  // Calculate total of approved changes
-  const approvedTotal = filteredChangeOrders
-    .filter(co => co.status === 'approved')
-    .reduce((sum, co) => sum + (Number(co.amount) || 0), 0);
+  // Calculate totals for approved changes
+  const approvedChangeOrders = filteredChangeOrders.filter(co => co.status === 'approved');
+  const totalClientAmount = approvedChangeOrders.reduce((sum, co) => sum + (co.client_amount || 0), 0);
+  const totalCostImpact = approvedChangeOrders.reduce((sum, co) => sum + (co.cost_impact || 0), 0);
+  const totalMarginImpact = approvedChangeOrders.reduce((sum, co) => sum + (co.margin_impact || 0), 0);
+  const overallMarginPercentage = totalClientAmount > 0 ? (totalMarginImpact / totalClientAmount) * 100 : 0;
 
   if (loading) {
     return (
@@ -248,12 +250,19 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                         }
                       </TableCell>
                       <TableCell>
-                        {changeOrder.margin_impact !== null && changeOrder.margin_impact !== undefined ? (
-                          <span className={`font-medium ${
-                            changeOrder.margin_impact >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            ${changeOrder.margin_impact.toFixed(2)}
-                          </span>
+                        {changeOrder.margin_impact !== null && changeOrder.margin_impact !== undefined && changeOrder.client_amount ? (
+                          <div className="space-y-1">
+                            <span className={`font-medium ${
+                              changeOrder.margin_impact >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              ${changeOrder.margin_impact.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            </span>
+                            <div className={`text-xs ${
+                              changeOrder.margin_impact >= 0 ? 'text-green-500' : 'text-red-500'
+                            }`}>
+                              {((changeOrder.margin_impact / changeOrder.client_amount) * 100).toFixed(1)}%
+                            </div>
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
@@ -290,7 +299,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Approve Change Order</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Are you sure you want to approve change order {changeOrder.change_order_number} for ${Number(changeOrder.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}?
+                                      Are you sure you want to approve change order {changeOrder.change_order_number} for ${(changeOrder.client_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}?
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
@@ -364,59 +373,54 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
             </div>
           )}
 
-          {/* Profit Tracking Summary */}
+          {/* Enhanced Change Orders Summary */}
           {filteredChangeOrders.length > 0 && (
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-medium mb-3">Change Orders Summary</h4>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Total Client Amount</p>
-                  <p className="font-medium text-green-600">
-                    ${filteredChangeOrders
-                      .filter(co => co.status === 'approved')
-                      .reduce((sum, co) => sum + (co.client_amount || 0), 0)
-                      .toFixed(2)}
-                  </p>
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-lg">Change Orders Profit Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">Total Client Amount</p>
+                    <p className="text-xl font-bold text-green-600">
+                      ${totalClientAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Approved change orders</p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">Total Cost Impact</p>
+                    <p className="text-xl font-bold text-orange-600">
+                      ${totalCostImpact.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Our costs</p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">Net Profit Impact</p>
+                    <p className={`text-xl font-bold ${totalMarginImpact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      ${totalMarginImpact.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </p>
+                    <p className={`text-sm font-medium ${
+                      overallMarginPercentage >= 20 ? 'text-green-600' : 
+                      overallMarginPercentage >= 10 ? 'text-green-500' : 
+                      overallMarginPercentage >= 0 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {overallMarginPercentage.toFixed(1)}% margin
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Total Cost Impact</p>
-                  <p className="font-medium text-orange-600">
-                    ${filteredChangeOrders
-                      .filter(co => co.status === 'approved')
-                      .reduce((sum, co) => sum + (co.cost_impact || 0), 0)
-                      .toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Net Margin Impact</p>
-                  <p className={`font-medium ${
-                    filteredChangeOrders
-                      .filter(co => co.status === 'approved')
-                      .reduce((sum, co) => sum + (co.margin_impact || 0), 0) >= 0 
-                      ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    ${filteredChangeOrders
-                      .filter(co => co.status === 'approved')
-                      .reduce((sum, co) => sum + (co.margin_impact || 0), 0)
-                      .toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Legacy Amount Total</p>
-                  <p className="font-medium">
-                    ${approvedTotal.toFixed(2)}
-                  </p>
-                </div>
-              </div>
-              <div className="text-sm text-muted-foreground mt-3">
-                {filteredChangeOrders.filter(co => co.status === 'approved').length} of {filteredChangeOrders.length} change orders approved
-                {filteredChangeOrders.filter(co => co.includes_contingency && co.status === 'approved').length > 0 && (
-                  <span className="ml-2">
-                    • {filteredChangeOrders.filter(co => co.includes_contingency && co.status === 'approved').length} using contingency
+                <div className="flex justify-between items-center text-sm text-muted-foreground pt-4 border-t">
+                  <span>
+                    {approvedChangeOrders.length} of {filteredChangeOrders.length} change orders approved
                   </span>
-                )}
-              </div>
-            </div>
+                  {approvedChangeOrders.filter(co => co.includes_contingency).length > 0 && (
+                    <span className="text-blue-600">
+                      {approvedChangeOrders.filter(co => co.includes_contingency).length} using contingency
+                    </span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           )}
         </CardContent>
       </Card>
