@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Save, ArrowRight } from "lucide-react";
+import { Building2, Save, ArrowRight, User, Building, Mail, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Project, ProjectType, CreateProjectRequest, generateProjectNumber } from "@/types/project";
+import { Client } from "@/types/client";
+import { ClientSelector } from "@/components/ClientSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,7 +23,8 @@ interface ProjectFormProps {
 export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinueToExpenses }: ProjectFormProps) => {
   const { toast } = useToast();
   const [projectName, setProjectName] = useState("");
-  const [clientName, setClientName] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [selectedClientData, setSelectedClientData] = useState<Client | null>(null);
   const [address, setAddress] = useState("");
   const [projectType, setProjectType] = useState<ProjectType>('construction_project');
   const [jobType, setJobType] = useState("");
@@ -35,11 +38,35 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
     setProjectNumber(generateProjectNumber());
   }, []);
 
+  const fetchClientData = async (clientId: string) => {
+    try {
+      const { data: client, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', clientId)
+        .maybeSingle();
+
+      if (error) throw error;
+      setSelectedClientData(client as Client);
+    } catch (error) {
+      console.error('Error fetching client data:', error);
+    }
+  };
+
+  const handleClientChange = (clientId: string, clientName?: string) => {
+    setSelectedClientId(clientId);
+    if (clientId) {
+      fetchClientData(clientId);
+    } else {
+      setSelectedClientData(null);
+    }
+  };
+
   const handleSave = async () => {
-    if (!projectName.trim() || !clientName.trim()) {
+    if (!projectName.trim() || !selectedClientId) {
       toast({
         title: "Missing Information",
-        description: "Please fill in project name and client name.",
+        description: "Please fill in project name and select a client.",
         variant: "destructive"
       });
       return;
@@ -53,7 +80,8 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
         .from('projects')
         .insert({
           project_name: projectName.trim(),
-          client_name: clientName.trim(),
+          client_id: selectedClientId,
+          client_name: selectedClientData?.client_name || '',
           address: address.trim() || null,
           project_type: projectType,
           job_type: jobType.trim() || null,
@@ -155,15 +183,67 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="clientName">Client Name *</Label>
-              <Input
-                id="clientName"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Enter client name"
+              <Label>Client *</Label>
+              <ClientSelector
+                value={selectedClientId}
+                onValueChange={handleClientChange}
+                placeholder="Select a client"
+                required={true}
               />
             </div>
           </div>
+
+          {/* Client Details */}
+          {selectedClientData && (
+            <Card className="bg-muted/30">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <User className="h-4 w-4 text-primary" />
+                  <Label className="text-sm font-semibold">Selected Client Details</Label>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <User className="h-3 w-3 text-muted-foreground" />
+                      <span className="font-medium">{selectedClientData.client_name}</span>
+                    </div>
+                    {selectedClientData.company_name && (
+                      <div className="flex items-center gap-2">
+                        <Building className="h-3 w-3 text-muted-foreground" />
+                        <span>{selectedClientData.company_name}</span>
+                      </div>
+                    )}
+                    {selectedClientData.contact_person && (
+                      <div className="flex items-center gap-2">
+                        <User className="h-3 w-3 text-muted-foreground" />
+                        <span>Contact: {selectedClientData.contact_person}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {selectedClientData.email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-3 w-3 text-muted-foreground" />
+                        <span>{selectedClientData.email}</span>
+                      </div>
+                    )}
+                    {selectedClientData.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-3 w-3 text-muted-foreground" />
+                        <span>{selectedClientData.phone}</span>
+                      </div>
+                    )}
+                    {selectedClientData.billing_address && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs">{selectedClientData.billing_address}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Address */}
           <div className="space-y-2">
