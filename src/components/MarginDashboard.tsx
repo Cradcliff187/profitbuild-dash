@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { FileText, CheckCircle, DollarSign, Percent } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -86,29 +87,37 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
 
   if (loading) {
     return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Project Margin</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
-          <Skeleton className="h-4 w-2/3" />
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-24 mb-1" />
+                <Skeleton className="h-3 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
     );
   }
 
   if (!project || !marginData) {
     return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Project Margin</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">No project data available.</p>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Project Margin</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">No project data available.</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -131,23 +140,61 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Project Margin</CardTitle>
-        <div className="text-sm text-muted-foreground">
-          {project.project_name} ({project.project_number})
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-sm font-medium text-muted-foreground">Current Margin</div>
+    <div className="space-y-6">
+      {/* Contract Display Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Contract Amount Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Contract Amount</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
             <div className="text-2xl font-bold">
+              {formatCurrency(marginData.contracted_amount)}
+            </div>
+            <p className="text-xs text-muted-foreground">Total project value</p>
+          </CardContent>
+        </Card>
+
+        {/* Total Accepted Quotes Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Accepted Quotes</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(marginData.total_accepted_quotes || 0)}
+            </div>
+            <p className="text-xs text-muted-foreground">Approved vendor costs</p>
+          </CardContent>
+        </Card>
+
+        {/* Current Margin Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Current Margin</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div 
+              className="text-2xl font-bold"
+              style={{ color: statusColor }}
+            >
               {formatCurrency(marginData.current_margin)}
             </div>
-          </div>
-          <div>
-            <div className="text-sm font-medium text-muted-foreground">Margin %</div>
+            <p className="text-xs text-muted-foreground">Profit after costs</p>
+          </CardContent>
+        </Card>
+
+        {/* Margin Percentage Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Margin Percentage</CardTitle>
+            <Percent className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
             <div className="flex items-center gap-2">
               <div className="text-2xl font-bold">
                 {marginData.margin_percentage.toFixed(1)}%
@@ -159,24 +206,36 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
                 {statusLabel}
               </Badge>
             </div>
+            <p className="text-xs text-muted-foreground">Profit margin %</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Project Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Project Details</CardTitle>
+          <div className="text-sm text-muted-foreground">
+            {project.project_name} ({project.project_number})
           </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-          <div>
-            <div className="text-sm font-medium text-muted-foreground">Contract Amount</div>
-            <div className="text-lg font-semibold">
-              {formatCurrency(marginData.contracted_amount)}
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-sm font-medium text-muted-foreground">Contingency Remaining</div>
+              <div className="text-lg font-semibold">
+                {formatContingencyRemaining(marginData.contingency_remaining)}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-medium text-muted-foreground">Project Status</div>
+              <div className="text-lg font-semibold capitalize">
+                {project.status.replace('_', ' ')}
+              </div>
             </div>
           </div>
-          <div>
-            <div className="text-sm font-medium text-muted-foreground">Contingency Remaining</div>
-            <div className="text-lg font-semibold">
-              {formatContingencyRemaining(marginData.contingency_remaining)}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
