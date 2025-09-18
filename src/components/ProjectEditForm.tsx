@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Save } from "lucide-react";
+import { Building2, Save, Mail, Phone, MapPin, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Project, ProjectType, ProjectStatus } from "@/types/project";
+import { Client } from "@/types/client";
+import { ClientSelector } from "@/components/ClientSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,7 +28,8 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
   const { toast } = useToast();
   
   const [projectName, setProjectName] = useState(project.project_name);
-  const [clientName, setClientName] = useState(project.client_name);
+  const [selectedClientId, setSelectedClientId] = useState<string | undefined>(undefined);
+  const [selectedClientData, setSelectedClientData] = useState<Client | null>(null);
   const [address, setAddress] = useState(project.address || "");
   const [projectType, setProjectType] = useState<ProjectType>(project.project_type);
   const [status, setStatus] = useState<ProjectStatus>(project.status);
@@ -34,6 +37,56 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
   const [startDate, setStartDate] = useState<Date | undefined>(project.start_date);
   const [endDate, setEndDate] = useState<Date | undefined>(project.end_date);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch client data when component loads or client changes
+  const fetchClientData = async (clientId: string) => {
+    try {
+      const { data: client, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', clientId)
+        .maybeSingle();
+
+      if (error) throw error;
+      setSelectedClientData(client as Client);
+    } catch (error) {
+      console.error('Error fetching client data:', error);
+      setSelectedClientData(null);
+    }
+  };
+
+  // Load initial client data based on client_name (legacy support)
+  useEffect(() => {
+    const loadInitialClient = async () => {
+      if (project.client_name) {
+        try {
+          const { data: client, error } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('client_name', project.client_name)
+            .maybeSingle();
+
+          if (error) throw error;
+          if (client) {
+            setSelectedClientId(client.id);
+            setSelectedClientData(client as Client);
+          }
+        } catch (error) {
+          console.error('Error loading initial client:', error);
+        }
+      }
+    };
+    loadInitialClient();
+  }, [project.client_name]);
+
+  const handleClientChange = (clientId: string, clientName?: string) => {
+    setSelectedClientId(clientId);
+    if (clientId) {
+      fetchClientData(clientId);
+    } else {
+      setSelectedClientData(null);
+    }
+  };
 
   const validateForm = () => {
     if (!projectName.trim()) {
@@ -45,10 +98,10 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
       return false;
     }
 
-    if (!clientName.trim()) {
+    if (!selectedClientId) {
       toast({
         title: "Missing Information",
-        description: "Client name is required.",
+        description: "Client selection is required.",
         variant: "destructive"
       });
       return false;
@@ -63,11 +116,13 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
     setIsLoading(true);
     
     try {
+      const clientName = selectedClientData?.client_name || project.client_name;
+      
       const { data: updatedProject, error } = await supabase
         .from('projects')
         .update({
           project_name: projectName.trim(),
-          client_name: clientName.trim(),
+          client_name: clientName,
           address: address.trim() || null,
           project_type: projectType,
           status: status as any, // Cast to any to avoid Supabase type conflicts
@@ -140,15 +195,69 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="clientName">Client Name *</Label>
-              <Input
-                id="clientName"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Enter client name"
+              <Label>Client *</Label>
+              <ClientSelector
+                value={selectedClientId}
+                onValueChange={handleClientChange}
+                placeholder="Select a client"
+                required
               />
             </div>
           </div>
+
+          {/* Client Details Card */}
+          {selectedClientData && (
+            <Card className="border-muted">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Building className="h-4 w-4" />
+                  Client Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-2">
+                    <div>
+                      <span className="font-medium text-muted-foreground">Client:</span>
+                      <p className="font-medium">{selectedClientData.client_name}</p>
+                    </div>
+                    {selectedClientData.company_name && (
+                      <div>
+                        <span className="font-medium text-muted-foreground">Company:</span>
+                        <p>{selectedClientData.company_name}</p>
+                      </div>
+                    )}
+                    {selectedClientData.contact_person && (
+                      <div>
+                        <span className="font-medium text-muted-foreground">Contact:</span>
+                        <p>{selectedClientData.contact_person}</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {selectedClientData.email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm">{selectedClientData.email}</span>
+                      </div>
+                    )}
+                    {selectedClientData.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm">{selectedClientData.phone}</span>
+                      </div>
+                    )}
+                    {selectedClientData.billing_address && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-3 w-3 text-muted-foreground mt-0.5" />
+                        <span className="text-sm">{selectedClientData.billing_address}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Address */}
           <div className="space-y-2">
