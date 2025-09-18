@@ -14,6 +14,7 @@ import { ProjectSelector } from "./ProjectSelector";
 import { PayeeSelector } from "./PayeeSelector";
 import { LineItemRow } from "./LineItemRow";
 import { PdfUpload } from "./PdfUpload";
+import { QuoteStatusBadge } from "./QuoteStatusBadge";
 import { Estimate, LineItem, LineItemCategory } from "@/types/estimate";
 import { Quote, QuoteLineItem, QuoteStatus } from "@/types/quote";
 import { Payee } from "@/types/payee";
@@ -102,6 +103,29 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       setLineItems(quoteLineItems);
     }
   }, [selectedEstimate, initialQuote]);
+
+  // Set default validUntil to 30 days from dateReceived for new quotes
+  useEffect(() => {
+    if (!initialQuote) {
+      const defaultValidUntil = new Date(dateReceived);
+      defaultValidUntil.setDate(defaultValidUntil.getDate() + 30);
+      setValidUntil(defaultValidUntil);
+    }
+  }, [dateReceived, initialQuote]);
+
+  const getDaysRemaining = (validUntil: Date | undefined) => {
+    if (!validUntil) return null;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = new Date(validUntil);
+    expiry.setHours(0, 0, 0, 0);
+    
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  };
 
   useEffect(() => {
     // Calculate totals whenever line items change
@@ -236,7 +260,10 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{initialQuote ? 'Edit Quote' : 'Create New Quote'}</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>{initialQuote ? 'Edit Quote' : 'Create New Quote'}</CardTitle>
+            {initialQuote && <QuoteStatusBadge status={status} />}
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Project Selection */}
@@ -318,7 +345,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
             </div>
 
             <div className="space-y-2">
-              <Label>Valid Until (Optional)</Label>
+              <Label>Quote Valid Until</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -329,7 +356,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {validUntil ? format(validUntil, "PPP") : <span>No expiration</span>}
+                    {validUntil ? format(validUntil, "PPP") : <span>Set expiration date</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -342,6 +369,28 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                   />
                 </PopoverContent>
               </Popover>
+              
+              {validUntil && (
+                <div className="text-sm text-muted-foreground">
+                  {getDaysRemaining(validUntil) !== null && (
+                    <span className={cn(
+                      "inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium",
+                      getDaysRemaining(validUntil)! > 7 
+                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" 
+                        : getDaysRemaining(validUntil)! > 0 
+                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" 
+                          : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                    )}>
+                      {getDaysRemaining(validUntil)! > 0 
+                        ? `${getDaysRemaining(validUntil)} days remaining`
+                        : getDaysRemaining(validUntil)! === 0
+                          ? "Expires today"
+                          : `Expired ${Math.abs(getDaysRemaining(validUntil)!)} days ago`
+                      }
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
