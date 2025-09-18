@@ -13,17 +13,7 @@ export const markPayeeAsSynced = async (payeeId: string) => {
   return { error };
 };
 
-export const markVendorAsSynced = async (vendorId: string) => {
-  const { error } = await supabase
-    .from('payees')
-    .update({
-      sync_status: 'success',
-      last_synced_at: new Date().toISOString()
-    })
-    .eq('id', vendorId);
-  
-  return { error };
-};
+// Removed duplicate markVendorAsSynced - use markPayeeAsSynced instead
 
 export const markProjectAsSynced = async (projectId: string) => {
   const { error } = await supabase
@@ -49,17 +39,7 @@ export const resetPayeeSyncStatus = async (payeeId: string) => {
   return { error };
 };
 
-export const resetVendorSyncStatus = async (vendorId: string) => {
-  const { error } = await supabase
-    .from('payees')
-    .update({
-      sync_status: null,
-      last_synced_at: null
-    })
-    .eq('id', vendorId);
-  
-  return { error };
-};
+// Removed duplicate resetVendorSyncStatus - use resetPayeeSyncStatus instead
 
 export const resetProjectSyncStatus = async (projectId: string) => {
   const { error } = await supabase

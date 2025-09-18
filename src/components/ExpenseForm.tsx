@@ -97,7 +97,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         console.error('Error loading data:', error);
         toast({
           title: "Error",
-          description: "Failed to load projects and vendors.",
+          description: "Failed to load projects and payees.",
           variant: "destructive",
         });
       }
@@ -343,7 +343,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                 name="payee_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Vendor</FormLabel>
+                    <FormLabel>Payee</FormLabel>
                     <Popover open={payeeOpen} onOpenChange={setPayeeOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -361,9 +361,9 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                       </PopoverTrigger>
                       <PopoverContent className="w-full p-0">
                         <Command>
-                          <CommandInput placeholder="Search vendors..." />
+                          <CommandInput placeholder="Search payees..." />
                           <CommandList>
-                            <CommandEmpty>No vendor found.</CommandEmpty>
+                            <CommandEmpty>No payee found.</CommandEmpty>
                             <CommandGroup>
                               <CommandItem
                                 value=""

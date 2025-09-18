@@ -215,6 +215,4 @@ export const batchFuzzyMatchPayees = (qbNames: string[], payees: PartialPayee[])
   return qbNames.map(qbName => fuzzyMatchPayee(qbName, payees));
 };
 
-// Legacy function names for backward compatibility
-export const fuzzyMatchVendor = fuzzyMatchPayee;
-export const batchFuzzyMatchVendors = batchFuzzyMatchPayees;
+// Removed legacy vendor aliases - use payee functions instead

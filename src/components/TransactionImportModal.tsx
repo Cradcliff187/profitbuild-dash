@@ -192,7 +192,7 @@ export const TransactionImportModal: React.FC<TransactionImportModalProps> = ({
         <FileDown className="h-12 w-12 text-primary mx-auto mb-4" />
         <h3 className="text-lg font-medium mb-2">Processing Transactions</h3>
         <p className="text-sm text-muted-foreground">
-          Parsing QuickBooks format and matching projects and vendors...
+          Parsing QuickBooks format and matching projects and payees...
         </p>
       </div>
       
@@ -201,7 +201,7 @@ export const TransactionImportModal: React.FC<TransactionImportModalProps> = ({
       <div className="text-center text-sm text-muted-foreground">
         {progress < 40 && "Parsing CSV file..."}
         {progress >= 40 && progress < 60 && "Validating data..."}
-        {progress >= 60 && progress < 80 && "Matching projects and vendors..."}
+        {progress >= 60 && progress < 80 && "Matching projects and payees..."}
         {progress >= 80 && "Saving to database..."}
       </div>
     </div>
@@ -264,7 +264,7 @@ export const TransactionImportModal: React.FC<TransactionImportModalProps> = ({
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
-              Vendor Matches Found ({importResult.fuzzyMatches.length})
+              Payee Matches Found ({importResult.fuzzyMatches.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -296,7 +296,7 @@ export const TransactionImportModal: React.FC<TransactionImportModalProps> = ({
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Potential Vendor Matches:</strong>
+            <strong>Potential Payee Matches:</strong>
             <div className="mt-2 space-y-2">
               {importResult.lowConfidenceMatches.map((item, index) => (
                 <div key={index} className="text-sm">
@@ -315,19 +315,19 @@ export const TransactionImportModal: React.FC<TransactionImportModalProps> = ({
               ))}
             </div>
             <p className="mt-2 text-xs">
-              Review these potential matches and update your vendor records as needed.
+              Review these potential matches and update your payee records as needed.
             </p>
           </AlertDescription>
         </Alert>
       )}
 
-      {importResult && importResult.unmatchedVendors.length > 0 && (
+      {importResult && importResult.unmatchedPayees.length > 0 && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>New Vendors Found:</strong> {importResult.unmatchedVendors.join(', ')}
+            <strong>New Payees Found:</strong> {importResult.unmatchedPayees.join(', ')}
             <br />
-            These vendors were not found in your system. Consider adding them to your vendor list.
+            These payees were not found in your system. Consider adding them to your payee list.
           </AlertDescription>
         </Alert>
       )}

@@ -166,7 +166,7 @@ export interface QBImportResult {
   failed: number;
   expenses: Expense[];
   unmatchedProjects: string[];
-  unmatchedVendors: string[];
+  unmatchedPayees: string[];
   fuzzyMatches: PayeeMatchInfo[];
   lowConfidenceMatches: Array<{
     qbName: string;
@@ -252,21 +252,21 @@ export const mapQuickBooksToExpenses = async (
     failed: 0,
     expenses: [],
     unmatchedProjects: [],
-    unmatchedVendors: [],
+    unmatchedPayees: [],
     fuzzyMatches: [],
     lowConfidenceMatches: [],
     errors: []
   };
 
   try {
-    // Load projects and vendors for matching
-    const [projectsResponse, vendorsResponse] = await Promise.all([
+    // Load projects and payees for matching
+    const [projectsResponse, payeesResponse] = await Promise.all([
       supabase.from('projects').select('id, project_number, project_name'),
       supabase.from('payees').select('id, vendor_name, full_name')
     ]);
 
     const projects = projectsResponse.data || [];
-    const payees = vendorsResponse.data || [];
+    const payees = payeesResponse.data || [];
 
     // Find a default project for unmatched transactions
     let defaultProject = projects.find(p => p.project_name.toLowerCase().includes('misc') || p.project_name.toLowerCase().includes('general'));
@@ -342,8 +342,8 @@ export const mapQuickBooksToExpenses = async (
             }
           } else {
             // No matches found
-            if (!result.unmatchedVendors.includes(transaction.name)) {
-              result.unmatchedVendors.push(transaction.name);
+            if (!result.unmatchedPayees.includes(transaction.name)) {
+              result.unmatchedPayees.push(transaction.name);
             }
           }
         }
