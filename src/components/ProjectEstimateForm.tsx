@@ -140,14 +140,14 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
         category: item.category,
         description: item.description.trim(),
         quantity: item.quantity,
-        rate: item.rate,
-        total: item.quantity * item.rate,
+        price_per_unit: item.pricePerUnit,
+        total: item.quantity * item.pricePerUnit,
         unit: item.unit || undefined,
         sort_order: index,
         // Cost & Pricing fields
-        cost_per_unit: item.cost_per_unit || 0,
-        markup_percent: item.markup_percent,
-        markup_amount: item.markup_amount
+        cost_per_unit: item.costPerUnit || 0,
+        markup_percent: item.markupPercent,
+        markup_amount: item.markupAmount
       }));
 
       const { error: lineItemsError } = await supabase
@@ -160,6 +160,8 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
         id: estimateData.id,
         project_id: estimateData.project_id,
         estimate_number: estimateData.estimate_number,
+        defaultMarkupPercent: 15,
+        targetMarginPercent: 20,
         date_created: new Date(estimateData.date_created),
         total_amount: estimateData.total_amount,
         status: estimateData.status as any,

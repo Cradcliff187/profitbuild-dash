@@ -57,7 +57,9 @@ export const EstimateVersionManager = ({ estimate, onVersionCreated }: EstimateV
         created_at: new Date(est.created_at),
         updated_at: new Date(est.updated_at),
         project_name: est.projects?.project_name,
-        client_name: est.projects?.client_name
+        client_name: est.projects?.client_name,
+        defaultMarkupPercent: 15,
+        targetMarginPercent: 20
       }));
 
       setVersions(formattedVersions);
@@ -103,6 +105,8 @@ export const EstimateVersionManager = ({ estimate, onVersionCreated }: EstimateV
             estimate_number: newVersionData.estimate_number,
             date_created: new Date(newVersionData.date_created),
             total_amount: newVersionData.total_amount,
+            defaultMarkupPercent: 15,
+            targetMarginPercent: 20,
             status: newVersionData.status,
             notes: newVersionData.notes,
             valid_until: newVersionData.valid_until ? new Date(newVersionData.valid_until) : undefined,

@@ -72,7 +72,7 @@ const Quotes = () => {
           category: item.category,
           description: item.description,
           quantity: item.quantity,
-          rate: item.rate,
+          pricePerUnit: item.rate,
           total: item.total
         })) || [],
         subtotals: {
@@ -111,7 +111,9 @@ const Quotes = () => {
         created_at: new Date(estimate.created_at),
         updated_at: new Date(estimate.updated_at),
         createdAt: new Date(estimate.created_at),
-        lineItems: []
+        lineItems: [],
+        defaultMarkupPercent: 15,
+        targetMarginPercent: 20
       }));
 
       setQuotes(transformedQuotes);
@@ -168,7 +170,7 @@ const Quotes = () => {
               category: item.category,
               description: item.description,
               quantity: item.quantity,
-              rate: item.rate,
+              rate: item.pricePerUnit,
               total: item.total,
               sort_order: 0
             })));
@@ -211,7 +213,7 @@ const Quotes = () => {
               category: item.category,
               description: item.description,
               quantity: item.quantity,
-              rate: item.rate,
+              rate: item.pricePerUnit,
               total: item.total,
               sort_order: 0
             })));

@@ -108,7 +108,9 @@ const Projects = () => {
         updated_at: new Date(estimate.updated_at),
         project_name: formattedProjects.find(p => p.id === estimate.project_id)?.project_name,
         client_name: formattedProjects.find(p => p.id === estimate.project_id)?.client_name,
-        lineItems: [] // Add empty array for required property
+        lineItems: [], // Add empty array for required property
+        defaultMarkupPercent: 15,
+        targetMarginPercent: 20
       })) || [];
 
       const formattedQuotes = quotesRes.data?.map((quote: any) => ({

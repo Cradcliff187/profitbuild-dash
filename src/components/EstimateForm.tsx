@@ -171,7 +171,11 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         if (!acc[estimate.project_id]) {
           acc[estimate.project_id] = [];
         }
-        acc[estimate.project_id].push(estimate);
+        acc[estimate.project_id].push({
+          ...estimate,
+          defaultMarkupPercent: 15,
+          targetMarginPercent: 20
+        });
         return acc;
       }, {} as {[key: string]: Estimate[]});
 
@@ -212,7 +216,9 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         valid_until: e.valid_until ? new Date(e.valid_until) : undefined,
         created_at: new Date(e.created_at),
         updated_at: new Date(e.updated_at),
-        lineItems: []
+        lineItems: [],
+        defaultMarkupPercent: 15,
+        targetMarginPercent: 20
       })) || [];
 
       setEstimateVersions(versions);
@@ -252,7 +258,16 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         total_markup: item.total_markup || 0
       })) || [];
 
-      setLineItems(copiedItems as LineItem[]);
+      const transformedItems = copiedItems.map(item => ({
+        ...item,
+        pricePerUnit: item.rate || 0,
+        costPerUnit: item.cost_per_unit || 0,
+        markupPercent: item.markup_percent,
+        markupAmount: item.markup_amount,
+        totalCost: item.total_cost || 0,
+        totalMarkup: item.total_markup || 0
+      }));
+      setLineItems(transformedItems as LineItem[]);
       setSelectedCopyEstimate("");
       
       toast({
@@ -578,14 +593,14 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         category: item.category,
         description: item.description.trim(),
         quantity: item.quantity,
-        rate: item.rate,
-        total: item.quantity * item.rate,
+        price_per_unit: item.pricePerUnit,
+        total: item.quantity * item.pricePerUnit,
         unit: item.unit || undefined,
         sort_order: index,
         // Cost & Pricing fields
-        cost_per_unit: item.cost_per_unit || 0,
-        markup_percent: item.markup_percent,
-        markup_amount: item.markup_amount
+        cost_per_unit: item.costPerUnit || 0,
+        markup_percent: item.markupPercent,
+        markup_amount: item.markupAmount
       }));
 
       const { error: lineItemsError } = await supabase
@@ -598,6 +613,8 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         id: estimateData.id,
         project_id: estimateData.project_id,
         estimate_number: estimateData.estimate_number,
+        defaultMarkupPercent: 15,
+        targetMarginPercent: 20,
         date_created: new Date(estimateData.date_created),
         total_amount: estimateData.total_amount,
         status: estimateData.status as any,

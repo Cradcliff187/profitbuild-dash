@@ -77,7 +77,9 @@ const Estimates = () => {
         updated_at: new Date(est.updated_at),
         project_name: est.projects?.project_name,
         client_name: est.projects?.client_name,
-        quotes: quotesByEstimate[est.id] || []
+        quotes: quotesByEstimate[est.id] || [],
+        defaultMarkupPercent: 15,
+        targetMarginPercent: 20
       })) || [];
 
       setEstimates(formattedEstimates);

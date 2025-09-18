@@ -67,7 +67,9 @@ export default function ProfitAnalysisPage() {
         created_at: new Date(estimate.created_at),
         updated_at: new Date(estimate.updated_at),
         createdAt: new Date(estimate.created_at),
-        lineItems: []
+        lineItems: [],
+        defaultMarkupPercent: 15,
+        targetMarginPercent: 20
       }));
 
       // Transform quotes
@@ -94,7 +96,7 @@ export default function ProfitAnalysisPage() {
           category: item.category,
           description: item.description,
           quantity: item.quantity,
-          rate: item.rate,
+          pricePerUnit: item.rate,
           total: item.total
         })) || [],
         subtotals: {
