@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CalendarIcon, Search } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { PayeeSelector } from '@/components/PayeeSelector';
 import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from '@/types/expense';
 import { Project } from '@/types/project';
 import { Payee } from '@/types/payee';
@@ -43,8 +43,7 @@ interface ExpenseFormProps {
 
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCancel }) => {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [payees, setPayees] = useState<Payee[]>([]);
-  const [payeeOpen, setPayeeOpen] = useState(false);
+  const [selectedPayee, setSelectedPayee] = useState<Payee | null>(null);
   const [loading, setLoading] = useState(false);
   const [projectContingency, setProjectContingency] = useState<{
     available: number;
@@ -69,7 +68,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
     },
   });
 
-  // Load projects and payees
+  // Load projects
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -87,24 +86,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
           updated_at: new Date(project.updated_at),
         }));
         setProjects(transformedProjects);
-
-        // Load payees
-        const { data: payeesData, error: payeesError } = await supabase
-          .from('payees')
-          .select('*')
-          .eq('is_active', true)
-          .order('payee_name');
-
-        if (payeesError) {
-          console.error('Error loading payees:', payeesError);
-        } else {
-          setPayees(payeesData as Payee[] || []);
-        }
       } catch (error) {
         console.error('Error loading data:', error);
         toast({
           title: "Error",
-          description: "Failed to load projects and payees.",
+          description: "Failed to load projects.",
           variant: "destructive",
         });
       }
@@ -215,7 +201,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         expense_date: new Date(result.expense_date),
         created_at: new Date(result.created_at),
         updated_at: new Date(result.updated_at),
-        payee_name: result.payee_id ? payees.find(v => v.id === result.payee_id)?.payee_name : undefined,
+        payee_name: selectedPayee?.payee_name,
         project_name: projects.find(p => p.id === result.project_id)?.project_name,
       };
 
@@ -407,53 +393,17 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Payee</FormLabel>
-                    <Popover open={payeeOpen} onOpenChange={setPayeeOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className="justify-between"
-                          >
-                            {field.value
-                              ? payees.find(payee => payee.id === field.value)?.payee_name || "Select payee"
-                              : "Select payee"}
-                            <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
-                          <CommandInput placeholder="Search payees..." />
-                          <CommandList>
-                            <CommandEmpty>No payee found.</CommandEmpty>
-                            <CommandGroup>
-                              <CommandItem
-                                value=""
-                                onSelect={() => {
-                                  field.onChange("");
-                                  setPayeeOpen(false);
-                                }}
-                              >
-                                No payee
-                              </CommandItem>
-                              {payees.map((payee) => (
-                                <CommandItem
-                                  value={payee.payee_name}
-                                  key={payee.id}
-                                  onSelect={() => {
-                                    field.onChange(payee.id);
-                                    setPayeeOpen(false);
-                                  }}
-                                >
-                                  {payee.payee_name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    <FormControl>
+                      <PayeeSelector
+                        value={field.value || ''}
+                        onValueChange={(payeeId, payeeName, payee) => {
+                          field.onChange(payeeId);
+                          setSelectedPayee(payee || null);
+                        }}
+                        placeholder="Select payee"
+                        error={form.formState.errors.payee_id?.message}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
