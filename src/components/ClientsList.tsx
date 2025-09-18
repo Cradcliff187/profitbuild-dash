@@ -157,7 +157,10 @@ export const ClientsList = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Company</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Contact</TableHead>
+                  <TableHead>Contact Person</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Address</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -172,39 +175,16 @@ export const ClientsList = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{client.client_name}</div>
-                        {client.contact_person && (
-                          <div className="text-sm text-muted-foreground">{client.contact_person}</div>
-                        )}
-                      </div>
+                      <div className="font-medium">{client.client_name}</div>
                     </TableCell>
                     <TableCell>{client.company_name || "-"}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{getClientTypeLabel(client.client_type)}</Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {client.email && (
-                          <div className="flex items-center text-sm">
-                            <Mail className="h-3 w-3 mr-1" />
-                            {client.email}
-                          </div>
-                        )}
-                        {client.phone && (
-                          <div className="flex items-center text-sm">
-                            <Phone className="h-3 w-3 mr-1" />
-                            {client.phone}
-                          </div>
-                        )}
-                        {client.billing_address && (
-                          <div className="flex items-center text-sm">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {client.billing_address.split(',')[0]}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
+                    <TableCell>{client.contact_person || "-"}</TableCell>
+                    <TableCell>{client.email || "-"}</TableCell>
+                    <TableCell>{client.phone || "-"}</TableCell>
+                    <TableCell>{client.billing_address || "-"}</TableCell>
                     <TableCell>
                       <Badge variant={client.is_active ? "default" : "secondary"}>
                         {client.is_active ? "Active" : "Inactive"}
@@ -223,7 +203,7 @@ export const ClientsList = () => {
                 ))}
                 {filteredClients.length === 0 && !isLoading && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={10} className="text-center py-8">
                       No clients found
                     </TableCell>
                   </TableRow>

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, FileText, AlertCircle, CheckCircle, X, Mail, Phone, MapPin } from 'lucide-react';
+import { Upload, FileText, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -346,7 +346,10 @@ export const ClientImportModal: React.FC<ClientImportModalProps> = ({ open, onCl
                     <TableHead>Name</TableHead>
                     <TableHead>Company</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Contact</TableHead>
+                    <TableHead>Contact Person</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Address</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -354,12 +357,7 @@ export const ClientImportModal: React.FC<ClientImportModalProps> = ({ open, onCl
                   {previewClients.map((client, index) => (
                     <TableRow key={index}>
                       <TableCell>
-                        <div>
-                          <div className="font-medium">{client.client_name}</div>
-                          {client.contact_person && (
-                            <div className="text-sm text-muted-foreground">{client.contact_person}</div>
-                          )}
-                        </div>
+                        <div className="font-medium">{client.client_name}</div>
                       </TableCell>
                       <TableCell>{client.company_name || "-"}</TableCell>
                       <TableCell>
@@ -367,28 +365,10 @@ export const ClientImportModal: React.FC<ClientImportModalProps> = ({ open, onCl
                           {getClientTypeLabel(client.client_type)}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          {client.email && (
-                            <div className="flex items-center text-sm">
-                              <Mail className="h-3 w-3 mr-1" />
-                              {client.email}
-                            </div>
-                          )}
-                          {client.phone && (
-                            <div className="flex items-center text-sm">
-                              <Phone className="h-3 w-3 mr-1" />
-                              {client.phone}
-                            </div>
-                          )}
-                          {client.billing_address && (
-                            <div className="flex items-center text-sm">
-                              <MapPin className="h-3 w-3 mr-1" />
-                              {client.billing_address.split(',')[0]}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
+                      <TableCell>{client.contact_person || "-"}</TableCell>
+                      <TableCell>{client.email || "-"}</TableCell>
+                      <TableCell>{client.phone || "-"}</TableCell>
+                      <TableCell>{client.billing_address || "-"}</TableCell>
                       <TableCell>
                         <Badge variant="default">Active</Badge>
                       </TableCell>
