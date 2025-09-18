@@ -23,7 +23,7 @@ const categoryColors = {
 type MarkupType = 'percent' | 'amount';
 
 export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) => {
-  const markupType: MarkupType = lineItem.markup_percent !== null ? 'percent' : 'amount';
+  const markupType: MarkupType = lineItem.markupPercent !== null ? 'percent' : 'amount';
   
   const handleQuantityChange = (value: string) => {
     const quantity = parseFloat(value) || 0;
@@ -32,35 +32,35 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
 
   const handleCostChange = (value: string) => {
     const cost = parseFloat(value) || 0;
-    onUpdate(lineItem.id, 'cost_per_unit', cost);
+    onUpdate(lineItem.id, 'costPerUnit', cost);
   };
 
   const handleMarkupTypeChange = (type: MarkupType) => {
     if (type === 'percent') {
-      onUpdate(lineItem.id, 'markup_amount', null);
-      onUpdate(lineItem.id, 'markup_percent', 15); // Default 15%
+      onUpdate(lineItem.id, 'markupAmount', null);
+      onUpdate(lineItem.id, 'markupPercent', 15); // Default 15%
     } else {
-      onUpdate(lineItem.id, 'markup_percent', null);
-      onUpdate(lineItem.id, 'markup_amount', 0);
+      onUpdate(lineItem.id, 'markupPercent', null);
+      onUpdate(lineItem.id, 'markupAmount', 0);
     }
   };
 
   const handleMarkupValueChange = (value: string) => {
     const numValue = parseFloat(value) || 0;
     if (markupType === 'percent') {
-      onUpdate(lineItem.id, 'markup_percent', numValue);
+      onUpdate(lineItem.id, 'markupPercent', numValue);
     } else {
-      onUpdate(lineItem.id, 'markup_amount', numValue);
+      onUpdate(lineItem.id, 'markupAmount', numValue);
     }
   };
 
-  const handleRateChange = (value: string) => {
-    const rate = parseFloat(value) || 0;
-    onUpdate(lineItem.id, 'rate', rate);
+  const handlePriceChange = (value: string) => {
+    const price = parseFloat(value) || 0;
+    onUpdate(lineItem.id, 'pricePerUnit', price);
   };
 
-  const marginPercent = lineItem.price_per_unit > 0 
-    ? ((lineItem.price_per_unit - lineItem.cost_per_unit) / lineItem.price_per_unit * 100)
+  const marginPercent = lineItem.pricePerUnit > 0 
+    ? ((lineItem.pricePerUnit - lineItem.costPerUnit) / lineItem.pricePerUnit * 100)
     : 0;
 
   return (
@@ -105,14 +105,14 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
           <div className="space-y-1">
             <Input
               type="number"
-              placeholder="Rate"
-              value={lineItem.rate || ''}
-              onChange={(e) => handleRateChange(e.target.value)}
+              placeholder="Price per Unit"
+              value={lineItem.pricePerUnit || ''}
+              onChange={(e) => handlePriceChange(e.target.value)}
               min="0"
               step="0.01"
             />
             <div className="text-xs text-muted-foreground">
-              Price: ${(lineItem.price_per_unit || 0).toFixed(2)}
+              Price: ${(lineItem.pricePerUnit || 0).toFixed(2)}
             </div>
           </div>
         </div>
@@ -149,7 +149,7 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
             <Input
               type="number"
               placeholder="0.00"
-              value={lineItem.cost_per_unit || ''}
+              value={lineItem.costPerUnit || ''}
               onChange={(e) => handleCostChange(e.target.value)}
               min="0"
               step="0.01"
@@ -191,7 +191,7 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
             <Input
               type="number"
               placeholder={markupType === 'percent' ? '15.0' : '0.00'}
-              value={markupType === 'percent' ? (lineItem.markup_percent || '') : (lineItem.markup_amount || '')}
+              value={markupType === 'percent' ? (lineItem.markupPercent || '') : (lineItem.markupAmount || '')}
               onChange={(e) => handleMarkupValueChange(e.target.value)}
               min="0"
               step={markupType === 'percent' ? '0.1' : '0.01'}
@@ -203,11 +203,11 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div>
               <div className="text-muted-foreground">Total Cost</div>
-              <div className="font-medium">${(lineItem.total_cost || 0).toFixed(2)}</div>
+              <div className="font-medium">${(lineItem.totalCost || 0).toFixed(2)}</div>
             </div>
             <div>
               <div className="text-muted-foreground">Total Markup</div>
-              <div className="font-medium text-green-600">${(lineItem.total_markup || 0).toFixed(2)}</div>
+              <div className="font-medium text-green-600">${(lineItem.totalMarkup || 0).toFixed(2)}</div>
             </div>
           </div>
         </div>
@@ -215,7 +215,7 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
         <div className="col-span-2 flex items-center justify-end">
           <div className="text-right">
             <div className="text-xs text-muted-foreground">Final Price/Unit</div>
-            <div className="font-semibold">${(lineItem.price_per_unit || 0).toFixed(2)}</div>
+            <div className="font-semibold">${(lineItem.pricePerUnit || 0).toFixed(2)}</div>
           </div>
         </div>
       </div>

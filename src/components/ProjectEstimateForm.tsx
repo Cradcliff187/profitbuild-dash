@@ -41,18 +41,17 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
     category,
     description: '',
     quantity: 1,
-    rate: 0,
+    pricePerUnit: 0,
     total: 0,
     unit: '',
     sort_order: lineItems.length,
     // Cost & Pricing fields
-    cost_per_unit: 0,
-    markup_percent: null,
-    markup_amount: null,
-    price_per_unit: 0,
+    costPerUnit: 0,
+    markupPercent: null,
+    markupAmount: null,
     // Calculated totals
-    total_cost: 0,
-    total_markup: 0
+    totalCost: 0,
+    totalMarkup: 0
   });
 
   useEffect(() => {
@@ -68,8 +67,8 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
         if (item.id === id) {
           const updated = { ...item, [field]: value };
           // Recalculate total for this line item
-          if (field === 'quantity' || field === 'rate') {
-            updated.total = updated.quantity * updated.rate;
+          if (field === 'quantity' || field === 'pricePerUnit') {
+            updated.total = updated.quantity * updated.pricePerUnit;
           }
           return updated;
         }
@@ -89,7 +88,7 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
   };
 
   const calculateTotal = () => {
-    return lineItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+    return lineItems.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
   };
 
   const calculateContingencyAmount = () => {
@@ -339,8 +338,8 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
                   <div className="col-span-2">
                     <Input
                       type="number"
-                      value={lineItem.rate}
-                      onChange={(e) => updateLineItem(lineItem.id, 'rate', parseFloat(e.target.value) || 0)}
+                      value={lineItem.pricePerUnit}
+                      onChange={(e) => updateLineItem(lineItem.id, 'pricePerUnit', parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                       min="0"
                       step="0.01"
@@ -348,7 +347,7 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
                   </div>
                   
                   <div className="col-span-1 text-right font-medium">
-                    ${(lineItem.quantity * lineItem.rate).toFixed(2)}
+                    ${(lineItem.quantity * lineItem.pricePerUnit).toFixed(2)}
                   </div>
                   
                   <div className="col-span-1">

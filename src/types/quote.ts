@@ -6,7 +6,7 @@ export interface QuoteLineItem {
   category: LineItemCategory;
   description: string;
   quantity: number;
-  rate: number;
+  pricePerUnit: number;
   total: number;
 }
 

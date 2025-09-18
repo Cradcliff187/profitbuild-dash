@@ -62,7 +62,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     category: estimateItem.category,
     description: estimateItem.description,
     quantity: estimateItem.quantity,
-    rate: 0, // Reset rate for quote entry
+    pricePerUnit: 0, // Reset pricePerUnit for quote entry
     total: 0
   });
 
@@ -71,7 +71,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     category: LineItemCategory.LABOR,
     description: '',
     quantity: 0,
-    rate: 0,
+    pricePerUnit: 0,
     total: 0
   });
 
@@ -138,7 +138,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     };
 
     lineItems.forEach(item => {
-      const itemTotal = item.quantity * item.rate;
+      const itemTotal = item.quantity * item.pricePerUnit;
       switch (item.category) {
         case 'labor_internal':
           newSubtotals.labor += itemTotal;
@@ -167,8 +167,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       prev.map(item => {
         if (item.id === id) {
           const updated = { ...item, [field]: value };
-          if (field === 'quantity' || field === 'rate') {
-            updated.total = updated.quantity * updated.rate;
+          if (field === 'quantity' || field === 'pricePerUnit') {
+            updated.total = updated.quantity * updated.pricePerUnit;
           }
           return updated;
         }

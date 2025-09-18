@@ -124,18 +124,17 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         category: item.category,
         description: item.description,
         quantity: item.quantity,
-        rate: item.rate,
+        pricePerUnit: item.price_per_unit || item.rate || 0,
         total: item.total,
         unit: item.unit,
         sort_order: item.sort_order,
         // Cost & Pricing fields
-        cost_per_unit: item.cost_per_unit || 0,
-        markup_percent: item.markup_percent,
-        markup_amount: item.markup_amount,
-        price_per_unit: item.price_per_unit || item.rate || 0,
+        costPerUnit: item.cost_per_unit || 0,
+        markupPercent: item.markup_percent,
+        markupAmount: item.markup_amount,
         // Calculated totals
-        total_cost: item.total_cost || 0,
-        total_markup: item.total_markup || 0
+        totalCost: item.total_cost || 0,
+        totalMarkup: item.total_markup || 0
       })) || [];
 
       setLineItems(items as LineItem[]); // Cast the database result to our interface
@@ -335,18 +334,17 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     category,
     description: '',
     quantity: 1,
-    rate: category === LineItemCategory.LABOR ? internalLaborRate : 0,
+    pricePerUnit: category === LineItemCategory.LABOR ? internalLaborRate : 0,
     total: 0,
     unit: '',
     sort_order: lineItems.length,
     // Cost & Pricing fields
-    cost_per_unit: 0,
-    markup_percent: null,
-    markup_amount: null,
-    price_per_unit: category === LineItemCategory.LABOR ? internalLaborRate : 0,
+    costPerUnit: 0,
+    markupPercent: null,
+    markupAmount: null,
     // Calculated totals
-    total_cost: 0,
-    total_markup: 0
+    totalCost: 0,
+    totalMarkup: 0
   });
 
   useEffect(() => {
@@ -360,12 +358,12 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
       prev.map(item => {
         if (item.id === id) {
           const updated = { ...item, [field]: value };
-          // Auto-set rate for labor category
+          // Auto-set pricePerUnit for labor category
           if (field === 'category' && value === LineItemCategory.LABOR) {
-            updated.rate = internalLaborRate;
+            updated.pricePerUnit = internalLaborRate;
           }
-          if (field === 'quantity' || field === 'rate') {
-            updated.total = updated.quantity * updated.rate;
+          if (field === 'quantity' || field === 'pricePerUnit') {
+            updated.total = updated.quantity * updated.pricePerUnit;
           }
           return updated;
         }
@@ -385,7 +383,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
   };
 
   const calculateTotal = () => {
-    return lineItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+    return lineItems.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
   };
 
   const calculateContingencyAmount = () => {
@@ -480,14 +478,14 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
           category: item.category,
           description: item.description.trim(),
           quantity: item.quantity,
-          rate: item.rate,
-          total: item.quantity * item.rate,
+          rate: item.pricePerUnit,
+          total: item.quantity * item.pricePerUnit,
           unit: item.unit || undefined,
           sort_order: index,
           // Cost & Pricing fields
-          cost_per_unit: item.cost_per_unit || 0,
-          markup_percent: item.markup_percent,
-          markup_amount: item.markup_amount
+          cost_per_unit: item.costPerUnit || 0,
+          markup_percent: item.markupPercent,
+          markup_amount: item.markupAmount
         }));
 
         const { error: lineItemsError } = await supabase
@@ -1083,8 +1081,8 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                   <div className="col-span-2">
                     <Input
                       type="number"
-                      value={lineItem.rate}
-                      onChange={(e) => updateLineItem(lineItem.id, 'rate', parseFloat(e.target.value) || 0)}
+                      value={lineItem.pricePerUnit}
+                      onChange={(e) => updateLineItem(lineItem.id, 'pricePerUnit', parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                       min="0"
                       step="0.01"
@@ -1092,7 +1090,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                   </div>
                   
                   <div className="col-span-1 text-right font-medium">
-                    ${(lineItem.quantity * lineItem.rate).toFixed(2)}
+                    ${(lineItem.quantity * lineItem.pricePerUnit).toFixed(2)}
                   </div>
                   
                   <div className="col-span-1">

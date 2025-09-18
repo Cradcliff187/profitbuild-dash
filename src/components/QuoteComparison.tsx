@@ -256,7 +256,7 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
                   <div className="flex-1">
                     <div className="font-medium">{item.description}</div>
                     <div className="text-sm text-muted-foreground">
-                      {item.category} • {item.quantity} × ${item.rate.toFixed(2)}
+                      {item.category} • {item.quantity} × ${item.pricePerUnit.toFixed(2)}
                     </div>
                   </div>
                   <div className="font-semibold">${item.total.toFixed(2)}</div>
@@ -278,7 +278,7 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
                   <div className="flex-1">
                     <div className="font-medium">{item.description}</div>
                     <div className="text-sm text-muted-foreground">
-                      {item.category} • {item.quantity} × ${item.rate.toFixed(2)}
+                      {item.category} • {item.quantity} × ${item.pricePerUnit.toFixed(2)}
                     </div>
                   </div>
                   <div className="font-semibold">${item.total.toFixed(2)}</div>

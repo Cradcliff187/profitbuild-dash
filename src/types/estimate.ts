@@ -3,20 +3,19 @@ export interface LineItem {
   category: LineItemCategory;
   description: string;
   quantity: number;
-  rate: number; // Legacy field - will be phased out
+  pricePerUnit: number; // Replaces legacy 'rate' field
   total: number;
   unit?: string;
   sort_order?: number;
   
   // Cost & Pricing fields
-  cost_per_unit: number;
-  markup_percent?: number | null;
-  markup_amount?: number | null;
-  price_per_unit: number; // Generated column
+  costPerUnit: number;
+  markupPercent?: number | null;
+  markupAmount?: number | null;
   
   // Calculated totals (generated columns)
-  total_cost: number; // quantity * cost_per_unit
-  total_markup: number; // quantity * (price_per_unit - cost_per_unit)
+  totalCost: number; // quantity * costPerUnit
+  totalMarkup: number; // quantity * (pricePerUnit - costPerUnit)
 }
 
 export interface Estimate {
@@ -41,6 +40,9 @@ export interface Estimate {
   parent_estimate_id?: string;
   is_current_version: boolean;
   valid_for_days: number;
+  // Markup and margin settings
+  defaultMarkupPercent: number;
+  targetMarginPercent: number;
   // For display purposes (populated from project)
   project_name?: string;
   client_name?: string;
