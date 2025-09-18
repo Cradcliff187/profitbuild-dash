@@ -3,10 +3,20 @@ export interface LineItem {
   category: LineItemCategory;
   description: string;
   quantity: number;
-  rate: number;
+  rate: number; // Legacy field - will be phased out
   total: number;
   unit?: string;
   sort_order?: number;
+  
+  // Cost & Pricing fields
+  cost_per_unit: number;
+  markup_percent?: number | null;
+  markup_amount?: number | null;
+  price_per_unit: number; // Generated column
+  
+  // Calculated totals (generated columns)
+  total_cost: number; // quantity * cost_per_unit
+  total_markup: number; // quantity * (price_per_unit - cost_per_unit)
 }
 
 export interface Estimate {

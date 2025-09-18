@@ -44,7 +44,15 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
     rate: 0,
     total: 0,
     unit: '',
-    sort_order: lineItems.length
+    sort_order: lineItems.length,
+    // Cost & Pricing fields
+    cost_per_unit: 0,
+    markup_percent: null,
+    markup_amount: null,
+    price_per_unit: 0,
+    // Calculated totals
+    total_cost: 0,
+    total_markup: 0
   });
 
   useEffect(() => {
@@ -136,7 +144,11 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
         rate: item.rate,
         total: item.quantity * item.rate,
         unit: item.unit || undefined,
-        sort_order: index
+        sort_order: index,
+        // Cost & Pricing fields
+        cost_per_unit: item.cost_per_unit || 0,
+        markup_percent: item.markup_percent,
+        markup_amount: item.markup_amount
       }));
 
       const { error: lineItemsError } = await supabase

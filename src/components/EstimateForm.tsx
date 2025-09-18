@@ -127,7 +127,15 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         rate: item.rate,
         total: item.total,
         unit: item.unit,
-        sort_order: item.sort_order
+        sort_order: item.sort_order,
+        // Cost & Pricing fields
+        cost_per_unit: item.cost_per_unit || 0,
+        markup_percent: item.markup_percent,
+        markup_amount: item.markup_amount,
+        price_per_unit: item.price_per_unit || item.rate || 0,
+        // Calculated totals
+        total_cost: item.total_cost || 0,
+        total_markup: item.total_markup || 0
       })) || [];
 
       setLineItems(items as LineItem[]); // Cast the database result to our interface
@@ -234,7 +242,15 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         rate: item.rate,
         total: item.quantity * item.rate,
         unit: item.unit,
-        sort_order: index
+        sort_order: index,
+        // Cost & Pricing fields
+        cost_per_unit: item.cost_per_unit || 0,
+        markup_percent: item.markup_percent,
+        markup_amount: item.markup_amount,
+        price_per_unit: item.price_per_unit || item.rate || 0,
+        // Calculated totals
+        total_cost: item.total_cost || 0,
+        total_markup: item.total_markup || 0
       })) || [];
 
       setLineItems(copiedItems as LineItem[]);
@@ -322,7 +338,15 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     rate: category === LineItemCategory.LABOR ? internalLaborRate : 0,
     total: 0,
     unit: '',
-    sort_order: lineItems.length
+    sort_order: lineItems.length,
+    // Cost & Pricing fields
+    cost_per_unit: 0,
+    markup_percent: null,
+    markup_amount: null,
+    price_per_unit: category === LineItemCategory.LABOR ? internalLaborRate : 0,
+    // Calculated totals
+    total_cost: 0,
+    total_markup: 0
   });
 
   useEffect(() => {
@@ -459,7 +483,11 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
           rate: item.rate,
           total: item.quantity * item.rate,
           unit: item.unit || undefined,
-          sort_order: index
+          sort_order: index,
+          // Cost & Pricing fields
+          cost_per_unit: item.cost_per_unit || 0,
+          markup_percent: item.markup_percent,
+          markup_amount: item.markup_amount
         }));
 
         const { error: lineItemsError } = await supabase
@@ -555,7 +583,11 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         rate: item.rate,
         total: item.quantity * item.rate,
         unit: item.unit || undefined,
-        sort_order: index
+        sort_order: index,
+        // Cost & Pricing fields
+        cost_per_unit: item.cost_per_unit || 0,
+        markup_percent: item.markup_percent,
+        markup_amount: item.markup_amount
       }));
 
       const { error: lineItemsError } = await supabase
