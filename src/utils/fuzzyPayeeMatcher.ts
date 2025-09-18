@@ -162,6 +162,10 @@ const calculateConfidence = (qbName: string, payee: PartialPayee): number => {
   return Math.round(maxConfidence * 100) / 100; // Round to 2 decimal places
 };
 
+// Confidence thresholds
+const AUTO_MATCH_THRESHOLD = 75; // Lowered from 60 for better selectivity
+const REVIEW_THRESHOLD = 40; // Matches needing review
+
 // Main fuzzy matching function
 export const fuzzyMatchPayee = (qbName: string, payees: PartialPayee[]): FuzzyMatchResult => {
   const matches: PayeeMatch[] = [];
@@ -181,7 +185,7 @@ export const fuzzyMatchPayee = (qbName: string, payees: PartialPayee[]): FuzzyMa
       // Calculate fuzzy confidence
       const confidence = calculateConfidence(qbName, payee);
       
-      if (confidence >= 30) { // Only include matches with at least 30% confidence
+      if (confidence >= REVIEW_THRESHOLD) { // Only include matches with at least review threshold confidence
         matches.push({
           payee,
           confidence,
@@ -202,7 +206,7 @@ export const fuzzyMatchPayee = (qbName: string, payees: PartialPayee[]): FuzzyMa
   // Set best match based on confidence thresholds
   if (matches.length > 0) {
     const topMatch = matches[0];
-    if (topMatch.confidence >= 60) { // Minimum threshold for auto-selection
+    if (topMatch.confidence >= AUTO_MATCH_THRESHOLD) { // Updated threshold for auto-selection
       result.bestMatch = topMatch;
     }
   }

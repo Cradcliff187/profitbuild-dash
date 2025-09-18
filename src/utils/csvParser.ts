@@ -181,8 +181,35 @@ export interface QBImportResult {
       confidence: number;
     }>;
   }>;
+  duplicates: Array<{
+    transaction: QBTransaction;
+    reason: string;
+  }>;
+  duplicatesDetected: number;
   errors: string[];
 }
+
+// Detect potential duplicates in transaction data
+const detectDuplicates = (transactions: QBTransaction[]) => {
+  const seen = new Map<string, QBTransaction>();
+  const duplicates: Array<{ transaction: QBTransaction; reason: string }> = [];
+  
+  return transactions.filter(transaction => {
+    // Create a unique key based on date, amount, and name
+    const key = `${transaction.date}-${transaction.amount}-${transaction.name}`.toLowerCase();
+    
+    if (seen.has(key)) {
+      duplicates.push({
+        transaction,
+        reason: `Duplicate of transaction: ${seen.get(key)?.name} on ${seen.get(key)?.date}`
+      });
+      return false; // Filter out duplicate
+    }
+    
+    seen.set(key, transaction);
+    return true; // Keep unique transaction
+  });
+};
 
 // Parse QuickBooks CSV (skip first 4 rows)
 export const parseQuickBooksCSV = (file: File): Promise<QBParseResult> => {
@@ -252,6 +279,13 @@ export const mapQuickBooksToExpenses = async (
   transactions: QBTransaction[],
   fileName: string
 ): Promise<QBImportResult> => {
+  // Detect and filter duplicates
+  const duplicates: Array<{ transaction: QBTransaction; reason: string }> = [];
+  const uniqueTransactions = detectDuplicates(transactions);
+  
+  // Calculate duplicates by difference
+  const duplicateCount = transactions.length - uniqueTransactions.length;
+  
   const result: QBImportResult = {
     total: transactions.length,
     successful: 0,
@@ -261,6 +295,8 @@ export const mapQuickBooksToExpenses = async (
     unmatchedPayees: [],
     fuzzyMatches: [],
     lowConfidenceMatches: [],
+    duplicates,
+    duplicatesDetected: duplicateCount,
     errors: []
   };
 
@@ -285,7 +321,7 @@ export const mapQuickBooksToExpenses = async (
       return result;
     }
 
-    for (const transaction of transactions) {
+    for (const transaction of uniqueTransactions) {
       try {
         // Parse date
         let expense_date = new Date();
@@ -327,7 +363,7 @@ export const mapQuickBooksToExpenses = async (
               qbName: transaction.name,
               matchedPayee: matchResult.bestMatch.payee,
               confidence: matchResult.bestMatch.confidence,
-              matchType: matchResult.bestMatch.confidence >= 85 ? 'auto' : 
+              matchType: matchResult.bestMatch.confidence >= 75 ? 'auto' : 
                         matchResult.bestMatch.matchType === 'exact' ? 'exact' : 'fuzzy'
             });
           } else if (matchResult.matches.length > 0) {
