@@ -16,6 +16,7 @@ import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 import { Project, ProjectType, generateProjectNumber } from "@/types/project";
+import { ClientSelector } from "@/components/ClientSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -39,7 +40,8 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
   
   // New project fields
   const [projectName, setProjectName] = useState("");
-  const [clientName, setClientName] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const [selectedClientData, setSelectedClientData] = useState<any>(null);
   const [address, setAddress] = useState("");
   const [projectType, setProjectType] = useState<ProjectType>('construction_project');
   const [jobType, setJobType] = useState("");
@@ -79,6 +81,9 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
       setSelectedProjectId(initialEstimate.project_id);
       // Load line items - need to fetch from database
       loadEstimateLineItems(initialEstimate.id);
+      
+      // Load client data if we have a project
+      loadClientForProject(initialEstimate.project_id);
     } else {
       setProjectNumber(generateProjectNumber());
     }
@@ -230,6 +235,33 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
       setEstimateVersions(versions);
     } catch (error) {
       console.error('Error loading versions:', error);
+    }
+  };
+
+  const loadClientForProject = async (projectId: string) => {
+    try {
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('client_id')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError) throw projectError;
+
+      if (project?.client_id) {
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('id', project.client_id)
+          .single();
+
+        if (clientError) throw clientError;
+
+        setSelectedClientId(project.client_id);
+        setSelectedClientData(clientData);
+      }
+    } catch (error) {
+      console.error('Error loading client for project:', error);
     }
   };
 
@@ -534,10 +566,10 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     }
 
     if (projectMode === 'new') {
-      if (!projectName.trim() || !clientName.trim()) {
+      if (!projectName.trim() || !selectedClientId) {
         toast({
           title: "Missing Project Information",
-          description: "Please fill in project name and client name.",
+          description: "Please fill in project name and select a client.",
           variant: "destructive"
         });
         return false;
@@ -653,7 +685,8 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
           .from('projects')
           .insert({
             project_name: projectName.trim(),
-            client_name: clientName.trim(),
+            client_id: selectedClientId,
+            client_name: selectedClientData?.client_name || "",
             address: address.trim() || null,
             project_type: projectType,
             job_type: jobType.trim() || null,
@@ -963,14 +996,70 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="clientName">Client Name *</Label>
-                    <Input
-                      id="clientName"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      placeholder="Enter client name"
+                    <Label htmlFor="client">Client *</Label>
+                    <ClientSelector
+                      value={selectedClientId}
+                      onValueChange={async (clientId: string, clientName?: string) => {
+                        setSelectedClientId(clientId);
+                        // Fetch full client data for display
+                        if (clientId) {
+                          const { data: clientData } = await supabase
+                            .from('clients')
+                            .select('*')
+                            .eq('id', clientId)
+                            .single();
+                          setSelectedClientData(clientData);
+                        } else {
+                          setSelectedClientData(null);
+                        }
+                      }}
+                      placeholder="Select or add a client"
+                      required
                     />
                   </div>
+
+                  {/* Client Details Card */}
+                  {selectedClientData && (
+                    <div className="mt-4">
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm">Selected Client</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium text-muted-foreground">Name:</span>
+                              <p className="font-medium">{selectedClientData.client_name}</p>
+                            </div>
+                            {selectedClientData.company_name && (
+                              <div>
+                                <span className="font-medium text-muted-foreground">Company:</span>
+                                <p className="font-medium">{selectedClientData.company_name}</p>
+                              </div>
+                            )}
+                            {selectedClientData.email && (
+                              <div>
+                                <span className="font-medium text-muted-foreground">Email:</span>
+                                <p className="font-medium">{selectedClientData.email}</p>
+                              </div>
+                            )}
+                            {selectedClientData.phone && (
+                              <div>
+                                <span className="font-medium text-muted-foreground">Phone:</span>
+                                <p className="font-medium">{selectedClientData.phone}</p>
+                              </div>
+                            )}
+                          </div>
+                          {selectedClientData.billing_address && (
+                            <div>
+                              <span className="font-medium text-muted-foreground">Address:</span>
+                              <p className="text-sm">{selectedClientData.billing_address}</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
                 </div>
 
                 {/* Address */}
