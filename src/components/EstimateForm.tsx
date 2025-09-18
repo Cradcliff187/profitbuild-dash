@@ -49,6 +49,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [contingencyPercent, setContingencyPercent] = useState(initialEstimate?.contingency_percent || 10.0);
   const [contingencyUsed, setContingencyUsed] = useState(initialEstimate?.contingency_used || 0);
+  const [internalLaborRate, setInternalLaborRate] = useState(75);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -126,7 +127,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     category,
     description: '',
     quantity: 1,
-    rate: 0,
+    rate: category === LineItemCategory.LABOR ? internalLaborRate : 0,
     total: 0,
     unit: '',
     sort_order: lineItems.length
@@ -143,6 +144,10 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
       prev.map(item => {
         if (item.id === id) {
           const updated = { ...item, [field]: value };
+          // Auto-set rate for labor category
+          if (field === 'category' && value === LineItemCategory.LABOR) {
+            updated.rate = internalLaborRate;
+          }
           if (field === 'quantity' || field === 'rate') {
             updated.total = updated.quantity * updated.rate;
           }
@@ -646,6 +651,28 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                 />
               </div>
             </div>
+          </div>
+
+          {/* Internal Labor Rate */}
+          <div className="space-y-2">
+            <Label htmlFor="internal-labor-rate">Internal Labor Rate</Label>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-muted-foreground">$</span>
+              <Input
+                id="internal-labor-rate"
+                type="number"
+                min="0"
+                step="0.01"
+                value={internalLaborRate}
+                onChange={(e) => setInternalLaborRate(parseFloat(e.target.value) || 75)}
+                placeholder="75.00"
+                className="w-32"
+              />
+              <span className="text-sm text-muted-foreground">/hour</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This rate will be used for all Internal Labor line items
+            </p>
           </div>
 
           {/* Line Items */}

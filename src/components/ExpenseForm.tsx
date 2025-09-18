@@ -30,6 +30,7 @@ const expenseSchema = z.object({
   payee_id: z.string().optional(),
   invoice_number: z.string().optional(),
   is_planned: z.boolean().default(false),
+  use_contingency: z.boolean().default(false),
 });
 
 type ExpenseFormData = z.infer<typeof expenseSchema>;
@@ -45,6 +46,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
   const [payees, setPayees] = useState<Payee[]>([]);
   const [payeeOpen, setPayeeOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [projectContingency, setProjectContingency] = useState<{
+    available: number;
+    used: number;
+    total: number;
+  } | null>(null);
   const { toast } = useToast();
 
   const form = useForm<ExpenseFormData>({
@@ -59,6 +65,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
       payee_id: expense?.payee_id || '',
       invoice_number: expense?.invoice_number || '',
       is_planned: expense?.is_planned || false,
+      use_contingency: false,
     },
   });
 
@@ -106,6 +113,49 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
     loadData();
   }, [toast]);
 
+  // Load project contingency data when project is selected
+  useEffect(() => {
+    const loadProjectContingency = async (projectId: string) => {
+      if (!projectId) {
+        setProjectContingency(null);
+        return;
+      }
+
+      try {
+        const { data: estimateData, error } = await supabase
+          .from('estimates')
+          .select('contingency_amount, contingency_used')
+          .eq('project_id', projectId)
+          .eq('is_current_version', true)
+          .single();
+
+        if (error) {
+          console.error('Error loading project contingency:', error);
+          setProjectContingency(null);
+          return;
+        }
+
+        const total = estimateData.contingency_amount || 0;
+        const used = estimateData.contingency_used || 0;
+        const available = Math.max(0, total - used);
+
+        setProjectContingency({
+          total,
+          used,
+          available,
+        });
+      } catch (error) {
+        console.error('Error loading contingency:', error);
+        setProjectContingency(null);
+      }
+    };
+
+    const projectId = form.watch('project_id');
+    if (projectId) {
+      loadProjectContingency(projectId);
+    }
+  }, [form.watch('project_id')]);
+
   const onSubmit = async (data: ExpenseFormData) => {
     setLoading(true);
     try {
@@ -144,6 +194,19 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         
         if (error) throw error;
         result = newExpense;
+      }
+
+      // Handle contingency usage for unplanned expenses
+      if (data.use_contingency && !data.is_planned && projectContingency) {
+        const { error: contingencyError } = await supabase
+          .from('estimates')
+          .update({ 
+            contingency_used: projectContingency.used + parseFloat(data.amount)
+          })
+          .eq('project_id', data.project_id)
+          .eq('is_current_version', true);
+          
+        if (contingencyError) throw contingencyError;
       }
 
       // Transform result to include vendor_name for display
@@ -412,6 +475,58 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                   </FormItem>
                 )}
               />
+            </div>
+
+            {/* Planned/Unplanned and Contingency Usage */}
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="is_planned"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="mt-0.5"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Planned Expense</FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Check if this expense was included in the original estimate
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              {/* Contingency Usage Checkbox - only show for unplanned expenses */}
+              {!form.watch('is_planned') && projectContingency && projectContingency.available > 0 && (
+                <FormField
+                  control={form.control}
+                  name="use_contingency"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="mt-0.5"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Use Contingency?</FormLabel>
+                        <p className="text-xs text-muted-foreground">
+                          Available contingency: ${projectContingency.available.toFixed(2)}
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             <div className="flex space-x-2">
