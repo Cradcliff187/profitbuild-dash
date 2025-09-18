@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, XCircle, TrendingUp, TrendingDown, Calendar, User, FileText, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, TrendingUp, TrendingDown, Calendar, User, FileText, AlertTriangle, Target } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -20,10 +20,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import type { Quote } from '@/types/quote';
 import type { Estimate } from '@/types/estimate';
+import type { Project } from '@/types/project';
+import type { Expense } from '@/types/expense';
+import { calculateProjectMargin, getMarginStatusLevel, formatMarginCurrency } from '@/types/margin';
+import { getThresholdStatusColor, getThresholdStatusLabel } from '@/utils/thresholdUtils';
 
 interface QuoteAcceptanceModalProps {
   quote: Quote;
   estimate: Estimate;
+  project: Project;
+  expenses?: Expense[];
   onAccept: (quote: Quote) => void;
   onReject: (quote: Quote, reason: string) => void;
   onClose: () => void;
@@ -32,6 +38,8 @@ interface QuoteAcceptanceModalProps {
 export function QuoteAcceptanceModal({
   quote,
   estimate,
+  project,
+  expenses = [],
   onAccept,
   onReject,
   onClose,
@@ -51,6 +59,28 @@ export function QuoteAcceptanceModal({
   const isExpiringSoon = quote.valid_until 
     ? new Date(quote.valid_until).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000 
     : false;
+
+  // Calculate margin impact
+  const currentMargin = calculateProjectMargin(project, expenses, [estimate]);
+  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const projectedContractedAmount = (project.contracted_amount || 0) + quote.total;
+  const projectedMarginAmount = projectedContractedAmount - totalExpenses;
+  const projectedMarginPercentage = projectedContractedAmount > 0 
+    ? (projectedMarginAmount / projectedContractedAmount) * 100 
+    : 0;
+  
+  const currentMarginStatus = getMarginStatusLevel({
+    ...currentMargin,
+    margin_percentage: currentMargin.margin_percentage || 0
+  });
+  
+  const projectedMarginStatus = getMarginStatusLevel({
+    ...currentMargin,
+    margin_percentage: projectedMarginPercentage
+  });
+  
+  const marginChange = projectedMarginPercentage - (currentMargin.margin_percentage || 0);
+  const isMarginImproving = marginChange > 0;
 
   const handleAccept = () => {
     onAccept(quote);
@@ -217,6 +247,91 @@ export function QuoteAcceptanceModal({
                       })}
                     </div>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Margin Impact Analysis */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Margin Impact Analysis
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Current Margin */}
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <div className="text-sm text-muted-foreground mb-2">Current Margin</div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-2xl font-bold">
+                        {(currentMargin.margin_percentage || 0).toFixed(1)}%
+                      </span>
+                      <Badge 
+                        variant="outline" 
+                        style={{ 
+                          borderColor: getThresholdStatusColor(currentMarginStatus),
+                          color: getThresholdStatusColor(currentMarginStatus)
+                        }}
+                      >
+                        {getThresholdStatusLabel(currentMarginStatus)}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {formatMarginCurrency(currentMargin.current_margin || 0)}
+                    </div>
+                  </div>
+
+                  {/* Projected Margin */}
+                  <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                    <div className="text-sm text-muted-foreground mb-2">Projected Margin (if accepted)</div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-2xl font-bold text-primary">
+                        {projectedMarginPercentage.toFixed(1)}%
+                      </span>
+                      <Badge 
+                        variant="outline"
+                        style={{ 
+                          borderColor: getThresholdStatusColor(projectedMarginStatus),
+                          color: getThresholdStatusColor(projectedMarginStatus)
+                        }}
+                      >
+                        {getThresholdStatusLabel(projectedMarginStatus)}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {formatMarginCurrency(projectedMarginAmount)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Margin Change Summary */}
+                <div className="p-4 rounded-lg border-2 border-dashed" 
+                     style={{ 
+                       borderColor: isMarginImproving ? 'hsl(var(--success))' : 'hsl(var(--destructive))',
+                       backgroundColor: isMarginImproving ? 'hsl(var(--success) / 0.05)' : 'hsl(var(--destructive) / 0.05)'
+                     }}>
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    {isMarginImproving ? (
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <TrendingDown className="h-5 w-5 text-destructive" />
+                    )}
+                    <span className="font-medium">
+                      Margin {isMarginImproving ? 'Improvement' : 'Impact'}
+                    </span>
+                  </div>
+                  <div className="text-center">
+                    <span className={`text-lg font-bold ${isMarginImproving ? 'text-green-600' : 'text-destructive'}`}>
+                      {marginChange > 0 ? '+' : ''}{marginChange.toFixed(1)} percentage points
+                    </span>
+                  </div>
+                  {(project.minimum_margin_threshold || project.target_margin) && (
+                    <div className="mt-2 text-xs text-muted-foreground text-center">
+                      Target: {project.target_margin || 20}% | Minimum: {project.minimum_margin_threshold || 10}%
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
