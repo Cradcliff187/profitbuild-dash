@@ -95,19 +95,25 @@ const categorizeExpense = (description: string): ExpenseCategory => {
   const desc = description.toLowerCase();
   
   if (desc.includes('labor') || desc.includes('wage') || desc.includes('payroll')) {
-    return 'labor_internal';
+    return ExpenseCategory.LABOR;
   }
   if (desc.includes('contractor') || desc.includes('subcontractor')) {
-    return 'subcontractors';
+    return ExpenseCategory.SUBCONTRACTOR;
   }
   if (desc.includes('material') || desc.includes('supply') || desc.includes('lumber') || desc.includes('concrete')) {
-    return 'materials';
+    return ExpenseCategory.MATERIALS;
   }
   if (desc.includes('equipment') || desc.includes('rental') || desc.includes('tool') || desc.includes('machinery')) {
-    return 'equipment';
+    return ExpenseCategory.EQUIPMENT;
+  }
+  if (desc.includes('permit') || desc.includes('fee') || desc.includes('license')) {
+    return ExpenseCategory.PERMITS;
+  }
+  if (desc.includes('management') || desc.includes('admin') || desc.includes('office')) {
+    return ExpenseCategory.MANAGEMENT;
   }
   
-  return 'other';
+  return ExpenseCategory.OTHER;
 };
 
 export const validateCSVData = (data: CSVRow[], mapping: ColumnMapping): string[] => {

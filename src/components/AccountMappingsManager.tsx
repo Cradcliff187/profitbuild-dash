@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Settings, Save, AlertCircle } from "lucide-react";
-import type { QuickBooksAccountMapping, ExpenseCategory } from "@/types/quickbooks";
+import type { QuickBooksAccountMapping } from "@/types/quickbooks";
+import { ExpenseCategory } from "@/types/expense";
 
 export const AccountMappingsManager = () => {
   const [mappings, setMappings] = useState<QuickBooksAccountMapping[]>([]);
@@ -16,13 +17,15 @@ export const AccountMappingsManager = () => {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  const categoryLabels: Record<ExpenseCategory, string> = {
-    labor_internal: "Labor (Internal)",
-    materials: "Materials & Supplies", 
-    equipment: "Equipment Rental",
-    subcontractors: "Subcontractor Costs",
-    other: "Other Project Expenses"
-  };
+  const categoryLabels = {
+    [ExpenseCategory.LABOR]: "Labor (Internal)",
+    [ExpenseCategory.MATERIALS]: "Materials & Supplies", 
+    [ExpenseCategory.EQUIPMENT]: "Equipment Rental",
+    [ExpenseCategory.SUBCONTRACTOR]: "Subcontractor Costs",
+    [ExpenseCategory.PERMITS]: "Permits & Fees",
+    [ExpenseCategory.MANAGEMENT]: "Management",
+    [ExpenseCategory.OTHER]: "Other Project Expenses"
+  } as const;
 
   useEffect(() => {
     fetchMappings();

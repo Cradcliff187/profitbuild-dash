@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 const expenseSchema = z.object({
   project_id: z.string().min(1, 'Project is required'),
   description: z.string().min(1, 'Description is required'),
-  category: z.enum(['labor_internal', 'subcontractors', 'materials', 'equipment', 'other']),
+  category: z.nativeEnum(ExpenseCategory),
   transaction_type: z.enum(['expense', 'bill', 'check', 'credit_card', 'cash']),
   amount: z.string().min(1, 'Amount is required'),
   expense_date: z.date(),
@@ -52,7 +52,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
     defaultValues: {
       project_id: expense?.project_id || '',
       description: expense?.description || '',
-      category: expense?.category || 'materials',
+      category: expense?.category || ExpenseCategory.MATERIALS,
       transaction_type: expense?.transaction_type || 'expense',
       amount: expense?.amount.toString() || '',
       expense_date: expense?.expense_date || new Date(),

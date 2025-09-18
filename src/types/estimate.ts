@@ -38,29 +38,34 @@ export interface Estimate {
 
 export type EstimateStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'expired';
 
-// Database enum values - must match Supabase
-export type LineItemCategory = 
-  | 'labor_internal' 
-  | 'subcontractors' 
-  | 'materials' 
-  | 'equipment' 
-  | 'other';
+// Database compatible enum - values match Supabase
+export enum LineItemCategory {
+  LABOR = 'labor_internal',
+  SUBCONTRACTOR = 'subcontractors', 
+  MATERIALS = 'materials',
+  EQUIPMENT = 'equipment',
+  PERMITS = 'permits',
+  MANAGEMENT = 'management',
+  OTHER = 'other'
+}
 
 // Legacy support for existing forms
 export const LEGACY_CATEGORY_MAP: Record<string, LineItemCategory> = {
-  'Labor (Internal)': 'labor_internal',
-  'Subcontractors': 'subcontractors',
-  'Materials': 'materials',
-  'Equipment': 'equipment',
-  'Other': 'other'
+  'Labor (Internal)': LineItemCategory.LABOR,
+  'Subcontractors': LineItemCategory.SUBCONTRACTOR,
+  'Materials': LineItemCategory.MATERIALS,
+  'Equipment': LineItemCategory.EQUIPMENT,
+  'Other': LineItemCategory.OTHER
 };
 
-export const CATEGORY_DISPLAY_MAP: Record<LineItemCategory, string> = {
-  'labor_internal': 'Labor (Internal)',
-  'subcontractors': 'Subcontractors',
-  'materials': 'Materials',
-  'equipment': 'Equipment',
-  'other': 'Other'
+export const CATEGORY_DISPLAY_MAP = {
+  [LineItemCategory.LABOR]: 'Labor (Internal)',
+  [LineItemCategory.SUBCONTRACTOR]: 'Subcontractors',
+  [LineItemCategory.MATERIALS]: 'Materials',
+  [LineItemCategory.EQUIPMENT]: 'Equipment',
+  [LineItemCategory.PERMITS]: 'Permits & Fees',
+  [LineItemCategory.MANAGEMENT]: 'Management',
+  [LineItemCategory.OTHER]: 'Other'
 };
 
 // Version management types

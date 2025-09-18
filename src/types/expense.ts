@@ -1,14 +1,25 @@
-// Database enum values - must match Supabase
-export type ExpenseCategory = 'labor_internal' | 'subcontractors' | 'materials' | 'equipment' | 'other';
+// Database compatible enum - values match Supabase
+export enum ExpenseCategory {
+  LABOR = 'labor_internal',
+  SUBCONTRACTOR = 'subcontractors', 
+  MATERIALS = 'materials',
+  EQUIPMENT = 'equipment',
+  PERMITS = 'permits',
+  MANAGEMENT = 'management',
+  OTHER = 'other'
+}
+
 export type TransactionType = 'expense' | 'bill' | 'check' | 'credit_card' | 'cash';
 
 // Display mapping for UI
-export const EXPENSE_CATEGORY_DISPLAY: Record<ExpenseCategory, string> = {
-  'labor_internal': 'Labor (Internal)',
-  'subcontractors': 'Subcontractors', 
-  'materials': 'Materials',
-  'equipment': 'Equipment',
-  'other': 'Other'
+export const EXPENSE_CATEGORY_DISPLAY = {
+  [ExpenseCategory.LABOR]: 'Labor (Internal)',
+  [ExpenseCategory.SUBCONTRACTOR]: 'Subcontractor',
+  [ExpenseCategory.MATERIALS]: 'Materials',
+  [ExpenseCategory.EQUIPMENT]: 'Equipment', 
+  [ExpenseCategory.PERMITS]: 'Permits & Fees',
+  [ExpenseCategory.MANAGEMENT]: 'Management',
+  [ExpenseCategory.OTHER]: 'Other'
 };
 
 export const TRANSACTION_TYPE_DISPLAY: Record<TransactionType, string> = {
