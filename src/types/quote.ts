@@ -10,7 +10,12 @@ export interface QuoteLineItem {
   total: number;
 }
 
-export type QuoteStatus = 'pending' | 'accepted' | 'rejected' | 'expired';
+export enum QuoteStatus {
+  PENDING = 'pending',
+  ACCEPTED = 'accepted',
+  REJECTED = 'rejected',
+  EXPIRED = 'expired'
+}
 
 export interface Quote {
   id: string;

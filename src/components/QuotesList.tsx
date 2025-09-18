@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Quote } from "@/types/quote";
+import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
 import { QuoteStatusBadge } from "./QuoteStatusBadge";
 
@@ -285,7 +285,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare }: Q
                 )}
 
                 {/* Rejection Reason */}
-                {quote.status === 'rejected' && quote.rejection_reason && (
+                {quote.status === QuoteStatus.REJECTED && quote.rejection_reason && (
                   <div className="text-sm p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
                     <div className="text-red-600 dark:text-red-400 font-medium mb-1">Rejection Reason</div>
                     <div className="text-red-800 dark:text-red-200">{quote.rejection_reason}</div>

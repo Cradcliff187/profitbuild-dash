@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Estimate } from '@/types/estimate';
-import { Quote } from '@/types/quote';
+import { Quote, QuoteStatus } from '@/types/quote';
 import { Expense, ExpenseCategory } from '@/types/expense';
 import { Project } from '@/types/project';
 import { supabase } from '@/integrations/supabase/client';
@@ -81,7 +81,7 @@ export default function ProfitAnalysisPage() {
         quotedBy: quote.payees?.vendor_name || '',
         dateReceived: new Date(quote.date_received),
         quoteNumber: quote.quote_number,
-        status: quote.status || 'pending',
+        status: (quote.status || 'pending') as QuoteStatus,
         accepted_date: quote.accepted_date ? new Date(quote.accepted_date) : undefined,
         valid_until: quote.valid_until ? new Date(quote.valid_until) : undefined,
         rejection_reason: quote.rejection_reason,

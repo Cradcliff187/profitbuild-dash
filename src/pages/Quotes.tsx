@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { QuoteForm } from "@/components/QuoteForm";
 import { QuotesList } from "@/components/QuotesList";
 import { QuoteComparison } from "@/components/QuoteComparison";
-import { Quote } from "@/types/quote";
+import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -59,7 +59,7 @@ const Quotes = () => {
         quotedBy: quote.payees?.vendor_name || '',
         dateReceived: new Date(quote.date_received),
         quoteNumber: quote.quote_number,
-        status: quote.status,
+         status: quote.status as QuoteStatus,
         accepted_date: quote.accepted_date ? new Date(quote.accepted_date) : undefined,
         valid_until: quote.valid_until ? new Date(quote.valid_until) : undefined,
         rejection_reason: quote.rejection_reason,

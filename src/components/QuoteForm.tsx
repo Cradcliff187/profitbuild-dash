@@ -32,7 +32,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   const [selectedPayee, setSelectedPayee] = useState<Payee>();
   const [quotedBy, setQuotedBy] = useState("");
   const [dateReceived, setDateReceived] = useState<Date>(new Date());
-  const [status, setStatus] = useState<QuoteStatus>('pending');
+  const [status, setStatus] = useState<QuoteStatus>(QuoteStatus.PENDING);
   const [validUntil, setValidUntil] = useState<Date>();
   const [acceptedDate, setAcceptedDate] = useState<Date>();
   const [rejectionReason, setRejectionReason] = useState("");
@@ -192,7 +192,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     }
 
     // Validation for status-specific fields
-    if (status === 'rejected' && !rejectionReason.trim()) {
+    if (status === QuoteStatus.REJECTED && !rejectionReason.trim()) {
       toast({
         title: "Missing Rejection Reason",
         description: "Please provide a reason when rejecting a quote.",
@@ -212,8 +212,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       dateReceived,
       status,
       valid_until: validUntil,
-      accepted_date: status === 'accepted' ? (acceptedDate || new Date()) : undefined,
-      rejection_reason: status === 'rejected' ? rejectionReason.trim() : undefined,
+       accepted_date: status === QuoteStatus.ACCEPTED ? (acceptedDate || new Date()) : undefined,
+       rejection_reason: status === QuoteStatus.REJECTED ? rejectionReason.trim() : undefined,
       quoteNumber: initialQuote?.quoteNumber || generateQuoteNumber(),
       includes_materials: includesMaterials,
       includes_labor: includesLabor,
@@ -309,10 +309,10 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="accepted">Accepted</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
+                   <SelectItem value={QuoteStatus.PENDING}>Pending</SelectItem>
+                   <SelectItem value={QuoteStatus.ACCEPTED}>Accepted</SelectItem>
+                   <SelectItem value={QuoteStatus.REJECTED}>Rejected</SelectItem>
+                   <SelectItem value={QuoteStatus.EXPIRED}>Expired</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -373,7 +373,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
           </div>
 
           {/* Conditional Status Fields */}
-          {status === 'accepted' && (
+          {status === QuoteStatus.ACCEPTED && (
             <div className="space-y-2">
               <Label>Accepted Date</Label>
               <Popover>
@@ -402,7 +402,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
             </div>
           )}
 
-          {status === 'rejected' && (
+          {status === QuoteStatus.REJECTED && (
             <div className="space-y-2">
               <Label htmlFor="rejectionReason">Rejection Reason *</Label>
               <Textarea
