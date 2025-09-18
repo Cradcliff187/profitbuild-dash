@@ -22,7 +22,7 @@ const Navigation = () => {
   const secondaryItems = [
     { to: "/estimates", label: "Estimates", icon: Calculator },
     { to: "/quotes", label: "Quotes", icon: FileText },
-    { to: "/vendors", label: "Payees", icon: Users },
+    { to: "/payees", label: "Payees", icon: Users },
     { to: "/profit-analysis", label: "Profit Analysis", icon: TrendingUp },
     { to: "/settings", label: "Settings", icon: Settings },
   ];
