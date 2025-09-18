@@ -2,9 +2,10 @@ import { CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Download } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useVarianceCalculation } from "@/hooks/useVarianceCalculation";
 
@@ -15,7 +16,6 @@ interface VarianceAnalysisProps {
 export function VarianceAnalysis({ projectId }: VarianceAnalysisProps) {
   const { variances, loading, error, totals } = useVarianceCalculation(projectId);
 
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -25,10 +25,69 @@ export function VarianceAnalysis({ projectId }: VarianceAnalysisProps) {
     }).format(amount);
   };
 
-
   const getVarianceColor = (variance: number) => {
     if (Math.abs(variance) < 1) return '';
     return variance > 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400';
+  };
+
+  const exportToCSV = () => {
+    // Summary section
+    const summaryHeaders = ['Category', 'Estimated', 'Quoted', 'Actual', 'Variance ($)', 'Variance (%)'];
+    const summaryRows = variances.map(variance => [
+      `"${CATEGORY_DISPLAY_MAP[variance.category]}"`,
+      variance.estimated.toFixed(2),
+      variance.quoted.toFixed(2),
+      variance.actual.toFixed(2),
+      variance.variance.toFixed(2),
+      (variance.variancePercentage / 100).toFixed(4)
+    ]);
+
+    // Add totals row
+    const totalsRow = [
+      '"TOTAL"',
+      totals.estimated.toFixed(2),
+      totals.quoted.toFixed(2),
+      totals.actual.toFixed(2),
+      totals.variance.toFixed(2),
+      (totals.estimated > 0 ? (totals.variance / totals.estimated).toFixed(4) : '0.0000')
+    ];
+
+    // Detailed section
+    const detailHeaders = ['Category', 'Description', 'Estimated', 'Quoted', 'Actual', 'Variance ($)', 'Variance (%)'];
+    const detailRows = variances.flatMap(variance =>
+      variance.lineItems.map(item => [
+        `"${CATEGORY_DISPLAY_MAP[variance.category]}"`,
+        `"${item.description}"`,
+        item.estimated.toFixed(2),
+        item.quoted.toFixed(2),
+        item.actual.toFixed(2),
+        item.variance.toFixed(2),
+        (item.variancePercentage / 100).toFixed(4)
+      ])
+    );
+
+    // Combine sections with separators
+    const csvContent = [
+      '=== SUMMARY BY CATEGORY ===',
+      summaryHeaders.join(','),
+      ...summaryRows.map(row => row.join(',')),
+      totalsRow.join(','),
+      '',
+      '=== DETAILED LINE ITEMS ===',
+      detailHeaders.join(','),
+      ...detailRows.map(row => row.join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `variance_analysis_${projectId}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
 
   if (loading) {
@@ -70,10 +129,25 @@ export function VarianceAnalysis({ projectId }: VarianceAnalysisProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Variance Analysis</CardTitle>
-        <CardDescription>
-          Compare estimated, quoted, and actual amounts by category. Expand categories to see line item details.
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Variance Analysis</CardTitle>
+            <CardDescription>
+              Compare estimated, quoted, and actual amounts by category. Expand categories to see line item details.
+            </CardDescription>
+          </div>
+          {variances.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportToCSV}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {variances.length === 0 ? (
