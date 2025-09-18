@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
-import { Project, ProjectType, generateProjectNumber } from "@/types/project";
+import { Project, ProjectType, generateProjectNumber, JOB_TYPES } from "@/types/project";
 import { ClientSelector } from "@/components/ClientSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -1091,12 +1091,18 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
 
                   <div className="space-y-2">
                     <Label htmlFor="jobType">Job Type</Label>
-                    <Input
-                      id="jobType"
-                      value={jobType}
-                      onChange={(e) => setJobType(e.target.value)}
-                      placeholder="e.g., Residential, Commercial"
-                    />
+                    <Select value={jobType} onValueChange={setJobType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select job type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {JOB_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </CardContent>

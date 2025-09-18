@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Project, ProjectType, CreateProjectRequest, generateProjectNumber } from "@/types/project";
+import { Project, ProjectType, CreateProjectRequest, generateProjectNumber, JOB_TYPES } from "@/types/project";
 import { Client } from "@/types/client";
 import { ClientSelector } from "@/components/ClientSelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -284,12 +284,18 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
           {/* Job Type */}
           <div className="space-y-2">
             <Label htmlFor="jobType">Job Type</Label>
-            <Input
-              id="jobType"
-              value={jobType}
-              onChange={(e) => setJobType(e.target.value)}
-              placeholder="e.g., Residential, Commercial, Renovation"
-            />
+            <Select value={jobType} onValueChange={setJobType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select job type" />
+              </SelectTrigger>
+              <SelectContent>
+                {JOB_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Margin Thresholds */}

@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Project, ProjectType, ProjectStatus } from "@/types/project";
+import { Project, ProjectType, ProjectStatus, JOB_TYPES } from "@/types/project";
 import { Client } from "@/types/client";
 import { ClientSelector } from "@/components/ClientSelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -306,12 +306,18 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
 
             <div className="space-y-2">
               <Label htmlFor="jobType">Job Type</Label>
-              <Input
-                id="jobType"
-                value={jobType}
-                onChange={(e) => setJobType(e.target.value)}
-                placeholder="e.g., Residential, Commercial"
-              />
+              <Select value={jobType} onValueChange={setJobType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select job type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {JOB_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
