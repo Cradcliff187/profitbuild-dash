@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { Payee } from "@/types/payee";
+import type { Payee, PayeeType } from "@/types/payee";
 
 interface PayeeSelectorProps {
   selectedPayeeId?: string;
@@ -53,6 +54,65 @@ export const PayeeSelector = ({
     fetchPayees();
   }, []);
 
+  // Helper function to get badge variant for payee type
+  const getPayeeTypeBadgeVariant = (payeeType?: PayeeType) => {
+    switch (payeeType) {
+      case 'subcontractor':
+        return 'default'; // blue/primary
+      case 'material_supplier':
+        return 'secondary'; // green
+      case 'equipment_rental':
+        return 'outline'; // orange/warning  
+      case 'internal_labor':
+        return 'default'; // purple
+      case 'management':
+        return 'secondary'; // gray
+      case 'permit_authority':
+        return 'destructive'; // red
+      case 'other':
+      default:
+        return 'outline';
+    }
+  };
+
+  // Helper function to format payee type display name
+  const formatPayeeType = (payeeType?: PayeeType) => {
+    if (!payeeType) return 'Other';
+    return payeeType.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+  };
+
+  // Helper function to group payees by type
+  const groupPayeesByType = (payees: Payee[]) => {
+    const groups = payees.reduce((acc, payee) => {
+      const type = payee.payee_type || 'other';
+      if (!acc[type]) {
+        acc[type] = [];
+      }
+      acc[type].push(payee);
+      return acc;
+    }, {} as Record<PayeeType | 'other', Payee[]>);
+
+    // Sort groups - Internal Labor first, then alphabetically
+    const sortedGroups = Object.entries(groups).sort(([a], [b]) => {
+      if (a === 'internal_labor') return -1;
+      if (b === 'internal_labor') return 1;
+      return formatPayeeType(a as PayeeType).localeCompare(formatPayeeType(b as PayeeType));
+    });
+
+    return sortedGroups;
+  };
+
+  // Helper function to format payee display name
+  const formatPayeeDisplayName = (payee: Payee) => {
+    let name = payee.vendor_name;
+    if (payee.payee_type === 'internal_labor') {
+      name += ' (Internal)';
+    }
+    return name;
+  };
+
   const handleValueChange = (payeeId: string) => {
     const payee = payees.find(p => p.id === payeeId);
     if (payee) {
@@ -86,15 +146,42 @@ export const PayeeSelector = ({
               No payees available
             </SelectItem>
           ) : (
-            payees.map((payee) => (
-              <SelectItem key={payee.id} value={payee.id}>
-                <div className="flex flex-col">
-                  <span className="font-medium">{payee.vendor_name}</span>
-                  {payee.email && (
-                    <span className="text-xs text-muted-foreground">{payee.email}</span>
-                  )}
-                </div>
-              </SelectItem>
+            groupPayeesByType(payees).map(([type, groupPayees]) => (
+              <SelectGroup key={type}>
+                <SelectLabel className="px-2 py-1.5 text-sm font-semibold">
+                  {formatPayeeType(type as PayeeType)}
+                </SelectLabel>
+                {groupPayees
+                  .sort((a, b) => a.vendor_name.localeCompare(b.vendor_name))
+                  .map((payee) => (
+                    <SelectItem key={payee.id} value={payee.id}>
+                      <div className="flex flex-col w-full">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium">
+                            {formatPayeeDisplayName(payee)}
+                          </span>
+                          <Badge 
+                            variant={getPayeeTypeBadgeVariant(payee.payee_type)}
+                            className="text-xs"
+                          >
+                            {formatPayeeType(payee.payee_type)}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-col text-xs text-muted-foreground">
+                          {payee.payee_type === 'internal_labor' && payee.hourly_rate && (
+                            <span className="text-primary font-medium">
+                              ${payee.hourly_rate}/hr
+                            </span>
+                          )}
+                          {payee.email && payee.payee_type !== 'internal_labor' && (
+                            <span>{payee.email}</span>
+                          )}
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))
+                }
+              </SelectGroup>
             ))
           )}
         </SelectContent>
