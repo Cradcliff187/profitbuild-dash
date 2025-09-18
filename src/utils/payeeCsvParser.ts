@@ -27,17 +27,59 @@ export const parsePayeeCSVFile = (file: File): Promise<ParsedPayeeCSV> => {
         let data = results.data as PayeeCSVRow[];
         let errors: string[] = [];
         
-        // Handle QuickBooks format - skip first 3 rows if they contain header info
-        if (data.length > 3) {
-          const firstRow = data[0];
-          const firstRowValues = Object.values(firstRow);
+        console.log('Raw CSV parse results:', { dataLength: data.length, firstRow: data[0] });
+        
+        // Handle QuickBooks format - improved detection
+        if (data.length > 0) {
+          let skipRows = 0;
           
-          // Check if first few rows contain QuickBooks metadata
-          if (firstRowValues.some(val => val?.toLowerCase().includes('quickbooks') || 
-                                      val?.toLowerCase().includes('vendor') ||
-                                      val?.toLowerCase().includes('report'))) {
-            data = data.slice(3); // Skip header rows
+          // Check first few rows for QuickBooks metadata
+          for (let i = 0; i < Math.min(5, data.length); i++) {
+            const row = data[i];
+            const rowValues = Object.values(row);
+            const hasQuickBooksMetadata = rowValues.some(val => 
+              val?.toLowerCase().includes('quickbooks') || 
+              val?.toLowerCase().includes('vendor contact list') ||
+              val?.toLowerCase().includes('report') ||
+              val?.toLowerCase().includes('akc llc') ||
+              (!val || val.trim() === '') // Empty row
+            );
+            
+            if (hasQuickBooksMetadata) {
+              skipRows = i + 1;
+            } else {
+              break; // Found actual data row
+            }
           }
+          
+          if (skipRows > 0) {
+            console.log(`Skipping ${skipRows} QuickBooks header rows`);
+            data = data.slice(skipRows);
+          }
+        }
+        
+        // Clean and filter headers to remove empty ones
+        let headers: string[] = [];
+        if (data.length > 0) {
+          const rawHeaders = Object.keys(data[0]);
+          headers = rawHeaders.filter(header => 
+            header && 
+            header.trim() !== '' && 
+            header !== '__parsed_extra' // Papa Parse internal field
+          );
+          
+          console.log('Filtered headers:', { raw: rawHeaders, filtered: headers });
+          
+          // Clean the data to only include valid columns
+          data = data.map(row => {
+            const cleanedRow: PayeeCSVRow = {};
+            headers.forEach(header => {
+              if (row[header] !== undefined) {
+                cleanedRow[header] = row[header];
+              }
+            });
+            return cleanedRow;
+          });
         }
         
         // Validate we have data
@@ -45,17 +87,16 @@ export const parsePayeeCSVFile = (file: File): Promise<ParsedPayeeCSV> => {
           errors.push('No payee data found in CSV file');
         }
         
-        // Get headers from the first data row
-        const headers = data.length > 0 ? Object.keys(data[0]) : [];
-        
         if (headers.length === 0) {
-          errors.push('No columns found in CSV file');
+          errors.push('No valid columns found in CSV file');
         }
         
         // Add any Papa Parse errors
         if (results.errors && results.errors.length > 0) {
           errors.push(...results.errors.map(e => e.message));
         }
+        
+        console.log('Final parse results:', { dataLength: data.length, headers, errorCount: errors.length });
         
         resolve({
           data,

@@ -213,7 +213,7 @@ export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClos
                     <SelectValue placeholder="Select column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map(header => (
+                    {headers.filter(header => header && header.trim()).map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>
@@ -228,7 +228,7 @@ export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClos
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {headers.map(header => (
+                    {headers.filter(header => header && header.trim()).map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>
@@ -243,7 +243,7 @@ export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClos
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {headers.map(header => (
+                    {headers.filter(header => header && header.trim()).map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>
@@ -258,7 +258,7 @@ export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClos
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {headers.map(header => (
+                    {headers.filter(header => header && header.trim()).map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>
