@@ -14,15 +14,19 @@ import { ClientForm } from "./ClientForm";
 interface ClientSelectorProps {
   value?: string;
   onValueChange: (clientId: string, clientName?: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   required?: boolean;
+  error?: string;
 }
 
 export const ClientSelector = ({ 
   value, 
-  onValueChange, 
+  onValueChange,
+  onBlur,
   placeholder = "Select client...",
-  required = false 
+  required = false,
+  error = ""
 }: ClientSelectorProps) => {
   const [open, setOpen] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
@@ -65,7 +69,11 @@ export const ClientSelector = ({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between"
+            onBlur={onBlur}
+            className={cn(
+              "w-full justify-between",
+              error && "border-destructive"
+            )}
           >
             {selectedClient ? (
               <span className="truncate">
@@ -142,6 +150,10 @@ export const ClientSelector = ({
           </Command>
         </PopoverContent>
       </Popover>
+
+      {error && (
+        <p className="text-sm font-medium text-destructive">{error}</p>
+      )}
 
       {showClientForm && (
         <ClientForm

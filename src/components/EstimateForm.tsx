@@ -72,6 +72,12 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
   const [globalMarkupPercent, setGlobalMarkupPercent] = useState<number>(initialEstimate?.defaultMarkupPercent || 15);
   const [targetMarginPercent, setTargetMarginPercent] = useState<number>(initialEstimate?.targetMarginPercent || 20);
 
+  // Validation states
+  const [clientError, setClientError] = useState<string>("");
+  const [projectNameError, setProjectNameError] = useState<string>("");
+  const [lineItemsError, setLineItemsError] = useState<string>("");
+  const [hasValidated, setHasValidated] = useState(false);
+
   useEffect(() => {
     if (initialEstimate) {
       // Load existing estimate for editing
@@ -545,17 +551,56 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     });
   };
 
-  const validateForm = () => {
-    const validLineItems = lineItems.filter(item => item.description.trim());
-    
-    if (validLineItems.length === 0) {
-      toast({
-        title: "Missing Line Items",
-        description: "Please add at least one line item with a description.",
-        variant: "destructive"
-      });
-      return false;
+  // Validation functions
+  const validateClient = () => {
+    if (projectMode === 'new' && !selectedClientId) {
+      return "Please select a client";
     }
+    return "";
+  };
+
+  const validateProjectName = () => {
+    if (projectMode === 'new') {
+      if (!projectName.trim()) {
+        return "Project name is required";
+      }
+      if (projectName.trim().length < 3) {
+        return "Project name must be at least 3 characters";
+      }
+    }
+    return "";
+  };
+
+  const validateLineItems = () => {
+    const validLineItems = lineItems.filter(item => item.description.trim());
+    if (validLineItems.length === 0) {
+      return "At least one line item with description is required";
+    }
+    return "";
+  };
+
+  const validateAllFields = () => {
+    const clientErr = validateClient();
+    const projectNameErr = validateProjectName();  
+    const lineItemsErr = validateLineItems();
+
+    setClientError(clientErr);
+    setProjectNameError(projectNameErr);
+    setLineItemsError(lineItemsErr);
+    setHasValidated(true);
+
+    return !clientErr && !projectNameErr && !lineItemsErr;
+  };
+
+  const isFormValid = () => {
+    if (!hasValidated) return true; // Don't disable until validation starts
+    return !clientError && !projectNameError && !lineItemsError && 
+           (projectMode === 'existing' ? selectedProjectId : true);
+  };
+
+  const validateForm = () => {
+    // Run all field validations first
+    if (!validateAllFields()) return false;
 
     if (contingencyPercent < 0 || contingencyPercent > 50) {
       toast({
@@ -566,24 +611,13 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
       return false;
     }
 
-    if (projectMode === 'new') {
-      if (!projectName.trim() || !selectedClientId) {
-        toast({
-          title: "Missing Project Information",
-          description: "Please fill in project name and select a client.",
-          variant: "destructive"
-        });
-        return false;
-      }
-    } else {
-      if (!selectedProjectId) {
-        toast({
-          title: "No Project Selected",
-          description: "Please select an existing project.",
-          variant: "destructive"
-        });
-        return false;
-      }
+    if (projectMode === 'existing' && !selectedProjectId) {
+      toast({
+        title: "No Project Selected",
+        description: "Please select an existing project.",
+        variant: "destructive"
+      });
+      return false;
     }
 
     return true;
@@ -992,31 +1026,51 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                       id="projectName"
                       value={projectName}
                       onChange={(e) => setProjectName(e.target.value)}
+                      onBlur={() => {
+                        const error = validateProjectName();
+                        setProjectNameError(error);
+                        setHasValidated(true);
+                      }}
                       placeholder="Enter project name"
+                      className={cn(projectNameError && "border-destructive")}
                     />
+                    {projectNameError && (
+                      <p className="text-sm font-medium text-destructive">{projectNameError}</p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
                     <RequiredLabel htmlFor="client">Client</RequiredLabel>
-                    <ClientSelector
-                      value={selectedClientId}
-                      onValueChange={async (clientId: string, clientName?: string) => {
-                        setSelectedClientId(clientId);
-                        // Fetch full client data for display
-                        if (clientId) {
-                          const { data: clientData } = await supabase
-                            .from('clients')
-                            .select('*')
-                            .eq('id', clientId)
-                            .single();
-                          setSelectedClientData(clientData);
-                        } else {
-                          setSelectedClientData(null);
-                        }
-                      }}
-                      placeholder="Select or add a client"
-                      required
-                    />
+                     <ClientSelector
+                       value={selectedClientId}
+                       onValueChange={async (clientId: string, clientName?: string) => {
+                         setSelectedClientId(clientId);
+                         // Clear error when value changes
+                         setClientError("");
+                         // Fetch full client data for display
+                         if (clientId) {
+                           const { data: clientData } = await supabase
+                             .from('clients')
+                             .select('*')
+                             .eq('id', clientId)
+                             .single();
+                           setSelectedClientData(clientData);
+                         } else {
+                           setSelectedClientData(null);
+                         }
+                       }}
+                       onBlur={() => {
+                         const error = validateClient();
+                         setClientError(error);
+                         setHasValidated(true);
+                       }}
+                       placeholder="Select or add a client"
+                       required
+                       error={clientError}
+                     />
+                     {clientError && (
+                       <p className="text-sm font-medium text-destructive">{clientError}</p>
+                     )}
                   </div>
 
                   {/* Client Details Card */}
@@ -1258,7 +1312,12 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
           {/* Line Items */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <RequiredLabel className="text-lg font-semibold">Line Items</RequiredLabel>
+              <div className="space-y-2">
+                <RequiredLabel className="text-lg font-semibold">Line Items</RequiredLabel>
+                {lineItemsError && (
+                  <p className="text-sm font-medium text-destructive">{lineItemsError}</p>
+                )}
+              </div>
               <Button onClick={addLineItem} variant="outline" size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Line Item
@@ -1308,11 +1367,16 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                     </div>
                     
                     <div className="col-span-3">
-                      <Input
-                        value={lineItem.description}
-                        onChange={(e) => updateLineItem(lineItem.id, 'description', e.target.value)}
-                        placeholder="Description"
-                      />
+                       <Input
+                         value={lineItem.description}
+                         onChange={(e) => updateLineItem(lineItem.id, 'description', e.target.value)}
+                         onBlur={() => {
+                           const error = validateLineItems();
+                           setLineItemsError(error);
+                           setHasValidated(true);
+                         }}
+                         placeholder="Description"
+                       />
                     </div>
                     
                     <div className="col-span-1">
@@ -1635,7 +1699,11 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">
-            <Button onClick={handleSave} className="flex-1" disabled={isLoading || isCreatingVersion}>
+            <Button 
+              onClick={handleSave} 
+              className="flex-1" 
+              disabled={isLoading || isCreatingVersion || (hasValidated && !isFormValid())}
+            >
               <Save className="h-4 w-4 mr-2" />
               {isLoading ? "Saving..." : (initialEstimate ? "Update Estimate" : "Create Estimate")}
             </Button>
