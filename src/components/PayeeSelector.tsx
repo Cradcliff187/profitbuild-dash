@@ -1,79 +1,62 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import type { Payee, PayeeType } from "@/types/payee";
+import { PayeeForm } from "./PayeeForm";
 
 interface PayeeSelectorProps {
-  selectedPayeeId?: string;
-  onSelect: (payee: Payee) => void;
-  onAddNew?: () => void;
+  value?: string;
+  onValueChange: (payeeId: string, payeeName?: string, payee?: Payee) => void;
+  onBlur?: () => void;
   placeholder?: string;
+  required?: boolean;
+  error?: string;
   label?: string;
 }
 
 export const PayeeSelector = ({ 
-  selectedPayeeId, 
-  onSelect,
-  onAddNew, 
+  value, 
+  onValueChange,
+  onBlur,
   placeholder = "Select a payee...",
+  required = false,
+  error = "",
   label = "Payee"
 }: PayeeSelectorProps) => {
-  const [payees, setPayees] = useState<Payee[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [showPayeeForm, setShowPayeeForm] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
   const { toast } = useToast();
 
-  const fetchPayees = async () => {
-    setIsLoading(true);
-    try {
+  const { data: payees = [], refetch } = useQuery({
+    queryKey: ["payees"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("payees")
         .select("*")
         .eq("is_active", true)
         .order("payee_name");
-
+      
       if (error) throw error;
-      setPayees(data as Payee[] || []);
-    } catch (error) {
-      console.error("Error fetching payees:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load payees",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return data as Payee[];
+    },
+  });
 
-  useEffect(() => {
-    fetchPayees();
-  }, []);
+  const selectedPayee = payees.find(payee => payee.id === value);
 
-  // Helper function to get badge variant for payee type
-  const getPayeeTypeBadgeVariant = (payeeType?: PayeeType) => {
-    switch (payeeType) {
-      case 'subcontractor':
-        return 'default'; // blue/primary
-      case 'material_supplier':
-        return 'secondary'; // green
-      case 'equipment_rental':
-        return 'outline'; // orange/warning  
-      case 'internal_labor':
-        return 'default'; // purple
-      case 'management':
-        return 'secondary'; // gray
-      case 'permit_authority':
-        return 'destructive'; // red
-      case 'other':
-      default:
-        return 'outline';
-    }
-  };
+  const filteredPayees = payees.filter(payee =>
+    payee.payee_name.toLowerCase().includes(searchValue.toLowerCase()) ||
+    payee.email?.toLowerCase().includes(searchValue.toLowerCase()) ||
+    formatPayeeType(payee.payee_type).toLowerCase().includes(searchValue.toLowerCase())
+  );
 
   // Helper function to format payee type display name
   const formatPayeeType = (payeeType?: PayeeType) => {
@@ -81,6 +64,27 @@ export const PayeeSelector = ({
     return payeeType.split('_').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
+  };
+
+  // Helper function to get badge variant for payee type
+  const getPayeeTypeBadgeVariant = (payeeType?: PayeeType) => {
+    switch (payeeType) {
+      case 'subcontractor':
+        return 'default';
+      case 'material_supplier':
+        return 'secondary';
+      case 'equipment_rental':
+        return 'outline';
+      case 'internal_labor':
+        return 'default';
+      case 'management':
+        return 'secondary';
+      case 'permit_authority':
+        return 'destructive';
+      case 'other':
+      default:
+        return 'outline';
+    }
   };
 
   // Helper function to group payees by type
@@ -113,79 +117,157 @@ export const PayeeSelector = ({
     return name;
   };
 
-  const handleValueChange = (payeeId: string) => {
-    const payee = payees.find(p => p.id === payeeId);
-    if (payee) {
-      onSelect(payee);
+  const handlePayeeCreated = async () => {
+    setShowPayeeForm(false);
+    await refetch();
+    
+    // Auto-select the newly created payee (likely the most recently created one)
+    if (payees.length > 0) {
+      const sortedPayees = [...payees].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      const newestPayee = sortedPayees[0];
+      onValueChange(newestPayee.id, newestPayee.payee_name, newestPayee);
     }
   };
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label>{label}</Label>
-        {onAddNew && (
-          <Button variant="outline" size="sm" onClick={onAddNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add New
+      <Label className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
+        {label}
+      </Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            onBlur={onBlur}
+            className={cn(
+              "w-full justify-between",
+              error && "border-destructive"
+            )}
+          >
+            {selectedPayee ? (
+              <div className="flex items-center gap-2 truncate">
+                <span className="truncate">
+                  {formatPayeeDisplayName(selectedPayee)}
+                </span>
+                <Badge 
+                  variant={getPayeeTypeBadgeVariant(selectedPayee.payee_type)}
+                  className="text-xs"
+                >
+                  {formatPayeeType(selectedPayee.payee_type)}
+                </Badge>
+              </div>
+            ) : (
+              placeholder
+            )}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
-        )}
-      </div>
-      
-      <Select
-        value={selectedPayeeId || ""}
-        onValueChange={handleValueChange}
-        disabled={isLoading}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder={isLoading ? "Loading payees..." : placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {payees.length === 0 && !isLoading ? (
-            <SelectItem value="no-payees" disabled>
-              No payees available
-            </SelectItem>
-          ) : (
-            groupPayeesByType(payees).map(([type, groupPayees]) => (
-              <SelectGroup key={type}>
-                <SelectLabel className="px-2 py-1.5 text-sm font-semibold">
-                  {formatPayeeType(type as PayeeType)}
-                </SelectLabel>
-                {groupPayees
-                  .sort((a, b) => a.payee_name.localeCompare(b.payee_name))
-                  .map((payee) => (
-                    <SelectItem key={payee.id} value={payee.id}>
-                      <div className="flex flex-col w-full">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">
-                            {formatPayeeDisplayName(payee)}
-                          </span>
-                          <Badge 
-                            variant={getPayeeTypeBadgeVariant(payee.payee_type)}
-                            className="text-xs"
-                          >
-                            {formatPayeeType(payee.payee_type)}
-                          </Badge>
-                        </div>
-                        <div className="flex flex-col text-xs text-muted-foreground">
-                          {payee.payee_type === 'internal_labor' && payee.hourly_rate && (
-                            <span className="text-primary font-medium">
-                              ${payee.hourly_rate}/hr
-                            </span>
-                          )}
-                          {payee.email && payee.payee_type !== 'internal_labor' && (
-                            <span>{payee.email}</span>
-                          )}
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))
-                }
-              </SelectGroup>
-            ))
-          )}
-        </SelectContent>
-      </Select>
+        </PopoverTrigger>
+        <PopoverContent className="w-full p-0">
+          <Command>
+            <CommandInput 
+              placeholder="Search payees..." 
+              value={searchValue}
+              onValueChange={setSearchValue}
+            />
+            <CommandList>
+              <CommandEmpty>
+                <div className="p-2">
+                  <p className="text-sm text-muted-foreground mb-2">No payees found.</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowPayeeForm(true);
+                      setOpen(false);
+                    }}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add New Payee
+                  </Button>
+                </div>
+              </CommandEmpty>
+              <CommandGroup>
+                <CommandItem
+                  onSelect={() => {
+                    setShowPayeeForm(true);
+                    setOpen(false);
+                  }}
+                  className="font-medium"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add New Payee
+                </CommandItem>
+                {groupPayeesByType(filteredPayees).map(([type, groupPayees]) => (
+                  <CommandGroup key={type}>
+                    <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                      {formatPayeeType(type as PayeeType)}
+                    </div>
+                    {groupPayees
+                      .sort((a, b) => a.payee_name.localeCompare(b.payee_name))
+                      .map((payee) => (
+                        <CommandItem
+                          key={payee.id}
+                          value={payee.id}
+                          onSelect={() => {
+                            onValueChange(payee.id, payee.payee_name, payee);
+                            setOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              value === payee.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <div className="flex-1 truncate">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium">
+                                {formatPayeeDisplayName(payee)}
+                              </span>
+                              <Badge 
+                                variant={getPayeeTypeBadgeVariant(payee.payee_type)}
+                                className="text-xs"
+                              >
+                                {formatPayeeType(payee.payee_type)}
+                              </Badge>
+                            </div>
+                            <div className="flex flex-col text-xs text-muted-foreground">
+                              {payee.payee_type === 'internal_labor' && payee.hourly_rate && (
+                                <span className="text-primary font-medium">
+                                  ${payee.hourly_rate}/hr
+                                </span>
+                              )}
+                              {payee.email && payee.payee_type !== 'internal_labor' && (
+                                <span>{payee.email}</span>
+                              )}
+                            </div>
+                          </div>
+                        </CommandItem>
+                      ))
+                    }
+                  </CommandGroup>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
+      {error && (
+        <p className="text-sm font-medium text-destructive">{error}</p>
+      )}
+
+      {showPayeeForm && (
+        <PayeeForm
+          onSuccess={handlePayeeCreated}
+          onCancel={() => setShowPayeeForm(false)}
+        />
+      )}
     </div>
   );
 };

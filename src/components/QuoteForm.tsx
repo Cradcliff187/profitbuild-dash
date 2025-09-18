@@ -290,10 +290,12 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
           {/* Quote Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <PayeeSelector
-              selectedPayeeId={selectedPayee?.id}
-              onSelect={(payee) => {
-                setSelectedPayee(payee);
-                setQuotedBy(payee.payee_name);
+              value={selectedPayee?.id}
+              onValueChange={(payeeId, payeeName, payee) => {
+                if (payee) {
+                  setSelectedPayee(payee);
+                  setQuotedBy(payee.payee_name);
+                }
               }}
               placeholder="Select payee for this quote..."
               label="Subcontractor/Payee"
