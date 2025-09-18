@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Eye, FileText, Trash2, ArrowUpDown, Edit, Check, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Eye, FileText, Trash2, ArrowUpDown, Edit, Check, X, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
+import { Project } from "@/types/project";
+import { Expense, ExpenseCategory } from "@/types/expense";
 import { QuoteStatusBadge } from "./QuoteStatusBadge";
+import { QuoteAcceptanceModal } from "./QuoteAcceptanceModal";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface QuotesListProps {
   quotes: Quote[];
@@ -25,11 +30,19 @@ interface QuotesListProps {
   onEdit: (quote: Quote) => void;
   onDelete: (quoteId: string) => void;
   onCompare: (quote: Quote) => void;
+  onAccept?: (quote: Quote) => void;
+  onExpire?: (expiredQuoteIds: string[]) => void;
 }
 
-export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare }: QuotesListProps) => {
+export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onAccept, onExpire }: QuotesListProps) => {
   const [sortBy, setSortBy] = useState<'date' | 'project' | 'total'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
+  const [selectedQuoteForAcceptance, setSelectedQuoteForAcceptance] = useState<Quote | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projectExpenses, setProjectExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const getEstimateForQuote = (quote: Quote): Estimate | undefined => {
     return estimates.find(est => est.project_id === quote.project_id);
@@ -67,12 +80,181 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare }: Q
     return sortOrder === 'asc' ? comparison : -comparison;
   });
 
+  // Auto-expire quotes function
+  const checkAndExpireQuotes = async (quotesToCheck: Quote[]) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const expiredQuotes = quotesToCheck.filter(quote => 
+      quote.status === QuoteStatus.PENDING &&
+      quote.valid_until &&
+      new Date(quote.valid_until) < today
+    );
+    
+    if (expiredQuotes.length > 0) {
+      try {
+        // Update database
+        const updatePromises = expiredQuotes.map(quote =>
+          supabase.from('quotes')
+            .update({ status: 'expired' })
+            .eq('id', quote.id)
+        );
+        
+        await Promise.all(updatePromises);
+        
+        const expiredQuoteIds = expiredQuotes.map(q => q.id);
+        onExpire?.(expiredQuoteIds);
+        
+        toast({
+          title: "Quotes Auto-Expired",
+          description: `${expiredQuotes.length} quote(s) have been automatically expired due to past expiration dates.`,
+        });
+        
+        return expiredQuoteIds;
+      } catch (error) {
+        console.error('Error expiring quotes:', error);
+        toast({
+          title: "Error",
+          description: "Failed to expire quotes. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+    
+    return [];
+  };
+
+  // Run auto-expire check on component mount
+  useEffect(() => {
+    if (quotes.length > 0) {
+      checkAndExpireQuotes(quotes);
+    }
+  }, [quotes.length]); // Only run when quotes array changes length
+
   const handleSort = (newSortBy: typeof sortBy) => {
     if (sortBy === newSortBy) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(newSortBy);
       setSortOrder('desc');
+    }
+  };
+
+  const handleAcceptClick = async (quote: Quote) => {
+    setLoading(true);
+    try {
+      // Fetch project data
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', quote.project_id)
+        .single();
+
+      if (projectError) throw projectError;
+
+      // Fetch project expenses
+      const { data: expensesData, error: expensesError } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('project_id', quote.project_id);
+
+      if (expensesError) throw expensesError;
+
+      // Transform project data to match TypeScript interface
+      const transformedProject: Project = {
+        ...projectData,
+        start_date: projectData.start_date ? new Date(projectData.start_date) : undefined,
+        end_date: projectData.end_date ? new Date(projectData.end_date) : undefined,
+        created_at: new Date(projectData.created_at),
+        updated_at: new Date(projectData.updated_at),
+      };
+
+      // Transform expenses data to match TypeScript interface
+      const transformedExpenses: Expense[] = (expensesData || []).map(expense => ({
+        ...expense,
+        category: expense.category as ExpenseCategory,
+        expense_date: new Date(expense.expense_date),
+        created_at: new Date(expense.created_at),
+        updated_at: new Date(expense.updated_at),
+      }));
+
+      setSelectedQuoteForAcceptance(quote);
+      setSelectedProject(transformedProject);
+      setProjectExpenses(transformedExpenses);
+      setShowAcceptanceModal(true);
+    } catch (error) {
+      console.error('Error fetching project data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load project data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuoteAccept = async (updatedQuote: Quote) => {
+    try {
+      const { error } = await supabase
+        .from('quotes')
+        .update({
+          status: updatedQuote.status,
+          accepted_date: updatedQuote.accepted_date?.toISOString(),
+        })
+        .eq('id', updatedQuote.id);
+
+      if (error) throw error;
+
+      onAccept?.(updatedQuote);
+      setShowAcceptanceModal(false);
+      setSelectedQuoteForAcceptance(null);
+      setSelectedProject(null);
+      setProjectExpenses([]);
+
+      toast({
+        title: "Quote Accepted",
+        description: `Quote ${updatedQuote.quoteNumber} has been accepted successfully.`,
+      });
+    } catch (error) {
+      console.error('Error accepting quote:', error);
+      toast({
+        title: "Error",
+        description: "Failed to accept quote. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleQuoteReject = async (updatedQuote: Quote) => {
+    try {
+      const { error } = await supabase
+        .from('quotes')
+        .update({
+          status: updatedQuote.status,
+          rejection_reason: updatedQuote.rejection_reason,
+        })
+        .eq('id', updatedQuote.id);
+
+      if (error) throw error;
+
+      onAccept?.(updatedQuote); // Use same callback for consistency
+      setShowAcceptanceModal(false);
+      setSelectedQuoteForAcceptance(null);
+      setSelectedProject(null);
+      setProjectExpenses([]);
+
+      toast({
+        title: "Quote Rejected",
+        description: `Quote ${updatedQuote.quoteNumber} has been rejected.`,
+      });
+    } catch (error) {
+      console.error('Error rejecting quote:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject quote. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -144,6 +326,18 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare }: Q
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    {quote.status === QuoteStatus.PENDING && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleAcceptClick(quote)}
+                        disabled={loading}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Accept
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -304,6 +498,24 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare }: Q
           );
         })}
       </div>
+
+      {/* Quote Acceptance Modal */}
+      {showAcceptanceModal && selectedQuoteForAcceptance && selectedProject && (
+        <QuoteAcceptanceModal
+          quote={selectedQuoteForAcceptance}
+          estimate={getEstimateForQuote(selectedQuoteForAcceptance)!}
+          project={selectedProject}
+          expenses={projectExpenses}
+          onAccept={handleQuoteAccept}
+          onReject={handleQuoteReject}
+          onClose={() => {
+            setShowAcceptanceModal(false);
+            setSelectedQuoteForAcceptance(null);
+            setSelectedProject(null);
+            setProjectExpenses([]);
+          }}
+        />
+      )}
     </div>
   );
 };

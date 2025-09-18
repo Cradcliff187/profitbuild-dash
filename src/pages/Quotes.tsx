@@ -274,6 +274,26 @@ const Quotes = () => {
     setView('compare');
   };
 
+  const handleAcceptQuote = async (updatedQuote: Quote) => {
+    // Update the local state immediately for UI responsiveness
+    setQuotes(prev => prev.map(q => q.id === updatedQuote.id ? updatedQuote : q));
+    
+    // Optionally refresh data to ensure consistency
+    await fetchData();
+  };
+
+  const handleExpireQuotes = async (expiredQuoteIds: string[]) => {
+    // Update the local state immediately for UI responsiveness
+    setQuotes(prev => prev.map(q => 
+      expiredQuoteIds.includes(q.id) 
+        ? { ...q, status: QuoteStatus.EXPIRED }
+        : q
+    ));
+    
+    // Optionally refresh data to ensure consistency
+    await fetchData();
+  };
+
   const selectedEstimate = selectedQuote ? 
     estimates.find(est => est.project_id === selectedQuote.project_id) : undefined;
 
@@ -347,6 +367,8 @@ const Quotes = () => {
           onEdit={handleEditQuote}
           onDelete={handleDeleteQuote}
           onCompare={handleCompareQuote}
+          onAccept={handleAcceptQuote}
+          onExpire={handleExpireQuotes}
         />
       )}
 
