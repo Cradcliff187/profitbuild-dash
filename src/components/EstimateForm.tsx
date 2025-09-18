@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calculator, Building2, Save, Plus } from "lucide-react";
+import { Calculator, Building2, Save, Plus, Copy, History, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +52,16 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
   const [internalLaborRate, setInternalLaborRate] = useState(75);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
+  
+  // Copy from estimate feature
+  const [availableEstimates, setAvailableEstimates] = useState<{[projectId: string]: Estimate[]}>({});
+  const [selectedCopyEstimate, setSelectedCopyEstimate] = useState<string>("");
+  
+  // Version history feature
+  const [estimateVersions, setEstimateVersions] = useState<Estimate[]>([]);
+  const [selectedVersionId, setSelectedVersionId] = useState<string>("");
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [originalLineItems, setOriginalLineItems] = useState<LineItem[]>([]);
 
   useEffect(() => {
     if (initialEstimate) {
@@ -67,6 +77,13 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
       setProjectNumber(generateProjectNumber());
     }
     loadExistingProjects();
+    loadAvailableEstimates();
+    
+    if (initialEstimate) {
+      loadEstimateVersions(initialEstimate.id);
+      setSelectedVersionId(initialEstimate.id);
+      setOriginalLineItems([]);
+    }
   }, [initialEstimate]);
 
   const loadExistingProjects = async () => {
@@ -117,6 +134,180 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     } catch (error) {
       console.error('Error loading line items:', error);
     }
+  };
+
+  const loadAvailableEstimates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('estimates')
+        .select(`
+          *,
+          projects!inner(project_name, client_name)
+        `)
+        .order('date_created', { ascending: false });
+
+      if (error) throw error;
+
+      const estimatesWithProjects = data?.map(e => ({
+        ...e,
+        project_name: e.projects.project_name,
+        client_name: e.projects.client_name,
+        date_created: new Date(e.date_created),
+        valid_until: e.valid_until ? new Date(e.valid_until) : undefined,
+        created_at: new Date(e.created_at),
+        updated_at: new Date(e.updated_at),
+        lineItems: []
+      })) || [];
+
+      // Group by project
+      const grouped = estimatesWithProjects.reduce((acc, estimate) => {
+        if (!acc[estimate.project_id]) {
+          acc[estimate.project_id] = [];
+        }
+        acc[estimate.project_id].push(estimate);
+        return acc;
+      }, {} as {[key: string]: Estimate[]});
+
+      setAvailableEstimates(grouped);
+    } catch (error) {
+      console.error('Error loading estimates:', error);
+    }
+  };
+
+  const loadEstimateVersions = async (estimateId: string) => {
+    try {
+      // Find the root estimate ID
+      const { data: currentEstimate } = await supabase
+        .from('estimates')
+        .select('parent_estimate_id')
+        .eq('id', estimateId)
+        .single();
+
+      const rootId = currentEstimate?.parent_estimate_id || estimateId;
+
+      // Load all versions in the family
+      const { data, error } = await supabase
+        .from('estimates')
+        .select(`
+          *,
+          projects!inner(project_name, client_name)
+        `)
+        .or(`id.eq.${rootId},parent_estimate_id.eq.${rootId}`)
+        .order('version_number', { ascending: false });
+
+      if (error) throw error;
+
+      const versions = data?.map(e => ({
+        ...e,
+        project_name: e.projects.project_name,
+        client_name: e.projects.client_name,
+        date_created: new Date(e.date_created),
+        valid_until: e.valid_until ? new Date(e.valid_until) : undefined,
+        created_at: new Date(e.created_at),
+        updated_at: new Date(e.updated_at),
+        lineItems: []
+      })) || [];
+
+      setEstimateVersions(versions);
+    } catch (error) {
+      console.error('Error loading versions:', error);
+    }
+  };
+
+  const handleCopyFromEstimate = async () => {
+    if (!selectedCopyEstimate) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('estimate_line_items')
+        .select('*')
+        .eq('estimate_id', selectedCopyEstimate)
+        .order('sort_order');
+
+      if (error) throw error;
+
+      const copiedItems = data?.map((item, index) => ({
+        id: Date.now().toString() + Math.random() + index,
+        category: item.category,
+        description: item.description,
+        quantity: item.quantity,
+        rate: item.rate,
+        total: item.quantity * item.rate,
+        unit: item.unit,
+        sort_order: index
+      })) || [];
+
+      setLineItems(copiedItems as LineItem[]);
+      setSelectedCopyEstimate("");
+      
+      toast({
+        title: "Items Copied",
+        description: `Copied ${copiedItems.length} line items from the selected estimate.`
+      });
+    } catch (error) {
+      console.error('Error copying estimate:', error);
+      toast({
+        title: "Error",
+        description: "Failed to copy line items.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleVersionChange = async (versionId: string) => {
+    if (versionId === selectedVersionId) return;
+
+    const version = estimateVersions.find(v => v.id === versionId);
+    if (!version) return;
+
+    try {
+      // Save current line items if editing the current version
+      if (selectedVersionId === initialEstimate?.id && !isReadOnly) {
+        setOriginalLineItems([...lineItems]);
+      }
+
+      // Load line items for the selected version
+      await loadEstimateLineItems(versionId);
+      
+      // Update form with version data
+      setDate(version.date_created);
+      setValidUntil(version.valid_until);
+      setNotes(version.notes || "");
+      setContingencyPercent(version.contingency_percent);
+      setContingencyUsed(version.contingency_used);
+      
+      setSelectedVersionId(versionId);
+      setIsReadOnly(versionId !== initialEstimate?.id);
+
+      if (versionId !== initialEstimate?.id) {
+        toast({
+          title: "Viewing Historical Version",
+          description: `Now viewing version ${version.version_number} (read-only).`
+        });
+      }
+    } catch (error) {
+      console.error('Error loading version:', error);
+    }
+  };
+
+  const handleBackToCurrentVersion = () => {
+    if (!initialEstimate) return;
+    
+    // Restore original data
+    setDate(initialEstimate.date_created);
+    setValidUntil(initialEstimate.valid_until);
+    setNotes(initialEstimate.notes || "");
+    setContingencyPercent(initialEstimate.contingency_percent);
+    setContingencyUsed(initialEstimate.contingency_used);
+    
+    if (originalLineItems.length > 0) {
+      setLineItems(originalLineItems);
+    } else {
+      loadEstimateLineItems(initialEstimate.id);
+    }
+    
+    setSelectedVersionId(initialEstimate.id);
+    setIsReadOnly(false);
   };
 
   const generateEstimateNumber = (projectNum: string) => {
@@ -457,9 +648,45 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
-            {initialEstimate ? 'Edit Estimate' : 'Create New Estimate'}
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              {initialEstimate ? 'Edit Estimate' : 'Create New Estimate'}
+              {isReadOnly && <Badge variant="outline">Read Only</Badge>}
+            </div>
+            
+            {/* Version History Dropdown */}
+            {initialEstimate && estimateVersions.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Label className="text-sm">Version:</Label>
+                <Select value={selectedVersionId} onValueChange={handleVersionChange}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {estimateVersions.map(version => (
+                      <SelectItem key={version.id} value={version.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-2">
+                            <span>v{version.version_number}</span>
+                            {version.is_current_version && <Badge variant="default" className="text-xs">Current</Badge>}
+                          </div>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            {format(version.date_created, 'MMM d, yyyy')}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isReadOnly && (
+                  <Button variant="outline" size="sm" onClick={handleBackToCurrentVersion}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Back to Current
+                  </Button>
+                )}
+              </div>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -706,6 +933,59 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
               This rate will be used for all Internal Labor line items
             </p>
           </div>
+
+          {/* Copy from Previous Estimate */}
+          {!initialEstimate && Object.keys(availableEstimates).length > 0 && (
+            <div className="space-y-4">
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Copy from Previous Estimate</Label>
+                  <p className="text-sm text-muted-foreground">Copy line items from an existing estimate</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select value={selectedCopyEstimate} onValueChange={setSelectedCopyEstimate}>
+                    <SelectTrigger className="w-64">
+                      <SelectValue placeholder="Select estimate to copy from" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(availableEstimates).map(([projectId, estimates]) => {
+                        const projectName = estimates[0]?.project_name;
+                        const clientName = estimates[0]?.client_name;
+                        return (
+                          <div key={projectId}>
+                            <div className="px-2 py-1 text-sm font-medium text-muted-foreground border-b">
+                              {projectName} • {clientName}
+                            </div>
+                            {estimates.map(estimate => (
+                              <SelectItem key={estimate.id} value={estimate.id}>
+                                <div className="flex flex-col items-start">
+                                  <span>{estimate.estimate_number}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {format(estimate.date_created, 'MMM d, yyyy')} • ${estimate.total_amount?.toLocaleString()}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleCopyFromEstimate}
+                    disabled={!selectedCopyEstimate}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Items
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Line Items */}
           <div className="space-y-4">
