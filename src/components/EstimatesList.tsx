@@ -79,6 +79,17 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
     return { variance, percentage };
   };
 
+  const formatContingencyDisplay = (estimate: Estimate) => {
+    if (!estimate.contingency_percent || estimate.contingency_percent === 0) {
+      return null;
+    }
+    
+    const contingencyAmount = estimate.contingency_amount || 
+      (estimate.total_amount * (estimate.contingency_percent / 100)) / (1 + (estimate.contingency_percent / 100));
+    
+    return `Includes ${estimate.contingency_percent}% contingency: $${contingencyAmount.toFixed(2)}`;
+  };
+
   const getCategoryBadgeColor = (category: string) => {
     switch (category) {
       case 'Labor':
@@ -182,6 +193,11 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-primary">${estimate.total_amount.toFixed(2)}</div>
+                  {formatContingencyDisplay(estimate) && (
+                    <div className="text-sm text-muted-foreground">
+                      {formatContingencyDisplay(estimate)}
+                    </div>
+                  )}
                   <div className="text-sm text-muted-foreground">{estimate.lineItems.length} line item{estimate.lineItems.length === 1 ? '' : 's'}</div>
                 </div>
               </div>
