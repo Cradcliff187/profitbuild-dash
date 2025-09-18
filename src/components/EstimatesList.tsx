@@ -10,6 +10,7 @@ import { Estimate } from "@/types/estimate";
 import { useToast } from "@/hooks/use-toast";
 import { BudgetComparisonBadge, BudgetComparisonStatus } from "@/components/BudgetComparisonBadge";
 import { VarianceBadge } from "@/components/ui/variance-badge";
+import { cn } from "@/lib/utils";
 
 interface EstimatesListProps {
   estimates: (Estimate & { quotes?: Array<{ id: string; total_amount: number }> })[];
@@ -178,7 +179,13 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
 
       <div className="grid gap-6">
         {estimates.map((estimate) => (
-          <Card key={estimate.id} className="hover:shadow-md transition-shadow">
+          <Card 
+            key={estimate.id} 
+            className={cn(
+              "hover:shadow-md transition-shadow",
+              !estimate.is_current_version && "opacity-60 bg-muted/20"
+            )}
+          >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div>
@@ -206,6 +213,20 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
             <CardContent className="pt-0">
               {/* Status badges */}
               <div className="flex items-center gap-2 mb-4 flex-wrap">
+                {/* Version badge - always show for better consistency */}
+                <Badge 
+                  variant={estimate.is_current_version ? "default" : "secondary"} 
+                  className="text-sm font-medium"
+                >
+                  v{estimate.version_number}
+                </Badge>
+                
+                {estimate.is_current_version && (
+                  <Badge variant="default" className="text-sm">
+                    Current
+                  </Badge>
+                )}
+                
                 <BudgetComparisonBadge status={getQuoteStatus(estimate)} />
                 <Badge variant="outline" className="text-sm">
                   Status: {estimate.status}
@@ -213,21 +234,6 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
                 <Badge variant="secondary" className="text-sm">
                   Revision: {estimate.revision_number}
                 </Badge>
-                {estimate.version_number > 1 && (
-                  <Badge variant="outline" className="text-sm">
-                    v{estimate.version_number}
-                  </Badge>
-                )}
-                {!estimate.is_current_version && (
-                  <Badge variant="secondary" className="text-sm">
-                    Previous Version
-                  </Badge>
-                )}
-                {estimate.is_current_version && estimate.version_number > 1 && (
-                  <Badge variant="default" className="text-sm">
-                    Current Version
-                  </Badge>
-                )}
                 {(() => {
                   const variance = getBestQuoteVariance(estimate);
                   return variance && (

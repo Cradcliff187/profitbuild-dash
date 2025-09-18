@@ -51,6 +51,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
   const [contingencyUsed, setContingencyUsed] = useState(initialEstimate?.contingency_used || 0);
   const [internalLaborRate, setInternalLaborRate] = useState(75);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCreatingVersion, setIsCreatingVersion] = useState(false);
 
   useEffect(() => {
     if (initialEstimate) {
@@ -412,6 +413,37 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveAsNewVersion = async () => {
+    if (!initialEstimate) return;
+    
+    setIsCreatingVersion(true);
+    try {
+      const { data, error } = await supabase.rpc('create_estimate_version', {
+        source_estimate_id: initialEstimate.id
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "New Version Created",
+        description: "Successfully created estimate version."
+      });
+      
+      // Refresh to show the new version
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Error creating version:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to create new version.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingVersion(false);
     }
   };
 
@@ -844,11 +876,23 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">
-            <Button onClick={handleSave} className="flex-1" disabled={isLoading}>
+            <Button onClick={handleSave} className="flex-1" disabled={isLoading || isCreatingVersion}>
               <Save className="h-4 w-4 mr-2" />
-              {isLoading ? "Creating..." : "Create Estimate"}
+              {isLoading ? "Saving..." : (initialEstimate ? "Update Estimate" : "Create Estimate")}
             </Button>
-            <Button onClick={onCancel} variant="outline" disabled={isLoading}>
+            
+            {/* Version button - only show when editing */}
+            {initialEstimate && (
+              <Button 
+                onClick={handleSaveAsNewVersion} 
+                variant="outline"
+                disabled={isLoading || isCreatingVersion}
+              >
+                {isCreatingVersion ? "Creating..." : "Save as New Version"}
+              </Button>
+            )}
+            
+            <Button onClick={onCancel} variant="outline" disabled={isLoading || isCreatingVersion}>
               Cancel
             </Button>
           </div>
