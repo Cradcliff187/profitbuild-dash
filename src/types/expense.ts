@@ -43,6 +43,8 @@ export interface Expense {
   is_planned?: boolean;
   created_at: Date;
   updated_at: Date;
+  account_name?: string;
+  account_full_name?: string;
   // Additional fields for display (populated from joins)
   vendor_name?: string;
   project_name?: string;

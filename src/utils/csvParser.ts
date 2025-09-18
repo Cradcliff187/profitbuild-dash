@@ -1,7 +1,9 @@
 import Papa from 'papaparse';
 import { CSVRow, ColumnMapping, Expense, ExpenseCategory, TransactionType } from '@/types/expense';
+import { QuickBooksAccountMapping } from '@/types/quickbooks';
 import { supabase } from '@/integrations/supabase/client';
 import { fuzzyMatchPayee, PartialPayee } from '@/utils/fuzzyPayeeMatcher';
+import { QB_ACCOUNT_MAPPING, resolveQBAccountCategory } from '@/utils/quickbooksMapping';
 
 // Robust amount parser for QuickBooks and other CSV formats
 const parseQuickBooksAmount = (amount: string | number): number => {
@@ -91,7 +93,26 @@ export const mapCSVToExpenses = (
   });
 };
 
-const categorizeExpense = (description: string): ExpenseCategory => {
+const categorizeExpense = (
+  description: string, 
+  accountPath?: string,
+  dbMappings?: QuickBooksAccountMapping[]
+): ExpenseCategory => {
+  // Priority 1: User-defined database mappings
+  if (accountPath && dbMappings) {
+    const dbMapping = dbMappings.find(m => 
+      m.qb_account_full_path.toLowerCase() === accountPath.toLowerCase()
+    );
+    if (dbMapping) return dbMapping.app_category as ExpenseCategory;
+  }
+
+  // Priority 2: Static QB_ACCOUNT_MAPPING
+  if (accountPath) {
+    const staticMapping = resolveQBAccountCategory(accountPath);
+    if (staticMapping !== ExpenseCategory.OTHER) return staticMapping;
+  }
+
+  // Priority 3: Description-based categorization (existing logic)
   const desc = description.toLowerCase();
   
   if (desc.includes('labor') || desc.includes('wage') || desc.includes('payroll')) {
@@ -113,6 +134,7 @@ const categorizeExpense = (description: string): ExpenseCategory => {
     return ExpenseCategory.MANAGEMENT;
   }
   
+  // Priority 4: Default fallback
   return ExpenseCategory.OTHER;
 };
 
@@ -156,6 +178,7 @@ export interface QBTransaction {
   project_wo_number: string;
   amount: string;
   name: string;
+  account_path?: string;
   [key: string]: string;
 }
 
@@ -186,6 +209,13 @@ export interface QBImportResult {
     reason: string;
   }>;
   duplicatesDetected: number;
+  mappingStats: {
+    databaseMapped: number;
+    staticMapped: number;
+    descriptionMapped: number;
+    unmapped: number;
+  };
+  unmappedAccounts: string[];
   errors: string[];
 }
 
@@ -239,6 +269,8 @@ export const parseQuickBooksCSV = (file: File): Promise<QBParseResult> => {
               transaction.amount = row[index] || '0';
             } else if (cleanHeader.includes('name') || cleanHeader.includes('payee') || cleanHeader.includes('vendor')) {
               transaction.name = row[index] || '';
+            } else if (cleanHeader.includes('account')) {
+              transaction.account_path = row[index] || '';
             }
             transaction[header] = row[index] || '';
           });
@@ -297,18 +329,27 @@ export const mapQuickBooksToExpenses = async (
     lowConfidenceMatches: [],
     duplicates,
     duplicatesDetected: duplicateCount,
+    mappingStats: {
+      databaseMapped: 0,
+      staticMapped: 0,
+      descriptionMapped: 0,
+      unmapped: 0
+    },
+    unmappedAccounts: [],
     errors: []
   };
 
   try {
-    // Load projects and payees for matching
-    const [projectsResponse, payeesResponse] = await Promise.all([
+    // Load projects, payees, and account mappings for matching
+    const [projectsResponse, payeesResponse, mappingsResponse] = await Promise.all([
       supabase.from('projects').select('id, project_number, project_name'),
-      supabase.from('payees').select('id, vendor_name, full_name')
+      supabase.from('payees').select('id, vendor_name, full_name'),
+      supabase.from('quickbooks_account_mappings').select('*').eq('is_active', true)
     ]);
 
     const projects = projectsResponse.data || [];
     const payees = payeesResponse.data || [];
+    const dbMappings = mappingsResponse.data || [];
 
     // Find a default project for unmatched transactions
     let defaultProject = projects.find(p => p.project_name.toLowerCase().includes('misc') || p.project_name.toLowerCase().includes('general'));
@@ -390,16 +431,40 @@ export const mapQuickBooksToExpenses = async (
           }
         }
 
+        // Categorize with enhanced logic
+        const category = categorizeExpense(
+          transaction.name || '',
+          transaction.account_path,
+          dbMappings
+        );
+
+        // Track mapping statistics
+        if (transaction.account_path && dbMappings.some(m => 
+          m.qb_account_full_path.toLowerCase() === transaction.account_path!.toLowerCase()
+        )) {
+          result.mappingStats.databaseMapped++;
+        } else if (transaction.account_path && resolveQBAccountCategory(transaction.account_path) !== ExpenseCategory.OTHER) {
+          result.mappingStats.staticMapped++;
+        } else if (category !== ExpenseCategory.OTHER) {
+          result.mappingStats.descriptionMapped++;
+        } else {
+          result.mappingStats.unmapped++;
+          if (transaction.account_path && !result.unmappedAccounts.includes(transaction.account_path)) {
+            result.unmappedAccounts.push(transaction.account_path);
+          }
+        }
+
         // Create expense
         const expense: Expense = {
           id: crypto.randomUUID(),
           project_id: matchedProject.id,
           description: `${transaction.name || 'QB Import'} - ${transaction.transaction_type}`,
-          category: categorizeExpense(transaction.name || ''),
+          category,
           transaction_type: mapQBTransactionType(transaction.transaction_type),
           amount,
           expense_date,
           payee_id: payeeId,
+          account_name: transaction.account_path,
           is_planned: false,
           created_at: new Date(),
           updated_at: new Date()
