@@ -715,7 +715,7 @@ export const TransactionImportModal: React.FC<TransactionImportModalProps> = ({
                   <span className="font-medium">{match.qbName}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">→</span>
-                    <span>{match.matchedPayee.vendor_name}</span>
+                    <span>{match.matchedPayee.payee_name}</span>
                     <Badge 
                       variant={match.confidence >= 85 ? "default" : "secondary"}
                       className="text-xs"

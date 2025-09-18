@@ -210,10 +210,10 @@ export const ExpenseUpload: React.FC<ExpenseUploadProps> = ({ estimates, onExpen
               </div>
 
               <div>
-                <label className="text-sm font-medium">Vendor Column</label>
-                <Select value={mapping.vendor_id || ''} onValueChange={(value) => setMapping({...mapping, vendor_id: value})}>
+                <label className="text-sm font-medium">Payee Column</label>
+                <Select value={mapping.payee_id || ''} onValueChange={(value) => setMapping({...mapping, payee_id: value})}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select vendor column" />
+                    <SelectValue placeholder="Select payee column" />
                   </SelectTrigger>
                   <SelectContent>
                     {headers.map(header => (
@@ -267,7 +267,7 @@ export const ExpenseUpload: React.FC<ExpenseUploadProps> = ({ estimates, onExpen
                     <TableHead>Amount</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Category</TableHead>
-                    <TableHead>Vendor</TableHead>
+                    <TableHead>Payee</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -277,7 +277,7 @@ export const ExpenseUpload: React.FC<ExpenseUploadProps> = ({ estimates, onExpen
                       <TableCell>${mapping.amount ? parseFloat(row[mapping.amount].replace(/[$,]/g, '') || '0').toFixed(2) : '0.00'}</TableCell>
                       <TableCell>{mapping.expense_date ? new Date(row[mapping.expense_date]).toLocaleDateString() : '-'}</TableCell>
                       <TableCell>Auto-detected</TableCell>
-                      <TableCell>{mapping.vendor_id ? row[mapping.vendor_id] : '-'}</TableCell>
+                      <TableCell>{mapping.payee_id ? row[mapping.payee_id] : '-'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

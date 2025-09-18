@@ -232,7 +232,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       projectName: selectedEstimate.project_name || '',
       client: selectedEstimate.client_name || '',
       payee_id: selectedPayee.id,
-      quotedBy: selectedPayee.vendor_name,
+      quotedBy: selectedPayee.payee_name,
       dateReceived,
       status,
       valid_until: validUntil,
@@ -293,7 +293,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
               selectedPayeeId={selectedPayee?.id}
               onSelect={(payee) => {
                 setSelectedPayee(payee);
-                setQuotedBy(payee.vendor_name);
+                setQuotedBy(payee.payee_name);
               }}
               placeholder="Select payee for this quote..."
               label="Subcontractor/Payee"

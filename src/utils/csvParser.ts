@@ -85,7 +85,7 @@ export const mapCSVToExpenses = (
       transaction_type: 'expense' as const,
       amount,
       expense_date,
-      vendor_id: mapping.vendor_id && row[mapping.vendor_id] ? row[mapping.vendor_id].trim() : undefined,
+      payee_id: mapping.payee_id && row[mapping.payee_id] ? row[mapping.payee_id].trim() : undefined,
       invoice_number: undefined,
       is_planned: false,
       created_at: new Date(),
@@ -256,7 +256,7 @@ const createPayeeFromTransaction = async (
   const payeeType = detectPayeeTypeFromAccount(accountPath);
   
   const payeeData = {
-    vendor_name: qbName,
+    payee_name: qbName,
     payee_type: payeeType,
     provides_labor: payeeType === PayeeType.SUBCONTRACTOR,
     provides_materials: payeeType === PayeeType.MATERIAL_SUPPLIER,
@@ -405,7 +405,7 @@ export const mapQuickBooksToExpenses = async (
     // Load projects, payees, and account mappings for matching
     const [projectsResponse, payeesResponse, mappingsResponse] = await Promise.all([
       supabase.from('projects').select('id, project_number, project_name'),
-      supabase.from('payees').select('id, vendor_name, full_name'),
+      supabase.from('payees').select('id, payee_name, full_name'),
       supabase.from('quickbooks_account_mappings').select('*').eq('is_active', true)
     ]);
 

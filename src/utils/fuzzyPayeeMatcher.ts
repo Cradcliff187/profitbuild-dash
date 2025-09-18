@@ -2,7 +2,7 @@ import { Payee } from "@/types/payee";
 
 export interface PartialPayee {
   id: string;
-  vendor_name: string;
+  payee_name: string;
   full_name?: string;
 }
 
@@ -130,8 +130,8 @@ const tokenSimilarity = (str1: string, str2: string): number => {
 };
 
 // Calculate overall confidence score
-const calculateConfidence = (qbName: string, payee: PartialPayee): number => {
-  const payeeNames = [payee.vendor_name];
+  const calculateConfidence = (qbName: string, payee: PartialPayee): number => {
+  const payeeNames = [payee.payee_name];
   if (payee.full_name) payeeNames.push(payee.full_name);
   
   let maxConfidence = 0;
@@ -172,7 +172,7 @@ export const fuzzyMatchPayee = (qbName: string, payees: PartialPayee[]): FuzzyMa
   
   for (const payee of payees) {
     // Check for exact match first
-    const exactMatch = payee.vendor_name.toLowerCase() === qbName.toLowerCase() ||
+    const exactMatch = payee.payee_name.toLowerCase() === qbName.toLowerCase() ||
                       (payee.full_name && payee.full_name.toLowerCase() === qbName.toLowerCase());
     
     if (exactMatch) {

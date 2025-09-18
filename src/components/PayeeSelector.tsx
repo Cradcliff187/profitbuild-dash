@@ -34,7 +34,7 @@ export const PayeeSelector = ({
         .from("payees")
         .select("*")
         .eq("is_active", true)
-        .order("vendor_name");
+        .order("payee_name");
 
       if (error) throw error;
       setPayees(data as Payee[] || []);
@@ -106,7 +106,7 @@ export const PayeeSelector = ({
 
   // Helper function to format payee display name
   const formatPayeeDisplayName = (payee: Payee) => {
-    let name = payee.vendor_name;
+    let name = payee.payee_name;
     if (payee.payee_type === 'internal_labor') {
       name += ' (Internal)';
     }
@@ -152,7 +152,7 @@ export const PayeeSelector = ({
                   {formatPayeeType(type as PayeeType)}
                 </SelectLabel>
                 {groupPayees
-                  .sort((a, b) => a.vendor_name.localeCompare(b.vendor_name))
+                  .sort((a, b) => a.payee_name.localeCompare(b.payee_name))
                   .map((payee) => (
                     <SelectItem key={payee.id} value={payee.id}>
                       <div className="flex flex-col w-full">

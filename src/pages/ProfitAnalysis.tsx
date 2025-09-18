@@ -27,13 +27,13 @@ export default function ProfitAnalysisPage() {
         `),
         supabase.from('quotes').select(`
           *,
-          payees(vendor_name),
+          payees(payee_name),
           projects(project_name, client_name),
           quote_line_items(*)
         `),
         supabase.from('expenses').select(`
           *,
-          payees(vendor_name),
+          payees(payee_name),
           projects(project_name)
         `),
         supabase.from('projects').select('*')
@@ -78,7 +78,7 @@ export default function ProfitAnalysisPage() {
         projectName: quote.projects?.project_name || '',
         client: quote.projects?.client_name || '',
         payee_id: quote.payee_id,
-        quotedBy: quote.payees?.vendor_name || '',
+        quotedBy: quote.payees?.payee_name || '',
         dateReceived: new Date(quote.date_received),
         quoteNumber: quote.quote_number,
         status: (quote.status || 'pending') as QuoteStatus,
@@ -130,7 +130,7 @@ export default function ProfitAnalysisPage() {
         createdAt: new Date(expense.created_at),
         created_at: new Date(expense.created_at),
         updated_at: new Date(expense.updated_at),
-        vendor_name: expense.payees?.vendor_name,
+        payee_name: expense.payees?.payee_name,
         project_name: expense.projects?.project_name
       }));
 

@@ -296,6 +296,7 @@ export type Database = {
           is_internal: boolean | null
           last_synced_at: string | null
           license_number: string | null
+          payee_name: string
           payee_type: string | null
           permit_issuer: boolean | null
           phone_numbers: string | null
@@ -306,7 +307,6 @@ export type Database = {
           sync_status: Database["public"]["Enums"]["sync_status"] | null
           terms: string | null
           updated_at: string | null
-          vendor_name: string
         }
         Insert: {
           account_number?: string | null
@@ -321,6 +321,7 @@ export type Database = {
           is_internal?: boolean | null
           last_synced_at?: string | null
           license_number?: string | null
+          payee_name: string
           payee_type?: string | null
           permit_issuer?: boolean | null
           phone_numbers?: string | null
@@ -331,7 +332,6 @@ export type Database = {
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
           terms?: string | null
           updated_at?: string | null
-          vendor_name: string
         }
         Update: {
           account_number?: string | null
@@ -346,6 +346,7 @@ export type Database = {
           is_internal?: boolean | null
           last_synced_at?: string | null
           license_number?: string | null
+          payee_name?: string
           payee_type?: string | null
           permit_issuer?: boolean | null
           phone_numbers?: string | null
@@ -356,7 +357,6 @@ export type Database = {
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
           terms?: string | null
           updated_at?: string | null
-          vendor_name?: string
         }
         Relationships: []
       }

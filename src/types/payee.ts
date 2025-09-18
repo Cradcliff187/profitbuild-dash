@@ -10,7 +10,7 @@ export enum PayeeType {
 
 export interface Payee {
   id: string;
-  vendor_name: string;
+  payee_name: string;
   email?: string;
   phone_numbers?: string;
   billing_address?: string;
@@ -35,7 +35,7 @@ export interface Payee {
 }
 
 export interface CreatePayeeData {
-  vendor_name: string;
+  payee_name: string;
   email?: string;
   phone_numbers?: string;
   billing_address?: string;

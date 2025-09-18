@@ -93,7 +93,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
           .from('payees')
           .select('*')
           .eq('is_active', true)
-          .order('vendor_name');
+          .order('payee_name');
 
         if (payeesError) {
           console.error('Error loading payees:', payeesError);
@@ -209,13 +209,13 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         if (contingencyError) throw contingencyError;
       }
 
-      // Transform result to include vendor_name for display
+      // Transform result to include payee_name for display
       const transformedExpense: Expense = {
         ...result,
         expense_date: new Date(result.expense_date),
         created_at: new Date(result.created_at),
         updated_at: new Date(result.updated_at),
-        vendor_name: result.payee_id ? payees.find(v => v.id === result.payee_id)?.vendor_name : undefined,
+        payee_name: result.payee_id ? payees.find(v => v.id === result.payee_id)?.payee_name : undefined,
         project_name: projects.find(p => p.id === result.project_id)?.project_name,
       };
 
@@ -416,7 +416,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                             className="justify-between"
                           >
                             {field.value
-                              ? payees.find(payee => payee.id === field.value)?.vendor_name || "Select payee"
+                              ? payees.find(payee => payee.id === field.value)?.payee_name || "Select payee"
                               : "Select payee"}
                             <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -439,14 +439,14 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                               </CommandItem>
                               {payees.map((payee) => (
                                 <CommandItem
-                                  value={payee.vendor_name}
+                                  value={payee.payee_name}
                                   key={payee.id}
                                   onSelect={() => {
                                     field.onChange(payee.id);
                                     setPayeeOpen(false);
                                   }}
                                 >
-                                  {payee.vendor_name}
+                                  {payee.payee_name}
                                 </CommandItem>
                               ))}
                             </CommandGroup>

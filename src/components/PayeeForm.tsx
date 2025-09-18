@@ -20,7 +20,7 @@ import type { Payee } from "@/types/payee";
 import { PayeeType } from "@/types/payee";
 
 const payeeSchema = z.object({
-  vendor_name: z.string().min(1, "Payee name is required"),
+  payee_name: z.string().min(1, "Payee name is required"),
   email: z.string().email().optional().or(z.literal("")),
   phone_numbers: z.string().optional(),
   billing_address: z.string().optional(),
@@ -51,7 +51,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
   const form = useForm<PayeeFormData>({
     resolver: zodResolver(payeeSchema),
     defaultValues: {
-      vendor_name: payee?.vendor_name || "",
+      payee_name: payee?.payee_name || "",
       email: payee?.email || "",
       phone_numbers: payee?.phone_numbers || "",
       billing_address: payee?.billing_address || "",
@@ -83,7 +83,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
       if (payee) {
         // Update existing payee
         const payeeData = {
-          vendor_name: data.vendor_name,
+          payee_name: data.payee_name,
           email: data.email || null,
           phone_numbers: data.phone_numbers || null,
           billing_address: data.billing_address || null,
@@ -113,7 +113,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
       } else {
         // Create new payee
         const payeeData = {
-          vendor_name: data.vendor_name,
+          payee_name: data.payee_name,
           email: data.email || null,
           phone_numbers: data.phone_numbers || null,
           billing_address: data.billing_address || null,
@@ -164,7 +164,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="vendor_name"
+              name="payee_name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Payee Name *</FormLabel>

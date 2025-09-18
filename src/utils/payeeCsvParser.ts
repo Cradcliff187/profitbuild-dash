@@ -5,7 +5,7 @@ export interface PayeeCSVRow {
 }
 
 export interface PayeeColumnMapping {
-  vendor_name?: string;
+  payee_name?: string;
   email?: string;
   phone_numbers?: string;
   billing_address?: string;
@@ -77,7 +77,7 @@ export const parsePayeeCSVFile = (file: File): Promise<ParsedPayeeCSV> => {
 export const validatePayeeCSVData = (data: PayeeCSVRow[], mapping: PayeeColumnMapping): string[] => {
   const errors: string[] = [];
   
-  if (!mapping.vendor_name) {
+  if (!mapping.payee_name) {
     errors.push('Payee name column is required');
   }
   
@@ -86,8 +86,8 @@ export const validatePayeeCSVData = (data: PayeeCSVRow[], mapping: PayeeColumnMa
   }
   
   // Validate required fields in data
-  if (mapping.vendor_name) {
-    const emptyNames = data.filter(row => !row[mapping.vendor_name!]?.trim());
+  if (mapping.payee_name) {
+    const emptyNames = data.filter(row => !row[mapping.payee_name!]?.trim());
     if (emptyNames.length > 0) {
       errors.push(`${emptyNames.length} rows have empty payee names`);
     }
@@ -97,7 +97,7 @@ export const validatePayeeCSVData = (data: PayeeCSVRow[], mapping: PayeeColumnMa
 };
 
 export interface PayeeImportData {
-  vendor_name: string;
+  payee_name: string;
   email?: string;
   phone_numbers?: string;
   billing_address?: string;
@@ -109,10 +109,10 @@ export const mapCSVToPayees = (
   fileName: string
 ): PayeeImportData[] => {
   return data
-    .filter(row => mapping.vendor_name && row[mapping.vendor_name]?.trim()) // Only include rows with payee names
+    .filter(row => mapping.payee_name && row[mapping.payee_name]?.trim()) // Only include rows with payee names
     .map(row => {
       const payee: PayeeImportData = {
-        vendor_name: row[mapping.vendor_name!]?.trim() || '',
+        payee_name: row[mapping.payee_name!]?.trim() || '',
       };
       
       if (mapping.email && row[mapping.email]?.trim()) {

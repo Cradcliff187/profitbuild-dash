@@ -35,7 +35,7 @@ const Expenses = () => {
         supabase.from('expenses')
           .select(`
             *,
-            payees(vendor_name),
+            payees(payee_name),
             projects(project_name)
           `),
         supabase.from('estimates')
@@ -57,7 +57,7 @@ const Expenses = () => {
         expense_date: new Date(expense.expense_date),
         created_at: new Date(expense.created_at),
         updated_at: new Date(expense.updated_at),
-        vendor_name: expense.payees?.vendor_name,
+        payee_name: expense.payees?.payee_name,
         project_name: expense.projects?.project_name,
       }));
 

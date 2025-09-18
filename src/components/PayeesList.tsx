@@ -72,7 +72,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
         .from("payees")
         .select("*")
         .eq("is_active", true)
-        .order("vendor_name");
+        .order("payee_name");
 
       if (error) throw error;
       setPayees(data as Payee[] || []);
@@ -203,7 +203,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
             <TableBody>
               {payees.map((payee) => (
                 <TableRow key={payee.id}>
-                  <TableCell className="font-medium">{payee.vendor_name}</TableCell>
+                  <TableCell className="font-medium">{payee.payee_name}</TableCell>
                   <TableCell>
                     <Badge 
                       variant={getPayeeTypeBadgeVariant(payee.payee_type)} 
@@ -306,7 +306,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete Payee</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete "{payee.vendor_name}"? This action cannot be undone.
+                              Are you sure you want to delete "{payee.payee_name}"? This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

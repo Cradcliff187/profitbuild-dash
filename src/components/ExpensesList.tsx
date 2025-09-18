@@ -54,7 +54,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEdit, on
 
   const filteredExpenses = expenses.filter(expense => {
     const matchesSearch = expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         expense.vendor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         expense.payee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          expense.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'All' || expense.category === filterCategory;
     const matchesTransactionType = filterTransactionType === 'All' || expense.transaction_type === filterTransactionType;
@@ -98,7 +98,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEdit, on
         EXPENSE_CATEGORY_DISPLAY[expense.category],
         TRANSACTION_TYPE_DISPLAY[expense.transaction_type],
         expense.amount.toFixed(2),
-        `"${expense.vendor_name || ''}"`,
+        `"${expense.payee_name || ''}"`,
         `"${expense.invoice_number || ''}"`
       ].join(','))
     ].join('\n');
@@ -218,7 +218,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEdit, on
                     <TableHead>Category</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead>Vendor</TableHead>
+                    <TableHead>Payee</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -252,7 +252,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEdit, on
                       <TableCell className="font-medium">
                         ${expense.amount.toFixed(2)}
                       </TableCell>
-                      <TableCell>{expense.vendor_name || '-'}</TableCell>
+                      <TableCell>{expense.payee_name || '-'}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
                           <Button

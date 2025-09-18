@@ -46,7 +46,7 @@ export interface Expense {
   account_name?: string;
   account_full_name?: string;
   // Additional fields for display (populated from joins)
-  vendor_name?: string;
+  payee_name?: string;
   project_name?: string;
 }
 
@@ -78,7 +78,7 @@ export interface ColumnMapping {
   expense_date?: string;
   description?: string;
   amount?: string;
-  vendor_id?: string;
+  payee_id?: string;
   category?: string;
   transaction_type?: string;
 }

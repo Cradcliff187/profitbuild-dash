@@ -115,12 +115,12 @@ export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClos
             .insert([payee]);
 
           if (error) {
-            errorMessages.push(`Failed to import ${payee.vendor_name}: ${error.message}`);
+            errorMessages.push(`Failed to import ${payee.payee_name}: ${error.message}`);
           } else {
             successCount++;
           }
         } catch (err) {
-          errorMessages.push(`Failed to import ${payee.vendor_name}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+          errorMessages.push(`Failed to import ${payee.payee_name}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       }
 
@@ -208,7 +208,7 @@ export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClos
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Payee Name *</label>
-                <Select value={mapping.vendor_name || ''} onValueChange={(value) => setMapping(prev => ({ ...prev, vendor_name: value }))}>
+                <Select value={mapping.payee_name || ''} onValueChange={(value) => setMapping(prev => ({ ...prev, payee_name: value }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select column" />
                   </SelectTrigger>
@@ -299,7 +299,7 @@ export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClos
                 <TableBody>
                   {mapCSVToPayees(previewData, mapping, selectedFile?.name || '').map((payee, index) => (
                     <TableRow key={index}>
-                      <TableCell className="font-medium">{payee.vendor_name}</TableCell>
+                      <TableCell className="font-medium">{payee.payee_name}</TableCell>
                       <TableCell>{payee.email || '-'}</TableCell>
                       <TableCell>{payee.phone_numbers || '-'}</TableCell>
                       <TableCell>{payee.billing_address || '-'}</TableCell>
