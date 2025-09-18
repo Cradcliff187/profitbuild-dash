@@ -62,6 +62,10 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
   const [selectedVersionId, setSelectedVersionId] = useState<string>("");
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [originalLineItems, setOriginalLineItems] = useState<LineItem[]>([]);
+  
+  // State for markup control panel
+  const [globalMarkupPercent, setGlobalMarkupPercent] = useState<number>(initialEstimate?.defaultMarkupPercent || 15);
+  const [targetMarginPercent, setTargetMarginPercent] = useState<number>(initialEstimate?.targetMarginPercent || 20);
 
   useEffect(() => {
     if (initialEstimate) {
@@ -422,6 +426,42 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
   const calculateContingencyAmount = () => {
     const total = calculateTotal();
     return total * (contingencyPercent / 100);
+  };
+
+  // Markup control panel calculation functions
+  const calculateTotalCost = () => {
+    return lineItems.reduce((sum, item) => sum + (item.quantity * item.costPerUnit), 0);
+  };
+
+  const calculateTotalMarkup = () => {
+    return calculateTotal() - calculateTotalCost();
+  };
+
+  const calculateAchievedMargin = () => {
+    const totalPrice = calculateTotal();
+    if (totalPrice === 0) return 0;
+    return (calculateTotalMarkup() / totalPrice) * 100;
+  };
+
+  const applyGlobalMarkup = () => {
+    setLineItems(prev =>
+      prev.map(item => {
+        const updated = { ...item };
+        if (updated.costPerUnit > 0) {
+          updated.markupPercent = globalMarkupPercent;
+          updated.pricePerUnit = updated.costPerUnit * (1 + globalMarkupPercent / 100);
+          updated.total = updated.quantity * updated.pricePerUnit;
+          updated.totalCost = updated.quantity * updated.costPerUnit;
+          updated.totalMarkup = updated.total - updated.totalCost;
+        }
+        return updated;
+      })
+    );
+    
+    toast({
+      title: "Markup Applied",
+      description: `Applied ${globalMarkupPercent}% markup to all line items with cost data.`
+    });
   };
 
   const validateForm = () => {
@@ -1191,6 +1231,140 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
               })}
             </div>
           </div>
+
+          {/* Markup Control Panel */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <Calculator className="h-5 w-5" />
+                <span>Markup & Margin Control</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Apply Global Markup Section */}
+              <div className="space-y-3">
+                <h3 className="font-medium text-foreground">Apply Global Markup</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                  <div>
+                    <Label htmlFor="global-markup">Markup Percentage</Label>
+                    <Input
+                      id="global-markup"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={globalMarkupPercent}
+                      onChange={(e) => setGlobalMarkupPercent(parseFloat(e.target.value) || 0)}
+                      placeholder="15"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Button 
+                      onClick={applyGlobalMarkup}
+                      className="w-full md:w-auto"
+                      disabled={lineItems.every(item => item.costPerUnit === 0)}
+                    >
+                      Apply to All Items
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Applies markup to all line items with cost data
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Margin Analysis Section */}
+              <div className="space-y-3">
+                <h3 className="font-medium text-foreground">Margin Analysis</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-muted/30 p-3 rounded">
+                    <div className="text-sm text-muted-foreground">Total Cost</div>
+                    <div className="text-lg font-semibold">
+                      ${calculateTotalCost().toLocaleString('en-US', { 
+                        minimumFractionDigits: 2, 
+                        maximumFractionDigits: 2 
+                      })}
+                    </div>
+                  </div>
+                  <div className="bg-muted/30 p-3 rounded">
+                    <div className="text-sm text-muted-foreground">Total Markup</div>
+                    <div className="text-lg font-semibold">
+                      ${calculateTotalMarkup().toLocaleString('en-US', { 
+                        minimumFractionDigits: 2, 
+                        maximumFractionDigits: 2 
+                      })}
+                    </div>
+                  </div>
+                  <div className="bg-muted/30 p-3 rounded">
+                    <div className="text-sm text-muted-foreground">Achieved Margin</div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg font-semibold">
+                        {calculateAchievedMargin().toFixed(1)}%
+                      </span>
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "text-xs",
+                          calculateAchievedMargin() >= 20 && "bg-green-50 text-green-700 border-green-200",
+                          calculateAchievedMargin() >= 10 && calculateAchievedMargin() < 20 && "bg-yellow-50 text-yellow-700 border-yellow-200",
+                          calculateAchievedMargin() < 10 && "bg-red-50 text-red-700 border-red-200"
+                        )}
+                      >
+                        {calculateAchievedMargin() >= 20 ? 'Excellent' : 
+                         calculateAchievedMargin() >= 10 ? 'Good' : 'Low'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Target Margin Comparison */}
+              <div className="space-y-3">
+                <h3 className="font-medium text-foreground">Target Margin Comparison</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="target-margin">Target Margin %</Label>
+                    <Input
+                      id="target-margin"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={targetMarginPercent}
+                      onChange={(e) => setTargetMarginPercent(parseFloat(e.target.value) || 0)}
+                      placeholder="20"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <div className="bg-muted/30 p-3 rounded w-full">
+                      <div className="text-sm text-muted-foreground">Performance vs Target</div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">
+                          Target: {targetMarginPercent.toFixed(1)}% | Achieved: {calculateAchievedMargin().toFixed(1)}%
+                        </span>
+                        <Badge 
+                          variant="outline" 
+                          className={cn(
+                            "text-xs ml-2",
+                            calculateAchievedMargin() >= targetMarginPercent && "bg-green-50 text-green-700 border-green-200",
+                            calculateAchievedMargin() < targetMarginPercent && "bg-red-50 text-red-700 border-red-200"
+                          )}
+                        >
+                          {calculateAchievedMargin() >= targetMarginPercent ? 
+                            `+${(calculateAchievedMargin() - targetMarginPercent).toFixed(1)}%` : 
+                            `${(calculateAchievedMargin() - targetMarginPercent).toFixed(1)}%`}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Contingency and Total */}
           <div className="space-y-4">
