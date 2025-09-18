@@ -3,6 +3,7 @@ import { Plus, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RequiredLabel } from "@/components/ui/required-label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
@@ -214,7 +215,7 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
           {/* Estimate Details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Estimate Date</Label>
+              <RequiredLabel>Estimate Date</RequiredLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -279,7 +280,7 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
           {/* Line Items */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Line Items</h3>
+              <RequiredLabel className="text-lg font-semibold">Line Items</RequiredLabel>
               <Button onClick={addLineItem} variant="outline" size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Line Item

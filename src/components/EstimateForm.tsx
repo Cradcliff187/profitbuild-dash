@@ -3,6 +3,7 @@ import { Calculator, Building2, Save, Plus, Copy, History, Eye } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RequiredLabel } from "@/components/ui/required-label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
@@ -986,7 +987,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                 {/* Basic Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="projectName">Project Name *</Label>
+                    <RequiredLabel htmlFor="projectName">Project Name</RequiredLabel>
                     <Input
                       id="projectName"
                       value={projectName}
@@ -996,7 +997,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="client">Client *</Label>
+                    <RequiredLabel htmlFor="client">Client</RequiredLabel>
                     <ClientSelector
                       value={selectedClientId}
                       onValueChange={async (clientId: string, clientName?: string) => {
@@ -1116,7 +1117,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
             <h3 className="text-lg font-semibold mb-4">Estimate Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Estimate Date</Label>
+                <RequiredLabel>Estimate Date</RequiredLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -1257,7 +1258,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
           {/* Line Items */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Line Items</h3>
+              <RequiredLabel className="text-lg font-semibold">Line Items</RequiredLabel>
               <Button onClick={addLineItem} variant="outline" size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Line Item
