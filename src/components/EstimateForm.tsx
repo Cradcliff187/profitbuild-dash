@@ -348,23 +348,34 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     return `EST-${projectNum}-${Date.now().toString().slice(-4)}`;
   };
 
-  const createNewLineItem = (category: LineItemCategory = LineItemCategory.LABOR): LineItem => ({
-    id: Date.now().toString() + Math.random(),
-    category,
-    description: '',
-    quantity: 1,
-    pricePerUnit: category === LineItemCategory.LABOR ? internalLaborRate : 0,
-    total: 0,
-    unit: '',
-    sort_order: lineItems.length,
-    // Cost & Pricing fields
-    costPerUnit: 0,
-    markupPercent: null,
-    markupAmount: null,
-    // Calculated totals
-    totalCost: 0,
-    totalMarkup: 0
-  });
+  const createNewLineItem = (category: LineItemCategory = LineItemCategory.LABOR): LineItem => {
+    const defaultMarkup = initialEstimate?.defaultMarkupPercent || 15;
+    let costPerUnit = 0;
+    let pricePerUnit = 0;
+    
+    if (category === LineItemCategory.LABOR) {
+      costPerUnit = internalLaborRate * 0.7; // 70% cost base for labor
+      pricePerUnit = costPerUnit * (1 + defaultMarkup / 100);
+    }
+    
+    return {
+      id: Date.now().toString() + Math.random(),
+      category,
+      description: '',
+      quantity: 1,
+      pricePerUnit,
+      total: 0,
+      unit: '',
+      sort_order: lineItems.length,
+      // Cost & Pricing fields
+      costPerUnit,
+      markupPercent: defaultMarkup,
+      markupAmount: null,
+      // Calculated totals
+      totalCost: 0,
+      totalMarkup: 0
+    };
+  };
 
   useEffect(() => {
     if (lineItems.length === 0) {
@@ -443,13 +454,15 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     return (calculateTotalMarkup() / totalPrice) * 100;
   };
 
-  const applyGlobalMarkup = () => {
+  const applyGlobalMarkup = (percent?: number) => {
+    const markupToApply = percent ?? globalMarkupPercent;
+    
     setLineItems(prev =>
       prev.map(item => {
         const updated = { ...item };
         if (updated.costPerUnit > 0) {
-          updated.markupPercent = globalMarkupPercent;
-          updated.pricePerUnit = updated.costPerUnit * (1 + globalMarkupPercent / 100);
+          updated.markupPercent = markupToApply;
+          updated.pricePerUnit = updated.costPerUnit * (1 + markupToApply / 100);
           updated.total = updated.quantity * updated.pricePerUnit;
           updated.totalCost = updated.quantity * updated.costPerUnit;
           updated.totalMarkup = updated.total - updated.totalCost;
@@ -460,7 +473,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     
     toast({
       title: "Markup Applied",
-      description: `Applied ${globalMarkupPercent}% markup to all line items with cost data.`
+      description: `Applied ${markupToApply}% markup to all line items with cost data.`
     });
   };
 
@@ -1260,7 +1273,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                   </div>
                   <div className="md:col-span-2">
                     <Button 
-                      onClick={applyGlobalMarkup}
+                      onClick={() => applyGlobalMarkup()}
                       className="w-full md:w-auto"
                       disabled={lineItems.every(item => item.costPerUnit === 0)}
                     >
