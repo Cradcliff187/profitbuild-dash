@@ -17,9 +17,8 @@ type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 const changeOrderSchema = z.object({
   description: z.string().min(1, "Description is required"),
   reason_for_change: z.string().min(1, "Reason for change is required"),
-  amount: z.coerce.number().min(0, "Amount must be positive").default(0),
-  client_amount: z.coerce.number().optional(),
-  cost_impact: z.coerce.number().optional(),
+  client_amount: z.coerce.number().min(0, "Client amount must be positive").default(0),
+  cost_impact: z.coerce.number().min(0, "Our cost must be positive").default(0),
   includes_contingency: z.boolean().default(false),
 });
 
@@ -44,9 +43,8 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
     defaultValues: {
       description: changeOrder?.description || "",
       reason_for_change: changeOrder?.reason_for_change || "",
-      amount: changeOrder?.amount || 0,
-      client_amount: changeOrder?.client_amount || undefined,
-      cost_impact: changeOrder?.cost_impact || undefined,
+      client_amount: changeOrder?.client_amount || 0,
+      cost_impact: changeOrder?.cost_impact || 0,
       includes_contingency: changeOrder?.includes_contingency || false,
     },
   });
@@ -131,9 +129,9 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
           .update({
             description: data.description,
             reason_for_change: data.reason_for_change,
-            amount: data.amount,
-            client_amount: data.client_amount || null,
-            cost_impact: data.cost_impact || null,
+            client_amount: data.client_amount,
+            cost_impact: data.cost_impact,
+            margin_impact: data.client_amount - data.cost_impact,
             includes_contingency: data.includes_contingency,
           })
           .eq('id', changeOrder.id);
@@ -153,9 +151,9 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             change_order_number: changeOrderNumber,
             description: data.description,
             reason_for_change: data.reason_for_change,
-            amount: data.amount,
-            client_amount: data.client_amount || null,
-            cost_impact: data.cost_impact || null,
+            client_amount: data.client_amount,
+            cost_impact: data.cost_impact,
+            margin_impact: data.client_amount - data.cost_impact,
             includes_contingency: data.includes_contingency,
             status: 'pending',
             requested_date: new Date().toISOString().split('T')[0],
@@ -274,7 +272,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
                 name="cost_impact"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cost Impact</FormLabel>
+                    <FormLabel>Our Cost</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -290,14 +288,30 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             </div>
 
             {marginImpact !== null && (
-              <div className="p-3 rounded-lg bg-muted">
-                <div className="text-sm font-medium">
-                  Margin Impact: 
-                  <span className={`ml-2 ${marginImpact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    ${marginImpact.toFixed(2)}
-                  </span>
+              <Card className="p-4 bg-muted/50">
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">Profit Calculation</h4>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Margin Impact:</span>
+                    <span className={`text-lg font-semibold ${marginImpact >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
+                      {marginImpact.toLocaleString('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      })}
+                    </span>
+                  </div>
+                  {form.watch("client_amount") > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Margin %:</span>
+                      <span className={`text-sm font-medium ${marginImpact >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
+                        {((marginImpact / form.watch("client_amount")) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
                 </div>
-              </div>
+              </Card>
             )}
 
             <FormField
@@ -326,28 +340,6 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Legacy Amount</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0.00"
-                      {...field}
-                    />
-                  </FormControl>
-                  <p className="text-sm text-muted-foreground">
-                    This field is kept for backward compatibility. Use Client Amount and Cost Impact above for better tracking.
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={onCancel}>
