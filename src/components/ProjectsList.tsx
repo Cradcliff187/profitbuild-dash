@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, ArrowUpDown, ChevronUp, ChevronDown, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,6 +86,15 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
     }).format(amount);
   };
 
+  const isProjectAtRisk = (marginPercentage: number | null | undefined): boolean => {
+    if (marginPercentage === null || marginPercentage === undefined) return false;
+    return marginPercentage < 10;
+  };
+
+  const getCardBorderClass = (marginPercentage: number | null | undefined): string => {
+    return isProjectAtRisk(marginPercentage) ? 'border-red-500 border-2' : '';
+  };
+
   const handleDeleteProject = async (projectId: string) => {
     try {
       const { error } = await supabase
@@ -130,6 +139,14 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
   });
 
   const sortedProjects = [...filteredProjects].sort((a, b) => {
+    // First priority: at-risk projects go to top
+    const aIsAtRisk = isProjectAtRisk(a.margin_percentage);
+    const bIsAtRisk = isProjectAtRisk(b.margin_percentage);
+    
+    if (aIsAtRisk && !bIsAtRisk) return -1;
+    if (!aIsAtRisk && bIsAtRisk) return 1;
+    
+    // Secondary sorting by selected criteria
     const modifier = sortOrder === 'asc' ? 1 : -1;
     
     switch (sortBy) {
@@ -267,7 +284,7 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
       {/* Projects Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {sortedProjects.map((project) => (
-          <Card key={project.id} className="hover:shadow-md transition-shadow">
+          <Card key={project.id} className={`hover:shadow-md transition-shadow ${getCardBorderClass(project.margin_percentage)}`}>
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
@@ -313,6 +330,12 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
+                  {isProjectAtRisk(project.margin_percentage) && (
+                    <Badge className="bg-red-600 text-white border-red-600 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      AT RISK
+                    </Badge>
+                  )}
                   <Badge className={getStatusColor(project.status)}>
                     {project.status.replace('_', ' ').toUpperCase()}
                   </Badge>
