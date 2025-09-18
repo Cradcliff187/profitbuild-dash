@@ -1,14 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Edit, Mail, Phone, MapPin, Upload } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { Client, ClientType, CLIENT_TYPES } from "@/types/client";
 import { useToast } from "@/hooks/use-toast";
+import { EntityTableTemplate } from "./EntityTableTemplate";
+import { ClientDetailsModal } from "./ClientDetailsModal";
 import { ClientForm } from "./ClientForm";
 import { ClientFilters } from "./ClientFilters";
 import { ClientBulkActions } from "./ClientBulkActions";
@@ -17,11 +16,13 @@ import { ClientImportModal } from "./ClientImportModal";
 export const ClientsList = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<ClientType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -50,27 +51,55 @@ export const ClientsList = () => {
     return matchesSearch && matchesType && matchesStatus;
   });
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedClients(new Set(filteredClients.map(c => c.id)));
+  const handleSelectAll = () => {
+    if (selectedClients.length === filteredClients.length) {
+      setSelectedClients([]);
     } else {
-      setSelectedClients(new Set());
+      setSelectedClients(filteredClients.map(c => c.id));
     }
   };
 
-  const handleSelectClient = (clientId: string, checked: boolean) => {
-    const newSelected = new Set(selectedClients);
-    if (checked) {
-      newSelected.add(clientId);
+  const handleSelectClient = (clientId: string) => {
+    if (selectedClients.includes(clientId)) {
+      setSelectedClients(selectedClients.filter(id => id !== clientId));
     } else {
-      newSelected.delete(clientId);
+      setSelectedClients([...selectedClients, clientId]);
     }
-    setSelectedClients(newSelected);
+  };
+
+  const handleViewClient = (client: Client) => {
+    setSelectedClient(client);
+    setShowDetailsModal(true);
   };
 
   const handleEditClient = (client: Client) => {
     setEditingClient(client);
     setShowForm(true);
+  };
+
+  const handleDeleteClient = async (clientId: string) => {
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ is_active: false })
+        .eq('id', clientId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Client deleted",
+        description: "Client has been successfully deactivated."
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete client. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCloseForm = () => {
@@ -92,6 +121,16 @@ export const ClientsList = () => {
     return CLIENT_TYPES.find(t => t.value === type)?.label || type;
   };
 
+  const getClientTypeBadgeVariant = (type: string) => {
+    switch (type) {
+      case 'commercial': return 'default';
+      case 'residential': return 'secondary';
+      case 'government': return 'outline';
+      case 'nonprofit': return 'outline';
+      default: return 'secondary';
+    }
+  };
+
   if (error) {
     toast({
       title: "Error",
@@ -100,10 +139,63 @@ export const ClientsList = () => {
     });
   }
 
+  const columns = [
+    {
+      key: 'client_name',
+      label: 'Name',
+      render: (client: Client) => (
+        <div className="font-medium">{client.client_name}</div>
+      )
+    },
+    {
+      key: 'company_name',
+      label: 'Company'
+    },
+    {
+      key: 'client_type',
+      label: 'Type',
+      render: (client: Client) => (
+        <Badge variant={getClientTypeBadgeVariant(client.client_type) as any}>
+          {getClientTypeLabel(client.client_type)}
+        </Badge>
+      )
+    },
+    {
+      key: 'contact_person',
+      label: 'Contact Person'
+    },
+    {
+      key: 'email',
+      label: 'Email'
+    },
+    {
+      key: 'phone',
+      label: 'Phone'
+    },
+    {
+      key: 'billing_address',
+      label: 'Address'
+    },
+    {
+      key: 'is_active',
+      label: 'Status',
+      render: (client: Client) => (
+        <Badge variant={client.is_active ? 'default' : 'secondary'}>
+          {client.is_active ? 'Active' : 'Inactive'}
+        </Badge>
+      )
+    }
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Clients</h1>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold">Clients</h1>
+          <p className="text-muted-foreground mt-2">
+            Manage your client database and contact information
+          </p>
+        </div>
         <div className="flex gap-2">
           <Button 
             variant="outline" 
@@ -120,99 +212,62 @@ export const ClientsList = () => {
         </div>
       </div>
 
-      <ClientFilters
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        typeFilter={typeFilter}
-        onTypeFilterChange={setTypeFilter}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
+      <EntityTableTemplate
+        title="Client Directory"
+        description={`Manage your clients and their information (${filteredClients.length} total)`}
+        data={filteredClients}
+        columns={columns}
+        isLoading={isLoading}
+        selectedItems={selectedClients}
+        onSelectItem={handleSelectClient}
+        onSelectAll={handleSelectAll}
+        onView={handleViewClient}
+        onEdit={handleEditClient}
+        onDelete={handleDeleteClient}
+        filters={
+          <ClientFilters
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            typeFilter={typeFilter}
+            onTypeFilterChange={setTypeFilter}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+          />
+        }
+        bulkActions={
+          selectedClients.length > 0 ? (
+            <ClientBulkActions
+              selectedClientIds={selectedClients}
+              onSelectionChange={(newSet) => setSelectedClients(Array.from(newSet))}
+              onComplete={() => {
+                setSelectedClients([]);
+                queryClient.invalidateQueries({ queryKey: ["clients"] });
+              }}
+            />
+          ) : null
+        }
+        emptyMessage="No clients found. Add your first client to get started."
+        noResultsMessage="No clients match your current filters."
       />
 
-      {selectedClients.size > 0 && (
-        <ClientBulkActions
-          selectedClientIds={Array.from(selectedClients)}
-          onSelectionChange={setSelectedClients}
-          onComplete={() => queryClient.invalidateQueries({ queryKey: ["clients"] })}
-        />
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>All Clients ({filteredClients.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center p-8">Loading...</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={selectedClients.size === filteredClients.length && filteredClients.length > 0}
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Contact Person</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredClients.map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedClients.has(client.id)}
-                        onCheckedChange={(checked) => handleSelectClient(client.id, checked as boolean)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{client.client_name}</div>
-                    </TableCell>
-                    <TableCell>{client.company_name || "-"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{getClientTypeLabel(client.client_type)}</Badge>
-                    </TableCell>
-                    <TableCell>{client.contact_person || "-"}</TableCell>
-                    <TableCell>{client.email || "-"}</TableCell>
-                    <TableCell>{client.phone || "-"}</TableCell>
-                    <TableCell>{client.billing_address || "-"}</TableCell>
-                    <TableCell>
-                      <Badge variant={client.is_active ? "default" : "secondary"}>
-                        {client.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditClient(client)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredClients.length === 0 && !isLoading && (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8">
-                      No clients found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <ClientDetailsModal
+        client={selectedClient}
+        isOpen={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false);
+          setSelectedClient(null);
+        }}
+        onEdit={(client) => {
+          setShowDetailsModal(false);
+          setSelectedClient(null);
+          handleEditClient(client);
+        }}
+        onDelete={(clientId) => {
+          setShowDetailsModal(false);
+          setSelectedClient(null);
+          handleDeleteClient(clientId);
+        }}
+      />
 
       {showForm && (
         <ClientForm

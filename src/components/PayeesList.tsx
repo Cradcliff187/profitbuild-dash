@@ -1,13 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Edit2, Trash2, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { EntityTableTemplate } from "./EntityTableTemplate";
+import { PayeeDetailsModal } from "./PayeeDetailsModal";
 import { PayeeBulkActions } from "@/components/PayeeBulkActions";
 import { PayeeFilters } from "@/components/PayeeFilters";
 import type { Payee } from "@/types/payee";
@@ -23,10 +20,12 @@ interface PayeesListProps {
 export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListProps) => {
   const [payees, setPayees] = useState<Payee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPayees, setSelectedPayees] = useState<Payee[]>([]);
+  const [selectedPayees, setSelectedPayees] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [servicesFilter, setServicesFilter] = useState("all");
+  const [selectedPayee, setSelectedPayee] = useState<Payee | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const { toast } = useToast();
 
   const getPayeeTypeBadgeVariant = (payeeType: string) => {
@@ -216,19 +215,24 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
     }
   };
 
-  const handleSelectPayee = (payee: Payee, checked: boolean) => {
-    if (checked) {
-      setSelectedPayees(prev => [...prev, payee]);
+  const handleViewPayee = (payee: Payee) => {
+    setSelectedPayee(payee);
+    setShowDetailsModal(true);
+  };
+
+  const handleSelectPayee = (payeeId: string) => {
+    if (selectedPayees.includes(payeeId)) {
+      setSelectedPayees(selectedPayees.filter(id => id !== payeeId));
     } else {
-      setSelectedPayees(prev => prev.filter(p => p.id !== payee.id));
+      setSelectedPayees([...selectedPayees, payeeId]);
     }
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedPayees(filteredPayees);
-    } else {
+  const handleSelectAll = () => {
+    if (selectedPayees.length === filteredPayees.length) {
       setSelectedPayees([]);
+    } else {
+      setSelectedPayees(filteredPayees.map(p => p.id));
     }
   };
 
@@ -243,206 +247,167 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
   };
 
   const hasActiveFilters = searchTerm !== "" || selectedType !== "all" || servicesFilter !== "all";
-  const isPayeeSelected = (payeeId: string) => selectedPayees.some(p => p.id === payeeId);
-  const allFilteredSelected = filteredPayees.length > 0 && filteredPayees.every(p => isPayeeSelected(p.id));
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center">Loading payees...</div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const columns = [
+    {
+      key: 'payee_name',
+      label: 'Payee Name',
+      render: (payee: Payee) => (
+        <div className="font-medium">{payee.payee_name}</div>
+      )
+    },
+    {
+      key: 'payee_type',
+      label: 'Type',
+      render: (payee: Payee) => (
+        <Badge 
+          variant={getPayeeTypeBadgeVariant(payee.payee_type)} 
+          className={getPayeeTypeColor(payee.payee_type)}
+        >
+          {(() => {
+            switch (payee.payee_type) {
+              case PayeeType.SUBCONTRACTOR:
+                return "Subcontractor";
+              case PayeeType.MATERIAL_SUPPLIER:
+                return "Material Supplier";
+              case PayeeType.EQUIPMENT_RENTAL:
+                return "Equipment Rental";
+              case PayeeType.INTERNAL_LABOR:
+                return "Internal Labor";
+              case PayeeType.MANAGEMENT:
+                return "Management";
+              case PayeeType.PERMIT_AUTHORITY:
+                return "Permit Authority";
+              case PayeeType.OTHER:
+                return "Other";
+              default:
+                return payee.payee_type || "Subcontractor";
+            }
+          })()}
+        </Badge>
+      )
+    },
+    {
+      key: 'email',
+      label: 'Email'
+    },
+    {
+      key: 'phone_numbers',
+      label: 'Phone'
+    },
+    {
+      key: 'services',
+      label: 'Services',
+      render: (payee: Payee) => (
+        <div className="flex gap-1 flex-wrap">
+          {payee.provides_labor && (
+            <Badge variant="outline" className="text-xs">Labor</Badge>
+          )}
+          {payee.provides_materials && (
+            <Badge variant="outline" className="text-xs">Materials</Badge>
+          )}
+          {payee.requires_1099 && (
+            <Badge variant="outline" className="text-xs">1099</Badge>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'business_info',
+      label: 'Business Info',
+      render: (payee: Payee) => (
+        <div className="space-y-1 text-sm">
+          {payee.license_number && (
+            <div className="text-muted-foreground">License: {payee.license_number}</div>
+          )}
+          {payee.hourly_rate && (
+            <div className={
+              payee.payee_type === PayeeType.INTERNAL_LABOR 
+                ? "font-medium text-primary" 
+                : "text-muted-foreground"
+            }>
+              ${payee.hourly_rate}/hr
+              {payee.payee_type === PayeeType.INTERNAL_LABOR && (
+                <span className="text-xs text-muted-foreground ml-1">(Internal)</span>
+              )}
+            </div>
+          )}
+          {payee.permit_issuer && <Badge variant="secondary" className="text-xs">Permit Issuer</Badge>}
+          {payee.insurance_expires && (
+            <div className={`text-xs flex items-center gap-1 ${
+              isInsuranceExpiringSoon(payee.insurance_expires)
+                ? "text-destructive font-medium"
+                : "text-muted-foreground"
+            }`}>
+              {isInsuranceExpiringSoon(payee.insurance_expires) && (
+                <AlertTriangle className="h-3 w-3" />
+              )}
+              Insurance expires: {new Date(payee.insurance_expires).toLocaleDateString()}
+            </div>
+          )}
+        </div>
+      )
+    }
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <PayeeFilters
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        selectedType={selectedType}
-        onTypeChange={setSelectedType}
-        servicesFilter={servicesFilter}
-        onServicesFilterChange={setServicesFilter}
-        onClearFilters={clearFilters}
-        hasActiveFilters={hasActiveFilters}
+      <EntityTableTemplate
+        title="Payee Directory"
+        description={`Manage your payees and contractors (${filteredPayees.length} total)`}
+        data={filteredPayees}
+        columns={columns}
+        isLoading={isLoading}
+        selectedItems={selectedPayees}
+        onSelectItem={handleSelectPayee}
+        onSelectAll={handleSelectAll}
+        onView={handleViewPayee}
+        onEdit={onEdit}
+        onDelete={handleDelete}
+        filters={
+          <PayeeFilters
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            selectedType={selectedType}
+            onTypeChange={setSelectedType}
+            servicesFilter={servicesFilter}
+            onServicesFilterChange={setServicesFilter}
+            onClearFilters={clearFilters}
+            hasActiveFilters={hasActiveFilters}
+          />
+        }
+        bulkActions={
+          selectedPayees.length > 0 ? (
+            <PayeeBulkActions
+              selectedPayees={payees.filter(p => selectedPayees.includes(p.id))}
+              onBulkDelete={handleBulkDelete}
+              onBulkUpdateType={handleBulkUpdateType}
+              onClearSelection={clearSelection}
+            />
+          ) : null
+        }
+        emptyMessage="No payees found. Add your first payee to get started."
+        noResultsMessage="No payees match your current filters."
       />
 
-      {/* Bulk Actions */}
-      <PayeeBulkActions
-        selectedPayees={selectedPayees}
-        onBulkDelete={handleBulkDelete}
-        onBulkUpdateType={handleBulkUpdateType}
-        onClearSelection={clearSelection}
+      <PayeeDetailsModal
+        payee={selectedPayee}
+        isOpen={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false);
+          setSelectedPayee(null);
+        }}
+        onEdit={(payee) => {
+          setShowDetailsModal(false);
+          setSelectedPayee(null);
+          onEdit(payee);
+        }}
+        onDelete={(payeeId) => {
+          setShowDetailsModal(false);
+          setSelectedPayee(null);
+          handleDelete(payeeId);
+        }}
       />
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Payees ({filteredPayees.length})</span>
-            {hasActiveFilters && (
-              <Badge variant="outline" className="text-xs">
-                Filtered from {payees.length} total
-              </Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center">Loading payees...</div>
-          ) : filteredPayees.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              {hasActiveFilters 
-                ? "No payees match your current filters." 
-                : "No payees found. Add your first payee to get started."
-              }
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={allFilteredSelected}
-                      onCheckedChange={handleSelectAll}
-                      aria-label="Select all payees"
-                    />
-                  </TableHead>
-                  <TableHead>Payee Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Services</TableHead>
-                  <TableHead>Business Info</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPayees.map((payee) => (
-                  <TableRow key={payee.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={isPayeeSelected(payee.id)}
-                        onCheckedChange={(checked) => handleSelectPayee(payee, !!checked)}
-                        aria-label={`Select ${payee.payee_name}`}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{payee.payee_name}</TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={getPayeeTypeBadgeVariant(payee.payee_type)} 
-                        className={getPayeeTypeColor(payee.payee_type)}
-                      >
-                        {(() => {
-                          switch (payee.payee_type) {
-                            case PayeeType.SUBCONTRACTOR:
-                              return "Subcontractor";
-                            case PayeeType.MATERIAL_SUPPLIER:
-                              return "Material Supplier";
-                            case PayeeType.EQUIPMENT_RENTAL:
-                              return "Equipment Rental";
-                            case PayeeType.INTERNAL_LABOR:
-                              return "Internal Labor";
-                            case PayeeType.MANAGEMENT:
-                              return "Management";
-                            case PayeeType.PERMIT_AUTHORITY:
-                              return "Permit Authority";
-                            case PayeeType.OTHER:
-                              return "Other";
-                            default:
-                              return payee.payee_type || "Subcontractor";
-                          }
-                        })()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{payee.email || "-"}</TableCell>
-                    <TableCell>{payee.phone_numbers || "-"}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 flex-wrap">
-                        {payee.provides_labor && (
-                          <Badge variant="outline" className="text-xs">Labor</Badge>
-                        )}
-                        {payee.provides_materials && (
-                          <Badge variant="outline" className="text-xs">Materials</Badge>
-                        )}
-                        {payee.requires_1099 && (
-                          <Badge variant="outline" className="text-xs">1099</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1 text-sm">
-                        {payee.license_number && (
-                          <div className="text-muted-foreground">License: {payee.license_number}</div>
-                        )}
-                        {payee.hourly_rate && (
-                          <div className={
-                            payee.payee_type === PayeeType.INTERNAL_LABOR 
-                              ? "font-medium text-primary" 
-                              : "text-muted-foreground"
-                          }>
-                            ${payee.hourly_rate}/hr
-                            {payee.payee_type === PayeeType.INTERNAL_LABOR && (
-                              <span className="text-xs text-muted-foreground ml-1">(Internal)</span>
-                            )}
-                          </div>
-                        )}
-                        {payee.permit_issuer && <Badge variant="secondary" className="text-xs">Permit Issuer</Badge>}
-                        {payee.insurance_expires && (
-                          <div className={`text-xs flex items-center gap-1 ${
-                            isInsuranceExpiringSoon(payee.insurance_expires)
-                              ? "text-destructive font-medium"
-                              : "text-muted-foreground"
-                          }`}>
-                            {isInsuranceExpiringSoon(payee.insurance_expires) && (
-                              <AlertTriangle className="h-3 w-3" />
-                            )}
-                            Insurance expires: {new Date(payee.insurance_expires).toLocaleDateString()}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onEdit(payee)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Payee</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete "{payee.payee_name}"? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(payee.id)}>
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };
