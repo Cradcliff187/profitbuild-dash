@@ -540,8 +540,14 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
           .update({
             date_created: date.toISOString().split('T')[0],
             total_amount: totalAmount,
+            total_cost: calculateTotalCost(),
             notes: notes.trim() || undefined,
             valid_until: validUntil?.toISOString().split('T')[0],
+            contingency_percent: contingencyPercent,
+            contingency_used: contingencyUsed,
+            contingency_amount: calculateContingencyAmount(),
+            default_markup_percent: globalMarkupPercent,
+            target_margin_percent: targetMarginPercent,
             updated_at: new Date().toISOString()
           })
           .eq('id', initialEstimate.id)
@@ -564,14 +570,17 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
           category: item.category,
           description: item.description.trim(),
           quantity: item.quantity,
-          rate: item.pricePerUnit,
+          rate: item.pricePerUnit, // Keep for backward compatibility
+          price_per_unit: item.pricePerUnit,
           total: item.quantity * item.pricePerUnit,
           unit: item.unit || undefined,
           sort_order: index,
           // Cost & Pricing fields
           cost_per_unit: item.costPerUnit || 0,
           markup_percent: item.markupPercent,
-          markup_amount: item.markupAmount
+          markup_amount: item.markupAmount,
+          total_cost: item.quantity * (item.costPerUnit || 0),
+          total_markup: (item.quantity * item.pricePerUnit) - (item.quantity * (item.costPerUnit || 0))
         }));
 
         const { error: lineItemsError } = await supabase
@@ -646,12 +655,19 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
           estimate_number: estimateNumber,
           date_created: date.toISOString().split('T')[0],
           total_amount: totalAmount,
+          total_cost: calculateTotalCost(),
           status: 'draft' as const,
           notes: notes.trim() || undefined,
           valid_until: validUntil?.toISOString().split('T')[0],
           contingency_percent: contingencyPercent,
           contingency_used: contingencyUsed,
-          revision_number: 1
+          contingency_amount: calculateContingencyAmount(),
+          revision_number: 1,
+          version_number: 1,
+          is_current_version: true,
+          valid_for_days: 30,
+          default_markup_percent: globalMarkupPercent,
+          target_margin_percent: targetMarginPercent
         })
         .select()
         .single();
@@ -664,6 +680,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         category: item.category,
         description: item.description.trim(),
         quantity: item.quantity,
+        rate: item.pricePerUnit, // Keep for backward compatibility
         price_per_unit: item.pricePerUnit,
         total: item.quantity * item.pricePerUnit,
         unit: item.unit || undefined,
@@ -671,7 +688,9 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         // Cost & Pricing fields
         cost_per_unit: item.costPerUnit || 0,
         markup_percent: item.markupPercent,
-        markup_amount: item.markupAmount
+        markup_amount: item.markupAmount,
+        total_cost: item.quantity * (item.costPerUnit || 0),
+        total_markup: (item.quantity * item.pricePerUnit) - (item.quantity * (item.costPerUnit || 0))
       }));
 
       const { error: lineItemsError } = await supabase
@@ -684,8 +703,8 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         id: estimateData.id,
         project_id: estimateData.project_id,
         estimate_number: estimateData.estimate_number,
-        defaultMarkupPercent: 15,
-        targetMarginPercent: 20,
+        defaultMarkupPercent: estimateData.default_markup_percent || 15,
+        targetMarginPercent: estimateData.target_margin_percent || 20,
         date_created: new Date(estimateData.date_created),
         total_amount: estimateData.total_amount,
         status: estimateData.status as any,

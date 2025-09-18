@@ -155,6 +155,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           date_created: string | null
+          default_markup_percent: number | null
           estimate_number: string
           id: string
           is_current_version: boolean | null
@@ -163,7 +164,9 @@ export type Database = {
           project_id: string
           revision_number: number | null
           status: Database["public"]["Enums"]["estimate_status"] | null
+          target_margin_percent: number | null
           total_amount: number | null
+          total_cost: number | null
           updated_at: string | null
           valid_for_days: number | null
           valid_until: string | null
@@ -176,6 +179,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           date_created?: string | null
+          default_markup_percent?: number | null
           estimate_number: string
           id?: string
           is_current_version?: boolean | null
@@ -184,7 +188,9 @@ export type Database = {
           project_id: string
           revision_number?: number | null
           status?: Database["public"]["Enums"]["estimate_status"] | null
+          target_margin_percent?: number | null
           total_amount?: number | null
+          total_cost?: number | null
           updated_at?: string | null
           valid_for_days?: number | null
           valid_until?: string | null
@@ -197,6 +203,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           date_created?: string | null
+          default_markup_percent?: number | null
           estimate_number?: string
           id?: string
           is_current_version?: boolean | null
@@ -205,7 +212,9 @@ export type Database = {
           project_id?: string
           revision_number?: number | null
           status?: Database["public"]["Enums"]["estimate_status"] | null
+          target_margin_percent?: number | null
           total_amount?: number | null
+          total_cost?: number | null
           updated_at?: string | null
           valid_for_days?: number | null
           valid_until?: string | null
