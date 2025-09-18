@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { error };
       }
 
-      toast.success('Check your email for verification link!');
+      toast.success('Account created! Check your email for verification link.');
       return { error: null };
     } catch (error: any) {
       toast.error('An unexpected error occurred');
