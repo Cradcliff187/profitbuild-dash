@@ -184,6 +184,15 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
       return false;
     }
 
+    if (contingencyPercent < 0 || contingencyPercent > 50) {
+      toast({
+        title: "Invalid Contingency",
+        description: "Contingency percentage must be between 0% and 50%.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     if (projectMode === 'new') {
       if (!projectName.trim() || !clientName.trim()) {
         toast({
@@ -738,9 +747,15 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                 <Input
                   id="contingency-percent"
                   type="number"
+                  min="0"
+                  max="50"
                   step="0.1"
                   value={contingencyPercent}
-                  onChange={(e) => setContingencyPercent(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    setContingencyPercent(Math.min(Math.max(value, 0), 50));
+                  }}
+                  placeholder="10.0"
                   className="mt-1"
                 />
               </div>
@@ -757,33 +772,45 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
               </div>
             </div>
             
-            <div className="text-right space-y-2">
-              <div>
-                <div className="text-sm text-muted-foreground">Subtotal</div>
-                <div className="text-lg font-semibold">
+            <div className="space-y-3">
+              {/* Subtotal */}
+              <div className="flex justify-between items-center py-2">
+                <span className="text-sm text-muted-foreground">Subtotal</span>
+                <span className="text-lg font-semibold">
                   ${calculateTotal().toLocaleString('en-US', { 
                     minimumFractionDigits: 2, 
                     maximumFractionDigits: 2 
                   })}
-                </div>
+                </span>
               </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Contingency ({contingencyPercent}%)</div>
-                <div className="text-lg font-semibold">
+
+              <Separator />
+
+              {/* Contingency as Line Item */}
+              <div className="flex justify-between items-center py-2 bg-muted/30 px-3 rounded">
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">Contingency ({contingencyPercent}%)</span>
+                  <span className="text-xs text-muted-foreground">Buffer for unforeseen costs</span>
+                </div>
+                <span className="text-lg font-semibold">
                   ${calculateContingencyAmount().toLocaleString('en-US', { 
                     minimumFractionDigits: 2, 
                     maximumFractionDigits: 2 
                   })}
-                </div>
+                </span>
               </div>
-              <div className="border-t pt-2">
-                <div className="text-sm text-muted-foreground">Total with Contingency</div>
-                <div className="text-2xl font-bold">
+
+              <Separator />
+
+              {/* Total */}
+              <div className="flex justify-between items-center py-3 border-t-2 border-primary">
+                <span className="text-lg font-semibold">Total with Contingency</span>
+                <span className="text-2xl font-bold text-primary">
                   ${(calculateTotal() + calculateContingencyAmount()).toLocaleString('en-US', { 
                     minimumFractionDigits: 2, 
                     maximumFractionDigits: 2 
                   })}
-                </div>
+                </span>
               </div>
             </div>
           </div>
