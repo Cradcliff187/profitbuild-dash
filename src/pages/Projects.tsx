@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { Building2 } from "lucide-react";
+import { Building2, BarChart3 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectForm } from "@/components/ProjectForm";
 import { ProjectEditForm } from "@/components/ProjectEditForm";
 import { ProjectsList } from "@/components/ProjectsList";
 import { ProjectProfitMargin } from "@/components/ProjectProfitMargin";
 import { ChangeOrdersList } from "@/components/ChangeOrdersList";
 import { ChangeOrderForm } from "@/components/ChangeOrderForm";
+import { VarianceAnalysis } from "@/components/VarianceAnalysis";
 import { Project } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
@@ -34,6 +36,7 @@ const Projects = () => {
   const [showChangeOrderForm, setShowChangeOrderForm] = useState(false);
   const [editingChangeOrder, setEditingChangeOrder] = useState<ChangeOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('details');
 
   // Load projects from Supabase
   useEffect(() => {
@@ -346,46 +349,92 @@ const Projects = () => {
             return null;
           })()}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <ProjectEditForm
-                project={selectedProject}
-                onSave={handleSaveProject}
-                onCancel={handleCancel}
-              />
-              
-              {/* Change Orders Section */}
-              {showChangeOrderForm ? (
-                <ChangeOrderForm
-                  projectId={selectedProject.id}
-                  changeOrder={editingChangeOrder}
-                  onSuccess={handleChangeOrderSuccess}
-                  onCancel={handleChangeOrderCancel}
-                />
-              ) : (
-                <ChangeOrdersList
-                  projectId={selectedProject.id}
-                  onEdit={handleEditChangeOrder}
-                  onCreateNew={handleCreateChangeOrder}
-                />
-              )}
-            </div>
-            {selectedProjectProfit && selectedProjectProfit.contractAmount > 0 && (
-              <div className="lg:col-span-1">
-                <ProjectProfitMargin
-                  contractAmount={selectedProjectProfit.contractAmount}
-                  actualCosts={selectedProjectProfit.actualCosts}
-                  projectName={selectedProject.project_name}
-                  project={{
-                    contracted_amount: selectedProject.contracted_amount,
-                    current_margin: selectedProject.current_margin,
-                    margin_percentage: selectedProject.margin_percentage,
-                    total_accepted_quotes: selectedProject.total_accepted_quotes,
-                  }}
-                />
-              </div>
-            )}
-          </div>
+          {/* Tab Navigation */}
+          {(() => {
+            const projectExpenses = expenses.filter(e => e.project_id === selectedProject.id);
+            const hasExpenses = projectExpenses.length > 0;
+            const showProfitAnalysis = selectedProjectProfit && selectedProjectProfit.contractAmount > 0;
+
+            return (
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList>
+                  <TabsTrigger value="details">Details</TabsTrigger>
+                  {showProfitAnalysis && <TabsTrigger value="profit">Profit Analysis</TabsTrigger>}
+                  {hasExpenses && (
+                    <TabsTrigger value="variance" className="flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Variance Analysis
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+
+                <TabsContent value="details" className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 space-y-6">
+                      <ProjectEditForm
+                        project={selectedProject}
+                        onSave={handleSaveProject}
+                        onCancel={handleCancel}
+                      />
+                      
+                      {/* Change Orders Section */}
+                      {showChangeOrderForm ? (
+                        <ChangeOrderForm
+                          projectId={selectedProject.id}
+                          changeOrder={editingChangeOrder}
+                          onSuccess={handleChangeOrderSuccess}
+                          onCancel={handleChangeOrderCancel}
+                        />
+                      ) : (
+                        <ChangeOrdersList
+                          projectId={selectedProject.id}
+                          onEdit={handleEditChangeOrder}
+                          onCreateNew={handleCreateChangeOrder}
+                        />
+                      )}
+                    </div>
+                    {showProfitAnalysis && (
+                      <div className="lg:col-span-1">
+                        <ProjectProfitMargin
+                          contractAmount={selectedProjectProfit.contractAmount}
+                          actualCosts={selectedProjectProfit.actualCosts}
+                          projectName={selectedProject.project_name}
+                          project={{
+                            contracted_amount: selectedProject.contracted_amount,
+                            current_margin: selectedProject.current_margin,
+                            margin_percentage: selectedProject.margin_percentage,
+                            total_accepted_quotes: selectedProject.total_accepted_quotes,
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                {showProfitAnalysis && (
+                  <TabsContent value="profit">
+                    <ProjectProfitMargin
+                      contractAmount={selectedProjectProfit.contractAmount}
+                      actualCosts={selectedProjectProfit.actualCosts}
+                      projectName={selectedProject.project_name}
+                      project={{
+                        contracted_amount: selectedProject.contracted_amount,
+                        current_margin: selectedProject.current_margin,
+                        margin_percentage: selectedProject.margin_percentage,
+                        total_accepted_quotes: selectedProject.total_accepted_quotes,
+                      }}
+                    />
+                  </TabsContent>
+                )}
+
+                {hasExpenses && (
+                  <TabsContent value="variance">
+                    <VarianceAnalysis projectId={selectedProject.id} />
+                  </TabsContent>
+                )}
+              </Tabs>
+            );
+          })()}
         </div>
       )}
     </div>
