@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calculator, Building2, Save, Plus, Copy, History, Eye, Loader2 } from "lucide-react";
+import { Calculator, Building2, Save, Plus, Copy, History, Eye, Loader2, FileEdit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -753,19 +753,73 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     return true;
   };
 
+  const handleSaveAsDraft = async () => {
+    // Minimal validation for drafts - only check basic required fields
+    if (projectMode === 'existing' && !selectedProjectId) {
+      toast({
+        title: "No Project Selected",
+        description: "Please select an existing project.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (projectMode === 'new' && !projectName.trim()) {
+      toast({
+        title: "Project Name Required",  
+        description: "Please enter a project name.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      await saveDraft();
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save draft. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
     
     try {
-      let finalProjectId = selectedProjectId;
-      let project: Project;
-      
-      if (initialEstimate) {
+      await saveEstimate(false); // false = not a draft
+    } catch (error) {
+      console.error('Error creating estimate:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create estimate. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveDraft = async () => {
+    await saveEstimate(true); // true = is a draft
+  };
+
+  const saveEstimate = async (isDraft: boolean) => {
+    let finalProjectId = selectedProjectId;
+    let project: Project;
+    
+    if (initialEstimate) {
         // Update existing estimate
         const totalAmount = calculateTotal();
-        const validLineItems = lineItems.filter(item => item.description.trim());
+        const validLineItems = isDraft ? lineItems : lineItems.filter(item => item.description.trim());
         
         const { data: estimateData, error: estimateError } = await supabase
           .from('estimates')
@@ -780,6 +834,8 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
             contingency_amount: calculateContingencyAmount(),
             default_markup_percent: globalMarkupPercent,
             target_margin_percent: targetMarginPercent,
+            is_draft: isDraft,
+            status: isDraft ? 'draft' : 'sent',
             updated_at: new Date().toISOString()
           })
           .eq('id', initialEstimate.id)
@@ -837,8 +893,10 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         onSave(updatedEstimate);
         
         toast({
-          title: "Estimate Updated",
-          description: `Estimate ${initialEstimate.estimate_number} has been updated successfully.`
+          title: isDraft ? "Draft Saved" : "Estimate Updated",
+          description: isDraft 
+            ? `Draft ${initialEstimate.estimate_number} has been saved successfully.`
+            : `Estimate ${initialEstimate.estimate_number} has been updated successfully.`
         });
 
         return;
@@ -879,7 +937,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
       // Create estimate
       const estimateNumber = generateEstimateNumber(project.project_number);
       const totalAmount = calculateTotal();
-      const validLineItems = lineItems.filter(item => item.description.trim());
+      const validLineItems = isDraft ? lineItems : lineItems.filter(item => item.description.trim());
       
       const { data: estimateData, error: estimateError } = await supabase
         .from('estimates')
@@ -890,6 +948,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
           total_amount: totalAmount,
           total_cost: calculateTotalCost(),
           status: 'draft' as const,
+          is_draft: isDraft,
           notes: notes.trim() || undefined,
           valid_until: validUntil?.toISOString().split('T')[0],
           contingency_percent: contingencyPercent,
@@ -961,20 +1020,12 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
       onSave(newEstimate);
       
       toast({
-        title: "Estimate Created",
-        description: `Estimate ${estimateNumber} has been created successfully.`
+        title: isDraft ? "Draft Created" : "Estimate Created",
+        description: isDraft 
+          ? `Draft ${estimateNumber} has been saved successfully.`
+          : `Estimate ${estimateNumber} has been created successfully.`
       });
 
-    } catch (error) {
-      console.error('Error creating estimate:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create estimate. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleSaveAsNewVersion = async () => {
@@ -1933,6 +1984,15 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
             >
               {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               {isLoading ? "Saving..." : (initialEstimate ? "Update Estimate" : "Create Estimate")}
+            </Button>
+            
+            <Button 
+              onClick={handleSaveAsDraft} 
+              variant="outline"
+              disabled={isLoading || isCreatingVersion}
+            >
+              {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileEdit className="h-4 w-4 mr-2" />}
+              {isLoading ? "Saving..." : (initialEstimate ? "Save as Draft" : "Save Draft")}
             </Button>
             
             {/* Version button - only show when editing */}

@@ -279,6 +279,7 @@ export type Database = {
           estimate_number: string
           id: string
           is_current_version: boolean | null
+          is_draft: boolean
           notes: string | null
           parent_estimate_id: string | null
           project_id: string
@@ -303,6 +304,7 @@ export type Database = {
           estimate_number: string
           id?: string
           is_current_version?: boolean | null
+          is_draft?: boolean
           notes?: string | null
           parent_estimate_id?: string | null
           project_id: string
@@ -327,6 +329,7 @@ export type Database = {
           estimate_number?: string
           id?: string
           is_current_version?: boolean | null
+          is_draft?: boolean
           notes?: string | null
           parent_estimate_id?: string | null
           project_id?: string

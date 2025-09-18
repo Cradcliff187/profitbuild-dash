@@ -31,6 +31,8 @@ export interface Estimate {
   lineItems: LineItem[];
   created_at: Date;
   updated_at: Date;
+  // Draft functionality
+  is_draft?: boolean;
   // Contingency fields
   contingency_percent: number;
   contingency_amount?: number;

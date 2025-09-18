@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Edit, Trash2, Eye, Plus, ChevronDown } from "lucide-react";
+import { FileText, Edit, Trash2, Eye, Plus, ChevronDown, FileEdit } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -224,6 +224,14 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
                 {estimate.is_current_version && (
                   <Badge variant="default" className="text-sm">
                     Current
+                  </Badge>
+                )}
+                
+                {/* Draft badge */}
+                {estimate.is_draft && (
+                  <Badge variant="outline" className="text-sm border-orange-300 text-orange-700 bg-orange-50">
+                    <FileEdit className="h-3 w-3 mr-1" />
+                    Draft
                   </Badge>
                 )}
                 
