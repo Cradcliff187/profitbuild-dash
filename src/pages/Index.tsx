@@ -11,7 +11,7 @@ const Index = () => {
     if (!loading) {
       if (user) {
         // Redirect authenticated users to dashboard
-        navigate('/dashboard');
+        navigate('/');
       } else {
         // Redirect unauthenticated users to auth page
         navigate('/auth');
