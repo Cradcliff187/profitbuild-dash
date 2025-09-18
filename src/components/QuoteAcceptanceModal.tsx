@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, XCircle, TrendingUp, TrendingDown, Calendar, User, FileText, AlertTriangle, Target } from 'lucide-react';
+import { CheckCircle, XCircle, TrendingUp, TrendingDown, Calendar, User, FileText, AlertTriangle, Target, CheckCircle2, Shield } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { VarianceBadge } from '@/components/ui/variance-badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { Quote } from '@/types/quote';
 import type { Estimate } from '@/types/estimate';
 import type { Project } from '@/types/project';
@@ -81,6 +82,43 @@ export function QuoteAcceptanceModal({
   
   const marginChange = projectedMarginPercentage - (currentMargin.margin_percentage || 0);
   const isMarginImproving = marginChange > 0;
+
+  // Warning configuration based on margin thresholds
+  const getMarginWarningConfig = (margin: number) => {
+    const minThreshold = project.minimum_margin_threshold || 10;
+    const targetThreshold = project.target_margin || 20;
+    
+    if (margin < minThreshold) {
+      return {
+        type: 'critical',
+        variant: 'destructive' as const,
+        icon: AlertTriangle,
+        className: 'border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive',
+        title: 'Critical Margin Risk',
+        description: `Accepting this quote will result in a margin of ${margin.toFixed(1)}% which is below your minimum threshold of ${minThreshold}%. This could significantly impact project profitability and may require immediate cost review.`
+      };
+    } else if (margin < targetThreshold) {
+      return {
+        type: 'warning',
+        variant: 'default' as const,
+        icon: Shield,
+        className: 'border-yellow-200 bg-yellow-50 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/50 dark:text-yellow-400 [&>svg]:text-yellow-600 dark:[&>svg]:text-yellow-400',
+        title: 'Margin Below Target',
+        description: `This quote will result in a margin of ${margin.toFixed(1)}% which is below your target of ${targetThreshold}%. Consider negotiating the quote amount or reviewing project costs to improve profitability.`
+      };
+    } else {
+      return {
+        type: 'success',
+        variant: 'default' as const,
+        icon: CheckCircle2,
+        className: 'border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950/50 dark:text-green-400 [&>svg]:text-green-600 dark:[&>svg]:text-green-400',
+        title: 'Healthy Margin',
+        description: `This quote maintains a strong profit margin of ${margin.toFixed(1)}% which exceeds your target threshold of ${targetThreshold}%. The project profitability looks excellent.`
+      };
+    }
+  };
+
+  const warningConfig = getMarginWarningConfig(projectedMarginPercentage);
 
   const handleAccept = () => {
     onAccept(quote);
@@ -336,6 +374,30 @@ export function QuoteAcceptanceModal({
               </CardContent>
             </Card>
 
+            {/* Margin Warning Alert */}
+            <Alert variant={warningConfig.variant} className={warningConfig.className}>
+              <warningConfig.icon className="h-4 w-4" />
+              <AlertTitle className="flex items-center gap-2">
+                {warningConfig.title}
+                <Badge variant="outline" className="ml-auto">
+                  {projectedMarginPercentage.toFixed(1)}% Margin
+                </Badge>
+              </AlertTitle>
+              <AlertDescription className="mt-2">
+                {warningConfig.description}
+              </AlertDescription>
+              {warningConfig.type === 'critical' && (
+                <AlertDescription className="mt-3 font-medium">
+                  <strong>Recommended Actions:</strong>
+                  <ul className="mt-1 ml-4 list-disc text-sm">
+                    <li>Negotiate a lower quote amount with the subcontractor</li>
+                    <li>Review project scope to identify cost savings opportunities</li>
+                    <li>Consider alternative subcontractors or approaches</li>
+                  </ul>
+                </AlertDescription>
+              )}
+            </Alert>
+
             {/* Notes */}
             {quote.notes && (
               <Card>
@@ -365,10 +427,18 @@ export function QuoteAcceptanceModal({
             </Button>
             <Button
               onClick={handleAccept}
-              className="flex items-center gap-2"
+              className={`flex items-center gap-2 ${
+                warningConfig.type === 'critical' 
+                  ? 'bg-destructive hover:bg-destructive/90' 
+                  : ''
+              }`}
+              variant={warningConfig.type === 'critical' ? 'destructive' : 'default'}
             >
               <CheckCircle className="h-4 w-4" />
               Accept Quote
+              {warningConfig.type === 'critical' && (
+                <AlertTriangle className="h-4 w-4 ml-1" />
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
