@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Building2, Save, ArrowRight, User, Building, Mail, Phone, MapPin } from "lucide-react";
+import { Building2, Save, ArrowRight, User, Building, Mail, Phone, MapPin, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RequiredLabel } from "@/components/ui/required-label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +13,7 @@ import { Client, PAYMENT_TERMS } from "@/types/client";
 import { ClientSelector } from "@/components/ClientSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface ProjectFormProps {
   onSave: (project: Project) => void;
@@ -34,6 +36,12 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
   const [minimumMarginThreshold, setMinimumMarginThreshold] = useState(10.0);
   const [targetMargin, setTargetMargin] = useState(20.0);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Validation states
+  const [clientError, setClientError] = useState("");
+  const [projectNameError, setProjectNameError] = useState("");
+  const [projectTypeError, setProjectTypeError] = useState("");
+  const [hasValidated, setHasValidated] = useState(false);
 
   useEffect(() => {
     // Auto-generate project number on form load
@@ -70,12 +78,9 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
   };
 
   const handleSave = async () => {
-    if (!projectName.trim() || !selectedClientId) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in project name and select a client.",
-        variant: "destructive"
-      });
+    setHasValidated(true);
+    
+    if (!validateAllFields()) {
       return;
     }
 
@@ -150,6 +155,82 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
     setProjectNumber(generateProjectNumber());
   };
 
+  // Validation functions
+  const validateClient = () => {
+    if (!selectedClientId) {
+      return "Please select a client";
+    }
+    return "";
+  };
+
+  const validateProjectName = () => {
+    if (!projectName.trim()) {
+      return "Project name is required";
+    }
+    if (projectName.trim().length < 3) {
+      return "Project name must be at least 3 characters";
+    }
+    return "";
+  };
+
+  const validateProjectType = () => {
+    if (!projectType) {
+      return "Please select a project type";
+    }
+    return "";
+  };
+
+  const validateAllFields = () => {
+    const clientErr = validateClient();
+    const nameErr = validateProjectName();
+    const typeErr = validateProjectType();
+    
+    setClientError(clientErr);
+    setProjectNameError(nameErr);
+    setProjectTypeError(typeErr);
+    
+    return !clientErr && !nameErr && !typeErr;
+  };
+
+  const getCompletedFieldsCount = () => {
+    let count = 0;
+    if (selectedClientId) count++;
+    if (projectName.trim() && projectName.trim().length >= 3) count++;
+    if (projectType) count++;
+    return count;
+  };
+
+  const isFormValid = () => {
+    return selectedClientId && projectName.trim().length >= 3 && projectType;
+  };
+
+  // Field validation handlers
+  const handleClientBlur = () => {
+    if (hasValidated) {
+      setClientError(validateClient());
+    }
+  };
+
+  const handleProjectNameBlur = () => {
+    if (hasValidated) {
+      setProjectNameError(validateProjectName());
+    }
+  };
+
+  const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProjectName(e.target.value);
+    if (hasValidated) {
+      setProjectNameError(validateProjectName());
+    }
+  };
+
+  const handleProjectTypeChange = (value: ProjectType) => {
+    setProjectType(value);
+    if (hasValidated) {
+      setProjectTypeError(validateProjectType());
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -160,6 +241,19 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Completion Progress */}
+          <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <div>
+              <p className="font-medium text-green-700">
+                {getCompletedFieldsCount()} of 3 required fields complete
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Fill in all required fields to create your project
+              </p>
+            </div>
+          </div>
+
           {/* Project Number */}
           <div className="space-y-2">
             <Label>Project Number</Label>
@@ -181,23 +275,33 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="projectName">Project Name *</Label>
+              <RequiredLabel htmlFor="projectName">Project Name</RequiredLabel>
               <Input
                 id="projectName"
                 value={projectName}
-                onChange={(e) => setProjectName(e.target.value)}
+                onChange={handleProjectNameChange}
+                onBlur={handleProjectNameBlur}
                 placeholder="Enter project name"
+                className={cn(projectNameError && "border-destructive")}
               />
+              {projectNameError && (
+                <p className="text-sm font-medium text-destructive">{projectNameError}</p>
+              )}
             </div>
             
             <div className="space-y-2">
-              <Label>Client *</Label>
+              <RequiredLabel>Client</RequiredLabel>
               <ClientSelector
                 value={selectedClientId}
                 onValueChange={handleClientChange}
+                onBlur={handleClientBlur}
                 placeholder="Select a client"
                 required={true}
+                error={clientError}
               />
+              {clientError && (
+                <p className="text-sm font-medium text-destructive">{clientError}</p>
+              )}
             </div>
           </div>
 
@@ -268,9 +372,9 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
           {/* Project Type, Status, Job Type */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Project Type *</Label>
-              <Select value={projectType} onValueChange={(value: ProjectType) => setProjectType(value)}>
-                <SelectTrigger>
+              <RequiredLabel>Project Type</RequiredLabel>
+              <Select value={projectType} onValueChange={handleProjectTypeChange}>
+                <SelectTrigger className={cn(projectTypeError && "border-destructive")}>
                   <SelectValue placeholder="Select project type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -407,7 +511,11 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">
-            <Button onClick={handleSave} className="flex-1" disabled={isLoading}>
+            <Button 
+              onClick={handleSave} 
+              className="flex-1" 
+              disabled={isLoading || !isFormValid()}
+            >
               <Save className="h-4 w-4 mr-2" />
               {isLoading ? "Creating..." : "Create Project"}
             </Button>
