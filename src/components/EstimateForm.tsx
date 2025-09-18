@@ -373,13 +373,31 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
       prev.map(item => {
         if (item.id === id) {
           const updated = { ...item, [field]: value };
+          
           // Auto-set pricePerUnit for labor category
           if (field === 'category' && value === LineItemCategory.LABOR) {
             updated.pricePerUnit = internalLaborRate;
+            updated.costPerUnit = internalLaborRate * 0.7; // Default cost at 70% of price
           }
-          if (field === 'quantity' || field === 'pricePerUnit') {
-            updated.total = updated.quantity * updated.pricePerUnit;
+          
+          // Enhanced calculation logic
+          if (field === 'costPerUnit' || field === 'markupPercent') {
+            // When cost or markup changes, recalculate price
+            if (updated.markupPercent !== null && updated.markupPercent !== undefined) {
+              updated.pricePerUnit = updated.costPerUnit * (1 + updated.markupPercent / 100);
+            }
+          } else if (field === 'pricePerUnit') {
+            // When price changes, back-calculate markup
+            if (updated.costPerUnit > 0) {
+              updated.markupPercent = ((updated.pricePerUnit - updated.costPerUnit) / updated.costPerUnit) * 100;
+            }
           }
+          
+          // Always recalculate totals
+          updated.total = updated.quantity * updated.pricePerUnit;
+          updated.totalCost = updated.quantity * updated.costPerUnit;
+          updated.totalMarkup = updated.total - updated.totalCost;
+          
           return updated;
         }
         return item;
@@ -1045,83 +1063,132 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
             </div>
 
             {/* Line Items Header */}
-            <div className="grid grid-cols-12 gap-4 p-2 text-sm font-medium text-muted-foreground border-b">
+            <div className="grid grid-cols-15 gap-2 p-2 text-sm font-medium text-muted-foreground border-b">
               <div className="col-span-2">Category</div>
-              <div className="col-span-4">Description</div>
-              <div className="col-span-2">Quantity</div>
-              <div className="col-span-2">Rate</div>
+              <div className="col-span-3">Description</div>
+              <div className="col-span-1">Qty</div>
+              <div className="col-span-2">Cost/Unit</div>
+              <div className="col-span-1">Markup%</div>
+              <div className="col-span-2">Price/Unit</div>
+              <div className="col-span-2">Margin</div>
               <div className="col-span-1 text-right">Total</div>
               <div className="col-span-1"></div>
             </div>
 
             {/* Line Items */}
             <div className="space-y-3">
-              {lineItems.map(lineItem => (
-                <div key={lineItem.id} className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-2">
-                    <Select
-                      value={lineItem.category}
-                      onValueChange={(value: LineItemCategory) => updateLineItem(lineItem.id, 'category', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(CATEGORY_DISPLAY_MAP).map(([key, display]) => (
-                          <SelectItem key={key} value={key}>
-                            {display}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+              {lineItems.map(lineItem => {
+                const marginPercent = lineItem.pricePerUnit > 0 
+                  ? ((lineItem.pricePerUnit - lineItem.costPerUnit) / lineItem.pricePerUnit) * 100 
+                  : 0;
+                const isHealthy = marginPercent >= 20;
+                const isMedium = marginPercent >= 10 && marginPercent < 20;
+                
+                return (
+                  <div key={lineItem.id} className="grid grid-cols-15 gap-2 items-center">
+                    <div className="col-span-2">
+                      <Select
+                        value={lineItem.category}
+                        onValueChange={(value: LineItemCategory) => updateLineItem(lineItem.id, 'category', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(CATEGORY_DISPLAY_MAP).map(([key, display]) => (
+                            <SelectItem key={key} value={key}>
+                              {display}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="col-span-3">
+                      <Input
+                        value={lineItem.description}
+                        onChange={(e) => updateLineItem(lineItem.id, 'description', e.target.value)}
+                        placeholder="Description"
+                      />
+                    </div>
+                    
+                    <div className="col-span-1">
+                      <Input
+                        type="number"
+                        value={lineItem.quantity}
+                        onChange={(e) => updateLineItem(lineItem.id, 'quantity', parseFloat(e.target.value) || 0)}
+                        placeholder="0"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        value={lineItem.costPerUnit}
+                        onChange={(e) => updateLineItem(lineItem.id, 'costPerUnit', parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    
+                    <div className="col-span-1">
+                      <Input
+                        type="number"
+                        value={lineItem.markupPercent || 0}
+                        onChange={(e) => updateLineItem(lineItem.id, 'markupPercent', parseFloat(e.target.value) || 0)}
+                        placeholder="0"
+                        min="0"
+                        step="1"
+                      />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        value={lineItem.pricePerUnit}
+                        onChange={(e) => updateLineItem(lineItem.id, 'pricePerUnit', parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      {lineItem.pricePerUnit > 0 && (
+                        <Badge 
+                          variant="outline" 
+                          className={cn(
+                            "text-xs",
+                            isHealthy && "bg-green-50 text-green-700 border-green-200",
+                            isMedium && "bg-yellow-50 text-yellow-700 border-yellow-200",
+                            !isHealthy && !isMedium && "bg-red-50 text-red-700 border-red-200"
+                          )}
+                        >
+                          {marginPercent.toFixed(1)}%
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="col-span-1 text-right font-medium">
+                      ${(lineItem.quantity * lineItem.pricePerUnit).toFixed(2)}
+                    </div>
+                    
+                    <div className="col-span-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeLineItem(lineItem.id)}
+                        disabled={lineItems.length <= 1}
+                      >
+                        ×
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div className="col-span-4">
-                    <Input
-                      value={lineItem.description}
-                      onChange={(e) => updateLineItem(lineItem.id, 'description', e.target.value)}
-                      placeholder="Description"
-                    />
-                  </div>
-                  
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      value={lineItem.quantity}
-                      onChange={(e) => updateLineItem(lineItem.id, 'quantity', parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                  
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      value={lineItem.pricePerUnit}
-                      onChange={(e) => updateLineItem(lineItem.id, 'pricePerUnit', parseFloat(e.target.value) || 0)}
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                  
-                  <div className="col-span-1 text-right font-medium">
-                    ${(lineItem.quantity * lineItem.pricePerUnit).toFixed(2)}
-                  </div>
-                  
-                  <div className="col-span-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeLineItem(lineItem.id)}
-                      disabled={lineItems.length <= 1}
-                    >
-                      ×
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
