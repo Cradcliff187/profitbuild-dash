@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target } from "lucide-react";
+import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +46,8 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "all">("all");
   const [typeFilter, setTypeFilter] = useState<ProjectType | "all">("all");
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'status' | 'margin'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const getStatusColor = (status: ProjectStatus) => {
     switch (status) {
@@ -127,6 +129,25 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
     return matchesSearch && matchesStatus && matchesType;
   });
 
+  const sortedProjects = [...filteredProjects].sort((a, b) => {
+    const modifier = sortOrder === 'asc' ? 1 : -1;
+    
+    switch (sortBy) {
+      case 'name':
+        return a.project_name.localeCompare(b.project_name) * modifier;
+      case 'date':
+        return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * modifier;
+      case 'status':
+        return a.status.localeCompare(b.status) * modifier;
+      case 'margin':
+        const aMargin = a.margin_percentage ?? -999;
+        const bMargin = b.margin_percentage ?? -999;
+        return (aMargin - bMargin) * modifier;
+      default:
+        return 0;
+    }
+  });
+
   if (projects.length === 0) {
     return (
       <Card>
@@ -162,7 +183,7 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label htmlFor="search">Search Projects</Label>
               <Input
@@ -204,11 +225,36 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Sort By</Label>
+              <div className="flex gap-2">
+                <Select value={sortBy} onValueChange={(value: 'name' | 'date' | 'status' | 'margin') => setSortBy(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="date">Date Created</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                    <SelectItem value="margin">Margin %</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                >
+                  {sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
               <Label>&nbsp;</Label>
               <Button variant="outline" onClick={() => {
                 setSearchTerm("");
                 setStatusFilter("all");
                 setTypeFilter("all");
+                setSortBy("date");
+                setSortOrder("desc");
               }}>
                 <Filter className="h-4 w-4 mr-2" />
                 Clear Filters
@@ -220,7 +266,7 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
 
       {/* Projects Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredProjects.map((project) => (
+        {sortedProjects.map((project) => (
           <Card key={project.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
@@ -273,6 +319,11 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
                   <Badge variant="outline">
                     {project.project_type.replace('_', ' ')}
                   </Badge>
+                  {project.margin_percentage !== null && project.margin_percentage !== undefined && (
+                    <Badge className={getMarginColor(project.margin_percentage)}>
+                      {project.margin_percentage.toFixed(1)}% margin
+                    </Badge>
+                  )}
                 </div>
                 {project.variance && project.variancePercentage && (
                   <VarianceBadge 
@@ -390,7 +441,7 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
         ))}
       </div>
 
-      {filteredProjects.length === 0 && projects.length > 0 && (
+      {sortedProjects.length === 0 && projects.length > 0 && (
         <Card>
           <CardContent className="py-12">
             <div className="text-center text-muted-foreground">
