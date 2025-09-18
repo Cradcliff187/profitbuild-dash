@@ -111,7 +111,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
         sort_order: item.sort_order
       })) || [];
 
-      setLineItems(items);
+      setLineItems(items as LineItem[]); // Cast the database result to our interface
     } catch (error) {
       console.error('Error loading line items:', error);
     }
@@ -121,7 +121,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     return `EST-${projectNum}-${Date.now().toString().slice(-4)}`;
   };
 
-  const createNewLineItem = (category: LineItemCategory = 'labor_internal'): LineItem => ({
+  const createNewLineItem = (category: LineItemCategory = LineItemCategory.LABOR): LineItem => ({
     id: Date.now().toString() + Math.random(),
     category,
     description: '',

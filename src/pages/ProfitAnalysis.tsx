@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Estimate } from '@/types/estimate';
 import { Quote } from '@/types/quote';
-import { Expense } from '@/types/expense';
+import { Expense, ExpenseCategory } from '@/types/expense';
 import { Project } from '@/types/project';
 import { supabase } from '@/integrations/supabase/client';
 import ProfitAnalysis from '@/components/ProfitAnalysis';
@@ -115,7 +115,7 @@ export default function ProfitAnalysisPage() {
         id: expense.id,
         project_id: expense.project_id,
         payee_id: expense.payee_id,
-        category: expense.category,
+        category: expense.category as ExpenseCategory, // Cast database value to enum
         transaction_type: expense.transaction_type,
         description: expense.description,
         amount: expense.amount,

@@ -36,7 +36,7 @@ export const ProjectEstimateForm = ({ project, onSave, onCancel }: ProjectEstima
     return `EST-${project.project_number}-${Date.now().toString().slice(-4)}`;
   };
 
-  const createNewLineItem = (category: LineItemCategory = 'labor_internal'): LineItem => ({
+  const createNewLineItem = (category: LineItemCategory = LineItemCategory.LABOR): LineItem => ({
     id: Date.now().toString() + Math.random(),
     category,
     description: '',

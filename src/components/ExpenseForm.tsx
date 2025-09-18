@@ -113,7 +113,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         id: expense?.id,
         project_id: data.project_id,
         description: data.description,
-        category: data.category,
+        category: data.category as any, // Cast enum to database string
         transaction_type: data.transaction_type,
         amount: parseFloat(data.amount),
         expense_date: data.expense_date.toISOString().split('T')[0],
@@ -138,7 +138,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         // Create new expense
         const { data: newExpense, error } = await supabase
           .from('expenses')
-          .insert([expenseData])
+          .insert([expenseData] as any) // Cast to handle enum conversion
           .select()
           .single();
         

@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Upload, FileDown, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { parseQuickBooksCSV, mapQuickBooksToExpenses, QBParseResult, QBImportResult, PayeeMatchInfo } from "@/utils/csvParser";
+import { Expense, ExpenseCategory } from "@/types/expense";
 import { PartialPayee } from "@/utils/fuzzyPayeeMatcher";
-import { Expense } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -106,6 +106,7 @@ export const TransactionImportModal: React.FC<TransactionImportModalProps> = ({
       // Transform and notify parent
       const transformedExpenses: Expense[] = (insertedExpenses || []).map(expense => ({
         ...expense,
+        category: expense.category as ExpenseCategory, // Cast database value to enum
         expense_date: new Date(expense.expense_date),
         created_at: new Date(expense.created_at),
         updated_at: new Date(expense.updated_at),

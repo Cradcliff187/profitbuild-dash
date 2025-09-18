@@ -70,6 +70,18 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
         percentageDiff: estimateTotals.subtotals.equipment > 0 ? 
           ((quote.subtotals.equipment - estimateTotals.subtotals.equipment) / estimateTotals.subtotals.equipment) * 100 : 0
       },
+      permits: {
+        estimate: 0, // No permits category in estimates subtotals yet
+        quote: 0, // No permits category in quotes yet
+        difference: 0,
+        percentageDiff: 0
+      },
+      management: {
+        estimate: 0, // No management category in estimates subtotals yet
+        quote: 0, // No management category in quotes yet
+        difference: 0,
+        percentageDiff: 0
+      },
       other: {
         estimate: estimateTotals.subtotals.other,
         quote: quote.subtotals.other,

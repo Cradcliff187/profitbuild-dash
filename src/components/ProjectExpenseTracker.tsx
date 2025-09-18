@@ -61,6 +61,16 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
         actual: projectExpenses.filter(e => e.category === 'equipment').reduce((sum, e) => sum + e.amount, 0),
         variance: 0
       },
+      permits: {
+        estimated: 0,
+        actual: projectExpenses.filter(e => e.category === 'permits').reduce((sum, e) => sum + e.amount, 0),
+        variance: 0
+      },
+      management: {
+        estimated: 0,
+        actual: projectExpenses.filter(e => e.category === 'management').reduce((sum, e) => sum + e.amount, 0),
+        variance: 0
+      },
       other: {
         estimated: 0,
         actual: projectExpenses.filter(e => e.category === 'other').reduce((sum, e) => sum + e.amount, 0),

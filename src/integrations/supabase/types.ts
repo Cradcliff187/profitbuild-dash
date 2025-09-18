@@ -677,6 +677,8 @@ export type Database = {
         | "materials"
         | "equipment"
         | "other"
+        | "permits"
+        | "management"
       project_status:
         | "estimating"
         | "quoted"
@@ -823,6 +825,8 @@ export const Constants = {
         "materials",
         "equipment",
         "other",
+        "permits",
+        "management",
       ],
       project_status: [
         "estimating",

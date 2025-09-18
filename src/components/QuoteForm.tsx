@@ -67,7 +67,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
 
   const createNewQuoteLineItem = (): QuoteLineItem => ({
     id: Date.now().toString() + Math.random(),
-    category: 'labor_internal',
+    category: LineItemCategory.LABOR,
     description: '',
     quantity: 0,
     rate: 0,

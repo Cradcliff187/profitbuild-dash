@@ -8,7 +8,7 @@ import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpensesList } from "@/components/ExpensesList";
 import { ProjectExpenseTracker } from "@/components/ProjectExpenseTracker";
 import { TransactionImportModal } from "@/components/TransactionImportModal";
-import { Expense } from "@/types/expense";
+import { Expense, ExpenseCategory } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -53,6 +53,7 @@ const Expenses = () => {
 
       const transformedExpenses: Expense[] = (expensesResult.data || []).map(expense => ({
         ...expense,
+        category: expense.category as ExpenseCategory, // Cast database value to enum
         expense_date: new Date(expense.expense_date),
         created_at: new Date(expense.created_at),
         updated_at: new Date(expense.updated_at),
