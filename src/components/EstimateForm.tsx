@@ -48,6 +48,11 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
   const [jobType, setJobType] = useState("");
   const [projectNumber, setProjectNumber] = useState("");
   
+  // Client recent projects
+  const [clientRecentProjects, setClientRecentProjects] = useState<Project[]>([]);
+  const [clientMostCommonJobType, setClientMostCommonJobType] = useState<string>("");
+  const [isLoadingClientProjects, setIsLoadingClientProjects] = useState(false);
+  
   const [date, setDate] = useState<Date>(initialEstimate?.date_created || new Date());
   const [validUntil, setValidUntil] = useState<Date | undefined>(initialEstimate?.valid_until);
   const [notes, setNotes] = useState(initialEstimate?.notes || "");
@@ -266,10 +271,78 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
 
         setSelectedClientId(project.client_id);
         setSelectedClientData(clientData);
+        
+        // Load recent projects for the client
+        await loadClientRecentProjects(project.client_id);
       }
     } catch (error) {
       console.error('Error loading client for project:', error);
     }
+  };
+
+  const loadClientRecentProjects = async (clientId: string) => {
+    try {
+      setIsLoadingClientProjects(true);
+      
+      // Get recent projects for client
+      const { data: projects, error: projectsError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (projectsError) throw projectsError;
+
+      const recentProjects = projects?.map(p => ({
+        ...p,
+        created_at: new Date(p.created_at),
+        updated_at: new Date(p.updated_at),
+        start_date: p.start_date ? new Date(p.start_date) : undefined,
+        end_date: p.end_date ? new Date(p.end_date) : undefined,
+      })) || [];
+
+      setClientRecentProjects(recentProjects);
+
+      // Calculate most common job type
+      const jobTypes = recentProjects
+        .map(p => p.job_type)
+        .filter(Boolean);
+
+      if (jobTypes.length > 0) {
+        const jobTypeCount = jobTypes.reduce((acc, type) => {
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const mostCommon = Object.entries(jobTypeCount)
+          .sort(([,a], [,b]) => b - a)[0]?.[0];
+
+        setClientMostCommonJobType(mostCommon || "");
+      } else {
+        setClientMostCommonJobType("");
+      }
+    } catch (error) {
+      console.error('Error loading client recent projects:', error);
+    } finally {
+      setIsLoadingClientProjects(false);
+    }
+  };
+
+  const useAddressFromProject = (projectAddress: string) => {
+    setAddress(projectAddress);
+    toast({
+      title: "Address Copied",
+      description: "Project address has been copied to the current estimate."
+    });
+  };
+
+  const useJobTypeFromClient = (selectedJobType: string) => {
+    setJobType(selectedJobType);
+    toast({
+      title: "Job Type Applied",
+      description: `Job type "${selectedJobType}" has been selected.`
+    });
   };
 
   const handleCopyFromEstimate = async () => {
@@ -1042,23 +1115,30 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                   <div className="space-y-2">
                     <RequiredLabel htmlFor="client">Client</RequiredLabel>
                      <ClientSelector
-                       value={selectedClientId}
-                       onValueChange={async (clientId: string, clientName?: string) => {
-                         setSelectedClientId(clientId);
-                         // Clear error when value changes
-                         setClientError("");
-                         // Fetch full client data for display
-                         if (clientId) {
-                           const { data: clientData } = await supabase
-                             .from('clients')
-                             .select('*')
-                             .eq('id', clientId)
-                             .single();
-                           setSelectedClientData(clientData);
-                         } else {
-                           setSelectedClientData(null);
-                         }
-                       }}
+                        value={selectedClientId}
+                        onValueChange={async (clientId: string, clientName?: string) => {
+                          setSelectedClientId(clientId);
+                          // Clear error when value changes
+                          setClientError("");
+                          // Clear previous client projects
+                          setClientRecentProjects([]);
+                          setClientMostCommonJobType("");
+                          
+                          // Fetch full client data for display
+                          if (clientId) {
+                            const { data: clientData } = await supabase
+                              .from('clients')
+                              .select('*')
+                              .eq('id', clientId)
+                              .single();
+                            setSelectedClientData(clientData);
+                            
+                            // Load recent projects for the client
+                            await loadClientRecentProjects(clientId);
+                          } else {
+                            setSelectedClientData(null);
+                          }
+                        }}
                        onBlur={() => {
                          const error = validateClient();
                          setClientError(error);
@@ -1073,48 +1153,138 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                      )}
                   </div>
 
-                  {/* Client Details Card */}
-                  {selectedClientData && (
-                    <div className="mt-4">
-                      <Card>
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-sm">Selected Client</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="font-medium text-muted-foreground">Name:</span>
-                              <p className="font-medium">{selectedClientData.client_name}</p>
-                            </div>
-                            {selectedClientData.company_name && (
-                              <div>
-                                <span className="font-medium text-muted-foreground">Company:</span>
-                                <p className="font-medium">{selectedClientData.company_name}</p>
-                              </div>
-                            )}
-                            {selectedClientData.email && (
-                              <div>
-                                <span className="font-medium text-muted-foreground">Email:</span>
-                                <p className="font-medium">{selectedClientData.email}</p>
-                              </div>
-                            )}
-                            {selectedClientData.phone && (
-                              <div>
-                                <span className="font-medium text-muted-foreground">Phone:</span>
-                                <p className="font-medium">{selectedClientData.phone}</p>
-                              </div>
-                            )}
-                          </div>
-                          {selectedClientData.billing_address && (
-                            <div>
-                              <span className="font-medium text-muted-foreground">Address:</span>
-                              <p className="text-sm">{selectedClientData.billing_address}</p>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )}
+                   {/* Client Details Card */}
+                   {selectedClientData && (
+                     <div className="mt-4">
+                       <Card>
+                         <CardHeader className="pb-3">
+                           <CardTitle className="text-sm">Selected Client</CardTitle>
+                         </CardHeader>
+                         <CardContent className="space-y-2">
+                           <div className="grid grid-cols-2 gap-4 text-sm">
+                             <div>
+                               <span className="font-medium text-muted-foreground">Name:</span>
+                               <p className="font-medium">{selectedClientData.client_name}</p>
+                             </div>
+                             {selectedClientData.company_name && (
+                               <div>
+                                 <span className="font-medium text-muted-foreground">Company:</span>
+                                 <p className="font-medium">{selectedClientData.company_name}</p>
+                               </div>
+                             )}
+                             {selectedClientData.email && (
+                               <div>
+                                 <span className="font-medium text-muted-foreground">Email:</span>
+                                 <p className="font-medium">{selectedClientData.email}</p>
+                               </div>
+                             )}
+                             {selectedClientData.phone && (
+                               <div>
+                                 <span className="font-medium text-muted-foreground">Phone:</span>
+                                 <p className="font-medium">{selectedClientData.phone}</p>
+                               </div>
+                             )}
+                           </div>
+                           {selectedClientData.billing_address && (
+                             <div>
+                               <span className="font-medium text-muted-foreground">Address:</span>
+                               <p className="text-sm">{selectedClientData.billing_address}</p>
+                             </div>
+                           )}
+                         </CardContent>
+                       </Card>
+                     </div>
+                   )}
+
+                   {/* Recent Projects Card */}
+                   {selectedClientData && (clientRecentProjects.length > 0 || isLoadingClientProjects) && (
+                     <div className="mt-4">
+                       <Card>
+                         <CardHeader className="pb-3">
+                           <CardTitle className="text-sm flex items-center gap-2">
+                             Recent Projects
+                             {isLoadingClientProjects && <Loader2 className="h-4 w-4 animate-spin" />}
+                           </CardTitle>
+                         </CardHeader>
+                         <CardContent className="space-y-3">
+                           {isLoadingClientProjects ? (
+                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                               <Loader2 className="h-4 w-4 animate-spin" />
+                               Loading recent projects...
+                             </div>
+                           ) : (
+                             <>
+                               {clientRecentProjects.length > 0 && (
+                                 <div className="space-y-3">
+                                   {clientRecentProjects.map((project) => (
+                                     <div key={project.id} className="border rounded-lg p-3 space-y-2">
+                                       <div className="flex items-center justify-between">
+                                         <div>
+                                           <p className="font-medium text-sm">{project.project_name}</p>
+                                           <p className="text-xs text-muted-foreground">
+                                             {format(new Date(project.created_at), "MMM d, yyyy")}
+                                           </p>
+                                         </div>
+                                         <Badge variant="secondary" className="text-xs">
+                                           {project.status}
+                                         </Badge>
+                                       </div>
+                                       {project.address && (
+                                         <div className="flex items-center justify-between gap-2">
+                                           <p className="text-sm text-muted-foreground truncate flex-1">
+                                             {project.address}
+                                           </p>
+                                           <Button
+                                             type="button"
+                                             variant="ghost"
+                                             size="sm"
+                                             onClick={() => useAddressFromProject(project.address)}
+                                             className="text-xs h-7 px-2 shrink-0"
+                                           >
+                                             <Copy className="h-3 w-3 mr-1" />
+                                             Use Address
+                                           </Button>
+                                         </div>
+                                       )}
+                                       {project.job_type && (
+                                         <div className="flex items-center gap-2">
+                                           <Badge variant="outline" className="text-xs">
+                                             {project.job_type}
+                                           </Badge>
+                                         </div>
+                                       )}
+                                     </div>
+                                   ))}
+                                 </div>
+                               )}
+                               
+                               {clientMostCommonJobType && (
+                                 <div className="border-t pt-3">
+                                   <div className="flex items-center justify-between">
+                                     <div>
+                                       <p className="text-sm font-medium">Most Common Job Type</p>
+                                       <Badge variant="default" className="text-xs mt-1">
+                                         {clientMostCommonJobType}
+                                       </Badge>
+                                     </div>
+                                     <Button
+                                       type="button"
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={() => useJobTypeFromClient(clientMostCommonJobType)}
+                                       className="text-xs h-7 px-2"
+                                     >
+                                       Use This Job Type
+                                     </Button>
+                                   </div>
+                                 </div>
+                               )}
+                             </>
+                           )}
+                         </CardContent>
+                       </Card>
+                     </div>
+                   )}
                 </div>
 
                 {/* Address */}
