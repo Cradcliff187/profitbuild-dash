@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -67,6 +67,15 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
       hourly_rate: payee?.hourly_rate || "",
     },
   });
+
+  const watchedPayeeType = form.watch('payee_type');
+
+  // Auto-set hourly rate to 75 when payee type changes to internal_labor
+  useEffect(() => {
+    if (watchedPayeeType === PayeeType.INTERNAL_LABOR && !form.getValues('hourly_rate')) {
+      form.setValue('hourly_rate', 75);
+    }
+  }, [watchedPayeeType, form]);
 
   const onSubmit = async (data: PayeeFormData) => {
     setIsSubmitting(true);
@@ -287,23 +296,25 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="requires_1099"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Requires 1099</FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
+              {watchedPayeeType !== PayeeType.INTERNAL_LABOR && (
+                <FormField
+                  control={form.control}
+                  name="requires_1099"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Requires 1099</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}
@@ -325,98 +336,106 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="license_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>License Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Professional license number" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="hourly_rate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Hourly Rate</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01"
-                        placeholder="75.00"
-                        {...field} 
-                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : "")}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="insurance_expires"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Insurance Expires</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
+              {watchedPayeeType === PayeeType.SUBCONTRACTOR && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="license_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>License Number</FormLabel>
                         <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick expiration date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
+                          <Input {...field} placeholder="Professional license number" />
                         </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="permit_issuer"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 self-end pb-2">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Can Issue Permits</FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="insurance_expires"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Insurance Expires</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick expiration date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) => date < new Date()}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+
+              {watchedPayeeType === PayeeType.INTERNAL_LABOR && (
+                <FormField
+                  control={form.control}
+                  name="hourly_rate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Hourly Rate</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01"
+                          placeholder="75.00"
+                          {...field} 
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : "")}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {watchedPayeeType === PayeeType.PERMIT_AUTHORITY && (
+                <FormField
+                  control={form.control}
+                  name="permit_issuer"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 self-end pb-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Can Issue Permits</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             <div className="flex gap-2 pt-4">
