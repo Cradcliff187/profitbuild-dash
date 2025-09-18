@@ -91,7 +91,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         if (payeesError) {
           console.error('Error loading payees:', payeesError);
         } else {
-          setPayees(payeesData || []);
+          setPayees(payeesData as Payee[] || []);
         }
       } catch (error) {
         console.error('Error loading data:', error);

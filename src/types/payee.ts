@@ -1,3 +1,13 @@
+export enum PayeeType {
+  SUBCONTRACTOR = 'subcontractor',
+  MATERIAL_SUPPLIER = 'material_supplier',
+  EQUIPMENT_RENTAL = 'equipment_rental',
+  INTERNAL_LABOR = 'internal_labor',
+  MANAGEMENT = 'management',
+  PERMIT_AUTHORITY = 'permit_authority',
+  OTHER = 'other'
+}
+
 export interface Payee {
   id: string;
   vendor_name: string;
@@ -11,7 +21,7 @@ export interface Payee {
   quickbooks_vendor_id?: string;
   sync_status?: 'success' | 'failed' | 'pending' | null;
   last_synced_at?: string | null;
-  payee_type?: string;
+  payee_type?: PayeeType;
   provides_labor?: boolean;
   provides_materials?: boolean;
   requires_1099?: boolean;
@@ -32,7 +42,7 @@ export interface CreatePayeeData {
   full_name?: string;
   account_number?: string;
   terms?: string;
-  payee_type?: string;
+  payee_type?: PayeeType;
   provides_labor?: boolean;
   provides_materials?: boolean;
   requires_1099?: boolean;

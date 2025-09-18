@@ -36,7 +36,7 @@ export const PayeeSelector = ({
         .order("vendor_name");
 
       if (error) throw error;
-      setPayees(data || []);
+      setPayees(data as Payee[] || []);
     } catch (error) {
       console.error("Error fetching payees:", error);
       toast({

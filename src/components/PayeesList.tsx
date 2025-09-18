@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { SyncStatusBadge } from "@/components/SyncStatusBadge";
 import { markPayeeAsSynced, resetPayeeSyncStatus } from "@/utils/syncUtils";
 import type { Payee } from "@/types/payee";
+import { PayeeType } from "@/types/payee";
 
 interface PayeesListProps {
   onEdit: (payee: Payee) => void;
@@ -32,7 +33,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
         .order("vendor_name");
 
       if (error) throw error;
-      setPayees(data || []);
+      setPayees(data as Payee[] || []);
     } catch (error) {
       console.error("Error fetching payees:", error);
       toast({
@@ -163,7 +164,26 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
                   <TableCell className="font-medium">{payee.vendor_name}</TableCell>
                   <TableCell>
                     <Badge variant={payee.is_internal ? "default" : "secondary"}>
-                      {payee.payee_type || "subcontractor"}
+                      {(() => {
+                        switch (payee.payee_type) {
+                          case PayeeType.SUBCONTRACTOR:
+                            return "Subcontractor";
+                          case PayeeType.MATERIAL_SUPPLIER:
+                            return "Material Supplier";
+                          case PayeeType.EQUIPMENT_RENTAL:
+                            return "Equipment Rental";
+                          case PayeeType.INTERNAL_LABOR:
+                            return "Internal Labor";
+                          case PayeeType.MANAGEMENT:
+                            return "Management";
+                          case PayeeType.PERMIT_AUTHORITY:
+                            return "Permit Authority";
+                          case PayeeType.OTHER:
+                            return "Other";
+                          default:
+                            return payee.payee_type || "Subcontractor";
+                        }
+                      })()}
                     </Badge>
                   </TableCell>
                   <TableCell>{payee.email || "-"}</TableCell>

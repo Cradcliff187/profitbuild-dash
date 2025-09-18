@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { Payee } from "@/types/payee";
+import { PayeeType } from "@/types/payee";
 
 const payeeSchema = z.object({
   vendor_name: z.string().min(1, "Payee name is required"),
@@ -24,7 +25,7 @@ const payeeSchema = z.object({
   phone_numbers: z.string().optional(),
   billing_address: z.string().optional(),
   terms: z.string().optional(),
-  payee_type: z.string().optional(),
+  payee_type: z.nativeEnum(PayeeType).optional(),
   provides_labor: z.boolean().optional(),
   provides_materials: z.boolean().optional(),
   requires_1099: z.boolean().optional(),
@@ -55,7 +56,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
       phone_numbers: payee?.phone_numbers || "",
       billing_address: payee?.billing_address || "",
       terms: payee?.terms || "Net 30",
-      payee_type: payee?.payee_type || "subcontractor",
+      payee_type: payee?.payee_type || PayeeType.SUBCONTRACTOR,
       provides_labor: payee?.provides_labor || false,
       provides_materials: payee?.provides_materials || false,
       requires_1099: payee?.requires_1099 || false,
@@ -78,7 +79,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
           phone_numbers: data.phone_numbers || null,
           billing_address: data.billing_address || null,
           terms: data.terms || "Net 30",
-          payee_type: data.payee_type || "subcontractor",
+          payee_type: data.payee_type || PayeeType.SUBCONTRACTOR,
           provides_labor: data.provides_labor || false,
           provides_materials: data.provides_materials || false,
           requires_1099: data.requires_1099 || false,
@@ -108,7 +109,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
           phone_numbers: data.phone_numbers || null,
           billing_address: data.billing_address || null,
           terms: data.terms || "Net 30",
-          payee_type: data.payee_type || "subcontractor",
+          payee_type: data.payee_type || PayeeType.SUBCONTRACTOR,
           provides_labor: data.provides_labor || false,
           provides_materials: data.provides_materials || false,
           requires_1099: data.requires_1099 || false,
@@ -235,10 +236,13 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="subcontractor">Subcontractor</SelectItem>
-                      <SelectItem value="supplier">Supplier</SelectItem>
-                      <SelectItem value="employee">Employee</SelectItem>
-                      <SelectItem value="vendor">Vendor</SelectItem>
+                      <SelectItem value={PayeeType.SUBCONTRACTOR}>Subcontractor</SelectItem>
+                      <SelectItem value={PayeeType.MATERIAL_SUPPLIER}>Material Supplier</SelectItem>
+                      <SelectItem value={PayeeType.EQUIPMENT_RENTAL}>Equipment Rental</SelectItem>
+                      <SelectItem value={PayeeType.INTERNAL_LABOR}>Internal Labor</SelectItem>
+                      <SelectItem value={PayeeType.MANAGEMENT}>Management</SelectItem>
+                      <SelectItem value={PayeeType.PERMIT_AUTHORITY}>Permit Authority</SelectItem>
+                      <SelectItem value={PayeeType.OTHER}>Other</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
