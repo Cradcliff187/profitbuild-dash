@@ -222,12 +222,12 @@ export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClos
               
               <div>
                 <label className="block text-sm font-medium mb-1">Email</label>
-                <Select value={mapping.email || ''} onValueChange={(value) => setMapping(prev => ({ ...prev, email: value }))}>
+                <Select value={mapping.email || 'none'} onValueChange={(value) => setMapping(prev => ({ ...prev, email: value === 'none' ? undefined : value }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select column (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {headers.map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
@@ -237,12 +237,12 @@ export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClos
               
               <div>
                 <label className="block text-sm font-medium mb-1">Phone</label>
-                <Select value={mapping.phone_numbers || ''} onValueChange={(value) => setMapping(prev => ({ ...prev, phone_numbers: value }))}>
+                <Select value={mapping.phone_numbers || 'none'} onValueChange={(value) => setMapping(prev => ({ ...prev, phone_numbers: value === 'none' ? undefined : value }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select column (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {headers.map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
@@ -252,12 +252,12 @@ export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClos
               
               <div>
                 <label className="block text-sm font-medium mb-1">Billing Address</label>
-                <Select value={mapping.billing_address || ''} onValueChange={(value) => setMapping(prev => ({ ...prev, billing_address: value }))}>
+                <Select value={mapping.billing_address || 'none'} onValueChange={(value) => setMapping(prev => ({ ...prev, billing_address: value === 'none' ? undefined : value }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select column (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {headers.map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
