@@ -146,7 +146,7 @@ const Projects = () => {
       const formattedExpenses = expensesRes.data?.map((expense: any) => ({
         id: expense.id,
         project_id: expense.project_id,
-        vendor_id: expense.vendor_id,
+        payee_id: expense.payee_id,
         amount: expense.amount,
         description: expense.description,
         expense_date: new Date(expense.expense_date),

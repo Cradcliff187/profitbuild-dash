@@ -183,7 +183,7 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
             <div className="text-2xl font-bold">
               {formatCurrency(marginData.total_accepted_quotes || 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Approved vendor costs</p>
+            <p className="text-xs text-muted-foreground">Approved payee costs</p>
           </CardContent>
         </Card>
 

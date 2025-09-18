@@ -20,8 +20,8 @@ export const PayeeSelector = ({
   selectedPayeeId, 
   onSelect,
   onAddNew, 
-  placeholder = "Select a vendor...",
-  label = "Vendor"
+  placeholder = "Select a payee...",
+  label = "Payee"
 }: PayeeSelectorProps) => {
   const [payees, setPayees] = useState<Payee[]>([]);
   const [isLoading, setIsLoading] = useState(true);

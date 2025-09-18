@@ -24,7 +24,7 @@ export interface Quote {
   projectName: string; // Copied from project
   client: string; // Copied from project
   payee_id: string; // Links to payee
-  quotedBy: string; // Subcontractor name (derived from vendor)
+  quotedBy: string; // Subcontractor name (derived from payee)
   dateReceived: Date;
   quoteNumber: string;
   status: QuoteStatus;

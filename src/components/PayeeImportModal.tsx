@@ -166,7 +166,7 @@ export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClos
               <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
               <p className="text-lg font-medium">Drop CSV file here or click to select</p>
               <p className="text-sm text-gray-500 mt-2">
-                Supports QuickBooks vendor export format and standard CSV files
+                Supports QuickBooks payee export format and standard CSV files
               </p>
               <input
                 id="csv-file-input"

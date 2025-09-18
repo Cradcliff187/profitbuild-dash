@@ -88,7 +88,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEdit, on
   };
 
   const exportToCsv = () => {
-    const headers = ['Date', 'Project', 'Description', 'Category', 'Transaction Type', 'Amount', 'Vendor', 'Invoice Number'];
+    const headers = ['Date', 'Project', 'Description', 'Category', 'Transaction Type', 'Amount', 'Payee', 'Invoice Number'];
     const csvContent = [
       headers.join(','),
       ...filteredExpenses.map(expense => [

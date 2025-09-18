@@ -69,7 +69,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
     },
   });
 
-  // Load projects and vendors
+  // Load projects and payees
   useEffect(() => {
     const loadData = async () => {
       try {
