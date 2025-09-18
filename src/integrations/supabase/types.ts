@@ -147,6 +147,69 @@ export type Database = {
           },
         ]
       }
+      estimate_line_items_backup_migration: {
+        Row: {
+          backup_created_at: string | null
+          category: Database["public"]["Enums"]["expense_category"] | null
+          cost_per_unit: number | null
+          created_at: string | null
+          description: string | null
+          estimate_id: string | null
+          id: string | null
+          markup_amount: number | null
+          markup_percent: number | null
+          price_per_unit: number | null
+          quantity: number | null
+          quickbooks_item_id: string | null
+          rate: number | null
+          sort_order: number | null
+          total: number | null
+          total_cost: number | null
+          total_markup: number | null
+          unit: string | null
+        }
+        Insert: {
+          backup_created_at?: string | null
+          category?: Database["public"]["Enums"]["expense_category"] | null
+          cost_per_unit?: number | null
+          created_at?: string | null
+          description?: string | null
+          estimate_id?: string | null
+          id?: string | null
+          markup_amount?: number | null
+          markup_percent?: number | null
+          price_per_unit?: number | null
+          quantity?: number | null
+          quickbooks_item_id?: string | null
+          rate?: number | null
+          sort_order?: number | null
+          total?: number | null
+          total_cost?: number | null
+          total_markup?: number | null
+          unit?: string | null
+        }
+        Update: {
+          backup_created_at?: string | null
+          category?: Database["public"]["Enums"]["expense_category"] | null
+          cost_per_unit?: number | null
+          created_at?: string | null
+          description?: string | null
+          estimate_id?: string | null
+          id?: string | null
+          markup_amount?: number | null
+          markup_percent?: number | null
+          price_per_unit?: number | null
+          quantity?: number | null
+          quickbooks_item_id?: string | null
+          rate?: number | null
+          sort_order?: number | null
+          total?: number | null
+          total_cost?: number | null
+          total_markup?: number | null
+          unit?: string | null
+        }
+        Relationships: []
+      }
       estimates: {
         Row: {
           contingency_amount: number | null
@@ -236,6 +299,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      estimates_backup_migration: {
+        Row: {
+          backup_created_at: string | null
+          contingency_amount: number | null
+          contingency_percent: number | null
+          contingency_used: number | null
+          created_at: string | null
+          created_by: string | null
+          date_created: string | null
+          default_markup_percent: number | null
+          estimate_number: string | null
+          id: string | null
+          is_current_version: boolean | null
+          notes: string | null
+          parent_estimate_id: string | null
+          project_id: string | null
+          revision_number: number | null
+          status: Database["public"]["Enums"]["estimate_status"] | null
+          target_margin_percent: number | null
+          total_amount: number | null
+          total_cost: number | null
+          updated_at: string | null
+          valid_for_days: number | null
+          valid_until: string | null
+          version_number: number | null
+        }
+        Insert: {
+          backup_created_at?: string | null
+          contingency_amount?: number | null
+          contingency_percent?: number | null
+          contingency_used?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          date_created?: string | null
+          default_markup_percent?: number | null
+          estimate_number?: string | null
+          id?: string | null
+          is_current_version?: boolean | null
+          notes?: string | null
+          parent_estimate_id?: string | null
+          project_id?: string | null
+          revision_number?: number | null
+          status?: Database["public"]["Enums"]["estimate_status"] | null
+          target_margin_percent?: number | null
+          total_amount?: number | null
+          total_cost?: number | null
+          updated_at?: string | null
+          valid_for_days?: number | null
+          valid_until?: string | null
+          version_number?: number | null
+        }
+        Update: {
+          backup_created_at?: string | null
+          contingency_amount?: number | null
+          contingency_percent?: number | null
+          contingency_used?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          date_created?: string | null
+          default_markup_percent?: number | null
+          estimate_number?: string | null
+          id?: string | null
+          is_current_version?: boolean | null
+          notes?: string | null
+          parent_estimate_id?: string | null
+          project_id?: string | null
+          revision_number?: number | null
+          status?: Database["public"]["Enums"]["estimate_status"] | null
+          target_margin_percent?: number | null
+          total_amount?: number | null
+          total_cost?: number | null
+          updated_at?: string | null
+          valid_for_days?: number | null
+          valid_until?: string | null
+          version_number?: number | null
+        }
+        Relationships: []
       }
       expenses: {
         Row: {
@@ -717,6 +858,10 @@ export type Database = {
       create_estimate_version: {
         Args: { new_version_number?: number; source_estimate_id: string }
         Returns: string
+      }
+      rollback_cost_migration_final: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
