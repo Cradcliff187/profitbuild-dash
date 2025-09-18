@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calculator, Building2, Save, Plus, Copy, History, Eye } from "lucide-react";
+import { Calculator, Building2, Save, Plus, Copy, History, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1704,7 +1704,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
               className="flex-1" 
               disabled={isLoading || isCreatingVersion || (hasValidated && !isFormValid())}
             >
-              <Save className="h-4 w-4 mr-2" />
+              {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               {isLoading ? "Saving..." : (initialEstimate ? "Update Estimate" : "Create Estimate")}
             </Button>
             
@@ -1715,6 +1715,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                 variant="outline"
                 disabled={isLoading || isCreatingVersion}
               >
+                {isCreatingVersion && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {isCreatingVersion ? "Creating..." : "Save as New Version"}
               </Button>
             )}

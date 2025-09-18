@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Save, ArrowRight, User, Building, Mail, Phone, MapPin, CheckCircle } from "lucide-react";
+import { Building2, Save, ArrowRight, User, Building, Mail, Phone, MapPin, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -516,7 +516,7 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
               className="flex-1" 
               disabled={isLoading || !isFormValid()}
             >
-              <Save className="h-4 w-4 mr-2" />
+              {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               {isLoading ? "Creating..." : "Create Project"}
             </Button>
             <Button onClick={onCancel} variant="outline" disabled={isLoading}>
