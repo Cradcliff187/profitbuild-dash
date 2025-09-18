@@ -3,11 +3,13 @@ import { Edit, Trash2, Search, CheckCircle, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ChangeOrderStatusBadge, ChangeOrderStatus } from './ChangeOrderStatusBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 import type { Database } from '@/integrations/supabase/types';
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
@@ -211,12 +213,15 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Change Order #</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Requested Date</TableHead>
-                    <TableHead>Actions</TableHead>
+                  <TableHead>Change Order #</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Client Amount</TableHead>
+                  <TableHead>Cost Impact</TableHead>
+                  <TableHead>Margin Impact</TableHead>
+                  <TableHead>Contingency</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Requested Date</TableHead>
+                  <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -226,28 +231,49 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                         {changeOrder.change_order_number}
                       </TableCell>
                       <TableCell>
-                        <div>
-                          <p className="font-medium">{changeOrder.description}</p>
-                          {changeOrder.reason_for_change && (
-                            <p className="text-xs text-muted-foreground">
-                              Reason: {changeOrder.reason_for_change}
-                            </p>
-                          )}
+                        <div className="max-w-xs truncate" title={changeOrder.description}>
+                          {changeOrder.description}
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">
-                        ${Number(changeOrder.amount || 0).toLocaleString('en-US', { 
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}
+                      <TableCell>
+                        {changeOrder.client_amount ? 
+                          `$${changeOrder.client_amount.toFixed(2)}` : 
+                          <span className="text-muted-foreground">-</span>
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {changeOrder.cost_impact ? 
+                          `$${changeOrder.cost_impact.toFixed(2)}` : 
+                          <span className="text-muted-foreground">-</span>
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {changeOrder.margin_impact !== null && changeOrder.margin_impact !== undefined ? (
+                          <span className={`font-medium ${
+                            changeOrder.margin_impact >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            ${changeOrder.margin_impact.toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {changeOrder.includes_contingency ? (
+                          <Badge variant="outline" className="text-xs">
+                            Uses Contingency
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <ChangeOrderStatusBadge status={changeOrder.status as ChangeOrderStatus} />
                       </TableCell>
                       <TableCell>
-                        {changeOrder.requested_date 
-                          ? new Date(changeOrder.requested_date).toLocaleDateString()
-                          : '-'
+                        {changeOrder.requested_date ? 
+                          format(new Date(changeOrder.requested_date), 'MMM dd, yyyy') : 
+                          'N/A'
                         }
                       </TableCell>
                       <TableCell>
@@ -338,20 +364,57 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
             </div>
           )}
 
-          {/* Total Approved Changes */}
+          {/* Profit Tracking Summary */}
           {filteredChangeOrders.length > 0 && (
             <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Total Approved Changes:</span>
-                <span className="text-lg font-bold text-primary">
-                  ${approvedTotal.toLocaleString('en-US', { 
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2 
-                  })}
-                </span>
+              <h4 className="font-medium mb-3">Change Orders Summary</h4>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Total Client Amount</p>
+                  <p className="font-medium text-green-600">
+                    ${filteredChangeOrders
+                      .filter(co => co.status === 'approved')
+                      .reduce((sum, co) => sum + (co.client_amount || 0), 0)
+                      .toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Total Cost Impact</p>
+                  <p className="font-medium text-orange-600">
+                    ${filteredChangeOrders
+                      .filter(co => co.status === 'approved')
+                      .reduce((sum, co) => sum + (co.cost_impact || 0), 0)
+                      .toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Net Margin Impact</p>
+                  <p className={`font-medium ${
+                    filteredChangeOrders
+                      .filter(co => co.status === 'approved')
+                      .reduce((sum, co) => sum + (co.margin_impact || 0), 0) >= 0 
+                      ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    ${filteredChangeOrders
+                      .filter(co => co.status === 'approved')
+                      .reduce((sum, co) => sum + (co.margin_impact || 0), 0)
+                      .toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Legacy Amount Total</p>
+                  <p className="font-medium">
+                    ${approvedTotal.toFixed(2)}
+                  </p>
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground mt-1">
+              <div className="text-sm text-muted-foreground mt-3">
                 {filteredChangeOrders.filter(co => co.status === 'approved').length} of {filteredChangeOrders.length} change orders approved
+                {filteredChangeOrders.filter(co => co.includes_contingency && co.status === 'approved').length > 0 && (
+                  <span className="ml-2">
+                    • {filteredChangeOrders.filter(co => co.includes_contingency && co.status === 'approved').length} using contingency
+                  </span>
+                )}
               </div>
             </div>
           )}

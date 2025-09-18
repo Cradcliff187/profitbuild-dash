@@ -20,9 +20,13 @@ export type Database = {
           approved_by: string | null
           approved_date: string | null
           change_order_number: string
+          client_amount: number | null
+          cost_impact: number | null
           created_at: string | null
           description: string
           id: string
+          includes_contingency: boolean | null
+          margin_impact: number | null
           project_id: string
           reason_for_change: string | null
           requested_date: string | null
@@ -34,9 +38,13 @@ export type Database = {
           approved_by?: string | null
           approved_date?: string | null
           change_order_number: string
+          client_amount?: number | null
+          cost_impact?: number | null
           created_at?: string | null
           description: string
           id?: string
+          includes_contingency?: boolean | null
+          margin_impact?: number | null
           project_id: string
           reason_for_change?: string | null
           requested_date?: string | null
@@ -48,9 +56,13 @@ export type Database = {
           approved_by?: string | null
           approved_date?: string | null
           change_order_number?: string
+          client_amount?: number | null
+          cost_impact?: number | null
           created_at?: string | null
           description?: string
           id?: string
+          includes_contingency?: boolean | null
+          margin_impact?: number | null
           project_id?: string
           reason_for_change?: string | null
           requested_date?: string | null
