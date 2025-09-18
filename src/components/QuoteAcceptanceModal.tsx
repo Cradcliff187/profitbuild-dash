@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { Quote } from '@/types/quote';
+import { QuoteStatus } from '@/types/quote';
 import type { Estimate } from '@/types/estimate';
 import type { Project } from '@/types/project';
 import type { Expense } from '@/types/expense';
@@ -31,8 +32,8 @@ interface QuoteAcceptanceModalProps {
   estimate: Estimate;
   project: Project;
   expenses?: Expense[];
-  onAccept: (quote: Quote) => void;
-  onReject: (quote: Quote, reason: string) => void;
+  onAccept: (updatedQuote: Quote) => void;
+  onReject: (updatedQuote: Quote) => void;
   onClose: () => void;
 }
 
@@ -121,7 +122,12 @@ export function QuoteAcceptanceModal({
   const warningConfig = getMarginWarningConfig(projectedMarginPercentage);
 
   const handleAccept = () => {
-    onAccept(quote);
+    const updatedQuote: Quote = {
+      ...quote,
+      status: QuoteStatus.ACCEPTED,
+      accepted_date: new Date()
+    };
+    onAccept(updatedQuote);
     onClose();
   };
 
@@ -131,7 +137,12 @@ export function QuoteAcceptanceModal({
 
   const handleRejectConfirm = () => {
     if (rejectionReason.trim()) {
-      onReject(quote, rejectionReason.trim());
+      const updatedQuote: Quote = {
+        ...quote,
+        status: QuoteStatus.REJECTED,
+        rejection_reason: rejectionReason.trim()
+      };
+      onReject(updatedQuote);
       onClose();
     }
   };
