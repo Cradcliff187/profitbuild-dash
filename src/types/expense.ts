@@ -101,7 +101,7 @@ export interface LegacyExpense {
   type: 'Planned' | 'Unplanned';
   amount: number;
   date: Date;
-  vendor?: string;
+  payee?: string;
   invoiceNumber?: string;
   estimateLineItemId?: string;
   createdAt: Date;

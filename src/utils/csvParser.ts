@@ -327,7 +327,7 @@ export const parseQuickBooksCSV = (file: File): Promise<QBParseResult> => {
               transaction.project_wo_number = row[index] || '';
             } else if (cleanHeader.includes('amount') || cleanHeader.includes('total')) {
               transaction.amount = row[index] || '0';
-            } else if (cleanHeader.includes('name') || cleanHeader.includes('payee') || cleanHeader.includes('vendor')) {
+            } else if (cleanHeader.includes('payee') || cleanHeader.includes('name') || cleanHeader.includes('vendor')) {
               transaction.name = row[index] || '';
             } else if (cleanHeader.includes('account')) {
               transaction.account_path = row[index] || '';
