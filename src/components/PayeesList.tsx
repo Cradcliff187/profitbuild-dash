@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Trash2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SyncStatusBadge } from "@/components/SyncStatusBadge";
 import { markPayeeAsSynced, resetPayeeSyncStatus } from "@/utils/syncUtils";
 import type { Payee } from "@/types/payee";
 import { PayeeType } from "@/types/payee";
+import { differenceInDays } from "date-fns";
 
 interface PayeesListProps {
   onEdit: (payee: Payee) => void;
@@ -22,6 +23,47 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
   const [payees, setPayees] = useState<Payee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  const getPayeeTypeBadgeVariant = (payeeType: string) => {
+    switch (payeeType) {
+      case PayeeType.SUBCONTRACTOR:
+        return "default"; // blue
+      case PayeeType.MATERIAL_SUPPLIER:
+        return "secondary"; // green
+      case PayeeType.EQUIPMENT_RENTAL:
+        return "outline"; // orange  
+      case PayeeType.INTERNAL_LABOR:
+        return "default"; // purple
+      case PayeeType.MANAGEMENT:
+        return "secondary"; // gray
+      case PayeeType.PERMIT_AUTHORITY:
+        return "destructive"; // red
+      case PayeeType.OTHER:
+      default:
+        return "outline";
+    }
+  };
+
+  const getPayeeTypeColor = (payeeType: string) => {
+    switch (payeeType) {
+      case PayeeType.MATERIAL_SUPPLIER:
+        return "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800";
+      case PayeeType.EQUIPMENT_RENTAL:
+        return "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-800";
+      case PayeeType.INTERNAL_LABOR:
+        return "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-400 dark:border-purple-800";
+      case PayeeType.MANAGEMENT:
+        return "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-950/50 dark:text-gray-400 dark:border-gray-800";
+      default:
+        return "";
+    }
+  };
+
+  const isInsuranceExpiringSoon = (expirationDate: string) => {
+    if (!expirationDate) return false;
+    const daysUntilExpiration = differenceInDays(new Date(expirationDate), new Date());
+    return daysUntilExpiration <= 30 && daysUntilExpiration >= 0;
+  };
 
   const fetchPayees = async () => {
     setIsLoading(true);
@@ -163,7 +205,10 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
                 <TableRow key={payee.id}>
                   <TableCell className="font-medium">{payee.vendor_name}</TableCell>
                   <TableCell>
-                    <Badge variant={payee.is_internal ? "default" : "secondary"}>
+                    <Badge 
+                      variant={getPayeeTypeBadgeVariant(payee.payee_type)} 
+                      className={getPayeeTypeColor(payee.payee_type)}
+                    >
                       {(() => {
                         switch (payee.payee_type) {
                           case PayeeType.SUBCONTRACTOR:
@@ -207,11 +252,27 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
                         <div className="text-muted-foreground">License: {payee.license_number}</div>
                       )}
                       {payee.hourly_rate && (
-                        <div className="text-muted-foreground">${payee.hourly_rate}/hr</div>
+                        <div className={
+                          payee.payee_type === PayeeType.INTERNAL_LABOR 
+                            ? "font-medium text-primary" 
+                            : "text-muted-foreground"
+                        }>
+                          ${payee.hourly_rate}/hr
+                          {payee.payee_type === PayeeType.INTERNAL_LABOR && (
+                            <span className="text-xs text-muted-foreground ml-1">(Internal)</span>
+                          )}
+                        </div>
                       )}
                       {payee.permit_issuer && <Badge variant="secondary" className="text-xs">Permit Issuer</Badge>}
                       {payee.insurance_expires && (
-                        <div className="text-xs text-muted-foreground">
+                        <div className={`text-xs flex items-center gap-1 ${
+                          isInsuranceExpiringSoon(payee.insurance_expires)
+                            ? "text-destructive font-medium"
+                            : "text-muted-foreground"
+                        }`}>
+                          {isInsuranceExpiringSoon(payee.insurance_expires) && (
+                            <AlertTriangle className="h-3 w-3" />
+                          )}
                           Insurance expires: {new Date(payee.insurance_expires).toLocaleDateString()}
                         </div>
                       )}
