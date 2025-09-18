@@ -18,6 +18,8 @@ import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/ty
 import { Project, ProjectType, generateProjectNumber } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle, CheckCircle } from "lucide-react";
 
 interface EstimateFormProps {
   initialEstimate?: Estimate; // For editing mode
@@ -474,6 +476,39 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
     toast({
       title: "Markup Applied",
       description: `Applied ${markupToApply}% markup to all line items with cost data.`
+    });
+  };
+
+  // Helper functions for margin warnings
+  const getLineItemBorderClass = (lineItem: LineItem) => {
+    if (lineItem.pricePerUnit === 0) return "border border-border";
+    
+    const marginPercent = ((lineItem.pricePerUnit - lineItem.costPerUnit) / lineItem.pricePerUnit) * 100;
+    
+    if (marginPercent < 0) {
+      return "border-2 border-red-400";
+    } else if (marginPercent < 15) {
+      return "border-2 border-yellow-400";
+    }
+    return "border border-border";
+  };
+
+  const getOverallMarginStatus = () => {
+    const achievedMargin = calculateAchievedMargin();
+    
+    if (achievedMargin < 10) {
+      return 'critical';
+    } else if (achievedMargin >= targetMarginPercent) {
+      return 'success';
+    }
+    return 'normal';
+  };
+
+  const getProblematicLineItems = () => {
+    return lineItems.filter(item => {
+      if (item.pricePerUnit === 0 || !item.description.trim()) return false;
+      const marginPercent = ((item.pricePerUnit - item.costPerUnit) / item.pricePerUnit) * 100;
+      return marginPercent < 15;
     });
   };
 
@@ -1157,7 +1192,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
                 const isMedium = marginPercent >= 10 && marginPercent < 20;
                 
                 return (
-                  <div key={lineItem.id} className="grid grid-cols-15 gap-2 items-center">
+                  <div key={lineItem.id} className={cn("grid grid-cols-15 gap-2 items-center p-2 rounded", getLineItemBorderClass(lineItem))}>
                     <div className="col-span-2">
                       <Select
                         value={lineItem.category}
@@ -1397,6 +1432,34 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
               </div>
             </CardContent>
           </Card>
+
+          {/* Margin Warnings */}
+          {getOverallMarginStatus() === 'critical' && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Low Margin Warning</AlertTitle>
+              <AlertDescription>
+                Your overall margin is {calculateAchievedMargin().toFixed(1)}%, which is below the 10% critical threshold. 
+                Target margin: {targetMarginPercent}%. Consider increasing prices or reducing costs.
+                {getProblematicLineItems().length > 0 && (
+                  <span className="block mt-2">
+                    Problematic items: {getProblematicLineItems().map(item => item.description).filter(Boolean).join(', ')}
+                  </span>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {getOverallMarginStatus() === 'success' && (
+            <Alert className="border-green-200 bg-green-50/50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertTitle className="text-green-800">Excellent Margin Performance</AlertTitle>
+              <AlertDescription className="text-green-700">
+                Congratulations! Your margin of {calculateAchievedMargin().toFixed(1)}% meets or exceeds your target of {targetMarginPercent}%. 
+                This estimate maintains healthy profitability.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Contingency and Total */}
           <div className="space-y-4">
