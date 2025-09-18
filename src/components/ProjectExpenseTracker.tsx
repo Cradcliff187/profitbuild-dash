@@ -22,6 +22,22 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
     const plannedExpenses = projectExpenses.filter(e => e.is_planned === true).reduce((sum, e) => sum + e.amount, 0);
     const unplannedExpenses = projectExpenses.filter(e => e.is_planned === false).reduce((sum, e) => sum + e.amount, 0);
     
+    // Calculate estimated costs from line items
+    const estimateLineItems = (estimate as any).estimate_line_items || [];
+    const estimatedTotalCost = estimateLineItems.reduce((sum: number, item: any) => 
+      sum + (item.total_cost || 0), 0
+    );
+    
+    // Calculate cost breakdown by category
+    const categoryTotalsFromLineItems = estimateLineItems.reduce((acc: any, item: any) => {
+      const category = item.category;
+      if (!acc[category]) {
+        acc[category] = { estimated: 0, estimated_cost: 0 };
+      }
+      acc[category].estimated_cost += item.total_cost || 0;
+      return acc;
+    }, {});
+    
     // Get approved change orders for this project
     const projectChangeOrders = changeOrders.filter(co => 
       co.project_id === estimate.project_id && 
@@ -37,74 +53,103 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
     // Calculate revised contract total
     const revisedContractTotal = estimate.total_amount + approvedChangeOrdersTotal;
     
+    // Calculate cost overrun and true margin
+    const costOverrun = actualExpenses - estimatedTotalCost;
+    const costOverrunPercentage = estimatedTotalCost > 0 ? (costOverrun / estimatedTotalCost) * 100 : 0;
+    const trueMargin = revisedContractTotal > 0 ? ((revisedContractTotal - actualExpenses) / revisedContractTotal) * 100 : 0;
+    
     const variance = actualExpenses - revisedContractTotal;
     const percentageSpent = revisedContractTotal > 0 ? (actualExpenses / revisedContractTotal) * 100 : 0;
+    const costUtilizationPercentage = estimatedTotalCost > 0 ? (actualExpenses / estimatedTotalCost) * 100 : 0;
 
     const categoryBreakdown = {
       labor_internal: {
-        estimated: 0, // Would need to get from estimate line items
+        estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.labor_internal?.estimated_cost || 0,
         actual: projectExpenses.filter(e => e.category === 'labor_internal').reduce((sum, e) => sum + e.amount, 0),
-        variance: 0
+        variance: 0,
+        cost_overrun: 0
       },
       subcontractors: {
         estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.subcontractors?.estimated_cost || 0,
         actual: projectExpenses.filter(e => e.category === 'subcontractors').reduce((sum, e) => sum + e.amount, 0),
-        variance: 0
+        variance: 0,
+        cost_overrun: 0
       },
       materials: {
         estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.materials?.estimated_cost || 0,
         actual: projectExpenses.filter(e => e.category === 'materials').reduce((sum, e) => sum + e.amount, 0),
-        variance: 0
+        variance: 0,
+        cost_overrun: 0
       },
       equipment: {
         estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.equipment?.estimated_cost || 0,
         actual: projectExpenses.filter(e => e.category === 'equipment').reduce((sum, e) => sum + e.amount, 0),
-        variance: 0
+        variance: 0,
+        cost_overrun: 0
       },
       permits: {
         estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.permits?.estimated_cost || 0,
         actual: projectExpenses.filter(e => e.category === 'permits').reduce((sum, e) => sum + e.amount, 0),
-        variance: 0
+        variance: 0,
+        cost_overrun: 0
       },
       management: {
         estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.management?.estimated_cost || 0,
         actual: projectExpenses.filter(e => e.category === 'management').reduce((sum, e) => sum + e.amount, 0),
-        variance: 0
+        variance: 0,
+        cost_overrun: 0
       },
       other: {
         estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.other?.estimated_cost || 0,
         actual: projectExpenses.filter(e => e.category === 'other').reduce((sum, e) => sum + e.amount, 0),
-        variance: 0
+        variance: 0,
+        cost_overrun: 0
       }
     };
 
-    // Calculate category variances
+    // Calculate category variances and cost overruns
     Object.keys(categoryBreakdown).forEach(key => {
       const category = categoryBreakdown[key as keyof typeof categoryBreakdown];
       category.variance = category.actual - category.estimated;
+      category.cost_overrun = category.actual - category.estimated_cost;
     });
 
     return {
       project_id: estimate.project_id || estimate.id,
       project_name: estimate.project_name || 'Unknown Project',
       estimate_total: estimate.total_amount,
+      estimated_total_cost: estimatedTotalCost,
       approved_change_orders: approvedChangeOrdersTotal,
       revised_contract_total: revisedContractTotal,
       actual_expenses: actualExpenses,
       planned_expenses: plannedExpenses,
       unplanned_expenses: unplannedExpenses,
       variance,
+      cost_overrun: costOverrun,
+      cost_overrun_percentage: costOverrunPercentage,
+      true_margin: trueMargin,
       percentage_spent: percentageSpent,
+      cost_utilization_percentage: costUtilizationPercentage,
       category_breakdown: categoryBreakdown
     };
   };
 
   const projectSummaries = estimates.map(calculateProjectSummary);
   const totalEstimated = projectSummaries.reduce((sum, p) => sum + p.estimate_total, 0);
+  const totalEstimatedCosts = projectSummaries.reduce((sum, p) => sum + p.estimated_total_cost, 0);
   const totalApprovedChanges = projectSummaries.reduce((sum, p) => sum + p.approved_change_orders, 0);
   const totalRevisedContract = projectSummaries.reduce((sum, p) => sum + p.revised_contract_total, 0);
   const totalActual = projectSummaries.reduce((sum, p) => sum + p.actual_expenses, 0);
   const totalVariance = totalActual - totalRevisedContract;
+  const totalCostOverrun = totalActual - totalEstimatedCosts;
+  const totalTrueMargin = totalRevisedContract > 0 ? ((totalRevisedContract - totalActual) / totalRevisedContract) * 100 : 0;
 
   const getVarianceColor = (variance: number) => {
     if (variance > 0) return 'text-red-600';
@@ -126,10 +171,14 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
           <CardTitle>Contract Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-center">
             <div>
               <div className="text-sm text-muted-foreground mb-1">Original Contract</div>
               <div className="text-xl font-semibold">${totalEstimated.toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Estimated Costs</div>
+              <div className="text-xl font-semibold text-orange-600">${totalEstimatedCosts.toFixed(2)}</div>
             </div>
             <div>
               <div className="text-sm text-muted-foreground mb-1">Approved Changes</div>
@@ -148,7 +197,7 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
       </Card>
 
       {/* Overall Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Variance vs Revised</CardTitle>
@@ -164,6 +213,35 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cost Overrun</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <VarianceBadge 
+              variance={totalCostOverrun}
+              percentage={totalEstimatedCosts > 0 ? (totalCostOverrun / totalEstimatedCosts) * 100 : 0}
+              className="text-base font-bold"
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">True Margin</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${totalTrueMargin >= 20 ? 'text-green-600' : totalTrueMargin >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
+              {totalTrueMargin.toFixed(1)}%
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              ${(totalRevisedContract - totalActual).toFixed(2)} profit
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Budget Utilized</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -171,21 +249,24 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
             <div className="text-2xl font-bold">
               {totalRevisedContract > 0 ? ((totalActual / totalRevisedContract) * 100).toFixed(1) : '0'}%
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Change Orders Impact</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {totalEstimated > 0 ? ((totalApprovedChanges / totalEstimated) * 100).toFixed(1) : '0'}%
+            <div className="text-xs text-muted-foreground mt-1">
+              vs contract
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Cost Overrun Alert */}
+      {totalCostOverrun > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Cost Overrun Alert:</strong> Actual expenses are ${totalCostOverrun.toFixed(2)} over estimated costs 
+            ({totalEstimatedCosts > 0 ? ((totalCostOverrun / totalEstimatedCosts) * 100).toFixed(1) : 0}% overrun). 
+            This is impacting your profit margins. Consider cost control measures.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Overbudget Alert */}
       {totalVariance > 0 && (
@@ -232,18 +313,36 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
               </div>
 
               {/* Budget Progress */}
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Budget Progress vs Revised Contract</span>
-                  <span>{summary.percentage_spent.toFixed(1)}%</span>
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Budget Progress vs Revised Contract</span>
+                    <span>{summary.percentage_spent.toFixed(1)}%</span>
+                  </div>
+                  <Progress 
+                    value={Math.min(summary.percentage_spent, 100)} 
+                    className={summary.percentage_spent > 100 ? 'bg-red-100' : ''}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>Contract: ${summary.revised_contract_total.toFixed(2)}</span>
+                    <span>Actual: ${summary.actual_expenses.toFixed(2)}</span>
+                  </div>
                 </div>
-                <Progress 
-                  value={Math.min(summary.percentage_spent, 100)} 
-                  className={summary.percentage_spent > 100 ? 'bg-red-100' : ''}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>Revised Contract: ${summary.revised_contract_total.toFixed(2)}</span>
-                  <span>Actual: ${summary.actual_expenses.toFixed(2)}</span>
+
+                {/* Cost vs Budget Progress */}
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Cost vs Budget</span>
+                    <span>{summary.cost_utilization_percentage.toFixed(1)}%</span>
+                  </div>
+                  <Progress 
+                    value={Math.min(summary.cost_utilization_percentage, 100)} 
+                    className={summary.cost_utilization_percentage > 100 ? 'bg-red-100' : summary.cost_utilization_percentage > 90 ? 'bg-yellow-100' : 'bg-green-100'}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>Cost Budget: ${summary.estimated_total_cost.toFixed(2)}</span>
+                    <span>Actual: ${summary.actual_expenses.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
 
@@ -270,11 +369,18 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
                       .sort(([,a], [,b]) => b.actual - a.actual)
                       .slice(0, 3)
                       .map(([category, data]) => (
-                        <div key={category} className="flex justify-between">
+                        <div key={category} className="flex justify-between items-center">
                           <span>{EXPENSE_CATEGORY_DISPLAY[category as keyof typeof EXPENSE_CATEGORY_DISPLAY]}:</span>
-                          <span className={data.variance > 0 ? 'text-red-600' : data.variance < 0 ? 'text-green-600' : ''}>
-                            ${data.actual.toFixed(2)}
-                          </span>
+                          <div className="text-right">
+                            <span className={data.cost_overrun > 0 ? 'text-red-600' : data.cost_overrun < 0 ? 'text-green-600' : ''}>
+                              ${data.actual.toFixed(2)}
+                            </span>
+                            {data.cost_overrun !== 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                {data.cost_overrun > 0 ? '+' : ''}${data.cost_overrun.toFixed(2)} vs cost
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
                   </div>
@@ -282,17 +388,42 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
               </div>
 
               {/* Category Variance Details */}
-              <div className="border-t pt-3">
-                <p className="text-sm font-medium mb-2">Category Variance</p>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                  {Object.entries(summary.category_breakdown).map(([category, data]) => (
-                    <div key={category} className="text-xs">
-                      <div className="font-medium">{EXPENSE_CATEGORY_DISPLAY[category as keyof typeof EXPENSE_CATEGORY_DISPLAY]}</div>
-                      <div className={getVarianceColor(data.variance)}>
-                        {data.variance >= 0 ? '+' : ''}${data.variance.toFixed(2)}
+              <div className="border-t pt-3 space-y-3">
+                <div>
+                  <p className="text-sm font-medium mb-2">Cost vs Budget by Category</p>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                    {Object.entries(summary.category_breakdown).map(([category, data]) => (
+                      <div key={category} className="text-xs">
+                        <div className="font-medium">{EXPENSE_CATEGORY_DISPLAY[category as keyof typeof EXPENSE_CATEGORY_DISPLAY]}</div>
+                        <div className={getVarianceColor(data.cost_overrun)}>
+                          {data.cost_overrun >= 0 ? '+' : ''}${data.cost_overrun.toFixed(2)}
+                        </div>
+                        <div className="text-muted-foreground">
+                          {data.estimated_cost > 0 ? ((data.cost_overrun / data.estimated_cost) * 100).toFixed(0) : '0'}%
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium mb-2">True Margin Analysis</p>
+                  <div className="p-2 bg-muted/30 rounded text-xs">
+                    <div className="flex justify-between">
+                      <span>Contract Value:</span>
+                      <span>${summary.revised_contract_total.toFixed(2)}</span>
                     </div>
-                  ))}
+                    <div className="flex justify-between">
+                      <span>Actual Costs:</span>
+                      <span>${summary.actual_expenses.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold border-t pt-1 mt-1">
+                      <span>True Margin:</span>
+                      <span className={summary.true_margin >= 20 ? 'text-green-600' : summary.true_margin >= 10 ? 'text-yellow-600' : 'text-red-600'}>
+                        {summary.true_margin.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>

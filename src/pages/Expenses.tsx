@@ -41,7 +41,15 @@ const Expenses = () => {
         supabase.from('estimates')
           .select(`
             *,
-            projects(project_name, client_name)
+            projects(project_name, client_name),
+            estimate_line_items(
+              id,
+              category,
+              cost_per_unit,
+              total_cost,
+              quantity,
+              description
+            )
           `),
         supabase.from('change_orders')
           .select('*')

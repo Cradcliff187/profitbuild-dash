@@ -54,18 +54,25 @@ export interface ProjectExpenseSummary {
   project_id: string;
   project_name: string;
   estimate_total: number;
+  estimated_total_cost: number;
   approved_change_orders: number;
   revised_contract_total: number;
   actual_expenses: number;
   planned_expenses: number;
   unplanned_expenses: number;
   variance: number;
+  cost_overrun: number;
+  cost_overrun_percentage: number;
+  true_margin: number;
   percentage_spent: number;
+  cost_utilization_percentage: number;
   category_breakdown: {
     [key in ExpenseCategory]: {
       estimated: number;
+      estimated_cost: number;
       actual: number;
       variance: number;
+      cost_overrun: number;
     }
   };
 }
