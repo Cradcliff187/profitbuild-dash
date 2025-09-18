@@ -39,3 +39,12 @@ export const CLIENT_TYPES: { value: ClientType; label: string }[] = [
   { value: 'government', label: 'Government' },
   { value: 'nonprofit', label: 'Non-Profit' },
 ];
+
+export const PAYMENT_TERMS = [
+  'Due on Receipt',
+  'Net 15',
+  'Net 30',
+  'Net 45',
+  'Net 60',
+  '2/10 Net 30'
+] as const;

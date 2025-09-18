@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
-import { Client, ClientType, CLIENT_TYPES, CreateClientRequest } from "@/types/client";
+import { Client, ClientType, CLIENT_TYPES, CreateClientRequest, PAYMENT_TERMS } from "@/types/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface ClientFormProps {
@@ -199,12 +199,18 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="payment_terms">Payment Terms</Label>
-              <Input
-                id="payment_terms"
-                value={formData.payment_terms}
-                onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
-                placeholder="e.g., Net 30"
-              />
+              <Select value={formData.payment_terms} onValueChange={(value) => setFormData({ ...formData, payment_terms: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment terms" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_TERMS.map((terms) => (
+                    <SelectItem key={terms} value={terms}>
+                      {terms}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="space-y-2">

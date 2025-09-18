@@ -624,6 +624,7 @@ export type Database = {
           last_synced_at: string | null
           margin_percentage: number | null
           minimum_margin_threshold: number | null
+          payment_terms: string | null
           project_name: string
           project_number: string
           project_type: Database["public"]["Enums"]["project_type"] | null
@@ -650,6 +651,7 @@ export type Database = {
           last_synced_at?: string | null
           margin_percentage?: number | null
           minimum_margin_threshold?: number | null
+          payment_terms?: string | null
           project_name: string
           project_number: string
           project_type?: Database["public"]["Enums"]["project_type"] | null
@@ -676,6 +678,7 @@ export type Database = {
           last_synced_at?: string | null
           margin_percentage?: number | null
           minimum_margin_threshold?: number | null
+          payment_terms?: string | null
           project_name?: string
           project_number?: string
           project_type?: Database["public"]["Enums"]["project_type"] | null

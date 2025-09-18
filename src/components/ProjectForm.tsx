@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Project, ProjectType, CreateProjectRequest, generateProjectNumber, JOB_TYPES } from "@/types/project";
-import { Client } from "@/types/client";
+import { Client, PAYMENT_TERMS } from "@/types/client";
 import { ClientSelector } from "@/components/ClientSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,7 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
   const [address, setAddress] = useState("");
   const [projectType, setProjectType] = useState<ProjectType>('construction_project');
   const [jobType, setJobType] = useState("");
+  const [paymentTerms, setPaymentTerms] = useState("Net 30");
   const [projectNumber, setProjectNumber] = useState("");
   const [minimumMarginThreshold, setMinimumMarginThreshold] = useState(10.0);
   const [targetMargin, setTargetMargin] = useState(20.0);
@@ -48,6 +49,11 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
 
       if (error) throw error;
       setSelectedClientData(client as Client);
+      
+      // Auto-fill payment terms from client
+      if (client?.payment_terms) {
+        setPaymentTerms(client.payment_terms);
+      }
     } catch (error) {
       console.error('Error fetching client data:', error);
     }
@@ -85,6 +91,7 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
           address: address.trim() || null,
           project_type: projectType,
           job_type: jobType.trim() || null,
+          payment_terms: paymentTerms,
           project_number: projectNumber,
           status: 'estimating' as const,
           minimum_margin_threshold: minimumMarginThreshold,
@@ -281,21 +288,44 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
             </Select>
           </div>
 
-          {/* Job Type */}
-          <div className="space-y-2">
-            <Label htmlFor="jobType">Job Type</Label>
-            <Select value={jobType} onValueChange={setJobType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select job type" />
-              </SelectTrigger>
-              <SelectContent>
-                {JOB_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Job Type and Payment Terms */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="jobType">Job Type</Label>
+              <Select value={jobType} onValueChange={setJobType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select job type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {JOB_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paymentTerms">Payment Terms</Label>
+              <Select value={paymentTerms} onValueChange={setPaymentTerms}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment terms" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_TERMS.map((terms) => (
+                    <SelectItem key={terms} value={terms}>
+                      {terms}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedClientData?.payment_terms && (
+                <p className="text-xs text-muted-foreground">
+                  Auto-filled from client default: {selectedClientData.payment_terms}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Margin Thresholds */}

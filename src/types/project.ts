@@ -10,6 +10,7 @@ export interface Project {
   status: ProjectStatus;
   start_date?: Date;
   end_date?: Date;
+  payment_terms?: string;
   quickbooks_job_id?: string;
   sync_status?: 'success' | 'failed' | 'pending' | null;
   last_synced_at?: string | null;
@@ -43,6 +44,7 @@ export interface CreateProjectRequest {
   job_type?: string;
   start_date?: Date;
   end_date?: Date;
+  payment_terms?: string;
   minimum_margin_threshold?: number;
   target_margin?: number;
 }
