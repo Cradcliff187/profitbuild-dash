@@ -263,26 +263,6 @@ const Projects = () => {
     setEditingChangeOrder(null);
   };
 
-  const handleContinueToEstimate = (project: Project) => {
-    // Navigate to estimates page
-    toast({
-      title: "Project Created",
-      description: `Project ${project.project_number} created. You can now create estimates.`
-    });
-    setViewMode('list');
-    setSelectedProject(null);
-  };
-
-  const handleContinueToExpenses = (project: Project) => {
-    // Navigate to expenses page
-    toast({
-      title: "Project Created",
-      description: `Work order ${project.project_number} created. You can now track expenses.`
-    });
-    setViewMode('list');
-    setSelectedProject(null);
-  };
-
   return (
     <div className="space-y-8">
       <div className="flex items-center space-x-3">
@@ -311,8 +291,6 @@ const Projects = () => {
         <ProjectForm
           onSave={handleSaveProject}
           onCancel={handleCancel}
-          onContinueToEstimate={handleContinueToEstimate}
-          onContinueToExpenses={handleContinueToExpenses}
         />
       )}
 

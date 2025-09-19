@@ -18,11 +18,9 @@ import { cn } from "@/lib/utils";
 interface ProjectFormProps {
   onSave: (project: Project) => void;
   onCancel: () => void;
-  onContinueToEstimate?: (project: Project) => void;
-  onContinueToExpenses?: (project: Project) => void;
 }
 
-export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinueToExpenses }: ProjectFormProps) => {
+export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
   const { toast } = useToast();
   const [projectName, setProjectName] = useState("");
   const [selectedClientId, setSelectedClientId] = useState<string>("");
@@ -131,13 +129,6 @@ export const ProjectForm = ({ onSave, onCancel, onContinueToEstimate, onContinue
         title: "Project Created",
         description: `Project ${projectNumber} has been created successfully.`
       });
-
-      // Navigate based on project type
-      if (projectType === 'construction_project' && onContinueToEstimate) {
-        onContinueToEstimate(newProject);
-      } else if (projectType === 'work_order' && onContinueToExpenses) {
-        onContinueToExpenses(newProject);
-      }
 
     } catch (error) {
       console.error('Error creating project:', error);
