@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 import { Project, ProjectType, generateProjectNumber, JOB_TYPES } from "@/types/project";
 import { ClientSelector } from "@/components/ClientSelector";
+import { LineItemRow } from "@/components/LineItemRow";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -1602,138 +1603,16 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
               </Button>
             </div>
 
-            {/* Line Items Header */}
-            <div className="grid grid-cols-15 gap-2 p-2 text-sm font-medium text-muted-foreground border-b">
-              <div className="col-span-2">Category</div>
-              <div className="col-span-3">Description</div>
-              <div className="col-span-1">Qty</div>
-              <div className="col-span-2">Cost/Unit</div>
-              <div className="col-span-1">Markup%</div>
-              <div className="col-span-2">Price/Unit</div>
-              <div className="col-span-2">Margin</div>
-              <div className="col-span-1 text-right">Total</div>
-              <div className="col-span-1"></div>
-            </div>
-
             {/* Line Items */}
-            <div className="space-y-3">
-              {lineItems.map(lineItem => {
-                const marginPercent = lineItem.pricePerUnit > 0 
-                  ? ((lineItem.pricePerUnit - lineItem.costPerUnit) / lineItem.pricePerUnit) * 100 
-                  : 0;
-                const isHealthy = marginPercent >= 20;
-                const isMedium = marginPercent >= 10 && marginPercent < 20;
-                
-                return (
-                  <div key={lineItem.id} className={cn("grid grid-cols-15 gap-2 items-center p-2 rounded", getLineItemBorderClass(lineItem))}>
-                    <div className="col-span-2">
-                      <Select
-                        value={lineItem.category}
-                        onValueChange={(value: LineItemCategory) => updateLineItem(lineItem.id, 'category', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(CATEGORY_DISPLAY_MAP).map(([key, display]) => (
-                            <SelectItem key={key} value={key}>
-                              {display}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="col-span-3">
-                       <Input
-                         value={lineItem.description}
-                         onChange={(e) => updateLineItem(lineItem.id, 'description', e.target.value)}
-                         onBlur={() => {
-                           const error = validateLineItems();
-                           setLineItemsError(error);
-                           setHasValidated(true);
-                         }}
-                         placeholder="Description"
-                       />
-                    </div>
-                    
-                    <div className="col-span-1">
-                      <Input
-                        type="number"
-                        value={lineItem.quantity}
-                        onChange={(e) => updateLineItem(lineItem.id, 'quantity', parseFloat(e.target.value) || 0)}
-                        placeholder="0"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                    
-                    <div className="col-span-2">
-                      <Input
-                        type="number"
-                        value={lineItem.costPerUnit}
-                        onChange={(e) => updateLineItem(lineItem.id, 'costPerUnit', parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                    
-                    <div className="col-span-1">
-                      <Input
-                        type="number"
-                        value={lineItem.markupPercent || 0}
-                        onChange={(e) => updateLineItem(lineItem.id, 'markupPercent', parseFloat(e.target.value) || 0)}
-                        placeholder="0"
-                        min="0"
-                        step="1"
-                      />
-                    </div>
-                    
-                    <div className="col-span-2">
-                      <Input
-                        type="number"
-                        value={lineItem.pricePerUnit}
-                        onChange={(e) => updateLineItem(lineItem.id, 'pricePerUnit', parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                    
-                    <div className="col-span-2">
-                      {lineItem.pricePerUnit > 0 && (
-                        <Badge 
-                          variant="outline" 
-                          className={cn(
-                            "text-xs",
-                            isHealthy && "bg-green-50 text-green-700 border-green-200",
-                            isMedium && "bg-yellow-50 text-yellow-700 border-yellow-200",
-                            !isHealthy && !isMedium && "bg-red-50 text-red-700 border-red-200"
-                          )}
-                        >
-                          {marginPercent.toFixed(1)}%
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div className="col-span-1 text-right font-medium">
-                      ${(lineItem.quantity * lineItem.pricePerUnit).toFixed(2)}
-                    </div>
-                    
-                    <div className="col-span-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeLineItem(lineItem.id)}
-                        disabled={lineItems.length <= 1}
-                      >
-                        ×
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="space-y-4">
+              {lineItems.map(lineItem => (
+                <LineItemRow
+                  key={lineItem.id}
+                  lineItem={lineItem}
+                  onUpdate={updateLineItem}
+                  onRemove={removeLineItem}
+                />
+              ))}
             </div>
           </div>
 
