@@ -65,44 +65,59 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
 
   return (
     <div className={`border rounded-lg border-l-4 ${categoryColors[lineItem.category]} bg-card`}>
-      {/* Main Row */}
-      <div className="grid grid-cols-12 gap-4 p-4">
-        <div className="col-span-2">
-          <Select value={lineItem.category} onValueChange={(value: LineItemCategory) => onUpdate(lineItem.id, 'category', value)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Labor (Internal)">Labor (Internal)</SelectItem>
-              <SelectItem value="Subcontractors">Subcontractors</SelectItem>
-              <SelectItem value="Materials">Materials</SelectItem>
-              <SelectItem value="Equipment">Equipment</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
-            </SelectContent>
-          </Select>
+      {/* Mobile-First Layout */}
+      <div className="p-4 space-y-4">
+        {/* Top Row: Category, Description, Remove Button */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="sm:w-48">
+            <Select value={lineItem.category} onValueChange={(value: LineItemCategory) => onUpdate(lineItem.id, 'category', value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Labor (Internal)">Labor (Internal)</SelectItem>
+                <SelectItem value="Subcontractors">Subcontractors</SelectItem>
+                <SelectItem value="Materials">Materials</SelectItem>
+                <SelectItem value="Equipment">Equipment</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex-1">
+            <Input
+              placeholder="Description"
+              value={lineItem.description}
+              onChange={(e) => onUpdate(lineItem.id, 'description', e.target.value)}
+            />
+          </div>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onRemove(lineItem.id)}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10 self-start sm:self-center"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
-        
-        <div className="col-span-4">
-          <Input
-            placeholder="Description"
-            value={lineItem.description}
-            onChange={(e) => onUpdate(lineItem.id, 'description', e.target.value)}
-          />
-        </div>
-        
-        <div className="col-span-2">
-          <Input
-            type="number"
-            placeholder="Qty"
-            value={lineItem.quantity || ''}
-            onChange={(e) => handleQuantityChange(e.target.value)}
-            min="0"
-            step="0.01"
-          />
-        </div>
-        
-        <div className="col-span-2">
-          <div className="space-y-1">
+
+        {/* Main Numbers Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">Quantity</label>
+            <Input
+              type="number"
+              placeholder="Qty"
+              value={lineItem.quantity || ''}
+              onChange={(e) => handleQuantityChange(e.target.value)}
+              min="0"
+              step="0.01"
+            />
+          </div>
+          
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">Price/Unit</label>
             <Input
               type="number"
               placeholder="Price per Unit"
@@ -111,41 +126,33 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
               min="0"
               step="0.01"
             />
-            <div className="text-xs text-muted-foreground">
-              Price: ${(lineItem.pricePerUnit || 0).toFixed(2)}
-            </div>
           </div>
-        </div>
-        
-        <div className="col-span-1 flex flex-col items-end justify-center">
-          <div className="font-semibold text-foreground">
-            ${lineItem.total.toFixed(2)}
+          
+          <div className="flex flex-col justify-center">
+            <label className="text-xs font-medium text-muted-foreground">Total</label>
+            <div className="font-semibold text-lg">${lineItem.total.toFixed(2)}</div>
           </div>
-          {marginPercent > 0 && (
-            <Badge variant={marginPercent >= 20 ? "default" : marginPercent >= 10 ? "secondary" : "destructive"} className="text-xs mt-1">
-              {marginPercent.toFixed(0)}% margin
-            </Badge>
-          )}
-        </div>
-        
-        <div className="col-span-1 flex items-center justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onRemove(lineItem.id)}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          
+          <div className="flex flex-col justify-center">
+            <label className="text-xs font-medium text-muted-foreground">Margin</label>
+            {marginPercent > 0 && (
+              <Badge variant={marginPercent >= 20 ? "default" : marginPercent >= 10 ? "secondary" : "destructive"} className="text-xs w-fit">
+                {marginPercent.toFixed(0)}%
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Cost & Markup Details Row */}
+      {/* Cost & Markup Details Section */}
       <Separator />
-      <div className="grid grid-cols-12 gap-4 p-4 bg-muted/30">
-        <div className="col-span-2">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Cost per Unit</label>
+      <div className="p-4 bg-muted/30 space-y-4">
+        <div className="text-sm font-medium text-muted-foreground">Cost & Markup Details</div>
+        
+        {/* Cost Input */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">Cost per Unit</label>
             <Input
               type="number"
               placeholder="0.00"
@@ -155,11 +162,23 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
               step="0.01"
             />
           </div>
+          
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <div className="text-xs text-muted-foreground">Total Cost</div>
+              <div className="font-medium">${(lineItem.totalCost || 0).toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Total Markup</div>
+              <div className="font-medium text-green-600">${(lineItem.totalMarkup || 0).toFixed(2)}</div>
+            </div>
+          </div>
         </div>
         
-        <div className="col-span-3">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Markup Type</label>
+        {/* Markup Controls */}
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-2">Markup Type</label>
             <div className="flex gap-2">
               <Button
                 variant={markupType === 'percent' ? 'default' : 'outline'}
@@ -168,7 +187,7 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
                 className="flex-1"
               >
                 <Percent className="h-3 w-3 mr-1" />
-                %
+                Percentage
               </Button>
               <Button
                 variant={markupType === 'amount' ? 'default' : 'outline'}
@@ -177,45 +196,30 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
                 className="flex-1"
               >
                 <DollarSign className="h-3 w-3 mr-1" />
-                $
+                Amount
               </Button>
             </div>
           </div>
-        </div>
-        
-        <div className="col-span-2">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              {markupType === 'percent' ? 'Markup %' : 'Markup $'}
-            </label>
-            <Input
-              type="number"
-              placeholder={markupType === 'percent' ? '15.0' : '0.00'}
-              value={markupType === 'percent' ? (lineItem.markupPercent || '') : (lineItem.markupAmount || '')}
-              onChange={(e) => handleMarkupValueChange(e.target.value)}
-              min="0"
-              step={markupType === 'percent' ? '0.1' : '0.01'}
-            />
-          </div>
-        </div>
-        
-        <div className="col-span-3">
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <div className="text-muted-foreground">Total Cost</div>
-              <div className="font-medium">${(lineItem.totalCost || 0).toFixed(2)}</div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">
+                {markupType === 'percent' ? 'Markup Percentage' : 'Markup Amount'}
+              </label>
+              <Input
+                type="number"
+                placeholder={markupType === 'percent' ? '15.0' : '0.00'}
+                value={markupType === 'percent' ? (lineItem.markupPercent || '') : (lineItem.markupAmount || '')}
+                onChange={(e) => handleMarkupValueChange(e.target.value)}
+                min="0"
+                step={markupType === 'percent' ? '0.1' : '0.01'}
+              />
             </div>
-            <div>
-              <div className="text-muted-foreground">Total Markup</div>
-              <div className="font-medium text-green-600">${(lineItem.totalMarkup || 0).toFixed(2)}</div>
+            
+            <div className="flex flex-col justify-center">
+              <div className="text-xs text-muted-foreground">Final Price/Unit</div>
+              <div className="font-semibold text-lg">${(lineItem.pricePerUnit || 0).toFixed(2)}</div>
             </div>
-          </div>
-        </div>
-        
-        <div className="col-span-2 flex items-center justify-end">
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground">Final Price/Unit</div>
-            <div className="font-semibold">${(lineItem.pricePerUnit || 0).toFixed(2)}</div>
           </div>
         </div>
       </div>

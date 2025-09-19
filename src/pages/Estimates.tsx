@@ -39,6 +39,16 @@ const Estimates = () => {
 
       if (estimatesError) throw estimatesError;
 
+      // Get line items for all estimates
+      const estimateIds = estimatesData?.map(est => est.id) || [];
+      const { data: lineItemsData, error: lineItemsError } = await supabase
+        .from('estimate_line_items')
+        .select('*')
+        .in('estimate_id', estimateIds)
+        .order('sort_order');
+
+      if (lineItemsError) throw lineItemsError;
+
       // Then get quotes for each estimate
       const { data: quotesData, error: quotesError } = await supabase
         .from('quotes')
@@ -46,7 +56,29 @@ const Estimates = () => {
 
       if (quotesError) throw quotesError;
 
-      // Create a map of quotes by estimate_id
+      // Create maps for line items and quotes by estimate_id
+      const lineItemsByEstimate = (lineItemsData || []).reduce((acc: any, item: any) => {
+        if (!acc[item.estimate_id]) {
+          acc[item.estimate_id] = [];
+        }
+        acc[item.estimate_id].push({
+          id: item.id,
+          category: item.category,
+          description: item.description,
+          quantity: item.quantity,
+          pricePerUnit: item.price_per_unit || item.rate,
+          total: item.total,
+          unit: item.unit,
+          sort_order: item.sort_order,
+          costPerUnit: item.cost_per_unit || 0,
+          markupPercent: item.markup_percent,
+          markupAmount: item.markup_amount,
+          totalCost: item.total_cost || (item.quantity * (item.cost_per_unit || 0)),
+          totalMarkup: item.total_markup || 0
+        });
+        return acc;
+      }, {});
+
       const quotesByEstimate = (quotesData || []).reduce((acc: any, quote: any) => {
         if (!acc[quote.estimate_id]) {
           acc[quote.estimate_id] = [];
@@ -72,7 +104,7 @@ const Estimates = () => {
         parent_estimate_id: est.parent_estimate_id || undefined,
         is_current_version: est.is_current_version ?? true,
         valid_for_days: est.valid_for_days || 30,
-        lineItems: [], // Will be loaded separately when needed
+        lineItems: lineItemsByEstimate[est.id] || [],
         created_at: new Date(est.created_at),
         updated_at: new Date(est.updated_at),
         project_name: est.projects?.project_name,
