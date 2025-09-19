@@ -9,18 +9,26 @@ import { Project } from "@/types/project";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-type ViewMode = 'list' | 'create-project' | 'create-estimate' | 'create-unified' | 'edit' | 'view';
+type ViewMode = 'list' | 'create' | 'edit' | 'view';
 
 const Estimates = () => {
   const { toast } = useToast();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate | null>(null);
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [preselectedProjectId, setPreselectedProjectId] = useState<string | null>(null);
 
-  // Load estimates from Supabase
+  // Load estimates from Supabase and check URL params
   useEffect(() => {
     loadEstimates();
+    
+    // Check URL params for preselected project
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectId = urlParams.get('project');
+    if (projectId) {
+      setPreselectedProjectId(projectId);
+      setViewMode('create');
+    }
   }, []);
 
   const loadEstimates = async () => {
@@ -125,11 +133,6 @@ const Estimates = () => {
     }
   };
 
-  const handleSaveProject = (project: Project) => {
-    setCurrentProject(project);
-    // Projects are saved in ProjectForm component
-  };
-
   const handleSaveEstimate = (estimate: Estimate) => {
     if (selectedEstimate) {
       // Editing existing estimate
@@ -140,35 +143,16 @@ const Estimates = () => {
     }
     setViewMode('list');
     setSelectedEstimate(null);
-    setCurrentProject(null);
+    setPreselectedProjectId(null);
+    // Clear URL params
+    window.history.replaceState({}, document.title, window.location.pathname);
     loadEstimates(); // Refresh the list
   };
 
   const handleCreateNew = () => {
     setSelectedEstimate(null);
-    setCurrentProject(null);
-    setViewMode('create-unified');
-  };
-
-  const handleCreateWithProject = () => {
-    setSelectedEstimate(null);
-    setCurrentProject(null);
-    setViewMode('create-project');
-  };
-
-  const handleContinueToEstimate = (project: Project) => {
-    setCurrentProject(project);
-    setViewMode('create-estimate');
-  };
-
-  const handleContinueToExpenses = (project: Project) => {
-    // Navigate to expenses page with project context
-    toast({
-      title: "Project Created",
-      description: `Work order ${project.project_number} created. You can now track expenses.`
-    });
-    setViewMode('list');
-    setCurrentProject(null);
+    setPreselectedProjectId(null);
+    setViewMode('create');
   };
 
   const handleEdit = (estimate: Estimate) => {
@@ -188,7 +172,9 @@ const Estimates = () => {
   const handleCancel = () => {
     setViewMode('list');
     setSelectedEstimate(null);
-    setCurrentProject(null);
+    setPreselectedProjectId(null);
+    // Clear URL params
+    window.history.replaceState({}, document.title, window.location.pathname);
   };
 
   return (
@@ -205,15 +191,15 @@ const Estimates = () => {
         <EstimatesList
           estimates={estimates}
           onCreateNew={handleCreateNew}
-          onCreateWithProject={handleCreateWithProject}
           onEdit={handleEdit}
           onView={handleView}
           onDelete={handleDelete}
         />
       )}
 
-      {viewMode === 'create-unified' && (
+      {viewMode === 'create' && (
         <EstimateForm
+          preselectedProjectId={preselectedProjectId}
           onSave={handleSaveEstimate}
           onCancel={handleCancel}
         />
@@ -222,23 +208,6 @@ const Estimates = () => {
       {viewMode === 'edit' && selectedEstimate && (
         <EstimateForm
           initialEstimate={selectedEstimate}
-          onSave={handleSaveEstimate}
-          onCancel={handleCancel}
-        />
-      )}
-
-      {viewMode === 'create-project' && (
-        <ProjectForm
-          onSave={handleSaveProject}
-          onCancel={handleCancel}
-          onContinueToEstimate={handleContinueToEstimate}
-          onContinueToExpenses={handleContinueToExpenses}
-        />
-      )}
-
-      {viewMode === 'create-estimate' && currentProject && (
-        <ProjectEstimateForm
-          project={currentProject}
           onSave={handleSaveEstimate}
           onCancel={handleCancel}
         />

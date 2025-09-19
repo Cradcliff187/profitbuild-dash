@@ -18,10 +18,9 @@ interface EstimatesListProps {
   onDelete: (id: string) => void;
   onView: (estimate: Estimate) => void;
   onCreateNew: () => void;
-  onCreateWithProject?: () => void;
 }
 
-export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew, onCreateWithProject }: EstimatesListProps) => {
+export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesListProps) => {
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [estimateToDelete, setEstimateToDelete] = useState<string | null>(null);
@@ -118,24 +117,12 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Estimate
-                <ChevronDown className="h-4 w-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center">
               <DropdownMenuItem onClick={onCreateNew}>
-                <div className="flex flex-col items-start">
-                  <span>Quick Estimate</span>
-                  <span className="text-sm text-muted-foreground">Create estimate with project in one form</span>
-                </div>
+                Create New Estimate
               </DropdownMenuItem>
-              {onCreateWithProject && (
-                <DropdownMenuItem onClick={onCreateWithProject}>
-                  <div className="flex flex-col items-start">
-                    <span>Project First</span>
-                    <span className="text-sm text-muted-foreground">Traditional two-step workflow</span>
-                  </div>
-                </DropdownMenuItem>
-              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </CardContent>
@@ -150,31 +137,10 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
           <h2 className="text-2xl font-bold text-foreground">Estimates</h2>
           <p className="text-muted-foreground">{estimates.length} estimate{estimates.length === 1 ? '' : 's'} created</p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Estimate
-              <ChevronDown className="h-4 w-4 ml-2" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onCreateNew}>
-              <div className="flex flex-col items-start">
-                <span>Quick Estimate</span>
-                <span className="text-sm text-muted-foreground">Create estimate with project in one form</span>
-              </div>
-            </DropdownMenuItem>
-            {onCreateWithProject && (
-              <DropdownMenuItem onClick={onCreateWithProject}>
-                <div className="flex flex-col items-start">
-                  <span>Project First</span>
-                  <span className="text-sm text-muted-foreground">Traditional two-step workflow</span>
-                </div>
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button onClick={onCreateNew}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Estimate
+        </Button>
       </div>
 
       <div className="grid gap-6">

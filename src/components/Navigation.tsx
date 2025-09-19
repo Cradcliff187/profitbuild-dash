@@ -15,14 +15,14 @@ const Navigation = () => {
   // Primary items (always visible on larger screens)
   const primaryItems = [
     { to: "/", label: "Dashboard", icon: Building2 },
-    { to: "/work-orders", label: "Work Orders", icon: Wrench },
     { to: "/projects", label: "Projects", icon: Building2 },
+    { to: "/estimates", label: "Estimates", icon: Calculator },
     { to: "/expenses", label: "Expenses", icon: Receipt },
   ];
 
   // Secondary items (grouped under "More" dropdown)
   const secondaryItems = [
-    { to: "/estimates", label: "Estimates", icon: Calculator },
+    { to: "/work-orders", label: "Work Orders", icon: Wrench },
     { to: "/quotes", label: "Quotes", icon: FileText },
     { to: "/payees", label: "Payees", icon: Users },
     { to: "/clients", label: "Clients", icon: UserCheck },

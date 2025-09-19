@@ -26,13 +26,14 @@ import { AlertTriangle, CheckCircle } from "lucide-react";
 
 interface EstimateFormProps {
   initialEstimate?: Estimate; // For editing mode
+  preselectedProjectId?: string; // For linking from project page
   onSave: (estimate: Estimate) => void;
   onCancel: () => void;
 }
 
 type ProjectMode = 'existing' | 'new';
 
-export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateFormProps) => {
+export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, onCancel }: EstimateFormProps) => {
   const { toast } = useToast();
   
   // Project selection mode
@@ -97,6 +98,11 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
       
       // Load client data if we have a project
       loadClientForProject(initialEstimate.project_id);
+    } else if (preselectedProjectId) {
+      // Pre-select existing project for new estimate
+      setProjectMode('existing');
+      setSelectedProjectId(preselectedProjectId);
+      loadClientForProject(preselectedProjectId);
     } else {
       setProjectNumber(generateProjectNumber());
     }
@@ -108,7 +114,7 @@ export const EstimateForm = ({ initialEstimate, onSave, onCancel }: EstimateForm
       setSelectedVersionId(initialEstimate.id);
       setOriginalLineItems([]);
     }
-  }, [initialEstimate]);
+  }, [initialEstimate, preselectedProjectId]);
 
   const loadExistingProjects = async () => {
     try {
