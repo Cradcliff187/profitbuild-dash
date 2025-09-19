@@ -214,6 +214,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
           category: item.category,
           description: item.description.trim(),
           quantity: item.quantity,
+          rate: item.pricePerUnit, // For backward compatibility
           price_per_unit: item.pricePerUnit,
           total: item.quantity * item.pricePerUnit,
           unit: item.unit || null,
@@ -258,6 +259,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
             date_created: date.toISOString().split('T')[0],
             total_amount: totalAmount,
             status: 'draft' as const,
+            is_draft: false,
             notes: notes.trim() || null,
             valid_until: validUntil?.toISOString().split('T')[0],
             contingency_percent: contingencyPercent,
@@ -275,6 +277,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
           category: item.category,
           description: item.description.trim(),
           quantity: item.quantity,
+          rate: item.pricePerUnit, // For backward compatibility
           price_per_unit: item.pricePerUnit,
           total: item.quantity * item.pricePerUnit,
           unit: item.unit || null,
