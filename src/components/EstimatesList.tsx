@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { FileText, Edit, Trash2, Eye, Plus, ChevronDown, FileEdit } from "lucide-react";
+import { FileText, Edit, Trash2, Eye, Plus, ChevronDown, FileEdit, Calculator, History } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { QuoteStatusBadge } from "@/components/QuoteStatusBadge";
 import { format } from "date-fns";
 import { Estimate } from "@/types/estimate";
 import { useToast } from "@/hooks/use-toast";
@@ -36,9 +38,9 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
     return groups;
   }, {} as Record<string, typeof estimates>);
 
-  // Sort estimates within each project by version number
+  // Sort estimates within each project by version number (descending - newest first)
   Object.keys(estimatesByProject).forEach(projectId => {
-    estimatesByProject[projectId].sort((a, b) => a.version_number - b.version_number);
+    estimatesByProject[projectId].sort((a, b) => (b.version_number || 1) - (a.version_number || 1));
   });
 
   const handleDeleteClick = (id: string) => {
@@ -106,21 +108,6 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
     return `Includes ${estimate.contingency_percent}% contingency: $${contingencyAmount.toFixed(2)}`;
   };
 
-  const getCategoryBadgeColor = (category: string) => {
-    switch (category) {
-      case 'Labor':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'Materials':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'Equipment':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
-      case 'Other':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
-  };
-
   if (estimates.length === 0) {
     return (
       <Card>
@@ -140,183 +127,263 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Estimate Families</h2>
-          <p className="text-muted-foreground">
-            {Object.keys(estimatesByProject).length} project{Object.keys(estimatesByProject).length === 1 ? '' : 's'} with estimates
-          </p>
+        <div className="flex items-center space-x-3">
+          <Calculator className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Estimate Families</h1>
+            <p className="text-muted-foreground">Estimates grouped by project with version history</p>
+          </div>
         </div>
-        <Button onClick={onCreateNew}>
+        <Button onClick={onCreateNew} className="bg-primary hover:bg-primary/90">
           <Plus className="h-4 w-4 mr-2" />
-          Create Estimate
+          Create New Estimate
         </Button>
       </div>
 
-      <div className="grid gap-8">
+      <div className="grid gap-6">
         {Object.entries(estimatesByProject).map(([projectId, projectEstimates]) => {
-          const currentVersion = projectEstimates.find(e => e.is_current_version) || projectEstimates[projectEstimates.length - 1];
-          const allVersions = projectEstimates;
+          const currentVersion = projectEstimates.find(e => e.is_current_version) || projectEstimates[0];
+          const previousVersions = projectEstimates.filter(e => !e.is_current_version);
+          
+          const quoteStatus = getQuoteStatus(currentVersion);
+          const bestQuoteVariance = getBestQuoteVariance(currentVersion);
           
           return (
-            <div key={projectId} className="space-y-4">
-              {/* Project Header */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-semibold text-foreground">
-                    {currentVersion.project_name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Client: {currentVersion.client_name} • {allVersions.length} version{allVersions.length === 1 ? '' : 's'}
-                  </p>
+            <Card key={projectId} className="overflow-hidden border-2 border-primary/10">
+              <CardHeader className="pb-4 bg-gradient-to-r from-primary/5 to-transparent">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-3">
+                      <CardTitle className="text-xl">{currentVersion.project_name}</CardTitle>
+                      <Badge className="bg-primary text-primary-foreground font-semibold">
+                        v{currentVersion.version_number || 1}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs border-green-200 text-green-700 bg-green-50">
+                        Current Version
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {currentVersion.client_name} • {projectEstimates.length} version{projectEstimates.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => window.location.href = `/estimates?project=${projectId}`}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      New Version
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onCreateNew}
-                  className="bg-primary/5 hover:bg-primary/10"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Version
-                </Button>
-              </div>
+              </CardHeader>
 
-              {/* Current Version - Prominent Display */}
-              <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="default" className="text-sm font-medium">
-                          Current v{currentVersion.version_number}
-                        </Badge>
-                        <Badge variant="outline" className="text-sm">
-                          {currentVersion.estimate_number}
-                        </Badge>
+              <CardContent className="space-y-4">
+                {/* Current Version Details */}
+                <div className="bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-3">
+                        <h3 className="font-bold text-foreground text-lg">Latest Version</h3>
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-primary text-primary-foreground font-bold text-sm px-3 py-1">
+                            Version {currentVersion.version_number || 1}
+                          </Badge>
+                          <Badge variant="outline" className={`text-xs capitalize ${
+                            currentVersion.status === 'approved' ? 'border-green-200 text-green-700 bg-green-50' :
+                            currentVersion.status === 'draft' ? 'border-gray-200 text-gray-700 bg-gray-50' :
+                            'border-blue-200 text-blue-700 bg-blue-50'
+                          }`}>
+                            {currentVersion.status}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
-                        <span>{format(currentVersion.date_created, 'MMM dd, yyyy')}</span>
+                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                        <span>{currentVersion.estimate_number}</span>
                         <span>•</span>
-                        <span>Status: {currentVersion.status}</span>
+                        <span>Created {format(currentVersion.date_created, 'MMM dd, yyyy')}</span>
+                        {currentVersion.contingency_percent > 0 && (
+                          <>
+                            <span>•</span>
+                            <span>Contingency: {formatContingencyDisplay(currentVersion)}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-primary">${currentVersion.total_amount.toFixed(2)}</div>
-                      {formatContingencyDisplay(currentVersion) && (
-                        <div className="text-sm text-muted-foreground">
-                          {formatContingencyDisplay(currentVersion)}
-                        </div>
-                      )}
-                      <div className="text-sm text-muted-foreground">
-                        {currentVersion.lineItems.length} line item{currentVersion.lineItems.length === 1 ? '' : 's'}
+                      <div className="text-3xl font-bold text-foreground">
+                        ${currentVersion.total_amount.toLocaleString()}
                       </div>
+                      <div className="text-sm text-muted-foreground">Total Amount</div>
                     </div>
                   </div>
-                </CardHeader>
-                
-                <CardContent className="pt-0">
-                  <div className="flex items-center gap-2 mb-4 flex-wrap">
-                    {currentVersion.is_draft && (
-                      <Badge variant="outline" className="text-sm border-orange-300 text-orange-700 bg-orange-50">
-                        <FileEdit className="h-3 w-3 mr-1" />
-                        Draft
-                      </Badge>
-                    )}
-                    <BudgetComparisonBadge status={getQuoteStatus(currentVersion)} />
-                    {(() => {
-                      const variance = getBestQuoteVariance(currentVersion);
-                      return variance && (
-                        <VarianceBadge 
-                          variance={variance.variance}
-                          percentage={variance.percentage}
-                          type="quote"
-                        />
-                      );
-                    })()}
-                  </div>
 
-                  <div className="flex gap-2 items-center flex-wrap">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onView(currentVersion)}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEdit(currentVersion)}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      {currentVersion.status === 'approved' ? 'New Version' : 'Edit'}
-                    </Button>
-                    {currentVersion.status === 'approved' && (
-                      <EstimateVersionManager 
-                        estimate={currentVersion} 
-                        onVersionCreated={(newVersion) => {
-                          window.location.reload();
-                        }}
-                      />
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteClick(currentVersion.id)}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  {/* Budget Comparison */}
+                  {(quoteStatus !== 'awaiting-quotes') && (
+                    <div className="mt-4 pt-4 border-t border-primary/20">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">Budget vs Actual:</span>
+                        <div className="flex items-center space-x-2">
+                          <BudgetComparisonBadge status={quoteStatus} />
+                          {bestQuoteVariance && (
+                            <span className={`text-sm font-semibold ${
+                              bestQuoteVariance.variance < 0 ? 'text-green-700' : 'text-red-700'
+                            }`}>
+                              {bestQuoteVariance.variance < 0 ? '-' : '+'}${Math.abs(bestQuoteVariance.variance).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-              {/* Version History - Collapsed by default */}
-              {allVersions.length > 1 && (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-muted-foreground">Previous Versions</h4>
-                  <div className="grid gap-3">
-                    {allVersions
-                      .filter(estimate => !estimate.is_current_version)
-                      .reverse()
-                      .map((estimate) => (
-                      <Card 
-                        key={estimate.id} 
-                        className="opacity-70 bg-muted/10 hover:opacity-90 transition-opacity"
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onView(currentVersion)}
+                        className="border-primary/20 hover:bg-primary/5"
                       >
-                        <CardContent className="py-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <Badge variant="secondary" className="text-xs">
-                                v{estimate.version_number}
-                              </Badge>
-                              <span className="text-sm font-medium">{estimate.estimate_number}</span>
-                              <span className="text-sm text-muted-foreground">
-                                {format(estimate.date_created, 'MMM dd, yyyy')}
-                              </span>
-                              <Badge variant="outline" className="text-xs">
-                                {estimate.status}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">${estimate.total_amount.toFixed(2)}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onView(estimate)}
-                              >
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onEdit(currentVersion)}
+                        className="border-primary/20 hover:bg-primary/5"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Version
+                      </Button>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => window.location.href = `/estimates?project=${projectId}`}
+                        className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Version
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
+
+                {/* Previous Versions */}
+                {previousVersions.length > 0 && (
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" className="w-full justify-between p-3 h-auto border border-dashed border-primary/30 hover:bg-primary/5">
+                        <div className="flex items-center space-x-2">
+                          <History className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium text-foreground">
+                            Version History ({previousVersions.length})
+                          </span>
+                        </div>
+                        <ChevronDown className="h-4 w-4 text-primary" />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-3 mt-3">
+                      <div className="pl-4 border-l-2 border-primary/20 space-y-3">
+                        {previousVersions.map((estimate, index) => (
+                          <Card key={estimate.id} className="bg-muted/20 border-muted-foreground/20">
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-2">
+                                  <div className="flex items-center space-x-3">
+                                    <Badge variant="outline" className="text-xs px-2 py-1">
+                                      v{estimate.version_number || 1}
+                                    </Badge>
+                                    <Badge variant="outline" className={`text-xs capitalize ${
+                                      estimate.status === 'approved' ? 'border-green-200 text-green-700 bg-green-50' :
+                                      estimate.status === 'draft' ? 'border-gray-200 text-gray-700 bg-gray-50' :
+                                      'border-blue-200 text-blue-700 bg-blue-50'
+                                    }`}>
+                                      {estimate.status}
+                                    </Badge>
+                                    {index === 0 && (
+                                      <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/30">
+                                        Previous
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                    <span>{estimate.estimate_number}</span>
+                                    <span>•</span>
+                                    <span>{format(estimate.date_created, 'MMM dd, yyyy')}</span>
+                                    {estimate.contingency_percent > 0 && (
+                                      <>
+                                        <span>•</span>
+                                        <span>Contingency: {formatContingencyDisplay(estimate)}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                  <div className="text-right">
+                                    <span className="font-semibold text-sm">
+                                      ${estimate.total_amount.toLocaleString()}
+                                    </span>
+                                  </div>
+                                  <div className="flex space-x-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => onView(estimate)}
+                                      className="h-8 w-8 p-0 hover:bg-primary/10"
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => onEdit(estimate)}
+                                      className="h-8 w-8 p-0 hover:bg-primary/10"
+                                    >
+                                      <Edit className="h-3 w-3" />
+                                    </Button>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Delete Estimate Version</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to delete version {estimate.version_number || 1} of this estimate? This action cannot be undone.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction onClick={() => onDelete(estimate.id)}>
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+              </CardContent>
+            </Card>
           );
         })}
       </div>

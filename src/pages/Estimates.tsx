@@ -154,6 +154,13 @@ const Estimates = () => {
     setViewMode('create');
   };
 
+  // Context-aware button logic
+  const getCreateButtonText = () => {
+    if (estimates.length === 0) return "Create First Estimate";
+    if (preselectedProjectId) return "Create New Version";
+    return "Create New Estimate";
+  };
+
   const handleEdit = (estimate: Estimate) => {
     setSelectedEstimate(estimate);
     setViewMode('edit');
