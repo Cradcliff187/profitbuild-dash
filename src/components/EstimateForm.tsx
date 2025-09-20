@@ -347,7 +347,6 @@ useEffect(() => {
           description: item.description.trim(),
           quantity: item.quantity,
           rate: item.pricePerUnit, // For backward compatibility
-          price_per_unit: item.pricePerUnit,
           unit: item.unit || null,
           sort_order: index,
           cost_per_unit: item.costPerUnit || 0,
@@ -425,7 +424,6 @@ useEffect(() => {
           description: item.description.trim(),
           quantity: item.quantity,
           rate: item.pricePerUnit, // For backward compatibility
-          price_per_unit: item.pricePerUnit,
           unit: item.unit || null,
           sort_order: index,
           cost_per_unit: item.costPerUnit || 0,
