@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Edit, Trash2, Copy, Plus } from 'lucide-react';
+import { Edit, Trash2, Copy, Plus, MoreHorizontal } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 
 interface LineItemTableProps {
@@ -34,7 +35,8 @@ const EditableCell: React.FC<{
   onChange: (value: string) => void;
   type?: 'text' | 'number';
   className?: string;
-}> = ({ value, onChange, type = 'text', className = '' }) => {
+  currency?: boolean;
+}> = ({ value, onChange, type = 'text', className = '', currency = false }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(String(value));
 
@@ -52,6 +54,16 @@ const EditableCell: React.FC<{
     }
   };
 
+  const formatValue = (val: string | number) => {
+    if (type === 'number' && typeof val === 'number') {
+      if (currency) {
+        return `$${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      return val.toLocaleString();
+    }
+    return val;
+  };
+
   if (isEditing) {
     return (
       <Input
@@ -62,6 +74,7 @@ const EditableCell: React.FC<{
         type={type}
         className={`h-8 ${className}`}
         autoFocus
+        placeholder={currency ? "0.00" : ""}
       />
     );
   }
@@ -75,7 +88,7 @@ const EditableCell: React.FC<{
       }}
     >
       {value ? (
-        type === 'number' && typeof value === 'number' ? value.toLocaleString() : value
+        formatValue(value)
       ) : (
         <span className="text-muted-foreground">Click to edit</span>
       )}
@@ -90,10 +103,14 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
   onAddLineItem,
   onEditDetails,
 }) => {
-  const calculateMarginPercent = (lineItem: LineItem): number => {
-    const pricePerUnit = lineItem.pricePerUnit || lineItem.costPerUnit;
-    if (pricePerUnit <= 0) return 0;
-    return ((pricePerUnit - lineItem.costPerUnit) / pricePerUnit) * 100;
+  const calculateMarkupPercent = (lineItem: LineItem): number => {
+    const { costPerUnit, pricePerUnit } = lineItem;
+    if (costPerUnit <= 0) return 0;
+    return ((pricePerUnit - costPerUnit) / costPerUnit) * 100;
+  };
+
+  const calculateTotalCost = (lineItem: LineItem): number => {
+    return lineItem.quantity * lineItem.costPerUnit;
   };
 
   const duplicateLineItem = (lineItem: LineItem) => {
@@ -129,11 +146,12 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                 <TableHead className="w-[120px]">Category</TableHead>
                 <TableHead className="min-w-[200px]">Description</TableHead>
                 <TableHead className="w-[80px]">Qty</TableHead>
-                <TableHead className="w-[100px]">Unit</TableHead>
+                <TableHead className="w-[100px]">Cost/Unit</TableHead>
                 <TableHead className="w-[100px]">Price/Unit</TableHead>
-                <TableHead className="w-[100px]">Total</TableHead>
-                <TableHead className="w-[80px]">Margin%</TableHead>
-                <TableHead className="w-[120px]">Actions</TableHead>
+                <TableHead className="w-[100px]">Total Cost</TableHead>
+                <TableHead className="w-[100px]">Total Price</TableHead>
+                <TableHead className="w-[80px]">Markup%</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -174,8 +192,10 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                   </TableCell>
                   <TableCell>
                     <EditableCell
-                      value={lineItem.unit || ''}
-                      onChange={(value) => onUpdateLineItem(lineItem.id, 'unit', value)}
+                      value={lineItem.costPerUnit}
+                      onChange={(value) => onUpdateLineItem(lineItem.id, 'costPerUnit', parseFloat(value) || 0)}
+                      type="number"
+                      currency={true}
                     />
                   </TableCell>
                   <TableCell>
@@ -183,59 +203,63 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                       value={lineItem.pricePerUnit || lineItem.costPerUnit}
                       onChange={(value) => onUpdateLineItem(lineItem.id, 'pricePerUnit', parseFloat(value) || 0)}
                       type="number"
+                      currency={true}
                     />
+                  </TableCell>
+                  <TableCell className="font-medium text-muted-foreground">
+                    ${calculateTotalCost(lineItem).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </TableCell>
                   <TableCell className="font-medium">
                     ${lineItem.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </TableCell>
                   <TableCell>
                     <Badge 
-                      variant={calculateMarginPercent(lineItem) < 10 ? "destructive" : "secondary"}
+                      variant={calculateMarkupPercent(lineItem) < 0 ? "destructive" : calculateMarkupPercent(lineItem) < 20 ? "secondary" : "default"}
                       className="text-xs"
                     >
-                      {calculateMarginPercent(lineItem).toFixed(1)}%
+                      {calculateMarkupPercent(lineItem).toFixed(1)}%
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEditDetails(lineItem)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => duplicateLineItem(lineItem)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Line Item</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{lineItem.description}"? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onRemoveLineItem(lineItem.id)}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => onEditDetails(lineItem)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => duplicateLineItem(lineItem)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Duplicate
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <Trash2 className="h-4 w-4 mr-2" />
                               Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Line Item</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{lineItem.description}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => onRemoveLineItem(lineItem.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
