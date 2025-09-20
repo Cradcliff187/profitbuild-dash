@@ -10,6 +10,7 @@ import { Estimate } from "@/types/estimate";
 import { useToast } from "@/hooks/use-toast";
 import { BudgetComparisonBadge, BudgetComparisonStatus } from "@/components/BudgetComparisonBadge";
 import { VarianceBadge } from "@/components/ui/variance-badge";
+import { EstimateVersionManager } from "./EstimateVersionManager";
 import { cn } from "@/lib/utils";
 
 interface EstimatesListProps {
@@ -212,7 +213,7 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center flex-wrap">
                 <Button
                   variant="outline"
                   size="sm"
@@ -227,8 +228,17 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
                   onClick={() => onEdit(estimate)}
                 >
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit
+                  {estimate.status === 'approved' ? 'New Version' : 'Edit'}
                 </Button>
+                {estimate.status === 'approved' && (
+                  <EstimateVersionManager 
+                    estimate={estimate} 
+                    onVersionCreated={(newVersion) => {
+                      // Refresh the list to show the new version
+                      window.location.reload();
+                    }}
+                  />
+                )}
                 <Button
                   variant="outline"
                   size="sm"

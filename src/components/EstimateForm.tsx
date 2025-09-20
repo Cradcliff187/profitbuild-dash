@@ -315,69 +315,150 @@ useEffect(() => {
     try {
       
       if (initialEstimate) {
-        // Update existing estimate
-        const { data: estimateData, error: estimateError } = await supabase
-          .from('estimates')
-          .update({
-            date_created: date.toISOString().split('T')[0],
-            total_amount: totalAmount,
-            total_cost: calculateTotalCost(),
-            notes: notes.trim() || null,
-            valid_until: validUntil?.toISOString().split('T')[0],
-            contingency_percent: contingencyPercent,
-            contingency_used: contingencyUsed,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', initialEstimate.id)
-          .select()
-          .single();
+        // Check if this is an approved estimate - if so, create a new version instead of editing
+        if (initialEstimate.status === 'approved') {
+          // Create new version using the RPC function
+          const { data: newVersionId, error: versionError } = await supabase
+            .rpc('create_estimate_version', {
+              source_estimate_id: initialEstimate.id
+            });
 
-        if (estimateError) throw estimateError;
+          if (versionError) throw versionError;
 
-        // Delete existing line items and recreate them
-        await supabase
-          .from('estimate_line_items')
-          .delete()
-          .eq('estimate_id', initialEstimate.id);
+          // Now update the new version with our changes
+          const { data: estimateData, error: updateError } = await supabase
+            .from('estimates')
+            .update({
+              date_created: date.toISOString().split('T')[0],
+              total_amount: totalAmount,
+              total_cost: calculateTotalCost(),
+              notes: notes.trim() || null,
+              valid_until: validUntil?.toISOString().split('T')[0],
+              contingency_percent: contingencyPercent,
+              contingency_used: contingencyUsed,
+              is_current_version: true,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', newVersionId)
+            .select()
+            .single();
 
-        // Create new line items
-        const lineItemsData = validLineItems.map((item, index) => ({
-          estimate_id: initialEstimate.id,
-          category: item.category,
-          description: item.description.trim(),
-          quantity: item.quantity,
-          rate: item.pricePerUnit, // For backward compatibility
-          unit: item.unit || null,
-          sort_order: index,
-          cost_per_unit: item.costPerUnit || 0,
-          markup_percent: item.markupPercent,
-          markup_amount: item.markupAmount
-        }));
+          if (updateError) throw updateError;
 
-        const { error: lineItemsError } = await supabase
-          .from('estimate_line_items')
-          .insert(lineItemsData);
+          // Delete default line items from new version
+          await supabase
+            .from('estimate_line_items')
+            .delete()
+            .eq('estimate_id', newVersionId);
 
-        if (lineItemsError) throw lineItemsError;
+          // Insert updated line items for new version
+          const lineItemsData = validLineItems.map((item, index) => ({
+            estimate_id: newVersionId,
+            category: item.category,
+            description: item.description.trim(),
+            quantity: item.quantity,
+            rate: item.pricePerUnit, // For backward compatibility
+            unit: item.unit || null,
+            sort_order: index,
+            cost_per_unit: item.costPerUnit || 0,
+            markup_percent: item.markupPercent,
+            markup_amount: item.markupAmount
+          }));
 
-        const updatedEstimate: Estimate = {
-          ...initialEstimate,
-          date_created: new Date(estimateData.date_created),
-          total_amount: estimateData.total_amount,
-          notes: estimateData.notes,
-          valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
-          contingency_percent: estimateData.contingency_percent,
-          contingency_used: estimateData.contingency_used,
-          updated_at: new Date(estimateData.updated_at),
-          lineItems: validLineItems,
-        };
+          const { error: lineItemsError } = await supabase
+            .from('estimate_line_items')
+            .insert(lineItemsData);
 
-        onSave(updatedEstimate);
-        
-        toast({
-          title: "Estimate Updated",
-          description: `Estimate has been updated successfully.`
-        });
+          if (lineItemsError) throw lineItemsError;
+
+          const newVersionEstimate: Estimate = {
+            ...initialEstimate,
+            id: newVersionId,
+            date_created: new Date(estimateData.date_created),
+            total_amount: estimateData.total_amount,
+            notes: estimateData.notes,
+            valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
+            contingency_percent: estimateData.contingency_percent,
+            contingency_used: estimateData.contingency_used,
+            updated_at: new Date(estimateData.updated_at),
+            lineItems: validLineItems,
+            version_number: estimateData.version_number,
+            is_current_version: true,
+            status: 'draft'
+          };
+
+          onSave(newVersionEstimate);
+          
+          toast({
+            title: "New Version Created",
+            description: `New estimate version v${estimateData.version_number} created successfully.`
+          });
+
+        } else {
+          // Regular editing for non-approved estimates
+          const { data: estimateData, error: estimateError } = await supabase
+            .from('estimates')
+            .update({
+              date_created: date.toISOString().split('T')[0],
+              total_amount: totalAmount,
+              total_cost: calculateTotalCost(),
+              notes: notes.trim() || null,
+              valid_until: validUntil?.toISOString().split('T')[0],
+              contingency_percent: contingencyPercent,
+              contingency_used: contingencyUsed,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', initialEstimate.id)
+            .select()
+            .single();
+
+          if (estimateError) throw estimateError;
+
+          // Delete existing line items and recreate them
+          await supabase
+            .from('estimate_line_items')
+            .delete()
+            .eq('estimate_id', initialEstimate.id);
+
+          // Create new line items
+          const lineItemsData = validLineItems.map((item, index) => ({
+            estimate_id: initialEstimate.id,
+            category: item.category,
+            description: item.description.trim(),
+            quantity: item.quantity,
+            rate: item.pricePerUnit, // For backward compatibility
+            unit: item.unit || null,
+            sort_order: index,
+            cost_per_unit: item.costPerUnit || 0,
+            markup_percent: item.markupPercent,
+            markup_amount: item.markupAmount
+          }));
+
+          const { error: lineItemsError } = await supabase
+            .from('estimate_line_items')
+            .insert(lineItemsData);
+
+          if (lineItemsError) throw lineItemsError;
+
+          const updatedEstimate: Estimate = {
+            ...initialEstimate,
+            date_created: new Date(estimateData.date_created),
+            total_amount: estimateData.total_amount,
+            notes: estimateData.notes,
+            valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
+            contingency_percent: estimateData.contingency_percent,
+            contingency_used: estimateData.contingency_used,
+            updated_at: new Date(estimateData.updated_at),
+            lineItems: validLineItems,
+          };
+
+          onSave(updatedEstimate);
+          
+          toast({
+            title: "Estimate Updated",
+            description: `Estimate has been updated successfully.`
+          });
+        }
 
       } else {
         // Create new estimate
