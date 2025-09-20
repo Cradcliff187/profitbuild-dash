@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Save, Plus, Trash2, Calculator, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,9 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [createdProjectFromFlow, setCreatedProjectFromFlow] = useState(false);
   const [projectSelectedFromStep1, setProjectSelectedFromStep1] = useState(false);
+  
+  // Ref for smooth scrolling to Step 2
+  const step2Ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Load available projects if no project is preselected
@@ -504,6 +507,20 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
                 handleProjectSelect(project);
                 setShowProjectCreationFirst(false);
                 setProjectSelectedFromStep1(true);
+                
+                // Show success toast
+                toast({
+                  title: "Project Selected",
+                  description: `Selected "${project.project_name}" for this estimate.`
+                });
+                
+                // Smooth scroll to Step 2 after a brief delay
+                setTimeout(() => {
+                  step2Ref.current?.scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'start'
+                  });
+                }, 100);
               }}
               onCreateNew={handleCreateNewProject}
               placeholder="Select a project or create a new one..."
@@ -529,7 +546,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card ref={step2Ref}>
         <CardHeader>
           <CardTitle>
             {initialEstimate ? 'Edit Estimate' : (
@@ -551,6 +568,35 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Selected Project Summary - Show when coming from Step 1 */}
+          {projectSelectedFromStep1 && selectedProject && (
+            <div className="bg-accent/50 border border-border rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground">
+                    ✓
+                  </div>
+                  <div>
+                    <p className="font-medium">Selected Project</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedProject.project_name} • {selectedProject.client_name}
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setShowProjectCreationFirst(true);
+                    setProjectSelectedFromStep1(false);
+                  }}
+                >
+                  Change
+                </Button>
+              </div>
+            </div>
+          )}
+          
           {/* Project Selection - Only show if no project is preselected and we didn't just create one or select one from Step 1 */}
           {!preselectedProjectId && !initialEstimate && !createdProjectFromFlow && !projectSelectedFromStep1 && (
             <div className="space-y-2">

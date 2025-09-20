@@ -74,7 +74,7 @@ export const ProjectSelectorNew = ({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
+        <PopoverContent className="z-50 w-full p-0 bg-background border shadow-md" align="start">
           <Command>
             <CommandInput placeholder="Search projects..." />
             <CommandEmpty>
