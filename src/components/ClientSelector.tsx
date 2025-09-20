@@ -18,6 +18,7 @@ interface ClientSelectorProps {
   placeholder?: string;
   required?: boolean;
   error?: string;
+  showLabel?: boolean;
 }
 
 export const ClientSelector = ({ 
@@ -26,7 +27,8 @@ export const ClientSelector = ({
   onBlur,
   placeholder = "Select client...",
   required = false,
-  error = ""
+  error = "",
+  showLabel = true
 }: ClientSelectorProps) => {
   const [open, setOpen] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
@@ -60,9 +62,11 @@ export const ClientSelector = ({
 
   return (
     <div className="space-y-2">
-      <Label className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
-        Client
-      </Label>
+      {showLabel && (
+        <Label className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
+          Client
+        </Label>
+      )}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button

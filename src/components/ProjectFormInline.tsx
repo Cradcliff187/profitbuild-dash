@@ -208,10 +208,8 @@ export const ProjectFormInline = ({ onSave, onCancel }: ProjectFormInlineProps) 
               placeholder="Select a client"
               required={true}
               error={clientError}
+              showLabel={false}
             />
-            {clientError && (
-              <p className="text-sm font-medium text-destructive">{clientError}</p>
-            )}
           </div>
         </div>
 
