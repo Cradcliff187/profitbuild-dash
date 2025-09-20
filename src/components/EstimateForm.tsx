@@ -47,6 +47,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   const [showProjectCreationFirst, setShowProjectCreationFirst] = useState(false);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [createdProjectFromFlow, setCreatedProjectFromFlow] = useState(false);
+  const [projectSelectedFromStep1, setProjectSelectedFromStep1] = useState(false);
 
   useEffect(() => {
     // Load available projects if no project is preselected
@@ -502,7 +503,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
               onSelect={(project) => {
                 handleProjectSelect(project);
                 setShowProjectCreationFirst(false);
-                setCreatedProjectFromFlow(false);
+                setProjectSelectedFromStep1(true);
               }}
               onCreateNew={handleCreateNewProject}
               placeholder="Select a project or create a new one..."
@@ -550,8 +551,8 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Project Selection - Only show if no project is preselected and we didn't just create one */}
-          {!preselectedProjectId && !initialEstimate && !createdProjectFromFlow && (
+          {/* Project Selection - Only show if no project is preselected and we didn't just create one or select one from Step 1 */}
+          {!preselectedProjectId && !initialEstimate && !createdProjectFromFlow && !projectSelectedFromStep1 && (
             <div className="space-y-2">
               <RequiredLabel>Select Project</RequiredLabel>
               {!projectsLoading && availableProjects.length > 0 && (
