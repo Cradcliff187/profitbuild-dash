@@ -1,37 +1,144 @@
-import { useState, useEffect } from "react";
-import { Calculator } from "lucide-react";
-import { ProjectForm } from "@/components/ProjectForm";
-import { EstimateForm } from "@/components/EstimateForm";
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { EstimatesList } from "@/components/EstimatesList";
-import { Estimate } from "@/types/estimate";
-import { Project } from "@/types/project";
-import { useToast } from "@/hooks/use-toast";
+import { EstimateForm } from "@/components/EstimateForm";
+import { EstimateSearchFilters, type SearchFilters } from "@/components/EstimateSearchFilters";
+import { EstimateFamilyAnalyticsDashboard } from "@/components/EstimateFamilyAnalyticsDashboard";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import type { Estimate } from "@/types/estimate";
+import { Plus, BarChart3 } from "lucide-react";
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view';
 
-const Estimates = () => {
-  const { toast } = useToast();
+const EstimatesPage = () => {
   const [estimates, setEstimates] = useState<Estimate[]>([]);
+  const [filteredEstimates, setFilteredEstimates] = useState<Estimate[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [selectedEstimate, setSelectedEstimate] = useState<Estimate | null>(null);
-  const [preselectedProjectId, setPreselectedProjectId] = useState<string | null>(null);
+  const [selectedEstimate, setSelectedEstimate] = useState<Estimate | undefined>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+    searchText: '',
+    status: [],
+    projectType: '',
+    clientName: '',
+    dateRange: { start: null, end: null },
+    amountRange: { min: null, max: null },
+    hasVersions: null
+  });
 
-  // Load estimates from Supabase and check URL params
+  // Get preselected project ID from URL params
+  const preselectedProjectId = searchParams.get('projectId');
+
   useEffect(() => {
     loadEstimates();
     
-    // Check URL params for preselected project
-    const urlParams = new URLSearchParams(window.location.search);
-    const projectId = urlParams.get('project');
-    if (projectId) {
-      setPreselectedProjectId(projectId);
+    // Check for preselected project from URL params
+    if (preselectedProjectId && viewMode === 'list') {
       setViewMode('create');
     }
-  }, []);
+  }, [preselectedProjectId]);
+
+  // Apply filters when estimates or filters change
+  useEffect(() => {
+    applyFilters();
+  }, [estimates, searchFilters]);
+
+  const applyFilters = () => {
+    let filtered = [...estimates];
+
+    // Text search
+    if (searchFilters.searchText) {
+      const searchText = searchFilters.searchText.toLowerCase();
+      filtered = filtered.filter(estimate => 
+        estimate.estimate_number.toLowerCase().includes(searchText) ||
+        estimate.project_name?.toLowerCase().includes(searchText) ||
+        estimate.client_name?.toLowerCase().includes(searchText) ||
+        estimate.notes?.toLowerCase().includes(searchText)
+      );
+    }
+
+    // Status filter
+    if (searchFilters.status.length > 0) {
+      filtered = filtered.filter(estimate => 
+        searchFilters.status.includes(estimate.status)
+      );
+    }
+
+    // Client name filter
+    if (searchFilters.clientName) {
+      const clientName = searchFilters.clientName.toLowerCase();
+      filtered = filtered.filter(estimate => 
+        estimate.client_name?.toLowerCase().includes(clientName)
+      );
+    }
+
+    // Date range filter
+    if (searchFilters.dateRange.start) {
+      filtered = filtered.filter(estimate => 
+        new Date(estimate.date_created) >= searchFilters.dateRange.start!
+      );
+    }
+    if (searchFilters.dateRange.end) {
+      filtered = filtered.filter(estimate => 
+        new Date(estimate.date_created) <= searchFilters.dateRange.end!
+      );
+    }
+
+    // Amount range filter
+    if (searchFilters.amountRange.min !== null) {
+      filtered = filtered.filter(estimate => 
+        estimate.total_amount >= searchFilters.amountRange.min!
+      );
+    }
+    if (searchFilters.amountRange.max !== null) {
+      filtered = filtered.filter(estimate => 
+        estimate.total_amount <= searchFilters.amountRange.max!
+      );
+    }
+
+    // Has versions filter
+    if (searchFilters.hasVersions !== null) {
+      const estimatesByFamily = new Map<string, number>();
+      estimates.forEach(estimate => {
+        const familyId = estimate.parent_estimate_id || estimate.id;
+        estimatesByFamily.set(familyId, (estimatesByFamily.get(familyId) || 0) + 1);
+      });
+
+      filtered = filtered.filter(estimate => {
+        const familyId = estimate.parent_estimate_id || estimate.id;
+        const versionCount = estimatesByFamily.get(familyId) || 1;
+        return searchFilters.hasVersions ? versionCount > 1 : versionCount === 1;
+      });
+    }
+
+    setFilteredEstimates(filtered);
+  };
+
+  const handleSearch = () => {
+    applyFilters();
+  };
+
+  const resetFilters = () => {
+    setSearchFilters({
+      searchText: '',
+      status: [],
+      projectType: '',
+      clientName: '',
+      dateRange: { start: null, end: null },
+      amountRange: { min: null, max: null },
+      hasVersions: null
+    });
+  };
 
   const loadEstimates = async () => {
     try {
+      setLoading(true);
+      
       // First get estimates with project data
       const { data: estimatesData, error: estimatesError } = await supabase
         .from('estimates')
@@ -118,7 +225,8 @@ const Estimates = () => {
         client_name: est.projects?.client_name,
         quotes: quotesByEstimate[est.id] || [],
         defaultMarkupPercent: 15,
-        targetMarginPercent: 20
+        targetMarginPercent: 20,
+        is_draft: false
       })) || [];
 
       setEstimates(formattedEstimates);
@@ -129,6 +237,8 @@ const Estimates = () => {
         description: "Failed to load estimates.",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -141,16 +251,14 @@ const Estimates = () => {
       setEstimates(prev => [...prev, estimate]);
     }
     setViewMode('list');
-    setSelectedEstimate(null);
-    setPreselectedProjectId(null);
+    setSelectedEstimate(undefined);
     // Clear URL params
-    window.history.replaceState({}, document.title, window.location.pathname);
+    setSearchParams({});
     loadEstimates(); // Refresh the list
   };
 
   const handleCreateNew = () => {
-    setSelectedEstimate(null);
-    setPreselectedProjectId(null);
+    setSelectedEstimate(undefined);
     setViewMode('create');
   };
 
@@ -177,43 +285,75 @@ const Estimates = () => {
 
   const handleCancel = () => {
     setViewMode('list');
-    setSelectedEstimate(null);
-    setPreselectedProjectId(null);
+    setSelectedEstimate(undefined);
     // Clear URL params
-    window.history.replaceState({}, document.title, window.location.pathname);
+    setSearchParams({});
   };
 
-  return (
-    <div className="space-y-8">
-      <div className="flex items-center space-x-3">
-        <Calculator className="h-8 w-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Estimates</h1>
-          <p className="text-muted-foreground">Create and manage project estimates</p>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-sm text-muted-foreground">Loading estimates...</p>
         </div>
       </div>
+    );
+  }
 
-      {viewMode === 'list' && (
-        <EstimatesList
-          estimates={estimates}
-          onCreateNew={handleCreateNew}
-          onEdit={handleEdit}
-          onView={handleView}
-          onDelete={handleDelete}
-        />
-      )}
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Estimates</h1>
+          <p className="text-muted-foreground">
+            Manage project estimates, versions, and approvals
+          </p>
+        </div>
+        
+        {viewMode === 'list' && (
+          <Button onClick={handleCreateNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            {getCreateButtonText()}
+          </Button>
+        )}
+      </div>
 
-      {viewMode === 'create' && (
-        <EstimateForm
-          preselectedProjectId={preselectedProjectId}
-          onSave={handleSaveEstimate}
-          onCancel={handleCancel}
-        />
-      )}
-
-      {viewMode === 'edit' && selectedEstimate && (
+      {viewMode === 'list' ? (
+        <Tabs defaultValue="estimates" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="estimates">Estimates</TabsTrigger>
+            <TabsTrigger value="analytics">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="estimates" className="space-y-4">
+            <EstimateSearchFilters
+              filters={searchFilters}
+              onFiltersChange={setSearchFilters}
+              onSearch={handleSearch}
+              onReset={resetFilters}
+              resultCount={filteredEstimates.length}
+            />
+            <EstimatesList
+              estimates={filteredEstimates}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onView={handleView}
+              onCreateNew={handleCreateNew}
+            />
+          </TabsContent>
+          
+          <TabsContent value="analytics">
+            <EstimateFamilyAnalyticsDashboard />
+          </TabsContent>
+        </Tabs>
+      ) : (
         <EstimateForm
           initialEstimate={selectedEstimate}
+          preselectedProjectId={preselectedProjectId}
           onSave={handleSaveEstimate}
           onCancel={handleCancel}
         />
@@ -222,4 +362,4 @@ const Estimates = () => {
   );
 };
 
-export default Estimates;
+export default EstimatesPage;
