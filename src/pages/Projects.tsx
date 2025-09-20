@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Building2, BarChart3 } from "lucide-react";
+import { Building2, BarChart3, Calculator, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { ProjectForm } from "@/components/ProjectForm";
 import { ProjectEditForm } from "@/components/ProjectEditForm";
 import { ProjectsList } from "@/components/ProjectsList";
@@ -8,6 +9,8 @@ import { ProjectProfitMargin } from "@/components/ProjectProfitMargin";
 import { ChangeOrdersList } from "@/components/ChangeOrdersList";
 import { ChangeOrderForm } from "@/components/ChangeOrderForm";
 import { VarianceAnalysis } from "@/components/VarianceAnalysis";
+import { EstimateFamilySummary } from "@/components/EstimateFamilySummary";
+import { EstimateVersionComparison } from "@/components/EstimateVersionComparison";
 import { Project } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
@@ -329,16 +332,46 @@ const Projects = () => {
             return null;
           })()}
 
+          {/* Quick Actions for Estimates */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button 
+              className="w-full"
+              onClick={() => window.location.href = `/estimates?project=${selectedProject.id}`}
+            >
+              <Calculator className="h-4 w-4 mr-2" />
+              View All Estimates
+            </Button>
+            <Button 
+              variant="outline"
+              className="w-full"
+              onClick={() => window.location.href = `/estimates?project=${selectedProject.id}&action=new-version`}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Version
+            </Button>
+            <Button 
+              variant="outline"
+              className="w-full"
+              onClick={() => setActiveTab('estimates')}
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Compare Versions
+            </Button>
+          </div>
+
           {/* Tab Navigation */}
           {(() => {
             const projectExpenses = expenses.filter(e => e.project_id === selectedProject.id);
             const hasExpenses = projectExpenses.length > 0;
             const showProfitAnalysis = selectedProjectProfit && selectedProjectProfit.contractAmount > 0;
+            const projectEstimates = estimates.filter(e => e.project_id === selectedProject.id);
+            const hasEstimates = projectEstimates.length > 0;
 
             return (
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                   <TabsTrigger value="details">Details</TabsTrigger>
+                  {hasEstimates && <TabsTrigger value="estimates">Estimates</TabsTrigger>}
                   {showProfitAnalysis && <TabsTrigger value="profit">Profit Analysis</TabsTrigger>}
                   {hasExpenses && (
                     <TabsTrigger value="variance" className="flex items-center gap-2">
@@ -373,8 +406,15 @@ const Projects = () => {
                         />
                       )}
                     </div>
-                    {showProfitAnalysis && (
-                      <div className="lg:col-span-1">
+                    <div className="lg:col-span-1 space-y-6">
+                      {/* Estimate Family Summary */}
+                      <EstimateFamilySummary
+                        projectId={selectedProject.id}
+                        projectName={selectedProject.project_name}
+                        onCreateEstimate={() => window.location.href = `/estimates?project=${selectedProject.id}`}
+                        onViewEstimate={(estimateId) => window.location.href = `/estimates?estimate=${estimateId}`}
+                      />
+                      {showProfitAnalysis && (
                         <ProjectProfitMargin
                           contractAmount={selectedProjectProfit.contractAmount}
                           actualCosts={selectedProjectProfit.actualCosts}
@@ -386,10 +426,18 @@ const Projects = () => {
                             total_accepted_quotes: selectedProject.total_accepted_quotes,
                           }}
                         />
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </TabsContent>
+
+                {hasEstimates && (
+                  <TabsContent value="estimates" className="space-y-6">
+                    <EstimateVersionComparison
+                      projectId={selectedProject.id}
+                    />
+                  </TabsContent>
+                )}
 
                 {showProfitAnalysis && (
                   <TabsContent value="profit">

@@ -336,8 +336,29 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
                     onClick={() => window.location.href = `/estimates?project=${project.id}`}
                   >
                     <Calculator className="h-4 w-4 mr-2" />
-                    Create Estimate
+                    Create First Estimate
                   </Button>
+                </div>
+              )}
+              {['quoted', 'approved', 'in_progress'].includes(project.status) && (
+                <div className="mb-4">
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => window.location.href = `/estimates?project=${project.id}`}
+                    >
+                      <Calculator className="h-4 w-4 mr-2" />
+                      View Estimates
+                    </Button>
+                    <Button 
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => window.location.href = `/estimates?project=${project.id}&action=new-version`}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Version
+                    </Button>
+                  </div>
                 </div>
               )}
 
