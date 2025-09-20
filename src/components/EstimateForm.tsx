@@ -17,8 +17,8 @@ import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
-import { ProjectFormInline } from "@/components/ProjectFormInline";
-import { useNavigate } from "react-router-dom";
+
+
 
 interface EstimateFormProps {
   initialEstimate?: Estimate; // For editing mode
@@ -29,7 +29,7 @@ interface EstimateFormProps {
 
 export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, onCancel }: EstimateFormProps) => {
   const { toast } = useToast();
-  const navigate = useNavigate();
+  
   
   // Form state
   const [projectId, setProjectId] = useState(preselectedProjectId || initialEstimate?.project_id || "");
@@ -52,23 +52,33 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   // Ref for smooth scrolling to Step 2
   const step2Ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Load available projects if no project is preselected
-    if (!preselectedProjectId) {
-      loadAvailableProjects();
-    }
-    
-    if (projectId) {
-      loadProjectData();
-    }
-    
-    if (initialEstimate) {
-      loadEstimateLineItems(initialEstimate.id);
-    } else {
-      // Add initial line item for new estimates
-      setLineItems([createNewLineItem()]);
-    }
-  }, [projectId, initialEstimate, preselectedProjectId]);
+useEffect(() => {
+  // Load available projects once on mount
+  loadAvailableProjects();
+  
+  // Initialize line items
+  if (initialEstimate) {
+    loadEstimateLineItems(initialEstimate.id);
+  } else {
+    setLineItems([createNewLineItem()]);
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
+useEffect(() => {
+  // Load project data when projectId changes
+  if (projectId) {
+    loadProjectData();
+  }
+}, [projectId]);
+
+useEffect(() => {
+  // If a project is preselected via URL, ensure we don't show the project creation step
+  if (preselectedProjectId && !projectId) {
+    setProjectId(preselectedProjectId);
+    setShowProjectCreationFirst(false);
+  }
+}, [preselectedProjectId]);
 
   const loadAvailableProjects = async () => {
     setProjectsLoading(true);
@@ -90,9 +100,8 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
 
       setAvailableProjects(formattedProjects);
       
-      // Always show project creation first for new estimates if no project is preselected
-      // This gives users a choice even if projects exist
-      if (!initialEstimate && !preselectedProjectId) {
+      // Show project step only when no project is already chosen or preselected
+      if (!initialEstimate && !preselectedProjectId && !projectId && !createdProjectFromFlow && !projectSelectedFromStep1) {
         setShowProjectCreationFirst(true);
       }
     } catch (error) {
@@ -125,20 +134,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
     setCreatedProjectFromFlow(true);
   };
 
-  const handleProjectCreationCancel = () => {
-    if (availableProjects.length === 0) {
-      // If no projects exist, go back to estimates list
-      onCancel();
-    } else {
-      // If projects exist, just hide the project creation form
-      setShowProjectCreationFirst(false);
-    }
-  };
 
-  const handleGoToProjects = () => {
-    // Navigate to projects page and return to estimates after creation
-    navigate('/projects?returnTo=/estimates');
-  };
 
   const loadProjectData = async () => {
     try {
@@ -482,7 +478,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   });
 
   // Show project selection/creation step first for new estimates
-  if (showProjectCreationFirst && !projectsLoading) {
+  if (showProjectCreationFirst && !projectsLoading && !projectId && !preselectedProjectId && !initialEstimate) {
     console.log('Showing project step first');
     return (
       <div className="space-y-6">
