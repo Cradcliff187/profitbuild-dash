@@ -258,6 +258,20 @@ useEffect(() => {
     return lineItems.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
   };
 
+  const calculateTotalCost = () => {
+    return lineItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+  };
+
+  const calculateGrossProfit = () => {
+    return calculateTotal() - calculateTotalCost();
+  };
+
+  const calculateGrossMarginPercent = () => {
+    const total = calculateTotal();
+    if (total === 0) return 0;
+    return (calculateGrossProfit() / total) * 100;
+  };
+
   const calculateContingencyAmount = () => {
     const total = calculateTotal();
     return total * (contingencyPercent / 100);
@@ -307,6 +321,7 @@ useEffect(() => {
           .update({
             date_created: date.toISOString().split('T')[0],
             total_amount: totalAmount,
+            total_cost: calculateTotalCost(),
             notes: notes.trim() || null,
             valid_until: validUntil?.toISOString().split('T')[0],
             contingency_percent: contingencyPercent,
@@ -376,6 +391,7 @@ useEffect(() => {
           estimate_number: estimateNumber,
           date_created: date.toISOString().split('T')[0],
           total_amount: totalAmount,
+          total_cost: calculateTotalCost(),
           status: 'draft' as const,
           is_draft: true, // Fixed: draft status should have is_draft: true
           notes: notes.trim() || null,
@@ -801,6 +817,21 @@ useEffect(() => {
                 </div>
               </div>
               <div>
+                <div className="text-sm text-muted-foreground">Estimated Gross Profit</div>
+                <div className={`text-lg font-semibold ${calculateGrossProfit() < 0 ? 'text-destructive' : 'text-foreground'}`}>
+                  ${calculateGrossProfit().toLocaleString('en-US', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  })}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Estimated Gross Margin %</div>
+                <div className={`text-lg font-semibold ${calculateGrossMarginPercent() < 0 ? 'text-destructive' : calculateGrossMarginPercent() < 20 ? 'text-muted-foreground' : 'text-foreground'}`}>
+                  {calculateGrossMarginPercent().toFixed(1)}%
+                </div>
+              </div>
+              <div className="border-t pt-2">
                 <div className="text-sm text-muted-foreground">Contingency ({contingencyPercent}%)</div>
                 <div className="text-lg font-semibold">
                   ${calculateContingencyAmount().toLocaleString('en-US', { 
