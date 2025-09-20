@@ -179,9 +179,19 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
 
     setIsLoading(true);
     
+    const estimateNumber = generateEstimateNumber();
+    const totalAmount = calculateTotal();
+    const contingencyAmount = calculateContingencyAmount();
+    
+    console.log('Starting estimate save process:', {
+      projectId,
+      estimateNumber,
+      totalAmount,
+      lineItemsCount: validLineItems.length,
+      isEdit: !!initialEstimate
+    });
+    
     try {
-      const estimateNumber = generateEstimateNumber();
-      const totalAmount = calculateTotal();
       
       if (initialEstimate) {
         // Update existing estimate
@@ -251,29 +261,44 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
 
       } else {
         // Create new estimate
-        const { data: estimateData, error: estimateError } = await supabase
+        const contingencyAmount = calculateContingencyAmount();
+        const estimateData = {
+          project_id: projectId,
+          estimate_number: estimateNumber,
+          date_created: date.toISOString().split('T')[0],
+          total_amount: totalAmount,
+          status: 'draft' as const,
+          is_draft: true, // Fixed: draft status should have is_draft: true
+          notes: notes.trim() || null,
+          valid_until: validUntil?.toISOString().split('T')[0],
+          contingency_percent: contingencyPercent,
+          contingency_amount: contingencyAmount,
+          contingency_used: contingencyUsed,
+          revision_number: 1,
+          version_number: 1,
+          is_current_version: true,
+          valid_for_days: 30
+        };
+
+        console.log('Creating estimate with data:', estimateData);
+        console.log('Valid line items count:', validLineItems.length);
+
+        const { data: createdEstimate, error: estimateError } = await supabase
           .from('estimates')
-          .insert({
-            project_id: projectId,
-            estimate_number: estimateNumber,
-            date_created: date.toISOString().split('T')[0],
-            total_amount: totalAmount,
-            status: 'draft' as const,
-            is_draft: false,
-            notes: notes.trim() || null,
-            valid_until: validUntil?.toISOString().split('T')[0],
-            contingency_percent: contingencyPercent,
-            contingency_used: contingencyUsed,
-            revision_number: 1
-          })
+          .insert(estimateData)
           .select()
           .single();
 
-        if (estimateError) throw estimateError;
+        if (estimateError) {
+          console.error('Database error creating estimate:', estimateError);
+          throw estimateError;
+        }
+
+        console.log('Estimate created successfully:', createdEstimate);
 
         // Create line items
         const lineItemsData = validLineItems.map((item, index) => ({
-          estimate_id: estimateData.id,
+          estimate_id: createdEstimate.id,
           category: item.category,
           description: item.description.trim(),
           quantity: item.quantity,
@@ -287,37 +312,46 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
           markup_amount: item.markupAmount
         }));
 
+        console.log('Creating line items:', lineItemsData);
+
         const { error: lineItemsError } = await supabase
           .from('estimate_line_items')
           .insert(lineItemsData);
 
-        if (lineItemsError) throw lineItemsError;
+        if (lineItemsError) {
+          console.error('Database error creating line items:', lineItemsError);
+          throw lineItemsError;
+        }
+
+        console.log('Line items created successfully');
 
         const newEstimate: Estimate = {
-          id: estimateData.id,
-          project_id: estimateData.project_id,
-          estimate_number: estimateData.estimate_number,
+          id: createdEstimate.id,
+          project_id: createdEstimate.project_id,
+          estimate_number: createdEstimate.estimate_number,
           defaultMarkupPercent: 15,
           targetMarginPercent: 20,
-          date_created: new Date(estimateData.date_created),
-          total_amount: estimateData.total_amount,
-          status: estimateData.status as any,
-          notes: estimateData.notes,
-          valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
-          revision_number: estimateData.revision_number,
-          contingency_percent: estimateData.contingency_percent,
-          contingency_amount: estimateData.contingency_amount,
-          contingency_used: estimateData.contingency_used,
-          version_number: estimateData.version_number || 1,
-          parent_estimate_id: estimateData.parent_estimate_id || undefined,
-          is_current_version: estimateData.is_current_version ?? true,
-          valid_for_days: estimateData.valid_for_days || 30,
+          date_created: new Date(createdEstimate.date_created),
+          total_amount: createdEstimate.total_amount,
+          status: createdEstimate.status as any,
+          notes: createdEstimate.notes,
+          valid_until: createdEstimate.valid_until ? new Date(createdEstimate.valid_until) : undefined,
+          revision_number: createdEstimate.revision_number,
+          contingency_percent: createdEstimate.contingency_percent,
+          contingency_amount: createdEstimate.contingency_amount,
+          contingency_used: createdEstimate.contingency_used,
+          version_number: createdEstimate.version_number || 1,
+          parent_estimate_id: createdEstimate.parent_estimate_id || undefined,
+          is_current_version: createdEstimate.is_current_version ?? true,
+          valid_for_days: createdEstimate.valid_for_days || 30,
           lineItems: validLineItems,
-          created_at: new Date(estimateData.created_at),
-          updated_at: new Date(estimateData.updated_at),
+          created_at: new Date(createdEstimate.created_at),
+          updated_at: new Date(createdEstimate.updated_at),
           project_name: projectName,
           client_name: clientName
         };
+
+        console.log('Final estimate object:', newEstimate);
 
         onSave(newEstimate);
         
@@ -328,10 +362,20 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
       }
 
     } catch (error) {
-      console.error('Error saving estimate:', error);
+      console.error('Error saving estimate - Full error object:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        projectId,
+        estimateNumber,
+        lineItemsCount: validLineItems.length
+      });
+      
       toast({
         title: "Error",
-        description: "Failed to save estimate. Please try again.",
+        description: `Failed to save estimate: ${error?.message || 'Unknown error'}. Please check the console for details.`,
         variant: "destructive"
       });
     } finally {
