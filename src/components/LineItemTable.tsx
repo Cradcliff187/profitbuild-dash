@@ -68,13 +68,17 @@ const EditableCell: React.FC<{
 
   return (
     <div
-      className="cursor-pointer hover:bg-muted/50 p-1 rounded min-h-[32px] flex items-center"
+      className="cursor-pointer hover:bg-muted/50 border border-input bg-background px-3 py-2 rounded-md min-h-[32px] flex items-center text-sm"
       onClick={() => {
         setEditValue(String(value));
         setIsEditing(true);
       }}
     >
-      {type === 'number' && typeof value === 'number' ? value.toLocaleString() : value}
+      {value ? (
+        type === 'number' && typeof value === 'number' ? value.toLocaleString() : value
+      ) : (
+        <span className="text-muted-foreground">Click to edit</span>
+      )}
     </div>
   );
 };
