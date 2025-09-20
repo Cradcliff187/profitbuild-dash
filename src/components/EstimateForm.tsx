@@ -46,6 +46,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
   const [showProjectCreationFirst, setShowProjectCreationFirst] = useState(false);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [createdProjectFromFlow, setCreatedProjectFromFlow] = useState(false);
 
   useEffect(() => {
     // Load available projects if no project is preselected
@@ -116,6 +117,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
     // Auto-select the new project and transition to estimate form
     handleProjectSelect(newProject);
     setShowProjectCreationFirst(false);
+    setCreatedProjectFromFlow(true);
   };
 
   const handleProjectCreationCancel = () => {
@@ -499,13 +501,15 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
         <CardHeader>
           <CardTitle>
             {initialEstimate ? 'Edit Estimate' : (
-              <div className="flex items-center gap-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-muted-foreground text-sm font-medium">1</span>
-                <span className="text-muted-foreground line-through">Create Project</span>
-                <span className="text-muted-foreground">→</span>
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-medium">2</span>
-                Create Estimate
-              </div>
+              createdProjectFromFlow ? 'Create Estimate' : (
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-muted-foreground text-sm font-medium">1</span>
+                  <span className="text-muted-foreground line-through">Create Project</span>
+                  <span className="text-muted-foreground">→</span>
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-medium">2</span>
+                  Create Estimate
+                </div>
+              )
             )}
             {projectName && (
               <div className="text-sm font-normal text-muted-foreground mt-1">
@@ -515,8 +519,8 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Project Selection - Only show if no project is preselected */}
-          {!preselectedProjectId && !initialEstimate && (
+          {/* Project Selection - Only show if no project is preselected and we didn't just create one */}
+          {!preselectedProjectId && !initialEstimate && !createdProjectFromFlow && (
             <div className="space-y-2">
               <RequiredLabel>Select Project</RequiredLabel>
               {!projectsLoading && availableProjects.length > 0 && (
