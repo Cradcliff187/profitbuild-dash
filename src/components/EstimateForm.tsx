@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Plus } from "lucide-react";
+import { Save, Plus, Trash2, Calculator, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/ty
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectSelector } from "@/components/ProjectSelector";
+import { useNavigate } from "react-router-dom";
 
 interface EstimateFormProps {
   initialEstimate?: Estimate; // For editing mode
@@ -26,6 +27,7 @@ interface EstimateFormProps {
 
 export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, onCancel }: EstimateFormProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Form state
   const [projectId, setProjectId] = useState(preselectedProjectId || initialEstimate?.project_id || "");
@@ -102,6 +104,11 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
     setProjectName(project.project_name);
     setClientName(project.client_name);
     setSelectedProject(project);
+  };
+
+  const handleCreateNewProject = () => {
+    // Navigate to projects page and return to estimates after creation
+    navigate('/projects?returnTo=/estimates');
   };
 
   const loadProjectData = async () => {
@@ -454,12 +461,27 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
           {!preselectedProjectId && !initialEstimate && (
             <div className="space-y-2">
               <RequiredLabel>Select Project</RequiredLabel>
-              <ProjectSelector
-                estimates={availableProjects}
-                selectedEstimate={selectedProject}
-                onSelect={handleProjectSelect}
-                placeholder="Choose a project for this estimate..."
-              />
+              {availableProjects.length > 0 ? (
+                <ProjectSelector
+                  estimates={availableProjects}
+                  selectedEstimate={selectedProject}
+                  onSelect={handleProjectSelect}
+                  onCreateNew={handleCreateNewProject}
+                  placeholder="Choose a project for this estimate..."
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center border border-dashed border-muted-foreground/25 rounded-lg">
+                  <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Projects Found</h3>
+                  <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+                    You need to create a project before you can create an estimate. Projects help organize your estimates and track your work.
+                  </p>
+                  <Button onClick={handleCreateNewProject}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Your First Project
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
