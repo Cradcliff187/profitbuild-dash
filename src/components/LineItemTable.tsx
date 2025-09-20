@@ -126,14 +126,6 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Line Items</h3>
-        <Button onClick={onAddLineItem} variant="outline" size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Line Item
-        </Button>
-      </div>
-
       {lineItems.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <p>No line items yet. Click "Add Line Item" to get started.</p>
@@ -213,12 +205,17 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                     ${lineItem.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </TableCell>
                   <TableCell>
-                    <Badge 
-                      variant={calculateMarkupPercent(lineItem) < 0 ? "destructive" : calculateMarkupPercent(lineItem) < 20 ? "secondary" : "default"}
-                      className="text-xs"
-                    >
-                      {calculateMarkupPercent(lineItem).toFixed(1)}%
-                    </Badge>
+                    <EditableCell
+                      value={calculateMarkupPercent(lineItem)}
+                      onChange={(value) => {
+                        const markupPercent = parseFloat(value) || 0;
+                        const newPricePerUnit = lineItem.costPerUnit * (1 + markupPercent / 100);
+                        onUpdateLineItem(lineItem.id, 'markupPercent', markupPercent);
+                        onUpdateLineItem(lineItem.id, 'pricePerUnit', newPricePerUnit);
+                      }}
+                      type="number"
+                      className={calculateMarkupPercent(lineItem) < 0 ? "text-destructive" : calculateMarkupPercent(lineItem) < 20 ? "text-muted-foreground" : "text-foreground"}
+                    />
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
