@@ -348,14 +348,11 @@ useEffect(() => {
           quantity: item.quantity,
           rate: item.pricePerUnit, // For backward compatibility
           price_per_unit: item.pricePerUnit,
-          total: item.quantity * item.pricePerUnit,
           unit: item.unit || null,
           sort_order: index,
           cost_per_unit: item.costPerUnit || 0,
           markup_percent: item.markupPercent,
-          markup_amount: item.markupAmount,
-          total_cost: item.totalCost || 0,
-          total_markup: item.totalMarkup || 0
+          markup_amount: item.markupAmount
         }));
 
         const { error: lineItemsError } = await supabase
@@ -429,14 +426,11 @@ useEffect(() => {
           quantity: item.quantity,
           rate: item.pricePerUnit, // For backward compatibility
           price_per_unit: item.pricePerUnit,
-          total: item.quantity * item.pricePerUnit,
           unit: item.unit || null,
           sort_order: index,
           cost_per_unit: item.costPerUnit || 0,
           markup_percent: item.markupPercent,
-          markup_amount: item.markupAmount,
-          total_cost: item.totalCost || 0,
-          total_markup: item.totalMarkup || 0
+          markup_amount: item.markupAmount
         }));
 
         console.log('Creating line items:', lineItemsData);
