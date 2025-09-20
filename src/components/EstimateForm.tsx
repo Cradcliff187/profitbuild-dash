@@ -496,37 +496,17 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Show existing projects if available */}
-            {availableProjects.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="font-medium">Select Existing Project</h3>
-                <ProjectSelectorNew
-                  projects={availableProjects}
-                  selectedProject={selectedProject}
-                  onSelect={(project) => {
-                    handleProjectSelect(project);
-                    setShowProjectCreationFirst(false);
-                    setCreatedProjectFromFlow(false);
-                  }}
-                  placeholder="Choose an existing project..."
-                />
-                
-                <div className="flex items-center gap-4">
-                  <hr className="flex-1" />
-                  <span className="text-sm text-muted-foreground">or</span>
-                  <hr className="flex-1" />
-                </div>
-              </div>
-            )}
-            
-            {/* Create new project option */}
-            <div className="space-y-3">
-              <h3 className="font-medium">Create New Project</h3>
-              <ProjectFormInline
-                onSave={handleCreateNewProject}
-                onCancel={handleProjectCreationCancel}
-              />
-            </div>
+            <ProjectSelectorNew
+              projects={availableProjects}
+              selectedProject={selectedProject}
+              onSelect={(project) => {
+                handleProjectSelect(project);
+                setShowProjectCreationFirst(false);
+                setCreatedProjectFromFlow(false);
+              }}
+              onCreateNew={handleCreateNewProject}
+              placeholder="Select a project or create a new one..."
+            />
           </CardContent>
         </Card>
       </div>
