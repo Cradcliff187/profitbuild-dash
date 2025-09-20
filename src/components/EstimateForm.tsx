@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ProjectSelector } from "@/components/ProjectSelector";
 
 interface EstimateFormProps {
   initialEstimate?: Estimate; // For editing mode
@@ -37,8 +38,15 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   const [contingencyPercent, setContingencyPercent] = useState(initialEstimate?.contingency_percent || 10.0);
   const [contingencyUsed, setContingencyUsed] = useState(initialEstimate?.contingency_used || 0);
   const [isLoading, setIsLoading] = useState(false);
+  const [availableProjects, setAvailableProjects] = useState<Estimate[]>([]);
+  const [selectedProject, setSelectedProject] = useState<Estimate | undefined>();
 
   useEffect(() => {
+    // Load available projects if no project is preselected
+    if (!preselectedProjectId) {
+      loadAvailableProjects();
+    }
+    
     if (projectId) {
       loadProjectData();
     }
@@ -49,7 +57,52 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
       // Add initial line item for new estimates
       setLineItems([createNewLineItem()]);
     }
-  }, [projectId, initialEstimate]);
+  }, [projectId, initialEstimate, preselectedProjectId]);
+
+  const loadAvailableProjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, project_name, client_name, project_number')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const projects = data?.map(project => ({
+        id: project.id,
+        project_id: project.id,
+        project_name: project.project_name,
+        client_name: project.client_name,
+        estimate_number: project.project_number,
+        total_amount: 0,
+        date_created: new Date(),
+        status: 'draft' as const,
+        revision_number: 1,
+        contingency_percent: 10,
+        contingency_amount: 0,
+        contingency_used: 0,
+        version_number: 1,
+        is_current_version: true,
+        valid_for_days: 30,
+        created_at: new Date(),
+        updated_at: new Date(),
+        defaultMarkupPercent: 15,
+        targetMarginPercent: 20,
+        lineItems: []
+      })) || [];
+
+      setAvailableProjects(projects);
+    } catch (error) {
+      console.error('Error loading available projects:', error);
+    }
+  };
+
+  const handleProjectSelect = (project: Estimate) => {
+    setProjectId(project.project_id);
+    setProjectName(project.project_name);
+    setClientName(project.client_name);
+    setSelectedProject(project);
+  };
 
   const loadProjectData = async () => {
     try {
@@ -397,6 +450,19 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Project Selection - Only show if no project is preselected */}
+          {!preselectedProjectId && !initialEstimate && (
+            <div className="space-y-2">
+              <RequiredLabel>Select Project</RequiredLabel>
+              <ProjectSelector
+                estimates={availableProjects}
+                selectedEstimate={selectedProject}
+                onSelect={handleProjectSelect}
+                placeholder="Choose a project for this estimate..."
+              />
+            </div>
+          )}
+
           {/* Estimate Details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
