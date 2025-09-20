@@ -461,104 +461,217 @@ useEffect(() => {
         }
 
       } else {
-        // Create new estimate
-        const contingencyAmount = calculateContingencyAmount();
-        const estimateData = {
-          project_id: projectId,
-          estimate_number: estimateNumber,
-          date_created: date.toISOString().split('T')[0],
-          total_amount: totalAmount,
-          total_cost: calculateTotalCost(),
-          status: 'draft' as const,
-          is_draft: true, // Fixed: draft status should have is_draft: true
-          notes: notes.trim() || null,
-          valid_until: validUntil?.toISOString().split('T')[0],
-          contingency_percent: contingencyPercent,
-          contingency_amount: contingencyAmount,
-          contingency_used: contingencyUsed,
-          revision_number: 1,
-          version_number: 1,
-          is_current_version: true,
-          valid_for_days: 30
-        };
-
-        console.log('Creating estimate with data:', estimateData);
-        console.log('Valid line items count:', validLineItems.length);
-
-        const { data: createdEstimate, error: estimateError } = await supabase
-          .from('estimates')
-          .insert(estimateData)
-          .select()
-          .single();
-
-        if (estimateError) {
-          console.error('Database error creating estimate:', estimateError);
-          throw estimateError;
-        }
-
-        console.log('Estimate created successfully:', createdEstimate);
-
-        // Create line items
-        const lineItemsData = validLineItems.map((item, index) => ({
-          estimate_id: createdEstimate.id,
-          category: item.category,
-          description: item.description.trim(),
-          quantity: item.quantity,
-          rate: item.pricePerUnit, // For backward compatibility
-          unit: item.unit || null,
-          sort_order: index,
-          cost_per_unit: item.costPerUnit || 0,
-          markup_percent: item.markupPercent,
-          markup_amount: item.markupAmount
-        }));
-
-        console.log('Creating line items:', lineItemsData);
-
-        const { error: lineItemsError } = await supabase
-          .from('estimate_line_items')
-          .insert(lineItemsData);
-
-        if (lineItemsError) {
-          console.error('Database error creating line items:', lineItemsError);
-          throw lineItemsError;
-        }
-
-        console.log('Line items created successfully');
-
-        const newEstimate: Estimate = {
-          id: createdEstimate.id,
-          project_id: createdEstimate.project_id,
-          estimate_number: createdEstimate.estimate_number,
-          defaultMarkupPercent: 15,
-          targetMarginPercent: 20,
-          date_created: new Date(createdEstimate.date_created),
-          total_amount: createdEstimate.total_amount,
-          status: createdEstimate.status as any,
-          notes: createdEstimate.notes,
-          valid_until: createdEstimate.valid_until ? new Date(createdEstimate.valid_until) : undefined,
-          revision_number: createdEstimate.revision_number,
-          contingency_percent: createdEstimate.contingency_percent,
-          contingency_amount: createdEstimate.contingency_amount,
-          contingency_used: createdEstimate.contingency_used,
-          version_number: createdEstimate.version_number || 1,
-          parent_estimate_id: createdEstimate.parent_estimate_id || undefined,
-          is_current_version: createdEstimate.is_current_version ?? true,
-          valid_for_days: createdEstimate.valid_for_days || 30,
-          lineItems: validLineItems,
-          created_at: new Date(createdEstimate.created_at),
-          updated_at: new Date(createdEstimate.updated_at),
-          project_name: projectName,
-          client_name: clientName
-        };
-
-        console.log('Final estimate object:', newEstimate);
-
-        onSave(newEstimate);
+        // Create new estimate - check if project already has estimates
+        console.log('Checking if project has existing estimates:', projectId);
         
-        toast({
-          title: "Estimate Created",
-          description: `Estimate ${estimateNumber} has been created successfully.`
-        });
+        const { data: existingEstimates, error: checkError } = await supabase
+          .from('estimates')
+          .select('id, parent_estimate_id, version_number')
+          .eq('project_id', projectId)
+          .order('version_number', { ascending: true });
+
+        if (checkError) throw checkError;
+
+        if (existingEstimates && existingEstimates.length > 0) {
+          // Project has existing estimates - create new version
+          console.log('Project has existing estimates, creating new version');
+          
+          // Find the root estimate (parent_estimate_id is null)
+          const rootEstimate = existingEstimates.find(e => e.parent_estimate_id === null);
+          if (!rootEstimate) {
+            throw new Error('Could not find root estimate for version creation');
+          }
+
+          // Create new version using RPC function
+          const { data: newVersionId, error: versionError } = await supabase
+            .rpc('create_estimate_version', {
+              source_estimate_id: rootEstimate.id
+            });
+
+          if (versionError) throw versionError;
+
+          // Update the new version with our data
+          const { data: estimateData, error: updateError } = await supabase
+            .from('estimates')
+            .update({
+              date_created: date.toISOString().split('T')[0],
+              total_amount: totalAmount,
+              total_cost: calculateTotalCost(),
+              notes: notes.trim() || null,
+              valid_until: validUntil?.toISOString().split('T')[0],
+              contingency_percent: contingencyPercent,
+              contingency_used: contingencyUsed,
+              is_current_version: true,
+              status: 'draft',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', newVersionId)
+            .select()
+            .single();
+
+          if (updateError) throw updateError;
+
+          // Delete default line items from new version and add our line items
+          await supabase
+            .from('estimate_line_items')
+            .delete()
+            .eq('estimate_id', newVersionId);
+
+          const lineItemsData = validLineItems.map((item, index) => ({
+            estimate_id: newVersionId,
+            category: item.category,
+            description: item.description.trim(),
+            quantity: item.quantity,
+            rate: item.pricePerUnit,
+            unit: item.unit || null,
+            sort_order: index,
+            cost_per_unit: item.costPerUnit || 0,
+            markup_percent: item.markupPercent,
+            markup_amount: item.markupAmount
+          }));
+
+          const { error: lineItemsError } = await supabase
+            .from('estimate_line_items')
+            .insert(lineItemsData);
+
+          if (lineItemsError) throw lineItemsError;
+
+          const newEstimate: Estimate = {
+            id: newVersionId,
+            project_id: projectId,
+            estimate_number: estimateData.estimate_number,
+            date_created: new Date(estimateData.date_created),
+            total_amount: estimateData.total_amount,
+            status: 'draft',
+            notes: estimateData.notes,
+            valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
+            revision_number: estimateData.revision_number,
+            lineItems: validLineItems,
+            created_at: new Date(estimateData.created_at),
+            updated_at: new Date(estimateData.updated_at),
+            project_name: projectName,
+            client_name: clientName,
+            contingency_percent: estimateData.contingency_percent,
+            contingency_amount: estimateData.contingency_amount,
+            contingency_used: estimateData.contingency_used,
+            version_number: estimateData.version_number,
+            parent_estimate_id: estimateData.parent_estimate_id,
+            is_current_version: true,
+            valid_for_days: estimateData.valid_for_days,
+            defaultMarkupPercent: 15,
+            targetMarginPercent: 20
+          };
+
+          onSave(newEstimate);
+          
+          toast({
+            title: "New Version Created",
+            description: `New estimate version v${estimateData.version_number} created successfully.`
+          });
+
+        } else {
+          // Project has no estimates - create first estimate
+          console.log('Project has no estimates, creating first estimate');
+          
+          const contingencyAmount = calculateContingencyAmount();
+          const estimateData = {
+            project_id: projectId,
+            estimate_number: estimateNumber,
+            date_created: date.toISOString().split('T')[0],
+            total_amount: totalAmount,
+            total_cost: calculateTotalCost(),
+            status: 'draft' as const,
+            is_draft: true,
+            notes: notes.trim() || null,
+            valid_until: validUntil?.toISOString().split('T')[0],
+            contingency_percent: contingencyPercent,
+            contingency_amount: contingencyAmount,
+            contingency_used: contingencyUsed,
+            revision_number: 1,
+            version_number: 1,
+            parent_estimate_id: null,
+            is_current_version: true,
+            valid_for_days: 30
+          };
+
+          console.log('Creating estimate with data:', estimateData);
+          console.log('Valid line items count:', validLineItems.length);
+
+          const { data: createdEstimate, error: estimateError } = await supabase
+            .from('estimates')
+            .insert(estimateData)
+            .select()
+            .single();
+
+          if (estimateError) {
+            console.error('Database error creating estimate:', estimateError);
+            throw estimateError;
+          }
+
+          console.log('Estimate created successfully:', createdEstimate);
+
+          // Create line items
+          const lineItemsData = validLineItems.map((item, index) => ({
+            estimate_id: createdEstimate.id,
+            category: item.category,
+            description: item.description.trim(),
+            quantity: item.quantity,
+            rate: item.pricePerUnit, // For backward compatibility
+            unit: item.unit || null,
+            sort_order: index,
+            cost_per_unit: item.costPerUnit || 0,
+            markup_percent: item.markupPercent,
+            markup_amount: item.markupAmount
+          }));
+
+          console.log('Creating line items:', lineItemsData);
+
+          const { error: lineItemsError } = await supabase
+            .from('estimate_line_items')
+            .insert(lineItemsData);
+
+          if (lineItemsError) {
+            console.error('Database error creating line items:', lineItemsError);
+            throw lineItemsError;
+          }
+
+          console.log('Line items created successfully');
+
+          const newEstimate: Estimate = {
+            id: createdEstimate.id,
+            project_id: createdEstimate.project_id,
+            estimate_number: createdEstimate.estimate_number,
+            defaultMarkupPercent: 15,
+            targetMarginPercent: 20,
+            date_created: new Date(createdEstimate.date_created),
+            total_amount: createdEstimate.total_amount,
+            status: createdEstimate.status as any,
+            notes: createdEstimate.notes,
+            valid_until: createdEstimate.valid_until ? new Date(createdEstimate.valid_until) : undefined,
+            revision_number: createdEstimate.revision_number,
+            contingency_percent: createdEstimate.contingency_percent,
+            contingency_amount: createdEstimate.contingency_amount,
+            contingency_used: createdEstimate.contingency_used,
+            version_number: createdEstimate.version_number || 1,
+            parent_estimate_id: createdEstimate.parent_estimate_id || undefined,
+            is_current_version: createdEstimate.is_current_version ?? true,
+            valid_for_days: createdEstimate.valid_for_days || 30,
+            lineItems: validLineItems,
+            created_at: new Date(createdEstimate.created_at),
+            updated_at: new Date(createdEstimate.updated_at),
+            project_name: projectName,
+            client_name: clientName
+          };
+
+          console.log('Final estimate object:', newEstimate);
+
+          onSave(newEstimate);
+          
+          toast({
+            title: "First Estimate Created",
+            description: `Estimate ${estimateNumber} has been created successfully.`
+          });
+        }
       }
 
     } catch (error) {
