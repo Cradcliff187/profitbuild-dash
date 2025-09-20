@@ -112,19 +112,10 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
           <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
           <h3 className="text-lg font-semibold mb-2">No Estimates Yet</h3>
           <p className="text-muted-foreground mb-6">Create your first estimate to get started.</p>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Estimate
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="center">
-              <DropdownMenuItem onClick={onCreateNew}>
-                Create New Estimate
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button onClick={onCreateNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Estimate
+          </Button>
         </CardContent>
       </Card>
     );
