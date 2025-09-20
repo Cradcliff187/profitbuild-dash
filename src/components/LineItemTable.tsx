@@ -175,8 +175,8 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                 <TableHead className="min-w-[200px]">Description</TableHead>
                 <TableHead className="w-[80px]">Qty</TableHead>
                 <TableHead className="w-[100px]">Cost</TableHead>
-                <TableHead className="w-[100px]">Markup</TableHead>
                 <TableHead className="w-[80px]">Markup%</TableHead>
+                <TableHead className="w-[100px]">Markup</TableHead>
                 <TableHead className="w-[100px]">Total Price</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
@@ -227,18 +227,18 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                   </TableCell>
                   <TableCell>
                     <EditableCell
-                      value={calculateMarkupAmount(lineItem)}
-                      onChange={(value) => handleMarkupAmountChange(lineItem.id, parseFloat(value) || 0)}
-                      type="number"
-                      currency={true}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <EditableCell
                       value={calculateMarkupPercent(lineItem)}
                       onChange={(value) => handleMarkupPercentChange(lineItem.id, parseFloat(value) || 0)}
                       type="number"
                       className={calculateMarkupPercent(lineItem) < 0 ? "text-destructive" : calculateMarkupPercent(lineItem) < 20 ? "text-muted-foreground" : "text-foreground"}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <EditableCell
+                      value={calculateMarkupAmount(lineItem)}
+                      onChange={(value) => handleMarkupAmountChange(lineItem.id, parseFloat(value) || 0)}
+                      type="number"
+                      currency={true}
                     />
                   </TableCell>
                   <TableCell className="font-medium">
