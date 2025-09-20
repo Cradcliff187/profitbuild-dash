@@ -17,6 +17,7 @@ import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
+import { ProjectFormInline } from "@/components/ProjectFormInline";
 import { useNavigate } from "react-router-dom";
 
 interface EstimateFormProps {
@@ -43,6 +44,8 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   const [isLoading, setIsLoading] = useState(false);
   const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
+  const [showProjectCreationFirst, setShowProjectCreationFirst] = useState(false);
+  const [projectsLoading, setProjectsLoading] = useState(true);
 
   useEffect(() => {
     // Load available projects if no project is preselected
@@ -63,6 +66,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   }, [projectId, initialEstimate, preselectedProjectId]);
 
   const loadAvailableProjects = async () => {
+    setProjectsLoading(true);
     try {
       const { data: projects, error } = await supabase
         .from('projects')
@@ -80,6 +84,11 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
       })) || [];
 
       setAvailableProjects(formattedProjects);
+      
+      // If no projects exist and we're creating a new estimate, show project creation first
+      if (formattedProjects.length === 0 && !initialEstimate && !preselectedProjectId) {
+        setShowProjectCreationFirst(true);
+      }
     } catch (error) {
       console.error('Error loading available projects:', error);
       toast({
@@ -87,6 +96,8 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
         description: "Failed to load available projects",
         variant: "destructive"
       });
+    } finally {
+      setProjectsLoading(false);
     }
   };
 
@@ -102,6 +113,19 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   const handleCreateNewProject = (newProject: Project) => {
     // Add the new project to the available projects list
     setAvailableProjects(prev => [newProject, ...prev]);
+    // Auto-select the new project and transition to estimate form
+    handleProjectSelect(newProject);
+    setShowProjectCreationFirst(false);
+  };
+
+  const handleProjectCreationCancel = () => {
+    if (availableProjects.length === 0) {
+      // If no projects exist, go back to estimates list
+      onCancel();
+    } else {
+      // If projects exist, just hide the project creation form
+      setShowProjectCreationFirst(false);
+    }
   };
 
   const handleGoToProjects = () => {
@@ -441,12 +465,48 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
     }
   };
 
+  // Show project creation form first if no projects exist
+  if (showProjectCreationFirst && !projectsLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-medium">1</span>
+              Create Project
+              <span className="text-muted-foreground">→</span>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-muted-foreground text-sm font-medium">2</span>
+              <span className="text-muted-foreground">Create Estimate</span>
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              First, create a project to organize this estimate. This helps track your work and client information.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ProjectFormInline
+              onSave={handleCreateNewProject}
+              onCancel={handleProjectCreationCancel}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>
-            {initialEstimate ? 'Edit Estimate' : 'Create Estimate'}
+            {initialEstimate ? 'Edit Estimate' : (
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-muted-foreground text-sm font-medium">1</span>
+                <span className="text-muted-foreground line-through">Create Project</span>
+                <span className="text-muted-foreground">→</span>
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-medium">2</span>
+                Create Estimate
+              </div>
+            )}
             {projectName && (
               <div className="text-sm font-normal text-muted-foreground mt-1">
                 Project: {projectName} • Client: {clientName}
@@ -459,7 +519,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
           {!preselectedProjectId && !initialEstimate && (
             <div className="space-y-2">
               <RequiredLabel>Select Project</RequiredLabel>
-              {availableProjects.length > 0 ? (
+              {!projectsLoading && availableProjects.length > 0 && (
                 <ProjectSelectorNew
                   projects={availableProjects}
                   selectedProject={selectedProject}
@@ -467,18 +527,6 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
                   onCreateNew={handleCreateNewProject}
                   placeholder="Choose a project for this estimate..."
                 />
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center border border-dashed border-muted-foreground/25 rounded-lg">
-                  <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No Projects Found</h3>
-                  <p className="text-sm text-muted-foreground mb-4 max-w-sm">
-                    You need to create a project before you can create an estimate. Projects help organize your estimates and track your work.
-                  </p>
-                  <Button onClick={handleGoToProjects}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Your First Project
-                  </Button>
-                </div>
               )}
             </div>
           )}
