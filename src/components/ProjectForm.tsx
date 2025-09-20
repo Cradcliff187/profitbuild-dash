@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Building2, Save, ArrowRight, User, Building, Mail, Phone, MapPin, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ interface ProjectFormProps {
 
 export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [projectName, setProjectName] = useState("");
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [selectedClientData, setSelectedClientData] = useState<Client | null>(null);
@@ -129,6 +131,15 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
         title: "Project Created",
         description: `Project ${projectNumber} has been created successfully.`
       });
+
+      // Navigate to next step based on project type
+      if (projectType === 'construction_project') {
+        // Construction projects require estimates, navigate to estimate creation
+        navigate(`/estimates?project=${newProject.id}`);
+      } else if (projectType === 'work_order') {
+        // Work orders skip estimates and go directly to expense tracking  
+        navigate(`/expenses?project=${newProject.id}`);
+      }
 
     } catch (error) {
       console.error('Error creating project:', error);
