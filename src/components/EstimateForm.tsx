@@ -18,6 +18,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
 import { LineItemRow } from "@/components/LineItemRow";
+import { LineItemTable } from "@/components/LineItemTable";
+import { LineItemDetailModal } from "@/components/LineItemDetailModal";
 
 
 
@@ -46,6 +48,11 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
   const [showProjectCreationFirst, setShowProjectCreationFirst] = useState(false);
+  
+  // View state for line items
+  const [viewMode, setViewMode] = useState<'compact' | 'detailed'>('compact');
+  const [selectedLineItemForEdit, setSelectedLineItemForEdit] = useState<LineItem | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [createdProjectFromFlow, setCreatedProjectFromFlow] = useState(false);
   const [projectSelectedFromStep1, setProjectSelectedFromStep1] = useState(false);
@@ -698,23 +705,63 @@ useEffect(() => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <RequiredLabel className="text-lg font-semibold">Line Items</RequiredLabel>
-              <Button onClick={addLineItem} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Line Item
-              </Button>
+              <div className="flex items-center space-x-2">
+                {/* View Toggle */}
+                <div className="flex rounded-md border overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('compact')}
+                    className={`px-3 py-1 text-sm ${
+                      viewMode === 'compact'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background hover:bg-muted'
+                    }`}
+                  >
+                    Compact
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('detailed')}
+                    className={`px-3 py-1 text-sm ${
+                      viewMode === 'detailed'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background hover:bg-muted'
+                    }`}
+                  >
+                    Detailed
+                  </button>
+                </div>
+                <Button onClick={addLineItem} variant="outline" size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Line Item
+                </Button>
+              </div>
             </div>
 
-            {/* Line Items */}
-            <div className="space-y-4">
-              {lineItems.map(lineItem => (
-                <LineItemRow
-                  key={lineItem.id}
-                  lineItem={lineItem}
-                  onUpdate={updateLineItem}
-                  onRemove={removeLineItem}
-                />
-              ))}
-            </div>
+            {/* Line Items - Conditional Rendering */}
+            {viewMode === 'compact' ? (
+              <LineItemTable
+                lineItems={lineItems}
+                onUpdateLineItem={updateLineItem}
+                onRemoveLineItem={removeLineItem}
+                onAddLineItem={addLineItem}
+                onEditDetails={(lineItem) => {
+                  setSelectedLineItemForEdit(lineItem);
+                  setIsDetailModalOpen(true);
+                }}
+              />
+            ) : (
+              <div className="space-y-4">
+                {lineItems.map(lineItem => (
+                  <LineItemRow
+                    key={lineItem.id}
+                    lineItem={lineItem}
+                    onUpdate={updateLineItem}
+                    onRemove={removeLineItem}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Contingency Section */}
@@ -786,6 +833,22 @@ useEffect(() => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Line Item Detail Modal */}
+      <LineItemDetailModal
+        lineItem={selectedLineItemForEdit}
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedLineItemForEdit(null);
+        }}
+        onSave={(updatedLineItem) => {
+          // Update the line item in the list
+          setLineItems(prev => prev.map(item => 
+            item.id === updatedLineItem.id ? updatedLineItem : item
+          ));
+        }}
+      />
     </div>
   );
 };
