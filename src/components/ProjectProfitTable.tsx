@@ -10,9 +10,13 @@ import { markProjectAsSynced, resetProjectSyncStatus } from '@/utils/syncUtils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { VarianceBadge } from '@/components/ui/variance-badge';
+import { CompletePagination } from '@/components/ui/complete-pagination';
+import { usePagination } from '@/hooks/usePagination';
 
 interface ProjectProfitTableProps {
   data: ProjectProfitData[];
+  enablePagination?: boolean;
+  pageSize?: number;
 }
 
 interface ProjectSyncData {
@@ -24,11 +28,22 @@ interface ProjectSyncData {
 type SortField = 'projectName' | 'actualProfit' | 'profitMargin' | 'profitVariance' | 'status';
 type SortDirection = 'asc' | 'desc';
 
-export default function ProjectProfitTable({ data }: ProjectProfitTableProps) {
+export default function ProjectProfitTable({ 
+  data, 
+  enablePagination = false, 
+  pageSize = 10 
+}: ProjectProfitTableProps) {
   const [sortField, setSortField] = useState<SortField>('actualProfit');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [projectSyncData, setProjectSyncData] = useState<Record<string, ProjectSyncData>>({});
   const { toast } = useToast();
+
+  // Pagination
+  const pagination = usePagination({
+    totalItems: data.length,
+    pageSize: pageSize,
+    initialPage: 1,
+  });
 
   // Fetch sync data for all projects
   useEffect(() => {
@@ -142,6 +157,14 @@ export default function ProjectProfitTable({ data }: ProjectProfitTableProps) {
     }
   });
 
+  // Apply pagination to sorted data
+  const paginatedData = enablePagination 
+    ? sortedData.slice(
+        (pagination.currentPage - 1) * pageSize,
+        pagination.currentPage * pageSize
+      )
+    : sortedData;
+
   const getStatusBadge = (status: ProjectProfitData['status']) => {
     const variants = {
       'Estimating': 'secondary',
@@ -204,14 +227,14 @@ export default function ProjectProfitTable({ data }: ProjectProfitTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedData.length === 0 ? (
+              {paginatedData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground">
                     No projects found
                   </TableCell>
                 </TableRow>
               ) : (
-                sortedData.map((project) => (
+                paginatedData.map((project) => (
                   <TableRow key={project.projectId}>
                      <TableCell>
                        <div className="flex items-center gap-2">
@@ -253,8 +276,18 @@ export default function ProjectProfitTable({ data }: ProjectProfitTableProps) {
                 ))
               )}
             </TableBody>
-          </Table>
+            </Table>
         </div>
+        
+        {enablePagination && data.length > 0 && pagination.totalPages > 1 && (
+          <div className="mt-4">
+            <CompletePagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={pagination.goToPage}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

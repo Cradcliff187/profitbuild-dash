@@ -5,6 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Eye, Edit2, Trash2 } from 'lucide-react';
+import { CompletePagination } from '@/components/ui/complete-pagination';
+import { usePagination } from '@/hooks/usePagination';
 
 interface Column {
   key: string;
@@ -28,6 +30,11 @@ interface EntityTableTemplateProps {
   filters?: React.ReactNode;
   emptyMessage?: string;
   noResultsMessage?: string;
+  // Pagination props
+  enablePagination?: boolean;
+  pageSize?: number;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
 export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
@@ -45,13 +52,39 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
   bulkActions,
   filters,
   emptyMessage = "No items found.",
-  noResultsMessage = "No items match your current filters."
+  noResultsMessage = "No items match your current filters.",
+  enablePagination = false,
+  pageSize = 10,
+  currentPage,
+  onPageChange
 }) => {
+  // Pagination logic
+  const pagination = usePagination({
+    totalItems: data.length,
+    pageSize: pageSize,
+    initialPage: currentPage || 1,
+  });
+
+  // Use external pagination if provided, otherwise use internal pagination
+  const paginationState = enablePagination && !onPageChange ? pagination : null;
+  const currentPageValue = onPageChange ? (currentPage || 1) : (paginationState?.currentPage || 1);
+  const handlePageChange = onPageChange || paginationState?.goToPage || (() => {});
+
+  // Calculate displayed data based on pagination
+  const displayedData = enablePagination 
+    ? data.slice(
+        (currentPageValue - 1) * pageSize,
+        currentPageValue * pageSize
+      )
+    : data;
+
+  const totalPages = Math.ceil(data.length / pageSize);
+
   if (isLoading) {
     return <div className="flex justify-center py-8">Loading...</div>;
   }
 
-  const allSelected = data.length > 0 && selectedItems.length === data.length;
+  const allSelected = displayedData.length > 0 && selectedItems.length === displayedData.length;
   const someSelected = selectedItems.length > 0;
 
   return (
@@ -78,6 +111,10 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
             <div className="text-center py-8 text-muted-foreground">
               {emptyMessage}
             </div>
+          ) : displayedData.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {noResultsMessage}
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -96,7 +133,7 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.map((item) => (
+                {displayedData.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>
                       <Checkbox
@@ -166,6 +203,16 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
                 ))}
               </TableBody>
             </Table>
+          )}
+          
+          {enablePagination && data.length > 0 && totalPages > 1 && (
+            <div className="mt-4">
+              <CompletePagination
+                currentPage={currentPageValue}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
           )}
         </CardContent>
       </Card>
