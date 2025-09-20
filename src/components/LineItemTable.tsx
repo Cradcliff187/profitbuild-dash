@@ -110,6 +110,45 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
     return lineItem.quantity * lineItem.costPerUnit;
   };
 
+  const calculateMarkupAmount = (lineItem: LineItem): number => {
+    const totalCost = calculateTotalCost(lineItem);
+    return lineItem.total - totalCost;
+  };
+
+  const handleTotalCostChange = (lineItemId: string, newTotalCost: number) => {
+    const lineItem = lineItems.find(item => item.id === lineItemId);
+    if (!lineItem) return;
+    
+    const newCostPerUnit = lineItem.quantity > 0 ? newTotalCost / lineItem.quantity : 0;
+    onUpdateLineItem(lineItemId, 'costPerUnit', newCostPerUnit);
+  };
+
+  const handleMarkupAmountChange = (lineItemId: string, newMarkupAmount: number) => {
+    const lineItem = lineItems.find(item => item.id === lineItemId);
+    if (!lineItem) return;
+    
+    const totalCost = calculateTotalCost(lineItem);
+    const newTotal = totalCost + newMarkupAmount;
+    const newPricePerUnit = lineItem.quantity > 0 ? newTotal / lineItem.quantity : 0;
+    
+    onUpdateLineItem(lineItemId, 'pricePerUnit', newPricePerUnit);
+    onUpdateLineItem(lineItemId, 'total', newTotal);
+  };
+
+  const handleMarkupPercentChange = (lineItemId: string, markupPercent: number) => {
+    const lineItem = lineItems.find(item => item.id === lineItemId);
+    if (!lineItem) return;
+    
+    const totalCost = calculateTotalCost(lineItem);
+    const newMarkupAmount = totalCost * (markupPercent / 100);
+    const newTotal = totalCost + newMarkupAmount;
+    const newPricePerUnit = lineItem.quantity > 0 ? newTotal / lineItem.quantity : 0;
+    
+    onUpdateLineItem(lineItemId, 'markupPercent', markupPercent);
+    onUpdateLineItem(lineItemId, 'pricePerUnit', newPricePerUnit);
+    onUpdateLineItem(lineItemId, 'total', newTotal);
+  };
+
   const duplicateLineItem = (lineItem: LineItem) => {
     // Create a new line item with the same data but new ID
     const newLineItem = {
@@ -135,11 +174,10 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                 <TableHead className="w-[120px]">Category</TableHead>
                 <TableHead className="min-w-[200px]">Description</TableHead>
                 <TableHead className="w-[80px]">Qty</TableHead>
-                <TableHead className="w-[100px]">Cost/Unit</TableHead>
-                <TableHead className="w-[100px]">Price/Unit</TableHead>
-                <TableHead className="w-[100px]">Total Cost</TableHead>
-                <TableHead className="w-[100px]">Total Price</TableHead>
+                <TableHead className="w-[100px]">Cost</TableHead>
+                <TableHead className="w-[100px]">Markup</TableHead>
                 <TableHead className="w-[80px]">Markup%</TableHead>
+                <TableHead className="w-[100px]">Total Price</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -181,38 +219,30 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                   </TableCell>
                   <TableCell>
                     <EditableCell
-                      value={lineItem.costPerUnit}
-                      onChange={(value) => onUpdateLineItem(lineItem.id, 'costPerUnit', parseFloat(value) || 0)}
+                      value={calculateTotalCost(lineItem)}
+                      onChange={(value) => handleTotalCostChange(lineItem.id, parseFloat(value) || 0)}
                       type="number"
                       currency={true}
                     />
                   </TableCell>
                   <TableCell>
                     <EditableCell
-                      value={lineItem.pricePerUnit || lineItem.costPerUnit}
-                      onChange={(value) => onUpdateLineItem(lineItem.id, 'pricePerUnit', parseFloat(value) || 0)}
+                      value={calculateMarkupAmount(lineItem)}
+                      onChange={(value) => handleMarkupAmountChange(lineItem.id, parseFloat(value) || 0)}
                       type="number"
                       currency={true}
                     />
-                  </TableCell>
-                  <TableCell className="font-medium text-muted-foreground">
-                    ${calculateTotalCost(lineItem).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    ${lineItem.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </TableCell>
                   <TableCell>
                     <EditableCell
                       value={calculateMarkupPercent(lineItem)}
-                      onChange={(value) => {
-                        const markupPercent = parseFloat(value) || 0;
-                        const newPricePerUnit = lineItem.costPerUnit * (1 + markupPercent / 100);
-                        onUpdateLineItem(lineItem.id, 'markupPercent', markupPercent);
-                        onUpdateLineItem(lineItem.id, 'pricePerUnit', newPricePerUnit);
-                      }}
+                      onChange={(value) => handleMarkupPercentChange(lineItem.id, parseFloat(value) || 0)}
                       type="number"
                       className={calculateMarkupPercent(lineItem) < 0 ? "text-destructive" : calculateMarkupPercent(lineItem) < 20 ? "text-muted-foreground" : "text-foreground"}
                     />
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    ${lineItem.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
