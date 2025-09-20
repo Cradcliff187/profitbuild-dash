@@ -13,9 +13,10 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
+import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ProjectSelector } from "@/components/ProjectSelector";
+import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
 import { useNavigate } from "react-router-dom";
 
 interface EstimateFormProps {
@@ -40,8 +41,8 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   const [contingencyPercent, setContingencyPercent] = useState(initialEstimate?.contingency_percent || 10.0);
   const [contingencyUsed, setContingencyUsed] = useState(initialEstimate?.contingency_used || 0);
   const [isLoading, setIsLoading] = useState(false);
-  const [availableProjects, setAvailableProjects] = useState<Estimate[]>([]);
-  const [selectedProject, setSelectedProject] = useState<Estimate | undefined>();
+  const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
+  const [selectedProject, setSelectedProject] = useState<Project | undefined>();
 
   useEffect(() => {
     // Load available projects if no project is preselected
@@ -63,50 +64,47 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
 
   const loadAvailableProjects = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: projects, error } = await supabase
         .from('projects')
-        .select('id, project_name, client_name, project_number')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const projects = data?.map(project => ({
-        id: project.id,
-        project_id: project.id,
-        project_name: project.project_name,
-        client_name: project.client_name,
-        estimate_number: project.project_number,
-        total_amount: 0,
-        date_created: new Date(),
-        status: 'draft' as const,
-        revision_number: 1,
-        contingency_percent: 10,
-        contingency_amount: 0,
-        contingency_used: 0,
-        version_number: 1,
-        is_current_version: true,
-        valid_for_days: 30,
-        created_at: new Date(),
-        updated_at: new Date(),
-        defaultMarkupPercent: 15,
-        targetMarginPercent: 20,
-        lineItems: []
+      const formattedProjects = projects?.map(project => ({
+        ...project,
+        created_at: new Date(project.created_at),
+        updated_at: new Date(project.updated_at),
+        start_date: project.start_date ? new Date(project.start_date) : undefined,
+        end_date: project.end_date ? new Date(project.end_date) : undefined,
       })) || [];
 
-      setAvailableProjects(projects);
+      setAvailableProjects(formattedProjects);
     } catch (error) {
       console.error('Error loading available projects:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load available projects",
+        variant: "destructive"
+      });
     }
   };
 
-  const handleProjectSelect = (project: Estimate) => {
-    setProjectId(project.project_id);
-    setProjectName(project.project_name);
-    setClientName(project.client_name);
+  const handleProjectSelect = (project: Project) => {
     setSelectedProject(project);
+    setProjectId(project.id);
+    
+    // Auto-populate fields from the selected project
+    setClientName(project.client_name || '');
+    setProjectName(project.project_name || '');
   };
 
-  const handleCreateNewProject = () => {
+  const handleCreateNewProject = (newProject: Project) => {
+    // Add the new project to the available projects list
+    setAvailableProjects(prev => [newProject, ...prev]);
+  };
+
+  const handleGoToProjects = () => {
     // Navigate to projects page and return to estimates after creation
     navigate('/projects?returnTo=/estimates');
   };
@@ -462,9 +460,9 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
             <div className="space-y-2">
               <RequiredLabel>Select Project</RequiredLabel>
               {availableProjects.length > 0 ? (
-                <ProjectSelector
-                  estimates={availableProjects}
-                  selectedEstimate={selectedProject}
+                <ProjectSelectorNew
+                  projects={availableProjects}
+                  selectedProject={selectedProject}
                   onSelect={handleProjectSelect}
                   onCreateNew={handleCreateNewProject}
                   placeholder="Choose a project for this estimate..."
@@ -476,7 +474,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
                   <p className="text-sm text-muted-foreground mb-4 max-w-sm">
                     You need to create a project before you can create an estimate. Projects help organize your estimates and track your work.
                   </p>
-                  <Button onClick={handleCreateNewProject}>
+                  <Button onClick={handleGoToProjects}>
                     <Plus className="mr-2 h-4 w-4" />
                     Create Your First Project
                   </Button>
