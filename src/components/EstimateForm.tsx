@@ -17,6 +17,7 @@ import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
+import { LineItemRow } from "@/components/LineItemRow";
 
 
 
@@ -200,7 +201,7 @@ useEffect(() => {
     unit: '',
     sort_order: lineItems.length,
     costPerUnit: 0,
-    markupPercent: null,
+    markupPercent: 15, // Default 15% markup
     markupAmount: null,
     totalCost: 0,
     totalMarkup: 0
@@ -211,10 +212,24 @@ useEffect(() => {
       prev.map(item => {
         if (item.id === id) {
           const updated = { ...item, [field]: value };
-          // Recalculate total for this line item
-          if (field === 'quantity' || field === 'pricePerUnit') {
-            updated.total = updated.quantity * updated.pricePerUnit;
+          
+          // Recalculate derived values based on what changed
+          if (field === 'costPerUnit' || field === 'markupPercent' || field === 'markupAmount') {
+            // Calculate pricePerUnit based on markup
+            if (updated.markupPercent !== null) {
+              // Percentage markup
+              updated.pricePerUnit = updated.costPerUnit * (1 + (updated.markupPercent / 100));
+            } else if (updated.markupAmount !== null) {
+              // Fixed amount markup
+              updated.pricePerUnit = updated.costPerUnit + updated.markupAmount;
+            }
           }
+          
+          // Always recalculate totals
+          updated.total = updated.quantity * updated.pricePerUnit;
+          updated.totalCost = updated.quantity * updated.costPerUnit;
+          updated.totalMarkup = updated.quantity * (updated.pricePerUnit - updated.costPerUnit);
+          
           return updated;
         }
         return item;
@@ -316,7 +331,9 @@ useEffect(() => {
           sort_order: index,
           cost_per_unit: item.costPerUnit || 0,
           markup_percent: item.markupPercent,
-          markup_amount: item.markupAmount
+          markup_amount: item.markupAmount,
+          total_cost: item.totalCost || 0,
+          total_markup: item.totalMarkup || 0
         }));
 
         const { error: lineItemsError } = await supabase
@@ -394,7 +411,9 @@ useEffect(() => {
           sort_order: index,
           cost_per_unit: item.costPerUnit || 0,
           markup_percent: item.markupPercent,
-          markup_amount: item.markupAmount
+          markup_amount: item.markupAmount,
+          total_cost: item.totalCost || 0,
+          total_markup: item.totalMarkup || 0
         }));
 
         console.log('Creating line items:', lineItemsData);
@@ -685,83 +704,15 @@ useEffect(() => {
               </Button>
             </div>
 
-            {/* Line Items Header */}
-            <div className="grid grid-cols-12 gap-4 p-2 text-sm font-medium text-muted-foreground border-b">
-              <div className="col-span-2">Category</div>
-              <div className="col-span-4">Description</div>
-              <div className="col-span-2">Quantity</div>
-              <div className="col-span-2">Rate</div>
-              <div className="col-span-1 text-right">Total</div>
-              <div className="col-span-1"></div>
-            </div>
-
             {/* Line Items */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               {lineItems.map(lineItem => (
-                <div key={lineItem.id} className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-2">
-                    <Select
-                      value={lineItem.category}
-                      onValueChange={(value: LineItemCategory) => updateLineItem(lineItem.id, 'category', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(CATEGORY_DISPLAY_MAP).map(([key, display]) => (
-                          <SelectItem key={key} value={key}>
-                            {display}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="col-span-4">
-                    <Input
-                      value={lineItem.description}
-                      onChange={(e) => updateLineItem(lineItem.id, 'description', e.target.value)}
-                      placeholder="Description"
-                    />
-                  </div>
-                  
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      value={lineItem.quantity}
-                      onChange={(e) => updateLineItem(lineItem.id, 'quantity', parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                  
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      value={lineItem.pricePerUnit}
-                      onChange={(e) => updateLineItem(lineItem.id, 'pricePerUnit', parseFloat(e.target.value) || 0)}
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                  
-                  <div className="col-span-1 text-right font-medium">
-                    ${(lineItem.quantity * lineItem.pricePerUnit).toFixed(2)}
-                  </div>
-                  
-                  <div className="col-span-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeLineItem(lineItem.id)}
-                      disabled={lineItems.length <= 1}
-                    >
-                      ×
-                    </Button>
-                  </div>
-                </div>
+                <LineItemRow
+                  key={lineItem.id}
+                  lineItem={lineItem}
+                  onUpdate={updateLineItem}
+                  onRemove={removeLineItem}
+                />
               ))}
             </div>
           </div>
