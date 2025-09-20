@@ -55,13 +55,14 @@ const EditableCell: React.FC<{
   };
 
   const formatValue = (val: string | number) => {
-    if (type === 'number' && typeof val === 'number') {
+    if (type === 'number') {
+      const numVal = typeof val === 'number' ? val : parseFloat(val) || 0;
       if (currency) {
-        return `$${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return `$${numVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       }
-      return val.toLocaleString();
+      return numVal.toLocaleString();
     }
-    return val;
+    return val || '';
   };
 
   if (isEditing) {
@@ -81,17 +82,13 @@ const EditableCell: React.FC<{
 
   return (
     <div
-      className="cursor-pointer hover:bg-muted/50 border border-input bg-background px-3 py-2 rounded-md min-h-[32px] flex items-center text-sm"
+      className={`cursor-pointer hover:bg-muted/50 border border-input bg-background px-3 py-2 rounded-md h-8 flex items-center text-sm ${className}`}
       onClick={() => {
         setEditValue(String(value));
         setIsEditing(true);
       }}
     >
-      {value ? (
-        formatValue(value)
-      ) : (
-        <span className="text-muted-foreground">Click to edit</span>
-      )}
+      {formatValue(value)}
     </div>
   );
 };
