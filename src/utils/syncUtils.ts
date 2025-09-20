@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 export const markPayeeAsSynced = async (payeeId: string) => {
   const { error } = await supabase
@@ -13,7 +12,7 @@ export const markPayeeAsSynced = async (payeeId: string) => {
   return { error };
 };
 
-// Removed duplicate markVendorAsSynced - use markPayeeAsSynced instead
+
 
 export const markProjectAsSynced = async (projectId: string) => {
   const { error } = await supabase
@@ -39,7 +38,7 @@ export const resetPayeeSyncStatus = async (payeeId: string) => {
   return { error };
 };
 
-// Removed duplicate resetVendorSyncStatus - use resetPayeeSyncStatus instead
+
 
 export const resetProjectSyncStatus = async (projectId: string) => {
   const { error } = await supabase
