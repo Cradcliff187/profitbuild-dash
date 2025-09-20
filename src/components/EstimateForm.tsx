@@ -86,8 +86,9 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
 
       setAvailableProjects(formattedProjects);
       
-      // If no projects exist and we're creating a new estimate, show project creation first
-      if (formattedProjects.length === 0 && !initialEstimate && !preselectedProjectId) {
+      // Always show project creation first for new estimates if no project is preselected
+      // This gives users a choice even if projects exist
+      if (!initialEstimate && !preselectedProjectId) {
         setShowProjectCreationFirst(true);
       }
     } catch (error) {
@@ -467,28 +468,78 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
     }
   };
 
-  // Show project creation form first if no projects exist
+  // Debug logging
+  console.log('EstimateForm Debug:', {
+    showProjectCreationFirst,
+    projectsLoading,
+    availableProjects: availableProjects.length,
+    preselectedProjectId,
+    initialEstimate: !!initialEstimate
+  });
+
+  // Show project selection/creation step first for new estimates
   if (showProjectCreationFirst && !projectsLoading) {
+    console.log('Showing project step first');
     return (
       <div className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-medium">1</span>
-              Create Project
+              Project Selection
               <span className="text-muted-foreground">→</span>
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-muted-foreground text-sm font-medium">2</span>
               <span className="text-muted-foreground">Create Estimate</span>
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              First, create a project to organize this estimate. This helps track your work and client information.
+              Choose a project for this estimate. You can select an existing project or create a new one.
             </p>
           </CardHeader>
-          <CardContent>
-            <ProjectFormInline
-              onSave={handleCreateNewProject}
-              onCancel={handleProjectCreationCancel}
-            />
+          <CardContent className="space-y-4">
+            {/* Show existing projects if available */}
+            {availableProjects.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-medium">Select Existing Project</h3>
+                <ProjectSelectorNew
+                  projects={availableProjects}
+                  selectedProject={selectedProject}
+                  onSelect={(project) => {
+                    handleProjectSelect(project);
+                    setShowProjectCreationFirst(false);
+                    setCreatedProjectFromFlow(false);
+                  }}
+                  placeholder="Choose an existing project..."
+                />
+                
+                <div className="flex items-center gap-4">
+                  <hr className="flex-1" />
+                  <span className="text-sm text-muted-foreground">or</span>
+                  <hr className="flex-1" />
+                </div>
+              </div>
+            )}
+            
+            {/* Create new project option */}
+            <div className="space-y-3">
+              <h3 className="font-medium">Create New Project</h3>
+              <ProjectFormInline
+                onSave={handleCreateNewProject}
+                onCancel={handleProjectCreationCancel}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // If still loading projects, show loading state
+  if (projectsLoading && !preselectedProjectId && !initialEstimate) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center">Loading projects...</div>
           </CardContent>
         </Card>
       </div>
