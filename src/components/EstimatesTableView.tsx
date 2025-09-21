@@ -210,9 +210,11 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     );
   }
 
+  const EstimatesTable = FinancialTableTemplate<EstimateWithQuotes>;
+
   return (
     <div className="space-y-4">
-      <FinancialTableTemplate<EstimateWithQuotes>
+      <EstimatesTable
         data={groupedData}
         columns={columns}
         isGrouped={true}
