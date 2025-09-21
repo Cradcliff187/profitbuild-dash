@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EditableField, CalculatedField, ReadOnlyField } from "@/components/ui/field-types";
 import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
@@ -972,74 +973,79 @@ useEffect(() => {
 
           {/* Contingency Section */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="contingency-percent">Contingency %</Label>
-              <Input
-                id="contingency-percent"
-                type="number"
-                step="0.1"
-                value={contingencyPercent}
-                onChange={(e) => setContingencyPercent(parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contingency-used">Contingency Used</Label>
-              <Input
-                id="contingency-used"
-                type="number"
-                step="0.01"
-                value={contingencyUsed}
-                onChange={(e) => setContingencyUsed(parseFloat(e.target.value) || 0)}
-              />
-            </div>
+            <EditableField
+              label="Contingency %"
+              type="number"
+              step="0.1"
+              value={contingencyPercent}
+              onChange={(e) => setContingencyPercent(parseFloat(e.target.value) || 0)}
+              tooltip="Percentage added as contingency for unexpected costs"
+            />
+            <EditableField
+              label="Contingency Used"
+              type="number"
+              step="0.01"
+              value={contingencyUsed}
+              onChange={(e) => setContingencyUsed(parseFloat(e.target.value) || 0)}
+              tooltip="Amount of contingency already used in this project"
+            />
           </div>
 
-          {/* Total */}
-          <div className="space-y-4">
-            <div className="text-right space-y-2">
-              <div>
-                <div className="text-sm text-muted-foreground">Subtotal</div>
-                <div className="text-lg font-semibold">
-                  ${calculateTotal().toLocaleString('en-US', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
-                  })}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Estimated Gross Profit</div>
-                <div className={`text-lg font-semibold ${calculateGrossProfit() < 0 ? 'text-destructive' : 'text-foreground'}`}>
-                  ${calculateGrossProfit().toLocaleString('en-US', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
-                  })}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Estimated Gross Margin %</div>
-                <div className={`text-lg font-semibold ${calculateGrossMarginPercent() < 0 ? 'text-destructive' : calculateGrossMarginPercent() < 20 ? 'text-muted-foreground' : 'text-foreground'}`}>
-                  {calculateGrossMarginPercent().toFixed(1)}%
-                </div>
-              </div>
-              <div className="border-t pt-2">
-                <div className="text-sm text-muted-foreground">Contingency ({contingencyPercent}%)</div>
-                <div className="text-lg font-semibold">
-                  ${calculateContingencyAmount().toLocaleString('en-US', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
-                  })}
-                </div>
-              </div>
-              <div className="border-t pt-2">
-                <div className="text-sm text-muted-foreground">Total with Contingency</div>
-                <div className="text-2xl font-bold text-primary">
-                  ${(calculateTotal() + calculateContingencyAmount()).toLocaleString('en-US', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
-                  })}
-                </div>
-              </div>
-            </div>
+          {/* Calculated Totals */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <CalculatedField
+              label="Subtotal"
+              value={calculateTotal()}
+              prefix="$"
+              formula="Sum of all line item totals"
+              tooltip="Total of all line items before contingency"
+              variant="default"
+            />
+            
+            <CalculatedField
+              label="Estimated Gross Profit"
+              value={calculateGrossProfit()}
+              prefix="$"
+              formula="Subtotal - Total Cost"
+              tooltip="Expected profit: Subtotal minus total costs"
+              variant={calculateGrossProfit() < 0 ? "destructive" : "success"}
+            />
+            
+            <CalculatedField
+              label="Estimated Gross Margin"
+              value={`${calculateGrossMarginPercent().toFixed(1)}%`}
+              formula="(Gross Profit / Subtotal) × 100"
+              tooltip="Profit margin percentage"
+              variant={
+                calculateGrossMarginPercent() < 0 
+                  ? "destructive" 
+                  : calculateGrossMarginPercent() < 20 
+                    ? "warning" 
+                    : "success"
+              }
+            />
+            
+            <CalculatedField
+              label="Contingency Amount"
+              value={calculateContingencyAmount()}
+              prefix="$"
+              formula={`${contingencyPercent}% of Subtotal`}
+              tooltip={`Contingency amount: ${contingencyPercent}% of subtotal`}
+              variant="default"
+            />
+          </div>
+
+          {/* Final Total */}
+          <div className="border-t pt-4">
+            <CalculatedField
+              label="Total with Contingency"
+              value={calculateTotal() + calculateContingencyAmount()}
+              prefix="$"
+              formula="Subtotal + Contingency Amount"
+              tooltip="Final estimate total including contingency"
+              variant="success"
+              className="text-center"
+            />
           </div>
 
           {/* Actions */}

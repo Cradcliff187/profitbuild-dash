@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { EditableField, CalculatedField } from "@/components/ui/field-types";
 import { LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 
 interface LineItemRowProps {
@@ -110,43 +111,46 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
 
         {/* Main Numbers Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Quantity</label>
-            <Input
-              type="number"
-              placeholder="Qty"
-              value={lineItem.quantity || ''}
-              onChange={(e) => handleQuantityChange(e.target.value)}
-              min="0"
-              step="0.01"
-            />
-          </div>
+          <EditableField
+            label="Quantity"
+            type="number"
+            placeholder="Qty"
+            value={lineItem.quantity || ''}
+            onChange={(e) => handleQuantityChange(e.target.value)}
+            min="0"
+            step="0.01"
+            required
+            tooltip="Enter the quantity needed for this line item"
+          />
           
-          <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Price/Unit</label>
-            <Input
-              type="number"
-              placeholder="Price per Unit"
-              value={lineItem.pricePerUnit || ''}
-              onChange={(e) => handlePriceChange(e.target.value)}
-              min="0"
-              step="0.01"
-            />
-          </div>
+          <EditableField
+            label="Price/Unit"
+            type="number"
+            placeholder="Price per Unit"
+            value={lineItem.pricePerUnit || ''}
+            onChange={(e) => handlePriceChange(e.target.value)}
+            min="0"
+            step="0.01"
+            required
+            tooltip="Enter the price per unit (what you'll charge the client)"
+          />
           
-          <div className="flex flex-col justify-center">
-            <label className="text-xs font-medium text-muted-foreground">Total</label>
-            <div className="font-semibold text-lg">${lineItem.total.toFixed(2)}</div>
-          </div>
+          <CalculatedField
+            label="Total"
+            value={lineItem.total}
+            prefix="$"
+            formula="Quantity × Price per Unit"
+            tooltip="Automatically calculated: Quantity × Price per Unit"
+            variant={lineItem.total > 0 ? "success" : "default"}
+          />
           
-          <div className="flex flex-col justify-center">
-            <label className="text-xs font-medium text-muted-foreground">Margin</label>
-            {marginPercent > 0 && (
-              <Badge variant={marginPercent >= 20 ? "default" : marginPercent >= 10 ? "secondary" : "destructive"} className="text-xs w-fit">
-                {marginPercent.toFixed(0)}%
-              </Badge>
-            )}
-          </div>
+          <CalculatedField
+            label="Margin"
+            value={marginPercent > 0 ? `${marginPercent.toFixed(0)}%` : "0%"}
+            formula="(Price - Cost) / Price × 100"
+            tooltip="Profit margin percentage on this line item"
+            variant={marginPercent >= 20 ? "success" : marginPercent >= 10 ? "warning" : "destructive"}
+          />
         </div>
       </div>
 
@@ -157,27 +161,33 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
         
         {/* Cost Input */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Cost per Unit</label>
-            <Input
-              type="number"
-              placeholder="0.00"
-              value={lineItem.costPerUnit || ''}
-              onChange={(e) => handleCostChange(e.target.value)}
-              min="0"
-              step="0.01"
-            />
-          </div>
+          <EditableField
+            label="Cost per Unit"
+            type="number"
+            placeholder="0.00"
+            value={lineItem.costPerUnit || ''}
+            onChange={(e) => handleCostChange(e.target.value)}
+            min="0"
+            step="0.01"
+            tooltip="Enter your actual cost for this item (what you pay)"
+          />
           
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <div className="text-xs text-muted-foreground">Total Cost</div>
-              <div className="font-medium">${(lineItem.totalCost || 0).toFixed(2)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Total Markup</div>
-              <div className="font-medium text-green-600">${(lineItem.totalMarkup || 0).toFixed(2)}</div>
-            </div>
+          <div className="grid grid-cols-2 gap-2">
+            <CalculatedField
+              label="Total Cost"
+              value={lineItem.totalCost || 0}
+              prefix="$"
+              formula="Quantity × Cost per Unit"
+              tooltip="Total cost: Quantity × Cost per Unit"
+            />
+            <CalculatedField
+              label="Total Markup"
+              value={lineItem.totalMarkup || 0}
+              prefix="$"
+              formula="Quantity × (Price - Cost)"
+              tooltip="Total markup: Quantity × (Price per Unit - Cost per Unit)"
+              variant="success"
+            />
           </div>
         </div>
         
@@ -207,25 +217,26 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
             </div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">
-                {markupType === 'percent' ? 'Markup Percentage' : 'Markup Amount'}
-              </label>
-              <Input
-                type="number"
-                placeholder={markupType === 'percent' ? '15.0' : '0.00'}
-                value={markupType === 'percent' ? (lineItem.markupPercent || '') : (lineItem.markupAmount || '')}
-                onChange={(e) => handleMarkupValueChange(e.target.value)}
-                min="0"
-                step={markupType === 'percent' ? '0.1' : '0.01'}
-              />
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <EditableField
+              label={markupType === 'percent' ? 'Markup Percentage' : 'Markup Amount'}
+              type="number"
+              placeholder={markupType === 'percent' ? '15.0' : '0.00'}
+              value={markupType === 'percent' ? (lineItem.markupPercent || '') : (lineItem.markupAmount || '')}
+              onChange={(e) => handleMarkupValueChange(e.target.value)}
+              min="0"
+              step={markupType === 'percent' ? '0.1' : '0.01'}
+              tooltip={markupType === 'percent' ? 'Markup as percentage of cost' : 'Fixed markup amount added to cost'}
+            />
             
-            <div className="flex flex-col justify-center">
-              <div className="text-xs text-muted-foreground">Final Price/Unit</div>
-              <div className="font-semibold text-lg">${(lineItem.pricePerUnit || 0).toFixed(2)}</div>
-            </div>
+            <CalculatedField
+              label="Final Price/Unit"
+              value={lineItem.pricePerUnit || 0}
+              prefix="$"
+              formula={markupType === 'percent' ? 'Cost × (1 + Markup%)' : 'Cost + Markup Amount'}
+              tooltip="Final price charged to client per unit"
+              variant="success"
+            />
           </div>
         </div>
       </div>
