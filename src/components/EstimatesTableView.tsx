@@ -145,7 +145,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     },
     {
       key: 'total_amount',
-      label: 'Amount',
+      label: 'Price',
       align: 'right',
       width: '120px',
       render: (estimate) => (
