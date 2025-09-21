@@ -126,19 +126,6 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Calculator className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Estimate Families</h1>
-            <p className="text-muted-foreground">Estimates grouped by project with version history</p>
-          </div>
-        </div>
-        <Button onClick={onCreateNew} className="bg-primary hover:bg-primary/90">
-          <Plus className="h-4 w-4 mr-2" />
-          Create New Estimate
-        </Button>
-      </div>
 
       <div className="grid gap-6">
         {Object.entries(estimatesByProject).map(([projectId, projectEstimates]) => {
