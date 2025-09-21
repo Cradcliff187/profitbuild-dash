@@ -11,15 +11,26 @@ import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TR
 import { Project } from '@/types/project';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { usePagination } from '@/hooks/usePagination';
+import { CompletePagination } from '@/components/ui/complete-pagination';
 
 interface ExpensesListProps {
   expenses: Expense[];
   onEdit: (expense: Expense) => void;
   onDelete: (id: string) => void;
   onRefresh: () => void;
+  enablePagination?: boolean;
+  pageSize?: number;
 }
 
-export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEdit, onDelete, onRefresh }) => {
+export const ExpensesList: React.FC<ExpensesListProps> = ({ 
+  expenses, 
+  onEdit, 
+  onDelete, 
+  onRefresh, 
+  enablePagination = false,
+  pageSize = 25 
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<ExpenseCategory | 'All'>('All');
   const [filterTransactionType, setFilterTransactionType] = useState<TransactionType | 'All'>('All');
@@ -115,6 +126,26 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEdit, on
   };
 
   const totalAmount = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+  // Pagination
+  const {
+    currentPage,
+    totalPages,
+    startIndex,
+    endIndex,
+    goToPage,
+  } = usePagination({
+    totalItems: filteredExpenses.length,
+    pageSize,
+    initialPage: 1,
+  });
+
+  const sortedExpenses = filteredExpenses
+    .sort((a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime());
+  
+  const paginatedExpenses = enablePagination 
+    ? sortedExpenses.slice(startIndex, endIndex)
+    : sortedExpenses;
 
   return (
     <div className="space-y-6">
@@ -223,9 +254,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEdit, on
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredExpenses
-                    .sort((a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime())
-                    .map((expense) => (
+                  {paginatedExpenses.map((expense) => (
                     <TableRow key={expense.id}>
                       <TableCell>{new Date(expense.expense_date).toLocaleDateString()}</TableCell>
                       <TableCell className="font-medium">
@@ -289,6 +318,17 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEdit, on
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {enablePagination && filteredExpenses.length > pageSize && (
+            <div className="flex justify-center mt-6">
+              <CompletePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={goToPage}
+              />
             </div>
           )}
         </CardContent>

@@ -23,6 +23,8 @@ import { Project, ProjectStatus, ProjectType } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getMarginThresholdStatus, getThresholdStatusColor, getThresholdStatusLabel, formatContingencyRemaining } from "@/utils/thresholdUtils";
+import { usePagination } from "@/hooks/usePagination";
+import { CompletePagination } from "@/components/ui/complete-pagination";
 
 interface ProjectWithVariance extends Project {
   estimateTotal?: number;
@@ -39,9 +41,19 @@ interface ProjectsListProps {
   onDelete: (projectId: string) => void;
   onCreateNew: () => void;
   onRefresh: () => void;
+  enablePagination?: boolean;
+  pageSize?: number;
 }
 
-export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefresh }: ProjectsListProps) => {
+export const ProjectsList = ({ 
+  projects, 
+  onEdit, 
+  onDelete, 
+  onCreateNew, 
+  onRefresh, 
+  enablePagination = false,
+  pageSize = 12 
+}: ProjectsListProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "all">("all");
@@ -165,6 +177,23 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
     }
   });
 
+  // Pagination
+  const {
+    currentPage,
+    totalPages,
+    startIndex,
+    endIndex,
+    goToPage,
+  } = usePagination({
+    totalItems: sortedProjects.length,
+    pageSize,
+    initialPage: 1,
+  });
+
+  const paginatedProjects = enablePagination 
+    ? sortedProjects.slice(startIndex, endIndex)
+    : sortedProjects;
+
   if (projects.length === 0) {
     return (
       <Card>
@@ -283,7 +312,7 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
 
       {/* Projects Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {sortedProjects.map((project) => (
+        {paginatedProjects.map((project) => (
           <Card key={project.id} className={`hover:shadow-md transition-shadow ${getCardBorderClass(project.margin_percentage)}`}>
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
@@ -508,6 +537,17 @@ export const ProjectsList = ({ projects, onEdit, onDelete, onCreateNew, onRefres
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Pagination */}
+      {enablePagination && sortedProjects.length > pageSize && (
+        <div className="flex justify-center mt-6">
+          <CompletePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+          />
+        </div>
       )}
     </div>
   );

@@ -11,6 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import type { Database } from '@/integrations/supabase/types';
+import { usePagination } from '@/hooks/usePagination';
+import { CompletePagination } from '@/components/ui/complete-pagination';
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 
@@ -18,12 +20,16 @@ interface ChangeOrdersListProps {
   projectId: string;
   onEdit?: (changeOrder: ChangeOrder) => void;
   onCreateNew?: () => void;
+  enablePagination?: boolean;
+  pageSize?: number;
 }
 
 export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({ 
   projectId, 
   onEdit, 
-  onCreateNew 
+  onCreateNew,
+  enablePagination = false,
+  pageSize = 20
 }) => {
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,6 +168,23 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
   const totalMarginImpact = approvedChangeOrders.reduce((sum, co) => sum + (co.margin_impact || 0), 0);
   const overallMarginPercentage = totalClientAmount > 0 ? (totalMarginImpact / totalClientAmount) * 100 : 0;
 
+  // Pagination
+  const {
+    currentPage,
+    totalPages,
+    startIndex,
+    endIndex,
+    goToPage,
+  } = usePagination({
+    totalItems: filteredChangeOrders.length,
+    pageSize,
+    initialPage: 1,
+  });
+
+  const paginatedChangeOrders = enablePagination 
+    ? filteredChangeOrders.slice(startIndex, endIndex)
+    : filteredChangeOrders;
+
   if (loading) {
     return (
       <Card>
@@ -227,7 +250,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredChangeOrders.map((changeOrder) => (
+                  {paginatedChangeOrders.map((changeOrder) => (
                     <TableRow key={changeOrder.id}>
                       <TableCell className="font-medium">
                         {changeOrder.change_order_number}
@@ -421,6 +444,17 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Pagination */}
+          {enablePagination && filteredChangeOrders.length > pageSize && (
+            <div className="flex justify-center mt-6">
+              <CompletePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={goToPage}
+              />
+            </div>
           )}
         </CardContent>
       </Card>
