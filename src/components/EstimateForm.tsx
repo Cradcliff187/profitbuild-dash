@@ -367,7 +367,8 @@ useEffect(() => {
 
           const { error: lineItemsError } = await supabase
             .from('estimate_line_items')
-            .insert(lineItemsData);
+            .insert(lineItemsData)
+            .select('id, estimate_id, category, description, quantity, rate, price_per_unit, unit, sort_order, cost_per_unit, markup_percent, markup_amount, created_at');
 
           if (lineItemsError) throw lineItemsError;
 
@@ -436,7 +437,8 @@ useEffect(() => {
 
           const { error: lineItemsError } = await supabase
             .from('estimate_line_items')
-            .insert(lineItemsData);
+            .insert(lineItemsData)
+            .select('id, estimate_id, category, description, quantity, rate, price_per_unit, unit, sort_order, cost_per_unit, markup_percent, markup_amount, created_at');
 
           if (lineItemsError) throw lineItemsError;
 
@@ -532,7 +534,8 @@ useEffect(() => {
 
           const { error: lineItemsError } = await supabase
             .from('estimate_line_items')
-            .insert(lineItemsData);
+            .insert(lineItemsData)
+            .select('id, estimate_id, category, description, quantity, rate, price_per_unit, unit, sort_order, cost_per_unit, markup_percent, markup_amount, created_at');
 
           if (lineItemsError) throw lineItemsError;
 
@@ -628,7 +631,8 @@ useEffect(() => {
 
           const { error: lineItemsError } = await supabase
             .from('estimate_line_items')
-            .insert(lineItemsData);
+            .insert(lineItemsData)
+            .select('id, estimate_id, category, description, quantity, rate, price_per_unit, unit, sort_order, cost_per_unit, markup_percent, markup_amount, created_at');
 
           if (lineItemsError) {
             console.error('Database error creating line items:', lineItemsError);
