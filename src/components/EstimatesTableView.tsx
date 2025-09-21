@@ -7,6 +7,11 @@ import { Estimate } from "@/types/estimate";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
 import { BudgetComparisonBadge, BudgetComparisonStatus } from "./BudgetComparisonBadge";
 import { cn } from "@/lib/utils";
+import { 
+  calculateEstimateFinancials, 
+  getMarginPerformanceStatus, 
+  getMarkupPerformanceStatus 
+} from "@/utils/estimateFinancials";
 
 type EstimateWithQuotes = Estimate & { quotes?: Array<{ id: string; total_amount: number }> };
 
@@ -148,6 +153,95 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
           ${estimate.total_amount.toLocaleString()}
         </div>
       ),
+    },
+    {
+      key: 'total_cost',
+      label: 'Cost',
+      align: 'right',
+      width: '110px',
+      render: (estimate) => {
+        const financials = calculateEstimateFinancials(estimate.lineItems);
+        return (
+          <div className="text-sm tabular-nums text-foreground/80">
+            ${financials.totalCost.toLocaleString()}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'gross_profit',
+      label: 'Profit',
+      align: 'right',
+      width: '110px',
+      render: (estimate) => {
+        const financials = calculateEstimateFinancials(estimate.lineItems);
+        return (
+          <div className={cn(
+            "text-sm tabular-nums font-medium",
+            financials.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'
+          )}>
+            ${financials.grossProfit.toLocaleString()}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'gross_margin_percent',
+      label: 'Margin %',
+      align: 'center',
+      width: '90px',
+      render: (estimate) => {
+        const financials = calculateEstimateFinancials(estimate.lineItems);
+        const status = getMarginPerformanceStatus(financials.grossMarginPercent);
+        
+        return (
+          <div className={cn(
+            "text-sm font-semibold tabular-nums",
+            status === 'excellent' && 'text-green-700',
+            status === 'good' && 'text-blue-700',
+            status === 'poor' && 'text-yellow-700',
+            status === 'critical' && 'text-red-700'
+          )}>
+            {financials.grossMarginPercent.toFixed(1)}%
+          </div>
+        );
+      },
+    },
+    {
+      key: 'markup_percent',
+      label: 'Markup %',
+      align: 'center',
+      width: '90px',
+      render: (estimate) => {
+        const financials = calculateEstimateFinancials(estimate.lineItems);
+        const status = getMarkupPerformanceStatus(financials.averageMarkupPercent);
+        
+        return (
+          <div className={cn(
+            "text-sm tabular-nums",
+            status === 'excellent' && 'text-green-700',
+            status === 'good' && 'text-blue-700',
+            status === 'poor' && 'text-yellow-700',
+            status === 'critical' && 'text-red-700'
+          )}>
+            {financials.averageMarkupPercent.toFixed(1)}%
+          </div>
+        );
+      },
+    },
+    {
+      key: 'markup_amount',
+      label: 'Markup $',
+      align: 'right',
+      width: '100px',
+      render: (estimate) => {
+        const financials = calculateEstimateFinancials(estimate.lineItems);
+        return (
+          <div className="text-sm tabular-nums text-foreground/80">
+            ${financials.totalMarkupAmount.toLocaleString()}
+          </div>
+        );
+      },
     },
     {
       key: 'budget_status',
