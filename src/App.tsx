@@ -28,13 +28,13 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="min-h-screen bg-background">
+          <div className="min-h-screen bg-background mobile-container">
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/*" element={
                 <ProtectedRoute>
                   <Navigation />
-                  <main className="container mx-auto px-4 py-8">
+                  <main className="w-full mobile-safe-padding py-4 sm:py-6 md:py-8">
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
                       <Route path="/dashboard" element={<Navigate to="/" replace />} />

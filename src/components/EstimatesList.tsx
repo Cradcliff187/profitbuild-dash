@@ -125,9 +125,9 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mobile-container space-y-6">
 
-      <div className="grid gap-6">
+      <div className="space-y-6">
         {Object.entries(estimatesByProject).map(([projectId, projectEstimates]) => {
           const currentVersion = projectEstimates.find(e => e.is_current_version) || projectEstimates[0];
           const previousVersions = projectEstimates.filter(e => !e.is_current_version);
@@ -136,24 +136,26 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
           const bestQuoteVariance = getBestQuoteVariance(currentVersion);
           
           return (
-            <Card key={projectId} className="overflow-hidden border-2 border-primary/10">
+            <Card key={projectId} className="mobile-card overflow-hidden border-2 border-primary/10">
               <CardHeader className="pb-4 bg-gradient-to-r from-primary/5 to-transparent">
-                <div className="flex items-start justify-between">
+                <div className="space-y-3">
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-3">
-                      <CardTitle className="text-xl">{currentVersion.project_name}</CardTitle>
-                      <Badge className="bg-primary text-primary-foreground font-semibold">
-                        v{currentVersion.version_number || 1}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs border-green-200 text-green-700 bg-green-50">
-                        Current Version
-                      </Badge>
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <CardTitle className="text-lg sm:text-xl mobile-text-safe flex-1 min-w-0">{currentVersion.project_name}</CardTitle>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Badge className="bg-primary text-primary-foreground font-semibold text-xs">
+                          v{currentVersion.version_number || 1}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs border-green-200 text-green-700 bg-green-50">
+                          Current
+                        </Badge>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {currentVersion.client_name} • {projectEstimates.length} version{projectEstimates.length !== 1 ? 's' : ''}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="mobile-button-group">
                     <Button 
                       size="sm" 
                       onClick={() => window.location.href = `/estimates?project=${projectId}`}
@@ -168,13 +170,13 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
 
               <CardContent className="space-y-4">
                 {/* Current Version Details */}
-                <div className="bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
+                <div className="bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-lg p-3 sm:p-4">
+                  <div className="space-y-3">
                     <div className="space-y-2">
-                      <div className="flex items-center space-x-3">
-                        <h3 className="font-bold text-foreground text-lg">Latest Version</h3>
-                        <div className="flex items-center space-x-2">
-                          <Badge className="bg-primary text-primary-foreground font-bold text-sm px-3 py-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <h3 className="font-bold text-foreground text-base sm:text-lg">Latest Version</h3>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge className="bg-primary text-primary-foreground font-bold text-xs px-2 py-1">
                             Version {currentVersion.version_number || 1}
                           </Badge>
                           <Badge variant="outline" className={`text-xs capitalize ${
@@ -186,35 +188,36 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
                           </Badge>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                        <span>{currentVersion.estimate_number}</span>
+                      <div className="flex flex-wrap gap-2 text-xs sm:text-sm text-muted-foreground">
+                        <span className="break-all">{currentVersion.estimate_number}</span>
                         <span>•</span>
                         <span>Created {format(currentVersion.date_created, 'MMM dd, yyyy')}</span>
                         {currentVersion.contingency_percent > 0 && (
                           <>
                             <span>•</span>
-                            <span>Contingency: {formatContingencyDisplay(currentVersion)}</span>
+                            <span className="break-words">Contingency: {formatContingencyDisplay(currentVersion)}</span>
                           </>
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold text-foreground">
-                        ${currentVersion.total_amount.toLocaleString()}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <div className="text-2xl sm:text-3xl font-bold text-foreground">
+                          ${currentVersion.total_amount.toLocaleString()}
+                        </div>
+                        <div className="text-xs sm:text-sm text-muted-foreground">Total Amount</div>
                       </div>
-                      <div className="text-sm text-muted-foreground">Total Amount</div>
                     </div>
-                  </div>
 
                   {/* Budget Comparison */}
                   {(quoteStatus !== 'awaiting-quotes') && (
-                    <div className="mt-4 pt-4 border-t border-primary/20">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-foreground">Budget vs Actual:</span>
-                        <div className="flex items-center space-x-2">
+                    <div className="pt-3 border-t border-primary/20">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <span className="text-xs sm:text-sm font-medium text-foreground">Budget vs Actual:</span>
+                        <div className="flex items-center gap-2">
                           <BudgetComparisonBadge status={quoteStatus} />
                           {bestQuoteVariance && (
-                            <span className={`text-sm font-semibold ${
+                            <span className={`text-xs sm:text-sm font-semibold ${
                               bestQuoteVariance.variance < 0 ? 'text-green-700' : 'text-red-700'
                             }`}>
                               {bestQuoteVariance.variance < 0 ? '-' : '+'}${Math.abs(bestQuoteVariance.variance).toLocaleString()}
@@ -226,38 +229,35 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onView(currentVersion)}
-                        className="border-primary/20 hover:bg-primary/5"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View Details
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onEdit(currentVersion)}
-                        className="border-primary/20 hover:bg-primary/5"
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Version
-                      </Button>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => window.location.href = `/estimates?project=${projectId}`}
-                        className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Version
-                      </Button>
-                    </div>
+                  <div className="mobile-button-group pt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onView(currentVersion)}
+                      className="border-primary/20 hover:bg-primary/5"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Details
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEdit(currentVersion)}
+                      className="border-primary/20 hover:bg-primary/5"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Version
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => window.location.href = `/estimates?project=${projectId}`}
+                      className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Version
+                    </Button>
+                  </div>
                   </div>
                 </div>
 

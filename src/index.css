@@ -129,3 +129,50 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Mobile-first responsive utilities */
+@layer utilities {
+  /* Prevent horizontal overflow globally */
+  .mobile-container {
+    @apply w-full max-w-full overflow-x-hidden;
+  }
+  
+  /* Mobile-friendly padding and spacing */
+  .mobile-safe-padding {
+    @apply px-3 sm:px-4 md:px-6 lg:px-8;
+  }
+  
+  /* Responsive flex layouts */
+  .mobile-flex {
+    @apply flex flex-col gap-2 sm:flex-row sm:gap-4;
+  }
+  
+  /* Mobile-friendly card layouts */
+  .mobile-card {
+    @apply w-full min-w-0 break-words;
+  }
+  
+  /* Mobile table wrapper */
+  .mobile-table-wrapper {
+    @apply w-full overflow-x-auto -mx-3 sm:mx-0;
+  }
+  
+  .mobile-table-wrapper table {
+    @apply min-w-full;
+  }
+  
+  /* Mobile button groups */
+  .mobile-button-group {
+    @apply flex flex-col gap-2 w-full sm:flex-row sm:gap-2 sm:w-auto;
+  }
+  
+  /* Mobile grid responsive */
+  .mobile-grid {
+    @apply grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3;
+  }
+  
+  /* Text overflow handling */
+  .mobile-text-safe {
+    @apply text-sm sm:text-base overflow-hidden text-ellipsis;
+  }
+}

@@ -83,53 +83,60 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="space-y-4">
             <CardTitle className="flex items-center space-x-2">
               <Search className="h-5 w-5" />
-              <span>Search & Filter Estimates</span>
+              <span className="mobile-text-safe">Search & Filter Estimates</span>
             </CardTitle>
-            <div className="flex items-center space-x-2">
+            <div className="mobile-button-group">
               {resultCount !== undefined && (
-                <Badge variant="secondary">{resultCount} results</Badge>
+                <Badge variant="secondary" className="w-fit">{resultCount} results</Badge>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowExportModal(true)}
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Export
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsExpanded(!isExpanded)}
-              >
-                <Filter className="h-4 w-4 mr-1" />
-                {isExpanded ? 'Hide Filters' : 'Show Filters'}
-              </Button>
+              <div className="mobile-flex">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowExportModal(true)}
+                  className="flex-1 sm:flex-none"
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="flex-1 sm:flex-none"
+                >
+                  <Filter className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">{isExpanded ? 'Hide Filters' : 'Show Filters'}</span>
+                  <span className="sm:hidden">{isExpanded ? 'Hide' : 'Filters'}</span>
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Quick Search */}
-          <div className="flex space-x-2">
+          <div className="space-y-3">
             <Input
               placeholder="Search estimates, projects, clients..."
               value={filters.searchText}
               onChange={(e) => updateFilters({ searchText: e.target.value })}
-              className="flex-1"
+              className="w-full"
             />
-            <Button onClick={onSearch}>
-              <Search className="h-4 w-4 mr-1" />
-              Search
-            </Button>
-            {hasActiveFilters() && (
-              <Button variant="outline" onClick={onReset}>
-                <X className="h-4 w-4 mr-1" />
-                Reset
+            <div className="mobile-button-group">
+              <Button onClick={onSearch} className="flex-1 sm:flex-none">
+                <Search className="h-4 w-4 mr-1" />
+                Search
               </Button>
-            )}
+              {hasActiveFilters() && (
+                <Button variant="outline" onClick={onReset} className="flex-1 sm:flex-none">
+                  <X className="h-4 w-4 mr-1" />
+                  Reset
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Status Badges */}
@@ -150,7 +157,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
 
           {/* Expanded Filters */}
           {isExpanded && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t">
+            <div className="mobile-grid pt-4 border-t">
               {/* Status Multi-Select */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>
@@ -201,10 +208,10 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
               {/* Date Range */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Date Range</label>
-                <div className="flex space-x-2">
+                <div className="mobile-flex">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button variant="outline" size="sm" className="w-full justify-start">
                         <Calendar className="h-4 w-4 mr-1" />
                         {filters.dateRange.start ? format(filters.dateRange.start, "MMM dd") : "Start"}
                       </Button>
@@ -222,7 +229,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
                   </Popover>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button variant="outline" size="sm" className="w-full justify-start">
                         <Calendar className="h-4 w-4 mr-1" />
                         {filters.dateRange.end ? format(filters.dateRange.end, "MMM dd") : "End"}
                       </Button>
@@ -244,7 +251,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
               {/* Amount Range */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Amount Range</label>
-                <div className="flex space-x-2">
+                <div className="mobile-flex">
                   <Input
                     type="number"
                     placeholder="Min"
