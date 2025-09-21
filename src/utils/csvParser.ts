@@ -274,12 +274,16 @@ const createPayeeFromTransaction = async (
     
     return error ? null : data.id;
   } catch (error) {
-    console.error('Error creating payee:', error);
+    console.error('Error creating payee from transaction:', error);
     return null;
   }
 };
 
-// Detect potential duplicates in transaction data
+/**
+ * Detects and filters duplicate transactions based on date, amount, and name
+ * @param transactions - Array of QuickBooks transactions to check for duplicates
+ * @returns Array of unique transactions with duplicates filtered out
+ */
 const detectDuplicates = (transactions: QBTransaction[]) => {
   const seen = new Map<string, QBTransaction>();
   const duplicates: Array<{ transaction: QBTransaction; reason: string }> = [];
@@ -301,7 +305,11 @@ const detectDuplicates = (transactions: QBTransaction[]) => {
   });
 };
 
-// Parse QuickBooks CSV (skip first 4 rows)
+/**
+ * Parses QuickBooks CSV file, skipping the first 4 header rows
+ * @param file - The CSV file to parse
+ * @returns Promise resolving to parsed QuickBooks data with errors
+ */
 export const parseQuickBooksCSV = (file: File): Promise<QBParseResult> => {
   return new Promise((resolve) => {
     Papa.parse(file, {
@@ -366,7 +374,13 @@ const mapQBTransactionType = (qbType: string): TransactionType => {
   return 'expense'; // default
 };
 
-// Map QuickBooks transactions to expenses
+/**
+ * Maps QuickBooks transactions to internal expense format with duplicate detection
+ * and payee matching including fuzzy matching and auto-creation
+ * @param transactions - Array of QuickBooks transactions to process
+ * @param fileName - Name of the source file for reference
+ * @returns Promise resolving to comprehensive import result with statistics
+ */
 export const mapQuickBooksToExpenses = async (
   transactions: QBTransaction[],
   fileName: string

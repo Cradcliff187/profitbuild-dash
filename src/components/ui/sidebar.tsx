@@ -40,6 +40,12 @@ function useSidebar() {
   return context;
 }
 
+/**
+ * SidebarProvider component that manages sidebar state and provides context
+ * @param defaultOpen - Initial open state (default: true)
+ * @param open - Controlled open state
+ * @param onOpenChange - Callback when open state changes
+ */
 const SidebarProvider = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
