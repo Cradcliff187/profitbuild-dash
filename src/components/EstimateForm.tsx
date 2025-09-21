@@ -21,6 +21,7 @@ import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
 import { LineItemRow } from "@/components/LineItemRow";
 import { LineItemTable } from "@/components/LineItemTable";
 import { LineItemDetailModal } from "@/components/LineItemDetailModal";
+import { EstimateStatusActions } from "@/components/EstimateStatusActions";
 
 
 
@@ -1059,6 +1060,19 @@ useEffect(() => {
               Cancel
             </Button>
           </div>
+
+          {/* Status Actions - Only show for existing estimates */}
+          {initialEstimate && (
+            <div className="border-t pt-4 mt-4">
+              <div className="flex justify-center">
+                <EstimateStatusActions
+                  estimateId={initialEstimate.id}
+                  currentStatus={status}
+                  onStatusUpdate={(newStatus) => setStatus(newStatus)}
+                />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
