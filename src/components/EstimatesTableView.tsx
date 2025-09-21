@@ -1,11 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { Plus, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Estimate } from "@/types/estimate";
+import { Estimate, EstimateStatus } from "@/types/estimate";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
 import { BudgetComparisonBadge, BudgetComparisonStatus } from "./BudgetComparisonBadge";
+import { EstimateStatusActions } from "./EstimateStatusActions";
 import { cn } from "@/lib/utils";
 import { 
   calculateEstimateFinancials, 
@@ -24,8 +25,25 @@ interface EstimatesTableViewProps {
 }
 
 export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesTableViewProps) => {
+  const [localEstimates, setLocalEstimates] = useState(estimates);
+
+  // Update local state when estimates prop changes
+  React.useEffect(() => {
+    setLocalEstimates(estimates);
+  }, [estimates]);
+
+  const handleStatusUpdate = (estimateId: string, newStatus: EstimateStatus) => {
+    setLocalEstimates(prev => 
+      prev.map(est => 
+        est.id === estimateId 
+          ? { ...est, status: newStatus }
+          : est
+      )
+    );
+  };
+
   // Group estimates by project
-  const estimatesByProject = estimates.reduce((groups, estimate) => {
+  const estimatesByProject = localEstimates.reduce((groups, estimate) => {
     const projectKey = estimate.project_id;
     if (!groups[projectKey]) {
       groups[projectKey] = [];
@@ -288,9 +306,22 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         );
       },
     },
+    {
+      key: 'status_actions',
+      label: 'Actions',
+      align: 'center',
+      width: '140px',
+      render: (estimate) => (
+        <EstimateStatusActions
+          estimateId={estimate.id}
+          currentStatus={estimate.status}
+          onStatusUpdate={(newStatus) => handleStatusUpdate(estimate.id, newStatus)}
+        />
+      ),
+    },
   ];
 
-  if (estimates.length === 0) {
+  if (localEstimates.length === 0) {
     return (
       <div className="text-center py-12">
         <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -319,6 +350,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         className="bg-card shadow-sm"
         emptyMessage="No estimates found"
         emptyIcon={<FileText className="h-16 w-16 text-muted-foreground opacity-50" />}
+        showActions={false}
       />
     </div>
   );

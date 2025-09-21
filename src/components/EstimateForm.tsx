@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EditableField, CalculatedField, ReadOnlyField } from "@/components/ui/field-types";
-import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
+import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP, EstimateStatus } from "@/types/estimate";
 import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +45,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [contingencyPercent, setContingencyPercent] = useState(initialEstimate?.contingency_percent || 10.0);
   const [contingencyUsed, setContingencyUsed] = useState(initialEstimate?.contingency_used || 0);
+  const [status, setStatus] = useState<EstimateStatus>(initialEstimate?.status || 'draft');
   const [isLoading, setIsLoading] = useState(false);
   const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
