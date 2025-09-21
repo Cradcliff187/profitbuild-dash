@@ -14,6 +14,8 @@ import { BudgetComparisonBadge, BudgetComparisonStatus } from "@/components/Budg
 import { VarianceBadge } from "@/components/ui/variance-badge";
 import { EstimateVersionManager } from "./EstimateVersionManager";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { EstimatesTableView } from "./EstimatesTableView";
 
 interface EstimatesListProps {
   estimates: (Estimate & { quotes?: Array<{ id: string; total_amount: number }> })[];
@@ -24,6 +26,21 @@ interface EstimatesListProps {
 }
 
 export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesListProps) => {
+  const { toast } = useToast();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [estimateToDelete, setEstimateToDelete] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+  
+  // If mobile, show card layout; if desktop, show table layout
+  if (isMobile) {
+    return <EstimatesCardView estimates={estimates} onEdit={onEdit} onDelete={onDelete} onView={onView} onCreateNew={onCreateNew} />;
+  }
+  
+  return <EstimatesTableView estimates={estimates} onEdit={onEdit} onDelete={onDelete} onView={onView} onCreateNew={onCreateNew} />;
+};
+
+// Extract card view into separate component for cleaner organization
+const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesListProps) => {
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [estimateToDelete, setEstimateToDelete] = useState<string | null>(null);
