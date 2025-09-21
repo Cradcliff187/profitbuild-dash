@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { LineItem, LineItemCategory } from "@/types/estimate";
+import { LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 
 interface LineItemRowProps {
   lineItem: LineItem;
@@ -13,11 +13,13 @@ interface LineItemRowProps {
 }
 
 const categoryColors = {
-  "Labor (Internal)": "border-l-blue-500",
-  "Subcontractors": "border-l-amber-500",
-  Materials: "border-l-green-500", 
-  Equipment: "border-l-orange-500",
-  Other: "border-l-purple-500"
+  [LineItemCategory.LABOR]: "border-l-blue-500",
+  [LineItemCategory.SUBCONTRACTOR]: "border-l-amber-500",
+  [LineItemCategory.MATERIALS]: "border-l-green-500", 
+  [LineItemCategory.EQUIPMENT]: "border-l-orange-500",
+  [LineItemCategory.PERMITS]: "border-l-violet-500",
+  [LineItemCategory.MANAGEMENT]: "border-l-indigo-500",
+  [LineItemCategory.OTHER]: "border-l-purple-500"
 };
 
 type MarkupType = 'percent' | 'amount';
@@ -72,14 +74,18 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
           <div className="sm:w-48">
             <Select value={lineItem.category} onValueChange={(value: LineItemCategory) => onUpdate(lineItem.id, 'category', value)}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select category">
+                  {lineItem.category && CATEGORY_DISPLAY_MAP[lineItem.category]}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Labor (Internal)">Labor (Internal)</SelectItem>
-                <SelectItem value="Subcontractors">Subcontractors</SelectItem>
-                <SelectItem value="Materials">Materials</SelectItem>
-                <SelectItem value="Equipment">Equipment</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+                <SelectItem value={LineItemCategory.LABOR}>{CATEGORY_DISPLAY_MAP[LineItemCategory.LABOR]}</SelectItem>
+                <SelectItem value={LineItemCategory.SUBCONTRACTOR}>{CATEGORY_DISPLAY_MAP[LineItemCategory.SUBCONTRACTOR]}</SelectItem>
+                <SelectItem value={LineItemCategory.MATERIALS}>{CATEGORY_DISPLAY_MAP[LineItemCategory.MATERIALS]}</SelectItem>
+                <SelectItem value={LineItemCategory.EQUIPMENT}>{CATEGORY_DISPLAY_MAP[LineItemCategory.EQUIPMENT]}</SelectItem>
+                <SelectItem value={LineItemCategory.PERMITS}>{CATEGORY_DISPLAY_MAP[LineItemCategory.PERMITS]}</SelectItem>
+                <SelectItem value={LineItemCategory.MANAGEMENT}>{CATEGORY_DISPLAY_MAP[LineItemCategory.MANAGEMENT]}</SelectItem>
+                <SelectItem value={LineItemCategory.OTHER}>{CATEGORY_DISPLAY_MAP[LineItemCategory.OTHER]}</SelectItem>
               </SelectContent>
             </Select>
           </div>
