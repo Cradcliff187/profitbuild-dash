@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import WorkOrdersList from "@/components/WorkOrdersList";
@@ -330,9 +331,10 @@ const Dashboard = () => {
   if (isLoading) {
     return (
       <div className="space-y-8">
-        <div className="flex justify-center items-center py-12">
-          <div className="text-muted-foreground">Loading dashboard data...</div>
-        </div>
+        <LoadingSpinner 
+          variant="page" 
+          message="Loading dashboard data..." 
+        />
       </div>
     );
   }

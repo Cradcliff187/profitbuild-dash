@@ -6,6 +6,7 @@ import { EstimateSearchFilters, type SearchFilters } from "@/components/Estimate
 import { EstimateFamilyAnalyticsDashboard } from "@/components/EstimateFamilyAnalyticsDashboard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Estimate } from "@/types/estimate";
@@ -292,12 +293,11 @@ const EstimatesPage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Loading estimates...</p>
-        </div>
-      </div>
+      <LoadingSpinner 
+        variant="spinner" 
+        size="full" 
+        message="Loading estimates..." 
+      />
     );
   }
 

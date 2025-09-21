@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Eye, Edit2, Trash2 } from 'lucide-react';
 import { CompletePagination } from '@/components/ui/complete-pagination';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { usePagination } from '@/hooks/usePagination';
 
 interface Column {
@@ -81,7 +82,14 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
   const totalPages = Math.ceil(data.length / pageSize);
 
   if (isLoading) {
-    return <div className="flex justify-center py-8">Loading...</div>;
+    return (
+      <LoadingSpinner 
+        variant="spinner" 
+        size="md" 
+        message="Loading..." 
+        className="py-8" 
+      />
+    );
   }
 
   const allSelected = displayedData.length > 0 && selectedItems.length === displayedData.length;
