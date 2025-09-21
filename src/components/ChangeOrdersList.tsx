@@ -102,7 +102,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
         .update({
           status: 'approved',
           approved_date: new Date().toISOString().split('T')[0],
-          approved_by: 'current-user-placeholder' // TODO: Replace with actual user ID when auth is implemented
+          approved_by: null // Will be updated when auth system is implemented
         })
         .eq('id', changeOrder.id);
 
@@ -110,7 +110,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
 
       setChangeOrders(prev => prev.map(co => 
         co.id === changeOrder.id 
-          ? { ...co, status: 'approved', approved_date: new Date().toISOString().split('T')[0], approved_by: 'current-user-placeholder' }
+          ? { ...co, status: 'approved', approved_date: new Date().toISOString().split('T')[0], approved_by: null }
           : co
       ));
       

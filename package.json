@@ -42,6 +42,7 @@
     "@supabase/supabase-js": "^2.57.4",
     "@tanstack/react-query": "^5.83.0",
     "@types/papaparse": "^5.3.16",
+    "@typescript-eslint/eslint-plugin": "^8.44.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
