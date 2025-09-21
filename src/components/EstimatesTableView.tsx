@@ -8,8 +8,10 @@ import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } fro
 import { BudgetComparisonBadge, BudgetComparisonStatus } from "./BudgetComparisonBadge";
 import { cn } from "@/lib/utils";
 
+type EstimateWithQuotes = Estimate & { quotes?: Array<{ id: string; total_amount: number }> };
+
 interface EstimatesTableViewProps {
-  estimates: (Estimate & { quotes?: Array<{ id: string; total_amount: number }> })[];
+  estimates: EstimateWithQuotes[];
   onEdit: (estimate: Estimate) => void;
   onDelete: (id: string) => void;
   onView: (estimate: Estimate) => void;
@@ -25,14 +27,14 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     }
     groups[projectKey].push(estimate);
     return groups;
-  }, {} as Record<string, typeof estimates>);
+  }, {} as Record<string, EstimateWithQuotes[]>);
 
   // Sort estimates within each project by version number (descending - newest first)
   Object.keys(estimatesByProject).forEach(projectId => {
     estimatesByProject[projectId].sort((a, b) => (b.version_number || 1) - (a.version_number || 1));
   });
 
-  const getQuoteStatus = (estimate: Estimate & { quotes?: Array<{ id: string; total_amount: number }> }): BudgetComparisonStatus => {
+  const getQuoteStatus = (estimate: EstimateWithQuotes): BudgetComparisonStatus => {
     if (!estimate.quotes || estimate.quotes.length === 0) {
       return 'awaiting-quotes';
     }
@@ -50,7 +52,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     return 'awaiting-quotes';
   };
 
-  const getBestQuoteVariance = (estimate: Estimate & { quotes?: Array<{ id: string; total_amount: number }> }) => {
+  const getBestQuoteVariance = (estimate: EstimateWithQuotes) => {
     if (!estimate.quotes || estimate.quotes.length === 0) {
       return null;
     }
@@ -64,7 +66,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
   };
 
   // Convert to grouped format for the table
-  const groupedData: FinancialTableGroup<typeof estimates[0]>[] = Object.entries(estimatesByProject).map(
+  const groupedData: FinancialTableGroup<EstimateWithQuotes>[] = Object.entries(estimatesByProject).map(
     ([projectId, projectEstimates]) => ({
       groupKey: projectId,
       groupLabel: `${projectEstimates[0].project_name} - ${projectEstimates[0].client_name}`,
@@ -74,7 +76,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     })
   );
 
-  const columns: FinancialTableColumn<typeof estimates[0]>[] = [
+  const columns: FinancialTableColumn<EstimateWithQuotes>[] = [
     {
       key: 'estimate_number',
       label: 'Estimate #',
@@ -210,7 +212,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
 
   return (
     <div className="space-y-4">
-      <FinancialTableTemplate<typeof estimates[0]>
+      <FinancialTableTemplate<EstimateWithQuotes>
         data={groupedData}
         columns={columns}
         isGrouped={true}
