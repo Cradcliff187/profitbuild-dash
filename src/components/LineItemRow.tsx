@@ -57,10 +57,6 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
     }
   };
 
-  const handlePriceChange = (value: string) => {
-    const price = parseFloat(value) || 0;
-    onUpdate(lineItem.id, 'pricePerUnit', price);
-  };
 
   const marginPercent = lineItem.pricePerUnit > 0 
     ? ((lineItem.pricePerUnit - lineItem.costPerUnit) / lineItem.pricePerUnit * 100)
@@ -110,7 +106,7 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
         </div>
 
         {/* Main Numbers Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <EditableField
             label="Quantity"
             type="number"
@@ -123,16 +119,13 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
             tooltip="Enter the quantity needed for this line item"
           />
           
-          <EditableField
+          <CalculatedField
             label="Price/Unit"
-            type="number"
-            placeholder="Price per Unit"
-            value={lineItem.pricePerUnit || ''}
-            onChange={(e) => handlePriceChange(e.target.value)}
-            min="0"
-            step="0.01"
-            required
-            tooltip="Enter the price per unit (what you'll charge the client)"
+            value={lineItem.pricePerUnit || 0}
+            prefix="$"
+            formula={markupType === 'percent' ? 'Cost × (1 + Markup%)' : 'Cost + Markup Amount'}
+            tooltip="Calculated from cost and markup - set cost and markup below to adjust this value"
+            variant="success"
           />
           
           <CalculatedField
@@ -143,13 +136,17 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
             tooltip="Automatically calculated: Quantity × Price per Unit"
             variant={lineItem.total > 0 ? "success" : "default"}
           />
-          
+        </div>
+        
+        {/* Margin Display */}
+        <div className="flex justify-center">
           <CalculatedField
             label="Margin"
             value={marginPercent > 0 ? `${marginPercent.toFixed(0)}%` : "0%"}
             formula="(Price - Cost) / Price × 100"
             tooltip="Profit margin percentage on this line item"
             variant={marginPercent >= 20 ? "success" : marginPercent >= 10 ? "warning" : "destructive"}
+            className="w-32"
           />
         </div>
       </div>
@@ -230,11 +227,11 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
             />
             
             <CalculatedField
-              label="Final Price/Unit"
-              value={lineItem.pricePerUnit || 0}
+              label="Margin per Unit"
+              value={(lineItem.pricePerUnit || 0) - (lineItem.costPerUnit || 0)}
               prefix="$"
-              formula={markupType === 'percent' ? 'Cost × (1 + Markup%)' : 'Cost + Markup Amount'}
-              tooltip="Final price charged to client per unit"
+              formula="Price per Unit - Cost per Unit"
+              tooltip="Profit margin per unit"
               variant="success"
             />
           </div>
