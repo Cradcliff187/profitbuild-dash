@@ -50,14 +50,6 @@ export const PayeeSelector = ({
     },
   });
 
-  const selectedPayee = payees.find(payee => payee.id === value);
-
-  const filteredPayees = payees.filter(payee =>
-    payee.payee_name.toLowerCase().includes(searchValue.toLowerCase()) ||
-    payee.email?.toLowerCase().includes(searchValue.toLowerCase()) ||
-    formatPayeeType(payee.payee_type).toLowerCase().includes(searchValue.toLowerCase())
-  );
-
   // Helper function to format payee type display name
   const formatPayeeType = (payeeType?: PayeeType) => {
     if (!payeeType) return 'Other';
@@ -116,6 +108,14 @@ export const PayeeSelector = ({
     }
     return name;
   };
+
+  const selectedPayee = payees.find(payee => payee.id === value);
+
+  const filteredPayees = payees.filter(payee =>
+    payee.payee_name.toLowerCase().includes(searchValue.toLowerCase()) ||
+    payee.email?.toLowerCase().includes(searchValue.toLowerCase()) ||
+    formatPayeeType(payee.payee_type).toLowerCase().includes(searchValue.toLowerCase())
+  );
 
   const handlePayeeCreated = async () => {
     setShowPayeeForm(false);
