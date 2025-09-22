@@ -596,7 +596,9 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                         <div className="text-sm space-y-1">
                           <div><strong>Description:</strong> {estimateItem.description}</div>
                           <div><strong>Quantity:</strong> {estimateItem.quantity}</div>
-                          <div><strong>Rate:</strong> ${estimateItem.pricePerUnit.toFixed(2)}</div>
+                          <div><strong>Cost:</strong> ${estimateItem.costPerUnit.toFixed(2)} per unit</div>
+                          <div><strong>Markup:</strong> {estimateItem.markupPercent !== null ? `${estimateItem.markupPercent}%` : `$${(estimateItem.markupAmount || 0).toFixed(2)}`}</div>
+                          <div><strong>Price:</strong> ${estimateItem.pricePerUnit.toFixed(2)} per unit</div>
                           <div><strong>Total:</strong> ${estimateItem.total.toFixed(2)}</div>
                         </div>
                       </div>
