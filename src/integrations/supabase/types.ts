@@ -632,41 +632,56 @@ export type Database = {
       quote_line_items: {
         Row: {
           category: Database["public"]["Enums"]["expense_category"]
+          cost_per_unit: number | null
           created_at: string | null
           description: string | null
           estimate_line_item_id: string | null
           id: string
+          markup_amount: number | null
+          markup_percent: number | null
           quantity: number | null
           quote_id: string
           rate: number | null
           sort_order: number | null
           total: number | null
+          total_cost: number | null
+          total_markup: number | null
           unit: string | null
         }
         Insert: {
           category: Database["public"]["Enums"]["expense_category"]
+          cost_per_unit?: number | null
           created_at?: string | null
           description?: string | null
           estimate_line_item_id?: string | null
           id?: string
+          markup_amount?: number | null
+          markup_percent?: number | null
           quantity?: number | null
           quote_id: string
           rate?: number | null
           sort_order?: number | null
           total?: number | null
+          total_cost?: number | null
+          total_markup?: number | null
           unit?: string | null
         }
         Update: {
           category?: Database["public"]["Enums"]["expense_category"]
+          cost_per_unit?: number | null
           created_at?: string | null
           description?: string | null
           estimate_line_item_id?: string | null
           id?: string
+          markup_amount?: number | null
+          markup_percent?: number | null
           quantity?: number | null
           quote_id?: string
           rate?: number | null
           sort_order?: number | null
           total?: number | null
+          total_cost?: number | null
+          total_markup?: number | null
           unit?: string | null
         }
         Relationships: [

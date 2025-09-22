@@ -97,7 +97,12 @@ export default function ProfitAnalysisPage() {
           description: item.description,
           quantity: item.quantity,
           pricePerUnit: item.rate,
-          total: item.total
+          total: item.total,
+          costPerUnit: item.cost_per_unit || 0,
+          markupPercent: item.markup_percent,
+          markupAmount: item.markup_amount,
+          totalCost: item.total_cost || (item.quantity * (item.cost_per_unit || 0)),
+          totalMarkup: item.total_markup || 0
         })) || [],
         subtotals: {
           labor: 0,

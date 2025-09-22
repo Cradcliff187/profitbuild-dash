@@ -63,7 +63,12 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     description: estimateItem.description,
     quantity: estimateItem.quantity,
     pricePerUnit: 0, // Reset pricePerUnit for quote entry
-    total: 0
+    total: 0,
+    costPerUnit: estimateItem.costPerUnit, // Use estimate cost as baseline
+    markupPercent: null,
+    markupAmount: null,
+    totalCost: estimateItem.quantity * estimateItem.costPerUnit,
+    totalMarkup: 0
   });
 
   const createNewQuoteLineItem = (): QuoteLineItem => ({
@@ -72,7 +77,12 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     description: '',
     quantity: 0,
     pricePerUnit: 0,
-    total: 0
+    total: 0,
+    costPerUnit: 0,
+    markupPercent: null,
+    markupAmount: null,
+    totalCost: 0,
+    totalMarkup: 0
   });
 
   useEffect(() => {
@@ -167,9 +177,34 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       prev.map(item => {
         if (item.id === id) {
           const updated = { ...item, [field]: value };
+          
+          // Recalculate total when quantity or pricePerUnit changes
           if (field === 'quantity' || field === 'pricePerUnit') {
             updated.total = updated.quantity * updated.pricePerUnit;
           }
+          
+          // Recalculate totalCost when quantity or costPerUnit changes
+          if (field === 'quantity' || field === 'costPerUnit') {
+            updated.totalCost = updated.quantity * updated.costPerUnit;
+          }
+          
+          // Recalculate totalMarkup when markup fields change
+          if (field === 'markupPercent' || field === 'markupAmount' || field === 'quantity' || field === 'costPerUnit') {
+            if (updated.markupPercent !== null && updated.markupPercent !== undefined) {
+              updated.totalMarkup = updated.quantity * updated.costPerUnit * (updated.markupPercent / 100);
+              // Update pricePerUnit based on cost + percentage markup
+              updated.pricePerUnit = updated.costPerUnit * (1 + updated.markupPercent / 100);
+              updated.total = updated.quantity * updated.pricePerUnit;
+            } else if (updated.markupAmount !== null && updated.markupAmount !== undefined) {
+              updated.totalMarkup = updated.quantity * updated.markupAmount;
+              // Update pricePerUnit based on cost + fixed markup
+              updated.pricePerUnit = updated.costPerUnit + updated.markupAmount;
+              updated.total = updated.quantity * updated.pricePerUnit;
+            } else {
+              updated.totalMarkup = 0;
+            }
+          }
+          
           return updated;
         }
         return item;
@@ -479,16 +514,6 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                   </Button>
                 </div>
 
-                {/* Line Items Header */}
-                <div className="grid grid-cols-12 gap-4 p-2 text-sm font-medium text-muted-foreground border-b">
-                  <div className="col-span-2">Category</div>
-                  <div className="col-span-4">Description</div>
-                  <div className="col-span-2">Quantity</div>
-                  <div className="col-span-2">Rate</div>
-                  <div className="col-span-1 text-right">Total</div>
-                  <div className="col-span-1"></div>
-                </div>
-
                 {/* Line Items */}
                 <div className="space-y-3">
                   {lineItems.map(lineItem => (
@@ -502,7 +527,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                 </div>
               </div>
 
-              {/* Totals */}
+              {/* Enhanced Totals */}
               <Card className="bg-muted/50">
                 <CardContent className="p-4">
                   <div className="space-y-3">
@@ -533,6 +558,29 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                         <span>Quote Total:</span>
                         <span className="text-primary">${total.toFixed(2)}</span>
                       </div>
+                      {/* Show cost analysis if cost data is available */}
+                      {lineItems.some(item => item.costPerUnit > 0) && (
+                        <div className="mt-2 p-3 bg-muted/30 rounded-lg">
+                          <div className="text-sm space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Total Cost:</span>
+                              <span className="font-medium">
+                                ${lineItems.reduce((sum, item) => sum + (item.quantity * item.costPerUnit), 0).toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Vendor Margin:</span>
+                              <span className="font-medium">
+                                {(() => {
+                                  const totalCost = lineItems.reduce((sum, item) => sum + (item.quantity * item.costPerUnit), 0);
+                                  const margin = totalCost > 0 ? ((total - totalCost) / total * 100) : 0;
+                                  return `${margin.toFixed(1)}%`;
+                                })()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>

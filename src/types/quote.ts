@@ -8,6 +8,15 @@ export interface QuoteLineItem {
   quantity: number;
   pricePerUnit: number;
   total: number;
+  
+  // Cost & Markup fields (for enhanced financial analysis)
+  costPerUnit: number; // Vendor's actual cost (if known) or estimated cost
+  markupPercent?: number | null; // Vendor markup percentage
+  markupAmount?: number | null; // Vendor markup fixed amount
+  
+  // Calculated totals (generated columns in DB)
+  totalCost: number; // quantity * costPerUnit
+  totalMarkup: number; // calculated vendor markup
 }
 
 export enum QuoteStatus {

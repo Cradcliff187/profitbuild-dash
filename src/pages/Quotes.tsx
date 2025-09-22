@@ -73,7 +73,12 @@ const Quotes = () => {
           description: item.description,
           quantity: item.quantity,
           pricePerUnit: item.rate,
-          total: item.total
+          total: item.total,
+          costPerUnit: item.cost_per_unit || 0,
+          markupPercent: item.markup_percent,
+          markupAmount: item.markup_amount,
+          totalCost: item.total_cost || (item.quantity * (item.cost_per_unit || 0)),
+          totalMarkup: item.total_markup || 0
         })) || [],
         subtotals: {
           labor: 0,
@@ -172,6 +177,9 @@ const Quotes = () => {
               quantity: item.quantity,
               rate: item.pricePerUnit,
               total: item.total,
+              cost_per_unit: item.costPerUnit || 0,
+              markup_percent: item.markupPercent,
+              markup_amount: item.markupAmount,
               sort_order: 0
             })));
 
@@ -215,6 +223,9 @@ const Quotes = () => {
               quantity: item.quantity,
               rate: item.pricePerUnit,
               total: item.total,
+              cost_per_unit: item.costPerUnit || 0,
+              markup_percent: item.markupPercent,
+              markup_amount: item.markupAmount,
               sort_order: 0
             })));
 
