@@ -16,7 +16,6 @@ import { Project, ProjectStatus } from "@/types/project";
 import { ProjectWithFinancials } from "@/utils/projectFinancials";
 import { FinancialTableTemplate, FinancialTableColumn } from "@/components/FinancialTableTemplate";
 
-import { ProjectStatusFilter } from "@/components/ProjectStatusFilter";
 import { cn } from "@/lib/utils";
 
 interface ProjectsTableViewProps {
@@ -38,18 +37,6 @@ export const ProjectsTableView = ({
   onCreateNew,
   isLoading = false 
 }: ProjectsTableViewProps) => {
-  const [selectedStatuses, setSelectedStatuses] = useState<ProjectStatus[]>([]);
-
-  // Filter projects by status
-  const filteredProjects = selectedStatuses.length > 0 
-    ? projects.filter(project => selectedStatuses.includes(project.status))
-    : projects;
-
-  // Count projects by status
-  const projectCounts = projects.reduce((counts, project) => {
-    counts[project.status] = (counts[project.status] || 0) + 1;
-    return counts;
-  }, {} as Record<ProjectStatus, number>);
 
   const handleViewDetails = (project: Project) => {
     window.location.href = `/projects/${project.id}`;
@@ -768,15 +755,9 @@ export const ProjectsTableView = ({
             <div className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
               <h2 className="text-lg font-semibold">
-                Projects ({filteredProjects.length}
-                {selectedStatuses.length > 0 && ` of ${projects.length}`})
+                Projects ({projects.length})
               </h2>
             </div>
-            <ProjectStatusFilter
-              selectedStatuses={selectedStatuses}
-              onStatusChange={setSelectedStatuses}
-              projectCounts={projectCounts}
-            />
           </div>
           <Button onClick={onCreateNew}>
             <Plus className="h-4 w-4 mr-2" />
@@ -785,16 +766,12 @@ export const ProjectsTableView = ({
         </div>
         
         <FinancialTableTemplate
-          data={filteredProjects}
+          data={projects}
           columns={columns}
           onView={handleViewDetails}
           onEdit={onEdit}
           getItemId={(project) => project.id}
-          emptyMessage={
-            selectedStatuses.length > 0 
-              ? `No projects found with selected status${selectedStatuses.length > 1 ? 'es' : ''}.`
-              : "No projects found. Create your first project to get started."
-          }
+          emptyMessage="No projects found. Create your first project to get started."
           emptyIcon={<Building2 className="h-16 w-16 mx-auto mb-4 opacity-50" />}
           showActions={false} // We handle actions in the dropdown
           sortable={true}
