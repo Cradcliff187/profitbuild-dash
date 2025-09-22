@@ -220,12 +220,47 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Select Project Estimate</Label>
-              <ProjectSelector
-                estimates={estimates}
-                selectedEstimate={selectedEstimate}
-                onSelect={setSelectedEstimate}
-                placeholder="Choose a project to quote..."
-              />
+              <div className="space-y-3">
+                {estimates.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No estimates available</p>
+                    <p className="text-sm">Create an estimate first to generate quotes</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {estimates
+                      .sort((a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime())
+                      .map((estimate) => (
+                        <Card 
+                          key={estimate.id} 
+                          className="cursor-pointer hover:bg-accent transition-colors"
+                          onClick={() => setSelectedEstimate(estimate)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium">{estimate.project_name}</div>
+                                <div className="text-sm text-muted-foreground">{estimate.client_name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {estimate.estimate_number} • {format(new Date(estimate.date_created), "MMM d, yyyy")}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-medium">${estimate.total_amount.toFixed(2)}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {estimate.lineItems.length} line item{estimate.lineItems.length !== 1 ? 's' : ''}
+                                </div>
+                                <Badge variant={estimate.lineItems.length > 0 ? "default" : "secondary"}>
+                                  {estimate.lineItems.length > 0 ? "Ready" : "Empty"}
+                                </Badge>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={onCancel}>Cancel</Button>
@@ -251,9 +286,18 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                 {selectedEstimate.project_name} • {selectedEstimate.client_name}
               </p>
             </div>
-            <Badge variant="outline">
-              {selectedEstimate.estimate_number}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setSelectedEstimate(undefined)}
+              >
+                Change Estimate
+              </Button>
+              <Badge variant="outline">
+                {selectedEstimate.estimate_number}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -358,8 +402,32 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {lineItems.map((item, index) => {
+          {lineItems.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-muted-foreground mb-4">
+                <p className="text-lg font-medium">No line items available</p>
+                <p className="text-sm">
+                  {selectedEstimate.lineItems.length === 0 
+                    ? "This estimate has no line items. Add your first item to get started."
+                    : "Quote line items will appear here when you add them."
+                  }
+                </p>
+              </div>
+              <div className="flex justify-center gap-2">
+                <Button onClick={addLineItem}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First Item
+                </Button>
+                {selectedEstimate.lineItems.length === 0 && (
+                  <Button variant="outline" onClick={() => setSelectedEstimate(undefined)}>
+                    Change Estimate
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {lineItems.map((item, index) => {
               const estimateItem = selectedEstimate.lineItems.find(e => e.id === item.estimateLineItemId);
               
               return (
@@ -442,9 +510,10 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                     </div>
                   )}
                 </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
