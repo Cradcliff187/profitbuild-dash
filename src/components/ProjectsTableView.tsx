@@ -194,25 +194,52 @@ export const ProjectsTableView = ({
     const end = new Date(endDate);
     const today = new Date();
     
-    const totalDays = differenceInDays(end, start);
+    const totalDays = differenceInDays(end, start) + 1; // Include both start and end days
     
     switch (status) {
       case 'estimating':
       case 'quoted':
       case 'approved':
-        return `${totalDays} days planned`;
+        return {
+          display: `${totalDays} days planned`,
+          status: 'planned' as const
+        };
       case 'in_progress':
-        const daysSinceStart = differenceInDays(today, start);
+        const daysSinceStart = differenceInDays(today, start) + 1;
         const daysRemaining = differenceInDays(end, today);
+        const progress = Math.min(100, Math.max(0, (daysSinceStart / totalDays) * 100));
+        
         if (daysRemaining < 0) {
-          return `${Math.abs(daysRemaining)} days overdue`;
+          const overdueDays = Math.abs(daysRemaining);
+          return {
+            display: `Day ${daysSinceStart} (${overdueDays} days overdue)`,
+            progress: 100,
+            status: 'overdue' as const
+          };
+        } else if (daysRemaining <= Math.ceil(totalDays * 0.2)) {
+          return {
+            display: `Day ${daysSinceStart} of ${totalDays} (${daysRemaining} left)`,
+            progress,
+            status: 'warning' as const
+          };
+        } else {
+          return {
+            display: `Day ${daysSinceStart} of ${totalDays} (${daysRemaining} left)`,
+            progress,
+            status: 'on-track' as const
+          };
         }
-        return `${daysSinceStart}/${totalDays} days (${daysRemaining} left)`;
       case 'complete':
-        const actualDays = differenceInDays(end, start);
-        return `${actualDays} days (completed)`;
+        const actualDays = differenceInDays(end, start) + 1;
+        return {
+          display: `${actualDays} days (completed)`,
+          status: 'completed' as const
+        };
       default:
-        return `${totalDays} days`;
+        return {
+          display: `${totalDays} days`,
+          status: 'planned' as const
+        };
     }
   };
 
@@ -411,36 +438,61 @@ export const ProjectsTableView = ({
       label: 'Schedule',
       align: 'center',
       render: (project) => {
-        const duration = calculateDuration(project.start_date, project.end_date, project.status);
-        if (!duration) return <span className="text-muted-foreground text-xs">N/A</span>;
+        const durationData = calculateDuration(project.start_date, project.end_date, project.status);
+        if (!durationData) return <span className="text-muted-foreground text-xs">N/A</span>;
         
-        const isOverdue = duration.includes('overdue');
+        const getStatusColor = (status: string) => {
+          switch (status) {
+            case 'overdue': return 'text-destructive';
+            case 'warning': return 'text-warning';
+            case 'on-track': return 'text-success';
+            case 'completed': return 'text-muted-foreground';
+            default: return 'text-muted-foreground';
+          }
+        };
         
-        const getScheduleContext = () => {
+        const getScheduleTooltip = () => {
+          const baseText = `Project schedule: ${durationData.display}`;
           switch (project.status) {
             case 'estimating':
             case 'quoted':
             case 'approved':
-              return `Planned project duration: ${duration}`;
+              return `${baseText}. Planned duration from start to target completion date.`;
             case 'in_progress':
-              return `Project progress: ${duration}. ${isOverdue ? 'Project is past due date.' : 'Project is on track.'}`;
+              if (durationData.status === 'overdue') {
+                return `${baseText}. Project is past the original due date.`;
+              } else if (durationData.status === 'warning') {
+                return `${baseText}. Project is nearing the deadline.`;
+              } else {
+                return `${baseText}. Project is on track to meet the deadline.`;
+              }
             case 'complete':
-              return `Project completed in: ${duration}`;
+              return `${baseText}. Project has been completed.`;
             default:
-              return `Project duration: ${duration}`;
+              return baseText;
           }
         };
         
         return (
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className={`text-xs flex items-center gap-1 cursor-help justify-center ${isOverdue ? 'text-destructive' : 'text-muted-foreground'}`}>
-                <Clock className="h-3 w-3" />
-                {duration.split(' (')[0]} {/* Remove extra context from duration display */}
+              <div className="space-y-1 cursor-help">
+                <div className={`text-xs flex items-center gap-1 justify-center ${getStatusColor(durationData.status)}`}>
+                  <Clock className="h-3 w-3" />
+                  {durationData.display}
+                </div>
+                {durationData.progress !== undefined && (
+                  <div className="w-16 mx-auto">
+                    <Progress 
+                      value={durationData.progress} 
+                      className="h-1"
+                    />
+                  </div>
+                )}
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{getScheduleContext()}</p>
+              <p>{getScheduleTooltip()}</p>
             </TooltipContent>
           </Tooltip>
         );
