@@ -13,15 +13,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Progress } from "@/components/ui/progress";
 import { format, differenceInDays, isPast, isFuture } from "date-fns";
 import { Project, ProjectStatus } from "@/types/project";
+import { ProjectWithFinancials } from "@/utils/projectFinancials";
 import { FinancialTableTemplate, FinancialTableColumn } from "@/components/FinancialTableTemplate";
 import { ProjectDetailsModal } from "@/components/ProjectDetailsModal";
 import { ProjectStatusFilter } from "@/components/ProjectStatusFilter";
-
-interface ProjectWithFinancials extends Project {
-  estimatedCost?: number;
-  actualExpenses?: number;
-  contingencyRemaining?: number;
-}
 
 interface ProjectsTableViewProps {
   projects: ProjectWithFinancials[];
@@ -361,36 +356,104 @@ export const ProjectsTableView = ({
       render: (project) => formatCurrency(project.actualExpenses),
     },
     {
-      key: 'current_margin',
-      label: 'Margin ($)',
-      align: 'right',
+      key: 'projected_margin',
+      label: 'Projected Margin ($)',
+      align: 'right' as const,
       sortable: true,
-      render: (project) => (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="text-right">
-                <div className="font-medium text-sm">{formatCurrency(project.current_margin)}</div>
-                <div className="text-xs text-muted-foreground">{getMarginContext(project.status)}</div>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{getMarginContext(project.status)} margin in dollars</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      ),
+      render: (project: ProjectWithFinancials) => {
+        const projectedMargin = project.projectedMargin || 0;
+        const isPositive = projectedMargin >= 0;
+        
+        return (
+          <div className="text-right">
+            <div className={`font-medium text-sm ${
+              isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+            }`}>
+              {formatCurrency(projectedMargin)}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Est. - Quotes
+            </div>
+          </div>
+        );
+      }
+    },
+    {
+      key: 'current_margin',
+      label: 'Current Margin ($)',
+      align: 'right' as const,
+      sortable: true,
+      render: (project: ProjectWithFinancials) => {
+        const currentMargin = project.current_margin || 0;
+        const isPositive = currentMargin >= 0;
+        
+        return (
+          <div className="text-right">
+            <div className={`font-medium text-sm ${
+              isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+            }`}>
+              {formatCurrency(currentMargin)}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Revenue - Actual
+            </div>
+          </div>
+        );
+      }
     },
     {
       key: 'margin_percentage',
       label: 'Margin (%)',
-      align: 'center',
+      align: 'center' as const,
       sortable: true,
-      render: (project) => (
-        <div className="flex justify-center">
-          {getMarginBadge(project.margin_percentage, project.target_margin, project.minimum_margin_threshold)}
-        </div>
-      ),
+      render: (project: ProjectWithFinancials) => {
+        const marginPercentage = project.margin_percentage || 0;
+        const projectedMarginPct = project.projectedRevenue > 0 
+          ? ((project.projectedMargin || 0) / project.projectedRevenue) * 100 
+          : 0;
+        
+        // Use projected margin % for estimating/quoted projects, current margin % for active projects
+        const displayPercentage = ['estimating', 'quoted'].includes(project.status) 
+          ? projectedMarginPct 
+          : marginPercentage;
+        
+        return (
+          <div className="text-center space-y-1">
+            <div className="flex items-center justify-center">
+              {getMarginBadge(displayPercentage, project.target_margin, project.minimum_margin_threshold)}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {['estimating', 'quoted'].includes(project.status) ? 'Projected' : 'Current'}
+            </div>
+          </div>
+        );
+      }
+    },
+    {
+      key: 'line_items',
+      label: 'Line Items',
+      align: 'center' as const,
+      sortable: true,
+      render: (project: ProjectWithFinancials) => {
+        const count = project.nonInternalLineItemCount || 0;
+        
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-medium">
+                    {count}
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Non-internal labor items requiring procurement</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      }
     },
     {
       key: 'contingency_remaining',
