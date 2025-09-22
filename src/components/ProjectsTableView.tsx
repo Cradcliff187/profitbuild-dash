@@ -1,5 +1,5 @@
-import React from "react";
-import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, DollarSign, Calendar, Clock, AlertTriangle } from "lucide-react";
+import React, { useState } from "react";
+import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, DollarSign, Calendar, Clock, AlertTriangle, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,8 @@ import { Progress } from "@/components/ui/progress";
 import { format, differenceInDays, isPast, isFuture } from "date-fns";
 import { Project, ProjectStatus } from "@/types/project";
 import { FinancialTableTemplate, FinancialTableColumn } from "@/components/FinancialTableTemplate";
+import { ProjectDetailsModal } from "@/components/ProjectDetailsModal";
+import { ProjectStatusFilter } from "@/components/ProjectStatusFilter";
 
 interface ProjectWithFinancials extends Project {
   estimatedCost?: number;
@@ -40,6 +42,30 @@ export const ProjectsTableView = ({
   onCreateNew,
   isLoading = false 
 }: ProjectsTableViewProps) => {
+  const [selectedStatuses, setSelectedStatuses] = useState<ProjectStatus[]>([]);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  // Filter projects by status
+  const filteredProjects = selectedStatuses.length > 0 
+    ? projects.filter(project => selectedStatuses.includes(project.status))
+    : projects;
+
+  // Count projects by status
+  const projectCounts = projects.reduce((counts, project) => {
+    counts[project.status] = (counts[project.status] || 0) + 1;
+    return counts;
+  }, {} as Record<ProjectStatus, number>);
+
+  const handleViewDetails = (project: Project) => {
+    setSelectedProject(project);
+    setShowDetailsModal(true);
+  };
+
+  const handleCloseDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedProject(null);
+  };
 
   const getStatusBadge = (status: ProjectStatus) => {
     const configs = {
@@ -336,14 +362,33 @@ export const ProjectsTableView = ({
     },
     {
       key: 'current_margin',
-      label: 'Margin',
+      label: 'Margin ($)',
       align: 'right',
       sortable: true,
       render: (project) => (
-        <div className="text-right space-y-1">
-          <div className="font-medium text-sm">{formatCurrency(project.current_margin)}</div>
-          <div className="text-xs text-muted-foreground">{getMarginContext(project.status)} Margin</div>
-          <div>{getMarginBadge(project.margin_percentage, project.target_margin, project.minimum_margin_threshold)}</div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right">
+                <div className="font-medium text-sm">{formatCurrency(project.current_margin)}</div>
+                <div className="text-xs text-muted-foreground">{getMarginContext(project.status)}</div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{getMarginContext(project.status)} margin in dollars</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ),
+    },
+    {
+      key: 'margin_percentage',
+      label: 'Margin (%)',
+      align: 'center',
+      sortable: true,
+      render: (project) => (
+        <div className="flex justify-center">
+          {getMarginBadge(project.margin_percentage, project.target_margin, project.minimum_margin_threshold)}
         </div>
       ),
     },
@@ -366,7 +411,7 @@ export const ProjectsTableView = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem onClick={() => onView(project)}>
+            <DropdownMenuItem onClick={() => handleViewDetails(project)}>
               <Eye className="h-4 w-4 mr-2" />
               View Details
             </DropdownMenuItem>
@@ -404,9 +449,19 @@ export const ProjectsTableView = ({
     <TooltipProvider>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            <h2 className="text-lg font-semibold">Projects ({projects.length})</h2>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              <h2 className="text-lg font-semibold">
+                Projects ({filteredProjects.length}
+                {selectedStatuses.length > 0 && ` of ${projects.length}`})
+              </h2>
+            </div>
+            <ProjectStatusFilter
+              selectedStatuses={selectedStatuses}
+              onStatusChange={setSelectedStatuses}
+              projectCounts={projectCounts}
+            />
           </div>
           <Button onClick={onCreateNew}>
             <Plus className="h-4 w-4 mr-2" />
@@ -415,15 +470,35 @@ export const ProjectsTableView = ({
         </div>
         
         <FinancialTableTemplate
-          data={projects}
+          data={filteredProjects}
           columns={columns}
-          onView={onView}
+          onView={handleViewDetails}
           onEdit={onEdit}
           getItemId={(project) => project.id}
-          emptyMessage="No projects found. Create your first project to get started."
+          emptyMessage={
+            selectedStatuses.length > 0 
+              ? `No projects found with selected status${selectedStatuses.length > 1 ? 'es' : ''}.`
+              : "No projects found. Create your first project to get started."
+          }
           emptyIcon={<Building2 className="h-16 w-16 mx-auto mb-4 opacity-50" />}
           showActions={false} // We handle actions in the dropdown
           sortable={true}
+        />
+
+        <ProjectDetailsModal
+          isOpen={showDetailsModal}
+          onClose={handleCloseDetailsModal}
+          project={selectedProject}
+          estimates={estimates}
+          onEdit={() => {
+            handleCloseDetailsModal();
+            if (selectedProject) onEdit(selectedProject);
+          }}
+          onViewFinancials={() => {
+            if (selectedProject) {
+              window.location.href = `/estimates?project=${selectedProject.id}`;
+            }
+          }}
         />
       </div>
     </TooltipProvider>

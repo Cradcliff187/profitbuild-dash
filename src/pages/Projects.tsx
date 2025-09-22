@@ -344,7 +344,7 @@ const Projects = () => {
               projects={projects}
               estimates={estimates}
               onEdit={handleEdit}
-              onView={handleEdit} // Same as edit for now
+              onView={handleEdit} // Keep for now, but ProjectsTableView handles its own view modal
               onCreateNew={handleCreateNew}
               isLoading={isLoading}
             />
