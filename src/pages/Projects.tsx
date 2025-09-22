@@ -283,6 +283,7 @@ const Projects = () => {
       {viewMode === 'list' && (
         <ProjectsList
           projects={projects}
+          estimates={estimates}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onCreateNew={handleCreateNew}

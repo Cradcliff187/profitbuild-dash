@@ -37,6 +37,7 @@ interface ProjectWithVariance extends Project {
 
 interface ProjectsListProps {
   projects: ProjectWithVariance[];
+  estimates: any[];
   onEdit: (project: Project) => void;
   onDelete: (projectId: string) => void;
   onCreateNew: () => void;
@@ -47,6 +48,7 @@ interface ProjectsListProps {
 
 export const ProjectsList = ({ 
   projects, 
+  estimates,
   onEdit, 
   onDelete, 
   onCreateNew, 
@@ -357,39 +359,47 @@ export const ProjectsList = ({
             </CardHeader>
             
             <CardContent className="space-y-4">
-              {/* Status-Based Action Buttons */}
-              {project.status === 'estimating' && (
-                <div className="mb-4">
-                  <Button 
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => window.location.href = `/estimates?project=${project.id}`}
-                  >
-                    <Calculator className="h-4 w-4 mr-2" />
-                    Create First Estimate
-                  </Button>
-                </div>
-              )}
-              {['quoted', 'approved', 'in_progress'].includes(project.status) && (
-                <div className="mb-4">
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => window.location.href = `/estimates?project=${project.id}`}
-                    >
-                      <Calculator className="h-4 w-4 mr-2" />
-                      View Estimates
-                    </Button>
-                    <Button 
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => window.location.href = `/estimates?project=${project.id}&action=new-version`}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      New Version
-                    </Button>
-                  </div>
-                </div>
-              )}
+              {/* Action Buttons - Based on Estimate Existence */}
+              {(() => {
+                const projectEstimates = estimates.filter(e => e.project_id === project.id);
+                const hasEstimates = projectEstimates.length > 0;
+                
+                if (!hasEstimates) {
+                  return (
+                    <div className="mb-4">
+                      <Button 
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => window.location.href = `/estimates?project=${project.id}`}
+                      >
+                        <Calculator className="h-4 w-4 mr-2" />
+                        Create First Estimate
+                      </Button>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="mb-4">
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => window.location.href = `/estimates?project=${project.id}`}
+                        >
+                          <Calculator className="h-4 w-4 mr-2" />
+                          View Estimates
+                        </Button>
+                        <Button 
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => window.location.href = `/estimates?project=${project.id}&action=new-version`}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          New Version
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                }
+              })()}
 
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
