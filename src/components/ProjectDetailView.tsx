@@ -309,7 +309,7 @@ export const ProjectDetailView = () => {
   const approvedChangeOrders = changeOrders.filter(co => co.status === 'approved');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
@@ -317,12 +317,17 @@ export const ProjectDetailView = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
               {project.project_name}
               {getStatusBadge(project.status)}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               #{project.project_number} • {project.client_name}
+              {project.status !== 'estimating' && project.start_date && project.end_date && (
+                <span className="ml-4">
+                  {format(project.start_date, 'MMM dd')} - {format(project.end_date, 'MMM dd, yyyy')}
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -347,15 +352,15 @@ export const ProjectDetailView = () => {
       </div>
 
       {/* Financial Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <Card className="border-l-4 border-l-primary/20">
+          <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
+              <DollarSign className="h-4 w-4 text-primary" />
               Contract Value
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="text-2xl font-bold">
               {formatCurrency(project.contracted_amount)}
             </div>
@@ -367,14 +372,14 @@ export const ProjectDetailView = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="border-l-4 border-l-blue-500/20">
+          <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
+              <TrendingUp className="h-4 w-4 text-blue-500" />
               Current Margin
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="text-2xl font-bold">
               {formatCurrency(project.current_margin)}
             </div>
@@ -390,14 +395,14 @@ export const ProjectDetailView = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="border-l-4 border-l-green-500/20">
+          <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Target className="h-4 w-4" />
+              <Target className="h-4 w-4 text-green-500" />
               Projected Margin
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="text-2xl font-bold">
               {formatCurrency(project.projectedMargin)}
             </div>
@@ -407,14 +412,14 @@ export const ProjectDetailView = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="border-l-4 border-l-orange-500/20">
+          <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
+              <BarChart3 className="h-4 w-4 text-orange-500" />
               Total Expenses
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="text-2xl font-bold">
               {formatCurrency(project.actualExpenses)}
             </div>
@@ -425,67 +430,57 @@ export const ProjectDetailView = () => {
         </Card>
       </div>
 
-      {/* Project Lifecycle Timeline */}
-      {project.status !== 'estimating' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Project Timeline
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between text-sm">
-                <span>Progress Tracking</span>
-                <span>{format(project.updated_at, 'PPp')}</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span>Start: {project.start_date ? format(project.start_date, 'MMM dd, yyyy') : 'Not set'}</span>
-                  <span>End: {project.end_date ? format(project.end_date, 'MMM dd, yyyy') : 'Not set'}</span>
-                </div>
-                {project.start_date && project.end_date && (
-                  <Progress 
-                    value={50} // Simplified progress calculation
-                    className="h-2" 
-                  />
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-5 w-full">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="control">
+        <TabsList className="grid grid-cols-5 w-full h-12 bg-muted/50 p-1 rounded-lg">
+          <TabsTrigger 
+            value="overview" 
+            className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+          >
+            <Building2 className="h-4 w-4 mr-2" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger 
+            value="control"
+            className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+          >
+            <Settings className="h-4 w-4 mr-2" />
             Line Item Control
           </TabsTrigger>
-          <TabsTrigger value="estimates">
+          <TabsTrigger 
+            value="estimates"
+            className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+          >
+            <Calculator className="h-4 w-4 mr-2" />
             Estimates & Quotes ({estimates.length})
           </TabsTrigger>
-          <TabsTrigger value="expenses">
-            Expenses & Performance ({expenses.length})
+          <TabsTrigger 
+            value="expenses"
+            className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Expenses ({expenses.length})
           </TabsTrigger>
-          <TabsTrigger value="changes">
+          <TabsTrigger 
+            value="changes"
+            className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+          >
+            <FileText className="h-4 w-4 mr-2" />
             Change Orders ({changeOrders.length})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Project Details */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <Building2 className="h-5 w-5" />
                   Project Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 <div>
                   <div className="text-sm font-medium text-muted-foreground">Project Type</div>
                   <div className="font-medium">
@@ -547,11 +542,11 @@ export const ProjectDetailView = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="control" className="space-y-6">
+        <TabsContent value="control" className="space-y-4">
           <LineItemControlDashboard projectId={project.id} />
         </TabsContent>
 
-        <TabsContent value="estimates" className="space-y-6">
+        <TabsContent value="estimates" className="space-y-4">
           {currentEstimate && (
             <EstimateVersionComparison projectId={project.id} />
           )}
@@ -565,7 +560,7 @@ export const ProjectDetailView = () => {
           />
         </TabsContent>
 
-        <TabsContent value="expenses" className="space-y-6">
+        <TabsContent value="expenses" className="space-y-4">
           {expenses.length > 0 && (
             <VarianceAnalysis projectId={project.id} />
           )}
@@ -577,7 +572,7 @@ export const ProjectDetailView = () => {
           />
         </TabsContent>
 
-        <TabsContent value="changes" className="space-y-6">
+        <TabsContent value="changes" className="space-y-4">
           <ChangeOrdersList
             projectId={project.id}
             onEdit={() => {}}
