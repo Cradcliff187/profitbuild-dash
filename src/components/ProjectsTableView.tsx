@@ -17,6 +17,7 @@ import { ProjectWithFinancials } from "@/utils/projectFinancials";
 import { FinancialTableTemplate, FinancialTableColumn } from "@/components/FinancialTableTemplate";
 import { ProjectDetailsModal } from "@/components/ProjectDetailsModal";
 import { ProjectStatusFilter } from "@/components/ProjectStatusFilter";
+import { cn } from "@/lib/utils";
 
 interface ProjectsTableViewProps {
   projects: ProjectWithFinancials[];
@@ -63,20 +64,21 @@ export const ProjectsTableView = ({
   };
 
   const getStatusBadge = (status: ProjectStatus) => {
-    const configs = {
-      'estimating': { variant: 'default' as const, className: 'bg-blue-100 text-blue-800' },
-      'quoted': { variant: 'default' as const, className: 'bg-purple-100 text-purple-800' },
-      'approved': { variant: 'default' as const, className: 'bg-green-100 text-green-800' },
-      'in_progress': { variant: 'default' as const, className: 'bg-yellow-100 text-yellow-800' },
-      'complete': { variant: 'default' as const, className: 'bg-gray-100 text-gray-800' },
-      'on_hold': { variant: 'default' as const, className: 'bg-orange-100 text-orange-800' },
-      'cancelled': { variant: 'default' as const, className: 'bg-red-100 text-red-800' }
-    };
-    
-    const config = configs[status];
     return (
-      <Badge variant={config.variant} className={config.className}>
-        {status.replace('_', ' ').toUpperCase()}
+      <Badge 
+        variant="outline" 
+        className={cn(
+          "text-xs capitalize px-2 py-0.5",
+          status === 'approved' && 'border-green-200 text-green-700 bg-green-50',
+          status === 'estimating' && 'border-gray-200 text-gray-700 bg-gray-50',
+          status === 'quoted' && 'border-blue-200 text-blue-700 bg-blue-50',
+          status === 'in_progress' && 'border-purple-200 text-purple-700 bg-purple-50',
+          status === 'complete' && 'border-green-200 text-green-700 bg-green-50',
+          status === 'on_hold' && 'border-yellow-200 text-yellow-700 bg-yellow-50',
+          status === 'cancelled' && 'border-red-200 text-red-700 bg-red-50'
+        )}
+      >
+        {status.replace(/_/g, ' ')}
       </Badge>
     );
   };
@@ -318,6 +320,7 @@ export const ProjectsTableView = ({
       key: 'status',
       label: 'Status',
       align: 'center',
+      width: '100px',
       sortable: true,
       render: (project) => {
         const statusExplanations = {
