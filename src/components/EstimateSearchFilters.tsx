@@ -183,16 +183,16 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
             <div className="space-y-2">
               <label className="text-sm font-medium">Version Status</label>
               <Select 
-                value={filters.hasVersions === null ? "" : filters.hasVersions.toString()}
+                value={filters.hasVersions === null ? "all" : filters.hasVersions.toString()}
                 onValueChange={(value) => updateFilters({ 
-                  hasVersions: value === "" ? null : value === "true" 
+                  hasVersions: value === "all" ? null : value === "true" 
                 })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All estimates" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All estimates</SelectItem>
+                  <SelectItem value="all">All estimates</SelectItem>
                   <SelectItem value="true">Has multiple versions</SelectItem>
                   <SelectItem value="false">Single version only</SelectItem>
                 </SelectContent>
