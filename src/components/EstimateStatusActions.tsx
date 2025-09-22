@@ -31,7 +31,17 @@ export const EstimateStatusActions = ({
   const updateStatus = async (newStatus: EstimateStatus) => {
     setIsUpdating(true);
     try {
-      const { error } = await supabase
+      // First, get the current estimate data to access project_id and total_amount
+      const { data: estimate, error: fetchError } = await supabase
+        .from('estimates')
+        .select('id, project_id, total_amount, status')
+        .eq('id', estimateId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update the estimate status
+      const { error: updateError } = await supabase
         .from('estimates')
         .update({ 
           status: newStatus,
@@ -39,19 +49,71 @@ export const EstimateStatusActions = ({
         })
         .eq('id', estimateId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // Handle project contracted_amount and status updates
+      if (newStatus === 'approved') {
+        // When approving an estimate, set it as the contract value
+        // First, un-approve any other estimates for this project
+        const { error: unApproveError } = await supabase
+          .from('estimates')
+          .update({ status: 'sent' })
+          .eq('project_id', estimate.project_id)
+          .eq('status', 'approved')
+          .neq('id', estimateId);
+
+        if (unApproveError) throw unApproveError;
+
+        // Update project with contracted amount and move to in_progress status
+        const { error: projectError } = await supabase
+          .from('projects')
+          .update({
+            contracted_amount: estimate.total_amount,
+            status: 'in_progress' as any,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', estimate.project_id);
+
+        if (projectError) throw projectError;
+
+        toast({
+          title: "Estimate Approved",
+          description: `Estimate approved and set as contract value (${new Intl.NumberFormat('en-US', { 
+            style: 'currency', 
+            currency: 'USD' 
+          }).format(estimate.total_amount)})`,
+        });
+      } else if (currentStatus === ('approved' as EstimateStatus) && newStatus !== ('approved' as EstimateStatus)) {
+        // When un-approving an estimate, clear the contract value
+        const { error: projectError } = await supabase
+          .from('projects')
+          .update({
+            contracted_amount: null,
+            status: 'quoted' as any, // Revert to quoted status
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', estimate.project_id);
+
+        if (projectError) throw projectError;
+
+        toast({
+          title: "Status Updated",
+          description: `Estimate status changed to ${newStatus} and contract value cleared`,
+        });
+      } else {
+        toast({
+          title: "Status Updated",
+          description: `Estimate status changed to ${newStatus}`,
+        });
+      }
 
       onStatusUpdate(newStatus);
       
-      toast({
-        title: "Status Updated",
-        description: `Estimate status changed to ${newStatus}`,
-      });
     } catch (error) {
       console.error('Error updating estimate status:', error);
       toast({
         title: "Error",
-        description: "Failed to update estimate status",
+        description: "Failed to update estimate status and contract value",
         variant: "destructive"
       });
     } finally {
