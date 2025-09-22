@@ -91,7 +91,7 @@ export const EstimateVersionManager = ({ estimate, onVersionCreated }: EstimateV
       await loadVersionHistory();
       
       if (onVersionCreated) {
-        // Fetch the new version details
+        // Fetch the new version details and line items
         const { data: newVersionData, error: fetchError } = await supabase
           .from('estimates')
           .select('*')
@@ -99,14 +99,37 @@ export const EstimateVersionManager = ({ estimate, onVersionCreated }: EstimateV
           .single();
 
         if (!fetchError && newVersionData) {
+          // Fetch the copied line items for the new version
+          const { data: lineItemsData, error: lineItemsError } = await supabase
+            .from('estimate_line_items')
+            .select('*')
+            .eq('estimate_id', data)
+            .order('sort_order');
+
+          const lineItems = lineItemsData?.map((item: any) => ({
+            id: item.id,
+            category: item.category,
+            description: item.description,
+            quantity: item.quantity,
+            pricePerUnit: item.price_per_unit || item.rate,
+            total: item.total,
+            unit: item.unit,
+            sort_order: item.sort_order,
+            costPerUnit: item.cost_per_unit,
+            markupPercent: item.markup_percent,
+            markupAmount: item.markup_amount,
+            totalCost: item.total_cost || (item.quantity * item.cost_per_unit),
+            totalMarkup: item.total_markup || (item.quantity * (item.price_per_unit || item.rate) - item.quantity * item.cost_per_unit)
+          })) || [];
+
           const newVersion: Estimate = {
             id: newVersionData.id,
             project_id: newVersionData.project_id,
             estimate_number: newVersionData.estimate_number,
             date_created: new Date(newVersionData.date_created),
             total_amount: newVersionData.total_amount,
-            defaultMarkupPercent: 15,
-            targetMarginPercent: 20,
+            defaultMarkupPercent: newVersionData.default_markup_percent || 15,
+            targetMarginPercent: newVersionData.target_margin_percent || 20,
             status: newVersionData.status,
             notes: newVersionData.notes,
             valid_until: newVersionData.valid_until ? new Date(newVersionData.valid_until) : undefined,
@@ -118,7 +141,7 @@ export const EstimateVersionManager = ({ estimate, onVersionCreated }: EstimateV
             parent_estimate_id: newVersionData.parent_estimate_id,
             is_current_version: newVersionData.is_current_version ?? true,
             valid_for_days: newVersionData.valid_for_days || 30,
-            lineItems: [],
+            lineItems: lineItems,
             created_at: new Date(newVersionData.created_at),
             updated_at: new Date(newVersionData.updated_at),
             project_name: estimate.project_name,
