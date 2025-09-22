@@ -174,18 +174,18 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold">${(comparison.yourTotalPrice - comparison.vendorQuote).toFixed(2)}</div>
+              <div className="text-2xl font-bold">${(yourTotalPrice - vendorQuote).toFixed(2)}</div>
               <div className="text-sm text-muted-foreground">Margin Dollar Impact</div>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold">${(comparison.vendorQuote - comparison.yourTotalCost).toFixed(2)}</div>
+              <div className="text-2xl font-bold">${(vendorQuote - yourTotalCost).toFixed(2)}</div>
               <div className="text-sm text-muted-foreground">Profit Above Cost</div>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
               <div className={`text-2xl font-bold ${
-                comparison.vendorQuote <= comparison.minimumAcceptableQuote ? 'text-green-600' : 'text-destructive'
+                vendorQuote <= minimumAcceptableQuote ? 'text-green-600' : 'text-destructive'
               }`}>
-                {comparison.vendorQuote <= comparison.minimumAcceptableQuote ? 'ACCEPT' : 'NEGOTIATE'}
+                {vendorQuote <= minimumAcceptableQuote ? 'ACCEPT' : 'NEGOTIATE'}
               </div>
               <div className="text-sm text-muted-foreground">Recommendation</div>
             </div>
@@ -200,47 +200,50 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {(Object.keys(comparison.categoryComparisons) as Array<keyof typeof comparison.categoryComparisons>).map((category) => {
-              const categoryData = comparison.categoryComparisons[category];
+            {Object.keys(categoryComparison).map((category) => {
+              const categoryData = categoryComparison[category];
               
               return (
                 <div key={category} className="space-y-3">
-                  <h4 className="font-semibold text-lg">{CATEGORY_DISPLAY_MAP[category]}</h4>
+                  <h4 className="font-semibold text-lg">{CATEGORY_DISPLAY_MAP[category as LineItemCategory]}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                     <div className="bg-muted/50 p-3 rounded-lg">
                       <div className="text-sm text-muted-foreground">Your Cost</div>
-                      <div className="font-semibold">${comparison.categoryMarginAnalysis[category].yourCost.toFixed(2)}</div>
+                      <div className="font-semibold">${categoryData.estimatedCost.toFixed(2)}</div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-lg">
                       <div className="text-sm text-muted-foreground">Your Price</div>
-                      <div className="font-semibold">${comparison.categoryMarginAnalysis[category].yourPrice.toFixed(2)}</div>
+                      <div className="font-semibold">${categoryData.estimatedPrice.toFixed(2)}</div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-lg">
                       <div className="text-sm text-muted-foreground">Vendor Quote</div>
-                      <div className="font-semibold">${comparison.categoryMarginAnalysis[category].vendorQuote.toFixed(2)}</div>
+                      <div className="font-semibold">${categoryData.quotedPrice.toFixed(2)}</div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-lg">
-                      <div className="text-sm text-muted-foreground">Your Margin</div>
-                      <div className={`font-semibold ${getMarginStatusColor(comparison.categoryMarginAnalysis[category].status)}`}>
-                        {comparison.categoryMarginAnalysis[category].marginIfAccepted.toFixed(1)}%
+                      <div className="text-sm text-muted-foreground">Cost Variance</div>
+                      <div className={`font-semibold ${getDifferenceColor(categoryData.costVariance)}`}>
+                        {formatDifference(categoryData.costVariance, categoryData.costVariancePercent)}
                       </div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-lg">
-                      <div className="text-sm text-muted-foreground">Min Acceptable</div>
-                      <div className="font-semibold">${comparison.categoryMarginAnalysis[category].minimumAcceptable.toFixed(2)}</div>
+                      <div className="text-sm text-muted-foreground">Price Variance</div>
+                      <div className={`font-semibold ${getDifferenceColor(categoryData.priceVariance)}`}>
+                        {formatDifference(categoryData.priceVariance, categoryData.priceVariancePercent)}
+                      </div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-lg">
                       <div className="text-sm text-muted-foreground">Status</div>
                       <Badge 
                         variant={
-                          comparison.categoryMarginAnalysis[category].status === 'excellent' ? "default" :
-                          comparison.categoryMarginAnalysis[category].status === 'acceptable' ? "secondary" :
-                          comparison.categoryMarginAnalysis[category].status === 'marginal' ? "outline" :
+                          Math.abs(categoryData.priceVariancePercent) <= 5 ? "default" :
+                          Math.abs(categoryData.priceVariancePercent) <= 15 ? "secondary" :
+                          Math.abs(categoryData.priceVariancePercent) <= 30 ? "outline" :
                           "destructive"
                         }
                       >
-                        {comparison.categoryMarginAnalysis[category].status.charAt(0).toUpperCase() + 
-                         comparison.categoryMarginAnalysis[category].status.slice(1)}
+                        {Math.abs(categoryData.priceVariancePercent) <= 5 ? "Excellent" :
+                         Math.abs(categoryData.priceVariancePercent) <= 15 ? "Good" :
+                         Math.abs(categoryData.priceVariancePercent) <= 30 ? "Poor" : "Critical"}
                       </Badge>
                     </div>
                   </div>

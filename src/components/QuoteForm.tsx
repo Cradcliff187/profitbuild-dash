@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Calendar as CalendarIcon, Plus } from "lucide-react";
+import { Save, Calendar as CalendarIcon, Plus, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,20 +9,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ProjectSelector } from "./ProjectSelector";
 import { PayeeSelector } from "./PayeeSelector";
-import { LineItemRow } from "./LineItemRow";
 import { PdfUpload } from "./PdfUpload";
-import { QuoteStatusBadge } from "./QuoteStatusBadge";
-import { Estimate, LineItem, LineItemCategory } from "@/types/estimate";
+import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 import { Quote, QuoteLineItem, QuoteStatus } from "@/types/quote";
 import { Payee } from "@/types/payee";
 import { useToast } from "@/hooks/use-toast";
+import { calculateQuoteFinancials } from "@/utils/quoteFinancials";
+import { calculateEstimateFinancials } from "@/utils/estimateFinancials";
 
 interface QuoteFormProps {
   estimates: Estimate[];
-  initialQuote?: Quote; // For editing mode
+  initialQuote?: Quote;
   onSave: (quote: Quote) => void;
   onCancel: () => void;
 }
@@ -31,26 +33,12 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   const { toast } = useToast();
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate>();
   const [selectedPayee, setSelectedPayee] = useState<Payee>();
-  const [quotedBy, setQuotedBy] = useState("");
   const [dateReceived, setDateReceived] = useState<Date>(new Date());
   const [status, setStatus] = useState<QuoteStatus>(QuoteStatus.PENDING);
   const [validUntil, setValidUntil] = useState<Date>();
-  const [acceptedDate, setAcceptedDate] = useState<Date>();
-  const [rejectionReason, setRejectionReason] = useState("");
-  const [notes, setNotes] = useState("")
-  const [attachmentUrl, setAttachmentUrl] = useState<string>("")
-  const [attachmentFileName, setAttachmentFileName] = useState<string>("")
-  const [includesMaterials, setIncludesMaterials] = useState(true)
-  const [includesLabor, setIncludesLabor] = useState(true)
+  const [notes, setNotes] = useState("");
+  const [attachmentUrl, setAttachmentUrl] = useState<string>("");
   const [lineItems, setLineItems] = useState<QuoteLineItem[]>([]);
-  const [subtotals, setSubtotals] = useState({
-    labor: 0,
-    subcontractors: 0,
-    materials: 0,
-    equipment: 0,
-    other: 0
-  });
-  const [total, setTotal] = useState(0);
 
   const generateQuoteNumber = () => {
     return `QTE-${Date.now().toString().slice(-6)}`;
@@ -62,12 +50,12 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     category: estimateItem.category,
     description: estimateItem.description,
     quantity: estimateItem.quantity,
-    pricePerUnit: 0, // Reset pricePerUnit for quote entry
-    total: 0,
-    costPerUnit: estimateItem.costPerUnit, // Use estimate cost as baseline
+    pricePerUnit: estimateItem.pricePerUnit, // Start with estimate price
+    total: estimateItem.total,
+    costPerUnit: estimateItem.costPerUnit,
     markupPercent: null,
     markupAmount: null,
-    totalCost: estimateItem.quantity * estimateItem.costPerUnit,
+    totalCost: estimateItem.totalCost,
     totalMarkup: 0
   });
 
@@ -87,90 +75,28 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
 
   useEffect(() => {
     if (initialQuote) {
-      // Load existing quote for editing
       const estimate = estimates.find(e => e.id === initialQuote.estimate_id);
       setSelectedEstimate(estimate);
-      setQuotedBy(initialQuote.quotedBy);
       setDateReceived(initialQuote.dateReceived);
       setStatus(initialQuote.status);
       setValidUntil(initialQuote.valid_until);
-      setAcceptedDate(initialQuote.accepted_date);
-      setRejectionReason(initialQuote.rejection_reason || "");
       setNotes(initialQuote.notes || "");
       setLineItems(initialQuote.lineItems);
       setAttachmentUrl(initialQuote.attachment_url || "");
-      setAttachmentFileName(initialQuote.attachment_url ? "Attached PDF" : "");
-      setIncludesMaterials(initialQuote.includes_materials);
-      setIncludesLabor(initialQuote.includes_labor);
-      // Note: selectedPayee will be set when PayeeSelector loads payees
     }
   }, [initialQuote, estimates]);
 
   useEffect(() => {
     if (selectedEstimate && !initialQuote) {
-      // Pre-populate line items from selected estimate only for new quotes
       const quoteLineItems = selectedEstimate.lineItems.map(createQuoteLineItemFromEstimate);
       setLineItems(quoteLineItems);
-    }
-  }, [selectedEstimate, initialQuote]);
-
-  // Set default validUntil to 30 days from dateReceived for new quotes
-  useEffect(() => {
-    if (!initialQuote) {
-      const defaultValidUntil = new Date(dateReceived);
+      
+      // Set default valid until date
+      const defaultValidUntil = new Date();
       defaultValidUntil.setDate(defaultValidUntil.getDate() + 30);
       setValidUntil(defaultValidUntil);
     }
-  }, [dateReceived, initialQuote]);
-
-  const getDaysRemaining = (validUntil: Date | undefined) => {
-    if (!validUntil) return null;
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const expiry = new Date(validUntil);
-    expiry.setHours(0, 0, 0, 0);
-    
-    const diffTime = expiry.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays;
-  };
-
-  useEffect(() => {
-    // Calculate totals whenever line items change
-    const newSubtotals = {
-      labor: 0,
-      subcontractors: 0,
-      materials: 0,
-      equipment: 0,
-      other: 0
-    };
-
-    lineItems.forEach(item => {
-      const itemTotal = item.quantity * item.pricePerUnit;
-      switch (item.category) {
-        case 'labor_internal':
-          newSubtotals.labor += itemTotal;
-          break;
-        case 'subcontractors':
-          newSubtotals.subcontractors += itemTotal;
-          break;
-        case 'materials':
-          newSubtotals.materials += itemTotal;
-          break;
-        case 'equipment':
-          newSubtotals.equipment += itemTotal;
-          break;
-        case 'other':
-          newSubtotals.other += itemTotal;
-          break;
-      }
-    });
-
-    setSubtotals(newSubtotals);
-    setTotal(Object.values(newSubtotals).reduce((sum, val) => sum + val, 0));
-  }, [lineItems]);
+  }, [selectedEstimate, initialQuote]);
 
   const updateLineItem = (id: string, field: keyof QuoteLineItem, value: any) => {
     setLineItems(prev =>
@@ -178,31 +104,12 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
         if (item.id === id) {
           const updated = { ...item, [field]: value };
           
-          // Recalculate total when quantity or pricePerUnit changes
           if (field === 'quantity' || field === 'pricePerUnit') {
             updated.total = updated.quantity * updated.pricePerUnit;
           }
           
-          // Recalculate totalCost when quantity or costPerUnit changes
           if (field === 'quantity' || field === 'costPerUnit') {
             updated.totalCost = updated.quantity * updated.costPerUnit;
-          }
-          
-          // Recalculate totalMarkup when markup fields change
-          if (field === 'markupPercent' || field === 'markupAmount' || field === 'quantity' || field === 'costPerUnit') {
-            if (updated.markupPercent !== null && updated.markupPercent !== undefined) {
-              updated.totalMarkup = updated.quantity * updated.costPerUnit * (updated.markupPercent / 100);
-              // Update pricePerUnit based on cost + percentage markup
-              updated.pricePerUnit = updated.costPerUnit * (1 + updated.markupPercent / 100);
-              updated.total = updated.quantity * updated.pricePerUnit;
-            } else if (updated.markupAmount !== null && updated.markupAmount !== undefined) {
-              updated.totalMarkup = updated.quantity * updated.markupAmount;
-              // Update pricePerUnit based on cost + fixed markup
-              updated.pricePerUnit = updated.costPerUnit + updated.markupAmount;
-              updated.total = updated.quantity * updated.pricePerUnit;
-            } else {
-              updated.totalMarkup = 0;
-            }
           }
           
           return updated;
@@ -213,13 +120,28 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   };
 
   const removeLineItem = (id: string) => {
-    if (lineItems.length > 1) {
-      setLineItems(prev => prev.filter(item => item.id !== id));
-    }
+    setLineItems(prev => prev.filter(item => item.id !== id));
   };
 
   const addLineItem = () => {
     setLineItems(prev => [...prev, createNewQuoteLineItem()]);
+  };
+
+  const getVarianceColor = (estimated: number, quoted: number) => {
+    if (quoted === estimated) return "text-muted-foreground";
+    return quoted > estimated ? "text-destructive" : "text-green-600";
+  };
+
+  const getVarianceIcon = (estimated: number, quoted: number) => {
+    if (quoted === estimated) return null;
+    return quoted > estimated ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />;
+  };
+
+  const formatVariance = (estimated: number, quoted: number) => {
+    const difference = quoted - estimated;
+    const percentage = estimated > 0 ? (difference / estimated) * 100 : 0;
+    const sign = difference >= 0 ? "+" : "";
+    return `${sign}$${difference.toFixed(2)} (${sign}${percentage.toFixed(1)}%)`;
   };
 
   const handleSave = () => {
@@ -234,8 +156,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
 
     if (!selectedPayee) {
       toast({
-        title: "Missing Information",
-        description: "Please select a payee.",
+        title: "Missing Payee",
+        description: "Please select a payee/vendor.",
         variant: "destructive"
       });
       return;
@@ -244,21 +166,13 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     if (lineItems.every(item => !item.description.trim())) {
       toast({
         title: "Missing Line Items",
-        description: "Please add at least one line item with a description.",
+        description: "Please add at least one line item.",
         variant: "destructive"
       });
       return;
     }
 
-    // Validation for status-specific fields
-    if (status === QuoteStatus.REJECTED && !rejectionReason.trim()) {
-      toast({
-        title: "Missing Rejection Reason",
-        description: "Please provide a reason when rejecting a quote.",
-        variant: "destructive"
-      });
-      return;
-    }
+    const financials = calculateQuoteFinancials(lineItems);
 
     const quote: Quote = {
       id: initialQuote?.id || Date.now().toString(),
@@ -271,14 +185,19 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       dateReceived,
       status,
       valid_until: validUntil,
-       accepted_date: status === QuoteStatus.ACCEPTED ? (acceptedDate || new Date()) : undefined,
-       rejection_reason: status === QuoteStatus.REJECTED ? rejectionReason.trim() : undefined,
+      accepted_date: status === QuoteStatus.ACCEPTED ? new Date() : undefined,
       quoteNumber: initialQuote?.quoteNumber || generateQuoteNumber(),
-      includes_materials: includesMaterials,
-      includes_labor: includesLabor,
+      includes_materials: true,
+      includes_labor: true,
       lineItems: lineItems.filter(item => item.description.trim()),
-      subtotals,
-      total,
+      subtotals: {
+        labor: 0,
+        subcontractors: 0,
+        materials: 0,
+        equipment: 0,
+        other: 0
+      },
+      total: financials.totalAmount,
       notes: notes.trim() || undefined,
       attachment_url: attachmentUrl || undefined,
       createdAt: initialQuote?.createdAt || new Date()
@@ -287,53 +206,65 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     onSave(quote);
     toast({
       title: initialQuote ? "Quote Updated" : "Quote Saved",
-      description: `Quote ${quote.quoteNumber} from ${quote.quotedBy} has been ${initialQuote ? 'updated' : 'created'} successfully.`
+      description: `Quote ${quote.quoteNumber} from ${quote.quotedBy} has been saved.`
     });
   };
 
+  if (!selectedEstimate) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Create New Quote</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Select Project Estimate</Label>
+              <ProjectSelector
+                estimates={estimates}
+                selectedEstimate={selectedEstimate}
+                onSelect={setSelectedEstimate}
+                placeholder="Choose a project to quote..."
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onCancel}>Cancel</Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const estimateFinancials = calculateEstimateFinancials(selectedEstimate.lineItems);
+  const quoteFinancials = calculateQuoteFinancials(lineItems);
+
   return (
     <div className="space-y-6">
+      {/* Header with Project Info */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>{initialQuote ? 'Edit Quote' : 'Create New Quote'}</CardTitle>
-            {initialQuote && <QuoteStatusBadge status={status} />}
+            <div>
+              <CardTitle>{initialQuote ? 'Edit Quote' : 'Create Quote'}</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {selectedEstimate.project_name} • {selectedEstimate.client_name}
+              </p>
+            </div>
+            <Badge variant="outline">
+              {selectedEstimate.estimate_number}
+            </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Project Selection */}
-          <div className="space-y-2">
-            <Label>Select Project Estimate</Label>
-            <ProjectSelector
-              estimates={estimates}
-              selectedEstimate={selectedEstimate}
-              onSelect={setSelectedEstimate}
-              placeholder="Choose a project to quote..."
-            />
-            {selectedEstimate && (
-              <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                <div className="font-medium">{selectedEstimate.project_name}</div>
-                <div className="text-muted-foreground">
-                  Client: {selectedEstimate.client_name} • 
-                  Estimate Total: ${selectedEstimate.total_amount.toFixed(2)} • 
-                  {selectedEstimate.estimate_number}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Quote Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <PayeeSelector
               value={selectedPayee?.id}
               onValueChange={(payeeId, payeeName, payee) => {
-                if (payee) {
-                  setSelectedPayee(payee);
-                  setQuotedBy(payee.payee_name);
-                }
+                if (payee) setSelectedPayee(payee);
               }}
-              placeholder="Select payee for this quote..."
-              label="Subcontractor/Payee"
+              placeholder="Select vendor/payee..."
+              label="Vendor/Payee"
             />
             
             <div className="space-y-2">
@@ -348,290 +279,215 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateReceived ? format(dateReceived, "PPP") : <span>Pick a date</span>}
+                    {dateReceived ? format(dateReceived, "PPP") : "Pick date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
                     selected={dateReceived}
                     onSelect={(date) => date && setDateReceived(date)}
                     initialFocus
-                    className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
 
-          {/* Quote Status and Dates */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Quote Status</Label>
+              <Label>Status</Label>
               <Select value={status} onValueChange={(value: QuoteStatus) => setStatus(value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                   <SelectItem value={QuoteStatus.PENDING}>Pending</SelectItem>
-                   <SelectItem value={QuoteStatus.ACCEPTED}>Accepted</SelectItem>
-                   <SelectItem value={QuoteStatus.REJECTED}>Rejected</SelectItem>
-                   <SelectItem value={QuoteStatus.EXPIRED}>Expired</SelectItem>
+                  <SelectItem value={QuoteStatus.PENDING}>Pending</SelectItem>
+                  <SelectItem value={QuoteStatus.ACCEPTED}>Accepted</SelectItem>
+                  <SelectItem value={QuoteStatus.REJECTED}>Rejected</SelectItem>
+                  <SelectItem value={QuoteStatus.EXPIRED}>Expired</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label>Quote Valid Until</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !validUntil && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {validUntil ? format(validUntil, "PPP") : <span>Set expiration date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={validUntil}
-                    onSelect={setValidUntil}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
-              
-              {validUntil && (
-                <div className="text-sm text-muted-foreground">
-                  {getDaysRemaining(validUntil) !== null && (
-                    <span className={cn(
-                      "inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium",
-                      getDaysRemaining(validUntil)! > 7 
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" 
-                        : getDaysRemaining(validUntil)! > 0 
-                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" 
-                          : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                    )}>
-                      {getDaysRemaining(validUntil)! > 0 
-                        ? `${getDaysRemaining(validUntil)} days remaining`
-                        : getDaysRemaining(validUntil)! === 0
-                          ? "Expires today"
-                          : `Expired ${Math.abs(getDaysRemaining(validUntil)!)} days ago`
-                      }
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Quote Includes */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Quote Includes</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="includesMaterials"
-                  checked={includesMaterials}
-                  onChange={(e) => setIncludesMaterials(e.target.checked)}
-                  className="h-4 w-4 text-primary border-border rounded focus:ring-primary"
-                />
-                <Label htmlFor="includesMaterials">Includes Materials</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="includesLabor"
-                  checked={includesLabor}
-                  onChange={(e) => setIncludesLabor(e.target.checked)}
-                  className="h-4 w-4 text-primary border-border rounded focus:ring-primary"
-                />
-                <Label htmlFor="includesLabor">Includes Labor</Label>
-              </div>
-            </div>
-          </div>
-
-          {/* Conditional Status Fields */}
-          {status === QuoteStatus.ACCEPTED && (
-            <div className="space-y-2">
-              <Label>Accepted Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !acceptedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {acceptedDate ? format(acceptedDate, "PPP") : <span>Select acceptance date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={acceptedDate}
-                    onSelect={setAcceptedDate}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          )}
-
-          {status === QuoteStatus.REJECTED && (
-            <div className="space-y-2">
-              <Label htmlFor="rejectionReason">Rejection Reason *</Label>
-              <Textarea
-                id="rejectionReason"
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Please provide a reason for rejecting this quote..."
-                rows={3}
-                required
-              />
-            </div>
-          )}
-
-          {selectedEstimate && (
-            <>
-              {/* Line Items */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Quote Line Items</h3>
-                  <Button onClick={addLineItem} variant="outline" size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Line Item
-                  </Button>
-                </div>
-
-                {/* Line Items */}
-                <div className="space-y-3">
-                  {lineItems.map(lineItem => (
-                    <LineItemRow
-                      key={lineItem.id}
-                      lineItem={lineItem as any}
-                      onUpdate={updateLineItem as any}
-                      onRemove={removeLineItem}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Enhanced Totals */}
-              <Card className="bg-muted/50">
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Labor:</span>
-                        <span className="font-medium">${subtotals.labor.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Subcontractors:</span>
-                        <span className="font-medium">${subtotals.subcontractors.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Materials:</span>
-                        <span className="font-medium">${subtotals.materials.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Equipment:</span>
-                        <span className="font-medium">${subtotals.equipment.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Other:</span>
-                        <span className="font-medium">${subtotals.other.toFixed(2)}</span>
-                      </div>
-                    </div>
-                    <div className="border-t pt-3">
-                      <div className="flex justify-between items-center text-lg font-bold">
-                        <span>Quote Total:</span>
-                        <span className="text-primary">${total.toFixed(2)}</span>
-                      </div>
-                      {/* Show cost analysis if cost data is available */}
-                      {lineItems.some(item => item.costPerUnit > 0) && (
-                        <div className="mt-2 p-3 bg-muted/30 rounded-lg">
-                          <div className="text-sm space-y-1">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Total Cost:</span>
-                              <span className="font-medium">
-                                ${lineItems.reduce((sum, item) => sum + (item.quantity * item.costPerUnit), 0).toFixed(2)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Vendor Margin:</span>
-                              <span className="font-medium">
-                                {(() => {
-                                  const totalCost = lineItems.reduce((sum, item) => sum + (item.quantity * item.costPerUnit), 0);
-                                  const margin = totalCost > 0 ? ((total - totalCost) / total * 100) : 0;
-                                  return `${margin.toFixed(1)}%`;
-                                })()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes (Optional)</Label>
-                <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Additional notes about this quote..."
-                  rows={3}
-                />
-              </div>
-
-              {/* PDF Upload */}
-              <div className="space-y-2">
-                <Label>Quote Attachment</Label>
-                <PdfUpload
-                  onUpload={(url, fileName) => {
-                    setAttachmentUrl(url);
-                    setAttachmentFileName(fileName);
-                  }}
-                  existingFile={attachmentUrl ? { url: attachmentUrl, name: attachmentFileName } : undefined}
-                  onRemove={() => {
-                    setAttachmentUrl("");
-                    setAttachmentFileName("");
-                  }}
-                />
-              </div>
-            </>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <Button 
-              onClick={handleSave} 
-              className="flex-1"
-              disabled={!selectedEstimate || !selectedPayee}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Quote
-            </Button>
-            <Button onClick={onCancel} variant="outline">
-              Cancel
-            </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Financial Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground">Your Estimate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${estimateFinancials.totalAmount.toFixed(2)}</div>
+            <div className="text-sm text-muted-foreground">Original estimated price</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground">Vendor Quote</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${quoteFinancials.totalAmount.toFixed(2)}</div>
+            <div className="text-sm text-muted-foreground">{selectedPayee?.payee_name || 'Quoted price'}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground">Variance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold flex items-center gap-2 ${getVarianceColor(estimateFinancials.totalAmount, quoteFinancials.totalAmount)}`}>
+              {getVarianceIcon(estimateFinancials.totalAmount, quoteFinancials.totalAmount)}
+              {formatVariance(estimateFinancials.totalAmount, quoteFinancials.totalAmount)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Line Items Comparison */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Line Items Comparison</CardTitle>
+            <Button size="sm" onClick={addLineItem}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Item
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {lineItems.map((item, index) => {
+              const estimateItem = selectedEstimate.lineItems.find(e => e.id === item.estimateLineItemId);
+              
+              return (
+                <div key={item.id} className="border rounded-lg p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="outline">{CATEGORY_DISPLAY_MAP[item.category]}</Badge>
+                    {!estimateItem && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => removeLineItem(item.id)}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+
+                  {estimateItem && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg">
+                      <div>
+                        <h4 className="font-medium text-sm text-muted-foreground mb-2">Original Estimate</h4>
+                        <div className="text-sm space-y-1">
+                          <div><strong>Description:</strong> {estimateItem.description}</div>
+                          <div><strong>Quantity:</strong> {estimateItem.quantity}</div>
+                          <div><strong>Rate:</strong> ${estimateItem.pricePerUnit.toFixed(2)}</div>
+                          <div><strong>Total:</strong> ${estimateItem.total.toFixed(2)}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-center">
+                        <ArrowRight className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Input
+                        value={item.description}
+                        onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
+                        placeholder="Item description"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Quantity</Label>
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        min="0"
+                        step="0.01"
+                        onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Quote Price</Label>
+                      <Input
+                        type="number"
+                        value={item.pricePerUnit}
+                        min="0"
+                        step="0.01"
+                        onChange={(e) => updateLineItem(item.id, 'pricePerUnit', parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Total</Label>
+                      <div className="flex items-center h-10 px-3 py-2 bg-muted rounded-md">
+                        <span className="font-medium">${item.total.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {estimateItem && (
+                    <div className={`text-sm flex items-center gap-2 ${getVarianceColor(estimateItem.total, item.total)}`}>
+                      {getVarianceIcon(estimateItem.total, item.total)}
+                      <span>Variance: {formatVariance(estimateItem.total, item.total)}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notes and Attachments */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Notes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any notes about this quote..."
+              rows={4}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Attachment</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PdfUpload
+              onUpload={(url, fileName) => setAttachmentUrl(url)}
+              existingFile={attachmentUrl ? { url: attachmentUrl, name: "Quote Attachment" } : undefined}
+              onRemove={() => setAttachmentUrl("")}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave}>
+          <Save className="h-4 w-4 mr-2" />
+          {initialQuote ? 'Update Quote' : 'Save Quote'}
+        </Button>
+      </div>
     </div>
   );
 };
