@@ -21,8 +21,10 @@ import { Project } from "@/types/project";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { QuoteStatusBadge } from "./QuoteStatusBadge";
 import { QuoteAcceptanceModal } from "./QuoteAcceptanceModal";
+import { QuotesTableView } from "./QuotesTableView";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface QuotesListProps {
   quotes: Quote[];
@@ -32,9 +34,11 @@ interface QuotesListProps {
   onCompare: (quote: Quote) => void;
   onAccept?: (quote: Quote) => void;
   onExpire?: (expiredQuoteIds: string[]) => void;
+  onCreateNew?: () => void;
 }
 
-export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onAccept, onExpire }: QuotesListProps) => {
+export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onAccept, onExpire, onCreateNew }: QuotesListProps) => {
+  const isMobile = useIsMobile();
   const [sortBy, setSortBy] = useState<'date' | 'project' | 'total'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
@@ -257,6 +261,21 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
       });
     }
   };
+
+  // Use table view for desktop, card view for mobile
+  if (!isMobile) {
+    return (
+      <QuotesTableView
+        quotes={quotes}
+        estimates={estimates}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onCompare={onCompare}
+        onAccept={onAccept}
+        onCreateNew={onCreateNew || (() => {})}
+      />
+    );
+  }
 
   if (quotes.length === 0) {
     return (

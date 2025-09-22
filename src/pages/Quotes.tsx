@@ -396,6 +396,7 @@ const Quotes = () => {
           onCompare={handleCompareQuote}
           onAccept={handleAcceptQuote}
           onExpire={handleExpireQuotes}
+          onCreateNew={() => setView('create')}
         />
       )}
 
