@@ -262,17 +262,29 @@ export const ProjectsTableView = ({
       label: 'Project',
       sortable: true,
       render: (project) => (
-        <div className="space-y-1">
-          <div className="font-medium text-sm">{project.project_name}</div>
-          <div className="text-xs text-muted-foreground flex items-center gap-2">
-            <span>{project.project_number} • {project.client_name}</span>
-            {project.job_type && (
-              <Badge variant="secondary" className="text-xs py-0 px-1">
-                {project.job_type}
-              </Badge>
-            )}
-          </div>
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="space-y-1 cursor-help">
+              <div className="font-medium text-sm">{project.project_name}</div>
+              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                <span>{project.project_number} • {project.client_name}</span>
+                {project.job_type && (
+                  <Badge variant="secondary" className="text-xs py-0 px-1">
+                    {project.job_type}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div>
+              <p><strong>Project:</strong> {project.project_name}</p>
+              <p><strong>Number:</strong> {project.project_number}</p>
+              <p><strong>Client:</strong> {project.client_name}</p>
+              {project.job_type && <p><strong>Type:</strong> {getProjectType(project.job_type)}</p>}
+            </div>
+          </TooltipContent>
+        </Tooltip>
       ),
     },
     {
@@ -280,21 +292,119 @@ export const ProjectsTableView = ({
       label: 'Status',
       align: 'center',
       sortable: true,
-      render: (project) => getStatusBadge(project.status),
+      render: (project) => {
+        const statusExplanations = {
+          'estimating': 'Project is being estimated and scoped',
+          'quoted': 'Project has been quoted and waiting for approval',
+          'approved': 'Project approved, waiting to start',
+          'in_progress': 'Project is currently active and ongoing',
+          'complete': 'Project has been finished and delivered',
+          'on_hold': 'Project is temporarily paused or delayed',
+          'cancelled': 'Project has been cancelled or terminated'
+        };
+
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="cursor-help">
+                {getStatusBadge(project.status)}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{statusExplanations[project.status]}</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'start_date',
       label: 'Start Date',
       align: 'right',
       sortable: true,
-      render: (project) => formatDate(project.start_date, project.status),
+      render: (project) => {
+        if (!project.start_date) return <span className="text-muted-foreground text-xs">Not set</span>;
+        
+        const dateObj = new Date(project.start_date);
+        const formattedDate = format(dateObj, 'MMM d, yyyy');
+        
+        const getDateContext = () => {
+          switch (project.status) {
+            case 'estimating':
+            case 'quoted':
+            case 'approved':
+              return 'Planned start date for project execution';
+            case 'in_progress':
+              return 'Actual date when project work began';
+            case 'complete':
+              return 'Date when project work started';
+            default:
+              return 'Planned project start date';
+          }
+        };
+        
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className="font-medium text-sm">{formattedDate}</div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{getDateContext()}</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'end_date',
       label: 'Target/End Date',
       align: 'right',
       sortable: true,
-      render: (project) => formatDate(project.end_date, project.status, true),
+      render: (project) => {
+        if (!project.end_date) return <span className="text-muted-foreground text-xs">Not set</span>;
+        
+        const dateObj = new Date(project.end_date);
+        const formattedDate = format(dateObj, 'MMM d, yyyy');
+        
+        const getEndDateContext = () => {
+          switch (project.status) {
+            case 'estimating':
+            case 'quoted':
+            case 'approved':
+              return 'Target completion date for project delivery';
+            case 'in_progress':
+              if (isPast(dateObj)) {
+                return 'Project is overdue - original target completion date';
+              } else {
+                return 'Target completion date - project due date';
+              }
+            case 'complete':
+              return 'Date when project was completed';
+            default:
+              return 'Target project completion date';
+          }
+        };
+        
+        let className = 'font-medium text-sm';
+        if (project.status === 'in_progress' && isPast(dateObj)) {
+          className += ' text-destructive';
+        }
+        
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className={className}>{formattedDate}</div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{getEndDateContext()}</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'duration',
@@ -305,11 +415,34 @@ export const ProjectsTableView = ({
         if (!duration) return <span className="text-muted-foreground text-xs">N/A</span>;
         
         const isOverdue = duration.includes('overdue');
+        
+        const getScheduleContext = () => {
+          switch (project.status) {
+            case 'estimating':
+            case 'quoted':
+            case 'approved':
+              return `Planned project duration: ${duration}`;
+            case 'in_progress':
+              return `Project progress: ${duration}. ${isOverdue ? 'Project is past due date.' : 'Project is on track.'}`;
+            case 'complete':
+              return `Project completed in: ${duration}`;
+            default:
+              return `Project duration: ${duration}`;
+          }
+        };
+        
         return (
-          <div className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-destructive' : 'text-muted-foreground'}`}>
-            <Clock className="h-3 w-3" />
-            {duration}
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={`text-xs flex items-center gap-1 cursor-help justify-center ${isOverdue ? 'text-destructive' : 'text-muted-foreground'}`}>
+                <Clock className="h-3 w-3" />
+                {duration.split(' (')[0]} {/* Remove extra context from duration display */}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{getScheduleContext()}</p>
+            </TooltipContent>
+          </Tooltip>
         );
       },
     },
@@ -319,14 +452,29 @@ export const ProjectsTableView = ({
       align: 'right',
       sortable: true,
       render: (project) => (
-        <div className="text-right">
-          <div className="font-medium text-sm">{formatCurrency(project.contracted_amount)}</div>
-          {project.total_accepted_quotes && project.total_accepted_quotes !== project.contracted_amount && (
-            <div className="text-xs text-muted-foreground">
-              Base: {formatCurrency(project.total_accepted_quotes)}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="text-right cursor-help">
+              <div className="font-medium text-sm">{formatCurrency(project.contracted_amount)}</div>
+              {project.total_accepted_quotes && project.total_accepted_quotes !== project.contracted_amount && (
+                <div className="text-xs text-muted-foreground">
+                  Base: {formatCurrency(project.total_accepted_quotes)}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div>
+              <p><strong>Contract Value:</strong> {formatCurrency(project.contracted_amount)}</p>
+              {project.total_accepted_quotes && project.total_accepted_quotes !== project.contracted_amount && (
+                <>
+                  <p><strong>Base Quote Total:</strong> {formatCurrency(project.total_accepted_quotes)}</p>
+                  <p>Difference represents contract markup or negotiated adjustments</p>
+                </>
+              )}
+            </div>
+          </TooltipContent>
+        </Tooltip>
       ),
     },
     {
@@ -353,7 +501,22 @@ export const ProjectsTableView = ({
       key: 'actualExpenses',
       label: 'Actual Spent',
       align: 'right',
-      render: (project) => formatCurrency(project.actualExpenses),
+      render: (project) => (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="cursor-help">
+              {formatCurrency(project.actualExpenses)}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div>
+              <p><strong>Actual Expenses:</strong> {formatCurrency(project.actualExpenses)}</p>
+              <p>Total expenses recorded for this project to date</p>
+              <p>Source: Expense tracking and financial records</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      ),
     },
     {
       key: 'projected_margin',
@@ -365,16 +528,24 @@ export const ProjectsTableView = ({
         const isPositive = projectedMargin >= 0;
         
         return (
-          <div className="text-right">
-            <div className={`font-medium text-sm ${
-              isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-            }`}>
-              {formatCurrency(projectedMargin)}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Est. - Quotes
-            </div>
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className={`font-medium text-sm ${
+                  isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                }`}>
+                  {formatCurrency(projectedMargin)}
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div>
+                <p><strong>Projected Margin:</strong> {formatCurrency(projectedMargin)}</p>
+                <p>Calculation: Estimated Revenue - Quoted Costs</p>
+                <p>Uses accepted quote prices when available, otherwise estimated costs</p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
         );
       }
     },
@@ -388,16 +559,24 @@ export const ProjectsTableView = ({
         const isPositive = currentMargin >= 0;
         
         return (
-          <div className="text-right">
-            <div className={`font-medium text-sm ${
-              isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-            }`}>
-              {formatCurrency(currentMargin)}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Revenue - Actual
-            </div>
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className={`font-medium text-sm ${
+                  isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                }`}>
+                  {formatCurrency(currentMargin)}
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div>
+                <p><strong>Current Margin:</strong> {formatCurrency(currentMargin)}</p>
+                <p>Calculation: Contract Revenue - Actual Expenses</p>
+                <p>Based on real expenses incurred to date</p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
         );
       }
     },
@@ -417,15 +596,25 @@ export const ProjectsTableView = ({
           ? projectedMarginPct 
           : marginPercentage;
         
+        const isProjected = ['estimating', 'quoted'].includes(project.status);
+        
+        const tooltipContent = isProjected 
+          ? `Projected Margin Percentage: ${displayPercentage.toFixed(1)}%. Based on estimated revenue vs quoted costs.`
+          : `Current Margin Percentage: ${displayPercentage.toFixed(1)}%. Based on actual expenses vs contract revenue.`;
+        
         return (
-          <div className="text-center space-y-1">
-            <div className="flex items-center justify-center">
-              {getMarginBadge(displayPercentage, project.target_margin, project.minimum_margin_threshold)}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {['estimating', 'quoted'].includes(project.status) ? 'Projected' : 'Current'}
-            </div>
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-center cursor-help">
+                <div className="flex items-center justify-center">
+                  {getMarginBadge(displayPercentage, project.target_margin, project.minimum_margin_threshold)}
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{tooltipContent}</p>
+            </TooltipContent>
+          </Tooltip>
         );
       }
     },
@@ -459,7 +648,22 @@ export const ProjectsTableView = ({
       key: 'contingency_remaining',
       label: 'Contingency',
       align: 'right',
-      render: (project) => formatCurrency(project.contingencyRemaining),
+      render: (project) => (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="cursor-help">
+              {formatCurrency(project.contingencyRemaining)}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div>
+              <p><strong>Remaining Contingency:</strong> {formatCurrency(project.contingencyRemaining)}</p>
+              <p>Budget buffer available for unexpected costs or scope changes</p>
+              <p>Calculated from original contingency allocation minus usage</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      ),
     },
     {
       key: 'actions',
