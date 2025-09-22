@@ -54,8 +54,7 @@ export const ProjectsTableView = ({
   }, {} as Record<ProjectStatus, number>);
 
   const handleViewDetails = (project: Project) => {
-    setSelectedProject(project);
-    setShowDetailsModal(true);
+    window.location.href = `/projects/${project.id}`;
   };
 
   const handleCloseDetailsModal = () => {

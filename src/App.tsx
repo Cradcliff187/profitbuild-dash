@@ -16,6 +16,8 @@ import Projects from "./pages/Projects";
 import ProfitAnalysis from "./pages/ProfitAnalysis";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
+import ProjectDetail from "./pages/ProjectDetail";
+import ProjectEdit from "./pages/ProjectEdit";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
 
@@ -40,6 +42,8 @@ const App = () => (
                       <Route path="/dashboard" element={<Navigate to="/" replace />} />
                       <Route path="/work-orders" element={<WorkOrders />} />
                       <Route path="/projects" element={<Projects />} />
+                      <Route path="/projects/:id" element={<ProjectDetail />} />
+                      <Route path="/projects/:id/edit" element={<ProjectEdit />} />
                       <Route path="/estimates" element={<Estimates />} />
                       <Route path="/quotes" element={<Quotes />} />
                       <Route path="/expenses" element={<Expenses />} />

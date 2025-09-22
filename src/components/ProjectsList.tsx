@@ -315,7 +315,11 @@ export const ProjectsList = ({
       {/* Projects Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {paginatedProjects.map((project) => (
-          <Card key={project.id} className={`hover:shadow-md transition-shadow ${getCardBorderClass(project.margin_percentage)}`}>
+          <Card 
+            key={project.id} 
+            className={`hover:shadow-md transition-shadow cursor-pointer ${getCardBorderClass(project.margin_percentage)}`}
+            onClick={() => window.location.href = `/projects/${project.id}`}
+          >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
@@ -324,7 +328,7 @@ export const ProjectsList = ({
                     {project.project_number} • {project.client_name}
                   </div>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="outline"
                     size="sm"
@@ -334,7 +338,11 @@ export const ProjectsList = ({
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </AlertDialogTrigger>
