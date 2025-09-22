@@ -43,7 +43,8 @@ const Quotes = () => {
         .from('estimates')
         .select(`
           *,
-          projects(project_name, client_name)
+          projects(project_name, client_name),
+          estimate_line_items(*)
         `);
 
       if (estimatesError) throw estimatesError;
@@ -116,7 +117,22 @@ const Quotes = () => {
         created_at: new Date(estimate.created_at),
         updated_at: new Date(estimate.updated_at),
         createdAt: new Date(estimate.created_at),
-        lineItems: [],
+        lineItems: estimate.estimate_line_items?.map((item: any) => ({
+          id: item.id,
+          category: item.category,
+          description: item.description,
+          quantity: item.quantity,
+          rate: item.rate,
+          pricePerUnit: item.price_per_unit || item.rate,
+          total: item.total,
+          unit: item.unit,
+          costPerUnit: item.cost_per_unit || 0,
+          markupPercent: item.markup_percent,
+          markupAmount: item.markup_amount,
+          totalCost: item.total_cost || (item.quantity * (item.cost_per_unit || 0)),
+          totalMarkup: item.total_markup || 0,
+          sortOrder: item.sort_order || 0
+        })) || [],
         defaultMarkupPercent: 15,
         targetMarginPercent: 20
       }));
