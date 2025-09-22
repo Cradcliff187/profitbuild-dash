@@ -1,10 +1,8 @@
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Search, Filter, X } from "lucide-react";
+import { Search } from "lucide-react";
 import { PayeeType } from "@/types/payee";
+import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
 
 interface PayeeFiltersProps {
   searchTerm: string;
@@ -15,6 +13,7 @@ interface PayeeFiltersProps {
   onServicesFilterChange: (filter: string) => void;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
+  resultCount?: number;
 }
 
 export const PayeeFilters = ({
@@ -25,7 +24,8 @@ export const PayeeFilters = ({
   servicesFilter,
   onServicesFilterChange,
   onClearFilters,
-  hasActiveFilters
+  hasActiveFilters,
+  resultCount,
 }: PayeeFiltersProps) => {
   const getPayeeTypeLabel = (type: PayeeType) => {
     switch (type) {
@@ -41,28 +41,13 @@ export const PayeeFilters = ({
   };
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Filters</span>
-          {hasActiveFilters && (
-            <Badge variant="secondary" className="text-xs">Active</Badge>
-          )}
-        </div>
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClearFilters}
-            className="text-xs"
-          >
-            <X className="h-3 w-3 mr-1" />
-            Clear
-          </Button>
-        )}
-      </div>
-
+    <CollapsibleFilterSection
+      title="Filter Payees"
+      hasActiveFilters={hasActiveFilters}
+      onClearFilters={onClearFilters}
+      resultCount={resultCount}
+      defaultExpanded={hasActiveFilters}
+    >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Search */}
         <div className="relative">
@@ -105,6 +90,6 @@ export const PayeeFilters = ({
           </SelectContent>
         </Select>
       </div>
-    </div>
+    </CollapsibleFilterSection>
   );
 };

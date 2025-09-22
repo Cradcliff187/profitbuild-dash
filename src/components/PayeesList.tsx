@@ -374,6 +374,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
             onServicesFilterChange={setServicesFilter}
             onClearFilters={clearFilters}
             hasActiveFilters={hasActiveFilters}
+            resultCount={filteredPayees.length}
           />
         }
         bulkActions={

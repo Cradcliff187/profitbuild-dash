@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Building2, Table, Grid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProjectForm } from "@/components/ProjectForm";
 import { ProjectsList } from "@/components/ProjectsList";
 import { ProjectsTableView } from "@/components/ProjectsTableView";
-import { Project } from "@/types/project";
+import { ProjectFilters, ProjectSearchFilters } from "@/components/ProjectFilters";
+import { Project, ProjectStatus } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
@@ -26,6 +27,14 @@ const Projects = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isLoading, setIsLoading] = useState(true);
   const [displayMode, setDisplayMode] = useState<DisplayMode>(isMobile ? 'cards' : 'table');
+  const [filters, setFilters] = useState<ProjectSearchFilters>({
+    searchText: "",
+    status: [],
+    jobType: "all",
+    clientName: "",
+    dateRange: { start: null, end: null },
+    budgetRange: { min: null, max: null },
+  });
 
   // Load projects from Supabase
   useEffect(() => {
@@ -209,6 +218,58 @@ const Projects = () => {
     setViewMode('list');
   };
 
+  // Filter projects based on search criteria
+  const filteredProjects = useMemo(() => {
+    return projects.filter(project => {
+      // Search text filter
+      if (filters.searchText) {
+        const searchLower = filters.searchText.toLowerCase();
+        const matchesSearch = 
+          project.project_name.toLowerCase().includes(searchLower) ||
+          project.client_name.toLowerCase().includes(searchLower) ||
+          (project.address && project.address.toLowerCase().includes(searchLower)) ||
+          project.project_number.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+
+      // Status filter
+      if (filters.status.length > 0 && !filters.status.includes(project.status)) {
+        return false;
+      }
+
+      // Job type filter
+      if (filters.jobType !== "all" && project.job_type !== filters.jobType) {
+        return false;
+      }
+
+      // Client name filter
+      if (filters.clientName) {
+        const clientLower = filters.clientName.toLowerCase();
+        if (!project.client_name.toLowerCase().includes(clientLower)) {
+          return false;
+        }
+      }
+
+      // Date range filter
+      if (filters.dateRange.start && project.start_date) {
+        if (project.start_date < filters.dateRange.start) return false;
+      }
+      if (filters.dateRange.end && project.start_date) {
+        if (project.start_date > filters.dateRange.end) return false;
+      }
+
+      // Budget range filter
+      if (filters.budgetRange.min !== null && project.contracted_amount) {
+        if (project.contracted_amount < filters.budgetRange.min) return false;
+      }
+      if (filters.budgetRange.max !== null && project.contracted_amount) {
+        if (project.contracted_amount > filters.budgetRange.max) return false;
+      }
+
+      return true;
+    });
+  }, [projects, filters]);
+
   return (
     <div className="space-y-8">
       <div className="flex items-center space-x-3">
@@ -224,6 +285,13 @@ const Projects = () => {
 
       {viewMode === 'list' && (
         <div className="space-y-4">
+          {/* Project Filters */}
+          <ProjectFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            resultCount={filteredProjects.length}
+          />
+
           {/* View Toggle - Desktop Only */}
           {!isMobile && (
             <div className="flex items-center justify-end gap-2">
@@ -249,7 +317,7 @@ const Projects = () => {
           {/* Display Projects */}
           {(displayMode === 'cards' || isMobile) ? (
             <ProjectsList
-              projects={projects}
+              projects={filteredProjects}
               estimates={estimates}
               onEdit={handleEdit}
               onDelete={handleDelete}
@@ -258,7 +326,7 @@ const Projects = () => {
             />
           ) : (
             <ProjectsTableView
-              projects={projects}
+              projects={filteredProjects}
               estimates={estimates}
               onEdit={handleEdit}
               onView={handleEdit}

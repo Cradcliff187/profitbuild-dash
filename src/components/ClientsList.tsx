@@ -232,6 +232,7 @@ export const ClientsList = () => {
             onTypeFilterChange={setTypeFilter}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
+            resultCount={filteredClients.length}
           />
         }
         bulkActions={
