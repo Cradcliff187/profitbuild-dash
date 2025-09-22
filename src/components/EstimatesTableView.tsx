@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Estimate, EstimateStatus } from "@/types/estimate";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
 import { BudgetComparisonBadge, BudgetComparisonStatus } from "./BudgetComparisonBadge";
-import { EstimateStatusActions } from "./EstimateStatusActions";
+import { EstimateActionsMenu } from "./EstimateActionsMenu";
 import { cn } from "@/lib/utils";
 import { 
   calculateEstimateFinancials, 
@@ -104,12 +104,35 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       key: 'estimate_number',
       label: 'Estimate #',
       align: 'left',
-      width: '140px',
-      render: (estimate) => (
-        <div className="font-mono text-xs text-foreground/80">
-          {estimate.estimate_number}
-        </div>
-      ),
+      width: '160px',
+      render: (estimate) => {
+        const hasLineItems = estimate.lineItems && estimate.lineItems.length > 0;
+        const lineItemCount = estimate.lineItems?.length || 0;
+        const hasAmount = estimate.total_amount > 0;
+        const hasDataIssue = !hasLineItems && hasAmount;
+        
+        return (
+          <div className="space-y-1">
+            <div className="font-mono text-xs text-foreground/80">
+              {estimate.estimate_number}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-xs px-1.5 py-0.5",
+                  hasDataIssue ? "border-amber-200 text-amber-700 bg-amber-50" : "border-blue-200 text-blue-700 bg-blue-50"
+                )}
+              >
+                {lineItemCount} item{lineItemCount !== 1 ? 's' : ''}
+              </Badge>
+              {hasDataIssue && (
+                <AlertTriangle className="h-3 w-3 text-amber-500" />
+              )}
+            </div>
+          </div>
+        );
+      },
     },
     {
       key: 'version_number',
@@ -307,15 +330,17 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       },
     },
     {
-      key: 'status_actions',
+      key: 'actions',
       label: 'Actions',
       align: 'center',
-      width: '140px',
+      width: '60px',
       render: (estimate) => (
-        <EstimateStatusActions
-          estimateId={estimate.id}
-          currentStatus={estimate.status}
-          onStatusUpdate={(newStatus) => handleStatusUpdate(estimate.id, newStatus)}
+        <EstimateActionsMenu
+          estimate={estimate}
+          onView={onView}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onStatusUpdate={handleStatusUpdate}
         />
       ),
     },
