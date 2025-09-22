@@ -1,7 +1,14 @@
 import React, { useState } from "react";
-import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign } from "lucide-react";
+import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
@@ -274,48 +281,45 @@ export const QuotesTableView = ({
       key: 'actions',
       label: 'Actions',
       align: 'center',
-      width: '200px',
+      width: '60px',
       render: (quote) => (
-        <div className="flex items-center gap-1">
-          {quote.status === QuoteStatus.PENDING && onAccept && (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => onAccept(quote)}
-              className="bg-green-600 hover:bg-green-700 text-white h-7 px-2"
-            >
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Accept
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <MoreHorizontal className="h-4 w-4" />
             </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEdit(quote)}
-            className="h-7 px-2"
-          >
-            <Edit className="h-3 w-3 mr-1" />
-            Edit
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onCompare(quote)}
-            disabled={!quote.estimate}
-            className="h-7 px-2"
-          >
-            <Eye className="h-3 w-3 mr-1" />
-            Compare
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleDeleteClick(quote.id)}
-            className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            {quote.status === QuoteStatus.PENDING && onAccept && (
+              <>
+                <DropdownMenuItem onClick={() => onAccept(quote)} className="text-green-600">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Accept
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem onClick={() => onEdit(quote)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => onCompare(quote)}
+              disabled={!quote.estimate}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Compare
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => handleDeleteClick(quote.id)}
+              className="text-red-600 focus:text-red-600"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     },
   ];

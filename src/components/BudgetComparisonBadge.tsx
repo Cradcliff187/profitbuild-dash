@@ -12,7 +12,7 @@ export const BudgetComparisonBadge = ({ status }: BudgetComparisonBadgeProps) =>
     switch (status) {
       case 'under-budget':
         return {
-          text: 'Quote Under Budget',
+          text: 'Under Budget',
           variant: 'default' as const,
           className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200',
           icon: CheckCircle
@@ -45,8 +45,8 @@ export const BudgetComparisonBadge = ({ status }: BudgetComparisonBadgeProps) =>
   const Icon = config.icon;
 
   return (
-    <Badge variant={config.variant} className={`text-sm flex items-center gap-1 ${config.className}`}>
-      <Icon className="h-3 w-3" />
+    <Badge variant={config.variant} className={`text-xs flex items-center gap-1 ${config.className}`}>
+      <Icon className="h-2.5 w-2.5" />
       {config.text}
     </Badge>
   );
