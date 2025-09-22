@@ -30,6 +30,7 @@ import { EstimateVersionComparison } from "@/components/EstimateVersionCompariso
 import { ChangeOrdersList } from "@/components/ChangeOrdersList";
 import { ExpensesList } from "@/components/ExpensesList";
 import { QuotesList } from "@/components/QuotesList";
+import { LineItemControlDashboard } from "@/components/LineItemControlDashboard";
 import { Project, ProjectStatus } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
@@ -458,8 +459,11 @@ export const ProjectDetailView = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="control">
+            Line Item Control
+          </TabsTrigger>
           <TabsTrigger value="estimates">
             Estimates & Quotes ({estimates.length})
           </TabsTrigger>
@@ -541,6 +545,10 @@ export const ProjectDetailView = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="control" className="space-y-6">
+          <LineItemControlDashboard projectId={project.id} />
         </TabsContent>
 
         <TabsContent value="estimates" className="space-y-6">
