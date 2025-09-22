@@ -212,9 +212,14 @@ export const PayeeSelector = ({
                       .map((payee) => (
                         <CommandItem
                           key={payee.id}
-                          value={payee.id}
-                          onSelect={() => {
-                            onValueChange(payee.id, payee.payee_name, payee);
+                          value={`${formatPayeeDisplayName(payee)} ${payee.email || ''} ${formatPayeeType(payee.payee_type)}`}
+                          onSelect={(searchableValue) => {
+                            const selectedPayee = groupPayees.find(p => 
+                              `${formatPayeeDisplayName(p)} ${p.email || ''} ${formatPayeeType(p.payee_type)}` === searchableValue
+                            );
+                            if (selectedPayee) {
+                              onValueChange(selectedPayee.id, selectedPayee.payee_name, selectedPayee);
+                            }
                             setOpen(false);
                           }}
                         >
