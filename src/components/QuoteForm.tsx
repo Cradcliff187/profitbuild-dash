@@ -205,6 +205,18 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     return `${sign}$${difference.toFixed(2)} (${sign}${percentage.toFixed(1)}%)`;
   };
 
+  const determineQuoteIncludes = (lineItems: QuoteLineItem[]) => {
+    const includes_materials = lineItems.some(item => 
+      item.category === LineItemCategory.MATERIALS
+    );
+    
+    const includes_labor = lineItems.some(item => 
+      item.category === LineItemCategory.LABOR
+    );
+    
+    return { includes_materials, includes_labor };
+  };
+
   const handleSave = () => {
     if (!selectedEstimate) {
       toast({
@@ -234,6 +246,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     }
 
     const financials = calculateQuoteFinancials(lineItems);
+    const { includes_materials, includes_labor } = determineQuoteIncludes(lineItems.filter(item => item.description.trim()));
 
     const quote: Quote = {
       id: initialQuote?.id || Date.now().toString(),
@@ -248,8 +261,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       valid_until: validUntil,
       accepted_date: status === QuoteStatus.ACCEPTED ? new Date() : undefined,
       quoteNumber: initialQuote?.quoteNumber || generateQuoteNumber(),
-      includes_materials: true,
-      includes_labor: true,
+      includes_materials,
+      includes_labor,
       lineItems: lineItems.filter(item => item.description.trim()),
       subtotals: {
         labor: 0,
