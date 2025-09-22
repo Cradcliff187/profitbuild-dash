@@ -15,7 +15,7 @@ import { format, differenceInDays, isPast, isFuture } from "date-fns";
 import { Project, ProjectStatus } from "@/types/project";
 import { ProjectWithFinancials } from "@/utils/projectFinancials";
 import { FinancialTableTemplate, FinancialTableColumn } from "@/components/FinancialTableTemplate";
-import { ProjectDetailsModal } from "@/components/ProjectDetailsModal";
+
 import { ProjectStatusFilter } from "@/components/ProjectStatusFilter";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +39,6 @@ export const ProjectsTableView = ({
   isLoading = false 
 }: ProjectsTableViewProps) => {
   const [selectedStatuses, setSelectedStatuses] = useState<ProjectStatus[]>([]);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   // Filter projects by status
   const filteredProjects = selectedStatuses.length > 0 
@@ -57,10 +55,6 @@ export const ProjectsTableView = ({
     window.location.href = `/projects/${project.id}`;
   };
 
-  const handleCloseDetailsModal = () => {
-    setShowDetailsModal(false);
-    setSelectedProject(null);
-  };
 
   const getStatusBadge = (status: ProjectStatus) => {
     return (
@@ -806,21 +800,6 @@ export const ProjectsTableView = ({
           sortable={true}
         />
 
-        <ProjectDetailsModal
-          isOpen={showDetailsModal}
-          onClose={handleCloseDetailsModal}
-          project={selectedProject}
-          estimates={estimates}
-          onEdit={() => {
-            handleCloseDetailsModal();
-            if (selectedProject) onEdit(selectedProject);
-          }}
-          onViewFinancials={() => {
-            if (selectedProject) {
-              window.location.href = `/estimates?project=${selectedProject.id}`;
-            }
-          }}
-        />
       </div>
     </TooltipProvider>
   );

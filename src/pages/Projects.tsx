@@ -1,32 +1,20 @@
 import { useState, useEffect } from "react";
-import { Building2, BarChart3, Calculator, Plus, Table, Grid } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Building2, Table, Grid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProjectForm } from "@/components/ProjectForm";
-import { ProjectEditForm } from "@/components/ProjectEditForm";
 import { ProjectsList } from "@/components/ProjectsList";
 import { ProjectsTableView } from "@/components/ProjectsTableView";
-import { ProjectLineItemAnalysis } from "@/components/ProjectLineItemAnalysis";
-import { ProjectProfitMargin } from "@/components/ProjectProfitMargin";
-import { ChangeOrdersList } from "@/components/ChangeOrdersList";
-import { ChangeOrderForm } from "@/components/ChangeOrderForm";
-import { VarianceAnalysis } from "@/components/VarianceAnalysis";
-import { EstimateFamilySummary } from "@/components/EstimateFamilySummary";
-import { EstimateVersionComparison } from "@/components/EstimateVersionComparison";
 import { Project } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { calculateProjectProfit } from "@/utils/profitCalculations";
 import { calculateMultipleProjectFinancials, ProjectWithFinancials } from "@/utils/projectFinancials";
 import { useIsMobile } from "@/hooks/use-mobile";
-import type { Database } from "@/integrations/supabase/types";
 
-type ViewMode = 'list' | 'create' | 'edit';
+type ViewMode = 'list' | 'create';
 type DisplayMode = 'cards' | 'table';
-type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 
 const Projects = () => {
   const { toast } = useToast();
@@ -36,16 +24,7 @@ const Projects = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [selectedProjectProfit, setSelectedProjectProfit] = useState<{
-    contractAmount: number;
-    actualCosts: number;
-  } | null>(null);
-  const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
-  const [showChangeOrderForm, setShowChangeOrderForm] = useState(false);
-  const [editingChangeOrder, setEditingChangeOrder] = useState<ChangeOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('details');
   const [displayMode, setDisplayMode] = useState<DisplayMode>(isMobile ? 'cards' : 'table');
 
   // Load projects from Supabase
@@ -58,19 +37,17 @@ const Projects = () => {
       setIsLoading(true);
       
       // Load all related data
-      const [projectsRes, estimatesRes, quotesRes, expensesRes, changeOrdersRes] = await Promise.all([
+      const [projectsRes, estimatesRes, quotesRes, expensesRes] = await Promise.all([
         supabase.from('projects').select('*').order('created_at', { ascending: false }),
         supabase.from('estimates').select('*'),
         supabase.from('quotes').select('*'),
-        supabase.from('expenses').select('*'),
-        supabase.from('change_orders').select('*')
+        supabase.from('expenses').select('*')
       ]);
 
       if (projectsRes.error) throw projectsRes.error;
       if (estimatesRes.error) throw estimatesRes.error;
       if (quotesRes.error) throw quotesRes.error;
       if (expensesRes.error) throw expensesRes.error;
-      if (changeOrdersRes.error) throw changeOrdersRes.error;
 
       const formattedProjects = projectsRes.data?.map((project: any) => ({
         id: project.id,
@@ -189,7 +166,6 @@ const Projects = () => {
       setEstimates(formattedEstimates);
       setQuotes(formattedQuotes);
       setExpenses(formattedExpenses);
-      setChangeOrders(changeOrdersRes.data || []);
     } catch (error) {
       console.error('Error loading projects:', error);
       toast({
@@ -210,53 +186,19 @@ const Projects = () => {
       expenses
     );
     
-    if (selectedProject) {
-      // Editing existing project
-      setProjects(prev => prev.map(p => p.id === project.id ? projectWithFinancials[0] : p));
-    } else {
-      // Creating new project
-      setProjects(prev => [projectWithFinancials[0], ...prev]);
-    }
+    // Creating new project - editing is now handled by dedicated edit page
+    setProjects(prev => [projectWithFinancials[0], ...prev]);
     setViewMode('list');
-    setSelectedProject(null);
     loadProjects(); // Refresh the list
   };
 
   const handleCreateNew = () => {
-    setSelectedProject(null);
     setViewMode('create');
   };
 
   const handleEdit = (project: Project) => {
-    setSelectedProject(project);
-    
-    // Calculate profit data for the selected project
-    const projectEstimates = estimates.filter(e => e.project_id === project.id);
-    if (projectEstimates.length > 0) {
-      const estimate = projectEstimates[0];
-      const projectQuotes = quotes.filter(q => q.project_id === project.id);
-      const projectExpenses = expenses.filter(e => e.project_id === project.id);
-      
-      const profitData = calculateProjectProfit(
-        estimate, 
-        projectQuotes, 
-        projectExpenses,
-        {
-          contracted_amount: project.contracted_amount,
-          current_margin: project.current_margin,
-          margin_percentage: project.margin_percentage,
-          total_accepted_quotes: project.total_accepted_quotes,
-        }
-      );
-      setSelectedProjectProfit({
-        contractAmount: profitData.quoteTotal,
-        actualCosts: profitData.actualExpenses
-      });
-    } else {
-      setSelectedProjectProfit(null);
-    }
-    
-    setViewMode('edit');
+    // Navigate to the dedicated edit page
+    window.location.href = `/projects/${project.id}/edit`;
   };
 
   const handleDelete = (projectId: string) => {
@@ -265,30 +207,6 @@ const Projects = () => {
 
   const handleCancel = () => {
     setViewMode('list');
-    setSelectedProject(null);
-    setShowChangeOrderForm(false);
-    setEditingChangeOrder(null);
-  };
-
-  const handleCreateChangeOrder = () => {
-    setEditingChangeOrder(null);
-    setShowChangeOrderForm(true);
-  };
-
-  const handleEditChangeOrder = (changeOrder: ChangeOrder) => {
-    setEditingChangeOrder(changeOrder);
-    setShowChangeOrderForm(true);
-  };
-
-  const handleChangeOrderSuccess = () => {
-    setShowChangeOrderForm(false);
-    setEditingChangeOrder(null);
-    loadProjects(); // Refresh data
-  };
-
-  const handleChangeOrderCancel = () => {
-    setShowChangeOrderForm(false);
-    setEditingChangeOrder(null);
   };
 
   return (
@@ -299,7 +217,6 @@ const Projects = () => {
           <h1 className="text-3xl font-bold text-foreground">Projects</h1>
           <p className="text-muted-foreground">
             {viewMode === 'create' ? 'Create a new project' : 
-             viewMode === 'edit' ? 'Edit project details' : 
              'Manage your construction projects and work orders'}
           </p>
         </div>
@@ -344,7 +261,7 @@ const Projects = () => {
               projects={projects}
               estimates={estimates}
               onEdit={handleEdit}
-              onView={handleEdit} // Keep for now, but ProjectsTableView handles its own view modal
+              onView={handleEdit}
               onCreateNew={handleCreateNew}
               isLoading={isLoading}
             />
@@ -357,192 +274,6 @@ const Projects = () => {
           onSave={handleSaveProject}
           onCancel={handleCancel}
         />
-      )}
-
-      {viewMode === 'edit' && selectedProject && (
-        <div className="space-y-6">
-          {/* Project Change Orders Summary */}
-          {(() => {
-            const projectChangeOrders = changeOrders.filter(co => co.project_id === selectedProject.id);
-            const approvedTotal = projectChangeOrders
-              .filter(co => co.status === 'approved')
-              .reduce((sum, co) => sum + (Number(co.amount) || 0), 0);
-            
-            if (approvedTotal > 0) {
-              return (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-blue-900">Project Change Orders</h3>
-                      <p className="text-sm text-blue-700">
-                        {projectChangeOrders.filter(co => co.status === 'approved').length} approved change orders
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-blue-900">
-                        +${approvedTotal.toLocaleString('en-US', { 
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2 
-                        })}
-                      </div>
-                      <div className="text-sm text-blue-700">Total Approved Changes</div>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-            return null;
-          })()}
-
-          {/* Quick Actions for Estimates */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button 
-              className="w-full"
-              onClick={() => window.location.href = `/estimates?project=${selectedProject.id}`}
-            >
-              <Calculator className="h-4 w-4 mr-2" />
-              View All Estimates
-            </Button>
-            <Button 
-              variant="outline"
-              className="w-full"
-              onClick={() => window.location.href = `/estimates?project=${selectedProject.id}&action=new-version`}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create New Version
-            </Button>
-            <Button 
-              variant="outline"
-              className="w-full"
-              onClick={() => setActiveTab('estimates')}
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Compare Versions
-            </Button>
-          </div>
-
-          {/* Tab Navigation */}
-          {(() => {
-            const projectExpenses = expenses.filter(e => e.project_id === selectedProject.id);
-            const hasExpenses = projectExpenses.length > 0;
-            const showProfitAnalysis = selectedProjectProfit && selectedProjectProfit.contractAmount > 0;
-            const projectEstimates = estimates.filter(e => e.project_id === selectedProject.id);
-            const hasEstimates = projectEstimates.length > 0;
-
-            return (
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList>
-                  <TabsTrigger value="details">Details</TabsTrigger>
-                  {hasEstimates && <TabsTrigger value="estimates">Estimates</TabsTrigger>}
-                  {showProfitAnalysis && <TabsTrigger value="profit">Profit Analysis</TabsTrigger>}
-                  {hasExpenses && (
-                    <TabsTrigger value="variance" className="flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4" />
-                      Variance Analysis
-                    </TabsTrigger>
-                  )}
-                  {hasEstimates && (
-                    <TabsTrigger value="line-analysis" className="flex items-center gap-2">
-                      <Calculator className="h-4 w-4" />
-                      Line Item Analysis
-                    </TabsTrigger>
-                  )}
-                </TabsList>
-
-                <TabsContent value="details" className="space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-6">
-                      <ProjectEditForm
-                        project={selectedProject}
-                        onSave={handleSaveProject}
-                        onCancel={handleCancel}
-                      />
-                      
-                      {/* Change Orders Section */}
-                      {showChangeOrderForm ? (
-                        <ChangeOrderForm
-                          projectId={selectedProject.id}
-                          changeOrder={editingChangeOrder}
-                          onSuccess={handleChangeOrderSuccess}
-                          onCancel={handleChangeOrderCancel}
-                        />
-                      ) : (
-                        <ChangeOrdersList
-                          projectId={selectedProject.id}
-                          onEdit={handleEditChangeOrder}
-                          onCreateNew={handleCreateChangeOrder}
-                        />
-                      )}
-                    </div>
-                    <div className="lg:col-span-1 space-y-6">
-                      {/* Estimate Family Summary */}
-                      <EstimateFamilySummary
-                        projectId={selectedProject.id}
-                        projectName={selectedProject.project_name}
-                        onCreateEstimate={() => window.location.href = `/estimates?project=${selectedProject.id}`}
-                        onViewEstimate={(estimateId) => window.location.href = `/estimates?estimate=${estimateId}`}
-                      />
-                      {showProfitAnalysis && (
-                        <ProjectProfitMargin
-                          contractAmount={selectedProjectProfit.contractAmount}
-                          actualCosts={selectedProjectProfit.actualCosts}
-                          projectName={selectedProject.project_name}
-                          project={{
-                            contracted_amount: selectedProject.contracted_amount,
-                            current_margin: selectedProject.current_margin,
-                            margin_percentage: selectedProject.margin_percentage,
-                            total_accepted_quotes: selectedProject.total_accepted_quotes,
-                          }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </TabsContent>
-
-                {hasEstimates && (
-                  <TabsContent value="estimates" className="space-y-6">
-                    <EstimateVersionComparison
-                      projectId={selectedProject.id}
-                    />
-                  </TabsContent>
-                )}
-
-                {showProfitAnalysis && (
-                  <TabsContent value="profit">
-                    <ProjectProfitMargin
-                      contractAmount={selectedProjectProfit.contractAmount}
-                      actualCosts={selectedProjectProfit.actualCosts}
-                      projectName={selectedProject.project_name}
-                      project={{
-                        contracted_amount: selectedProject.contracted_amount,
-                        current_margin: selectedProject.current_margin,
-                        margin_percentage: selectedProject.margin_percentage,
-                        total_accepted_quotes: selectedProject.total_accepted_quotes,
-                      }}
-                    />
-                  </TabsContent>
-                )}
-
-                {hasExpenses && (
-                  <TabsContent value="variance">
-                    <VarianceAnalysis 
-                      projectId={selectedProject.id}
-                    />
-                  </TabsContent>
-                )}
-                
-                {hasEstimates && (
-                  <TabsContent value="line-analysis">
-                    <ProjectLineItemAnalysis 
-                      projectId={selectedProject.id}
-                      projectName={selectedProject.project_name}
-                    />
-                  </TabsContent>
-                )}
-              </Tabs>
-            );
-          })()}
-        </div>
       )}
     </div>
   );
