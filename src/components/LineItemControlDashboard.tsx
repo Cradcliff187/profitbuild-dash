@@ -15,7 +15,7 @@ import {
   Download,
   Target
 } from 'lucide-react';
-import { useLineItemControl, LineItemControlData } from '@/hooks/useLineItemControl';
+import { useLineItemControl, LineItemControlData, QuoteData } from '@/hooks/useLineItemControl';
 import { CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -281,8 +281,8 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
                   </CollapsibleTrigger>
                   
                   <CollapsibleContent asChild>
-                    <TableRow>
-                      <TableCell colSpan={9} className="p-0">
+                    <tr>
+                      <td colSpan={9} className="p-0">
                         <div className="p-4 bg-muted/20 border-t">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Quotes Section */}
@@ -302,9 +302,23 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
                                         </div>
                                         <div className="text-right">
                                           <div className="font-medium">{formatCurrency(quote.total)}</div>
-                                          <Badge variant="secondary">{quote.status}</Badge>
+                                          <Badge variant="secondary" className={cn(
+                                            quote.status === 'accepted' && 'bg-green-50 text-green-700 border-green-200',
+                                            quote.status === 'pending' && 'bg-blue-50 text-blue-700 border-blue-200',
+                                            quote.status === 'rejected' && 'bg-red-50 text-red-700 border-red-200'
+                                          )}>
+                                            {quote.status}
+                                          </Badge>
                                         </div>
                                       </div>
+                                      {(quote.includes_labor || quote.includes_materials) && (
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                          Includes: {[
+                                            quote.includes_labor && 'Labor',
+                                            quote.includes_materials && 'Materials'
+                                          ].filter(Boolean).join(', ')}
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
@@ -331,8 +345,18 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
                                           <div className="text-muted-foreground">
                                             {format(new Date(expense.expense_date), 'MMM d, yyyy')}
                                           </div>
+                                          {expense.payee_name && (
+                                            <div className="text-xs text-muted-foreground">
+                                              {expense.payee_name}
+                                            </div>
+                                          )}
                                         </div>
-                                        <div className="font-medium">{formatCurrency(expense.amount)}</div>
+                                        <div className="text-right">
+                                          <div className="font-medium">{formatCurrency(expense.amount)}</div>
+                                          <div className="text-xs text-muted-foreground capitalize">
+                                            {expense.transaction_type.replace(/_/g, ' ')}
+                                          </div>
+                                        </div>
                                       </div>
                                     </div>
                                   ))}
@@ -349,9 +373,29 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
                               )}
                             </div>
                           </div>
+                          
+                          {/* Progress indicator for completion */}
+                          <div className="mt-4 pt-3 border-t">
+                            <div className="flex items-center justify-between text-sm mb-2">
+                              <span className="text-muted-foreground">Completion Status</span>
+                              <span className="font-medium">
+                                {item.actualAmount > 0 && item.estimatedAmount > 0
+                                  ? `${Math.min(Math.round((item.actualAmount / item.estimatedAmount) * 100), 100)}% of estimate`
+                                  : 'Not started'
+                                }
+                              </span>
+                            </div>
+                            <Progress 
+                              value={item.actualAmount > 0 && item.estimatedAmount > 0 
+                                ? Math.min((item.actualAmount / item.estimatedAmount) * 100, 100) 
+                                : 0
+                              } 
+                              className="h-2" 
+                            />
+                          </div>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   </CollapsibleContent>
                 </Collapsible>
               ))}

@@ -1,8 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LineItem } from '@/types/estimate';
-import { Quote } from '@/types/quote';
 import { Expense, ExpenseCategory } from '@/types/expense';
+
+export interface QuoteData {
+  id: string;
+  quoteNumber: string;
+  quotedBy: string;
+  total: number;
+  status: string;
+  includes_labor: boolean;
+  includes_materials: boolean;
+}
 
 export interface LineItemControlData {
   id: string;
@@ -14,7 +23,7 @@ export interface LineItemControlData {
   variance: number;
   variancePercent: number;
   quoteStatus: 'none' | 'partial' | 'full' | 'over';
-  quotes: Quote[];
+  quotes: QuoteData[];
   expenses: Expense[];
   estimateLineItemId?: string;
 }
@@ -81,7 +90,7 @@ export function useLineItemControl(projectId: string): UseLineItemControlReturn 
 
       if (estimateError) throw estimateError;
 
-      // Fetch accepted quotes with line items
+      // Fetch ALL quotes with line items and payee info
       const { data: quotes, error: quotesError } = await supabase
         .from('quotes')
         .select(`
@@ -106,15 +115,19 @@ export function useLineItemControl(projectId: string): UseLineItemControlReturn 
             payee_name
           )
         `)
-        .eq('project_id', projectId)
-        .eq('status', 'accepted');
+        .eq('project_id', projectId);
 
       if (quotesError) throw quotesError;
 
-      // Fetch expenses grouped by category
+      // Fetch expenses grouped by category with payee info
       const { data: expenses, error: expensesError } = await supabase
         .from('expenses')
-        .select('*')
+        .select(`
+          *,
+          payees (
+            payee_name
+          )
+        `)
         .eq('project_id', projectId);
 
       if (expensesError) throw expensesError;
@@ -160,30 +173,35 @@ function processLineItemData(
   expenses: any[]
 ): LineItemControlData[] {
   return estimateLineItems.map(lineItem => {
-    // Find quotes that match this line item
+    // Find quotes that match this line item by category (most common approach)
+    // and also check for direct line item linking as fallback
     const matchingQuotes = quotes.filter(quote => 
       quote.estimate_line_item_id === lineItem.id ||
       quote.quote_line_items?.some((qli: any) => 
-        qli.estimate_line_item_id === lineItem.id
+        qli.estimate_line_item_id === lineItem.id ||
+        qli.category === lineItem.category
       )
-    );
+    ).map(quote => ({
+      id: quote.id,
+      quoteNumber: quote.quote_number,
+      quotedBy: quote.payees?.payee_name || 'Unknown Vendor',
+      total: quote.total_amount || 0,
+      status: quote.status,
+      includes_labor: quote.includes_labor,
+      includes_materials: quote.includes_materials
+    }));
 
-    // Calculate quoted amount from matching quotes
-    const quotedAmount = matchingQuotes.reduce((sum, quote) => {
-      if (quote.estimate_line_item_id === lineItem.id) {
-        return sum + (quote.total_amount || 0);
-      }
-      // Sum quote line items that match this estimate line item
-      const matchingQuoteLineItems = quote.quote_line_items?.filter((qli: any) => 
-        qli.estimate_line_item_id === lineItem.id
-      ) || [];
-      return sum + matchingQuoteLineItems.reduce((qliSum: number, qli: any) => qliSum + (qli.total || 0), 0);
-    }, 0);
+    // Calculate quoted amount - only count accepted quotes for accurate totals
+    const acceptedQuotes = matchingQuotes.filter(quote => quote.status === 'accepted');
+    const quotedAmount = acceptedQuotes.reduce((sum, quote) => sum + quote.total, 0);
 
-    // Find expenses by category matching (fuzzy matching could be added here)
+    // Find expenses by category matching with enhanced data
     const matchingExpenses = expenses.filter(expense => 
       expense.category === lineItem.category
-    );
+    ).map(expense => ({
+      ...expense,
+      payee_name: expense.payees?.payee_name
+    }));
 
     // Calculate actual amount from matching expenses
     const actualAmount = matchingExpenses.reduce((sum, expense) => sum + expense.amount, 0);
@@ -192,13 +210,15 @@ function processLineItemData(
     const variance = actualAmount - estimatedAmount;
     const variancePercent = estimatedAmount > 0 ? (variance / estimatedAmount) * 100 : 0;
 
-    // Determine quote status
+    // Determine quote status based on ALL quotes (not just accepted)
+    const allQuotesAmount = matchingQuotes.reduce((sum, quote) => sum + quote.total, 0);
     let quoteStatus: 'none' | 'partial' | 'full' | 'over' = 'none';
-    if (quotedAmount === 0) {
+    
+    if (matchingQuotes.length === 0) {
       quoteStatus = 'none';
-    } else if (quotedAmount < estimatedAmount * 0.8) {
+    } else if (allQuotesAmount < estimatedAmount * 0.8) {
       quoteStatus = 'partial';
-    } else if (quotedAmount > estimatedAmount * 1.2) {
+    } else if (allQuotesAmount > estimatedAmount * 1.2) {
       quoteStatus = 'over';
     } else {
       quoteStatus = 'full';
@@ -209,12 +229,12 @@ function processLineItemData(
       category: lineItem.category,
       description: lineItem.description,
       estimatedAmount,
-      quotedAmount,
+      quotedAmount, // Only accepted quotes counted here
       actualAmount,
       variance,
       variancePercent,
       quoteStatus,
-      quotes: matchingQuotes,
+      quotes: matchingQuotes, // All quotes for display
       expenses: matchingExpenses,
       estimateLineItemId: lineItem.id
     };
