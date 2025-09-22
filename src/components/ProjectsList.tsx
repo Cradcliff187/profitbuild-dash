@@ -1,12 +1,9 @@
 import { useState, useEffect } from "react";
-import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, ArrowUpDown, ChevronUp, ChevronDown, AlertTriangle, Calculator } from "lucide-react";
+import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VarianceBadge } from "@/components/ui/variance-badge";
 import {
   AlertDialog,
@@ -57,11 +54,6 @@ export const ProjectsList = ({
   pageSize = 12 
 }: ProjectsListProps) => {
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ProjectStatus | "all">("all");
-  const [typeFilter, setTypeFilter] = useState<ProjectType | "all">("all");
-  const [sortBy, setSortBy] = useState<'name' | 'date' | 'status' | 'margin'>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const getStatusColor = (status: ProjectStatus) => {
     switch (status) {
@@ -140,44 +132,6 @@ export const ProjectsList = ({
     }
   };
 
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch = 
-      project.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.project_number.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === "all" || project.status === statusFilter;
-    const matchesType = typeFilter === "all" || project.project_type === typeFilter;
-    
-    return matchesSearch && matchesStatus && matchesType;
-  });
-
-  const sortedProjects = [...filteredProjects].sort((a, b) => {
-    // First priority: at-risk projects go to top
-    const aIsAtRisk = isProjectAtRisk(a.margin_percentage);
-    const bIsAtRisk = isProjectAtRisk(b.margin_percentage);
-    
-    if (aIsAtRisk && !bIsAtRisk) return -1;
-    if (!aIsAtRisk && bIsAtRisk) return 1;
-    
-    // Secondary sorting by selected criteria
-    const modifier = sortOrder === 'asc' ? 1 : -1;
-    
-    switch (sortBy) {
-      case 'name':
-        return a.project_name.localeCompare(b.project_name) * modifier;
-      case 'date':
-        return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * modifier;
-      case 'status':
-        return a.status.localeCompare(b.status) * modifier;
-      case 'margin':
-        const aMargin = a.margin_percentage ?? -999;
-        const bMargin = b.margin_percentage ?? -999;
-        return (aMargin - bMargin) * modifier;
-      default:
-        return 0;
-    }
-  });
 
   // Pagination
   const {
@@ -187,14 +141,14 @@ export const ProjectsList = ({
     endIndex,
     goToPage,
   } = usePagination({
-    totalItems: sortedProjects.length,
+    totalItems: projects.length,
     pageSize,
     initialPage: 1,
   });
 
   const paginatedProjects = enablePagination 
-    ? sortedProjects.slice(startIndex, endIndex)
-    : sortedProjects;
+    ? projects.slice(startIndex, endIndex)
+    : projects;
 
   if (projects.length === 0) {
     return (
@@ -216,102 +170,6 @@ export const ProjectsList = ({
 
   return (
     <div className="space-y-6">
-      {/* Header and Filters */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Projects ({filteredProjects.length})
-            </CardTitle>
-            <Button onClick={onCreateNew}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Project
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="search">Search Projects</Label>
-              <Input
-                id="search"
-                placeholder="Search by name, client, or number..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Status Filter</Label>
-              <Select value={statusFilter} onValueChange={(value: ProjectStatus | "all") => setStatusFilter(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="estimating">Estimating</SelectItem>
-                  <SelectItem value="quoted">Quoted</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="complete">Complete</SelectItem>
-                  <SelectItem value="on_hold">On Hold</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Type Filter</Label>
-              <Select value={typeFilter} onValueChange={(value: ProjectType | "all") => setTypeFilter(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="construction_project">Construction Project</SelectItem>
-                  <SelectItem value="work_order">Work Order</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Sort By</Label>
-              <div className="flex gap-2">
-                <Select value={sortBy} onValueChange={(value: 'name' | 'date' | 'status' | 'margin') => setSortBy(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="date">Date Created</SelectItem>
-                    <SelectItem value="status">Status</SelectItem>
-                    <SelectItem value="margin">Margin %</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                >
-                  {sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>&nbsp;</Label>
-              <Button variant="outline" onClick={() => {
-                setSearchTerm("");
-                setStatusFilter("all");
-                setTypeFilter("all");
-                setSortBy("date");
-                setSortOrder("desc");
-              }}>
-                <Filter className="h-4 w-4 mr-2" />
-                Clear Filters
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Projects Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {paginatedProjects.map((project) => (
@@ -545,7 +403,7 @@ export const ProjectsList = ({
         ))}
       </div>
 
-      {sortedProjects.length === 0 && projects.length > 0 && (
+      {projects.length === 0 && (
         <Card>
           <CardContent className="py-12">
             <div className="text-center text-muted-foreground">
@@ -558,7 +416,7 @@ export const ProjectsList = ({
       )}
 
       {/* Pagination */}
-      {enablePagination && sortedProjects.length > pageSize && (
+      {enablePagination && projects.length > pageSize && (
         <div className="flex justify-center mt-6">
           <CompletePagination
             currentPage={currentPage}

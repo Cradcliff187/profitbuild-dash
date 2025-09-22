@@ -34,6 +34,8 @@ const Projects = () => {
     clientName: "",
     dateRange: { start: null, end: null },
     budgetRange: { min: null, max: null },
+    sortBy: 'date',
+    sortOrder: 'desc',
   });
 
   // Load projects from Supabase
@@ -218,9 +220,15 @@ const Projects = () => {
     setViewMode('list');
   };
 
-  // Filter projects based on search criteria
-  const filteredProjects = useMemo(() => {
-    return projects.filter(project => {
+  // Helper function to check if project is at risk
+  const isProjectAtRisk = (marginPercentage: number | null | undefined): boolean => {
+    if (marginPercentage === null || marginPercentage === undefined) return false;
+    return marginPercentage < 10;
+  };
+
+  // Filter and sort projects based on search criteria
+  const filteredAndSortedProjects = useMemo(() => {
+    let filtered = projects.filter(project => {
       // Search text filter
       if (filters.searchText) {
         const searchLower = filters.searchText.toLowerCase();
@@ -268,6 +276,36 @@ const Projects = () => {
 
       return true;
     });
+
+    // Sort the filtered projects
+    const sorted = [...filtered].sort((a, b) => {
+      // First priority: at-risk projects go to top
+      const aIsAtRisk = isProjectAtRisk(a.margin_percentage);
+      const bIsAtRisk = isProjectAtRisk(b.margin_percentage);
+      
+      if (aIsAtRisk && !bIsAtRisk) return -1;
+      if (!aIsAtRisk && bIsAtRisk) return 1;
+      
+      // Secondary sorting by selected criteria
+      const modifier = filters.sortOrder === 'asc' ? 1 : -1;
+      
+      switch (filters.sortBy) {
+        case 'name':
+          return a.project_name.localeCompare(b.project_name) * modifier;
+        case 'date':
+          return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * modifier;
+        case 'status':
+          return a.status.localeCompare(b.status) * modifier;
+        case 'margin':
+          const aMargin = a.margin_percentage ?? -999;
+          const bMargin = b.margin_percentage ?? -999;
+          return (aMargin - bMargin) * modifier;
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
   }, [projects, filters]);
 
   return (
@@ -289,7 +327,7 @@ const Projects = () => {
           <ProjectFilters
             filters={filters}
             onFiltersChange={setFilters}
-            resultCount={filteredProjects.length}
+            resultCount={filteredAndSortedProjects.length}
           />
 
           {/* View Toggle - Desktop Only */}
@@ -317,7 +355,7 @@ const Projects = () => {
           {/* Display Projects */}
           {(displayMode === 'cards' || isMobile) ? (
             <ProjectsList
-              projects={filteredProjects}
+              projects={filteredAndSortedProjects}
               estimates={estimates}
               onEdit={handleEdit}
               onDelete={handleDelete}
@@ -326,7 +364,7 @@ const Projects = () => {
             />
           ) : (
             <ProjectsTableView
-              projects={filteredProjects}
+              projects={filteredAndSortedProjects}
               estimates={estimates}
               onEdit={handleEdit}
               onView={handleEdit}

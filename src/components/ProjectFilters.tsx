@@ -3,7 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Calendar as DatePicker } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, Calendar } from "lucide-react";
+import { Search, Calendar, ChevronUp, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { ProjectStatus, PROJECT_STATUSES, JOB_TYPES } from "@/types/project";
 import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
@@ -21,6 +21,8 @@ export interface ProjectSearchFilters {
     min: number | null;
     max: number | null;
   };
+  sortBy: 'name' | 'date' | 'status' | 'margin';
+  sortOrder: 'asc' | 'desc';
 }
 
 interface ProjectFiltersProps {
@@ -53,7 +55,9 @@ export const ProjectFilters = ({
            !!filters.dateRange.start || 
            !!filters.dateRange.end ||
            filters.budgetRange.min !== null || 
-           filters.budgetRange.max !== null;
+           filters.budgetRange.max !== null ||
+           filters.sortBy !== 'date' ||
+           filters.sortOrder !== 'desc';
   };
 
   const handleClearFilters = () => {
@@ -64,6 +68,8 @@ export const ProjectFilters = ({
       clientName: "",
       dateRange: { start: null, end: null },
       budgetRange: { min: null, max: null },
+      sortBy: 'date',
+      sortOrder: 'desc',
     });
   };
 
@@ -87,7 +93,7 @@ export const ProjectFilters = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Status Multi-Select */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Status</label>
@@ -178,7 +184,7 @@ export const ProjectFilters = ({
           </div>
 
           {/* Budget Range */}
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2">
             <label className="text-sm font-medium">Budget Range</label>
             <div className="flex gap-2">
               <Input
@@ -203,6 +209,31 @@ export const ProjectFilters = ({
                   }
                 })}
               />
+            </div>
+          </div>
+
+          {/* Sorting */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Sort By</label>
+            <div className="flex gap-2">
+              <Select value={filters.sortBy} onValueChange={(value: 'name' | 'date' | 'status' | 'margin') => updateFilters({ sortBy: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="date">Date Created</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="margin">Margin %</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => updateFilters({ sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' })}
+              >
+                {filters.sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
         </div>
