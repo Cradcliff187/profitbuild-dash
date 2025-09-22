@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Calendar as CalendarIcon, Plus, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
+import { Save, Calendar as CalendarIcon, Plus, ArrowRight, TrendingUp, TrendingDown, Check } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { ProjectSelector } from "./ProjectSelector";
 import { PayeeSelector } from "./PayeeSelector";
@@ -32,6 +33,8 @@ interface QuoteFormProps {
 export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFormProps) => {
   const { toast } = useToast();
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate>();
+  const [selectedLineItemIds, setSelectedLineItemIds] = useState<string[]>([]);
+  const [showLineItemSelection, setShowLineItemSelection] = useState(false);
   const [selectedPayee, setSelectedPayee] = useState<Payee>();
   const [dateReceived, setDateReceived] = useState<Date>(new Date());
   const [status, setStatus] = useState<QuoteStatus>(QuoteStatus.PENDING);
@@ -88,8 +91,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
 
   useEffect(() => {
     if (selectedEstimate && !initialQuote) {
-      const quoteLineItems = selectedEstimate.lineItems.map(createQuoteLineItemFromEstimate);
-      setLineItems(quoteLineItems);
+      // Show line item selection instead of auto-importing
+      setShowLineItemSelection(true);
       
       // Set default valid until date
       const defaultValidUntil = new Date();
@@ -97,6 +100,40 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       setValidUntil(defaultValidUntil);
     }
   }, [selectedEstimate, initialQuote]);
+
+  const handleLineItemSelection = () => {
+    if (selectedLineItemIds.length === 0) {
+      toast({
+        title: "No Line Items Selected",
+        description: "Please select at least one line item to quote.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const selectedEstimateItems = selectedEstimate!.lineItems.filter(item => 
+      selectedLineItemIds.includes(item.id)
+    );
+    const quoteLineItems = selectedEstimateItems.map(createQuoteLineItemFromEstimate);
+    setLineItems(quoteLineItems);
+    setShowLineItemSelection(false);
+  };
+
+  const toggleLineItemSelection = (lineItemId: string) => {
+    setSelectedLineItemIds(prev => 
+      prev.includes(lineItemId) 
+        ? prev.filter(id => id !== lineItemId)
+        : [...prev, lineItemId]
+    );
+  };
+
+  const selectAllLineItems = () => {
+    setSelectedLineItemIds(selectedEstimate?.lineItems.map(item => item.id) || []);
+  };
+
+  const clearAllLineItems = () => {
+    setSelectedLineItemIds([]);
+  };
 
   const updateLineItem = (id: string, field: keyof QuoteLineItem, value: any) => {
     setLineItems(prev =>
@@ -266,6 +303,113 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
               <Button variant="outline" onClick={onCancel}>Cancel</Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Line Item Selection Step
+  if (showLineItemSelection) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Select Line Items to Quote</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {selectedEstimate.project_name} • {selectedEstimate.client_name}
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setSelectedEstimate(undefined);
+                setShowLineItemSelection(false);
+                setSelectedLineItemIds([]);
+              }}
+            >
+              Change Estimate
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {selectedEstimate.lineItems.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>This estimate has no line items.</p>
+              <p className="text-sm">Add line items to the estimate first.</p>
+              <div className="mt-4">
+                <Button variant="outline" onClick={() => setSelectedEstimate(undefined)}>
+                  Select Different Estimate
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Select the line items you want to include in this quote ({selectedLineItemIds.length} selected)
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={selectAllLineItems}>
+                    Select All
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={clearAllLineItems}>
+                    Clear All
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                {selectedEstimate.lineItems.map((item) => (
+                  <div key={item.id} className="flex items-center space-x-3 p-3 border rounded-lg">
+                    <Checkbox
+                      checked={selectedLineItemIds.includes(item.id)}
+                      onCheckedChange={() => toggleLineItemSelection(item.id)}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium">{item.description}</div>
+                          <div className="text-sm text-muted-foreground">
+                            <span className="inline-flex items-center gap-1">
+                              <Badge variant="outline" className="text-xs">
+                                {CATEGORY_DISPLAY_MAP[item.category]}
+                              </Badge>
+                              {item.quantity} {item.unit || 'units'} × ${item.pricePerUnit.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium">${item.total.toFixed(2)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between pt-4">
+                <Button variant="outline" onClick={onCancel}>Cancel</Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setSelectedEstimate(undefined);
+                      setShowLineItemSelection(false);
+                      setSelectedLineItemIds([]);
+                    }}
+                  >
+                    Back
+                  </Button>
+                  <Button onClick={handleLineItemSelection}>
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                    Continue with Selected Items ({selectedLineItemIds.length})
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
