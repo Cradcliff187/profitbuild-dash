@@ -36,7 +36,10 @@ const Quotes = () => {
           quote_line_items(*)
         `);
       
-      if (quotesError) throw quotesError;
+      if (quotesError) {
+        console.error('Error fetching quotes:', quotesError);
+        throw new Error(`Failed to fetch quotes: ${quotesError.message}`);
+      }
 
       // Fetch estimates with related data
       const { data: estimatesData, error: estimatesError } = await supabase
@@ -47,95 +50,179 @@ const Quotes = () => {
           estimate_line_items(*)
         `);
 
-      if (estimatesError) throw estimatesError;
+      if (estimatesError) {
+        console.error('Error fetching estimates:', estimatesError);
+        throw new Error(`Failed to fetch estimates: ${estimatesError.message}`);
+      }
 
-      // Transform quotes to match the expected Quote type
-      const transformedQuotes: Quote[] = (quotesData || []).map(quote => ({
-        id: quote.id,
-        project_id: quote.project_id,
-        estimate_id: quote.estimate_id,
-        projectName: quote.projects?.project_name || '',
-        client: quote.projects?.client_name || '',
-        payee_id: quote.payee_id,
-        quotedBy: quote.payees?.payee_name || '',
-        dateReceived: new Date(quote.date_received),
-        quoteNumber: quote.quote_number,
-         status: quote.status as QuoteStatus,
-        accepted_date: quote.accepted_date ? new Date(quote.accepted_date) : undefined,
-        valid_until: quote.valid_until ? new Date(quote.valid_until) : undefined,
-        rejection_reason: quote.rejection_reason,
-        estimate_line_item_id: quote.estimate_line_item_id,
-        includes_materials: quote.includes_materials ?? true,
-        includes_labor: quote.includes_labor ?? true,
-        lineItems: quote.quote_line_items?.map((item: any) => ({
-          id: item.id,
-          estimateLineItemId: item.estimate_line_item_id,
-          category: item.category,
-          description: item.description,
-          quantity: item.quantity,
-          pricePerUnit: item.rate,
-          total: item.total,
-          costPerUnit: item.cost_per_unit || 0,
-          markupPercent: item.markup_percent,
-          markupAmount: item.markup_amount,
-          totalCost: item.total_cost || (item.quantity * (item.cost_per_unit || 0)),
-          totalMarkup: item.total_markup || 0
-        })) || [],
-        subtotals: {
-          labor: 0,
-          subcontractors: 0,
-          materials: 0,
-          equipment: 0,
-          other: 0
-        },
-        total: quote.total_amount,
-        notes: quote.notes,
-        attachment_url: quote.attachment_url,
-        createdAt: new Date(quote.created_at)
-      }));
+      // Transform quotes to match the expected Quote type with error handling
+      const transformedQuotes: Quote[] = (quotesData || []).map(quote => {
+        try {
+          // Helper function to safely parse numbers
+          const safeNumber = (value: any, defaultValue: number = 0): number => {
+            const parsed = typeof value === 'string' ? parseFloat(value) : Number(value);
+            return isNaN(parsed) || !isFinite(parsed) ? defaultValue : parsed;
+          };
 
-      // Transform estimates to match the expected Estimate type
-      const transformedEstimates: Estimate[] = (estimatesData || []).map(estimate => ({
-        id: estimate.id,
-        project_id: estimate.project_id,
-        project_name: estimate.projects?.project_name || '',
-        client_name: estimate.projects?.client_name || '',
-        estimate_number: estimate.estimate_number,
-        revision_number: estimate.revision_number,
-        date: new Date(estimate.date_created),
-        date_created: new Date(estimate.date_created),
-        total_amount: estimate.total_amount,
-        status: estimate.status,
-        notes: estimate.notes,
-        contingency_percent: estimate.contingency_percent || 10.0,
-        contingency_amount: estimate.contingency_amount,
-        contingency_used: estimate.contingency_used || 0,
-        version_number: estimate.version_number || 1,
-        parent_estimate_id: estimate.parent_estimate_id || undefined,
-        is_current_version: estimate.is_current_version ?? true,
-        valid_for_days: estimate.valid_for_days || 30,
-        created_at: new Date(estimate.created_at),
-        updated_at: new Date(estimate.updated_at),
-        createdAt: new Date(estimate.created_at),
-        lineItems: estimate.estimate_line_items?.map((item: any) => ({
-          id: item.id,
-          category: item.category,
-          description: item.description,
-          quantity: item.quantity,
-          rate: item.rate,
-          pricePerUnit: item.price_per_unit || item.rate,
-          total: item.total,
-          unit: item.unit,
-          costPerUnit: item.cost_per_unit || 0,
-          markupPercent: item.markup_percent,
-          markupAmount: item.markup_amount,
-          totalCost: item.total_cost || (item.quantity * (item.cost_per_unit || 0)),
-          totalMarkup: item.total_markup || 0,
-          sortOrder: item.sort_order || 0
-        })) || [],
-        defaultMarkupPercent: 15,
-        targetMarginPercent: 20
-      }));
+          // Helper function to safely parse dates
+          const safeDate = (dateStr: any): Date => {
+            if (!dateStr) return new Date();
+            const date = new Date(dateStr);
+            return isNaN(date.getTime()) ? new Date() : date;
+          };
+
+          return {
+            id: quote.id || '',
+            project_id: quote.project_id || '',
+            estimate_id: quote.estimate_id || '',
+            projectName: quote.projects?.project_name || '',
+            client: quote.projects?.client_name || '',
+            payee_id: quote.payee_id || '',
+            quotedBy: quote.payees?.payee_name || '',
+            dateReceived: safeDate(quote.date_received),
+            quoteNumber: quote.quote_number || '',
+            status: (quote.status as QuoteStatus) || QuoteStatus.PENDING,
+            accepted_date: quote.accepted_date ? safeDate(quote.accepted_date) : undefined,
+            valid_until: quote.valid_until ? safeDate(quote.valid_until) : undefined,
+            rejection_reason: quote.rejection_reason || undefined,
+            estimate_line_item_id: quote.estimate_line_item_id || undefined,
+            includes_materials: quote.includes_materials ?? true,
+            includes_labor: quote.includes_labor ?? true,
+            lineItems: (quote.quote_line_items || []).map((item: any) => ({
+              id: item.id || '',
+              estimateLineItemId: item.estimate_line_item_id || undefined,
+              category: item.category,
+              description: item.description || '',
+              quantity: safeNumber(item.quantity, 1),
+              pricePerUnit: safeNumber(item.rate),
+              total: safeNumber(item.total),
+              costPerUnit: safeNumber(item.cost_per_unit),
+              markupPercent: item.markup_percent ? safeNumber(item.markup_percent) : null,
+              markupAmount: item.markup_amount ? safeNumber(item.markup_amount) : null,
+              totalCost: safeNumber(item.total_cost) || (safeNumber(item.quantity, 1) * safeNumber(item.cost_per_unit)),
+              totalMarkup: safeNumber(item.total_markup)
+            })),
+            subtotals: {
+              labor: 0,
+              subcontractors: 0,
+              materials: 0,
+              equipment: 0,
+              other: 0
+            },
+            total: safeNumber(quote.total_amount),
+            notes: quote.notes || undefined,
+            attachment_url: quote.attachment_url || undefined,
+            createdAt: safeDate(quote.created_at)
+          };
+        } catch (error) {
+          console.error('Error transforming quote:', error, quote);
+          // Return a minimal valid quote object to prevent crashes
+          return {
+            id: quote.id || Date.now().toString(),
+            project_id: quote.project_id || '',
+            estimate_id: quote.estimate_id || '',
+            projectName: 'Unknown Project',
+            client: 'Unknown Client',
+            payee_id: quote.payee_id || '',
+            quotedBy: 'Unknown Payee',
+            dateReceived: new Date(),
+            quoteNumber: 'INVALID',
+            status: QuoteStatus.PENDING,
+            includes_materials: true,
+            includes_labor: true,
+            lineItems: [],
+            subtotals: { labor: 0, subcontractors: 0, materials: 0, equipment: 0, other: 0 },
+            total: 0,
+            createdAt: new Date()
+          };
+        }
+      });
+
+      // Transform estimates to match the expected Estimate type with error handling
+      const transformedEstimates: Estimate[] = (estimatesData || []).map(estimate => {
+        try {
+          // Helper function to safely parse numbers
+          const safeNumber = (value: any, defaultValue: number = 0): number => {
+            const parsed = typeof value === 'string' ? parseFloat(value) : Number(value);
+            return isNaN(parsed) || !isFinite(parsed) ? defaultValue : parsed;
+          };
+
+          // Helper function to safely parse dates
+          const safeDate = (dateStr: any): Date => {
+            if (!dateStr) return new Date();
+            const date = new Date(dateStr);
+            return isNaN(date.getTime()) ? new Date() : date;
+          };
+
+          return {
+            id: estimate.id || '',
+            project_id: estimate.project_id || '',
+            project_name: estimate.projects?.project_name || '',
+            client_name: estimate.projects?.client_name || '',
+            estimate_number: estimate.estimate_number || '',
+            revision_number: safeNumber(estimate.revision_number, 1),
+            date: safeDate(estimate.date_created),
+            date_created: safeDate(estimate.date_created),
+            total_amount: safeNumber(estimate.total_amount),
+            status: estimate.status || 'draft',
+            notes: estimate.notes || undefined,
+            contingency_percent: safeNumber(estimate.contingency_percent, 10.0),
+            contingency_amount: safeNumber(estimate.contingency_amount),
+            contingency_used: safeNumber(estimate.contingency_used),
+            version_number: safeNumber(estimate.version_number, 1),
+            parent_estimate_id: estimate.parent_estimate_id || undefined,
+            is_current_version: estimate.is_current_version ?? true,
+            valid_for_days: safeNumber(estimate.valid_for_days, 30),
+            created_at: safeDate(estimate.created_at),
+            updated_at: safeDate(estimate.updated_at),
+            createdAt: safeDate(estimate.created_at),
+            lineItems: (estimate.estimate_line_items || []).map((item: any) => ({
+              id: item.id || '',
+              category: item.category,
+              description: item.description || '',
+              quantity: safeNumber(item.quantity, 1),
+              rate: safeNumber(item.rate),
+              pricePerUnit: safeNumber(item.price_per_unit || item.rate),
+              total: safeNumber(item.total),
+              unit: item.unit || undefined,
+              costPerUnit: safeNumber(item.cost_per_unit),
+              markupPercent: item.markup_percent ? safeNumber(item.markup_percent) : null,
+              markupAmount: item.markup_amount ? safeNumber(item.markup_amount) : null,
+              totalCost: safeNumber(item.total_cost) || (safeNumber(item.quantity, 1) * safeNumber(item.cost_per_unit)),
+              totalMarkup: safeNumber(item.total_markup),
+              sortOrder: safeNumber(item.sort_order)
+            })),
+            defaultMarkupPercent: 15,
+            targetMarginPercent: 20
+          };
+        } catch (error) {
+          console.error('Error transforming estimate:', error, estimate);
+          // Return a minimal valid estimate object to prevent crashes
+          return {
+            id: estimate.id || Date.now().toString(),
+            project_id: estimate.project_id || '',
+            project_name: 'Unknown Project',
+            client_name: 'Unknown Client',
+            estimate_number: 'INVALID',
+            revision_number: 1,
+            date: new Date(),
+            date_created: new Date(),
+            total_amount: 0,
+            status: 'draft',
+            contingency_percent: 10.0,
+            contingency_used: 0,
+            version_number: 1,
+            is_current_version: true,
+            valid_for_days: 30,
+            created_at: new Date(),
+            updated_at: new Date(),
+            createdAt: new Date(),
+            lineItems: [],
+            defaultMarkupPercent: 15,
+            targetMarginPercent: 20
+          };
+        }
+      });
 
       setQuotes(transformedQuotes);
       setEstimates(transformedEstimates);

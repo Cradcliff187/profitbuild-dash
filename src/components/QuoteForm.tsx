@@ -141,13 +141,32 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
         if (item.id === id) {
           const updated = { ...item, [field]: value };
           
+          // Safely parse and validate numeric values
+          const parseNumber = (val: any): number => {
+            const parsed = typeof val === 'string' ? parseFloat(val) : Number(val);
+            return isNaN(parsed) || !isFinite(parsed) ? 0 : parsed;
+          };
+          
           if (field === 'quantity' || field === 'pricePerUnit') {
-            updated.total = updated.quantity * updated.pricePerUnit;
+            const quantity = parseNumber(updated.quantity);
+            const pricePerUnit = parseNumber(updated.pricePerUnit);
+            updated.quantity = quantity;
+            updated.pricePerUnit = pricePerUnit;
+            updated.total = quantity * pricePerUnit;
           }
           
           if (field === 'quantity' || field === 'costPerUnit') {
-            updated.totalCost = updated.quantity * updated.costPerUnit;
+            const quantity = parseNumber(updated.quantity);
+            const costPerUnit = parseNumber(updated.costPerUnit);
+            updated.quantity = quantity;
+            updated.costPerUnit = costPerUnit;
+            updated.totalCost = quantity * costPerUnit;
           }
+          
+          // Ensure all numeric fields are valid numbers
+          if (field === 'quantity') updated.quantity = parseNumber(value);
+          if (field === 'pricePerUnit') updated.pricePerUnit = parseNumber(value);
+          if (field === 'costPerUnit') updated.costPerUnit = parseNumber(value);
           
           return updated;
         }
@@ -175,9 +194,14 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   };
 
   const formatVariance = (estimated: number, quoted: number) => {
-    const difference = quoted - estimated;
-    const percentage = estimated > 0 ? (difference / estimated) * 100 : 0;
+    // Safely handle potential NaN or invalid numbers
+    const estimatedSafe = isNaN(estimated) || !isFinite(estimated) ? 0 : estimated;
+    const quotedSafe = isNaN(quoted) || !isFinite(quoted) ? 0 : quoted;
+    
+    const difference = quotedSafe - estimatedSafe;
+    const percentage = estimatedSafe > 0 ? (difference / estimatedSafe) * 100 : 0;
     const sign = difference >= 0 ? "+" : "";
+    
     return `${sign}$${difference.toFixed(2)} (${sign}${percentage.toFixed(1)}%)`;
   };
 
