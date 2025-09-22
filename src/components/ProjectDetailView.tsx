@@ -393,15 +393,15 @@ export const ProjectDetailView = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Target className="h-4 w-4" />
-              Target Margin
+              Projected Margin
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {project.target_margin || 20}%
+              {formatCurrency(project.projectedMargin)}
             </div>
             <div className="text-xs text-muted-foreground">
-              Min: {project.minimum_margin_threshold || 10}%
+              Target: {project.target_margin || 20}% | Min: {project.minimum_margin_threshold || 10}%
             </div>
           </CardContent>
         </Card>
