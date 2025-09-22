@@ -20,6 +20,7 @@ import { Expense } from "@/types/expense";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateProjectProfit } from "@/utils/profitCalculations";
+import { calculateMultipleProjectFinancials, ProjectWithFinancials } from "@/utils/projectFinancials";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -30,7 +31,7 @@ type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 const Projects = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProjectWithFinancials[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -91,6 +92,10 @@ const Projects = () => {
         total_accepted_quotes: project.total_accepted_quotes,
         current_margin: project.current_margin,
         margin_percentage: project.margin_percentage,
+        contingency_remaining: project.contingency_remaining,
+        payment_terms: project.payment_terms,
+        minimum_margin_threshold: project.minimum_margin_threshold,
+        target_margin: project.target_margin,
         created_at: new Date(project.created_at),
         updated_at: new Date(project.updated_at)
       })) || [];
@@ -173,7 +178,14 @@ const Projects = () => {
         updated_at: new Date(expense.updated_at)
       })) || [];
 
-      setProjects(formattedProjects);
+      // Calculate financial data for all projects
+      const projectsWithFinancials = await calculateMultipleProjectFinancials(
+        formattedProjects,
+        formattedEstimates,
+        formattedExpenses
+      );
+
+      setProjects(projectsWithFinancials);
       setEstimates(formattedEstimates);
       setQuotes(formattedQuotes);
       setExpenses(formattedExpenses);
@@ -190,13 +202,20 @@ const Projects = () => {
     }
   };
 
-  const handleSaveProject = (project: Project) => {
+  const handleSaveProject = async (project: Project) => {
+    // Calculate financial data for the saved project
+    const projectWithFinancials = await calculateMultipleProjectFinancials(
+      [project],
+      estimates,
+      expenses
+    );
+    
     if (selectedProject) {
       // Editing existing project
-      setProjects(prev => prev.map(p => p.id === project.id ? project : p));
+      setProjects(prev => prev.map(p => p.id === project.id ? projectWithFinancials[0] : p));
     } else {
       // Creating new project
-      setProjects(prev => [project, ...prev]);
+      setProjects(prev => [projectWithFinancials[0], ...prev]);
     }
     setViewMode('list');
     setSelectedProject(null);
