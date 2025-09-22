@@ -89,19 +89,75 @@ export const EstimateActionsMenu = ({
 
   const createVersion = async () => {
     try {
-      const { data, error } = await supabase.rpc('create_estimate_version', {
+      // Create new version in DB
+      const { data: newId, error } = await supabase.rpc('create_estimate_version', {
         source_estimate_id: estimate.id
       });
-
       if (error) throw error;
+
+      // Fetch the newly created version
+      const { data: newVersionData, error: fetchError } = await supabase
+        .from('estimates')
+        .select('*')
+        .eq('id', newId)
+        .single();
+      if (fetchError || !newVersionData) throw fetchError;
+
+      // Fetch its copied line items
+      const { data: lineItemsData, error: liError } = await supabase
+        .from('estimate_line_items')
+        .select('*')
+        .eq('estimate_id', newId)
+        .order('sort_order');
+      if (liError) throw liError;
+
+      const lineItems = (lineItemsData || []).map((item: any) => ({
+        id: item.id,
+        category: item.category,
+        description: item.description,
+        quantity: Number(item.quantity) || 0,
+        pricePerUnit: Number(item.price_per_unit ?? item.rate ?? 0),
+        total: Number(item.total) || 0,
+        unit: item.unit || '',
+        sort_order: item.sort_order || 0,
+        costPerUnit: Number(item.cost_per_unit) || 0,
+        markupPercent: item.markup_percent,
+        markupAmount: item.markup_amount,
+        totalCost: Number(item.total_cost ?? (Number(item.quantity || 0) * Number(item.cost_per_unit || 0))) || 0,
+        totalMarkup: Number(item.total_markup ?? (Number(item.quantity || 0) * (Number(item.price_per_unit ?? item.rate ?? 0) - Number(item.cost_per_unit || 0)))) || 0,
+      }));
+
+      const newVersion: any = {
+        id: newVersionData.id,
+        project_id: newVersionData.project_id,
+        estimate_number: newVersionData.estimate_number,
+        date_created: new Date(newVersionData.date_created),
+        total_amount: Number(newVersionData.total_amount) || 0,
+        status: newVersionData.status,
+        notes: newVersionData.notes,
+        valid_until: newVersionData.valid_until ? new Date(newVersionData.valid_until) : undefined,
+        revision_number: newVersionData.revision_number,
+        contingency_percent: Number(newVersionData.contingency_percent) || 10,
+        contingency_amount: newVersionData.contingency_amount,
+        contingency_used: Number(newVersionData.contingency_used) || 0,
+        version_number: newVersionData.version_number || 1,
+        parent_estimate_id: newVersionData.parent_estimate_id,
+        is_current_version: !!newVersionData.is_current_version,
+        valid_for_days: newVersionData.valid_for_days || 30,
+        lineItems,
+        created_at: new Date(newVersionData.created_at),
+        updated_at: new Date(newVersionData.updated_at),
+        defaultMarkupPercent: newVersionData.default_markup_percent || 15,
+        targetMarginPercent: newVersionData.target_margin_percent || 20,
+      };
 
       toast({
         title: "Version Created",
-        description: "New estimate version created successfully",
+        description: "Opening new version with copied line items",
       });
 
-      // Refresh or navigate to new version
-      window.location.reload();
+      // Open the editor with the populated estimate instead of reloading
+      onEdit(newVersion);
     } catch (error) {
       console.error('Error creating version:', error);
       toast({

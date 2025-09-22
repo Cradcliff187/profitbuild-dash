@@ -16,6 +16,7 @@ import { EstimateVersionManager } from "./EstimateVersionManager";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { EstimatesTableView } from "./EstimatesTableView";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EstimatesListProps {
   estimates: (Estimate & { quotes?: Array<{ id: string; total_amount: number }> })[];
@@ -114,16 +115,87 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
     return { variance, percentage };
   };
 
-  const formatContingencyDisplay = (estimate: Estimate) => {
-    if (!estimate.contingency_percent || estimate.contingency_percent === 0) {
-      return null;
-    }
-    
-    const contingencyAmount = estimate.contingency_amount || 
-      (estimate.total_amount * (estimate.contingency_percent / 100)) / (1 + (estimate.contingency_percent / 100));
-    
-    return `Includes ${estimate.contingency_percent}% contingency: $${contingencyAmount.toFixed(2)}`;
-  };
+    const formatContingencyDisplay = (estimate: Estimate) => {
+      if (!estimate.contingency_percent || estimate.contingency_percent === 0) {
+        return null;
+      }
+      
+      const contingencyAmount = estimate.contingency_amount || 
+        (estimate.total_amount * (estimate.contingency_percent / 100)) / (1 + (estimate.contingency_percent / 100));
+      
+      return `Includes ${estimate.contingency_percent}% contingency: $${contingencyAmount.toFixed(2)}`;
+    };
+
+    // Create a new version and open it for editing with copied line items
+    const createNewVersion = async (sourceEstimate: Estimate) => {
+      try {
+        const { data: newId, error } = await supabase.rpc('create_estimate_version', {
+          source_estimate_id: sourceEstimate.id,
+        });
+        if (error) throw error;
+
+        const { data: newVersionData, error: fetchError } = await supabase
+          .from('estimates')
+          .select('*')
+          .eq('id', newId)
+          .single();
+        if (fetchError || !newVersionData) throw fetchError;
+
+        const { data: lineItemsData, error: liError } = await supabase
+          .from('estimate_line_items')
+          .select('*')
+          .eq('estimate_id', newId)
+          .order('sort_order');
+        if (liError) throw liError;
+
+        const lineItems = (lineItemsData || []).map((item: any) => ({
+          id: item.id,
+          category: item.category,
+          description: item.description,
+          quantity: Number(item.quantity) || 0,
+          pricePerUnit: Number(item.price_per_unit ?? item.rate ?? 0),
+          total: Number(item.total) || 0,
+          unit: item.unit || '',
+          sort_order: item.sort_order || 0,
+          costPerUnit: Number(item.cost_per_unit) || 0,
+          markupPercent: item.markup_percent,
+          markupAmount: item.markup_amount,
+          totalCost: Number(item.total_cost ?? (Number(item.quantity || 0) * Number(item.cost_per_unit || 0))) || 0,
+          totalMarkup: Number(item.total_markup ?? (Number(item.quantity || 0) * (Number(item.price_per_unit ?? item.rate ?? 0) - Number(item.cost_per_unit || 0)))) || 0,
+        }));
+
+        const newVersion: Estimate = {
+          id: newVersionData.id,
+          project_id: newVersionData.project_id,
+          estimate_number: newVersionData.estimate_number,
+          date_created: new Date(newVersionData.date_created),
+          total_amount: Number(newVersionData.total_amount) || 0,
+          status: newVersionData.status,
+          notes: newVersionData.notes,
+          valid_until: newVersionData.valid_until ? new Date(newVersionData.valid_until) : undefined,
+          revision_number: newVersionData.revision_number,
+          contingency_percent: Number(newVersionData.contingency_percent) || 10,
+          contingency_amount: newVersionData.contingency_amount || undefined,
+          contingency_used: Number(newVersionData.contingency_used) || 0,
+          version_number: newVersionData.version_number || 1,
+          parent_estimate_id: newVersionData.parent_estimate_id || undefined,
+          is_current_version: !!newVersionData.is_current_version,
+          valid_for_days: newVersionData.valid_for_days || 30,
+          lineItems,
+          created_at: new Date(newVersionData.created_at),
+          updated_at: new Date(newVersionData.updated_at),
+          project_name: sourceEstimate.project_name,
+          client_name: sourceEstimate.client_name,
+          defaultMarkupPercent: newVersionData.default_markup_percent || 15,
+          targetMarginPercent: newVersionData.target_margin_percent || 20,
+          is_draft: newVersionData.is_draft ?? false,
+        };
+
+        onEdit(newVersion);
+      } catch (err) {
+        console.error('Failed to create version:', err);
+      }
+    };
 
   if (estimates.length === 0) {
     return (
@@ -175,7 +247,7 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
                   <div className="mobile-button-group">
                     <Button 
                       size="sm" 
-                      onClick={() => window.location.href = `/estimates?project=${projectId}`}
+                      onClick={() => createNewVersion(currentVersion)}
                       className="bg-primary hover:bg-primary/90"
                     >
                       <Plus className="h-3 w-3 mr-1" />
@@ -268,7 +340,7 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => window.location.href = `/estimates?project=${projectId}`}
+                      onClick={() => createNewVersion(currentVersion)}
                       className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                     >
                       <Plus className="h-4 w-4 mr-2" />
