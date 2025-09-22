@@ -415,7 +415,11 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     );
   }
 
-  const estimateFinancials = calculateEstimateFinancials(selectedEstimate.lineItems);
+  // Filter estimate line items to only include those that correspond to quote line items
+  const relevantEstimateLineItems = selectedEstimate.lineItems.filter(item => 
+    lineItems.some(quoteItem => quoteItem.estimateLineItemId === item.id)
+  );
+  const estimateFinancials = calculateEstimateFinancials(relevantEstimateLineItems);
   const quoteFinancials = calculateQuoteFinancials(lineItems);
 
   return (
