@@ -593,72 +593,124 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                     )}
                   </div>
 
-                  {estimateItem && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg">
-                      <div>
-                        <h4 className="font-medium text-sm text-muted-foreground mb-2">Original Estimate</h4>
-                        <div className="text-sm space-y-1">
-                          <div><strong>Description:</strong> {estimateItem.description}</div>
-                          <div><strong>Quantity:</strong> {estimateItem.quantity}</div>
-                          <div><strong>Cost:</strong> ${estimateItem.costPerUnit.toFixed(2)} per unit</div>
-                          <div><strong>Markup:</strong> {estimateItem.markupPercent !== null ? `${estimateItem.markupPercent}%` : `$${(estimateItem.markupAmount || 0).toFixed(2)}`}</div>
-                          <div><strong>Price:</strong> ${estimateItem.pricePerUnit.toFixed(2)} per unit</div>
-                          <div><strong>Total:</strong> ${estimateItem.total.toFixed(2)}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-center">
-                        <ArrowRight className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                    </div>
-                  )}
+                  {/* Side-by-side table format */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b bg-muted/30">
+                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Field</th>
+                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Original Estimate</th>
+                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Vendor Quote</th>
+                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Variance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* Description Row */}
+                        <tr className="border-b hover:bg-muted/20">
+                          <td className="p-3 font-medium text-sm">Description</td>
+                          <td className="p-3 text-sm">{estimateItem?.description || 'N/A'}</td>
+                          <td className="p-3">
+                            <Input
+                              value={item.description}
+                              onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
+                              placeholder="Item description"
+                              className="h-8"
+                            />
+                          </td>
+                          <td className="p-3 text-sm text-muted-foreground">—</td>
+                        </tr>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="space-y-2">
-                      <Label>Description</Label>
-                      <Input
-                        value={item.description}
-                        onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
-                        placeholder="Item description"
-                      />
-                    </div>
+                        {/* Quantity Row */}
+                        <tr className="border-b hover:bg-muted/20">
+                          <td className="p-3 font-medium text-sm">Quantity</td>
+                          <td className="p-3 text-sm">{estimateItem?.quantity || 'N/A'}</td>
+                          <td className="p-3">
+                            <Input
+                              type="number"
+                              value={item.quantity}
+                              min="0"
+                              step="0.01"
+                              onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
+                              className="h-8"
+                            />
+                          </td>
+                          <td className="p-3 text-sm">
+                            {estimateItem ? (
+                              <span className={getVarianceColor(estimateItem.quantity, item.quantity)}>
+                                {item.quantity - estimateItem.quantity > 0 ? '+' : ''}{(item.quantity - estimateItem.quantity).toFixed(2)}
+                              </span>
+                            ) : '—'}
+                          </td>
+                        </tr>
 
-                    <div className="space-y-2">
-                      <Label>Quantity</Label>
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        min="0"
-                        step="0.01"
-                        onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
+                        {/* Cost Per Unit Row (Estimate only) */}
+                        {estimateItem && (
+                          <tr className="border-b hover:bg-muted/20">
+                            <td className="p-3 font-medium text-sm">Cost per Unit</td>
+                            <td className="p-3 text-sm">${estimateItem.costPerUnit.toFixed(2)}</td>
+                            <td className="p-3 text-sm text-muted-foreground">Not disclosed</td>
+                            <td className="p-3 text-sm text-muted-foreground">—</td>
+                          </tr>
+                        )}
 
-                    <div className="space-y-2">
-                      <Label>Quote Price</Label>
-                      <Input
-                        type="number"
-                        value={item.pricePerUnit}
-                        min="0"
-                        step="0.01"
-                        onChange={(e) => updateLineItem(item.id, 'pricePerUnit', parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
-                      />
-                    </div>
+                        {/* Markup Row (Estimate only) */}
+                        {estimateItem && (
+                          <tr className="border-b hover:bg-muted/20">
+                            <td className="p-3 font-medium text-sm">Markup</td>
+                            <td className="p-3 text-sm">
+                              {estimateItem.markupPercent !== null ? `${estimateItem.markupPercent}%` : `$${(estimateItem.markupAmount || 0).toFixed(2)}`}
+                            </td>
+                            <td className="p-3 text-sm text-muted-foreground">Not disclosed</td>
+                            <td className="p-3 text-sm text-muted-foreground">—</td>
+                          </tr>
+                        )}
 
-                    <div className="space-y-2">
-                      <Label>Total</Label>
-                      <div className="flex items-center h-10 px-3 py-2 bg-muted rounded-md">
-                        <span className="font-medium">${item.total.toFixed(2)}</span>
-                      </div>
-                    </div>
+                        {/* Price Per Unit Row */}
+                        <tr className="border-b hover:bg-muted/20">
+                          <td className="p-3 font-medium text-sm">Price per Unit</td>
+                          <td className="p-3 text-sm">${estimateItem?.pricePerUnit.toFixed(2) || 'N/A'}</td>
+                          <td className="p-3">
+                            <Input
+                              type="number"
+                              value={item.pricePerUnit}
+                              min="0"
+                              step="0.01"
+                              onChange={(e) => updateLineItem(item.id, 'pricePerUnit', parseFloat(e.target.value) || 0)}
+                              placeholder="0.00"
+                              className="h-8"
+                            />
+                          </td>
+                          <td className="p-3 text-sm">
+                            {estimateItem ? (
+                              <span className={`flex items-center gap-1 ${getVarianceColor(estimateItem.pricePerUnit, item.pricePerUnit)}`}>
+                                {getVarianceIcon(estimateItem.pricePerUnit, item.pricePerUnit)}
+                                {formatVariance(estimateItem.pricePerUnit, item.pricePerUnit)}
+                              </span>
+                            ) : '—'}
+                          </td>
+                        </tr>
+
+                        {/* Total Row */}
+                        <tr className="border-b bg-muted/10">
+                          <td className="p-3 font-medium text-sm">Total</td>
+                          <td className="p-3 text-sm font-medium">${estimateItem?.total.toFixed(2) || 'N/A'}</td>
+                          <td className="p-3">
+                            <div className="flex items-center h-8 px-3 py-2 bg-muted rounded-md text-sm font-medium">
+                              ${item.total.toFixed(2)}
+                            </div>
+                          </td>
+                          <td className="p-3 text-sm">
+                            {estimateItem ? (
+                              <span className={`flex items-center gap-1 font-medium ${getVarianceColor(estimateItem.total, item.total)}`}>
+                                {getVarianceIcon(estimateItem.total, item.total)}
+                                {formatVariance(estimateItem.total, item.total)}
+                              </span>
+                            ) : '—'}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
-
-                  {estimateItem && (
-                    <div className={`text-sm flex items-center gap-2 ${getVarianceColor(estimateItem.total, item.total)}`}>
-                      {getVarianceIcon(estimateItem.total, item.total)}
-                      <span>Variance: {formatVariance(estimateItem.total, item.total)}</span>
-                    </div>
-                  )}
                 </div>
                 );
               })}
