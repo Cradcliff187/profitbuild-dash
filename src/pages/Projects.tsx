@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Building2, BarChart3, Calculator, Plus } from "lucide-react";
+import { Building2, BarChart3, Calculator, Plus, Table, Grid } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ProjectForm } from "@/components/ProjectForm";
 import { ProjectEditForm } from "@/components/ProjectEditForm";
 import { ProjectsList } from "@/components/ProjectsList";
+import { ProjectsTableView } from "@/components/ProjectsTableView";
+import { ProjectLineItemAnalysis } from "@/components/ProjectLineItemAnalysis";
 import { ProjectProfitMargin } from "@/components/ProjectProfitMargin";
 import { ChangeOrdersList } from "@/components/ChangeOrdersList";
 import { ChangeOrderForm } from "@/components/ChangeOrderForm";
@@ -18,13 +20,16 @@ import { Expense } from "@/types/expense";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateProjectProfit } from "@/utils/profitCalculations";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Database } from "@/integrations/supabase/types";
 
 type ViewMode = 'list' | 'create' | 'edit';
+type DisplayMode = 'cards' | 'table';
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 
 const Projects = () => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [projects, setProjects] = useState<Project[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -40,6 +45,7 @@ const Projects = () => {
   const [editingChangeOrder, setEditingChangeOrder] = useState<ChangeOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('details');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>(isMobile ? 'cards' : 'table');
 
   // Load projects from Supabase
   useEffect(() => {
@@ -281,14 +287,50 @@ const Projects = () => {
       </div>
 
       {viewMode === 'list' && (
-        <ProjectsList
-          projects={projects}
-          estimates={estimates}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onCreateNew={handleCreateNew}
-          onRefresh={loadProjects}
-        />
+        <div className="space-y-4">
+          {/* View Toggle - Desktop Only */}
+          {!isMobile && (
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant={displayMode === 'cards' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDisplayMode('cards')}
+              >
+                <Grid className="h-4 w-4 mr-2" />
+                Cards
+              </Button>
+              <Button
+                variant={displayMode === 'table' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDisplayMode('table')}
+              >
+                <Table className="h-4 w-4 mr-2" />
+                Table
+              </Button>
+            </div>
+          )}
+
+          {/* Display Projects */}
+          {(displayMode === 'cards' || isMobile) ? (
+            <ProjectsList
+              projects={projects}
+              estimates={estimates}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onCreateNew={handleCreateNew}
+              onRefresh={loadProjects}
+            />
+          ) : (
+            <ProjectsTableView
+              projects={projects}
+              estimates={estimates}
+              onEdit={handleEdit}
+              onView={handleEdit} // Same as edit for now
+              onCreateNew={handleCreateNew}
+              isLoading={isLoading}
+            />
+          )}
+        </div>
       )}
 
       {viewMode === 'create' && (
@@ -380,6 +422,12 @@ const Projects = () => {
                       Variance Analysis
                     </TabsTrigger>
                   )}
+                  {hasEstimates && (
+                    <TabsTrigger value="line-analysis" className="flex items-center gap-2">
+                      <Calculator className="h-4 w-4" />
+                      Line Item Analysis
+                    </TabsTrigger>
+                  )}
                 </TabsList>
 
                 <TabsContent value="details" className="space-y-6">
@@ -458,7 +506,18 @@ const Projects = () => {
 
                 {hasExpenses && (
                   <TabsContent value="variance">
-                    <VarianceAnalysis projectId={selectedProject.id} />
+                    <VarianceAnalysis 
+                      projectId={selectedProject.id}
+                    />
+                  </TabsContent>
+                )}
+                
+                {hasEstimates && (
+                  <TabsContent value="line-analysis">
+                    <ProjectLineItemAnalysis 
+                      projectId={selectedProject.id}
+                      projectName={selectedProject.project_name}
+                    />
                   </TabsContent>
                 )}
               </Tabs>
