@@ -80,36 +80,35 @@ export const QuotesTableView = ({
     return matchingItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
   };
 
-  const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {
+  const getQuotedAmountForEstimateMatch = (quote: Quote): number | null => {
     const estimate = getEstimateForQuote(quote);
     if (!estimate || !estimate.lineItems || !quote.lineItems) {
-      return { amount: 0, percentage: 0, status: 'exact' };
+      return null;
     }
-
-    let estimateCost: number;
-    let quoteCost: number;
 
     // If linked to specific estimate line item
     if (quote.estimate_line_item_id) {
       const targetLineItem = estimate.lineItems.find(item => item.id === quote.estimate_line_item_id);
-      if (!targetLineItem) return { amount: 0, percentage: 0, status: 'exact' };
+      if (!targetLineItem) return null;
       
-      estimateCost = targetLineItem.totalCost || (targetLineItem.quantity * targetLineItem.costPerUnit);
       // Find quote line items that match this category
       const matchingQuoteItems = quote.lineItems.filter(item => item.category === targetLineItem.category);
-      quoteCost = matchingQuoteItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+      return matchingQuoteItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
     } else {
-      // Category-based matching
-      const quoteCategorySet = new Set(quote.lineItems.map(item => item.category));
-      const matchingEstimateItems = estimate.lineItems.filter(item => quoteCategorySet.has(item.category));
-      
-      if (matchingEstimateItems.length === 0) return { amount: 0, percentage: 0, status: 'exact' };
-      
-      estimateCost = matchingEstimateItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
-      quoteCost = quote.lineItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+      // Category-based matching - sum all quote line item costs
+      return quote.lineItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+    }
+  };
+
+  const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {
+    const estimateCost = getEstimateLineItemCost(quote);
+    const quotedAmount = getQuotedAmountForEstimateMatch(quote);
+    
+    if (estimateCost === null || quotedAmount === null) {
+      return { amount: 0, percentage: 0, status: 'exact' };
     }
 
-    const difference = quoteCost - estimateCost;
+    const difference = quotedAmount - estimateCost;
     const percentage = estimateCost > 0 ? (difference / estimateCost) * 100 : 0;
     
     return {
@@ -265,6 +264,20 @@ export const QuotesTableView = ({
         return (
           <div className="text-sm tabular-nums text-foreground/80">
             {estimateCost !== null ? `$${estimateCost.toLocaleString()}` : 'N/A'}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'quoted_amount',
+      label: 'Quoted Amount',
+      align: 'right',
+      width: '130px',
+      render: (quote) => {
+        const quotedAmount = getQuotedAmountForEstimateMatch(quote);
+        return (
+          <div className="text-sm tabular-nums font-medium">
+            {quotedAmount !== null ? `$${quotedAmount.toLocaleString()}` : 'N/A'}
           </div>
         );
       },
