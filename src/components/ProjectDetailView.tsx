@@ -385,87 +385,129 @@ export const ProjectDetailView = () => {
         </div>
       </div>
 
-      {/* Financial Dashboard */}
+      {/* Three-Tier Margin Dashboard */}
       {hasApprovedEstimate ? (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="space-y-4">
+          {/* Revenue Section */}
           <Card className="border-l-4 border-l-primary/20">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-primary" />
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-primary" />
                 Contract Value
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="text-2xl font-bold">
+              <div className="text-3xl font-bold text-primary">
                 {formatCurrency(project?.currentContractAmount)}
               </div>
               {approvedChangeOrders.length > 0 && (
-                <div className="text-xs text-muted-foreground">
-                  +{formatCurrency(approvedChangeOrders.reduce((sum, co) => sum + (co.amount || 0), 0))} changes
+                <div className="text-sm text-muted-foreground mt-1">
+                  +{formatCurrency(approvedChangeOrders.reduce((sum, co) => sum + (co.amount || 0), 0))} change orders
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-blue-500/20">
+          {/* Three Margin Types */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="border-l-4 border-l-blue-500/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Calculator className="h-4 w-4 text-blue-500" />
+                  Original Margin
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">Budget Planning</p>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-2xl font-bold">
+                  {formatCurrency(project.original_margin)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Revenue - Estimate Costs
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-green-500/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Target className="h-4 w-4 text-green-500" />
+                  Projected Margin
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">With Quotes</p>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-2xl font-bold">
+                  {formatCurrency(project.projected_margin)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Revenue - Quote/Estimate Hybrid
+                </div>
+                <div className={cn(
+                  "text-xs font-medium mt-1",
+                  marginStatus === 'critical' && 'text-red-600',
+                  marginStatus === 'at_risk' && 'text-orange-600',
+                  marginStatus === 'on_target' && 'text-blue-600',
+                  marginStatus === 'excellent' && 'text-green-600'
+                )}>
+                  {project.currentContractAmount > 0 
+                    ? ((project.projected_margin || 0) / project.currentContractAmount * 100).toFixed(1)
+                    : '0.0'
+                  }% margin
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-orange-500/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-orange-500" />
+                  Actual Margin
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">Real Performance</p>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-2xl font-bold">
+                  {formatCurrency(project.actual_margin)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Revenue - Allocated Expenses
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Expense Allocation Status */}
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-blue-500" />
-                Current Margin
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                Expense Summary
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-2xl font-bold">
-                {formatCurrency(project.projectedMargin)}
+            <CardContent className="pt-0 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Total Expenses:</span>
+                <span className="font-semibold">{formatCurrency(project.actualExpenses)}</span>
               </div>
-              <div className={cn(
-                "text-xs font-medium",
-                marginStatus === 'critical' && 'text-red-600',
-                marginStatus === 'at_risk' && 'text-orange-600',
-                marginStatus === 'on_target' && 'text-blue-600',
-                marginStatus === 'excellent' && 'text-green-600'
-              )}>
-                {project.currentContractAmount > 0 
-                  ? ((project.projectedMargin || 0) / project.currentContractAmount * 100).toFixed(1)
-                  : '0.0'
-                }% projected margin
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Allocated to Line Items:</span>
+                <span className="font-semibold">{formatCurrency((project.currentContractAmount || 0) - (project.actual_margin || 0))}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground">Transactions:</span>
+                <span>{expenses.length} total</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-green-500/20">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Target className="h-4 w-4 text-green-500" />
-                Projected Margin
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-2xl font-bold">
-                {formatCurrency(project.projectedMargin)}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Target: {project.target_margin || 20}% | Min: {project.minimum_margin_threshold || 10}%
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 border-l-orange-500/20">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-orange-500" />
-                Total Expenses
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-2xl font-bold">
-                {formatCurrency(project.actualExpenses)}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {expenses.length} transactions
-              </div>
-            </CardContent>
-          </Card>
+          {/* Margin Progression Indicator */}
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              <strong>Margin Progression:</strong> Original → Projected → Actual shows your project's financial evolution from planning to execution.
+            </AlertDescription>
+          </Alert>
         </div>
       ) : (
         <ProjectFinancialPendingView 

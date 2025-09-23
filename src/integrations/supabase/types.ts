@@ -603,6 +603,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          actual_margin: number | null
           address: string | null
           client_id: string | null
           client_name: string
@@ -616,10 +617,12 @@ export type Database = {
           last_synced_at: string | null
           margin_percentage: number | null
           minimum_margin_threshold: number | null
+          original_margin: number | null
           payment_terms: string | null
           project_name: string
           project_number: string
           project_type: Database["public"]["Enums"]["project_type"] | null
+          projected_margin: number | null
           qb_formatted_number: string | null
           quickbooks_job_id: string | null
           sequence_number: number | null
@@ -632,6 +635,7 @@ export type Database = {
           work_order_counter: number | null
         }
         Insert: {
+          actual_margin?: number | null
           address?: string | null
           client_id?: string | null
           client_name: string
@@ -645,10 +649,12 @@ export type Database = {
           last_synced_at?: string | null
           margin_percentage?: number | null
           minimum_margin_threshold?: number | null
+          original_margin?: number | null
           payment_terms?: string | null
           project_name: string
           project_number: string
           project_type?: Database["public"]["Enums"]["project_type"] | null
+          projected_margin?: number | null
           qb_formatted_number?: string | null
           quickbooks_job_id?: string | null
           sequence_number?: number | null
@@ -661,6 +667,7 @@ export type Database = {
           work_order_counter?: number | null
         }
         Update: {
+          actual_margin?: number | null
           address?: string | null
           client_id?: string | null
           client_name?: string
@@ -674,10 +681,12 @@ export type Database = {
           last_synced_at?: string | null
           margin_percentage?: number | null
           minimum_margin_threshold?: number | null
+          original_margin?: number | null
           payment_terms?: string | null
           project_name?: string
           project_number?: string
           project_type?: Database["public"]["Enums"]["project_type"] | null
+          projected_margin?: number | null
           qb_formatted_number?: string | null
           quickbooks_job_id?: string | null
           sequence_number?: number | null
