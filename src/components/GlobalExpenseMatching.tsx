@@ -147,7 +147,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
           project_name: quote.projects?.project_name || 'Unknown',
           category: item.category as LineItemCategory,
           description: item.description,
-          total: item.total || 0,
+          total: item.total_cost || (item.cost_per_unit * item.quantity) || 0,
           matched_amount: 0, // Will be calculated below
           payee_name: quote.payees?.payee_name
         }))
