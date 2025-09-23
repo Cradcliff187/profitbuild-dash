@@ -81,21 +81,40 @@ export const QuotesTableView = ({
   };
 
   const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {
-    const estimateCost = getEstimateLineItemCost(quote);
-    if (estimateCost === null) {
+    const estimate = getEstimateForQuote(quote);
+    if (!estimate || !estimate.lineItems || !quote.lineItems) {
       return { amount: 0, percentage: 0, status: 'exact' };
     }
-    
-    const quoteCost = calculateQuoteTotalCost(quote.lineItems);
-    
-    const difference = quoteCost - estimateCost; // Quote cost - estimate cost
+
+    let estimateCost: number;
+    let quoteCost: number;
+
+    // If linked to specific estimate line item
+    if (quote.estimate_line_item_id) {
+      const targetLineItem = estimate.lineItems.find(item => item.id === quote.estimate_line_item_id);
+      if (!targetLineItem) return { amount: 0, percentage: 0, status: 'exact' };
+      
+      estimateCost = targetLineItem.totalCost || (targetLineItem.quantity * targetLineItem.costPerUnit);
+      // Find quote line items that match this category
+      const matchingQuoteItems = quote.lineItems.filter(item => item.category === targetLineItem.category);
+      quoteCost = matchingQuoteItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+    } else {
+      // Category-based matching
+      const quoteCategorySet = new Set(quote.lineItems.map(item => item.category));
+      const matchingEstimateItems = estimate.lineItems.filter(item => quoteCategorySet.has(item.category));
+      
+      if (matchingEstimateItems.length === 0) return { amount: 0, percentage: 0, status: 'exact' };
+      
+      estimateCost = matchingEstimateItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+      quoteCost = quote.lineItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+    }
+
+    const difference = quoteCost - estimateCost;
     const percentage = estimateCost > 0 ? (difference / estimateCost) * 100 : 0;
     
     return {
       amount: Math.abs(difference),
       percentage: Math.abs(percentage),
-      // When quote cost > estimate cost = bad for margins (over budget on costs)
-      // When quote cost < estimate cost = good for margins (under budget on costs)
       status: difference > 0 ? 'over' : difference < 0 ? 'under' : 'exact'
     };
   };
