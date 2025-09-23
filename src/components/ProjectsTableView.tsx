@@ -500,6 +500,66 @@ export const ProjectsTableView = ({
       ),
     },
     {
+      key: 'approvedEstimateTotal',
+      label: 'Approved Estimate',
+      align: 'right' as const,
+      sortable: true,
+      render: (project: ProjectWithFinancials) => (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="text-right cursor-help">
+              <div className="font-medium text-sm">{formatCurrency(project.approvedEstimateTotal)}</div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div>
+              <p><strong>Approved Estimate Total:</strong> {formatCurrency(project.approvedEstimateTotal)}</p>
+              <p>Original approved estimate amount before change orders</p>
+              <p>Base contract value from signed estimate</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      ),
+    },
+    {
+      key: 'quoteCoverage',
+      label: 'Quote Coverage',
+      align: 'center' as const,
+      sortable: true,
+      render: (project: ProjectWithFinancials) => {
+        const coverage = project.quoteCoveragePercentage || 0;
+        let className = 'text-xs px-2 py-1 rounded-full border font-medium';
+        
+        if (coverage >= 90) {
+          className += ' bg-success/10 text-success border-success/20';
+        } else if (coverage >= 70) {
+          className += ' bg-warning/10 text-warning border-warning/20';
+        } else {
+          className += ' bg-destructive/10 text-destructive border-destructive/20';
+        }
+        
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-center cursor-help">
+                <div className={className}>
+                  {coverage.toFixed(0)}%
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div>
+                <p><strong>Quote Coverage:</strong> {coverage.toFixed(1)}%</p>
+                <p>Percentage of external costs covered by accepted quotes</p>
+                <p>Quoted: {formatCurrency(project.quotedExternalCosts)}</p>
+                <p>Unquoted: {formatCurrency(project.unquotedExternalCosts)}</p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        );
+      }
+    },
+    {
       key: 'originalEstimatedCosts',
       label: 'Original Est. Costs',
       align: 'right' as const,
@@ -591,8 +651,8 @@ export const ProjectsTableView = ({
             <TooltipContent>
               <div>
                 <p><strong>Projected Margin:</strong> {formatCurrency(projectedMargin)}</p>
-                <p>Calculation: Contract Value - External Costs (excludes internal labor)</p>
-                <p>Uses accepted quote prices + approved change order costs when available, otherwise estimated costs</p>
+                <p>Calculation: Contract Value - (External Costs + Internal Labor Costs)</p>
+                <p>Expected profit after all project costs using quoted prices when available</p>
               </div>
             </TooltipContent>
           </Tooltip>
@@ -695,8 +755,8 @@ export const ProjectsTableView = ({
           <TooltipContent>
             <div>
               <p><strong>Remaining Contingency:</strong> {formatCurrency(project.contingencyRemaining)}</p>
+              <p>From approved estimate contingency allocation minus usage by change orders</p>
               <p>Budget buffer available for unexpected costs or scope changes</p>
-              <p>Calculated from original contingency allocation minus usage</p>
             </div>
           </TooltipContent>
         </Tooltip>
