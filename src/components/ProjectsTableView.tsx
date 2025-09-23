@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, DollarSign, Calendar, Clock, AlertTriangle, Filter } from "lucide-react";
+import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, DollarSign, Calendar, Clock, AlertTriangle, Filter, Trash2 } from "lucide-react";
 import { ProjectStatusSelector } from "@/components/ProjectStatusSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import { format, differenceInDays, isPast, isFuture } from "date-fns";
@@ -24,6 +34,7 @@ interface ProjectsTableViewProps {
   estimates: any[];
   onEdit: (project: Project) => void;
   onView: (project: Project) => void;
+  onDelete?: (projectId: string) => void;
   onArchive?: (projectId: string) => void;
   onCreateNew: () => void;
   isLoading?: boolean;
@@ -34,10 +45,15 @@ export const ProjectsTableView = ({
   estimates,
   onEdit, 
   onView,
+  onDelete,
   onArchive,
   onCreateNew,
   isLoading = false 
 }: ProjectsTableViewProps) => {
+  const [deleteConfirm, setDeleteConfirm] = useState<{open: boolean; project: Project | null}>({
+    open: false,
+    project: null
+  });
 
   const handleViewDetails = (project: Project) => {
     window.location.href = `/projects/${project.id}`;
@@ -869,6 +885,18 @@ export const ProjectsTableView = ({
                 </DropdownMenuItem>
               </>
             )}
+            {onDelete && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => setDeleteConfirm({open: true, project})}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -905,6 +933,32 @@ export const ProjectsTableView = ({
           sortable={true}
         />
 
+        <AlertDialog open={deleteConfirm.open} onOpenChange={(open) => setDeleteConfirm({open, project: null})}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Project</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{deleteConfirm.project?.project_name}"? 
+                This action will permanently delete the project and all related data including estimates, quotes, and expenses. 
+                This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => {
+                  if (deleteConfirm.project && onDelete) {
+                    onDelete(deleteConfirm.project.id);
+                  }
+                  setDeleteConfirm({open: false, project: null});
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete Project
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );

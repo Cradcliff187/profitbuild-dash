@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Building2, Table, Grid } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ProjectForm } from "@/components/ProjectForm";
 import { ProjectsList } from "@/components/ProjectsList";
 import { ProjectsTableView } from "@/components/ProjectsTableView";
@@ -47,9 +48,9 @@ const Projects = () => {
     try {
       setIsLoading(true);
       
-      // Load all related data
+      // Load all related data (exclude unassigned project)
       const [projectsRes, estimatesRes, quotesRes, expensesRes] = await Promise.all([
-        supabase.from('projects').select('*').order('created_at', { ascending: false }),
+        supabase.from('projects').select('*').neq('project_number', '000-UNASSIGNED').order('created_at', { ascending: false }),
         supabase.from('estimates').select('*'),
         supabase.from('quotes').select('*'),
         supabase.from('expenses').select('*')
@@ -378,57 +379,68 @@ const Projects = () => {
       </div>
 
       {viewMode === 'list' && (
-        <div className="space-y-4">
-          {/* Project Filters */}
-          <ProjectFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            resultCount={filteredAndSortedProjects.length}
-          />
-
-          {/* View Toggle - Desktop Only */}
-          {!isMobile && (
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                variant={displayMode === 'cards' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setDisplayMode('cards')}
-              >
-                <Grid className="h-4 w-4 mr-2" />
-                Cards
-              </Button>
-              <Button
-                variant={displayMode === 'table' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setDisplayMode('table')}
-              >
-                <Table className="h-4 w-4 mr-2" />
-                Table
-              </Button>
-            </div>
-          )}
-
-          {/* Display Projects */}
-          {(displayMode === 'cards' || isMobile) ? (
-            <ProjectsList
-              projects={filteredAndSortedProjects}
-              estimates={estimates}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onCreateNew={handleCreateNew}
-              onRefresh={loadProjects}
+        <>
+          {isLoading ? (
+            <LoadingSpinner 
+              variant="page" 
+              message="Loading projects..." 
+              className="min-h-[400px]" 
             />
           ) : (
-            <ProjectsTableView
-              projects={filteredAndSortedProjects}
-              estimates={estimates}
-              onEdit={handleEdit}
-              onView={handleEdit}
-              onCreateNew={handleCreateNew}
-              isLoading={isLoading}
-            />
+            <div className="space-y-4">
+              {/* Project Filters */}
+              <ProjectFilters
+                filters={filters}
+                onFiltersChange={setFilters}
+                resultCount={filteredAndSortedProjects.length}
+              />
+
+              {/* View Toggle - Desktop Only */}
+              {!isMobile && (
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant={displayMode === 'cards' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setDisplayMode('cards')}
+                  >
+                    <Grid className="h-4 w-4 mr-2" />
+                    Cards
+                  </Button>
+                  <Button
+                    variant={displayMode === 'table' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setDisplayMode('table')}
+                  >
+                    <Table className="h-4 w-4 mr-2" />
+                    Table
+                  </Button>
+                </div>
+              )}
+
+              {/* Display Projects */}
+              {(displayMode === 'cards' || isMobile) ? (
+                <ProjectsList
+                  projects={filteredAndSortedProjects}
+                  estimates={estimates}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onCreateNew={handleCreateNew}
+                  onRefresh={loadProjects}
+                />
+              ) : (
+                <ProjectsTableView
+                  projects={filteredAndSortedProjects}
+                  estimates={estimates}
+                  onEdit={handleEdit}
+                  onView={handleEdit}
+                  onDelete={handleDelete}
+                  onCreateNew={handleCreateNew}
+                  isLoading={isLoading}
+                />
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
 
       {viewMode === 'create' && (
