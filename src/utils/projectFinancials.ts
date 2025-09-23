@@ -12,7 +12,7 @@ export interface ProjectWithFinancials extends Project {
   projectedMargin: number;
   nonInternalLineItemCount: number;
   totalLineItemCount: number; // Total count of all line items in approved estimate
-  totalEstimatedAmount: number; // Original total amount from approved estimate
+  originalEstimatedCosts: number; // Sum of all line item costs from original approved estimate
   totalEstimatedCosts: number; // Internal labor + external costs (complete project cost estimate)
 }
 
@@ -39,12 +39,10 @@ export async function calculateProjectFinancials(
   let projectedCosts = 0;
   let nonInternalLineItemCount = 0;
   let totalLineItemCount = 0;
-  let totalEstimatedAmount = 0;
+  let originalEstimatedCosts = 0;
 
   // Only calculate financials if there's an approved estimate
   if (currentEstimate?.id) {
-    // Set total estimated amount from approved estimate
-    totalEstimatedAmount = currentEstimate.total_amount || 0;
     
     try {
       // Get projected revenue from contract amount (approved estimate + change orders)
@@ -87,6 +85,12 @@ export async function calculateProjectFinancials(
 
         // Count total line items
         totalLineItemCount = lineItems.length;
+
+        // Calculate original estimated costs (sum of all line item costs from approved estimate)
+        originalEstimatedCosts = lineItems.reduce((sum, item) => {
+          const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
+          return sum + itemCost;
+        }, 0);
 
         // Calculate projected costs using quotes where available, estimate costs otherwise
         const categoryQuotes = new Map();
@@ -152,7 +156,7 @@ export async function calculateProjectFinancials(
     projectedMargin,
     nonInternalLineItemCount,
     totalLineItemCount,
-    totalEstimatedAmount,
+    originalEstimatedCosts,
     totalEstimatedCosts,
   };
 }
@@ -235,12 +239,10 @@ export async function calculateMultipleProjectFinancials(
     let projectedCosts = 0;
     let nonInternalLineItemCount = 0;
     let totalLineItemCount = 0;
-    let totalEstimatedAmount = 0;
+    let originalEstimatedCosts = 0;
 
     // Only calculate financials if there's an approved estimate
     if (currentEstimate?.id) {
-      // Set total estimated amount from approved estimate
-      totalEstimatedAmount = currentEstimate.total_amount || 0;
       
       // Get projected revenue from contract amount (approved estimate + change orders)
       // Fall back to estimate total if no contract amount is set
@@ -265,6 +267,12 @@ export async function calculateMultipleProjectFinancials(
 
       // Count total line items
       totalLineItemCount = projectLineItems.length;
+
+      // Calculate original estimated costs (sum of all line item costs from approved estimate)
+      originalEstimatedCosts = projectLineItems.reduce((sum, item) => {
+        const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
+        return sum + itemCost;
+      }, 0);
 
       // Get quotes for this project
       const projectQuotes = allQuotes.filter(q => q.project_id === project.id);
@@ -323,7 +331,7 @@ export async function calculateMultipleProjectFinancials(
       projectedMargin,
       nonInternalLineItemCount,
       totalLineItemCount,
-      totalEstimatedAmount,
+      originalEstimatedCosts,
       totalEstimatedCosts,
     };
   });
