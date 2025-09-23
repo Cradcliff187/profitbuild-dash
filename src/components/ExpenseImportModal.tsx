@@ -268,9 +268,17 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                   <span className="font-medium">Expenses (Bill/Check/Expense):</span> {csvData.filter(row => row['Transaction type'] !== 'Invoice').length}
                 </div>
                 <div>
-                  <span className="font-medium">Unassociated (No Project/WO #):</span> {csvData.filter(row => !row['Project/WO #'] || row['Project/WO #'].trim() === '').length}
+                  <span className="font-medium">Will be Unassigned:</span> {csvData.filter(row => !row['Project/WO #'] || row['Project/WO #'].trim() === '').length}
                 </div>
               </div>
+              
+              {csvData.filter(row => !row['Project/WO #'] || row['Project/WO #'].trim() === '').length > 0 && (
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-yellow-800">
+                    Transactions without Project/WO # will be imported to the "000-UNASSIGNED" project and can be reassigned later.
+                  </p>
+                </div>
+              )}
             </div>
             
             <Table>
@@ -339,9 +347,19 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                   <span className="font-medium">Expenses Imported:</span> {importResults.expenses.length}
                 </div>
                 <div>
-                  <span className="font-medium">Unassociated Items:</span> {importResults.unassociated_expenses + importResults.unassociated_revenues}
+                  <span className="font-medium">Unassigned to "000-UNASSIGNED":</span> {importResults.unassociated_expenses + importResults.unassociated_revenues}
                 </div>
               </div>
+              
+              {(importResults.unassociated_expenses + importResults.unassociated_revenues) > 0 && (
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-yellow-800">
+                    <strong>{importResults.unassociated_expenses + importResults.unassociated_revenues}</strong> transactions 
+                    without Project/WO # assignments have been imported to the "000-UNASSIGNED" project. 
+                    You can reassign them to proper projects from the Projects or Expenses page.
+                  </p>
+                </div>
+              )}
             </div>
 
             {importResults.errors && importResults.errors.length > 0 && (
@@ -368,9 +386,10 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
               {(importResults.unassociated_expenses + importResults.unassociated_revenues) > 0 && (
                 <Button onClick={() => {
                   handleClose();
-                  // Navigate to expense matching interface - this would need to be implemented
+                  // Navigate to projects page to view the unassigned project
+                  window.location.href = '/projects';
                 }}>
-                  Match Unassociated Items
+                  View Unassigned Project
                 </Button>
               )}
             </div>

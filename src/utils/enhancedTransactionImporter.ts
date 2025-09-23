@@ -13,7 +13,7 @@ export interface ParsedTransactionData {
 }
 
 export interface ExpenseImportData {
-  project_id: string | null;
+  project_id: string; // Always assigned now (either real project or unassigned)
   description: string;
   category: ExpenseCategory;
   transaction_type: TransactionType;
@@ -27,7 +27,7 @@ export interface ExpenseImportData {
 }
 
 export interface RevenueImportData {
-  project_id: string | null;
+  project_id: string; // Always assigned now (either real project or unassigned)
   client_id?: string;
   amount: number;
   invoice_date: string;
@@ -126,6 +126,10 @@ export const processTransactionImport = async (
   const errors: string[] = [];
   const categoryMappingsUsed: Record<string, string> = {};
 
+  // Define the unassigned project ID constant
+  const UNASSIGNED_PROJECT_ID = '00000000-0000-0000-0000-000000000002';
+  const UNASSIGNED_CLIENT_ID = '00000000-0000-0000-0000-000000000001';
+
   // Load clients and payees for matching
   const { data: clients } = await supabase.from('clients').select('*');
   const { data: payees } = await supabase.from('payees').select('*');
@@ -174,28 +178,34 @@ export const processTransactionImport = async (
       const accountName = row['Account name']?.trim() || '';
 
       // Find project if specified
-      let project_id: string | null = null;
+      let project_id: string = UNASSIGNED_PROJECT_ID; // Default to unassigned project
+      let isUnassigned = true;
+      
       if (projectWO) {
-        project_id = projectMap.get(normalizeString(projectWO)) || null;
+        const foundProjectId = projectMap.get(normalizeString(projectWO));
+        if (foundProjectId) {
+          project_id = foundProjectId;
+          isUnassigned = false;
+        }
       }
 
       if (transactionType === 'invoice') {
         // This is revenue
-        const client_id = clientMap.get(normalizeString(name)) || undefined;
+        const client_id = clientMap.get(normalizeString(name)) || (isUnassigned ? UNASSIGNED_CLIENT_ID : undefined);
         
         const revenue: RevenueImportData = {
           project_id,
           client_id,
           amount: Math.abs(amount), // Ensure positive for revenue
           invoice_date: date,
-          description: `Invoice from ${name}`,
+          description: `Invoice from ${name}${isUnassigned ? ' (Unassigned)' : ''}`,
           account_name: accountName,
           account_full_name: accountFullName,
         };
 
         revenues.push(revenue);
         
-        if (!project_id) {
+        if (isUnassigned) {
           unassociated_revenues++;
         }
       } else {
@@ -210,7 +220,7 @@ export const processTransactionImport = async (
 
         const expense: ExpenseImportData = {
           project_id,
-          description: `${transactionType} - ${name}`,
+          description: `${transactionType} - ${name}${isUnassigned ? ' (Unassigned)' : ''}`,
           category: category || ExpenseCategory.MANAGEMENT,
           transaction_type: txType,
           amount: Math.abs(amount), // Ensure positive for expenses
@@ -222,7 +232,7 @@ export const processTransactionImport = async (
 
         expenses.push(expense);
 
-        if (!project_id) {
+        if (isUnassigned) {
           unassociated_expenses++;
         }
       }
