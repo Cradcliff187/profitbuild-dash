@@ -128,10 +128,10 @@ export async function calculateProjectFinancials(
         .select('id, total_cost, cost_per_unit, quantity, category')
         .eq('estimate_id', estimateToUse.id);
 
-      // Get accepted quotes for this project grouped by category
+      // Get accepted quotes for this project
       const { data: acceptedQuotes } = await supabase
         .from('quotes')
-        .select('total_amount, estimate_line_item_id')
+        .select('total_amount, estimate_line_item_id, includes_materials, includes_labor')
         .eq('project_id', project.id)
         .eq('status', 'accepted');
 
@@ -194,29 +194,34 @@ export async function calculateProjectFinancials(
           acceptedQuotes.forEach(quote => {
             if (quote.estimate_line_item_id) {
               categoryQuotes.set(quote.estimate_line_item_id, quote.total_amount);
-              // For now, assume all quotes are for original scope
-              // TODO: Add logic to distinguish change order quotes when that data is available
             }
           });
         }
 
-        // Calculate quoted vs unquoted costs for original scope
-        quotedOriginalScope = externalItems.reduce((sum, item) => {
-          const quotedAmount = categoryQuotes.get(item.id);
-          return quotedAmount !== undefined ? sum + quotedAmount : sum;
-        }, 0);
-        
-        unquotedOriginalScope = externalItems.reduce((sum, item) => {
-          const quotedAmount = categoryQuotes.get(item.id);
-          if (quotedAmount === undefined) {
-            const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
-            return sum + itemCost;
-          }
-          return sum;
-        }, 0);
+        // Fallback: if all accepted quotes are unlinked to estimate line items, treat their total as projected external costs
+        const allQuotesUnlinked = (acceptedQuotes || []).length > 0 && (acceptedQuotes || []).every(q => !q.estimate_line_item_id);
+
+        if (allQuotesUnlinked) {
+          quotedOriginalScope = totalAcceptedQuoteAmount;
+          unquotedOriginalScope = Math.max(approvedEstimateExternalCosts - quotedOriginalScope, 0);
+        } else {
+          // Calculate quoted vs unquoted costs for original scope using linked quotes
+          quotedOriginalScope = externalItems.reduce((sum, item) => {
+            const quotedAmount = categoryQuotes.get(item.id);
+            return quotedAmount !== undefined ? sum + quotedAmount : sum;
+          }, 0);
+          
+          unquotedOriginalScope = externalItems.reduce((sum, item) => {
+            const quotedAmount = categoryQuotes.get(item.id);
+            if (quotedAmount === undefined) {
+              const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
+              return sum + itemCost;
+            }
+            return sum;
+          }, 0);
+        }
         
         // For now, assume change order scope is unquoted unless we have specific data
-        // TODO: Enhance when change order line items are tracked separately
         quotedChangeOrderScope = 0;
         unquotedChangeOrderScope = changeOrderCosts;
         
@@ -239,16 +244,17 @@ export async function calculateProjectFinancials(
         // Calculate variances and projections
         quotedVsEstimatedVariance = quotedOriginalScope - approvedEstimateExternalCosts;
         
-        // Calculate projected costs using quotes where available, estimate costs otherwise
-        const projectedOriginalCosts = externalItems.reduce((sum, item) => {
-          const quotedAmount = categoryQuotes.get(item.id);
-          if (quotedAmount !== undefined) {
-            return sum + quotedAmount;
-          }
-          
-          const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
-          return sum + itemCost;
-        }, 0);
+        // Calculate projected costs
+        const projectedOriginalCosts = allQuotesUnlinked
+          ? totalAcceptedQuoteAmount
+          : externalItems.reduce((sum, item) => {
+              const quotedAmount = categoryQuotes.get(item.id);
+              if (quotedAmount !== undefined) {
+                return sum + quotedAmount;
+              }
+              const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
+              return sum + itemCost;
+            }, 0);
         
         // Add change order costs to projected costs
         projectedCosts = projectedOriginalCosts + changeOrderCosts;
@@ -381,7 +387,7 @@ export async function calculateMultipleProjectFinancials(
       // Get accepted quotes for all projects
       const { data: quotes } = await supabase
         .from('quotes')
-        .select('project_id, total_amount, estimate_line_item_id')
+        .select('project_id, total_amount, estimate_line_item_id, includes_materials, includes_labor')
         .in('project_id', projects.map(p => p.id))
         .eq('status', 'accepted');
 
@@ -513,29 +519,34 @@ export async function calculateMultipleProjectFinancials(
         projectQuotes.forEach(quote => {
           if (quote.estimate_line_item_id) {
             categoryQuotes.set(quote.estimate_line_item_id, quote.total_amount);
-            // For now, assume all quotes are for original scope
-            // TODO: Add logic to distinguish change order quotes when that data is available
           }
         });
       }
 
-      // Calculate quoted vs unquoted costs for original scope
-      quotedOriginalScope = externalItems.reduce((sum, item) => {
-        const quotedAmount = categoryQuotes.get(item.id);
-        return quotedAmount !== undefined ? sum + quotedAmount : sum;
-      }, 0);
-      
-      unquotedOriginalScope = externalItems.reduce((sum, item) => {
-        const quotedAmount = categoryQuotes.get(item.id);
-        if (quotedAmount === undefined) {
-          const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
-          return sum + itemCost;
-        }
-        return sum;
-      }, 0);
+      // Fallback: if all accepted quotes are unlinked to estimate line items, treat their total as projected external costs
+      const allQuotesUnlinked = projectQuotes.length > 0 && projectQuotes.every(q => !q.estimate_line_item_id);
+
+      if (allQuotesUnlinked) {
+        quotedOriginalScope = totalAcceptedQuoteAmount;
+        unquotedOriginalScope = Math.max(approvedEstimateExternalCosts - quotedOriginalScope, 0);
+      } else {
+        // Calculate quoted vs unquoted costs for original scope using linked quotes
+        quotedOriginalScope = externalItems.reduce((sum, item) => {
+          const quotedAmount = categoryQuotes.get(item.id);
+          return quotedAmount !== undefined ? sum + quotedAmount : sum;
+        }, 0);
+        
+        unquotedOriginalScope = externalItems.reduce((sum, item) => {
+          const quotedAmount = categoryQuotes.get(item.id);
+          if (quotedAmount === undefined) {
+            const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
+            return sum + itemCost;
+          }
+          return sum;
+        }, 0);
+      }
       
       // For now, assume change order scope is unquoted unless we have specific data
-      // TODO: Enhance when change order line items are tracked separately
       quotedChangeOrderScope = 0;
       unquotedChangeOrderScope = changeOrderCosts;
       
@@ -558,16 +569,17 @@ export async function calculateMultipleProjectFinancials(
       // Calculate variances and projections
       quotedVsEstimatedVariance = quotedOriginalScope - approvedEstimateExternalCosts;
       
-      // Calculate projected costs using quotes where available, estimate costs otherwise
-      const projectedOriginalCosts = externalItems.reduce((sum, item) => {
-        const quotedAmount = categoryQuotes.get(item.id);
-        if (quotedAmount !== undefined) {
-          return sum + quotedAmount;
-        }
-        
-        const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
-        return sum + itemCost;
-      }, 0);
+      // Calculate projected costs
+      const projectedOriginalCosts = allQuotesUnlinked
+        ? totalAcceptedQuoteAmount
+        : externalItems.reduce((sum, item) => {
+            const quotedAmount = categoryQuotes.get(item.id);
+            if (quotedAmount !== undefined) {
+              return sum + quotedAmount;
+            }
+            const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
+            return sum + itemCost;
+          }, 0);
       
       // Add change order costs to projected costs
       projectedCosts = projectedOriginalCosts + changeOrderCosts;
@@ -582,7 +594,7 @@ export async function calculateMultipleProjectFinancials(
       .reduce((sum, expense) => sum + expense.amount, 0);
 
     // Calculate projected margin (revenue minus both external costs and internal labor costs)
-    const projectedMargin = projectedRevenue - (projectedCosts + estimatedCost);
+    const projectedMargin = projectedRevenue - (projectedCosts + approvedEstimateInternalLaborCost);
 
     // Calculate current margin (revenue - actual expenses so far)
     const currentMargin = projectedRevenue - actualExpenses;

@@ -480,6 +480,49 @@ export const ProjectsTableView = ({
       },
     },
     {
+      key: 'contracted_amount',
+      label: 'Contract Value',
+      align: 'right' as const,
+      sortable: true,
+      render: (project: ProjectWithFinancials) => {
+        const projectEstimates = estimates.filter(e => e.project_id === project.id);
+        const hasApprovedEstimate = projectEstimates.some(e => e.status === 'approved');
+        const latestEstimate = projectEstimates
+          .sort((a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime())[0];
+
+        if (!hasApprovedEstimate && latestEstimate) {
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-right cursor-help">
+                  <div className="font-medium text-sm text-muted-foreground">
+                    {formatCurrency(latestEstimate.total_amount)}
+                  </div>
+                  <div className="text-xs text-blue-600">Pending approval</div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Estimate total pending client approval. Will become contract value when approved.</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
+
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className="font-medium text-sm">{formatCurrency(project.contracted_amount)}</div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Total from approved estimate plus approved change orders</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
+    },
+    {
       key: 'originalContract',
       label: 'Original Contract',
       align: 'right' as const,
@@ -546,45 +589,6 @@ export const ProjectsTableView = ({
                   {netImpact > 0 ? 'Positive impact on project profitability' :
                    netImpact < 0 ? 'Negative impact on project profitability' :
                    'Neutral impact on project profitability'}
-                </p>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        );
-      }
-    },
-    {
-      key: 'currentContract',
-      label: 'Current Contract',
-      align: 'right' as const,
-      sortable: true,
-      render: (project: ProjectWithFinancials) => {
-        const hasChangeOrders = (project.changeOrderCount || 0) > 0;
-        const currentAmount = project.projectedRevenue || 0;
-        
-        return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="text-right cursor-help">
-                <div className="flex flex-col items-end">
-                  <div className="font-medium text-sm">{formatCurrency(currentAmount)}</div>
-                  {hasChangeOrders && (
-                    <div className="text-xs text-muted-foreground">
-                      +{formatCurrency(project.changeOrderRevenue || 0)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div>
-                <p><strong>Current Contract Value:</strong> {formatCurrency(currentAmount)}</p>
-                <p>Original Contract: {formatCurrency(project.originalContractAmount)}</p>
-                {hasChangeOrders && (
-                  <p>Change Order Revenue: +{formatCurrency(project.changeOrderRevenue || 0)}</p>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  Total revenue including approved change orders
                 </p>
               </div>
             </TooltipContent>
