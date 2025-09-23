@@ -512,14 +512,14 @@ export const ProjectsTableView = ({
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Sum of all accepted subcontractor quotes for this project</p>
+            <p>Sum of all accepted subcontractor quotes plus approved change order costs</p>
           </TooltipContent>
         </Tooltip>
       ),
     },
     {
       key: 'estimatedCost',
-      label: 'Est. Cost (Internal)',
+      label: 'Est Internal Labor Cost',
       align: 'right',
       render: (project) => (
         <TooltipProvider>
@@ -631,7 +631,7 @@ export const ProjectsTableView = ({
               <div>
                 <p><strong>Projected Margin:</strong> {formatCurrency(projectedMargin)}</p>
                 <p>Calculation: Contract Value - External Costs (excludes internal labor)</p>
-                <p>Uses accepted quote prices when available, otherwise estimated costs</p>
+                <p>Uses accepted quote prices + approved change order costs when available, otherwise estimated costs</p>
               </div>
             </TooltipContent>
           </Tooltip>

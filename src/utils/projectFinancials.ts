@@ -4,11 +4,11 @@ import { Expense } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ProjectWithFinancials extends Project {
-  estimatedCost: number;
+  estimatedCost: number; // Internal labor cost from approved estimate only
   actualExpenses: number;
   contingencyRemaining: number;
   projectedRevenue: number;
-  projectedCosts: number;
+  projectedCosts: number; // External costs (quotes/estimates + change order costs)
   projectedMargin: number;
   nonInternalLineItemCount: number;
 }
@@ -51,12 +51,21 @@ export async function calculateProjectFinancials(
         .eq('project_id', project.id)
         .eq('status', 'accepted');
 
+      // Get approved change orders for this project
+      const { data: approvedChangeOrders } = await supabase
+        .from('change_orders')
+        .select('cost_impact')
+        .eq('project_id', project.id)
+        .eq('status', 'approved');
+
       if (lineItems) {
-        // Calculate estimated cost (original estimate)
-        estimatedCost = lineItems.reduce((sum, item) => {
-          const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
-          return sum + itemCost;
-        }, 0);
+        // Calculate estimated cost (only internal labor)
+        estimatedCost = lineItems
+          .filter(item => item.category === 'labor_internal')
+          .reduce((sum, item) => {
+            const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
+            return sum + itemCost;
+          }, 0);
 
         // Count non-internal labor line items
         nonInternalLineItemCount = lineItems.filter(
@@ -89,6 +98,14 @@ export async function calculateProjectFinancials(
           const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
           return sum + itemCost;
         }, 0);
+
+        // Add approved change order cost impacts to projected costs
+        if (approvedChangeOrders) {
+          const changeOrderCosts = approvedChangeOrders.reduce((sum, co) => {
+            return sum + (co.cost_impact || 0);
+          }, 0);
+          projectedCosts += changeOrderCosts;
+        }
       }
     } catch (error) {
       console.error('Error calculating project financials:', error);
@@ -133,6 +150,7 @@ export async function calculateMultipleProjectFinancials(
 
   let allLineItems: any[] = [];
   let allQuotes: any[] = [];
+  let allChangeOrders: any[] = [];
   
   if (currentEstimateIds.length > 0) {
     try {
@@ -150,8 +168,16 @@ export async function calculateMultipleProjectFinancials(
         .select('project_id, total_amount, estimate_line_item_id')
         .in('project_id', projects.map(p => p.id))
         .eq('status', 'accepted');
+
+      // Get approved change orders for all projects
+      const { data: changeOrders } = await supabase
+        .from('change_orders')
+        .select('project_id, cost_impact')
+        .in('project_id', projects.map(p => p.id))
+        .eq('status', 'approved');
       
       allQuotes = quotes || [];
+      allChangeOrders = changeOrders || [];
     } catch (error) {
       console.error('Error fetching line items and quotes:', error);
     }
@@ -179,11 +205,13 @@ export async function calculateMultipleProjectFinancials(
         item => item.estimate_id === currentEstimate.id
       );
       
-      // Calculate estimated cost
-      estimatedCost = projectLineItems.reduce((sum, item) => {
-        const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
-        return sum + itemCost;
-      }, 0);
+      // Calculate estimated cost (only internal labor)
+      estimatedCost = projectLineItems
+        .filter(item => item.category === 'labor_internal')
+        .reduce((sum, item) => {
+          const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
+          return sum + itemCost;
+        }, 0);
 
       // Count non-internal labor line items
       nonInternalLineItemCount = projectLineItems.filter(
@@ -214,6 +242,13 @@ export async function calculateMultipleProjectFinancials(
         const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
         return sum + itemCost;
       }, 0);
+
+      // Add approved change order cost impacts to projected costs
+      const projectChangeOrders = allChangeOrders.filter(co => co.project_id === project.id);
+      const changeOrderCosts = projectChangeOrders.reduce((sum, co) => {
+        return sum + (co.cost_impact || 0);
+      }, 0);
+      projectedCosts += changeOrderCosts;
     }
 
     // Calculate actual expenses
