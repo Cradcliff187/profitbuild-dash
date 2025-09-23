@@ -131,9 +131,15 @@ export async function calculateProjectFinancials(
       // Get accepted quotes for this project
       const { data: acceptedQuotes } = await supabase
         .from('quotes')
-        .select('total_amount, estimate_line_item_id, includes_materials, includes_labor')
+        .select('id, total_amount, estimate_line_item_id, includes_materials, includes_labor')
         .eq('project_id', project.id)
         .eq('status', 'accepted');
+
+      // Get quote line items with their actual costs for external categories
+      const { data: quoteLineItems } = await supabase
+        .from('quote_line_items')
+        .select('quote_id, category, total_cost, estimate_line_item_id')
+        .in('quote_id', (acceptedQuotes || []).map(q => q.id));
 
       // Get approved change orders for this project
       const { data: approvedChangeOrders } = await supabase
@@ -144,8 +150,13 @@ export async function calculateProjectFinancials(
 
       if (lineItems) {
         // Calculate approved estimate metrics
-        const internalLaborItems = lineItems.filter(item => item.category === 'labor_internal');
-        const externalItems = lineItems.filter(item => item.category !== 'labor_internal');
+        // Internal costs include both internal labor and management (company overhead)
+        const internalLaborItems = lineItems.filter(item => 
+          item.category === 'labor_internal' || item.category === 'management'
+        );
+        const externalItems = lineItems.filter(item => 
+          item.category !== 'labor_internal' && item.category !== 'management'
+        );
         
         // Internal labor costs
         estimatedCost = internalLaborItems.reduce((sum, item) => {
@@ -185,7 +196,8 @@ export async function calculateProjectFinancials(
         projectedRevenue = currentContractAmount;
         
         // Calculate quote analysis metrics
-        const categoryQuotes = new Map();
+        const categoryQuotes = new Map(); // Maps estimate_line_item_id to quote price
+        const categoryQuoteCosts = new Map(); // Maps estimate_line_item_id to actual quote costs
         const changeOrderQuotes = new Map(); // Track quotes specifically for change order items
         
         if (acceptedQuotes) {
@@ -194,6 +206,16 @@ export async function calculateProjectFinancials(
           acceptedQuotes.forEach(quote => {
             if (quote.estimate_line_item_id) {
               categoryQuotes.set(quote.estimate_line_item_id, quote.total_amount);
+            }
+          });
+        }
+
+        // Map quote line item costs to estimate line items (for external categories)
+        if (quoteLineItems) {
+          quoteLineItems.forEach(qli => {
+            if (qli.estimate_line_item_id) {
+              // For external categories, use the actual cost from quote line items
+              categoryQuoteCosts.set(qli.estimate_line_item_id, qli.total_cost || 0);
             }
           });
         }
@@ -244,14 +266,16 @@ export async function calculateProjectFinancials(
         // Calculate variances and projections
         quotedVsEstimatedVariance = quotedOriginalScope - approvedEstimateExternalCosts;
         
-        // Calculate projected costs
+        // Calculate projected costs using actual quote costs when available
         const projectedOriginalCosts = allQuotesUnlinked
           ? totalAcceptedQuoteAmount
           : externalItems.reduce((sum, item) => {
-              const quotedAmount = categoryQuotes.get(item.id);
-              if (quotedAmount !== undefined) {
-                return sum + quotedAmount;
+              // Use actual quote line item cost if available (this is the real cost to us)
+              const quotedCost = categoryQuoteCosts.get(item.id);
+              if (quotedCost !== undefined) {
+                return sum + quotedCost;
               }
+              // Fallback to estimated cost if no quote available
               const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
               return sum + itemCost;
             }, 0);

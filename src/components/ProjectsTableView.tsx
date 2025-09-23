@@ -726,8 +726,9 @@ export const ProjectsTableView = ({
             <TooltipContent>
               <div>
                 <p><strong>Projected Margin:</strong> {formatCurrency(projectedMargin)}</p>
-                <p>Calculation: Contract Value - (External Costs + Internal Labor Costs)</p>
-                <p>Expected profit after all project costs using quoted prices when available</p>
+                <p>Calculation: Contract Value - (Internal Costs + External Costs)</p>
+                <p>Uses actual quote costs for external work when available, estimated costs otherwise</p>
+                <p>Internal costs include labor and management; external costs include subcontractors, materials, etc.</p>
               </div>
             </TooltipContent>
           </Tooltip>
