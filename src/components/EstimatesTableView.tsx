@@ -140,16 +140,18 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       align: 'left',
       width: '80px',
       render: (estimate) => (
-        <div className="flex flex-col items-start gap-1">
-          <Badge variant="outline" className="text-xs px-2 py-0.5">
-            v{estimate.version_number || 1}
-          </Badge>
-          {estimate.is_current_version && (
-            <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-green-50 text-green-700 border-green-200">
-              Current
-            </Badge>
+        <Badge 
+          variant={estimate.is_current_version ? "default" : "outline"} 
+          className={cn(
+            "text-xs px-2 py-0.5 font-medium",
+            estimate.is_current_version 
+              ? "bg-primary/10 text-primary border-primary/20" 
+              : "text-muted-foreground"
           )}
-        </div>
+        >
+          v{estimate.version_number || 1}
+          {estimate.is_current_version && " (Current)"}
+        </Badge>
       ),
     },
     {
