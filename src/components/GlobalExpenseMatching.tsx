@@ -307,7 +307,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
         expense_id: expenseId,
         estimate_line_item_id: lineItem.type === 'estimate' ? lineItem.id : null,
         quote_id: lineItem.type === 'quote' ? lineItem.source_id : null,
-        correlation_type: 'manual_assignment',
+        correlation_type: lineItem.type === 'estimate' ? 'estimated' : 'quoted',
         auto_correlated: false,
         notes: 'Manually assigned via Global Expense Matching'
       }));
