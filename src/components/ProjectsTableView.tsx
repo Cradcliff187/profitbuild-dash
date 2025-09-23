@@ -551,8 +551,8 @@ export const ProjectsTableView = ({
               <div>
                 <p><strong>Quote Coverage:</strong> {coverage.toFixed(1)}%</p>
                 <p>Percentage of external costs covered by accepted quotes</p>
-                <p>Quoted: {formatCurrency(project.quotedExternalCosts)}</p>
-                <p>Unquoted: {formatCurrency(project.unquotedExternalCosts)}</p>
+                <p>Quoted: {formatCurrency(project.quotedOriginalScope + project.quotedChangeOrderScope)}</p>
+                <p>Unquoted: {formatCurrency(project.unquotedOriginalScope + project.unquotedChangeOrderScope)}</p>
               </div>
             </TooltipContent>
           </Tooltip>

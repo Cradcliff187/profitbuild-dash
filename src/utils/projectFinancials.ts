@@ -12,31 +12,38 @@ export interface ProjectWithFinancials extends Project {
   approvedEstimateContingency: number; // Contingency amount from approved estimate
   approvedEstimateMargin: number; // Gross margin from approved estimate
   
-  // Quote Analysis Measurements
+  // Contract Breakdown (Base + Change Orders)
+  originalContractAmount: number; // Base approved estimate total
+  changeOrderRevenue: number; // Revenue added from approved change orders
+  currentContractAmount: number; // Original + change order revenue
+  changeOrderCosts: number; // Cost impact from approved change orders
+  changeOrderNetMargin: number; // Net margin impact from change orders (revenue - costs)
+  
+  // Quote Analysis Measurements (Updated for Change Orders)
   totalAcceptedQuoteAmount: number; // Sum of all accepted quotes
-  quotedExternalCosts: number; // External costs covered by quotes
-  unquotedExternalCosts: number; // External costs not yet quoted
+  quotedOriginalScope: number; // External costs covered by quotes (original scope only)
+  quotedChangeOrderScope: number; // External costs covered by quotes (change order scope)
+  unquotedOriginalScope: number; // Original external costs not yet quoted
+  unquotedChangeOrderScope: number; // Change order external costs not yet quoted
   quotedVsEstimatedVariance: number; // Difference between quotes and estimate for external costs
-  quoteCoveragePercentage: number; // Percentage of external costs covered by quotes
+  quoteCoveragePercentage: number; // Percentage of total scope covered by quotes
+  originalScopeCoveragePercentage: number; // Percentage of original scope covered by quotes
+  changeOrderScopeCoveragePercentage: number; // Percentage of change order scope covered by quotes
   quoteBasedMargin: number; // Expected margin using quote costs instead of estimates
   
   // Current Project Performance
   actualExpenses: number;
   contingencyRemaining: number;
-  projectedRevenue: number;
-  projectedCosts: number; // External costs (quotes/estimates + change order costs)
-  projectedMargin: number; // Expected profit including internal labor costs
+  projectedRevenue: number; // currentContractAmount (original + change orders)
+  projectedCosts: number; // External costs (quotes/estimates) + change order costs + internal labor
+  projectedMargin: number; // Expected profit including all costs
   currentMargin: number; // Revenue - actual expenses spent so far
   
   // Variance Analysis
-  actualVsEstimatedVariance: number; // Actual expenses vs original estimate
+  actualVsEstimatedVariance: number; // Actual expenses vs original estimate (including change order impact)
   actualVsQuotedVariance: number; // Actual expenses vs quoted amounts
   budgetBurnRate: number; // Percentage of budget consumed
-  
-  // Change Order Impact
-  changeOrderRevenue: number; // Revenue added from approved change orders
-  changeOrderCosts: number; // Cost impact from approved change orders
-  changeOrderMargin: number; // Net margin impact from change orders
+  changeOrderImpactOnMargin: number; // How change orders affected overall margin
   
   // Legacy/Compatibility Fields
   nonInternalLineItemCount: number;
@@ -77,18 +84,24 @@ export async function calculateProjectFinancials(
   let approvedEstimateContingency = 0;
   let approvedEstimateMargin = 0;
   
-  // Quote analysis metrics
+  // Contract breakdown metrics
+  let originalContractAmount = 0;
+  let changeOrderRevenue = 0;
+  let currentContractAmount = 0;
+  let changeOrderCosts = 0;
+  let changeOrderNetMargin = 0;
+  
+  // Quote analysis metrics (updated for change orders)
   let totalAcceptedQuoteAmount = 0;
-  let quotedExternalCosts = 0;
-  let unquotedExternalCosts = 0;
+  let quotedOriginalScope = 0;
+  let quotedChangeOrderScope = 0;
+  let unquotedOriginalScope = 0;
+  let unquotedChangeOrderScope = 0;
   let quotedVsEstimatedVariance = 0;
   let quoteCoveragePercentage = 0;
+  let originalScopeCoveragePercentage = 0;
+  let changeOrderScopeCoveragePercentage = 0;
   let quoteBasedMargin = 0;
-  
-  // Change order metrics
-  let changeOrderRevenue = 0;
-  let changeOrderCosts = 0;
-  let changeOrderMargin = 0;
 
   // Only calculate financials if there's an approved estimate
   if (currentEstimate?.id) {
@@ -98,9 +111,8 @@ export async function calculateProjectFinancials(
       approvedEstimateTotal = currentEstimate.total_amount || 0;
       approvedEstimateContingency = currentEstimate.contingency_amount || 0;
       
-      // Get projected revenue from contract amount (approved estimate + change orders)
-      // Fall back to estimate total if no contract amount is set
-      projectedRevenue = project.contracted_amount || currentEstimate.total_amount || 0;
+      // Set original contract amount (base approved estimate)
+      originalContractAmount = approvedEstimateTotal;
 
       // Get estimate line items with category information
       const { data: lineItems } = await supabase
@@ -152,25 +164,40 @@ export async function calculateProjectFinancials(
           return sum + itemCost;
         }, 0);
 
+        // Calculate change order impacts first (needed for revenue calculation)
+        if (approvedChangeOrders) {
+          changeOrderCosts = approvedChangeOrders.reduce((sum, co) => sum + (co.cost_impact || 0), 0);
+          changeOrderRevenue = approvedChangeOrders.reduce((sum, co) => sum + (co.client_amount || 0), 0);
+          changeOrderNetMargin = changeOrderRevenue - changeOrderCosts;
+        }
+        
+        // Calculate contract amounts
+        currentContractAmount = originalContractAmount + changeOrderRevenue;
+        projectedRevenue = currentContractAmount;
+        
         // Calculate quote analysis metrics
         const categoryQuotes = new Map();
+        const changeOrderQuotes = new Map(); // Track quotes specifically for change order items
+        
         if (acceptedQuotes) {
           totalAcceptedQuoteAmount = acceptedQuotes.reduce((sum, quote) => sum + (quote.total_amount || 0), 0);
           
           acceptedQuotes.forEach(quote => {
             if (quote.estimate_line_item_id) {
               categoryQuotes.set(quote.estimate_line_item_id, quote.total_amount);
+              // For now, assume all quotes are for original scope
+              // TODO: Add logic to distinguish change order quotes when that data is available
             }
           });
         }
 
-        // Calculate quoted vs unquoted external costs
-        quotedExternalCosts = externalItems.reduce((sum, item) => {
+        // Calculate quoted vs unquoted costs for original scope
+        quotedOriginalScope = externalItems.reduce((sum, item) => {
           const quotedAmount = categoryQuotes.get(item.id);
           return quotedAmount !== undefined ? sum + quotedAmount : sum;
         }, 0);
         
-        unquotedExternalCosts = externalItems.reduce((sum, item) => {
+        unquotedOriginalScope = externalItems.reduce((sum, item) => {
           const quotedAmount = categoryQuotes.get(item.id);
           if (quotedAmount === undefined) {
             const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
@@ -179,15 +206,32 @@ export async function calculateProjectFinancials(
           return sum;
         }, 0);
         
-        // Calculate quote coverage and variance
-        quoteCoveragePercentage = approvedEstimateExternalCosts > 0 
-          ? (quotedExternalCosts / approvedEstimateExternalCosts) * 100 
+        // For now, assume change order scope is unquoted unless we have specific data
+        // TODO: Enhance when change order line items are tracked separately
+        quotedChangeOrderScope = 0;
+        unquotedChangeOrderScope = changeOrderCosts;
+        
+        // Calculate coverage percentages
+        const totalOriginalScope = approvedEstimateExternalCosts;
+        const totalChangeOrderScope = changeOrderCosts;
+        const totalScope = totalOriginalScope + totalChangeOrderScope;
+        const totalQuoted = quotedOriginalScope + quotedChangeOrderScope;
+        
+        originalScopeCoveragePercentage = totalOriginalScope > 0 
+          ? (quotedOriginalScope / totalOriginalScope) * 100 
           : 0;
-        quotedVsEstimatedVariance = quotedExternalCosts - approvedEstimateExternalCosts;
-        quoteBasedMargin = approvedEstimateTotal - (approvedEstimateInternalLaborCost + quotedExternalCosts + unquotedExternalCosts);
-
+        changeOrderScopeCoveragePercentage = totalChangeOrderScope > 0 
+          ? (quotedChangeOrderScope / totalChangeOrderScope) * 100 
+          : 0;
+        quoteCoveragePercentage = totalScope > 0 
+          ? (totalQuoted / totalScope) * 100 
+          : 0;
+        
+        // Calculate variances and projections
+        quotedVsEstimatedVariance = quotedOriginalScope - approvedEstimateExternalCosts;
+        
         // Calculate projected costs using quotes where available, estimate costs otherwise
-        projectedCosts = externalItems.reduce((sum, item) => {
+        const projectedOriginalCosts = externalItems.reduce((sum, item) => {
           const quotedAmount = categoryQuotes.get(item.id);
           if (quotedAmount !== undefined) {
             return sum + quotedAmount;
@@ -196,15 +240,12 @@ export async function calculateProjectFinancials(
           const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
           return sum + itemCost;
         }, 0);
-
-        // Calculate change order impacts
-        if (approvedChangeOrders) {
-          changeOrderCosts = approvedChangeOrders.reduce((sum, co) => sum + (co.cost_impact || 0), 0);
-          changeOrderRevenue = approvedChangeOrders.reduce((sum, co) => sum + (co.client_amount || 0), 0);
-          changeOrderMargin = approvedChangeOrders.reduce((sum, co) => sum + (co.margin_impact || 0), 0);
-          
-          projectedCosts += changeOrderCosts;
-        }
+        
+        // Add change order costs to projected costs
+        projectedCosts = projectedOriginalCosts + changeOrderCosts;
+        
+        // Calculate quote-based margin (uses quoted costs where available)
+        quoteBasedMargin = currentContractAmount - (approvedEstimateInternalLaborCost + projectedCosts);
       }
     } catch (error) {
       console.error('Error calculating project financials:', error);
@@ -222,10 +263,12 @@ export async function calculateProjectFinancials(
   // Calculate current margin (revenue - actual expenses so far)
   const currentMargin = projectedRevenue - actualExpenses;
 
-  // Calculate variance metrics
-  const actualVsEstimatedVariance = actualExpenses - (estimatedCost + approvedEstimateExternalCosts);
-  const actualVsQuotedVariance = actualExpenses - (estimatedCost + quotedExternalCosts);
+  // Calculate variance metrics (including change order impacts)
+  const originalBudget = estimatedCost + approvedEstimateExternalCosts;
+  const actualVsEstimatedVariance = actualExpenses - (originalBudget + changeOrderCosts);
+  const actualVsQuotedVariance = actualExpenses - (estimatedCost + quotedOriginalScope + quotedChangeOrderScope);
   const budgetBurnRate = projectedRevenue > 0 ? (actualExpenses / projectedRevenue) * 100 : 0;
+  const changeOrderImpactOnMargin = changeOrderNetMargin;
 
   // Calculate total estimated costs: internal labor + external costs
   const totalEstimatedCosts = estimatedCost + projectedCosts;
@@ -243,12 +286,23 @@ export async function calculateProjectFinancials(
     approvedEstimateContingency,
     approvedEstimateMargin,
     
-    // Quote analysis measurements
+    // Contract breakdown (base + change orders)
+    originalContractAmount,
+    changeOrderRevenue,
+    currentContractAmount,
+    changeOrderCosts,
+    changeOrderNetMargin,
+    
+    // Quote analysis measurements (updated for change orders)
     totalAcceptedQuoteAmount,
-    quotedExternalCosts,
-    unquotedExternalCosts,
+    quotedOriginalScope,
+    quotedChangeOrderScope,
+    unquotedOriginalScope,
+    unquotedChangeOrderScope,
     quotedVsEstimatedVariance,
     quoteCoveragePercentage,
+    originalScopeCoveragePercentage,
+    changeOrderScopeCoveragePercentage,
     quoteBasedMargin,
     
     // Current project performance
@@ -263,11 +317,7 @@ export async function calculateProjectFinancials(
     actualVsEstimatedVariance,
     actualVsQuotedVariance,
     budgetBurnRate,
-    
-    // Change order impact
-    changeOrderRevenue,
-    changeOrderCosts,
-    changeOrderMargin,
+    changeOrderImpactOnMargin,
     
     // Legacy/compatibility fields
     nonInternalLineItemCount,
@@ -364,18 +414,24 @@ export async function calculateMultipleProjectFinancials(
     let approvedEstimateContingency = 0;
     let approvedEstimateMargin = 0;
     
-    // Quote analysis metrics
+    // Contract breakdown metrics
+    let originalContractAmount = 0;
+    let changeOrderRevenue = 0;
+    let currentContractAmount = 0;
+    let changeOrderCosts = 0;
+    let changeOrderNetMargin = 0;
+    
+    // Quote analysis metrics (updated for change orders)
     let totalAcceptedQuoteAmount = 0;
-    let quotedExternalCosts = 0;
-    let unquotedExternalCosts = 0;
+    let quotedOriginalScope = 0;
+    let quotedChangeOrderScope = 0;
+    let unquotedOriginalScope = 0;
+    let unquotedChangeOrderScope = 0;
     let quotedVsEstimatedVariance = 0;
     let quoteCoveragePercentage = 0;
+    let originalScopeCoveragePercentage = 0;
+    let changeOrderScopeCoveragePercentage = 0;
     let quoteBasedMargin = 0;
-    
-    // Change order metrics
-    let changeOrderRevenue = 0;
-    let changeOrderCosts = 0;
-    let changeOrderMargin = 0;
 
     // Only calculate financials if there's an approved estimate
     if (currentEstimate?.id) {
@@ -383,9 +439,8 @@ export async function calculateMultipleProjectFinancials(
       approvedEstimateTotal = currentEstimate.total_amount || 0;
       approvedEstimateContingency = currentEstimate.contingency_amount || 0;
       
-      // Get projected revenue from contract amount (approved estimate + change orders)
-      // Fall back to estimate total if no contract amount is set
-      projectedRevenue = project.contracted_amount || currentEstimate.total_amount || 0;
+      // Set original contract amount (base approved estimate)
+      originalContractAmount = approvedEstimateTotal;
 
       const projectLineItems = allLineItems.filter(
         item => item.estimate_id === currentEstimate.id
@@ -420,26 +475,44 @@ export async function calculateMultipleProjectFinancials(
         return sum + itemCost;
       }, 0);
 
+      // Get change orders for this project
+      const projectChangeOrders = allChangeOrders.filter(co => co.project_id === project.id);
+      
+      // Calculate change order impacts first (needed for revenue calculation)
+      if (projectChangeOrders.length > 0) {
+        changeOrderCosts = projectChangeOrders.reduce((sum, co) => sum + (co.cost_impact || 0), 0);
+        changeOrderRevenue = projectChangeOrders.reduce((sum, co) => sum + (co.client_amount || 0), 0);
+        changeOrderNetMargin = changeOrderRevenue - changeOrderCosts;
+      }
+      
+      // Calculate contract amounts
+      currentContractAmount = originalContractAmount + changeOrderRevenue;
+      projectedRevenue = currentContractAmount;
+
       // Get quotes for this project
       const projectQuotes = allQuotes.filter(q => q.project_id === project.id);
       const categoryQuotes = new Map();
+      const changeOrderQuotes = new Map(); // Track quotes specifically for change order items
+      
       if (projectQuotes.length > 0) {
         totalAcceptedQuoteAmount = projectQuotes.reduce((sum, quote) => sum + (quote.total_amount || 0), 0);
         
         projectQuotes.forEach(quote => {
           if (quote.estimate_line_item_id) {
             categoryQuotes.set(quote.estimate_line_item_id, quote.total_amount);
+            // For now, assume all quotes are for original scope
+            // TODO: Add logic to distinguish change order quotes when that data is available
           }
         });
       }
 
-      // Calculate quoted vs unquoted external costs
-      quotedExternalCosts = externalItems.reduce((sum, item) => {
+      // Calculate quoted vs unquoted costs for original scope
+      quotedOriginalScope = externalItems.reduce((sum, item) => {
         const quotedAmount = categoryQuotes.get(item.id);
         return quotedAmount !== undefined ? sum + quotedAmount : sum;
       }, 0);
       
-      unquotedExternalCosts = externalItems.reduce((sum, item) => {
+      unquotedOriginalScope = externalItems.reduce((sum, item) => {
         const quotedAmount = categoryQuotes.get(item.id);
         if (quotedAmount === undefined) {
           const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
@@ -448,15 +521,32 @@ export async function calculateMultipleProjectFinancials(
         return sum;
       }, 0);
       
-      // Calculate quote coverage and variance
-      quoteCoveragePercentage = approvedEstimateExternalCosts > 0 
-        ? (quotedExternalCosts / approvedEstimateExternalCosts) * 100 
+      // For now, assume change order scope is unquoted unless we have specific data
+      // TODO: Enhance when change order line items are tracked separately
+      quotedChangeOrderScope = 0;
+      unquotedChangeOrderScope = changeOrderCosts;
+      
+      // Calculate coverage percentages
+      const totalOriginalScope = approvedEstimateExternalCosts;
+      const totalChangeOrderScope = changeOrderCosts;
+      const totalScope = totalOriginalScope + totalChangeOrderScope;
+      const totalQuoted = quotedOriginalScope + quotedChangeOrderScope;
+      
+      originalScopeCoveragePercentage = totalOriginalScope > 0 
+        ? (quotedOriginalScope / totalOriginalScope) * 100 
         : 0;
-      quotedVsEstimatedVariance = quotedExternalCosts - approvedEstimateExternalCosts;
-      quoteBasedMargin = approvedEstimateTotal - (approvedEstimateInternalLaborCost + quotedExternalCosts + unquotedExternalCosts);
-
-      // Calculate projected costs using quotes where available
-      projectedCosts = externalItems.reduce((sum, item) => {
+      changeOrderScopeCoveragePercentage = totalChangeOrderScope > 0 
+        ? (quotedChangeOrderScope / totalChangeOrderScope) * 100 
+        : 0;
+      quoteCoveragePercentage = totalScope > 0 
+        ? (totalQuoted / totalScope) * 100 
+        : 0;
+      
+      // Calculate variances and projections
+      quotedVsEstimatedVariance = quotedOriginalScope - approvedEstimateExternalCosts;
+      
+      // Calculate projected costs using quotes where available, estimate costs otherwise
+      const projectedOriginalCosts = externalItems.reduce((sum, item) => {
         const quotedAmount = categoryQuotes.get(item.id);
         if (quotedAmount !== undefined) {
           return sum + quotedAmount;
@@ -465,19 +555,15 @@ export async function calculateMultipleProjectFinancials(
         const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
         return sum + itemCost;
       }, 0);
-
-      // Calculate change order impacts
-      const projectChangeOrders = allChangeOrders.filter(co => co.project_id === project.id);
-      if (projectChangeOrders.length > 0) {
-        changeOrderCosts = projectChangeOrders.reduce((sum, co) => sum + (co.cost_impact || 0), 0);
-        changeOrderRevenue = projectChangeOrders.reduce((sum, co) => sum + (co.client_amount || 0), 0);
-        changeOrderMargin = projectChangeOrders.reduce((sum, co) => sum + (co.margin_impact || 0), 0);
-        
-        projectedCosts += changeOrderCosts;
-      }
+      
+      // Add change order costs to projected costs
+      projectedCosts = projectedOriginalCosts + changeOrderCosts;
+      
+      // Calculate quote-based margin (uses quoted costs where available)
+      quoteBasedMargin = currentContractAmount - (approvedEstimateInternalLaborCost + projectedCosts);
     }
 
-    // Calculate actual expenses
+    // Calculate actual expenses for this project
     const actualExpenses = expenses
       .filter(e => e.project_id === project.id)
       .reduce((sum, expense) => sum + expense.amount, 0);
@@ -488,15 +574,17 @@ export async function calculateMultipleProjectFinancials(
     // Calculate current margin (revenue - actual expenses so far)
     const currentMargin = projectedRevenue - actualExpenses;
 
-    // Calculate variance metrics
-    const actualVsEstimatedVariance = actualExpenses - (estimatedCost + approvedEstimateExternalCosts);
-    const actualVsQuotedVariance = actualExpenses - (estimatedCost + quotedExternalCosts);
+    // Calculate variance metrics (including change order impacts)
+    const originalBudget = estimatedCost + approvedEstimateExternalCosts;
+    const actualVsEstimatedVariance = actualExpenses - (originalBudget + changeOrderCosts);
+    const actualVsQuotedVariance = actualExpenses - (estimatedCost + quotedOriginalScope + quotedChangeOrderScope);
     const budgetBurnRate = projectedRevenue > 0 ? (actualExpenses / projectedRevenue) * 100 : 0;
+    const changeOrderImpactOnMargin = changeOrderNetMargin;
 
     // Calculate total estimated costs: internal labor + external costs
     const totalEstimatedCosts = estimatedCost + projectedCosts;
 
-    // Use contingency_remaining from project record
+    // Use contingency_remaining from the project record (calculated by database functions)
     const contingencyRemaining = project.contingency_remaining || 0;
 
     return {
@@ -509,12 +597,23 @@ export async function calculateMultipleProjectFinancials(
       approvedEstimateContingency,
       approvedEstimateMargin,
       
-      // Quote analysis measurements
+      // Contract breakdown (base + change orders)
+      originalContractAmount,
+      changeOrderRevenue,
+      currentContractAmount,
+      changeOrderCosts,
+      changeOrderNetMargin,
+      
+      // Quote analysis measurements (updated for change orders)
       totalAcceptedQuoteAmount,
-      quotedExternalCosts,
-      unquotedExternalCosts,
+      quotedOriginalScope,
+      quotedChangeOrderScope,
+      unquotedOriginalScope,
+      unquotedChangeOrderScope,
       quotedVsEstimatedVariance,
       quoteCoveragePercentage,
+      originalScopeCoveragePercentage,
+      changeOrderScopeCoveragePercentage,
       quoteBasedMargin,
       
       // Current project performance
@@ -529,11 +628,7 @@ export async function calculateMultipleProjectFinancials(
       actualVsEstimatedVariance,
       actualVsQuotedVariance,
       budgetBurnRate,
-      
-      // Change order impact
-      changeOrderRevenue,
-      changeOrderCosts,
-      changeOrderMargin,
+      changeOrderImpactOnMargin,
       
       // Legacy/compatibility fields
       nonInternalLineItemCount,
