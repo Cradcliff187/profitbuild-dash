@@ -480,49 +480,6 @@ export const ProjectsTableView = ({
       },
     },
     {
-      key: 'contracted_amount',
-      label: 'Contract Value',
-      align: 'right',
-      sortable: true,
-      render: (project) => {
-        const projectEstimates = estimates.filter(e => e.project_id === project.id);
-        const hasApprovedEstimate = projectEstimates.some(e => e.status === 'approved');
-        const latestEstimate = projectEstimates
-          .sort((a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime())[0];
-
-        if (!hasApprovedEstimate && latestEstimate) {
-          return (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="text-right cursor-help">
-                  <div className="font-medium text-sm text-muted-foreground">
-                    {formatCurrency(latestEstimate.total_amount)}
-                  </div>
-                  <div className="text-xs text-blue-600">Pending approval</div>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Estimate total pending client approval. Will become contract value when approved.</p>
-              </TooltipContent>
-            </Tooltip>
-          );
-        }
-
-        return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="text-right cursor-help">
-                <div className="font-medium text-sm">{formatCurrency(project.contracted_amount)}</div>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Total from approved estimate plus approved change orders</p>
-            </TooltipContent>
-          </Tooltip>
-        );
-      },
-    },
-    {
       key: 'originalContract',
       label: 'Original Contract',
       align: 'right' as const,
