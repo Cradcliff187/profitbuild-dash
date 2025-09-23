@@ -12,6 +12,8 @@ import {
 import { format } from "date-fns";
 import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
+import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
+import { calculateQuoteTotalCost } from "@/utils/quoteFinancials";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
 import { QuoteStatusBadge } from "./QuoteStatusBadge";
 import { BudgetComparisonBadge, BudgetComparisonStatus } from "./BudgetComparisonBadge";
@@ -55,16 +57,23 @@ export const QuotesTableView = ({
     return estimates.find(est => est.project_id === quote.project_id);
   };
 
-  const getBudgetVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {
+  const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {
     const estimate = getEstimateForQuote(quote);
-    if (!estimate) return { amount: 0, percentage: 0, status: 'exact' };
+    if (!estimate || !estimate.lineItems || !quote.lineItems) {
+      return { amount: 0, percentage: 0, status: 'exact' };
+    }
     
-    const difference = quote.total - estimate.total_amount;
-    const percentage = estimate.total_amount > 0 ? (difference / estimate.total_amount) * 100 : 0;
+    const estimateCost = calculateEstimateTotalCost(estimate.lineItems);
+    const quoteCost = calculateQuoteTotalCost(quote.lineItems);
+    
+    const difference = quoteCost - estimateCost; // Quote cost - estimate cost
+    const percentage = estimateCost > 0 ? (difference / estimateCost) * 100 : 0;
     
     return {
       amount: Math.abs(difference),
       percentage: Math.abs(percentage),
+      // When quote cost > estimate cost = bad for margins (over budget on costs)
+      // When quote cost < estimate cost = good for margins (under budget on costs)
       status: difference > 0 ? 'over' : difference < 0 ? 'under' : 'exact'
     };
   };
@@ -217,12 +226,12 @@ export const QuotesTableView = ({
       ),
     },
     {
-      key: 'variance',
-      label: 'Variance',
+      key: 'cost_variance',
+      label: 'Cost Variance',
       align: 'right',
       width: '120px',
       render: (quote) => {
-        const variance = getBudgetVariance(quote);
+        const variance = getCostVariance(quote);
         if (!quote.estimate) return <span className="text-xs text-muted-foreground">-</span>;
         
         return (

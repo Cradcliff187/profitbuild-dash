@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
+import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
+import { calculateQuoteTotalCost } from "@/utils/quoteFinancials";
 import { Project } from "@/types/project";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { QuoteStatusBadge } from "./QuoteStatusBadge";
@@ -52,16 +54,23 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
     return estimates.find(est => est.project_id === quote.project_id);
   };
 
-  const getBudgetVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {
+  const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {
     const estimate = getEstimateForQuote(quote);
-    if (!estimate) return { amount: 0, percentage: 0, status: 'exact' };
+    if (!estimate || !estimate.lineItems || !quote.lineItems) {
+      return { amount: 0, percentage: 0, status: 'exact' };
+    }
     
-    const difference = quote.total - estimate.total_amount;
-    const percentage = estimate.total_amount > 0 ? (difference / estimate.total_amount) * 100 : 0;
+    const estimateCost = calculateEstimateTotalCost(estimate.lineItems);
+    const quoteCost = calculateQuoteTotalCost(quote.lineItems);
+    
+    const difference = quoteCost - estimateCost; // Quote cost - estimate cost
+    const percentage = estimateCost > 0 ? (difference / estimateCost) * 100 : 0;
     
     return {
       amount: Math.abs(difference),
       percentage: Math.abs(percentage),
+      // When quote cost > estimate cost = bad for margins (over budget on costs)
+      // When quote cost < estimate cost = good for margins (under budget on costs)
       status: difference > 0 ? 'over' : difference < 0 ? 'under' : 'exact'
     };
   };
@@ -329,7 +338,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {sortedQuotes.map((quote) => {
           const estimate = getEstimateForQuote(quote);
-          const variance = getBudgetVariance(quote);
+          const variance = getCostVariance(quote);
           
           return (
             <Card key={quote.id} className="hover:shadow-md transition-shadow">
@@ -469,9 +478,9 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
 
                 {/* Budget Variance */}
                 {estimate && (
-                  <div className="p-3 rounded-lg bg-muted/50">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Budget Variance</span>
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Cost Variance</span>
                       <Badge 
                         variant={
                           variance.status === 'over' ? 'destructive' : 
