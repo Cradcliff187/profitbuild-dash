@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, DollarSign, Calendar, Clock, AlertTriangle, Filter } from "lucide-react";
+import { ProjectStatusSelector } from "@/components/ProjectStatusSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -300,30 +301,27 @@ export const ProjectsTableView = ({
       key: 'status',
       label: 'Status',
       align: 'center',
-      width: '100px',
+      width: '120px',
       sortable: true,
       render: (project) => {
-        const statusExplanations = {
-          'estimating': 'Project is being estimated and scoped',
-          'quoted': 'Project has been quoted and waiting for approval',
-          'approved': 'Project approved, waiting to start',
-          'in_progress': 'Project is currently active and ongoing',
-          'complete': 'Project has been finished and delivered',
-          'on_hold': 'Project is temporarily paused or delayed',
-          'cancelled': 'Project has been cancelled or terminated'
-        };
+        // Check if project has approved estimate for status selector
+        const projectEstimates = estimates.filter(e => e.project_id === project.id);
+        const hasApprovedEstimate = projectEstimates.some(e => e.status === 'approved');
+        const latestEstimate = projectEstimates
+          .sort((a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime())[0];
 
         return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="cursor-help">
-                {getStatusBadge(project.status)}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{statusExplanations[project.status]}</p>
-            </TooltipContent>
-          </Tooltip>
+          <ProjectStatusSelector
+            projectId={project.id}
+            currentStatus={project.status}
+            projectName={project.project_name}
+            hasApprovedEstimate={hasApprovedEstimate}
+            estimateStatus={latestEstimate?.status}
+            onStatusChange={() => {
+              // Refresh the page to show updated data
+              window.location.reload();
+            }}
+          />
         );
       },
     },
@@ -486,18 +484,43 @@ export const ProjectsTableView = ({
       label: 'Contract Value',
       align: 'right',
       sortable: true,
-      render: (project) => (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="text-right cursor-help">
-              <div className="font-medium text-sm">{formatCurrency(project.contracted_amount)}</div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Total from approved estimate plus approved change orders</p>
-          </TooltipContent>
-        </Tooltip>
-      ),
+      render: (project) => {
+        const projectEstimates = estimates.filter(e => e.project_id === project.id);
+        const hasApprovedEstimate = projectEstimates.some(e => e.status === 'approved');
+        const latestEstimate = projectEstimates
+          .sort((a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime())[0];
+
+        if (!hasApprovedEstimate && latestEstimate) {
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-right cursor-help">
+                  <div className="font-medium text-sm text-muted-foreground">
+                    {formatCurrency(latestEstimate.total_amount)}
+                  </div>
+                  <div className="text-xs text-blue-600">Pending approval</div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Estimate total pending client approval. Will become contract value when approved.</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
+
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className="font-medium text-sm">{formatCurrency(project.contracted_amount)}</div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Total from approved estimate plus approved change orders</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'originalContract',

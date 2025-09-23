@@ -85,6 +85,11 @@ export async function calculateProjectFinancials(
   let approvedEstimateContingency = 0;
   let approvedEstimateMargin = 0;
   
+  // Check for pending estimates (for preview when no approved estimate exists)
+  const pendingEstimate = currentEstimate || projectEstimates
+    .filter(e => e.status === 'sent' || e.status === 'draft')
+    .sort((a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime())[0];
+  
   // Contract breakdown metrics
   let originalContractAmount = 0;
   let changeOrderRevenue = 0;
@@ -105,22 +110,23 @@ export async function calculateProjectFinancials(
   let changeOrderScopeCoveragePercentage = 0;
   let quoteBasedMargin = 0;
 
-  // Only calculate financials if there's an approved estimate
-  if (currentEstimate?.id) {
+  // Calculate financials if there's an approved estimate, otherwise use pending data for preview
+  const estimateToUse = currentEstimate || pendingEstimate;
+  if (estimateToUse?.id) {
     
     try {
-      // Set approved estimate totals
-      approvedEstimateTotal = currentEstimate.total_amount || 0;
-      approvedEstimateContingency = currentEstimate.contingency_amount || 0;
+      // Set estimate totals (approved or pending for preview)
+      approvedEstimateTotal = estimateToUse.total_amount || 0;
+      approvedEstimateContingency = estimateToUse.contingency_amount || 0;
       
-      // Set original contract amount (base approved estimate)
-      originalContractAmount = approvedEstimateTotal;
+      // Set original contract amount (only for approved estimates, otherwise zero)
+      originalContractAmount = currentEstimate ? approvedEstimateTotal : 0;
 
       // Get estimate line items with category information
       const { data: lineItems } = await supabase
         .from('estimate_line_items')
         .select('id, total_cost, cost_per_unit, quantity, category')
-        .eq('estimate_id', currentEstimate.id);
+        .eq('estimate_id', estimateToUse.id);
 
       // Get accepted quotes for this project grouped by category
       const { data: acceptedQuotes } = await supabase

@@ -25,6 +25,8 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ProjectSelector } from "@/components/ProjectSelector";
+import { ProjectStatusSelector } from "@/components/ProjectStatusSelector";
+import { ProjectFinancialPendingView } from "@/components/ProjectFinancialPendingView";
 import { VarianceAnalysis } from "@/components/VarianceAnalysis";
 import { EstimateVersionComparison } from "@/components/EstimateVersionComparison";
 import { ChangeOrdersList } from "@/components/ChangeOrdersList";
@@ -68,18 +70,16 @@ export const ProjectDetailView = () => {
     
     try {
       setIsLoading(true);
-      
-      // Load all project-related data
-      const [projectRes, estimatesRes, quotesRes, expensesRes, changeOrdersRes] = await Promise.all([
-        supabase.from('projects').select('*').eq('id', projectId).single(),
-        supabase.from('estimates').select('*').eq('project_id', projectId),
-        supabase.from('quotes').select('*').eq('project_id', projectId),
-        supabase.from('expenses').select('*').eq('project_id', projectId),
-        supabase.from('change_orders').select('*').eq('project_id', projectId)
-      ]);
 
-      if (projectRes.error) {
-        if (projectRes.error.code === 'PGRST116') {
+      // Load project data
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError) {
+        if (projectError.code === 'PGRST116') {
           toast({
             title: "Project Not Found",
             description: "The requested project could not be found.",
@@ -88,95 +88,89 @@ export const ProjectDetailView = () => {
           navigate('/projects');
           return;
         }
-        throw projectRes.error;
+        throw projectError;
       }
 
-      // Format project data
-      const rawProject = {
-        ...projectRes.data,
-        created_at: new Date(projectRes.data.created_at),
-        updated_at: new Date(projectRes.data.updated_at),
-        start_date: projectRes.data.start_date ? new Date(projectRes.data.start_date) : undefined,
-        end_date: projectRes.data.end_date ? new Date(projectRes.data.end_date) : undefined,
+      // Load related data
+      const [
+        { data: estimatesData },
+        { data: quotesData },
+        { data: expensesData },
+        { data: changeOrdersData }
+      ] = await Promise.all([
+        supabase
+          .from('estimates')
+          .select('*')
+          .eq('project_id', projectId)
+          .order('date_created', { ascending: false }),
+        supabase
+          .from('quotes')
+          .select('*')
+          .eq('project_id', projectId)
+          .order('date_received', { ascending: false }),
+        supabase
+          .from('expenses')
+          .select('*')
+          .eq('project_id', projectId)
+          .order('expense_date', { ascending: false }),
+        supabase
+          .from('change_orders')
+          .select('*')
+          .eq('project_id', projectId)
+          .order('requested_date', { ascending: false })
+      ]);
+
+      // Format the project data
+      const formattedProject: Project = {
+        ...projectData,
+        created_at: new Date(projectData.created_at),
+        updated_at: new Date(projectData.updated_at),
+        start_date: projectData.start_date ? new Date(projectData.start_date) : undefined,
+        end_date: projectData.end_date ? new Date(projectData.end_date) : undefined,
       };
 
-      // Format estimates
-      const formattedEstimates = (estimatesRes.data || []).map((estimate: any) => ({
-        id: estimate.id,
-        project_id: estimate.project_id,
-        estimate_number: estimate.estimate_number,
-        revision_number: estimate.revision_number,
+      // Format estimates with proper typing
+      const formattedEstimates: Estimate[] = (estimatesData || []).map(estimate => ({
+        ...estimate,
         date_created: new Date(estimate.date_created),
-        valid_until: estimate.valid_until ? new Date(estimate.valid_until) : undefined,
-        status: estimate.status,
-        total_amount: estimate.total_amount,
-        notes: estimate.notes,
-        created_by: estimate.created_by,
-        contingency_percent: estimate.contingency_percent || 10.0,
-        contingency_amount: estimate.contingency_amount,
-        contingency_used: estimate.contingency_used || 0,
-        version_number: estimate.version_number || 1,
-        parent_estimate_id: estimate.parent_estimate_id || undefined,
-        is_current_version: estimate.is_current_version ?? true,
-        valid_for_days: estimate.valid_for_days || 30,
         created_at: new Date(estimate.created_at),
         updated_at: new Date(estimate.updated_at),
-        project_name: rawProject.project_name,
-        client_name: rawProject.client_name,
-        lineItems: [],
-        defaultMarkupPercent: 15,
-        targetMarginPercent: 20
+        valid_until: estimate.valid_until ? new Date(estimate.valid_until) : undefined,
+        lineItems: [], // Will be loaded separately if needed
+        defaultMarkupPercent: estimate.default_markup_percent || 15,
+        targetMarginPercent: estimate.target_margin_percent || 20
       }));
 
-      // Format quotes
-      const formattedQuotes = (quotesRes.data || []).map((quote: any) => ({
-        id: quote.id,
-        project_id: quote.project_id,
-        estimate_id: quote.estimate_id,
-        payee_id: quote.payee_id,
-        quoteNumber: quote.quote_number,
-        total: quote.total_amount,
+      // Format quotes with proper typing
+      const formattedQuotes: Quote[] = (quotesData || []).map(quote => ({
+        ...quote,
         date_received: new Date(quote.date_received),
-        date_expires: quote.date_expires ? new Date(quote.date_expires) : undefined,
-        status: quote.status,
-        notes: quote.notes,
-        attachment_url: quote.attachment_url,
         created_at: new Date(quote.created_at),
         updated_at: new Date(quote.updated_at),
-        projectName: rawProject.project_name,
-        client: rawProject.client_name,
-        quotedBy: 'Unknown',
+        valid_until: quote.valid_until ? new Date(quote.valid_until) : undefined,
+        accepted_date: quote.accepted_date ? new Date(quote.accepted_date) : undefined,
+        // Add missing Quote fields
+        projectName: formattedProject.project_name,
+        client: formattedProject.client_name,
+        quotedBy: '', // Will be populated from payee if needed
         dateReceived: new Date(quote.date_received),
-        includes_materials: quote.includes_materials ?? true,
-        includes_labor: quote.includes_labor ?? true,
-        lineItems: [],
-        subtotals: { labor: 0, subcontractors: 0, materials: 0, equipment: 0, other: 0 },
-        createdAt: new Date(quote.created_at)
+        validUntil: quote.valid_until ? new Date(quote.valid_until) : undefined,
+        isOverdue: false,
+        daysUntilExpiry: 0
       }));
 
-      // Format expenses
-      const formattedExpenses = (expensesRes.data || []).map((expense: any) => ({
-        id: expense.id,
-        project_id: expense.project_id,
-        payee_id: expense.payee_id,
-        amount: expense.amount,
-        description: expense.description,
+      // Format expenses with proper typing
+      const formattedExpenses: Expense[] = (expensesData || []).map(expense => ({
+        ...expense,
         expense_date: new Date(expense.expense_date),
-        category: expense.category,
-        transaction_type: expense.transaction_type,
-        invoice_number: expense.invoice_number,
-        account_name: expense.account_name,
-        account_full_name: expense.account_full_name,
-        is_planned: expense.is_planned,
-        attachment_url: expense.attachment_url,
-        quickbooks_transaction_id: expense.quickbooks_transaction_id,
         created_at: new Date(expense.created_at),
-        updated_at: new Date(expense.updated_at)
+        updated_at: new Date(expense.updated_at),
+        category: expense.category as any // Cast to handle enum differences
       }));
 
       // Calculate project financials
       const [projectWithFinancials] = await calculateMultipleProjectFinancials(
-        [rawProject],
+        [formattedProject],
         formattedEstimates,
         formattedExpenses
       );
@@ -185,7 +179,8 @@ export const ProjectDetailView = () => {
       setEstimates(formattedEstimates);
       setQuotes(formattedQuotes);
       setExpenses(formattedExpenses);
-      setChangeOrders(changeOrdersRes.data || []);
+      setChangeOrders(changeOrdersData || []);
+
     } catch (error) {
       console.error('Error loading project data:', error);
       toast({
@@ -219,7 +214,7 @@ export const ProjectDetailView = () => {
   };
 
   const formatCurrency = (amount: number | null | undefined) => {
-    if (amount === null || amount === undefined) return 'N/A';
+    if (amount === null || amount === undefined) return '$0';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -237,29 +232,40 @@ export const ProjectDetailView = () => {
       case 'estimating':
         actions.push({
           label: 'Create Estimate',
+          variant: 'default' as const,
           icon: Calculator,
-          href: `/estimates?project=${project.id}`,
-          variant: 'default' as const
+          href: `/estimates/new?project=${project.id}`
         });
         break;
       case 'quoted':
         actions.push({
-          label: 'Review Quotes',
-          icon: FileText,
-          onClick: () => setActiveTab('quotes'),
-          variant: 'default' as const
+          label: 'Follow Up',
+          variant: 'outline' as const,
+          icon: Calendar,
+          onClick: () => {
+            toast({
+              title: "Follow Up",
+              description: "Feature coming soon - client follow-up tracking."
+            });
+          }
         });
         break;
-      case 'in_progress':
+      case 'approved':
         actions.push({
-          label: 'Log Expense',
+          label: 'Start Project',
+          variant: 'default' as const,
           icon: Plus,
-          href: `/expenses?project=${project.id}`,
-          variant: 'outline' as const
+          onClick: () => {
+            // TODO: Implement start project workflow
+            toast({
+              title: "Start Project",
+              description: "Feature coming soon - project kickoff workflow."
+            });
+          }
         });
         break;
     }
-
+    
     return actions;
   };
 
@@ -267,7 +273,11 @@ export const ProjectDetailView = () => {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="h-8 bg-muted rounded w-1/3"></div>
-        <div className="h-64 bg-muted rounded"></div>
+        <div className="grid grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-32 bg-muted rounded"></div>
+          ))}
+        </div>
         <div className="h-96 bg-muted rounded"></div>
       </div>
     );
@@ -287,17 +297,15 @@ export const ProjectDetailView = () => {
     );
   }
 
-  const marginStatus = project.margin_percentage 
+  const marginStatus = project.margin_percentage !== null && project.margin_percentage !== undefined
     ? getMarginStatusLevel({
         project_id: project.id,
         contracted_amount: project.contracted_amount || 0,
         total_accepted_quotes: project.total_accepted_quotes || 0,
         current_margin: project.current_margin || 0,
         margin_percentage: project.margin_percentage,
-        contingency_total: 0,
-        contingency_used: 0,
         contingency_remaining: project.contingency_remaining || 0,
-        minimum_threshold: project.minimum_margin_threshold || 10,
+        minimum_margin_threshold: project.minimum_margin_threshold || 10,
         target_margin: project.target_margin || 20,
         at_risk: false
       })
@@ -307,6 +315,7 @@ export const ProjectDetailView = () => {
   const recentExpenses = expenses.slice(0, 3);
   const currentEstimate = estimates.find(e => e.is_current_version);
   const approvedChangeOrders = changeOrders.filter(co => co.status === 'approved');
+  const hasApprovedEstimate = estimates.some(e => e.status === 'approved');
 
   return (
     <div className="space-y-4">
@@ -319,7 +328,18 @@ export const ProjectDetailView = () => {
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
               {project.project_name}
-              {getStatusBadge(project.status)}
+              <ProjectStatusSelector
+                projectId={project.id}
+                currentStatus={project.status}
+                projectName={project.project_name}
+                hasApprovedEstimate={hasApprovedEstimate}
+                estimateStatus={estimates.find(e => e.is_current_version)?.status || 
+                              estimates.sort((a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime())[0]?.status}
+                onStatusChange={() => {
+                  // Refresh project data
+                  loadProjectData();
+                }}
+              />
             </h1>
             <p className="text-muted-foreground text-sm">
               #{project.project_number} • {project.client_name}
@@ -352,83 +372,91 @@ export const ProjectDetailView = () => {
       </div>
 
       {/* Financial Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <Card className="border-l-4 border-l-primary/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-primary" />
-              Contract Value
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold">
-              {formatCurrency(project.contracted_amount)}
-            </div>
-            {approvedChangeOrders.length > 0 && (
-              <div className="text-xs text-muted-foreground">
-                +{formatCurrency(approvedChangeOrders.reduce((sum, co) => sum + (co.amount || 0), 0))} changes
+      {hasApprovedEstimate ? (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <Card className="border-l-4 border-l-primary/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-primary" />
+                Contract Value
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="text-2xl font-bold">
+                {formatCurrency(project.contracted_amount)}
               </div>
-            )}
-          </CardContent>
-        </Card>
+              {approvedChangeOrders.length > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  +{formatCurrency(approvedChangeOrders.reduce((sum, co) => sum + (co.amount || 0), 0))} changes
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card className="border-l-4 border-l-blue-500/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-blue-500" />
-              Current Margin
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold">
-              {formatCurrency(project.current_margin)}
-            </div>
-            <div className={cn(
-              "text-xs font-medium",
-              marginStatus === 'critical' && 'text-red-600',
-              marginStatus === 'at_risk' && 'text-orange-600',
-              marginStatus === 'on_target' && 'text-blue-600',
-              marginStatus === 'excellent' && 'text-green-600'
-            )}>
-              {project.margin_percentage?.toFixed(1)}% margin
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="border-l-4 border-l-blue-500/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-blue-500" />
+                Current Margin
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="text-2xl font-bold">
+                {formatCurrency(project.current_margin)}
+              </div>
+              <div className={cn(
+                "text-xs font-medium",
+                marginStatus === 'critical' && 'text-red-600',
+                marginStatus === 'at_risk' && 'text-orange-600',
+                marginStatus === 'on_target' && 'text-blue-600',
+                marginStatus === 'excellent' && 'text-green-600'
+              )}>
+                {project.margin_percentage?.toFixed(1)}% margin
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-l-4 border-l-green-500/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Target className="h-4 w-4 text-green-500" />
-              Projected Margin
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold">
-              {formatCurrency(project.projectedMargin)}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Target: {project.target_margin || 20}% | Min: {project.minimum_margin_threshold || 10}%
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="border-l-4 border-l-green-500/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Target className="h-4 w-4 text-green-500" />
+                Projected Margin
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="text-2xl font-bold">
+                {formatCurrency(project.projectedMargin)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Target: {project.target_margin || 20}% | Min: {project.minimum_margin_threshold || 10}%
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-l-4 border-l-orange-500/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-orange-500" />
-              Total Expenses
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold">
-              {formatCurrency(project.actualExpenses)}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {expenses.length} transactions
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="border-l-4 border-l-orange-500/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-orange-500" />
+                Total Expenses
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="text-2xl font-bold">
+                {formatCurrency(project.actualExpenses)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {expenses.length} transactions
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <ProjectFinancialPendingView 
+          project={project}
+          estimates={estimates}
+          onViewEstimates={() => setActiveTab('estimates')}
+        />
+      )}
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -547,29 +575,13 @@ export const ProjectDetailView = () => {
         </TabsContent>
 
         <TabsContent value="estimates" className="space-y-4">
-          {currentEstimate && (
-            <EstimateVersionComparison projectId={project.id} />
-          )}
-          <QuotesList 
-            quotes={quotes}
-            estimates={estimates}
-            onEdit={() => {}}
-            onDelete={() => {}}
-            onCompare={() => {}}
-            onCreateNew={() => {}}
-          />
+          <EstimateVersionComparison projectId={project.id} />
+          <Separator />
+          <QuotesList />
         </TabsContent>
 
         <TabsContent value="expenses" className="space-y-4">
-          {expenses.length > 0 && (
-            <VarianceAnalysis projectId={project.id} />
-          )}
-          <ExpensesList 
-            expenses={expenses}
-            onEdit={() => {}}
-            onDelete={() => {}}
-            onRefresh={loadProjectData}
-          />
+          <ExpensesList />
         </TabsContent>
 
         <TabsContent value="changes" className="space-y-4">

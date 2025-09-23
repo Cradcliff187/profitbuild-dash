@@ -9,8 +9,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Project, ProjectType, ProjectStatus, JOB_TYPES, PROJECT_STATUSES } from "@/types/project";
 import { Client } from "@/types/client";
@@ -37,6 +38,7 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
   const [startDate, setStartDate] = useState<Date | undefined>(project.start_date);
   const [endDate, setEndDate] = useState<Date | undefined>(project.end_date);
   const [isLoading, setIsLoading] = useState(false);
+  const [statusValidationError, setStatusValidationError] = useState<string | null>(null);
 
   // Fetch client data when component loads or client changes
   const fetchClientData = async (clientId: string) => {
@@ -88,7 +90,7 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
     }
   };
 
-  const validateForm = () => {
+  const validateForm = async () => {
     if (!projectName.trim()) {
       toast({
         title: "Missing Information",
@@ -107,11 +109,29 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
       return false;
     }
 
+    // Validate status change workflow
+    if (status === 'approved') {
+      // Check if project has an approved estimate
+      const { data: estimates } = await supabase
+        .from('estimates')
+        .select('status')
+        .eq('project_id', project.id)
+        .eq('status', 'approved');
+
+      if (!estimates || estimates.length === 0) {
+        setStatusValidationError(
+          "Cannot approve project without an approved estimate. Go to Estimates and approve an estimate first for accurate financial tracking."
+        );
+        return false;
+      }
+    }
+
+    setStatusValidationError(null);
     return true;
   };
 
   const handleSave = async () => {
-    if (!validateForm()) return;
+    if (!await validateForm()) return;
 
     setIsLoading(true);
     
@@ -288,18 +308,32 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
 
             <div className="space-y-2">
               <Label>Status</Label>
-                <Select value={status} onValueChange={(value: ProjectStatus) => setStatus(value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROJECT_STATUSES.map((statusOption) => (
-                      <SelectItem key={statusOption.value} value={statusOption.value}>
-                        {statusOption.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {statusValidationError && (
+                <Alert className="border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    {statusValidationError}
+                  </AlertDescription>
+                </Alert>
+              )}
+              <Select value={status} onValueChange={(value: ProjectStatus) => {
+                setStatus(value);
+                setStatusValidationError(null); // Clear error when status changes
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROJECT_STATUSES.map((statusOption) => (
+                    <SelectItem key={statusOption.value} value={statusOption.value}>
+                      {statusOption.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="text-xs text-muted-foreground">
+                Workflow: Estimating → Quoted → Approved → In Progress → Complete
+              </div>
             </div>
 
             <div className="space-y-2">
