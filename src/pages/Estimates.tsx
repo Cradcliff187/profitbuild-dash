@@ -280,8 +280,47 @@ const EstimatesPage = () => {
     setViewMode('view');
   };
 
-  const handleDelete = (id: string) => {
-    setEstimates(prev => prev.filter(e => e.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      // Delete estimate line items first
+      const { error: lineItemsError } = await supabase
+        .from('estimate_line_items')
+        .delete()
+        .eq('estimate_id', id);
+      
+      if (lineItemsError) throw lineItemsError;
+
+      // Delete quotes related to this estimate
+      const { error: quotesError } = await supabase
+        .from('quotes')
+        .delete()
+        .eq('estimate_id', id);
+      
+      if (quotesError) throw quotesError;
+
+      // Finally delete the estimate
+      const { error: estimateError } = await supabase
+        .from('estimates')
+        .delete()
+        .eq('id', id);
+      
+      if (estimateError) throw estimateError;
+
+      // Remove from local state
+      setEstimates(prev => prev.filter(e => e.id !== id));
+      
+      toast({
+        title: "Estimate Deleted",
+        description: "The estimate and all related data have been successfully deleted."
+      });
+    } catch (error) {
+      console.error('Error deleting estimate:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete estimate. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCancel = () => {

@@ -212,8 +212,64 @@ const Projects = () => {
     window.location.href = `/projects/${project.id}/edit`;
   };
 
-  const handleDelete = (projectId: string) => {
-    setProjects(prev => prev.filter(p => p.id !== projectId));
+  const handleDelete = async (projectId: string) => {
+    try {
+      // First, delete all related data in proper order
+      // Delete estimates (which will cascade to estimate_line_items)
+      const { error: estimatesError } = await supabase
+        .from('estimates')
+        .delete()
+        .eq('project_id', projectId);
+      
+      if (estimatesError) throw estimatesError;
+
+      // Delete quotes (which will cascade to quote_line_items)
+      const { error: quotesError } = await supabase
+        .from('quotes')
+        .delete()
+        .eq('project_id', projectId);
+      
+      if (quotesError) throw quotesError;
+
+      // Delete expenses
+      const { error: expensesError } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('project_id', projectId);
+      
+      if (expensesError) throw expensesError;
+
+      // Delete change orders
+      const { error: changeOrdersError } = await supabase
+        .from('change_orders')
+        .delete()
+        .eq('project_id', projectId);
+      
+      if (changeOrdersError) throw changeOrdersError;
+
+      // Finally delete the project
+      const { error: projectError } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+      
+      if (projectError) throw projectError;
+
+      // Remove from local state
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+      
+      toast({
+        title: "Project Deleted",
+        description: "The project and all related data have been successfully deleted."
+      });
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete project. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCancel = () => {
