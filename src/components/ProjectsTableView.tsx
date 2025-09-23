@@ -491,23 +491,28 @@ export const ProjectsTableView = ({
           <TooltipTrigger asChild>
             <div className="text-right cursor-help">
               <div className="font-medium text-sm">{formatCurrency(project.contracted_amount)}</div>
-              {project.total_accepted_quotes && project.total_accepted_quotes !== project.contracted_amount && (
-                <div className="text-xs text-muted-foreground">
-                  Base: {formatCurrency(project.total_accepted_quotes)}
-                </div>
-              )}
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <div>
-              <p><strong>Contract Value:</strong> {formatCurrency(project.contracted_amount)}</p>
-              {project.total_accepted_quotes && project.total_accepted_quotes !== project.contracted_amount && (
-                <>
-                  <p><strong>Base Quote Total:</strong> {formatCurrency(project.total_accepted_quotes)}</p>
-                  <p>Difference represents contract markup or negotiated adjustments</p>
-                </>
-              )}
+            <p>Total from approved estimate plus approved change orders</p>
+          </TooltipContent>
+        </Tooltip>
+      ),
+    },
+    {
+      key: 'total_accepted_quotes',
+      label: 'Accepted Quotes',
+      align: 'right',
+      sortable: true,
+      render: (project) => (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="text-right cursor-help">
+              <div className="font-medium text-sm">{formatCurrency(project.total_accepted_quotes)}</div>
             </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Sum of all accepted subcontractor quotes for this project</p>
           </TooltipContent>
         </Tooltip>
       ),
@@ -534,24 +539,73 @@ export const ProjectsTableView = ({
     },
     {
       key: 'actualExpenses',
-      label: 'Actual Spent',
+      label: 'Actual Expenses',
       align: 'right',
+      sortable: true,
       render: (project) => (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="cursor-help">
-              {formatCurrency(project.actualExpenses)}
+            <div className="text-right cursor-help">
+              <div className="font-medium text-sm">{formatCurrency(project.actualExpenses)}</div>
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <div>
-              <p><strong>Actual Expenses:</strong> {formatCurrency(project.actualExpenses)}</p>
-              <p>Total expenses recorded for this project to date</p>
-              <p>Source: Expense tracking and financial records</p>
-            </div>
+            <p>Total expenses recorded to date</p>
           </TooltipContent>
         </Tooltip>
       ),
+    },
+    {
+      key: 'variance_status',
+      label: 'Variance Status',
+      align: 'center',
+      render: (project) => {
+        const contractValue = project.contracted_amount || 0;
+        const acceptedQuotes = project.total_accepted_quotes || 0;
+        const actualExpenses = project.actualExpenses || 0;
+        
+        // Calculate variance indicators
+        const quoteVariance = acceptedQuotes > 0 ? ((acceptedQuotes - contractValue) / contractValue) * 100 : 0;
+        const expenseVariance = contractValue > 0 ? ((actualExpenses - contractValue) / contractValue) * 100 : 0;
+        
+        // Determine overall status
+        let status: 'good' | 'warning' | 'critical' = 'good';
+        let statusText = 'On Track';
+        
+        if (Math.abs(quoteVariance) > 15 || expenseVariance > 10) {
+          status = 'critical';
+          statusText = 'At Risk';
+        } else if (Math.abs(quoteVariance) > 5 || expenseVariance > 5) {
+          status = 'warning';
+          statusText = 'Monitor';
+        }
+        
+        const statusColors = {
+          good: 'bg-success/10 text-success border-success/20',
+          warning: 'bg-warning/10 text-warning border-warning/20',
+          critical: 'bg-destructive/10 text-destructive border-destructive/20'
+        };
+        
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="cursor-help">
+                <Badge variant="outline" className={`text-xs ${statusColors[status]}`}>
+                  {statusText}
+                </Badge>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="space-y-1">
+                <p><strong>Variance Analysis:</strong></p>
+                <p>Contract: {formatCurrency(contractValue)}</p>
+                <p>Quotes: {formatCurrency(acceptedQuotes)} ({quoteVariance >= 0 ? '+' : ''}{quoteVariance.toFixed(1)}%)</p>
+                <p>Actual: {formatCurrency(actualExpenses)} ({expenseVariance >= 0 ? '+' : ''}{expenseVariance.toFixed(1)}%)</p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'projected_margin',
