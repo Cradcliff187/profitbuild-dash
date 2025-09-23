@@ -742,8 +742,8 @@ export const ProjectsTableView = ({
       sortable: true,
       render: (project: ProjectWithFinancials) => {
         const marginPercentage = project.margin_percentage || 0;
-        const projectedMarginPct = project.contracted_amount > 0 
-          ? ((project.projectedMargin || 0) / project.contracted_amount) * 100 
+        const projectedMarginPct = project.currentContractAmount > 0 
+          ? ((project.projectedMargin || 0) / project.currentContractAmount) * 100 
           : 0;
         
         // Use projected margin % for estimating/quoted projects, current margin % for active projects

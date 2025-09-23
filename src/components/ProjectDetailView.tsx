@@ -309,7 +309,7 @@ export const ProjectDetailView = () => {
   const marginStatus = project.margin_percentage !== null && project.margin_percentage !== undefined
     ? getMarginStatusLevel({
         project_id: project.id,
-        contracted_amount: project.contracted_amount || 0,
+        contracted_amount: project?.currentContractAmount || 0,
         total_accepted_quotes: project.total_accepted_quotes || 0,
         current_margin: project.current_margin || 0,
         margin_percentage: project.margin_percentage,
@@ -394,7 +394,7 @@ export const ProjectDetailView = () => {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="text-2xl font-bold">
-                {formatCurrency(project.contracted_amount)}
+                {formatCurrency(project?.currentContractAmount)}
               </div>
               {approvedChangeOrders.length > 0 && (
                 <div className="text-xs text-muted-foreground">
