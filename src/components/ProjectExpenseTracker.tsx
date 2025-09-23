@@ -282,8 +282,8 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
       {/* Project Breakdown */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Project Breakdown</h3>
-        {projectSummaries.map((summary) => (
-          <Card key={summary.project_id}>
+        {projectSummaries.map((summary, index) => (
+          <Card key={`${summary.project_id}-${index}`}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">{summary.project_name}</CardTitle>
@@ -368,8 +368,8 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
                     {Object.entries(summary.category_breakdown)
                       .sort(([,a], [,b]) => b.actual - a.actual)
                       .slice(0, 3)
-                      .map(([category, data]) => (
-                        <div key={category} className="flex justify-between items-center">
+                       .map(([category, data], catIndex) => (
+                         <div key={`top-${category}-${catIndex}`} className="flex justify-between items-center">
                           <span>{EXPENSE_CATEGORY_DISPLAY[category as keyof typeof EXPENSE_CATEGORY_DISPLAY]}:</span>
                           <div className="text-right">
                             <span className={data.cost_overrun > 0 ? 'text-red-600' : data.cost_overrun < 0 ? 'text-green-600' : ''}>
@@ -392,8 +392,8 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
                 <div>
                   <p className="text-sm font-medium mb-2">Cost vs Budget by Category</p>
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                    {Object.entries(summary.category_breakdown).map(([category, data]) => (
-                      <div key={category} className="text-xs">
+                     {Object.entries(summary.category_breakdown).map(([category, data], catIndex) => (
+                       <div key={`breakdown-${category}-${catIndex}`} className="text-xs">
                         <div className="font-medium">{EXPENSE_CATEGORY_DISPLAY[category as keyof typeof EXPENSE_CATEGORY_DISPLAY]}</div>
                         <div className={getVarianceColor(data.cost_overrun)}>
                           {data.cost_overrun >= 0 ? '+' : ''}${data.cost_overrun.toFixed(2)}
