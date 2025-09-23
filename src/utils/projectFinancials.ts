@@ -21,10 +21,14 @@ export async function calculateProjectFinancials(
   estimates: Estimate[],
   expenses: Expense[]
 ): Promise<ProjectWithFinancials> {
-  // Find current estimate for this project
-  const currentEstimate = estimates.find(
-    e => e.project_id === project.id && e.is_current_version
-  );
+  // Prioritized estimate selection: approved current version, then latest approved
+  const projectEstimates = estimates.filter(e => e.project_id === project.id);
+  const approvedCurrentEstimate = projectEstimates.find(e => e.is_current_version && e.status === 'approved');
+  const latestApprovedEstimate = projectEstimates
+    .filter(e => e.status === 'approved')
+    .sort((a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime())[0];
+  
+  const currentEstimate = approvedCurrentEstimate || latestApprovedEstimate;
 
   // Initialize financial metrics
   let estimatedCost = 0;
@@ -33,7 +37,7 @@ export async function calculateProjectFinancials(
   let nonInternalLineItemCount = 0;
 
   // Only calculate financials if there's an approved estimate
-  if (currentEstimate?.id && currentEstimate.status === 'approved') {
+  if (currentEstimate?.id) {
     try {
       // Get projected revenue from contract amount (approved estimate + change orders)
       // Fall back to estimate total if no contract amount is set
@@ -144,10 +148,23 @@ export async function calculateMultipleProjectFinancials(
   estimates: Estimate[],
   expenses: Expense[]
 ): Promise<ProjectWithFinancials[]> {
-  // Get all line items for current estimates in one query
-  const currentEstimateIds = estimates
-    .filter(e => e.is_current_version)
-    .map(e => e.id);
+  // Get all line items for approved estimates (prioritizing current approved, then any approved)
+  const approvedEstimateIds = new Set<string>();
+  
+  projects.forEach(project => {
+    const projectEstimates = estimates.filter(e => e.project_id === project.id);
+    const approvedCurrentEstimate = projectEstimates.find(e => e.is_current_version && e.status === 'approved');
+    const latestApprovedEstimate = projectEstimates
+      .filter(e => e.status === 'approved')
+      .sort((a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime())[0];
+    
+    const selectedEstimate = approvedCurrentEstimate || latestApprovedEstimate;
+    if (selectedEstimate?.id) {
+      approvedEstimateIds.add(selectedEstimate.id);
+    }
+  });
+
+  const currentEstimateIds = Array.from(approvedEstimateIds);
 
   let allLineItems: any[] = [];
   let allQuotes: any[] = [];
@@ -186,10 +203,14 @@ export async function calculateMultipleProjectFinancials(
 
   // Calculate financials for each project
   return projects.map(project => {
-    // Find current estimate for this project
-    const currentEstimate = estimates.find(
-      e => e.project_id === project.id && e.is_current_version
-    );
+    // Prioritized estimate selection: approved current version, then latest approved
+    const projectEstimates = estimates.filter(e => e.project_id === project.id);
+    const approvedCurrentEstimate = projectEstimates.find(e => e.is_current_version && e.status === 'approved');
+    const latestApprovedEstimate = projectEstimates
+      .filter(e => e.status === 'approved')
+      .sort((a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime())[0];
+    
+    const currentEstimate = approvedCurrentEstimate || latestApprovedEstimate;
 
     // Initialize financial metrics
     let estimatedCost = 0;
@@ -198,7 +219,7 @@ export async function calculateMultipleProjectFinancials(
     let nonInternalLineItemCount = 0;
 
     // Only calculate financials if there's an approved estimate
-    if (currentEstimate?.id && currentEstimate.status === 'approved') {
+    if (currentEstimate?.id) {
       // Get projected revenue from contract amount (approved estimate + change orders)
       // Fall back to estimate total if no contract amount is set
       projectedRevenue = project.contracted_amount || currentEstimate.total_amount || 0;
