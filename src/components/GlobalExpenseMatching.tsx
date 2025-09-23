@@ -477,7 +477,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
             <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
             <Input
               id="search"
-              placeholder="Search by description, payee, or project..."
+              placeholder="Search by payee, project, or description..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9"
@@ -560,7 +560,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
                   </div>
                 </div>
                 
-                <div className="text-sm mb-1">{expense.description}</div>
+                <div className="text-sm mb-1 font-medium">{expense.payee_name || 'No payee'}</div>
                 
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
@@ -568,8 +568,8 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
                     {expense.project_name}
                   </div>
                   <div className="flex items-center gap-1">
-                    <User className="h-3 w-3" />
-                    {expense.payee_name || 'No payee'}
+                    <FileText className="h-3 w-3" />
+                    {EXPENSE_CATEGORY_DISPLAY[expense.category]}
                   </div>
                 </div>
               </div>
