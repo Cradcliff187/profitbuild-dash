@@ -4,11 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ExpenseDashboard } from "@/components/ExpenseDashboard";
-import { ExpenseUpload } from "@/components/ExpenseUpload";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpensesList } from "@/components/ExpensesList";
 import { ProjectExpenseTracker } from "@/components/ProjectExpenseTracker";
-import { UnifiedExpenseImportModal } from "@/components/UnifiedExpenseImportModal";
+import { ExpenseImportModal } from "@/components/ExpenseImportModal";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -92,7 +91,7 @@ const Expenses = () => {
     setSelectedExpense(undefined);
   };
 
-  const handleExpensesImported = (importedExpenses: Expense[]) => {
+  const handleImportSuccess = () => {
     fetchData(); // Refresh to show imported expenses
     setViewMode('list');
   };
@@ -194,10 +193,10 @@ const Expenses = () => {
         </Tabs>
       )}
       
-      <UnifiedExpenseImportModal
+      <ExpenseImportModal
         open={showImportModal}
-        onOpenChange={setShowImportModal}
-        onExpensesImported={handleExpensesImported}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={handleImportSuccess}
         estimates={estimates}
       />
     </div>
