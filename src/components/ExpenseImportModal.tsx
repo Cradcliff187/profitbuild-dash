@@ -9,13 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
-  parseExpenseCSVFile, 
-  mapCSVToExpenses, 
-  validateExpenseCSVData,
-  ExpenseCSVRow, 
-  ExpenseColumnMapping,
-  ExpenseImportData
-} from '@/utils/expenseCsvParser';
+  parseTransactionCSV, 
+  processTransactionImport,
+  TransactionCSVRow, 
+  TransactionImportResult,
+  ExpenseImportData,
+  RevenueImportData
+} from '@/utils/enhancedTransactionImporter';
 import { ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from '@/types/expense';
 
 interface ExpenseImportModalProps {
@@ -32,51 +32,32 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
   estimates 
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [csvData, setCsvData] = useState<ExpenseCSVRow[]>([]);
+  const [csvData, setCsvData] = useState<TransactionCSVRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
-  const [mapping, setMapping] = useState<ExpenseColumnMapping>({});
-  const [selectedProject, setSelectedProject] = useState<string>('');
-  const [payees, setPayees] = useState<Array<{id: string, payee_name: string}>>([]);
-  const [projects, setProjects] = useState<Array<{id: string, project_name: string, project_number?: string | null, qb_formatted_number?: string | null}>>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [step, setStep] = useState<'upload' | 'mapping' | 'preview' | 'complete'>('upload');
-  const [importResults, setImportResults] = useState<{ success: number; errors: string[] }>({ success: 0, errors: [] });
+  const [step, setStep] = useState<'upload' | 'preview' | 'complete'>('upload');
+  const [importResults, setImportResults] = useState<{
+    expenses: ExpenseImportData[];
+    revenues: RevenueImportData[];
+    unassociated_expenses: number;
+    unassociated_revenues: number;
+    category_mappings_used: Record<string, string>;
+    errors: string[];
+    successCount: number;
+  } | null>(null);
   const { toast } = useToast();
-
-  // Load payees and projects when modal opens
-  useEffect(() => {
-    if (open) {
-      loadPayeesAndProjects();
-    }
-  }, [open]);
-
-  const loadPayeesAndProjects = async () => {
-    try {
-      const [payeesResult, projectsResult] = await Promise.all([
-        supabase.from('payees').select('id, payee_name').eq('is_active', true),
-        supabase.from('projects').select('id, project_name, project_number, qb_formatted_number')
-      ]);
-
-      if (payeesResult.data) setPayees(payeesResult.data);
-      if (projectsResult.data) setProjects(projectsResult.data);
-    } catch (error) {
-      console.error('Failed to load payees and projects:', error);
-    }
-  };
 
   const resetState = () => {
     setSelectedFile(null);
     setCsvData([]);
     setHeaders([]);
-    setMapping({});
-    setSelectedProject('');
     setErrors([]);
     setIsUploading(false);
     setIsImporting(false);
     setStep('upload');
-    setImportResults({ success: 0, errors: [] });
+    setImportResults(null);
   };
 
   const handleClose = () => {
@@ -90,48 +71,20 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     setErrors([]);
     
     try {
-      const result = await parseExpenseCSVFile(file);
+      const result = await parseTransactionCSV(file);
       if (result.errors.length > 0) {
         setErrors(result.errors);
       } else {
         setCsvData(result.data);
         setHeaders(result.headers);
-        setStep('mapping');
+        setStep('preview');
         setErrors([]);
-        // Auto-detect common column mappings
-        autoDetectColumns(result.headers);
       }
     } catch (error) {
       setErrors(['Failed to parse CSV file']);
     } finally {
       setIsUploading(false);
     }
-  };
-
-  const autoDetectColumns = (headers: string[]) => {
-    const newMapping: ExpenseColumnMapping = {};
-    
-    headers.forEach(header => {
-      const lowerHeader = header.toLowerCase();
-      
-      if (lowerHeader.includes('date')) {
-        newMapping.expense_date = header;
-      } else if (lowerHeader.includes('description') || lowerHeader.includes('memo') || lowerHeader.includes('detail')) {
-        newMapping.description = header;
-      } else if (lowerHeader.includes('amount') || lowerHeader.includes('total') || lowerHeader.includes('cost')) {
-        newMapping.amount = header;
-      } else if (lowerHeader.includes('payee') || lowerHeader.includes('vendor') || lowerHeader.includes('name')) {
-        newMapping.payee_name = header;
-      } else if (lowerHeader.includes('category') || lowerHeader.includes('type')) {
-        newMapping.category = header;
-      } else if (lowerHeader.includes('project') || lowerHeader.includes('wo') || lowerHeader.includes('work order') || lowerHeader.includes('job')) {
-        newMapping.project_name = header;
-      } else if (lowerHeader.includes('invoice') || lowerHeader.includes('ref')) {
-        newMapping.invoice_number = header;
-      }
-    });
-    
-    setMapping(newMapping);
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -148,55 +101,72 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     }
   }, []);
 
-  const handlePreview = () => {
-    const validationErrors = validateExpenseCSVData(csvData, mapping, selectedProject);
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
-    setStep('preview');
-    setErrors([]);
-  };
-
   const handleImport = async () => {
-    if (!selectedFile) return;
+    if (!csvData.length) return;
 
     setIsImporting(true);
     
-    // Create payee name to ID mapping
-    const payeeMap = new Map<string, string>();
-    payees.forEach(p => payeeMap.set(p.payee_name, p.id));
-    
-    const expenses = mapCSVToExpenses(csvData, mapping, selectedProject, payeeMap, projectMap);
-    
     try {
+      const result = await processTransactionImport(csvData);
+      
+      // Import expenses
       let successCount = 0;
-      const errorMessages: string[] = [];
+      const errorMessages: string[] = [...result.errors];
 
-      // Import expenses one by one to handle errors gracefully
-      for (const expense of expenses) {
-        try {
-          const { error } = await supabase
-            .from('expenses')
-            .insert([expense]);
+      if (result.expenses.length > 0) {
+        for (const expense of result.expenses) {
+          try {
+            const { error } = await supabase
+              .from('expenses')
+              .insert([expense]);
 
-          if (error) {
-            errorMessages.push(`Failed to import expense "${expense.description}": ${error.message}`);
-          } else {
-            successCount++;
+            if (error) {
+              errorMessages.push(`Failed to import expense "${expense.description}": ${error.message}`);
+            } else {
+              successCount++;
+            }
+          } catch (err) {
+            errorMessages.push(`Failed to import expense "${expense.description}": ${err instanceof Error ? err.message : 'Unknown error'}`);
           }
-        } catch (err) {
-          errorMessages.push(`Failed to import expense "${expense.description}": ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       }
 
-      setImportResults({ success: successCount, errors: errorMessages });
+      // Import revenues
+      if (result.revenues.length > 0) {
+        for (const revenue of result.revenues) {
+          try {
+            const { error } = await supabase
+              .from('project_revenues')
+              .insert([revenue]);
+
+            if (error) {
+              errorMessages.push(`Failed to import revenue "${revenue.description}": ${error.message}`);
+            } else {
+              successCount++;
+            }
+          } catch (err) {
+            errorMessages.push(`Failed to import revenue "${revenue.description}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+          }
+        }
+      }
+
+      const finalResults = {
+        expenses: result.expenses,
+        revenues: result.revenues,
+        unassociated_expenses: result.unassociated_expenses,
+        unassociated_revenues: result.unassociated_revenues,
+        category_mappings_used: result.category_mappings_used,
+        errors: errorMessages,
+        successCount
+      };
+
+      setImportResults(finalResults);
       setStep('complete');
 
       if (successCount > 0) {
         toast({
           title: "Import completed",
-          description: `Successfully imported ${successCount} expense${successCount === 1 ? '' : 's'}${errorMessages.length > 0 ? ` with ${errorMessages.length} error${errorMessages.length === 1 ? '' : 's'}` : ''}`,
+          description: `Successfully imported ${successCount} transaction${successCount === 1 ? '' : 's'}${errorMessages.length > 0 ? ` with ${errorMessages.length} error${errorMessages.length === 1 ? '' : 's'}` : ''}`,
         });
         onSuccess();
       }
@@ -204,7 +174,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       console.error('Import failed:', error);
       toast({
         title: "Import failed",
-        description: "Failed to import expenses. Please try again.",
+        description: "Failed to import transactions. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -212,33 +182,13 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     }
   };
 
-  const previewData = csvData.slice(0, 5);
-  const payeeMap = new Map<string, string>();
-  payees.forEach(p => payeeMap.set(p.payee_name, p.id));
-
-  const normalizeProjectKey = useCallback((v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, ''), []);
-  const projectMap = useMemo(() => {
-    const map = new Map<string, string>();
-    projects.forEach(p => {
-      [p.project_name, p.project_number as string | undefined | null, p.qb_formatted_number as string | undefined | null]
-        .forEach(val => { if (val) map.set(normalizeProjectKey(String(val)), p.id); });
-    });
-    return map;
-  }, [projects, normalizeProjectKey]);
-
-  const idToProjectName = useMemo(() => {
-    const m = new Map<string, string>();
-    projects.forEach(p => m.set(p.id, p.project_name));
-    return m;
-  }, [projects]);
-
-  const previewExpenses = useMemo(() => mapCSVToExpenses(previewData, mapping, selectedProject, payeeMap, projectMap), [previewData, mapping, selectedProject, payeeMap, projectMap]);
+  const previewData = csvData.slice(0, 10);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Import Expenses from CSV</DialogTitle>
+          <DialogTitle>Import Transactions from CSV</DialogTitle>
         </DialogHeader>
 
         {step === 'upload' && (
@@ -252,7 +202,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
               <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
               <p className="text-lg font-medium">Drop CSV file here or click to select</p>
               <p className="text-sm text-gray-500 mt-2">
-                Supports any CSV format including QuickBooks exports, bank statements, and custom formats
+                Expected columns: Date, Transaction Type, Amount, Name, Project/WO #, Account Full Name
               </p>
               <input
                 id="expense-csv-file-input"
@@ -279,149 +229,19 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                 <p>Processing CSV file...</p>
               </div>
             )}
-          </div>
-        )}
 
-        {step === 'mapping' && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-medium mb-2">Map CSV Columns</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Map your CSV columns to expense fields. Date, description, and amount are required.
-              </p>
-            </div>
-            
-            {/* Project Selection */}
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <label className="block text-sm font-medium mb-1">Fallback Project *</label>
-              <Select value={selectedProject} onValueChange={setSelectedProject}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select fallback project for unmatched rows" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map(project => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.project_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-600 mt-1">Rows that don't match a Project/WO # from CSV will use this project</p>
-            </div>
-            
-            {/* Column Mapping */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Date *</label>
-                <Select value={mapping.expense_date || ''} onValueChange={(value) => setMapping(prev => ({ ...prev, expense_date: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {headers.filter(header => header && header.trim()).map(header => (
-                      <SelectItem key={header} value={header}>{header}</SelectItem>
+            {errors.length > 0 && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <ul className="list-disc list-inside">
+                    {errors.map((error, index) => (
+                      <li key={index}>{error}</li>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Description *</label>
-                <Select value={mapping.description || ''} onValueChange={(value) => setMapping(prev => ({ ...prev, description: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {headers.filter(header => header && header.trim()).map(header => (
-                      <SelectItem key={header} value={header}>{header}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Amount *</label>
-                <Select value={mapping.amount || ''} onValueChange={(value) => setMapping(prev => ({ ...prev, amount: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {headers.filter(header => header && header.trim()).map(header => (
-                      <SelectItem key={header} value={header}>{header}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Project/WO # (Optional)</label>
-                <Select value={mapping.project_name || 'none'} onValueChange={(value) => setMapping(prev => ({ ...prev, project_name: value === 'none' ? undefined : value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None - Use fallback</SelectItem>
-                    {headers.filter(header => header && header.trim()).map(header => (
-                      <SelectItem key={header} value={header}>{header}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Payee (Optional)</label>
-                <Select value={mapping.payee_name || 'none'} onValueChange={(value) => setMapping(prev => ({ ...prev, payee_name: value === 'none' ? undefined : value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {headers.filter(header => header && header.trim()).map(header => (
-                      <SelectItem key={header} value={header}>{header}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Category (Optional)</label>
-                <Select value={mapping.category || 'none'} onValueChange={(value) => setMapping(prev => ({ ...prev, category: value === 'none' ? undefined : value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None - Use "Other"</SelectItem>
-                    {headers.filter(header => header && header.trim()).map(header => (
-                      <SelectItem key={header} value={header}>{header}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Invoice # (Optional)</label>
-                <Select value={mapping.invoice_number || 'none'} onValueChange={(value) => setMapping(prev => ({ ...prev, invoice_number: value === 'none' ? undefined : value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {headers.filter(header => header && header.trim()).map(header => (
-                      <SelectItem key={header} value={header}>{header}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep('upload')}>
-                Back
-              </Button>
-              <Button onClick={handlePreview} disabled={!selectedProject}>
-                Preview Data
-              </Button>
-            </div>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         )}
 
@@ -430,102 +250,131 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
             <div>
               <h3 className="text-lg font-medium mb-2">Preview Import Data</h3>
               <p className="text-sm text-gray-600 mb-4">
-                Review the first 5 records before importing {csvData.length} total expenses.
+                Showing first {Math.min(10, csvData.length)} of {csvData.length} transactions. 
+                Transactions will be automatically categorized by Account Full Name and split into revenues and expenses by Transaction Type.
               </p>
             </div>
-            
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Project</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Payee</TableHead>
-                    <TableHead>Invoice #</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {previewExpenses.map((expense, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{new Date(expense.expense_date).toLocaleDateString()}</TableCell>
-                      <TableCell className="font-medium max-w-xs truncate">{expense.description}</TableCell>
-                      <TableCell>{idToProjectName.get(expense.project_id) || '-'}{expense.project_id === selectedProject ? ' (Fallback)' : ''}</TableCell>
-                      <TableCell>${expense.amount.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {EXPENSE_CATEGORY_DISPLAY[expense.category]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{expense.payee_id ? payees.find(p => p.id === expense.payee_id)?.payee_name || 'Unknown' : '-'}</TableCell>
-                      <TableCell>{expense.invoice_number || '-'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-2">Import Summary</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Total Transactions:</span> {csvData.length}
+                </div>
+                <div>
+                  <span className="font-medium">Revenues (Invoice):</span> {csvData.filter(row => row['Transaction Type'] === 'Invoice').length}
+                </div>
+                <div>
+                  <span className="font-medium">Expenses (Bill/Check/Expense):</span> {csvData.filter(row => row['Transaction Type'] !== 'Invoice').length}
+                </div>
+                <div>
+                  <span className="font-medium">Unassociated (No Project/WO #):</span> {csvData.filter(row => !row['Project/WO #'] || row['Project/WO #'].trim() === '').length}
+                </div>
+              </div>
             </div>
+            
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Project/WO #</TableHead>
+                  <TableHead>Account</TableHead>
+                  <TableHead>Category</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {previewData.map((row, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{row.Date}</TableCell>
+                    <TableCell>
+                      <Badge variant={row['Transaction Type'] === 'Invoice' ? 'default' : 'secondary'}>
+                        {row['Transaction Type']}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>${parseFloat(row.Amount || '0').toFixed(2)}</TableCell>
+                    <TableCell>{row.Name}</TableCell>
+                    <TableCell>{row['Project/WO #'] || <span className="text-gray-400">Unassociated</span>}</TableCell>
+                    <TableCell className="text-xs">{row['Account Full Name']}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {row['Transaction Type'] === 'Invoice' ? 'Revenue' : 'Expense'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
             
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep('mapping')}>
-                Back to Mapping
+              <Button variant="outline" onClick={() => setStep('upload')}>
+                Back
               </Button>
               <Button onClick={handleImport} disabled={isImporting}>
-                {isImporting ? 'Importing...' : `Import ${csvData.length} Expenses`}
+                {isImporting ? 'Importing...' : `Import ${csvData.length} Transactions`}
               </Button>
             </div>
           </div>
         )}
 
-        {step === 'complete' && (
+        {step === 'complete' && importResults && (
           <div className="space-y-4">
             <div className="text-center">
-              <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+              <CheckCircle className="h-16 w-16 mx-auto text-green-500 mb-4" />
               <h3 className="text-lg font-medium mb-2">Import Complete</h3>
-              <p className="text-gray-600">
-                Successfully imported {importResults.success} expense{importResults.success === 1 ? '' : 's'}
-                {importResults.errors.length > 0 && ` with ${importResults.errors.length} error${importResults.errors.length === 1 ? '' : 's'}`}
-              </p>
             </div>
             
-            {importResults.errors.length > 0 && (
-              <div className="max-h-40 overflow-y-auto">
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    <div className="space-y-1">
-                      {importResults.errors.slice(0, 10).map((error, index) => (
-                        <div key={index} className="text-sm">{error}</div>
-                      ))}
-                      {importResults.errors.length > 10 && (
-                        <div className="text-sm text-gray-500">...and {importResults.errors.length - 10} more errors</div>
-                      )}
-                    </div>
-                  </AlertDescription>
-                </Alert>
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-2">Import Results</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Successfully Imported:</span> {importResults.successCount || 0}
+                </div>
+                <div>
+                  <span className="font-medium">Revenues Imported:</span> {importResults.revenues.length}
+                </div>
+                <div>
+                  <span className="font-medium">Expenses Imported:</span> {importResults.expenses.length}
+                </div>
+                <div>
+                  <span className="font-medium">Unassociated Items:</span> {importResults.unassociated_expenses + importResults.unassociated_revenues}
+                </div>
               </div>
+            </div>
+
+            {importResults.errors && importResults.errors.length > 0 && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <p className="font-medium mb-2">Import Errors:</p>
+                  <ul className="list-disc list-inside text-sm space-y-1">
+                    {importResults.errors.slice(0, 10).map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                    {importResults.errors.length > 10 && (
+                      <li>... and {importResults.errors.length - 10} more errors</li>
+                    )}
+                  </ul>
+                </AlertDescription>
+              </Alert>
             )}
             
-            <div className="flex justify-center">
-              <Button onClick={handleClose}>
-                Done
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={handleClose}>
+                Close
               </Button>
+              {(importResults.unassociated_expenses + importResults.unassociated_revenues) > 0 && (
+                <Button onClick={() => {
+                  handleClose();
+                  // Navigate to expense matching interface - this would need to be implemented
+                }}>
+                  Match Unassociated Items
+                </Button>
+              )}
             </div>
           </div>
-        )}
-
-        {errors.length > 0 && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <div className="space-y-1">
-                {errors.map((error, index) => (
-                  <div key={index}>{error}</div>
-                ))}
-              </div>
-            </AlertDescription>
-          </Alert>
         )}
       </DialogContent>
     </Dialog>
