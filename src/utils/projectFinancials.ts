@@ -575,28 +575,23 @@ export async function calculateMultipleProjectFinancials(
         });
       }
 
-      // Fallback: if all accepted quotes are unlinked to estimate line items, treat their total as projected external costs
-      const allQuotesUnlinked = projectQuotes.length > 0 && projectQuotes.every(q => !q.estimate_line_item_id);
+      // Determine if quotes are actually linked by checking quote line items
+      const hasLinkedQuoteLineItems = projectQuoteLineItems.some(qli => qli.estimate_line_item_id);
 
-      if (allQuotesUnlinked) {
-        quotedOriginalScope = totalAcceptedQuoteAmount;
-        unquotedOriginalScope = Math.max(approvedEstimateExternalCosts - quotedOriginalScope, 0);
-      } else {
-        // Calculate quoted vs unquoted costs for original scope using linked quotes
-        quotedOriginalScope = externalItems.reduce((sum, item) => {
-          const quotedAmount = categoryQuotes.get(item.id);
-          return quotedAmount !== undefined ? sum + quotedAmount : sum;
-        }, 0);
-        
-        unquotedOriginalScope = externalItems.reduce((sum, item) => {
-          const quotedAmount = categoryQuotes.get(item.id);
-          if (quotedAmount === undefined) {
-            const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
-            return sum + itemCost;
-          }
-          return sum;
-        }, 0);
-      }
+      // Calculate quoted vs unquoted costs for original scope
+      quotedOriginalScope = externalItems.reduce((sum, item) => {
+        const quotedAmount = categoryQuotes.get(item.id);
+        return quotedAmount !== undefined ? sum + quotedAmount : sum;
+      }, 0);
+      
+      unquotedOriginalScope = externalItems.reduce((sum, item) => {
+        const quotedAmount = categoryQuotes.get(item.id);
+        if (quotedAmount === undefined) {
+          const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
+          return sum + itemCost;
+        }
+        return sum;
+      }, 0);
       
       // For now, assume change order scope is unquoted unless we have specific data
       quotedChangeOrderScope = 0;
@@ -621,19 +616,17 @@ export async function calculateMultipleProjectFinancials(
       // Calculate variances and projections
       quotedVsEstimatedVariance = quotedOriginalScope - approvedEstimateExternalCosts;
       
-      // Calculate projected costs using actual quote costs when available
-      const projectedOriginalCosts = allQuotesUnlinked
-        ? totalAcceptedQuoteAmount
-        : externalItems.reduce((sum, item) => {
-            // Use actual quote line item cost if available (this is the real cost to us)
-            const quotedCost = categoryQuoteCosts.get(item.id);
-            if (quotedCost !== undefined) {
-              return sum + quotedCost;
-            }
-            // Fallback to estimated cost if no quote available
-            const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
-            return sum + itemCost;
-          }, 0);
+      // Calculate projected external costs using actual quote line item costs
+      const projectedOriginalCosts = externalItems.reduce((sum, item) => {
+        // Use actual quote line item cost if available (this is the real cost to us)
+        const quotedCost = categoryQuoteCosts.get(item.id);
+        if (quotedCost !== undefined) {
+          return sum + quotedCost;
+        }
+        // Fallback to estimated cost if no quote available
+        const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
+        return sum + itemCost;
+      }, 0);
       
       // Add change order costs to projected costs
       projectedCosts = projectedOriginalCosts + changeOrderCosts;
