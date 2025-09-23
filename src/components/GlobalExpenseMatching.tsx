@@ -124,21 +124,36 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
       const quotes = quotesResult.data || [];
 
       // Create line items from estimates and quotes
+      // First, filter to only accepted quotes
+      const acceptedQuotes = quotes.filter(quote => quote.status === 'accepted');
+      
+      // Create a set of project+category combinations that have accepted quotes
+      const coveredCategories = new Set<string>();
+      acceptedQuotes.forEach(quote => {
+        (quote.quote_line_items || []).forEach(item => {
+          coveredCategories.add(`${quote.project_id}-${item.category}`);
+        });
+      });
+
+      // Filter estimate line items to exclude those covered by accepted quotes
       const estimateLineItems: LineItemForMatching[] = estimates.flatMap(estimate => 
-        (estimate.estimate_line_items || []).map(item => ({
-          id: item.id,
-          type: 'estimate' as const,
-          source_id: estimate.id,
-          project_id: estimate.project_id,
-          project_name: estimate.projects?.project_name || 'Unknown',
-          category: item.category as LineItemCategory,
-          description: item.description,
-          total: item.total_cost || (item.cost_per_unit * item.quantity) || 0,
-          matched_amount: 0 // Will be calculated below
-        }))
+        (estimate.estimate_line_items || [])
+          .filter(item => !coveredCategories.has(`${estimate.project_id}-${item.category}`))
+          .map(item => ({
+            id: item.id,
+            type: 'estimate' as const,
+            source_id: estimate.id,
+            project_id: estimate.project_id,
+            project_name: estimate.projects?.project_name || 'Unknown',
+            category: item.category as LineItemCategory,
+            description: item.description,
+            total: item.total_cost || (item.cost_per_unit * item.quantity) || 0,
+            matched_amount: 0 // Will be calculated below
+          }))
       );
 
-      const quoteLineItems: LineItemForMatching[] = quotes.flatMap(quote => 
+      // Include all accepted quotes (these are the actual committed costs)
+      const quoteLineItems: LineItemForMatching[] = acceptedQuotes.flatMap(quote => 
         (quote.quote_line_items || []).map(item => ({
           id: item.id,
           type: 'quote' as const,
