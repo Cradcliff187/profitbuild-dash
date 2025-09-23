@@ -500,26 +500,117 @@ export const ProjectsTableView = ({
       ),
     },
     {
-      key: 'approvedEstimateTotal',
-      label: 'Approved Estimate',
+      key: 'originalContract',
+      label: 'Original Contract',
       align: 'right' as const,
       sortable: true,
       render: (project: ProjectWithFinancials) => (
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="text-right cursor-help">
-              <div className="font-medium text-sm">{formatCurrency(project.approvedEstimateTotal)}</div>
+              <div className="font-medium text-sm">{formatCurrency(project.originalContractAmount)}</div>
             </div>
           </TooltipTrigger>
           <TooltipContent>
             <div>
-              <p><strong>Approved Estimate Total:</strong> {formatCurrency(project.approvedEstimateTotal)}</p>
-              <p>Original approved estimate amount before change orders</p>
-              <p>Base contract value from signed estimate</p>
+              <p><strong>Original Contract:</strong> {formatCurrency(project.originalContractAmount)}</p>
+              <p>Base approved estimate amount before any change orders</p>
+              <p>Original signed contract value</p>
             </div>
           </TooltipContent>
         </Tooltip>
       ),
+    },
+    {
+      key: 'changeOrders',
+      label: 'Change Orders',
+      align: 'center' as const,
+      sortable: true,
+      render: (project: ProjectWithFinancials) => {
+        const hasChangeOrders = (project.changeOrderCount || 0) > 0;
+        const changeOrderRevenue = project.changeOrderRevenue || 0;
+        const changeOrderCosts = project.changeOrderCosts || 0;
+        const netImpact = changeOrderRevenue - changeOrderCosts;
+        
+        if (!hasChangeOrders) {
+          return (
+            <div className="text-center">
+              <span className="text-muted-foreground text-xs">None</span>
+            </div>
+          );
+        }
+        
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-center cursor-help">
+                <div className="flex flex-col items-center gap-1">
+                  <span className="font-medium text-sm">{project.changeOrderCount}</span>
+                  <div className={`text-xs px-2 py-0.5 rounded ${
+                    netImpact > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' :
+                    netImpact < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' :
+                    'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400'
+                  }`}>
+                    {formatCurrency(netImpact)}
+                  </div>
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div>
+                <p><strong>Change Orders:</strong> {project.changeOrderCount} approved</p>
+                <p><strong>Revenue Impact:</strong> {formatCurrency(changeOrderRevenue)}</p>
+                <p><strong>Cost Impact:</strong> {formatCurrency(changeOrderCosts)}</p>
+                <p><strong>Net Impact:</strong> {formatCurrency(netImpact)}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {netImpact > 0 ? 'Positive impact on project profitability' :
+                   netImpact < 0 ? 'Negative impact on project profitability' :
+                   'Neutral impact on project profitability'}
+                </p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        );
+      }
+    },
+    {
+      key: 'currentContract',
+      label: 'Current Contract',
+      align: 'right' as const,
+      sortable: true,
+      render: (project: ProjectWithFinancials) => {
+        const hasChangeOrders = (project.changeOrderCount || 0) > 0;
+        const currentAmount = project.projectedRevenue || 0;
+        
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className="flex flex-col items-end">
+                  <div className="font-medium text-sm">{formatCurrency(currentAmount)}</div>
+                  {hasChangeOrders && (
+                    <div className="text-xs text-muted-foreground">
+                      +{formatCurrency(project.changeOrderRevenue || 0)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div>
+                <p><strong>Current Contract Value:</strong> {formatCurrency(currentAmount)}</p>
+                <p>Original Contract: {formatCurrency(project.originalContractAmount)}</p>
+                {hasChangeOrders && (
+                  <p>Change Order Revenue: +{formatCurrency(project.changeOrderRevenue || 0)}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Total revenue including approved change orders
+                </p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        );
+      }
     },
     {
       key: 'quoteCoverage',

@@ -15,6 +15,7 @@ export interface ProjectWithFinancials extends Project {
   // Contract Breakdown (Base + Change Orders)
   originalContractAmount: number; // Base approved estimate total
   changeOrderRevenue: number; // Revenue added from approved change orders
+  changeOrderCount: number; // Number of approved change orders
   currentContractAmount: number; // Original + change order revenue
   changeOrderCosts: number; // Cost impact from approved change orders
   changeOrderNetMargin: number; // Net margin impact from change orders (revenue - costs)
@@ -87,6 +88,7 @@ export async function calculateProjectFinancials(
   // Contract breakdown metrics
   let originalContractAmount = 0;
   let changeOrderRevenue = 0;
+  let changeOrderCount = 0;
   let currentContractAmount = 0;
   let changeOrderCosts = 0;
   let changeOrderNetMargin = 0;
@@ -166,6 +168,7 @@ export async function calculateProjectFinancials(
 
         // Calculate change order impacts first (needed for revenue calculation)
         if (approvedChangeOrders) {
+          changeOrderCount = approvedChangeOrders.length;
           changeOrderCosts = approvedChangeOrders.reduce((sum, co) => sum + (co.cost_impact || 0), 0);
           changeOrderRevenue = approvedChangeOrders.reduce((sum, co) => sum + (co.client_amount || 0), 0);
           changeOrderNetMargin = changeOrderRevenue - changeOrderCosts;
@@ -289,6 +292,7 @@ export async function calculateProjectFinancials(
     // Contract breakdown (base + change orders)
     originalContractAmount,
     changeOrderRevenue,
+    changeOrderCount,
     currentContractAmount,
     changeOrderCosts,
     changeOrderNetMargin,
@@ -417,6 +421,7 @@ export async function calculateMultipleProjectFinancials(
     // Contract breakdown metrics
     let originalContractAmount = 0;
     let changeOrderRevenue = 0;
+    let changeOrderCount = 0;
     let currentContractAmount = 0;
     let changeOrderCosts = 0;
     let changeOrderNetMargin = 0;
@@ -480,6 +485,7 @@ export async function calculateMultipleProjectFinancials(
       
       // Calculate change order impacts first (needed for revenue calculation)
       if (projectChangeOrders.length > 0) {
+        changeOrderCount = projectChangeOrders.length;
         changeOrderCosts = projectChangeOrders.reduce((sum, co) => sum + (co.cost_impact || 0), 0);
         changeOrderRevenue = projectChangeOrders.reduce((sum, co) => sum + (co.client_amount || 0), 0);
         changeOrderNetMargin = changeOrderRevenue - changeOrderCosts;
@@ -600,6 +606,7 @@ export async function calculateMultipleProjectFinancials(
       // Contract breakdown (base + change orders)
       originalContractAmount,
       changeOrderRevenue,
+      changeOrderCount,
       currentContractAmount,
       changeOrderCosts,
       changeOrderNetMargin,
