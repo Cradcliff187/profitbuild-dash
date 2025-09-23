@@ -3,6 +3,7 @@ import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, DollarSign, Calend
 import { ProjectStatusSelector } from "@/components/ProjectStatusSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,6 +55,8 @@ export const ProjectsTableView = ({
     open: false,
     project: null
   });
+
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
 
   const handleViewDetails = (project: Project) => {
     window.location.href = `/projects/${project.id}`;
@@ -891,9 +894,19 @@ export const ProjectsTableView = ({
                 <DropdownMenuItem 
                   onClick={() => setDeleteConfirm({open: true, project})}
                   className="text-destructive focus:text-destructive"
+                  disabled={deletingProjectId === project.id}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+                  {deletingProjectId === project.id ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </>
+                  )}
                 </DropdownMenuItem>
               </>
             )}
@@ -946,15 +959,28 @@ export const ProjectsTableView = ({
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction 
-                onClick={() => {
+                onClick={async () => {
                   if (deleteConfirm.project && onDelete) {
-                    onDelete(deleteConfirm.project.id);
+                    setDeletingProjectId(deleteConfirm.project.id);
+                    try {
+                      await onDelete(deleteConfirm.project.id);
+                    } finally {
+                      setDeletingProjectId(null);
+                      setDeleteConfirm({open: false, project: null});
+                    }
                   }
-                  setDeleteConfirm({open: false, project: null});
                 }}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={deletingProjectId === deleteConfirm.project?.id}
               >
-                Delete Project
+                {deletingProjectId === deleteConfirm.project?.id ? (
+                  <>
+                    <LoadingSpinner size="sm" className="mr-2" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Project'
+                )}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

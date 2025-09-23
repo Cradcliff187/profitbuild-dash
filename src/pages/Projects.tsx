@@ -215,60 +215,122 @@ const Projects = () => {
 
   const handleDelete = async (projectId: string) => {
     try {
-      // First, delete all related data in proper order
-      // Delete estimates (which will cascade to estimate_line_items)
-      const { error: estimatesError } = await supabase
-        .from('estimates')
-        .delete()
-        .eq('project_id', projectId);
+      console.log('Deleting project:', projectId);
       
-      if (estimatesError) throw estimatesError;
+      // Get estimate IDs first for proper deletion order
+      const { data: estimates } = await supabase
+        .from('estimates')
+        .select('id')
+        .eq('project_id', projectId);
 
-      // Delete quotes (which will cascade to quote_line_items)
+      const estimateIds = estimates?.map(e => e.id) || [];
+
+      // Delete in correct order to respect foreign key constraints:
+      // 1. Quote line items (references estimate_line_items)
+      if (estimateIds.length > 0) {
+        const { data: estimateLineItems } = await supabase
+          .from('estimate_line_items')
+          .select('id')
+          .in('estimate_id', estimateIds);
+          
+        const estimateLineItemIds = estimateLineItems?.map(eli => eli.id) || [];
+        
+        if (estimateLineItemIds.length > 0) {
+          const { error: quoteLineItemsError } = await supabase
+            .from('quote_line_items')
+            .delete()
+            .in('estimate_line_item_id', estimateLineItemIds);
+
+          if (quoteLineItemsError) {
+            console.error('Error deleting quote line items:', quoteLineItemsError);
+            throw quoteLineItemsError;
+          }
+        }
+      }
+
+      // 2. Quotes
       const { error: quotesError } = await supabase
         .from('quotes')
         .delete()
         .eq('project_id', projectId);
-      
-      if (quotesError) throw quotesError;
 
-      // Delete expenses
+      if (quotesError) {
+        console.error('Error deleting quotes:', quotesError);
+        throw quotesError;
+      }
+
+      // 3. Estimate line items
+      if (estimateIds.length > 0) {
+        const { error: estimateLineItemsError } = await supabase
+          .from('estimate_line_items')
+          .delete()
+          .in('estimate_id', estimateIds);
+
+        if (estimateLineItemsError) {
+          console.error('Error deleting estimate line items:', estimateLineItemsError);
+          throw estimateLineItemsError;
+        }
+      }
+
+      // 4. Estimates
+      const { error: estimatesError } = await supabase
+        .from('estimates')
+        .delete()
+        .eq('project_id', projectId);
+
+      if (estimatesError) {
+        console.error('Error deleting estimates:', estimatesError);
+        throw estimatesError;
+      }
+
+      // 5. Expenses
       const { error: expensesError } = await supabase
         .from('expenses')
         .delete()
         .eq('project_id', projectId);
-      
-      if (expensesError) throw expensesError;
 
-      // Delete change orders
+      if (expensesError) {
+        console.error('Error deleting expenses:', expensesError);
+        throw expensesError;
+      }
+
+      // 6. Change orders
       const { error: changeOrdersError } = await supabase
         .from('change_orders')
         .delete()
         .eq('project_id', projectId);
-      
-      if (changeOrdersError) throw changeOrdersError;
 
-      // Finally delete the project
+      if (changeOrdersError) {
+        console.error('Error deleting change orders:', changeOrdersError);
+        throw changeOrdersError;
+      }
+
+      // 7. Finally delete the project
       const { error: projectError } = await supabase
         .from('projects')
         .delete()
         .eq('id', projectId);
-      
-      if (projectError) throw projectError;
 
-      // Remove from local state
-      setProjects(prev => prev.filter(p => p.id !== projectId));
-      
+      if (projectError) {
+        console.error('Error deleting project:', projectError);
+        throw projectError;
+      }
+
+      // Update local state by removing the deleted project
+      setProjects(prevProjects => 
+        prevProjects.filter(p => p.id !== projectId)
+      );
+
       toast({
-        title: "Project Deleted",
-        description: "The project and all related data have been successfully deleted."
+        title: "Success",
+        description: "Project deleted successfully",
       });
     } catch (error) {
-      console.error('Error deleting project:', error);
+      console.error('Failed to delete project:', error);
       toast({
         title: "Error",
         description: "Failed to delete project. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
