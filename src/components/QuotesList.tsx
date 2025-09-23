@@ -54,28 +54,33 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
     return estimates.find(est => est.project_id === quote.project_id);
   };
 
-  const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {
+  const getEstimateLineItemCost = (quote: Quote): number | null => {
     const estimate = getEstimateForQuote(quote);
     if (!estimate || !estimate.lineItems || !quote.lineItems) {
-      return { amount: 0, percentage: 0, status: 'exact' };
+      return null;
     }
-    
-    let estimateCost = 0;
     
     // If quote is linked to a specific estimate line item, use that item's cost
     if (quote.estimate_line_item_id) {
       const targetLineItem = estimate.lineItems.find(item => item.id === quote.estimate_line_item_id);
       if (targetLineItem) {
-        estimateCost = targetLineItem.totalCost || (targetLineItem.quantity * targetLineItem.costPerUnit);
+        return targetLineItem.totalCost || (targetLineItem.quantity * targetLineItem.costPerUnit);
       }
     }
     
     // Fallback: If no specific line item link, match by categories present in quote
-    if (estimateCost === 0) {
-      const quoteCategorySet = new Set(quote.lineItems.map(item => item.category));
-      estimateCost = estimate.lineItems
-        .filter(item => quoteCategorySet.has(item.category))
-        .reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+    const quoteCategorySet = new Set(quote.lineItems.map(item => item.category));
+    const matchingItems = estimate.lineItems.filter(item => quoteCategorySet.has(item.category));
+    
+    if (matchingItems.length === 0) return null;
+    
+    return matchingItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+  };
+
+  const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {
+    const estimateCost = getEstimateLineItemCost(quote);
+    if (estimateCost === null) {
+      return { amount: 0, percentage: 0, status: 'exact' };
     }
     
     const quoteCost = calculateQuoteTotalCost(quote.lineItems);
@@ -441,9 +446,12 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
                     <div className="font-bold text-lg">${quote.total.toFixed(2)}</div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground">Estimate Total</div>
+                    <div className="text-muted-foreground">Estimate Cost</div>
                     <div className="font-medium">
-                      {estimate ? `$${estimate.total_amount.toFixed(2)}` : 'N/A'}
+                      {(() => {
+                        const estimateCost = getEstimateLineItemCost(quote);
+                        return estimateCost !== null ? `$${estimateCost.toFixed(2)}` : 'N/A';
+                      })()}
                     </div>
                   </div>
                   {quote.valid_until && (
@@ -466,32 +474,6 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
                   )}
                 </div>
 
-                {/* Quote Includes */}
-                <div className="flex items-center gap-6 text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Includes:</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {quote.includes_materials ? (
-                      <Check className="h-4 w-4 text-success" />
-                    ) : (
-                      <X className="h-4 w-4 text-muted-foreground" />
-                    )}
-                    <span className={quote.includes_materials ? "text-success font-medium" : "text-muted-foreground"}>
-                      Materials
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {quote.includes_labor ? (
-                      <Check className="h-4 w-4 text-success" />
-                    ) : (
-                      <X className="h-4 w-4 text-muted-foreground" />
-                    )}
-                    <span className={quote.includes_labor ? "text-success font-medium" : "text-muted-foreground"}>
-                      Labor
-                    </span>
-                  </div>
-                </div>
 
                 {/* Budget Variance */}
                 {estimate && (

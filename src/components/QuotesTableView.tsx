@@ -57,28 +57,33 @@ export const QuotesTableView = ({
     return estimates.find(est => est.project_id === quote.project_id);
   };
 
-  const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {
+  const getEstimateLineItemCost = (quote: Quote): number | null => {
     const estimate = getEstimateForQuote(quote);
     if (!estimate || !estimate.lineItems || !quote.lineItems) {
-      return { amount: 0, percentage: 0, status: 'exact' };
+      return null;
     }
-    
-    let estimateCost = 0;
     
     // If quote is linked to a specific estimate line item, use that item's cost
     if (quote.estimate_line_item_id) {
       const targetLineItem = estimate.lineItems.find(item => item.id === quote.estimate_line_item_id);
       if (targetLineItem) {
-        estimateCost = targetLineItem.totalCost || (targetLineItem.quantity * targetLineItem.costPerUnit);
+        return targetLineItem.totalCost || (targetLineItem.quantity * targetLineItem.costPerUnit);
       }
     }
     
     // Fallback: If no specific line item link, match by categories present in quote
-    if (estimateCost === 0) {
-      const quoteCategorySet = new Set(quote.lineItems.map(item => item.category));
-      estimateCost = estimate.lineItems
-        .filter(item => quoteCategorySet.has(item.category))
-        .reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+    const quoteCategorySet = new Set(quote.lineItems.map(item => item.category));
+    const matchingItems = estimate.lineItems.filter(item => quoteCategorySet.has(item.category));
+    
+    if (matchingItems.length === 0) return null;
+    
+    return matchingItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+  };
+
+  const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {
+    const estimateCost = getEstimateLineItemCost(quote);
+    if (estimateCost === null) {
+      return { amount: 0, percentage: 0, status: 'exact' };
     }
     
     const quoteCost = calculateQuoteTotalCost(quote.lineItems);
@@ -233,14 +238,17 @@ export const QuotesTableView = ({
     },
     {
       key: 'estimate_total',
-      label: 'Estimate Total',
+      label: 'Estimate Cost',
       align: 'right',
       width: '130px',
-      render: (quote) => (
-        <div className="text-sm tabular-nums text-foreground/80">
-          {quote.estimate ? `$${quote.estimate.total_amount.toLocaleString()}` : 'N/A'}
-        </div>
-      ),
+      render: (quote) => {
+        const estimateCost = getEstimateLineItemCost(quote);
+        return (
+          <div className="text-sm tabular-nums text-foreground/80">
+            {estimateCost !== null ? `$${estimateCost.toLocaleString()}` : 'N/A'}
+          </div>
+        );
+      },
     },
     {
       key: 'cost_variance',
@@ -282,26 +290,6 @@ export const QuotesTableView = ({
         const status = getQuoteStatus(quote);
         return <BudgetComparisonBadge status={status} />;
       },
-    },
-    {
-      key: 'includes',
-      label: 'Includes',
-      align: 'center',
-      width: '100px',
-      render: (quote) => (
-        <div className="flex items-center gap-1 text-xs">
-          {quote.includes_materials && (
-            <Badge variant="outline" className="text-xs px-1 py-0 bg-blue-50 text-blue-700 border-blue-200">
-              Mat
-            </Badge>
-          )}
-          {quote.includes_labor && (
-            <Badge variant="outline" className="text-xs px-1 py-0 bg-green-50 text-green-700 border-green-200">
-              Lab
-            </Badge>
-          )}
-        </div>
-      ),
     },
     {
       key: 'actions',
