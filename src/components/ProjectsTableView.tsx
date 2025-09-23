@@ -616,44 +616,6 @@ export const ProjectsTableView = ({
       }
     },
     {
-      key: 'quoteCoverage',
-      label: 'Quote Coverage',
-      align: 'center' as const,
-      sortable: true,
-      render: (project: ProjectWithFinancials) => {
-        const coverage = project.quoteCoveragePercentage || 0;
-        let className = 'text-xs px-2 py-1 rounded-full border font-medium';
-        
-        if (coverage >= 90) {
-          className += ' bg-success/10 text-success border-success/20';
-        } else if (coverage >= 70) {
-          className += ' bg-warning/10 text-warning border-warning/20';
-        } else {
-          className += ' bg-destructive/10 text-destructive border-destructive/20';
-        }
-        
-        return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="text-center cursor-help">
-                <div className={className}>
-                  {coverage.toFixed(0)}%
-                </div>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div>
-                <p><strong>Quote Coverage:</strong> {coverage.toFixed(1)}%</p>
-                <p>Percentage of external costs covered by accepted quotes</p>
-                <p>Quoted: {formatCurrency(project.quotedOriginalScope + project.quotedChangeOrderScope)}</p>
-                <p>Unquoted: {formatCurrency(project.unquotedOriginalScope + project.unquotedChangeOrderScope)}</p>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        );
-      }
-    },
-    {
       key: 'originalEstimatedCosts',
       label: 'Original Est. Costs',
       align: 'right' as const,

@@ -22,15 +22,6 @@ export interface ProjectWithFinancials extends Project {
   
   // Quote Analysis Measurements (Updated for Change Orders)
   totalAcceptedQuoteAmount: number; // Sum of all accepted quotes
-  quotedOriginalScope: number; // External costs covered by quotes (original scope only)
-  quotedChangeOrderScope: number; // External costs covered by quotes (change order scope)
-  unquotedOriginalScope: number; // Original external costs not yet quoted
-  unquotedChangeOrderScope: number; // Change order external costs not yet quoted
-  quotedVsEstimatedVariance: number; // Difference between quotes and estimate for external costs
-  quoteCoveragePercentage: number; // Percentage of total scope covered by quotes
-  originalScopeCoveragePercentage: number; // Percentage of original scope covered by quotes
-  changeOrderScopeCoveragePercentage: number; // Percentage of change order scope covered by quotes
-  quoteBasedMargin: number; // Expected margin using quote costs instead of estimates
   
   // Current Project Performance
   actualExpenses: number;
@@ -100,15 +91,6 @@ export async function calculateProjectFinancials(
   
   // Quote analysis metrics (updated for change orders)
   let totalAcceptedQuoteAmount = 0;
-  let quotedOriginalScope = 0;
-  let quotedChangeOrderScope = 0;
-  let unquotedOriginalScope = 0;
-  let unquotedChangeOrderScope = 0;
-  let quotedVsEstimatedVariance = 0;
-  let quoteCoveragePercentage = 0;
-  let originalScopeCoveragePercentage = 0;
-  let changeOrderScopeCoveragePercentage = 0;
-  let quoteBasedMargin = 0;
 
   // Calculate financials if there's an approved estimate, otherwise use pending data for preview
   const estimateToUse = currentEstimate || pendingEstimate;
@@ -196,95 +178,12 @@ export async function calculateProjectFinancials(
         projectedRevenue = currentContractAmount;
         
         // Calculate quote analysis metrics
-        const categoryQuotes = new Map(); // Maps estimate_line_item_id to quote price
-        const categoryQuoteCosts = new Map(); // Maps estimate_line_item_id to actual quote costs
-        const changeOrderQuotes = new Map(); // Track quotes specifically for change order items
-        
         if (acceptedQuotes) {
           totalAcceptedQuoteAmount = acceptedQuotes.reduce((sum, quote) => sum + (quote.total_amount || 0), 0);
-          
-          acceptedQuotes.forEach(quote => {
-            if (quote.estimate_line_item_id) {
-              categoryQuotes.set(quote.estimate_line_item_id, quote.total_amount);
-            }
-          });
         }
 
-        // Map quote line item costs to estimate line items (for external categories)
-        if (quoteLineItems) {
-          quoteLineItems.forEach(qli => {
-            if (qli.estimate_line_item_id) {
-              // For external categories, use the actual cost from quote line items
-              categoryQuoteCosts.set(qli.estimate_line_item_id, qli.total_cost || 0);
-            }
-          });
-        }
-
-        // Fallback: if all accepted quotes are unlinked to estimate line items, treat their total as projected external costs
-        const allQuotesUnlinked = (acceptedQuotes || []).length > 0 && (acceptedQuotes || []).every(q => !q.estimate_line_item_id);
-
-        if (allQuotesUnlinked) {
-          quotedOriginalScope = totalAcceptedQuoteAmount;
-          unquotedOriginalScope = Math.max(approvedEstimateExternalCosts - quotedOriginalScope, 0);
-        } else {
-          // Calculate quoted vs unquoted costs for original scope using linked quotes
-          quotedOriginalScope = externalItems.reduce((sum, item) => {
-            const quotedAmount = categoryQuotes.get(item.id);
-            return quotedAmount !== undefined ? sum + quotedAmount : sum;
-          }, 0);
-          
-          unquotedOriginalScope = externalItems.reduce((sum, item) => {
-            const quotedAmount = categoryQuotes.get(item.id);
-            if (quotedAmount === undefined) {
-              const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
-              return sum + itemCost;
-            }
-            return sum;
-          }, 0);
-        }
-        
-        // For now, assume change order scope is unquoted unless we have specific data
-        quotedChangeOrderScope = 0;
-        unquotedChangeOrderScope = changeOrderCosts;
-        
-        // Calculate coverage percentages
-        const totalOriginalScope = approvedEstimateExternalCosts;
-        const totalChangeOrderScope = changeOrderCosts;
-        const totalScope = totalOriginalScope + totalChangeOrderScope;
-        const totalQuoted = quotedOriginalScope + quotedChangeOrderScope;
-        
-        originalScopeCoveragePercentage = totalOriginalScope > 0 
-          ? (quotedOriginalScope / totalOriginalScope) * 100 
-          : 0;
-        changeOrderScopeCoveragePercentage = totalChangeOrderScope > 0 
-          ? (quotedChangeOrderScope / totalChangeOrderScope) * 100 
-          : 0;
-        quoteCoveragePercentage = totalScope > 0 
-          ? (totalQuoted / totalScope) * 100 
-          : 0;
-        
-        // Calculate variances and projections
-        quotedVsEstimatedVariance = quotedOriginalScope - approvedEstimateExternalCosts;
-        
-        // Calculate projected costs using actual quote costs when available
-        const projectedOriginalCosts = allQuotesUnlinked
-          ? totalAcceptedQuoteAmount
-          : externalItems.reduce((sum, item) => {
-              // Use actual quote line item cost if available (this is the real cost to us)
-              const quotedCost = categoryQuoteCosts.get(item.id);
-              if (quotedCost !== undefined) {
-                return sum + quotedCost;
-              }
-              // Fallback to estimated cost if no quote available
-              const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
-              return sum + itemCost;
-            }, 0);
-        
-        // Add change order costs to projected costs
-        projectedCosts = projectedOriginalCosts + changeOrderCosts;
-        
-        // Calculate quote-based margin (uses quoted costs where available)
-        quoteBasedMargin = currentContractAmount - (approvedEstimateInternalLaborCost + projectedCosts);
+        // Calculate projected costs using estimated values
+        projectedCosts = approvedEstimateExternalCosts + changeOrderCosts;
       }
     } catch (error) {
       console.error('Error calculating project financials:', error);
@@ -306,7 +205,7 @@ export async function calculateProjectFinancials(
   // Calculate variance metrics (including change order impacts)
   const originalBudget = estimatedCost + approvedEstimateExternalCosts;
   const actualVsEstimatedVariance = actualExpenses - (originalBudget + changeOrderCosts);
-  const actualVsQuotedVariance = actualExpenses - (estimatedCost + quotedOriginalScope + quotedChangeOrderScope);
+  const actualVsQuotedVariance = actualExpenses - (estimatedCost + totalAcceptedQuoteAmount);
   const budgetBurnRate = projectedRevenue > 0 ? (actualExpenses / projectedRevenue) * 100 : 0;
   const changeOrderImpactOnMargin = changeOrderNetMargin;
 
@@ -336,15 +235,6 @@ export async function calculateProjectFinancials(
     
     // Quote analysis measurements (updated for change orders)
     totalAcceptedQuoteAmount,
-    quotedOriginalScope,
-    quotedChangeOrderScope,
-    unquotedOriginalScope,
-    unquotedChangeOrderScope,
-    quotedVsEstimatedVariance,
-    quoteCoveragePercentage,
-    originalScopeCoveragePercentage,
-    changeOrderScopeCoveragePercentage,
-    quoteBasedMargin,
     
     // Current project performance
     actualExpenses,
@@ -473,15 +363,6 @@ export async function calculateMultipleProjectFinancials(
     
     // Quote analysis metrics (updated for change orders)
     let totalAcceptedQuoteAmount = 0;
-    let quotedOriginalScope = 0;
-    let quotedChangeOrderScope = 0;
-    let unquotedOriginalScope = 0;
-    let unquotedChangeOrderScope = 0;
-    let quotedVsEstimatedVariance = 0;
-    let quoteCoveragePercentage = 0;
-    let originalScopeCoveragePercentage = 0;
-    let changeOrderScopeCoveragePercentage = 0;
-    let quoteBasedMargin = 0;
 
     // Only calculate financials if there's an approved estimate
     if (currentEstimate?.id) {
@@ -547,92 +428,13 @@ export async function calculateMultipleProjectFinancials(
 
       // Get quotes for this project
       const projectQuotes = allQuotes.filter(q => q.project_id === project.id);
-      const categoryQuotes = new Map(); // Maps estimate_line_item_id to quote price
-      const categoryQuoteCosts = new Map(); // Maps estimate_line_item_id to actual quote costs
-      const changeOrderQuotes = new Map(); // Track quotes specifically for change order items
       
       if (projectQuotes.length > 0) {
         totalAcceptedQuoteAmount = projectQuotes.reduce((sum, quote) => sum + (quote.total_amount || 0), 0);
-        
-        projectQuotes.forEach(quote => {
-          if (quote.estimate_line_item_id) {
-            categoryQuotes.set(quote.estimate_line_item_id, quote.total_amount);
-          }
-        });
       }
 
-      // Map quote line item costs to estimate line items (for external categories)
-      const projectQuoteLineItems = allQuoteLineItems.filter(qli => 
-        projectQuotes.some(q => q.id === qli.quote_id)
-      );
-      
-      if (projectQuoteLineItems.length > 0) {
-        projectQuoteLineItems.forEach(qli => {
-          if (qli.estimate_line_item_id) {
-            // For external categories, use the actual cost from quote line items
-            categoryQuoteCosts.set(qli.estimate_line_item_id, qli.total_cost || 0);
-          }
-        });
-      }
-
-      // Determine if quotes are actually linked by checking quote line items
-      const hasLinkedQuoteLineItems = projectQuoteLineItems.some(qli => qli.estimate_line_item_id);
-
-      // Calculate quoted vs unquoted costs for original scope
-      quotedOriginalScope = externalItems.reduce((sum, item) => {
-        const quotedAmount = categoryQuotes.get(item.id);
-        return quotedAmount !== undefined ? sum + quotedAmount : sum;
-      }, 0);
-      
-      unquotedOriginalScope = externalItems.reduce((sum, item) => {
-        const quotedAmount = categoryQuotes.get(item.id);
-        if (quotedAmount === undefined) {
-          const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
-          return sum + itemCost;
-        }
-        return sum;
-      }, 0);
-      
-      // For now, assume change order scope is unquoted unless we have specific data
-      quotedChangeOrderScope = 0;
-      unquotedChangeOrderScope = changeOrderCosts;
-      
-      // Calculate coverage percentages
-      const totalOriginalScope = approvedEstimateExternalCosts;
-      const totalChangeOrderScope = changeOrderCosts;
-      const totalScope = totalOriginalScope + totalChangeOrderScope;
-      const totalQuoted = quotedOriginalScope + quotedChangeOrderScope;
-      
-      originalScopeCoveragePercentage = totalOriginalScope > 0 
-        ? (quotedOriginalScope / totalOriginalScope) * 100 
-        : 0;
-      changeOrderScopeCoveragePercentage = totalChangeOrderScope > 0 
-        ? (quotedChangeOrderScope / totalChangeOrderScope) * 100 
-        : 0;
-      quoteCoveragePercentage = totalScope > 0 
-        ? (totalQuoted / totalScope) * 100 
-        : 0;
-      
-      // Calculate variances and projections
-      quotedVsEstimatedVariance = quotedOriginalScope - approvedEstimateExternalCosts;
-      
-      // Calculate projected external costs using actual quote line item costs
-      const projectedOriginalCosts = externalItems.reduce((sum, item) => {
-        // Use actual quote line item cost if available (this is the real cost to us)
-        const quotedCost = categoryQuoteCosts.get(item.id);
-        if (quotedCost !== undefined) {
-          return sum + quotedCost;
-        }
-        // Fallback to estimated cost if no quote available
-        const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
-        return sum + itemCost;
-      }, 0);
-      
-      // Add change order costs to projected costs
-      projectedCosts = projectedOriginalCosts + changeOrderCosts;
-      
-      // Calculate quote-based margin (uses quoted costs where available)
-      quoteBasedMargin = currentContractAmount - (approvedEstimateInternalLaborCost + projectedCosts);
+      // Calculate projected costs using estimated values
+      projectedCosts = approvedEstimateExternalCosts + changeOrderCosts;
     }
 
     // Calculate actual expenses for this project
@@ -649,7 +451,7 @@ export async function calculateMultipleProjectFinancials(
     // Calculate variance metrics (including change order impacts)
     const originalBudget = estimatedCost + approvedEstimateExternalCosts;
     const actualVsEstimatedVariance = actualExpenses - (originalBudget + changeOrderCosts);
-    const actualVsQuotedVariance = actualExpenses - (estimatedCost + quotedOriginalScope + quotedChangeOrderScope);
+    const actualVsQuotedVariance = actualExpenses - (estimatedCost + totalAcceptedQuoteAmount);
     const budgetBurnRate = projectedRevenue > 0 ? (actualExpenses / projectedRevenue) * 100 : 0;
     const changeOrderImpactOnMargin = changeOrderNetMargin;
 
@@ -679,15 +481,6 @@ export async function calculateMultipleProjectFinancials(
       
       // Quote analysis measurements (updated for change orders)
       totalAcceptedQuoteAmount,
-      quotedOriginalScope,
-      quotedChangeOrderScope,
-      unquotedOriginalScope,
-      unquotedChangeOrderScope,
-      quotedVsEstimatedVariance,
-      quoteCoveragePercentage,
-      originalScopeCoveragePercentage,
-      changeOrderScopeCoveragePercentage,
-      quoteBasedMargin,
       
       // Current project performance
       actualExpenses,
