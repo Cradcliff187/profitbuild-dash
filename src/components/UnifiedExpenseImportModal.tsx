@@ -67,7 +67,7 @@ export const UnifiedExpenseImportModal = ({
               
               <div className="grid gap-4">
                 <Card 
-                  className="cursor-pointer transition-colors hover:bg-accent/50"
+                  className="cursor-pointer transition-colors hover:bg-accent/50 border-primary/20"
                   onClick={() => handleMethodSelect('quickbooks')}
                 >
                   <CardHeader className="pb-3">
@@ -76,12 +76,15 @@ export const UnifiedExpenseImportModal = ({
                         <div className="p-2 bg-primary/10 rounded-lg">
                           <Receipt className="h-5 w-5 text-primary" />
                         </div>
-                        <span>QuickBooks Export</span>
+                        <div>
+                          <span>QuickBooks Export</span>
+                          <div className="text-xs text-primary font-normal">Recommended for QB users</div>
+                        </div>
                       </div>
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </CardTitle>
                     <CardDescription>
-                      Import from QuickBooks exported files with enhanced parsing and project matching
+                      For CSV files exported directly from QuickBooks. Includes both revenue and expenses with automatic entity matching and project correlation.
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -96,12 +99,15 @@ export const UnifiedExpenseImportModal = ({
                         <div className="p-2 bg-secondary/10 rounded-lg">
                           <Upload className="h-5 w-5 text-secondary" />
                         </div>
-                        <span>CSV File</span>
+                        <div>
+                          <span>Standard CSV File</span>
+                          <div className="text-xs text-muted-foreground font-normal">Expense-only imports</div>
+                        </div>
                       </div>
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </CardTitle>
                     <CardDescription>
-                      Import from custom CSV files with manual column mapping
+                      For basic expense CSV files from other sources. Requires manual column mapping to expense fields.
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -116,15 +122,24 @@ export const UnifiedExpenseImportModal = ({
                         <div className="p-2 bg-accent/10 rounded-lg">
                           <FileDown className="h-5 w-5 text-accent" />
                         </div>
-                        <span>Bank Transactions</span>
+                        <div>
+                          <span>Bank Transactions</span>
+                          <div className="text-xs text-muted-foreground font-normal">Direct bank imports</div>
+                        </div>
                       </div>
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </CardTitle>
                     <CardDescription>
-                      Import transaction files directly from your bank or financial institution
+                      Import transaction files directly from your bank or financial institution for expense tracking.
                     </CardDescription>
                   </CardHeader>
                 </Card>
+
+                <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Not sure which to choose?</strong> If you exported data from QuickBooks, use "QuickBooks Export". For other expense files, use "Standard CSV File".
+                  </p>
+                </div>
               </div>
             </div>
           )}

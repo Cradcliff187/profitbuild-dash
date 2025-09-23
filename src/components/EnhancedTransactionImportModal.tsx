@@ -155,8 +155,8 @@ export const EnhancedTransactionImportModal: React.FC<EnhancedTransactionImportM
       <Alert>
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          Enhanced QuickBooks import supports both invoices (revenue) and expenses in a single file. 
-          Ensure your CSV includes the standard QuickBooks headers.
+          <strong>QuickBooks CSV files only:</strong> This import processes both invoices (revenue) and expenses from QuickBooks exports. 
+          Make sure your file was exported directly from QuickBooks with standard headers and transaction types.
         </AlertDescription>
       </Alert>
 

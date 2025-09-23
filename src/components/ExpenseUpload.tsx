@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, FileText, AlertCircle, CheckCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -126,7 +126,10 @@ export const ExpenseUpload: React.FC<ExpenseUploadProps> = ({ estimates, onExpen
       {step === 'upload' && (
         <Card>
           <CardHeader>
-            <CardTitle>Upload CSV File</CardTitle>
+            <CardTitle>Upload Standard CSV File</CardTitle>
+            <CardDescription>
+              Import expense-only data from spreadsheets, accounting software (non-QuickBooks), or custom CSV files
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div
@@ -137,10 +140,10 @@ export const ExpenseUpload: React.FC<ExpenseUploadProps> = ({ estimates, onExpen
             >
               <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-lg font-medium mb-2">
-                {selectedFile ? selectedFile.name : 'Drop your CSV file here or click to browse'}
+                {selectedFile ? selectedFile.name : 'Drop your standard CSV file here or click to browse'}
               </p>
               <p className="text-muted-foreground">
-                Supports QuickBooks exports and standard CSV formats
+                For basic expense CSV files (not QuickBooks exports)
               </p>
               <input
                 id="file-input"
