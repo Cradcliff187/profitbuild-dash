@@ -63,7 +63,24 @@ export const QuotesTableView = ({
       return { amount: 0, percentage: 0, status: 'exact' };
     }
     
-    const estimateCost = calculateEstimateTotalCost(estimate.lineItems);
+    let estimateCost = 0;
+    
+    // If quote is linked to a specific estimate line item, use that item's cost
+    if (quote.estimate_line_item_id) {
+      const targetLineItem = estimate.lineItems.find(item => item.id === quote.estimate_line_item_id);
+      if (targetLineItem) {
+        estimateCost = targetLineItem.totalCost || (targetLineItem.quantity * targetLineItem.costPerUnit);
+      }
+    }
+    
+    // Fallback: If no specific line item link, match by categories present in quote
+    if (estimateCost === 0) {
+      const quoteCategorySet = new Set(quote.lineItems.map(item => item.category));
+      estimateCost = estimate.lineItems
+        .filter(item => quoteCategorySet.has(item.category))
+        .reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+    }
+    
     const quoteCost = calculateQuoteTotalCost(quote.lineItems);
     
     const difference = quoteCost - estimateCost; // Quote cost - estimate cost

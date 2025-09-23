@@ -60,7 +60,24 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
       return { amount: 0, percentage: 0, status: 'exact' };
     }
     
-    const estimateCost = calculateEstimateTotalCost(estimate.lineItems);
+    let estimateCost = 0;
+    
+    // If quote is linked to a specific estimate line item, use that item's cost
+    if (quote.estimate_line_item_id) {
+      const targetLineItem = estimate.lineItems.find(item => item.id === quote.estimate_line_item_id);
+      if (targetLineItem) {
+        estimateCost = targetLineItem.totalCost || (targetLineItem.quantity * targetLineItem.costPerUnit);
+      }
+    }
+    
+    // Fallback: If no specific line item link, match by categories present in quote
+    if (estimateCost === 0) {
+      const quoteCategorySet = new Set(quote.lineItems.map(item => item.category));
+      estimateCost = estimate.lineItems
+        .filter(item => quoteCategorySet.has(item.category))
+        .reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+    }
+    
     const quoteCost = calculateQuoteTotalCost(quote.lineItems);
     
     const difference = quoteCost - estimateCost; // Quote cost - estimate cost
@@ -69,7 +86,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
     return {
       amount: Math.abs(difference),
       percentage: Math.abs(percentage),
-      // When quote cost > estimate cost = bad for margins (over budget on costs)
+      // When quote cost > estimate cost = bad for margins (over budget on costs)  
       // When quote cost < estimate cost = good for margins (under budget on costs)
       status: difference > 0 ? 'over' : difference < 0 ? 'under' : 'exact'
     };
