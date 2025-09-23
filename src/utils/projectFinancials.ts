@@ -11,6 +11,7 @@ export interface ProjectWithFinancials extends Project {
   projectedCosts: number; // External costs (quotes/estimates + change order costs)
   projectedMargin: number;
   nonInternalLineItemCount: number;
+  totalLineItemCount: number; // Total count of all line items in approved estimate
   totalEstimatedCosts: number; // Internal labor + external costs (complete project cost estimate)
 }
 
@@ -36,6 +37,7 @@ export async function calculateProjectFinancials(
   let projectedRevenue = 0;
   let projectedCosts = 0;
   let nonInternalLineItemCount = 0;
+  let totalLineItemCount = 0;
 
   // Only calculate financials if there's an approved estimate
   if (currentEstimate?.id) {
@@ -77,6 +79,9 @@ export async function calculateProjectFinancials(
         nonInternalLineItemCount = lineItems.filter(
           item => item.category !== 'labor_internal'
         ).length;
+
+        // Count total line items
+        totalLineItemCount = lineItems.length;
 
         // Calculate projected costs using quotes where available, estimate costs otherwise
         const categoryQuotes = new Map();
@@ -141,6 +146,7 @@ export async function calculateProjectFinancials(
     projectedCosts,
     projectedMargin,
     nonInternalLineItemCount,
+    totalLineItemCount,
     totalEstimatedCosts,
   };
 }
@@ -222,6 +228,7 @@ export async function calculateMultipleProjectFinancials(
     let projectedRevenue = 0;
     let projectedCosts = 0;
     let nonInternalLineItemCount = 0;
+    let totalLineItemCount = 0;
 
     // Only calculate financials if there's an approved estimate
     if (currentEstimate?.id) {
@@ -245,6 +252,9 @@ export async function calculateMultipleProjectFinancials(
       nonInternalLineItemCount = projectLineItems.filter(
         item => item.category !== 'labor_internal'
       ).length;
+
+      // Count total line items
+      totalLineItemCount = projectLineItems.length;
 
       // Get quotes for this project
       const projectQuotes = allQuotes.filter(q => q.project_id === project.id);
@@ -302,6 +312,7 @@ export async function calculateMultipleProjectFinancials(
       projectedCosts,
       projectedMargin,
       nonInternalLineItemCount,
+      totalLineItemCount,
       totalEstimatedCosts,
     };
   });
