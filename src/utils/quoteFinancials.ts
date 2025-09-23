@@ -131,6 +131,37 @@ export function compareQuoteToEstimate(
   return comparison;
 }
 
+// Profit calculation functions for quote analysis
+export function calculateQuoteProfitPerUnit(estimatePrice: number, vendorCost: number): number {
+  return estimatePrice - vendorCost;
+}
+
+export function calculateQuoteTotalProfit(quoteLineItems: QuoteLineItem[], estimateLineItems: LineItem[]): number {
+  return quoteLineItems.reduce((totalProfit, quoteItem) => {
+    const estimateItem = estimateLineItems.find(e => e.id === quoteItem.estimateLineItemId);
+    if (!estimateItem) return totalProfit;
+    
+    const profitPerUnit = calculateQuoteProfitPerUnit(estimateItem.pricePerUnit, quoteItem.costPerUnit);
+    return totalProfit + (profitPerUnit * quoteItem.quantity);
+  }, 0);
+}
+
+export function calculateQuoteProfitMargin(totalProfit: number, totalRevenue: number): number {
+  if (totalRevenue === 0) return 0;
+  return (totalProfit / totalRevenue) * 100;
+}
+
+export function calculateMinimumAcceptableCost(estimatePrice: number, targetMarginPercent: number): number {
+  return estimatePrice * (1 - (targetMarginPercent / 100));
+}
+
+export function getProfitStatus(profitMargin: number): 'excellent' | 'good' | 'acceptable' | 'loss' {
+  if (profitMargin >= 25) return 'excellent';
+  if (profitMargin >= 15) return 'good';
+  if (profitMargin >= 5) return 'acceptable';
+  return 'loss';
+}
+
 // Performance status functions
 export function getCostVarianceStatus(variancePercent: number): 'excellent' | 'good' | 'poor' | 'critical' {
   const absVariance = Math.abs(variancePercent);

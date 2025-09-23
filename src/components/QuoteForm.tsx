@@ -20,7 +20,7 @@ import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/ty
 import { Quote, QuoteLineItem, QuoteStatus } from "@/types/quote";
 import { Payee } from "@/types/payee";
 import { useToast } from "@/hooks/use-toast";
-import { calculateQuoteFinancials } from "@/utils/quoteFinancials";
+import { calculateQuoteFinancials, calculateQuoteTotalProfit, calculateQuoteProfitMargin, getProfitStatus } from "@/utils/quoteFinancials";
 import { calculateEstimateFinancials } from "@/utils/estimateFinancials";
 
 interface QuoteFormProps {
@@ -53,9 +53,9 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     category: estimateItem.category,
     description: estimateItem.description,
     quantity: estimateItem.quantity,
-    pricePerUnit: estimateItem.pricePerUnit, // Start with estimate price
-    total: estimateItem.total,
-    costPerUnit: estimateItem.costPerUnit,
+    pricePerUnit: estimateItem.pricePerUnit, // Locked to estimate price
+    total: estimateItem.total, // Based on estimate price
+    costPerUnit: estimateItem.costPerUnit, // Start with estimate cost for vendor input
     markupPercent: null,
     markupAmount: null,
     totalCost: estimateItem.totalCost,
@@ -147,12 +147,12 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
             return isNaN(parsed) || !isFinite(parsed) ? 0 : parsed;
           };
           
-          if (field === 'quantity' || field === 'pricePerUnit') {
+          // For quotes, price per unit is locked to estimate price
+          // Only quantity affects the total revenue
+          if (field === 'quantity') {
             const quantity = parseNumber(updated.quantity);
-            const pricePerUnit = parseNumber(updated.pricePerUnit);
             updated.quantity = quantity;
-            updated.pricePerUnit = pricePerUnit;
-            updated.total = quantity * pricePerUnit;
+            updated.total = quantity * updated.pricePerUnit; // Keep estimate price
           }
           
           if (field === 'quantity' || field === 'costPerUnit') {
@@ -165,8 +165,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
           
           // Ensure all numeric fields are valid numbers
           if (field === 'quantity') updated.quantity = parseNumber(value);
-          if (field === 'pricePerUnit') updated.pricePerUnit = parseNumber(value);
           if (field === 'costPerUnit') updated.costPerUnit = parseNumber(value);
+          // pricePerUnit is locked to estimate value
           
           return updated;
         }
@@ -183,26 +183,25 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     setLineItems(prev => [...prev, createNewQuoteLineItem()]);
   };
 
-  const getVarianceColor = (estimated: number, quoted: number) => {
-    if (quoted === estimated) return "text-muted-foreground";
-    return quoted > estimated ? "text-destructive" : "text-green-600";
+  const getProfitColor = (profit: number) => {
+    if (profit > 0) return "text-green-600";
+    if (profit < 0) return "text-destructive";
+    return "text-muted-foreground";
   };
 
-  const getVarianceIcon = (estimated: number, quoted: number) => {
-    if (quoted === estimated) return null;
-    return quoted > estimated ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />;
+  const getProfitIcon = (profit: number) => {
+    if (profit > 0) return <TrendingUp className="h-3 w-3" />;
+    if (profit < 0) return <TrendingDown className="h-3 w-3" />;
+    return null;
   };
 
-  const formatVariance = (estimated: number, quoted: number) => {
-    // Safely handle potential NaN or invalid numbers
-    const estimatedSafe = isNaN(estimated) || !isFinite(estimated) ? 0 : estimated;
-    const quotedSafe = isNaN(quoted) || !isFinite(quoted) ? 0 : quoted;
+  const formatProfit = (estimatePrice: number, vendorCost: number, quantity: number = 1) => {
+    const profitPerUnit = estimatePrice - vendorCost;
+    const totalProfit = profitPerUnit * quantity;
+    const marginPercent = estimatePrice > 0 ? (profitPerUnit / estimatePrice) * 100 : 0;
     
-    const difference = quotedSafe - estimatedSafe;
-    const percentage = estimatedSafe > 0 ? (difference / estimatedSafe) * 100 : 0;
-    const sign = difference >= 0 ? "+" : "";
-    
-    return `${sign}$${difference.toFixed(2)} (${sign}${percentage.toFixed(1)}%)`;
+    const sign = totalProfit >= 0 ? "+" : "";
+    return `${sign}$${totalProfit.toFixed(2)} (${marginPercent.toFixed(1)}%)`;
   };
 
   const determineQuoteIncludes = (lineItems: QuoteLineItem[]) => {
@@ -458,6 +457,11 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   );
   const estimateFinancials = calculateEstimateFinancials(relevantEstimateLineItems);
   const quoteFinancials = calculateQuoteFinancials(lineItems);
+  
+  // Calculate profit metrics
+  const totalProfit = calculateQuoteTotalProfit(lineItems, relevantEstimateLineItems);
+  const profitMargin = calculateQuoteProfitMargin(totalProfit, estimateFinancials.totalAmount);
+  const profitStatus = getProfitStatus(profitMargin);
 
   return (
     <div className="space-y-6">
@@ -554,22 +558,25 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-muted-foreground">Vendor Quote</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Vendor Cost</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${quoteFinancials.totalAmount.toFixed(2)}</div>
-            <div className="text-sm text-muted-foreground">{selectedPayee?.payee_name || 'Quoted price'}</div>
+            <div className="text-2xl font-bold">${quoteFinancials.totalCost.toFixed(2)}</div>
+            <div className="text-sm text-muted-foreground">{selectedPayee?.payee_name || 'Total cost'}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-muted-foreground">Variance</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Profit Potential</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold flex items-center gap-2 ${getVarianceColor(estimateFinancials.totalAmount, quoteFinancials.totalAmount)}`}>
-              {getVarianceIcon(estimateFinancials.totalAmount, quoteFinancials.totalAmount)}
-              {formatVariance(estimateFinancials.totalAmount, quoteFinancials.totalAmount)}
+            <div className={`text-2xl font-bold flex items-center gap-2 ${getProfitColor(totalProfit)}`}>
+              {getProfitIcon(totalProfit)}
+              ${totalProfit.toFixed(2)}
+            </div>
+            <div className={`text-sm flex items-center gap-1 ${getProfitColor(totalProfit)}`}>
+              {profitMargin.toFixed(1)}% margin • {profitStatus}
             </div>
           </CardContent>
         </Card>
@@ -636,9 +643,9 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                       <thead>
                         <tr className="border-b bg-muted/30">
                           <th className="text-left p-3 font-medium text-sm text-muted-foreground">Field</th>
-                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Original Estimate</th>
-                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Vendor Quote</th>
-                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Variance</th>
+                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Your Estimate</th>
+                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Vendor Input</th>
+                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Profit</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -673,22 +680,37 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                           </td>
                           <td className="p-3 text-sm">
                             {estimateItem ? (
-                              <span className={getVarianceColor(estimateItem.quantity, item.quantity)}>
+                              <span className={item.quantity !== estimateItem.quantity ? "text-amber-600" : "text-muted-foreground"}>
                                 {item.quantity - estimateItem.quantity > 0 ? '+' : ''}{(item.quantity - estimateItem.quantity).toFixed(2)}
                               </span>
                             ) : '—'}
                           </td>
                         </tr>
 
-                        {/* Cost Per Unit Row (Estimate only) */}
-                        {estimateItem && (
-                          <tr className="border-b hover:bg-muted/20">
-                            <td className="p-3 font-medium text-sm">Cost per Unit</td>
-                            <td className="p-3 text-sm">${estimateItem.costPerUnit.toFixed(2)}</td>
-                            <td className="p-3 text-sm text-muted-foreground">Not disclosed</td>
-                            <td className="p-3 text-sm text-muted-foreground">—</td>
-                          </tr>
-                        )}
+                        {/* Cost Per Unit Row - Now the main vendor input */}
+                        <tr className="border-b hover:bg-muted/20 bg-blue-50/30">
+                          <td className="p-3 font-medium text-sm">Vendor Cost per Unit</td>
+                          <td className="p-3 text-sm">${estimateItem?.costPerUnit.toFixed(2) || 'N/A'}</td>
+                          <td className="p-3">
+                            <Input
+                              type="number"
+                              value={item.costPerUnit}
+                              min="0"
+                              step="0.01"
+                              onChange={(e) => updateLineItem(item.id, 'costPerUnit', parseFloat(e.target.value) || 0)}
+                              placeholder="0.00"
+                              className="h-8 border-blue-300 focus:border-blue-500"
+                            />
+                          </td>
+                          <td className="p-3 text-sm">
+                            {estimateItem ? (
+                              <span className={`flex items-center gap-1 font-medium ${getProfitColor(estimateItem.pricePerUnit - item.costPerUnit)}`}>
+                                {getProfitIcon(estimateItem.pricePerUnit - item.costPerUnit)}
+                                ${(estimateItem.pricePerUnit - item.costPerUnit).toFixed(2)} per unit
+                              </span>
+                            ) : '—'}
+                          </td>
+                        </tr>
 
                         {/* Markup Row (Estimate only) */}
                         {estimateItem && (
@@ -702,34 +724,23 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                           </tr>
                         )}
 
-                        {/* Price Per Unit Row */}
+                        {/* Price Per Unit Row - Now locked to estimate */}
                         <tr className="border-b hover:bg-muted/20">
                           <td className="p-3 font-medium text-sm">Price per Unit</td>
                           <td className="p-3 text-sm">${estimateItem?.pricePerUnit.toFixed(2) || 'N/A'}</td>
                           <td className="p-3">
-                            <Input
-                              type="number"
-                              value={item.pricePerUnit}
-                              min="0"
-                              step="0.01"
-                              onChange={(e) => updateLineItem(item.id, 'pricePerUnit', parseFloat(e.target.value) || 0)}
-                              placeholder="0.00"
-                              className="h-8"
-                            />
+                            <div className="flex items-center h-8 px-3 py-2 bg-muted rounded-md text-sm font-medium border">
+                              ${item.pricePerUnit.toFixed(2)} (locked)
+                            </div>
                           </td>
-                          <td className="p-3 text-sm">
-                            {estimateItem ? (
-                              <span className={`flex items-center gap-1 ${getVarianceColor(estimateItem.pricePerUnit, item.pricePerUnit)}`}>
-                                {getVarianceIcon(estimateItem.pricePerUnit, item.pricePerUnit)}
-                                {formatVariance(estimateItem.pricePerUnit, item.pricePerUnit)}
-                              </span>
-                            ) : '—'}
+                          <td className="p-3 text-sm text-muted-foreground">
+                            Locked to estimate
                           </td>
                         </tr>
 
                         {/* Total Row */}
                         <tr className="border-b bg-muted/10">
-                          <td className="p-3 font-medium text-sm">Total</td>
+                          <td className="p-3 font-medium text-sm">Revenue</td>
                           <td className="p-3 text-sm font-medium">${estimateItem?.total.toFixed(2) || 'N/A'}</td>
                           <td className="p-3">
                             <div className="flex items-center h-8 px-3 py-2 bg-muted rounded-md text-sm font-medium">
@@ -738,9 +749,9 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                           </td>
                           <td className="p-3 text-sm">
                             {estimateItem ? (
-                              <span className={`flex items-center gap-1 font-medium ${getVarianceColor(estimateItem.total, item.total)}`}>
-                                {getVarianceIcon(estimateItem.total, item.total)}
-                                {formatVariance(estimateItem.total, item.total)}
+                              <span className={`flex items-center gap-1 font-bold ${getProfitColor((estimateItem.pricePerUnit - item.costPerUnit) * item.quantity)}`}>
+                                {getProfitIcon((estimateItem.pricePerUnit - item.costPerUnit) * item.quantity)}
+                                {formatProfit(estimateItem.pricePerUnit, item.costPerUnit, item.quantity)}
                               </span>
                             ) : '—'}
                           </td>
