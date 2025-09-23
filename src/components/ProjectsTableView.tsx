@@ -737,32 +737,22 @@ export const ProjectsTableView = ({
     },
     {
       key: 'margin_percentage',
-      label: 'Margin (%)',
+      label: 'Projected Margin %',
       align: 'center' as const,
       sortable: true,
       render: (project: ProjectWithFinancials) => {
-        const marginPercentage = project.margin_percentage || 0;
         const projectedMarginPct = project.currentContractAmount > 0 
           ? ((project.projectedMargin || 0) / project.currentContractAmount) * 100 
           : 0;
         
-        // Use projected margin % for estimating/quoted projects, current margin % for active projects
-        const displayPercentage = ['estimating', 'quoted'].includes(project.status) 
-          ? projectedMarginPct 
-          : marginPercentage;
-        
-        const isProjected = ['estimating', 'quoted'].includes(project.status);
-        
-        const tooltipContent = isProjected 
-          ? `Projected Margin Percentage: ${displayPercentage.toFixed(1)}%. Calculated as Projected Margin ÷ Contract Value × 100.`
-          : `Current Margin Percentage: ${displayPercentage.toFixed(1)}%. Based on actual expenses vs contract revenue.`;
+        const tooltipContent = `Projected Margin Percentage: ${projectedMarginPct.toFixed(1)}%. Calculated as Projected Margin ÷ Contract Value × 100.`;
         
         return (
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-center cursor-help">
                 <div className="flex items-center justify-center">
-                  {getMarginBadge(displayPercentage, project.target_margin, project.minimum_margin_threshold)}
+                  {getMarginBadge(projectedMarginPct, project.target_margin, project.minimum_margin_threshold)}
                 </div>
               </div>
             </TooltipTrigger>
