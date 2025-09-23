@@ -71,7 +71,7 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
 
   useEffect(() => {
     loadMatchingData();
-  }, [projectId]);
+  }, [projectId]); // Include projectId in dependencies but handle null case
 
   const loadMatchingData = async () => {
     setIsLoading(true);

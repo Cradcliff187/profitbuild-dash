@@ -171,14 +171,18 @@ export const UnifiedExpenseImportModal = ({
       <TransactionImportModal
         open={showTransactionImport}
         onOpenChange={setShowTransactionImport}
-        onTransactionsImported={onExpensesImported}
+        onTransactionsImported={() => {
+          // Transaction import modal will handle its own success callback
+          onExpensesImported([]);
+        }}
       />
       
       <EnhancedTransactionImportModal
         open={showEnhancedImport}
         onOpenChange={setShowEnhancedImport}
-        onTransactionsImported={(expenses, revenues) => {
-          onExpensesImported(expenses);
+        onTransactionsImported={() => {
+          // Enhanced import modal handles both expenses and revenues internally
+          onExpensesImported([]);
         }}
       />
     </>

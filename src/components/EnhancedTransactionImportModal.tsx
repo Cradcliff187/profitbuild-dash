@@ -22,18 +22,19 @@ import {
   Building2
 } from "lucide-react";
 import { 
-  parseEnhancedQuickBooksCSV, 
-  processEnhancedQuickBooksImport, 
-  EnhancedQBImportResult 
-} from "@/utils/enhancedCsvParser";
-import { Expense } from "@/types/expense";
-import { ProjectRevenue } from "@/types/revenue";
+  parseTransactionCSV, 
+  processTransactionImport, 
+  TransactionImportResult,
+  ExpenseImportData,
+  RevenueImportData
+} from "@/utils/enhancedTransactionImporter";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface EnhancedTransactionImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onTransactionsImported: (expenses: Expense[], revenues: ProjectRevenue[]) => void;
+  onTransactionsImported: () => void;
 }
 
 type Step = 'upload' | 'processing' | 'review' | 'importing' | 'results';
@@ -45,7 +46,7 @@ export const EnhancedTransactionImportModal: React.FC<EnhancedTransactionImportM
 }) => {
   const [step, setStep] = useState<Step>('upload');
   const [file, setFile] = useState<File | null>(null);
-  const [importResult, setImportResult] = useState<EnhancedQBImportResult | null>(null);
+  const [importResult, setImportResult] = useState<TransactionImportResult | null>(null);
   const [progress, setProgress] = useState(0);
   const [isImporting, setIsImporting] = useState(false);
   const { toast } = useToast();
@@ -78,7 +79,7 @@ export const EnhancedTransactionImportModal: React.FC<EnhancedTransactionImportM
 
     try {
       // Parse CSV
-      const parseResult = await parseEnhancedQuickBooksCSV(file);
+      const parseResult = await parseTransactionCSV(file);
       setProgress(40);
 
       if (parseResult.errors.length > 0) {
@@ -87,28 +88,25 @@ export const EnhancedTransactionImportModal: React.FC<EnhancedTransactionImportM
           description: `${parseResult.errors.length} errors found during parsing.`,
           variant: "destructive",
         });
+        return;
       }
 
       setProgress(60);
 
       // Process transactions
-      const result = await processEnhancedQuickBooksImport(parseResult.data, file.name);
+      const result = await processTransactionImport(parseResult.data);
       setImportResult(result);
       setProgress(80);
 
-      // Set step based on results
-      if (result.low_confidence_client_matches.length > 0 || result.low_confidence_payee_matches.length > 0) {
-        setStep('review');
-      } else {
-        setStep('results');
-        onTransactionsImported(result.expenses, result.revenues);
-      }
-
+      // Import to database
+      await importToDatabase(result);
       setProgress(100);
+
+      setStep('results');
 
       toast({
         title: "Import Complete",
-        description: `Processed ${result.revenue_transactions} invoices and ${result.expense_transactions} expenses.`,
+        description: `Processed ${result.revenues.length} invoices and ${result.expenses.length} expenses.`,
       });
 
     } catch (error) {
@@ -123,11 +121,32 @@ export const EnhancedTransactionImportModal: React.FC<EnhancedTransactionImportM
     }
   };
 
-  const handleCompleteImport = () => {
-    if (importResult) {
-      onTransactionsImported(importResult.expenses, importResult.revenues);
-      setStep('results');
+  const importToDatabase = async (result: TransactionImportResult) => {
+    // Import expenses
+    if (result.expenses.length > 0) {
+      const { error: expenseError } = await supabase
+        .from('expenses')
+        .insert(result.expenses);
+      
+      if (expenseError) {
+        console.error('Failed to import expenses:', expenseError);
+        throw new Error('Failed to import expenses');
+      }
     }
+
+    // Import revenues  
+    if (result.revenues.length > 0) {
+      const { error: revenueError } = await supabase
+        .from('project_revenues')
+        .insert(result.revenues);
+      
+      if (revenueError) {
+        console.error('Failed to import revenues:', revenueError);
+        throw new Error('Failed to import revenues');
+      }
+    }
+
+    onTransactionsImported();
   };
 
   const resetModal = () => {
@@ -155,8 +174,8 @@ export const EnhancedTransactionImportModal: React.FC<EnhancedTransactionImportM
       <Alert>
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          <strong>QuickBooks CSV files only:</strong> This import processes both invoices (revenue) and expenses from QuickBooks exports. 
-          Make sure your file was exported directly from QuickBooks with standard headers and transaction types.
+          <strong>QuickBooks Transaction Export:</strong> This import automatically separates invoices (revenue) and expenses based on transaction type. 
+          Uses Account Full Name for categorization and Project/WO # for project assignment. Unassociated items can be assigned later.
         </AlertDescription>
       </Alert>
 
@@ -199,110 +218,24 @@ export const EnhancedTransactionImportModal: React.FC<EnhancedTransactionImportM
         <FileDown className="h-12 w-12 text-primary mx-auto mb-4" />
         <h3 className="text-lg font-medium mb-2">Processing Financial Data</h3>
         <p className="text-sm text-muted-foreground">
-          Separating revenue and expenses, matching entities, and correlating with line items...
+          Separating invoices and expenses, matching clients/payees, and importing to database...
         </p>
       </div>
       
       <Progress value={progress} className="w-full" />
       
       <div className="text-center text-sm text-muted-foreground">
-        {progress < 40 && "Parsing QuickBooks format..."}
+        {progress < 40 && "Parsing transaction file..."}
         {progress >= 40 && progress < 60 && "Validating transaction data..."}
         {progress >= 60 && progress < 80 && "Processing revenue and expenses..."}
-        {progress >= 80 && "Finalizing import..."}
+        {progress >= 80 && "Importing to database..."}
       </div>
     </div>
   );
 
   const renderReviewStep = () => {
-    if (!importResult) return null;
-
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-medium">Review Entity Matches</h3>
-            <p className="text-sm text-muted-foreground">
-              Some clients and payees need manual review before import.
-            </p>
-          </div>
-        </div>
-
-        <Tabs defaultValue="clients" className="w-full">
-          <TabsList>
-            <TabsTrigger value="clients">
-              Client Matches ({importResult.low_confidence_client_matches.length})
-            </TabsTrigger>
-            <TabsTrigger value="payees">
-              Payee Matches ({importResult.low_confidence_payee_matches.length})
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="clients" className="space-y-4">
-            {importResult.low_confidence_client_matches.map((match, index) => (
-              <Card key={index}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">QuickBooks: {match.qbName}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {match.suggestions.map((suggestion, sugIndex) => (
-                      <div key={sugIndex} className="flex items-center justify-between p-2 border rounded">
-                        <div>
-                          <span className="font-medium">{suggestion.client.client_name}</span>
-                          {suggestion.client.company_name && (
-                            <span className="text-sm text-muted-foreground ml-2">
-                              ({suggestion.client.company_name})
-                            </span>
-                          )}
-                        </div>
-                        <Badge variant="secondary">{suggestion.confidence.toFixed(0)}% match</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-          
-          <TabsContent value="payees" className="space-y-4">
-            {importResult.low_confidence_payee_matches.map((match, index) => (
-              <Card key={index}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">QuickBooks: {match.qbName}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {match.suggestions.map((suggestion, sugIndex) => (
-                      <div key={sugIndex} className="flex items-center justify-between p-2 border rounded">
-                        <div>
-                          <span className="font-medium">{suggestion.payee.payee_name}</span>
-                          {suggestion.payee.full_name && (
-                            <span className="text-sm text-muted-foreground ml-2">
-                              ({suggestion.payee.full_name})
-                            </span>
-                          )}
-                        </div>
-                        <Badge variant="secondary">{suggestion.confidence.toFixed(0)}% match</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-        </Tabs>
-
-        <div className="flex justify-end space-x-2">
-          <Button variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleCompleteImport}>
-            Complete Import
-          </Button>
-        </div>
-      </div>
-    );
+    // This step is no longer needed since we auto-import
+    return null;
   };
 
   const renderResultsStep = () => {
@@ -318,7 +251,7 @@ export const EnhancedTransactionImportModal: React.FC<EnhancedTransactionImportM
           <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
           <h3 className="text-lg font-medium mb-2">Import Complete</h3>
           <p className="text-sm text-muted-foreground">
-            Successfully processed {importResult.total} transactions
+            Successfully processed {importResult.expenses.length + importResult.revenues.length} transactions
           </p>
         </div>
 
@@ -331,7 +264,7 @@ export const EnhancedTransactionImportModal: React.FC<EnhancedTransactionImportM
                 {formatCurrency(totalRevenue)}
               </div>
               <div className="text-sm text-muted-foreground">
-                Revenue ({importResult.successful_revenues} invoices)
+                Revenue ({importResult.revenues.length} invoices)
               </div>
             </CardContent>
           </Card>
@@ -343,7 +276,7 @@ export const EnhancedTransactionImportModal: React.FC<EnhancedTransactionImportM
                 {formatCurrency(totalExpenses)}
               </div>
               <div className="text-sm text-muted-foreground">
-                Expenses ({importResult.successful_expenses})
+                Expenses ({importResult.expenses.length})
               </div>
             </CardContent>
           </Card>
@@ -364,82 +297,52 @@ export const EnhancedTransactionImportModal: React.FC<EnhancedTransactionImportM
             <CardContent className="p-4 text-center">
               <Building2 className="h-8 w-8 text-purple-500 mx-auto mb-2" />
               <div className="text-2xl font-bold">
-                {importResult.project_mapping_used.length}
+                {importResult.unassociated_expenses + importResult.unassociated_revenues}
               </div>
               <div className="text-sm text-muted-foreground">
-                Projects Affected
+                Unassociated Items
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Entity Matching Results */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Client Matches
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Auto-matched:</span>
-                  <Badge variant="secondary">{importResult.client_matches.length}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>Needs review:</span>
-                  <Badge variant="outline">{importResult.low_confidence_client_matches.length}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Payee Matches
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Auto-matched:</span>
-                  <Badge variant="secondary">{importResult.payee_matches.length}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>Needs review:</span>
-                  <Badge variant="outline">{importResult.low_confidence_payee_matches.length}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Line Item Correlations */}
+        {/* Category Mapping Results */}
         <Card>
           <CardHeader>
-            <CardTitle>Line Item Correlations</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Category Mappings Used
+            </CardTitle>
             <CardDescription>
-              How expenses were categorized against estimates and quotes
+              QuickBooks account paths mapped to expense categories
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {['estimated', 'quoted', 'unplanned', 'change_order'].map(type => {
-                const count = importResult.line_item_correlations.filter(c => c.correlation_type === type).length;
-                return (
-                  <div key={type} className="text-center">
-                    <div className="text-2xl font-bold">{count}</div>
-                    <div className="text-sm text-muted-foreground capitalize">{type.replace('_', ' ')}</div>
-                  </div>
-                );
-              })}
+            <div className="space-y-2 max-h-32 overflow-y-auto">
+              {Object.entries(importResult.category_mappings_used).map(([account, category]) => (
+                <div key={account} className="flex justify-between text-sm">
+                  <span className="truncate">{account}</span>
+                  <Badge variant="secondary">{category}</Badge>
+                </div>
+              ))}
+              {Object.keys(importResult.category_mappings_used).length === 0 && (
+                <p className="text-sm text-muted-foreground">No specific category mappings used</p>
+              )}
             </div>
           </CardContent>
         </Card>
+
+        {/* Unassociated Items Alert */}
+        {(importResult.unassociated_expenses > 0 || importResult.unassociated_revenues > 0) && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {importResult.unassociated_expenses > 0 && `${importResult.unassociated_expenses} expenses `}
+              {importResult.unassociated_revenues > 0 && `${importResult.unassociated_revenues} revenues `}
+              were imported without project assignments. You can assign them to projects in the matching interface.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Errors */}
         {importResult.errors.length > 0 && (
