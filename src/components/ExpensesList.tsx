@@ -1,18 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, Filter, Search, Download } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from '@/types/expense';
-import { Project } from '@/types/project';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { usePagination } from '@/hooks/usePagination';
-import { CompletePagination } from '@/components/ui/complete-pagination';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, FileDown } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { EntityTableTemplate } from "./EntityTableTemplate";
+import { ExpenseBulkActions } from "./ExpenseBulkActions";
+import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from "@/types/expense";
 
 interface ExpensesListProps {
   expenses: Expense[];
@@ -23,71 +19,112 @@ interface ExpensesListProps {
   pageSize?: number;
 }
 
-export const ExpensesList: React.FC<ExpensesListProps> = ({ 
-  expenses, 
-  onEdit, 
-  onDelete, 
-  onRefresh, 
-  enablePagination = false,
-  pageSize = 25 
+export const ExpensesList: React.FC<ExpensesListProps> = ({
+  expenses,
+  onEdit,
+  onDelete,
+  onRefresh,
+  enablePagination = true,
+  pageSize = 25,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState<ExpenseCategory | 'All'>('All');
-  const [filterTransactionType, setFilterTransactionType] = useState<TransactionType | 'All'>('All');
-  const [filterProject, setFilterProject] = useState<string>('All');
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterTransactionType, setFilterTransactionType] = useState<string>("all");
+  const [filterProject, setFilterProject] = useState<string>("all");
+  const [filterMatchStatus, setFilterMatchStatus] = useState<string>("all");
+  const [selectedExpenses, setSelectedExpenses] = useState<string[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [expenseMatches, setExpenseMatches] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
   // Load projects for filter dropdown
   useEffect(() => {
-    const loadProjects = async () => {
+    const fetchProjects = async () => {
       try {
         const { data, error } = await supabase
-          .from('projects')
-          .select('*')
-          .order('project_name');
-
-        const transformedProjects = (data || []).map(project => ({
-          ...project,
-          start_date: project.start_date ? new Date(project.start_date) : undefined,
-          end_date: project.end_date ? new Date(project.end_date) : undefined,
-          created_at: new Date(project.created_at),
-          updated_at: new Date(project.updated_at),
-        }));
-        setProjects(transformedProjects);
+          .from("projects")
+          .select("id, project_name")
+          .order("project_name");
+        
+        if (error) throw error;
+        setProjects(data || []);
       } catch (error) {
-        console.error('Error loading projects:', error);
+        console.error("Error fetching projects:", error);
       }
     };
 
-    loadProjects();
+    fetchProjects();
   }, []);
 
-  const filteredExpenses = expenses.filter(expense => {
-    const matchesSearch = expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         expense.payee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         expense.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'All' || expense.category === filterCategory;
-    const matchesTransactionType = filterTransactionType === 'All' || expense.transaction_type === filterTransactionType;
-    const matchesProject = filterProject === 'All' || expense.project_id === filterProject;
+  // Load expense line item matches
+  useEffect(() => {
+    const fetchExpenseMatches = async () => {
+      if (expenses.length === 0) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from("expense_line_item_correlations")
+          .select("expense_id")
+          .in("expense_id", expenses.map(e => e.id));
+        
+        if (error) throw error;
+        
+        const matches: Record<string, boolean> = {};
+        expenses.forEach(expense => {
+          matches[expense.id] = data?.some(correlation => correlation.expense_id === expense.id) || false;
+        });
+        
+        setExpenseMatches(matches);
+      } catch (error) {
+        console.error("Error fetching expense matches:", error);
+      }
+    };
 
-    return matchesSearch && matchesCategory && matchesTransactionType && matchesProject;
-  });
+    fetchExpenseMatches();
+  }, [expenses]);
 
-  const handleDelete = async (id: string) => {
+  // Filter expenses based on search term and filters
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter(expense => {
+      const matchesSearch = 
+        expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.payee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.project_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesCategory = filterCategory === "all" || expense.category === filterCategory;
+      const matchesType = filterTransactionType === "all" || expense.transaction_type === filterTransactionType;
+      const matchesProject = filterProject === "all" || expense.project_id === filterProject;
+      
+      let matchesMatchStatus = true;
+      if (filterMatchStatus === "matched") {
+        matchesMatchStatus = expenseMatches[expense.id] === true;
+      } else if (filterMatchStatus === "unmatched") {
+        matchesMatchStatus = expenseMatches[expense.id] === false;
+      } else if (filterMatchStatus === "unassigned") {
+        matchesMatchStatus = expense.project_id === "000-UNASSIGNED" || expense.project_name?.includes("Unassigned");
+      }
+
+      return matchesSearch && matchesCategory && matchesType && matchesProject && matchesMatchStatus;
+    });
+  }, [expenses, searchTerm, filterCategory, filterTransactionType, filterProject, filterMatchStatus, expenseMatches]);
+
+  const handleDelete = async (expenseId: string) => {
     try {
       const { error } = await supabase
         .from('expenses')
         .delete()
-        .eq('id', id);
+        .eq('id', expenseId);
 
       if (error) throw error;
 
-      onDelete(id);
       toast({
-        title: "Expense Deleted",
-        description: "The expense has been successfully deleted.",
+        title: "Success",
+        description: "Expense deleted successfully.",
       });
+      
+      onDelete(expenseId);
+      onRefresh();
     } catch (error) {
       console.error('Error deleting expense:', error);
       toast({
@@ -99,240 +136,253 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   };
 
   const exportToCsv = () => {
-    const headers = ['Date', 'Project', 'Description', 'Category', 'Transaction Type', 'Amount', 'Payee', 'Invoice Number'];
+    const headers = ['Date', 'Project', 'Description', 'Category', 'Transaction Type', 'Amount', 'Payee', 'Line Item Match'];
     const csvContent = [
       headers.join(','),
-      ...filteredExpenses.map(expense => [
-        expense.expense_date.toLocaleDateString(),
-        `"${expense.project_name || 'Unknown Project'}"`,
-        `"${expense.description || ''}"`,
-        EXPENSE_CATEGORY_DISPLAY[expense.category],
-        TRANSACTION_TYPE_DISPLAY[expense.transaction_type],
-        expense.amount.toFixed(2),
-        `"${expense.payee_name || ''}"`,
-        `"${expense.invoice_number || ''}"`
-      ].join(','))
+      ...filteredExpenses.map(expense =>
+        [
+          expense.expense_date.toLocaleDateString(),
+          `"${expense.project_name || ''}"`,
+          `"${expense.description || ''}"`,
+          `"${EXPENSE_CATEGORY_DISPLAY[expense.category] || expense.category}"`,
+          `"${TRANSACTION_TYPE_DISPLAY[expense.transaction_type] || expense.transaction_type}"`,
+          expense.amount,
+          `"${expense.payee_name || ''}"`,
+          expenseMatches[expense.id] ? 'Matched' : 'Unmatched'
+        ].join(',')
+      )
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `expenses_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `expenses_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const totalAmount = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const handleSelectAll = () => {
+    if (selectedExpenses.length === filteredExpenses.length) {
+      setSelectedExpenses([]);
+    } else {
+      setSelectedExpenses(filteredExpenses.map(e => e.id));
+    }
+  };
 
-  // Pagination
-  const {
-    currentPage,
-    totalPages,
-    startIndex,
-    endIndex,
-    goToPage,
-  } = usePagination({
-    totalItems: filteredExpenses.length,
-    pageSize,
-    initialPage: 1,
-  });
+  const handleSelectExpense = (expenseId: string) => {
+    if (selectedExpenses.includes(expenseId)) {
+      setSelectedExpenses(selectedExpenses.filter(id => id !== expenseId));
+    } else {
+      setSelectedExpenses([...selectedExpenses, expenseId]);
+    }
+  };
 
-  const sortedExpenses = filteredExpenses
-    .sort((a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime());
-  
-  const paginatedExpenses = enablePagination 
-    ? sortedExpenses.slice(startIndex, endIndex)
-    : sortedExpenses;
+  const getCategoryBadgeVariant = (category: ExpenseCategory) => {
+    switch (category) {
+      case ExpenseCategory.LABOR:
+        return 'default';
+      case ExpenseCategory.SUBCONTRACTOR:
+        return 'secondary';
+      case ExpenseCategory.MATERIALS:
+        return 'outline';
+      case ExpenseCategory.EQUIPMENT:
+        return 'default';
+      case ExpenseCategory.PERMITS:
+        return 'secondary';
+      case ExpenseCategory.MANAGEMENT:
+        return 'outline';
+      default:
+        return 'secondary';
+    }
+  };
+
+  const getTypeBadgeVariant = (type: TransactionType) => {
+    switch (type) {
+      case 'expense':
+        return 'default';
+      case 'bill':
+        return 'secondary';
+      case 'check':
+        return 'outline';
+      case 'credit_card':
+        return 'default';
+      case 'cash':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
+  };
+
+  const columns = [
+    {
+      key: 'expense_date',
+      label: 'Date',
+      render: (expense: Expense) => (
+        <div className="font-medium">
+          {expense.expense_date.toLocaleDateString()}
+        </div>
+      )
+    },
+    {
+      key: 'project_name',
+      label: 'Project',
+      render: (expense: Expense) => (
+        <div className={expense.project_name?.includes("Unassigned") ? "text-muted-foreground italic" : ""}>
+          {expense.project_name}
+        </div>
+      )
+    },
+    {
+      key: 'description',
+      label: 'Description'
+    },
+    {
+      key: 'category',
+      label: 'Category',
+      render: (expense: Expense) => (
+        <Badge variant={getCategoryBadgeVariant(expense.category)}>
+          {EXPENSE_CATEGORY_DISPLAY[expense.category]}
+        </Badge>
+      )
+    },
+    {
+      key: 'transaction_type',
+      label: 'Type',
+      render: (expense: Expense) => (
+        <Badge variant={getTypeBadgeVariant(expense.transaction_type)}>
+          {TRANSACTION_TYPE_DISPLAY[expense.transaction_type]}
+        </Badge>
+      )
+    },
+    {
+      key: 'amount',
+      label: 'Amount',
+      render: (expense: Expense) => (
+        <div className="text-right font-medium">
+          ${expense.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+        </div>
+      )
+    },
+    {
+      key: 'payee_name',
+      label: 'Payee'
+    },
+    {
+      key: 'line_item_match',
+      label: 'Line Item Match',
+      render: (expense: Expense) => (
+        <Badge variant={expenseMatches[expense.id] ? 'default' : 'outline'}>
+          {expenseMatches[expense.id] ? 'Matched' : 'Unmatched'}
+        </Badge>
+      )
+    }
+  ];
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Expenses List</CardTitle>
-            <div className="flex space-x-2">
-              <Button variant="outline" onClick={exportToCsv}>
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Filters */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            <div className="lg:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search expenses..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            
-            <Select value={filterProject} onValueChange={(value) => setFilterProject(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Projects" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Projects</SelectItem>
-                {projects.map(project => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.project_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4">
+        <div className="flex items-center space-x-2">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search expenses..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-64"
+          />
+        </div>
+        
+        <Select value={filterProject} onValueChange={setFilterProject}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Filter by project" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Projects</SelectItem>
+            {projects.map((project) => (
+              <SelectItem key={project.id} value={project.id}>
+                {project.project_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-            <Select value={filterCategory} onValueChange={(value) => setFilterCategory(value as ExpenseCategory | 'All')}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Categories</SelectItem>
-                {Object.entries(EXPENSE_CATEGORY_DISPLAY).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Filter by category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {Object.entries(EXPENSE_CATEGORY_DISPLAY).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-            <Select value={filterTransactionType} onValueChange={(value) => setFilterTransactionType(value as TransactionType | 'All')}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Types</SelectItem>
-                {Object.entries(TRANSACTION_TYPE_DISPLAY).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <Select value={filterTransactionType} onValueChange={setFilterTransactionType}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Filter by type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            {Object.entries(TRANSACTION_TYPE_DISPLAY).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          {/* Summary */}
-          <div className="mb-4 p-4 bg-muted rounded-lg">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">
-                Showing {filteredExpenses.length} of {expenses.length} expenses
-              </span>
-              <span className="text-lg font-semibold">
-                Total: ${totalAmount.toFixed(2)}
-              </span>
-            </div>
-          </div>
+        <Select value={filterMatchStatus} onValueChange={setFilterMatchStatus}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Filter by match status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Expenses</SelectItem>
+            <SelectItem value="matched">Matched to Line Items</SelectItem>
+            <SelectItem value="unmatched">Unmatched</SelectItem>
+            <SelectItem value="unassigned">Unassigned Project</SelectItem>
+          </SelectContent>
+        </Select>
 
-          {/* Expenses Table */}
-          {filteredExpenses.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Filter className="h-16 w-16 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">No expenses found</h3>
-              <p>Try adjusting your filters or add some expenses.</p>
-            </div>
-          ) : (
-            <div className="border rounded-md">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Project</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Payee</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedExpenses.map((expense) => (
-                    <TableRow key={expense.id}>
-                      <TableCell>{new Date(expense.expense_date).toLocaleDateString()}</TableCell>
-                      <TableCell className="font-medium">
-                        {expense.project_name || 'Unknown Project'}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{expense.description}</p>
-                          {expense.invoice_number && (
-                            <p className="text-xs text-muted-foreground">
-                              Invoice: {expense.invoice_number}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{EXPENSE_CATEGORY_DISPLAY[expense.category]}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {TRANSACTION_TYPE_DISPLAY[expense.transaction_type]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        ${expense.amount.toFixed(2)}
-                      </TableCell>
-                      <TableCell>{expense.payee_name || '-'}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onEdit(expense)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Expense</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete this expense? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(expense.id)}>
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+        <Button onClick={exportToCsv} variant="outline" size="sm">
+          <FileDown className="h-4 w-4 mr-2" />
+          Export CSV
+        </Button>
+      </div>
 
-          {/* Pagination */}
-          {enablePagination && filteredExpenses.length > pageSize && (
-            <div className="flex justify-center mt-6">
-              <CompletePagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={goToPage}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <EntityTableTemplate
+        title="All Expenses"
+        description={`Manage your project expenses (${filteredExpenses.length} total) • Total: $${filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+        data={filteredExpenses}
+        columns={columns}
+        isLoading={false}
+        selectedItems={selectedExpenses}
+        onSelectItem={handleSelectExpense}
+        onSelectAll={handleSelectAll}
+        onEdit={onEdit}
+        onDelete={handleDelete}
+        enablePagination={enablePagination}
+        pageSize={pageSize}
+        bulkActions={
+          selectedExpenses.length > 0 ? (
+            <ExpenseBulkActions
+              selectedExpenseIds={selectedExpenses}
+              onSelectionChange={(newSet) => setSelectedExpenses(Array.from(newSet))}
+              onComplete={() => {
+                setSelectedExpenses([]);
+                onRefresh();
+              }}
+            />
+          ) : null
+        }
+        emptyMessage="No expenses found. Add your first expense to get started."
+        noResultsMessage="No expenses match your current filters."
+      />
     </div>
   );
 };
