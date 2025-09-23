@@ -74,6 +74,13 @@ export type Database = {
             foreignKeyName: "change_orders_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_financial_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "change_orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
@@ -295,7 +302,75 @@ export type Database = {
             foreignKeyName: "estimates_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_financial_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "estimates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_line_item_correlations: {
+        Row: {
+          auto_correlated: boolean | null
+          confidence_score: number | null
+          correlation_type: string
+          created_at: string
+          estimate_line_item_id: string | null
+          expense_id: string
+          id: string
+          notes: string | null
+          quote_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_correlated?: boolean | null
+          confidence_score?: number | null
+          correlation_type: string
+          created_at?: string
+          estimate_line_item_id?: string | null
+          expense_id: string
+          id?: string
+          notes?: string | null
+          quote_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_correlated?: boolean | null
+          confidence_score?: number | null
+          correlation_type?: string
+          created_at?: string
+          estimate_line_item_id?: string | null
+          expense_id?: string
+          id?: string
+          notes?: string | null
+          quote_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_line_item_correlations_estimate_line_item_id_fkey"
+            columns: ["estimate_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_line_item_correlations_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_line_item_correlations_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
             referencedColumns: ["id"]
           },
         ]
@@ -362,6 +437,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "expenses_project_id_fkey"
@@ -470,6 +552,51 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      project_revenues: {
+        Row: {
+          account_full_name: string | null
+          account_name: string | null
+          amount: number
+          client_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          project_id: string
+          quickbooks_transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_full_name?: string | null
+          account_name?: string | null
+          amount: number
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          project_id: string
+          quickbooks_transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_full_name?: string | null
+          account_name?: string | null
+          amount?: number
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          project_id?: string
+          quickbooks_transaction_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -793,6 +920,13 @@ export type Database = {
             foreignKeyName: "quotes_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_financial_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "quotes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
@@ -827,7 +961,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      project_financial_summary: {
+        Row: {
+          accepted_quote_count: number | null
+          actual_margin_percentage: number | null
+          actual_profit: number | null
+          change_order_costs: number | null
+          change_order_revenue: number | null
+          client_name: string | null
+          contingency_amount: number | null
+          cost_variance: number | null
+          expense_count: number | null
+          invoice_count: number | null
+          project_id: string | null
+          project_name: string | null
+          project_number: string | null
+          revenue_variance: number | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          total_estimated: number | null
+          total_expenses: number | null
+          total_invoiced: number | null
+          total_quoted: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       calculate_contingency_remaining: {
@@ -882,6 +1039,8 @@ export type Database = {
         | "other"
         | "permits"
         | "management"
+        | "office_expenses"
+        | "vehicle_expenses"
       project_status:
         | "estimating"
         | "quoted"
@@ -1032,6 +1191,8 @@ export const Constants = {
         "other",
         "permits",
         "management",
+        "office_expenses",
+        "vehicle_expenses",
       ],
       project_status: [
         "estimating",
