@@ -11,6 +11,7 @@ export interface ProjectWithFinancials extends Project {
   projectedCosts: number; // External costs (quotes/estimates + change order costs)
   projectedMargin: number;
   nonInternalLineItemCount: number;
+  totalEstimatedCosts: number; // Internal labor + external costs (complete project cost estimate)
 }
 
 /**
@@ -125,6 +126,9 @@ export async function calculateProjectFinancials(
   // Calculate projected margin
   const projectedMargin = projectedRevenue - projectedCosts;
 
+  // Calculate total estimated costs: internal labor + external costs
+  const totalEstimatedCosts = estimatedCost + projectedCosts;
+
   // Use contingency_remaining from the project record (calculated by database functions)
   const contingencyRemaining = project.contingency_remaining || 0;
 
@@ -137,6 +141,7 @@ export async function calculateProjectFinancials(
     projectedCosts,
     projectedMargin,
     nonInternalLineItemCount,
+    totalEstimatedCosts,
   };
 }
 
@@ -282,6 +287,9 @@ export async function calculateMultipleProjectFinancials(
     // Calculate projected margin
     const projectedMargin = projectedRevenue - projectedCosts;
 
+    // Calculate total estimated costs: internal labor + external costs
+    const totalEstimatedCosts = estimatedCost + projectedCosts;
+
     // Use contingency_remaining from project record
     const contingencyRemaining = project.contingency_remaining || 0;
 
@@ -294,6 +302,7 @@ export async function calculateMultipleProjectFinancials(
       projectedCosts,
       projectedMargin,
       nonInternalLineItemCount,
+      totalEstimatedCosts,
     };
   });
 }

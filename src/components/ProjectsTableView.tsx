@@ -538,6 +538,24 @@ export const ProjectsTableView = ({
       ),
     },
     {
+      key: 'totalEstimatedCosts',
+      label: 'Total Estimated Costs',
+      align: 'right',
+      sortable: true,
+      render: (project) => (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="text-right cursor-help">
+              <div className="font-medium text-sm">{formatCurrency(project.totalEstimatedCosts)}</div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Sum of internal labor costs + external costs (quotes where available, otherwise estimated costs) + approved change order costs</p>
+          </TooltipContent>
+        </Tooltip>
+      ),
+    },
+    {
       key: 'actualExpenses',
       label: 'Actual Expenses',
       align: 'right',
