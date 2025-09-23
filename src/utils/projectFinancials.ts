@@ -4,6 +4,11 @@ import { Expense } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ProjectWithFinancials extends Project {
+  // Three-Tier Margin Analysis
+  original_margin: number; // Revenue from approved estimate minus estimated costs only
+  projected_margin: number; // Current contract amount minus projected costs (quotes/estimates + change orders)
+  actual_margin: number; // Current contract amount minus allocated actual expenses
+  
   // Original Approved Estimate Measurements
   estimatedCost: number; // Internal labor cost from approved estimate only
   approvedEstimateTotal: number; // Total amount from approved estimate
@@ -215,8 +220,18 @@ export async function calculateProjectFinancials(
   // Use contingency_remaining from the project record (calculated by database functions)
   const contingencyRemaining = project.contingency_remaining || 0;
 
+  // Calculate three-tier margins
+  const originalMargin = originalContractAmount - (approvedEstimateInternalLaborCost + approvedEstimateExternalCosts);
+  const projectedMarginValue = currentContractAmount - (projectedCosts + approvedEstimateInternalLaborCost);
+  const actualMargin = currentContractAmount - actualExpenses;
+
   return {
     ...project,
+    // Three-tier margin analysis
+    original_margin: originalMargin,
+    projected_margin: projectedMarginValue,
+    actual_margin: actualMargin,
+    
     // Original approved estimate measurements
     estimatedCost,
     approvedEstimateTotal,
@@ -461,8 +476,18 @@ export async function calculateMultipleProjectFinancials(
     // Use contingency_remaining from the project record (calculated by database functions)
     const contingencyRemaining = project.contingency_remaining || 0;
 
+    // Calculate three-tier margins
+    const originalMargin = originalContractAmount - (approvedEstimateInternalLaborCost + approvedEstimateExternalCosts);
+    const projectedMarginValue = currentContractAmount - (projectedCosts + approvedEstimateInternalLaborCost);
+    const actualMargin = currentContractAmount - actualExpenses;
+
     return {
       ...project,
+      // Three-tier margin analysis
+      original_margin: originalMargin,
+      projected_margin: projectedMarginValue,
+      actual_margin: actualMargin,
+      
       // Original approved estimate measurements
       estimatedCost,
       approvedEstimateTotal,
