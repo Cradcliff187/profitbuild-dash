@@ -33,7 +33,11 @@ export const ProjectFormInline = ({ onSave, onCancel }: ProjectFormInlineProps) 
   const [hasValidated, setHasValidated] = useState(false);
 
   useEffect(() => {
-    setProjectNumber(generateProjectNumber());
+    const initProjectNumber = async () => {
+      const number = await generateProjectNumber();
+      setProjectNumber(number);
+    };
+    initProjectNumber();
   }, []);
 
   const fetchClientData = async (clientId: string) => {

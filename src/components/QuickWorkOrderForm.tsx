@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,12 +19,21 @@ interface QuickWorkOrderFormProps {
 
 const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) => {
   const [formData, setFormData] = useState({
-    projectNumber: generateProjectNumber(),
+    projectNumber: '',  // Will be set async
     clientName: '',
     projectName: '',
     estimatedAmount: '',
     startDate: new Date(),
   });
+
+  // Initialize project number on mount
+  useEffect(() => {
+    const initProjectNumber = async () => {
+      const number = await generateProjectNumber();
+      setFormData(prev => ({ ...prev, projectNumber: number }));
+    };
+    initProjectNumber();
+  }, []);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -96,10 +105,11 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
     }
   };
 
-  const regenerateProjectNumber = () => {
+  const regenerateProjectNumber = async () => {
+    const number = await generateProjectNumber();
     setFormData(prev => ({
       ...prev,
-      projectNumber: generateProjectNumber()
+      projectNumber: number
     }));
   };
 

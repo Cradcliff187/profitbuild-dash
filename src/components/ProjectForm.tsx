@@ -46,7 +46,11 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
 
   useEffect(() => {
     // Auto-generate project number on form load
-    setProjectNumber(generateProjectNumber());
+    const initProjectNumber = async () => {
+      const number = await generateProjectNumber();
+      setProjectNumber(number);
+    };
+    initProjectNumber();
   }, []);
 
   const fetchClientData = async (clientId: string) => {
@@ -154,8 +158,9 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
     }
   };
 
-  const regenerateProjectNumber = () => {
-    setProjectNumber(generateProjectNumber());
+  const regenerateProjectNumber = async () => {
+    const number = await generateProjectNumber();
+    setProjectNumber(number);
   };
 
   // Validation functions

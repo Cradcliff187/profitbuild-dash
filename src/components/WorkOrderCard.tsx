@@ -130,8 +130,13 @@ const WorkOrderCard = ({ workOrder, onUpdate }: WorkOrderCardProps) => {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-lg font-semibold">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
               {workOrder.project_number}
+              {workOrder.project_type === 'work_order' && (
+                <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-2 py-1 rounded">
+                  WORK ORDER
+                </span>
+              )}
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
               {workOrder.project_name}

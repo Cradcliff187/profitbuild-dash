@@ -196,9 +196,27 @@ useEffect(() => {
     }
   };
 
-  const generateEstimateNumber = () => {
-    const timestamp = Date.now().toString().slice(-4);
-    return `EST-${timestamp}`;
+  const generateEstimateNumber = async (projectId: string, projectNumber: string) => {
+    try {
+      const { data, error } = await supabase.rpc('generate_estimate_number', {
+        project_number_param: projectNumber,
+        project_id_param: projectId
+      });
+      
+      if (error) {
+        console.error('Error generating estimate number:', error);
+        // Fallback to timestamp-based number
+        const timestamp = Date.now().toString().slice(-4);
+        return `EST-${timestamp}`;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error generating estimate number:', error);
+      // Fallback to timestamp-based number
+      const timestamp = Date.now().toString().slice(-4);
+      return `EST-${timestamp}`;
+    }
   };
 
   const createNewLineItem = (category: LineItemCategory = LineItemCategory.LABOR): LineItem => ({
@@ -303,7 +321,25 @@ useEffect(() => {
 
     setIsLoading(true);
     
-    const estimateNumber = generateEstimateNumber();
+    // Get project data to pass project number to estimate generation
+    const { data: projectData, error: projectError } = await supabase
+      .from('projects')
+      .select('project_number')
+      .eq('id', projectId)
+      .single();
+    
+    if (projectError) {
+      console.error('Error fetching project:', projectError);
+      toast({
+        title: "Error",
+        description: "Failed to fetch project information",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+    
+    const estimateNumber = await generateEstimateNumber(projectId, projectData.project_number);
     const totalAmount = calculateTotal();
     const contingencyAmount = calculateContingencyAmount();
     

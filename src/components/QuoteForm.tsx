@@ -20,6 +20,7 @@ import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/ty
 import { Quote, QuoteLineItem, QuoteStatus } from "@/types/quote";
 import { Payee } from "@/types/payee";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { calculateQuoteFinancials, calculateQuoteTotalProfit, calculateQuoteProfitMargin, getProfitStatus } from "@/utils/quoteFinancials";
 import { calculateEstimateFinancials } from "@/utils/estimateFinancials";
 
@@ -43,8 +44,26 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   const [attachmentUrl, setAttachmentUrl] = useState<string>("");
   const [lineItems, setLineItems] = useState<QuoteLineItem[]>([]);
 
-  const generateQuoteNumber = () => {
-    return `QTE-${Date.now().toString().slice(-6)}`;
+  const generateQuoteNumber = async (projectId: string, projectNumber: string, estimateId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('generate_quote_number', {
+        project_number_param: projectNumber,
+        project_id_param: projectId,
+        estimate_id_param: estimateId
+      });
+      
+      if (error) {
+        console.error('Error generating quote number:', error);
+        // Fallback to timestamp-based number
+        return `QTE-${Date.now().toString().slice(-6)}`;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error generating quote number:', error);
+      // Fallback to timestamp-based number  
+      return `QTE-${Date.now().toString().slice(-6)}`;
+    }
   };
 
   const createQuoteLineItemFromEstimate = (estimateItem: LineItem): QuoteLineItem => ({
@@ -216,7 +235,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     return { includes_materials, includes_labor };
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!selectedEstimate) {
       toast({
         title: "Missing Project",
@@ -247,6 +266,28 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     const financials = calculateQuoteFinancials(lineItems);
     const { includes_materials, includes_labor } = determineQuoteIncludes(lineItems.filter(item => item.description.trim()));
 
+    // Get project data for hierarchical quote number generation
+    const { data: projectData, error: projectError } = await supabase
+      .from('projects')
+      .select('project_number')
+      .eq('id', selectedEstimate.project_id)
+      .single();
+    
+    let quoteNumber = initialQuote?.quoteNumber;
+    if (!quoteNumber) {
+      if (projectError) {
+        console.error('Error fetching project:', projectError);
+        // Fallback to old format if project fetch fails
+        quoteNumber = `QTE-${Date.now().toString().slice(-6)}`;
+      } else {
+        quoteNumber = await generateQuoteNumber(
+          selectedEstimate.project_id, 
+          projectData.project_number, 
+          selectedEstimate.id
+        );
+      }
+    }
+
     const quote: Quote = {
       id: initialQuote?.id || Date.now().toString(),
       project_id: selectedEstimate.project_id,
@@ -259,7 +300,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       status,
       valid_until: validUntil,
       accepted_date: status === QuoteStatus.ACCEPTED ? new Date() : undefined,
-      quoteNumber: initialQuote?.quoteNumber || generateQuoteNumber(),
+      quoteNumber,
       includes_materials,
       includes_labor,
       lineItems: lineItems.filter(item => item.description.trim()),

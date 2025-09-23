@@ -221,6 +221,7 @@ export type Database = {
           parent_estimate_id: string | null
           project_id: string
           revision_number: number | null
+          sequence_number: number | null
           status: Database["public"]["Enums"]["estimate_status"] | null
           target_margin_percent: number | null
           total_amount: number | null
@@ -246,6 +247,7 @@ export type Database = {
           parent_estimate_id?: string | null
           project_id: string
           revision_number?: number | null
+          sequence_number?: number | null
           status?: Database["public"]["Enums"]["estimate_status"] | null
           target_margin_percent?: number | null
           total_amount?: number | null
@@ -271,6 +273,7 @@ export type Database = {
           parent_estimate_id?: string | null
           project_id?: string
           revision_number?: number | null
+          sequence_number?: number | null
           status?: Database["public"]["Enums"]["estimate_status"] | null
           target_margin_percent?: number | null
           total_amount?: number | null
@@ -492,12 +495,14 @@ export type Database = {
           project_type: Database["public"]["Enums"]["project_type"] | null
           qb_formatted_number: string | null
           quickbooks_job_id: string | null
+          sequence_number: number | null
           start_date: string | null
           status: Database["public"]["Enums"]["project_status"] | null
           sync_status: Database["public"]["Enums"]["sync_status"] | null
           target_margin: number | null
           total_accepted_quotes: number | null
           updated_at: string | null
+          work_order_counter: number | null
         }
         Insert: {
           address?: string | null
@@ -519,12 +524,14 @@ export type Database = {
           project_type?: Database["public"]["Enums"]["project_type"] | null
           qb_formatted_number?: string | null
           quickbooks_job_id?: string | null
+          sequence_number?: number | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
           target_margin?: number | null
           total_accepted_quotes?: number | null
           updated_at?: string | null
+          work_order_counter?: number | null
         }
         Update: {
           address?: string | null
@@ -546,12 +553,14 @@ export type Database = {
           project_type?: Database["public"]["Enums"]["project_type"] | null
           qb_formatted_number?: string | null
           quickbooks_job_id?: string | null
+          sequence_number?: number | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
           target_margin?: number | null
           total_accepted_quotes?: number | null
           updated_at?: string | null
+          work_order_counter?: number | null
         }
         Relationships: [
           {
@@ -717,6 +726,7 @@ export type Database = {
           project_id: string
           quote_number: string
           rejection_reason: string | null
+          sequence_number: number | null
           status: Database["public"]["Enums"]["quote_status"] | null
           total_amount: number | null
           updated_at: string | null
@@ -737,6 +747,7 @@ export type Database = {
           project_id: string
           quote_number: string
           rejection_reason?: string | null
+          sequence_number?: number | null
           status?: Database["public"]["Enums"]["quote_status"] | null
           total_amount?: number | null
           updated_at?: string | null
@@ -757,6 +768,7 @@ export type Database = {
           project_id?: string
           quote_number?: string
           rejection_reason?: string | null
+          sequence_number?: number | null
           status?: Database["public"]["Enums"]["quote_status"] | null
           total_amount?: number | null
           updated_at?: string | null
@@ -786,6 +798,33 @@ export type Database = {
           },
         ]
       }
+      system_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -805,6 +844,26 @@ export type Database = {
       }
       create_estimate_version: {
         Args: { new_version_number?: number; source_estimate_id: string }
+        Returns: string
+      }
+      generate_estimate_number: {
+        Args: { project_id_param: string; project_number_param: string }
+        Returns: string
+      }
+      generate_quote_number: {
+        Args: {
+          estimate_id_param: string
+          project_id_param: string
+          project_number_param: string
+        }
+        Returns: string
+      }
+      generate_work_order_number: {
+        Args: { project_id_param: string; project_number_param: string }
+        Returns: string
+      }
+      get_next_project_number: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       rollback_cost_migration_final: {

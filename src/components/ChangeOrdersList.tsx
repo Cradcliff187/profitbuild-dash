@@ -41,7 +41,10 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
       setLoading(true);
       const { data, error } = await supabase
         .from('change_orders')
-        .select('*')
+        .select(`
+          *,
+          projects!inner(project_number, project_name)
+        `)
         .eq('project_id', projectId)
         .order('requested_date', { ascending: false });
 
@@ -253,7 +256,14 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                   {paginatedChangeOrders.map((changeOrder) => (
                     <TableRow key={changeOrder.id}>
                       <TableCell className="font-medium">
-                        {changeOrder.change_order_number}
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">
+                            {(changeOrder as any).projects?.project_number} / {changeOrder.change_order_number}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {(changeOrder as any).projects?.project_name}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="max-w-xs truncate" title={changeOrder.description}>

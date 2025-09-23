@@ -82,9 +82,30 @@ export const PROJECT_STATUSES = [
   { value: 'cancelled', label: 'Cancelled' }
 ] as const;
 
-// Utility function to generate project numbers
-export const generateProjectNumber = (): string => {
-  const numbers = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  const suffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  return `${numbers}-${suffix}`; // Format: 125-098
+// Utility function to generate project numbers using sequential hierarchy
+export const generateProjectNumber = async (): Promise<string> => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data, error } = await supabase.rpc('get_next_project_number');
+    
+    if (error) {
+      console.error('Error generating project number:', error);
+      // Fallback to timestamp-based number if database call fails
+      const timestamp = Date.now().toString().slice(-3);
+      return `125-${timestamp}`;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error generating project number:', error);
+    // Fallback to timestamp-based number if import or database call fails
+    const timestamp = Date.now().toString().slice(-3);
+    return `125-${timestamp}`;
+  }
+};
+
+// Synchronous fallback for immediate use (will be replaced by async version)
+export const generateProjectNumberSync = (): string => {
+  const timestamp = Date.now().toString().slice(-3);
+  return `125-${timestamp}`;
 };
