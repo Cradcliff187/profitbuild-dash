@@ -74,6 +74,11 @@ export async function calculateProjectFinancials(
         }
 
         projectedCosts = lineItems.reduce((sum, item) => {
+          // Skip internal labor costs from projected costs calculation
+          if (item.category === 'labor_internal') {
+            return sum;
+          }
+          
           // Check if we have an accepted quote for this line item
           const quotedAmount = categoryQuotes.get(item.id);
           if (quotedAmount !== undefined) {
@@ -196,6 +201,11 @@ export async function calculateMultipleProjectFinancials(
 
       // Calculate projected costs using quotes where available
       projectedCosts = projectLineItems.reduce((sum, item) => {
+        // Skip internal labor costs from projected costs calculation
+        if (item.category === 'labor_internal') {
+          return sum;
+        }
+        
         const quotedAmount = categoryQuotes.get(item.id);
         if (quotedAmount !== undefined) {
           return sum + quotedAmount;
