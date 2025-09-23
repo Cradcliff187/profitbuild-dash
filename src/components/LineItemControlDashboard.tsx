@@ -66,11 +66,12 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
     const headers = [
       'Category',
       'Description', 
-      'Estimated Amount',
-      'Quoted Amount',
-      'Actual Amount',
-      'Variance',
-      'Variance %',
+      'Est. Price',
+      'Est. Cost',
+      'Quoted Cost',
+      'Actual',
+      'Cost Variance',
+      'Cost Variance %',
       'Quote Status'
     ];
 
@@ -79,11 +80,12 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
       ...lineItems.map(item => [
         CATEGORY_DISPLAY_MAP[item.category as keyof typeof CATEGORY_DISPLAY_MAP] || item.category,
         `"${item.description}"`,
-        item.estimatedAmount,
-        item.quotedAmount,
+        item.estimatedPrice,
+        item.estimatedCost,
+        item.quotedCost,
         item.actualAmount,
-        item.variance,
-        item.variancePercent.toFixed(1) + '%',
+        item.costVariance,
+        item.costVariancePercent.toFixed(1) + '%',
         item.quoteStatus
       ].join(','))
     ].join('\n');
@@ -124,42 +126,64 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
       ),
     },
     {
-      key: 'estimatedAmount',
-      label: 'Estimated',
+      key: 'estimatedPrice',
+      label: 'Est. Price',
       align: 'right',
       sortable: true,
       render: (item) => (
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="text-right cursor-help">
-              <div className="font-medium text-sm">{formatCurrency(item.estimatedAmount)}</div>
-              <div className="text-xs text-muted-foreground">Budget</div>
+              <div className="font-medium text-sm">{formatCurrency(item.estimatedPrice)}</div>
+              <div className="text-xs text-muted-foreground">Client price</div>
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Original estimated amount for this line item</p>
+            <p>Estimated price (what we charge the client) for this line</p>
           </TooltipContent>
         </Tooltip>
       ),
     },
     {
-      key: 'quotedAmount',
-      label: 'Quoted',
+      key: 'estimatedCost',
+      label: 'Est. Cost',
       align: 'right',
       sortable: true,
       render: (item) => (
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="text-right cursor-help">
-              <div className="font-medium text-sm">{formatCurrency(item.quotedAmount)}</div>
-              <div className="text-xs text-muted-foreground">{item.quotes.length} quote{item.quotes.length !== 1 ? 's' : ''}</div>
+              <div className="font-medium text-sm">{formatCurrency(item.estimatedCost)}</div>
+              <div className="text-xs text-muted-foreground">Your expected cost</div>
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Total amount from accepted quotes ({item.quotes.length} quotes received)</p>
+            <p>Estimated cost (your internal cost) = quantity × cost per unit</p>
           </TooltipContent>
         </Tooltip>
       ),
+    },
+    {
+      key: 'quotedCost',
+      label: 'Quoted Cost',
+      align: 'right',
+      sortable: true,
+      render: (item) => {
+        const acceptedCount = item.quotes.filter(q => q.status === 'accepted').length;
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className="font-medium text-sm">{formatCurrency(item.quotedCost)}</div>
+                <div className="text-xs text-muted-foreground">{acceptedCount} accepted</div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Sum of vendor costs from accepted quote line items linked to this estimate line</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'actualAmount',
@@ -175,14 +199,14 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Total actual expenses recorded ({item.expenses.length} expenses)</p>
+            <p>Total actual expenses recorded (category-based)</p>
           </TooltipContent>
         </Tooltip>
       ),
     },
     {
-      key: 'variance',
-      label: 'Variance',
+      key: 'costVariance',
+      label: 'Cost Variance',
       align: 'right',
       sortable: true,
       render: (item) => (
@@ -191,21 +215,20 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
             <div className="text-right cursor-help">
               <div className={cn(
                 "font-medium text-sm",
-                item.variance > 0 ? "text-destructive" : "text-muted-foreground"
+                item.costVariance > 0 ? "text-destructive" : "text-muted-foreground"
               )}>
-                {formatCurrency(item.variance)}
+                {formatCurrency(item.costVariance)}
               </div>
               <div className={cn(
                 "text-xs",
-                item.variance > 0 ? "text-destructive" : "text-muted-foreground"
+                item.costVariance > 0 ? "text-destructive" : "text-muted-foreground"
               )}>
-                {item.variancePercent > 0 ? '+' : ''}{item.variancePercent.toFixed(1)}%
+                {item.costVariancePercent > 0 ? '+' : ''}{item.costVariancePercent.toFixed(1)}%
               </div>
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Difference between actual expenses and estimated amount</p>
-            <p>{item.variance > 0 ? 'Over budget' : item.variance < 0 ? 'Under budget' : 'On budget'}</p>
+            <p>Quoted Cost − Estimated Cost (positive = over estimate)</p>
           </TooltipContent>
         </Tooltip>
       ),
@@ -225,9 +248,7 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
             <div>
               <p><strong>Quote Status:</strong> {item.quoteStatus}</p>
               <p>{item.quotes.length} quotes received for this line item</p>
-              {item.quotes.length > 0 && (
-                <p>Total quoted: {formatCurrency(item.quotedAmount)}</p>
-              )}
+              <p>Quoted price: {formatCurrency(item.quotedPrice)}</p>
             </div>
           </TooltipContent>
         </Tooltip>
@@ -241,11 +262,11 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="cursor-help">
-              {getVarianceBadge(item.variance, item.variancePercent)}
+              {getVarianceBadge(item.costVariance, item.costVariancePercent)}
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Budget performance indicator based on actual vs estimated costs</p>
+            <p>Budget indicator based on quoted vs estimated costs</p>
           </TooltipContent>
         </Tooltip>
       ),
@@ -255,8 +276,8 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
       label: 'Progress',
       align: 'center',
       render: (item) => {
-        const completionPercent = item.actualAmount > 0 && item.estimatedAmount > 0
-          ? Math.min(Math.round((item.actualAmount / item.estimatedAmount) * 100), 100)
+        const completionPercent = item.actualAmount > 0 && item.estimatedPrice > 0
+          ? Math.min(Math.round((item.actualAmount / item.estimatedPrice) * 100), 100)
           : 0;
 
         return (
@@ -273,8 +294,8 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Completion based on actual expenses vs estimated amount</p>
-              <p>{completionPercent}% of estimated budget spent</p>
+              <p>Completion based on actual expenses vs estimated price</p>
+              <p>{completionPercent}% of estimated price spent</p>
             </TooltipContent>
           </Tooltip>
         );

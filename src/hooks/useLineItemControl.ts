@@ -17,15 +17,28 @@ export interface LineItemControlData {
   id: string;
   category: string;
   description: string;
-  estimatedAmount: number;
-  quotedAmount: number;
-  actualAmount: number;
-  variance: number;
-  variancePercent: number;
+  // Pricing (client-facing)
+  estimatedPrice: number; // from estimate line total/price_per_unit * qty
+  quotedPrice: number; // sum of matching accepted quote line item totals (rate * qty)
+  // Costs (vendor/internal)
+  estimatedCost: number; // cost_per_unit * qty
+  quotedCost: number; // sum of matching accepted quote line item costs (cost_per_unit * qty)
+  marginImpact: number; // estimatedCost - quotedCost (positive = improves margin)
+  // Actuals
+  actualAmount: number; // actual expenses recorded (by category)
+  // Variances
+  costVariance: number; // quotedCost - estimatedCost (positive = worse)
+  costVariancePercent: number;
+  variance: number; // legacy: actualAmount - estimatedPrice
+  variancePercent: number; // legacy percent
+  // Quotes/Expenses
   quoteStatus: 'none' | 'partial' | 'full' | 'over';
   quotes: QuoteData[];
   expenses: Expense[];
   estimateLineItemId?: string;
+  // Legacy fields for backward compatibility
+  estimatedAmount: number; // alias of estimatedPrice
+  quotedAmount: number; // alias of quotedPrice
 }
 
 export interface LineItemControlSummary {
@@ -109,7 +122,9 @@ export function useLineItemControl(projectId: string): UseLineItemControlReturn 
             quantity,
             rate,
             total,
-            estimate_line_item_id
+            estimate_line_item_id,
+            cost_per_unit,
+            total_cost
           ),
           payees (
             payee_name
@@ -173,53 +188,89 @@ function processLineItemData(
   expenses: any[]
 ): LineItemControlData[] {
   return estimateLineItems.map(lineItem => {
-    // Find quotes that match this line item by category (most common approach)
-    // and also check for direct line item linking as fallback
-    const matchingQuotes = quotes.filter(quote => 
-      quote.estimate_line_item_id === lineItem.id ||
-      quote.quote_line_items?.some((qli: any) => 
-        qli.estimate_line_item_id === lineItem.id ||
-        qli.category === lineItem.category
-      )
-    ).map(quote => ({
-      id: quote.id,
-      quoteNumber: quote.quote_number,
-      quotedBy: quote.payees?.payee_name || 'Unknown Vendor',
-      total: quote.total_amount || 0,
-      status: quote.status,
-      includes_labor: quote.includes_labor,
-      includes_materials: quote.includes_materials
-    }));
+    const qty = Number(lineItem.quantity ?? 0);
+    const rate = Number(lineItem.rate ?? 0);
+    const total = Number(lineItem.total ?? 0);
+    const costPerUnit = Number(lineItem.cost_per_unit ?? 0);
 
-    // Calculate quoted amount - only count accepted quotes for accurate totals
-    const acceptedQuotes = matchingQuotes.filter(quote => quote.status === 'accepted');
-    const quotedAmount = acceptedQuotes.reduce((sum, quote) => sum + quote.total, 0);
+    // Pricing (client-facing)
+    const estimatedPrice = total || (qty * rate) || 0;
+    // Cost (internal)
+    const estimatedCost = qty * costPerUnit;
 
-    // Find expenses by category matching with enhanced data
-    const matchingExpenses = expenses.filter(expense => 
+    // Quotes strictly linked to this estimate line item
+    const relatedQuotes = (quotes || []).filter((q: any) =>
+      q.estimate_line_item_id === lineItem.id ||
+      (q.quote_line_items || []).some((qli: any) => qli.estimate_line_item_id === lineItem.id)
+    );
+
+    // Build per-quote data limited to this line item only
+    const quoteRowsForUi: QuoteData[] = relatedQuotes.map((q: any) => {
+      const itemsForLine = (q.quote_line_items || []).filter((qli: any) => qli.estimate_line_item_id === lineItem.id);
+      const quoteTotalForThisLine = itemsForLine.reduce((s: number, li: any) => {
+        const linePrice = Number(li.total ?? (Number(li.rate ?? 0) * Number(li.quantity ?? 0)));
+        return s + linePrice;
+      }, 0);
+      return {
+        id: q.id,
+        quoteNumber: q.quote_number,
+        quotedBy: q.payees?.payee_name || 'Unknown Vendor',
+        total: quoteTotalForThisLine,
+        status: q.status,
+        includes_labor: q.includes_labor,
+        includes_materials: q.includes_materials,
+      } as QuoteData;
+    });
+
+    const acceptedQuotes = relatedQuotes.filter((q: any) => q.status === 'accepted');
+
+    // Quoted costs and prices for this specific line item only
+    const quotedCost = acceptedQuotes.reduce((sum: number, q: any) => {
+      const itemsForLine = (q.quote_line_items || []).filter((qli: any) => qli.estimate_line_item_id === lineItem.id);
+      const cost = itemsForLine.reduce((s: number, li: any) => s + (Number(li.cost_per_unit ?? 0) * Number(li.quantity ?? 0)), 0);
+      return sum + cost;
+    }, 0);
+
+    const quotedPrice = acceptedQuotes.reduce((sum: number, q: any) => {
+      const itemsForLine = (q.quote_line_items || []).filter((qli: any) => qli.estimate_line_item_id === lineItem.id);
+      const price = itemsForLine.reduce((s: number, li: any) => s + Number(li.total ?? (Number(li.rate ?? 0) * Number(li.quantity ?? 0))), 0);
+      return sum + price;
+    }, 0);
+
+    // Expenses currently matched by category (no direct link available in schema)
+    const matchingExpenses = (expenses || []).filter((expense: any) => 
       expense.category === lineItem.category
-    ).map(expense => ({
+    ).map((expense: any) => ({
       ...expense,
       payee_name: expense.payees?.payee_name
     }));
 
-    // Calculate actual amount from matching expenses
-    const actualAmount = matchingExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const actualAmount = matchingExpenses.reduce((sum: number, e: any) => sum + Number(e.amount ?? 0), 0);
 
-    const estimatedAmount = lineItem.total || 0;
-    const variance = actualAmount - estimatedAmount;
-    const variancePercent = estimatedAmount > 0 ? (variance / estimatedAmount) * 100 : 0;
+    // Legacy variance (price-based actual vs estimate)
+    const variance = actualAmount - estimatedPrice;
+    const variancePercent = estimatedPrice > 0 ? (variance / estimatedPrice) * 100 : 0;
 
-    // Determine quote status based on ALL quotes (not just accepted)
-    const allQuotesAmount = matchingQuotes.reduce((sum, quote) => sum + quote.total, 0);
+    // Cost variance (quoted vs estimated cost)
+    const costVariance = quotedCost - estimatedCost;
+    const costVariancePercent = estimatedCost > 0 ? (costVariance / estimatedCost) * 100 : 0;
+
+    // Quote status based on all quotes amounts for THIS line only
+    const allQuotesAmountForLine = relatedQuotes.reduce((sum: number, q: any) => {
+      const itemsForLine = (q.quote_line_items || []).filter((qli: any) => qli.estimate_line_item_id === lineItem.id);
+      const price = itemsForLine.reduce((s: number, li: any) => s + Number(li.total ?? (Number(li.rate ?? 0) * Number(li.quantity ?? 0))), 0);
+      return sum + price;
+    }, 0);
+
     let quoteStatus: 'none' | 'partial' | 'full' | 'over' = 'none';
-    
-    if (matchingQuotes.length === 0) {
+    if (relatedQuotes.length === 0) {
       quoteStatus = 'none';
-    } else if (allQuotesAmount < estimatedAmount * 0.8) {
+    } else if (allQuotesAmountForLine === 0) {
       quoteStatus = 'partial';
-    } else if (allQuotesAmount > estimatedAmount * 1.2) {
+    } else if (allQuotesAmountForLine > estimatedPrice * 1.2) {
       quoteStatus = 'over';
+    } else if (allQuotesAmountForLine < estimatedPrice * 0.8) {
+      quoteStatus = 'partial';
     } else {
       quoteStatus = 'full';
     }
@@ -228,22 +279,31 @@ function processLineItemData(
       id: lineItem.id,
       category: lineItem.category,
       description: lineItem.description,
-      estimatedAmount,
-      quotedAmount, // Only accepted quotes counted here
+      // New fields
+      estimatedPrice,
+      quotedPrice,
+      estimatedCost,
+      quotedCost,
       actualAmount,
+      costVariance,
+      costVariancePercent,
+      // Legacy fields/aliases
+      estimatedAmount: estimatedPrice,
+      quotedAmount: quotedPrice,
       variance,
       variancePercent,
+      // References
       quoteStatus,
-      quotes: matchingQuotes, // All quotes for display
+      quotes: quoteRowsForUi,
       expenses: matchingExpenses,
-      estimateLineItemId: lineItem.id
-    };
+      estimateLineItemId: lineItem.id,
+    } as LineItemControlData;
   });
 }
 
 function calculateSummary(lineItems: LineItemControlData[]): LineItemControlSummary {
   const totalEstimated = lineItems.reduce((sum, item) => sum + item.estimatedAmount, 0);
-  const totalQuoted = lineItems.reduce((sum, item) => sum + item.quotedAmount, 0);
+  const totalQuoted = lineItems.reduce((sum, item) => sum + item.quotedCost, 0);
   const totalActual = lineItems.reduce((sum, item) => sum + item.actualAmount, 0);
   const totalVariance = totalActual - totalEstimated;
   
