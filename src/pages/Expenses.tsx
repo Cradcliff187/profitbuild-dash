@@ -8,13 +8,12 @@ import { ExpenseUpload } from "@/components/ExpenseUpload";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpensesList } from "@/components/ExpensesList";
 import { ProjectExpenseTracker } from "@/components/ProjectExpenseTracker";
-import { TransactionImportModal } from "@/components/TransactionImportModal";
-import { EnhancedTransactionImportModal } from "@/components/EnhancedTransactionImportModal";
+import { UnifiedExpenseImportModal } from "@/components/UnifiedExpenseImportModal";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-type ViewMode = 'dashboard' | 'upload' | 'form' | 'list' | 'tracker';
+type ViewMode = 'dashboard' | 'form' | 'list' | 'tracker';
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -23,8 +22,7 @@ const Expenses = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
   const [loading, setLoading] = useState(true);
-  const [showTransactionImport, setShowTransactionImport] = useState(false);
-  const [showEnhancedImport, setShowEnhancedImport] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const { toast } = useToast();
 
   // Load expenses from Supabase
@@ -140,20 +138,12 @@ const Expenses = () => {
         </div>
         <div className="flex items-center space-x-2">
           <Button 
-            onClick={() => setShowTransactionImport(true)} 
+            onClick={() => setShowImportModal(true)} 
             variant="outline"
             className="flex items-center space-x-2"
           >
-            <FileDown className="h-4 w-4" />
-            <span>Import Transactions</span>
-          </Button>
-          <Button 
-            onClick={() => setShowEnhancedImport(true)} 
-            variant="secondary"
-            className="flex items-center space-x-2"
-          >
             <Upload className="h-4 w-4" />
-            <span>Enhanced QB Import</span>
+            <span>Import Expenses</span>
           </Button>
           <Button onClick={handleCreateNew} className="flex items-center space-x-2">
             <Plus className="h-4 w-4" />
@@ -170,7 +160,7 @@ const Expenses = () => {
         />
       ) : (
         <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2">
               <BarChart3 className="h-4 w-4" />
               <span>Dashboard</span>
@@ -178,10 +168,6 @@ const Expenses = () => {
             <TabsTrigger value="list" className="flex items-center space-x-2">
               <List className="h-4 w-4" />
               <span>All Expenses</span>
-            </TabsTrigger>
-            <TabsTrigger value="upload" className="flex items-center space-x-2">
-              <Upload className="h-4 w-4" />
-              <span>Import CSV</span>
             </TabsTrigger>
             <TabsTrigger value="tracker" className="flex items-center space-x-2">
               <Receipt className="h-4 w-4" />
@@ -202,32 +188,17 @@ const Expenses = () => {
             />
           </TabsContent>
 
-          <TabsContent value="upload">
-            <ExpenseUpload
-              onExpensesImported={handleExpensesImported}
-              estimates={estimates}
-            />
-          </TabsContent>
-
           <TabsContent value="tracker">
             <ProjectExpenseTracker expenses={expenses} estimates={estimates} changeOrders={changeOrders} />
           </TabsContent>
         </Tabs>
       )}
       
-      <TransactionImportModal
-        open={showTransactionImport}
-        onOpenChange={setShowTransactionImport}
-        onTransactionsImported={handleExpensesImported}
-      />
-      
-      <EnhancedTransactionImportModal
-        open={showEnhancedImport}
-        onOpenChange={setShowEnhancedImport}
-        onTransactionsImported={(expenses, revenues) => {
-          handleExpensesImported(expenses);
-          fetchData();
-        }}
+      <UnifiedExpenseImportModal
+        open={showImportModal}
+        onOpenChange={setShowImportModal}
+        onExpensesImported={handleExpensesImported}
+        estimates={estimates}
       />
     </div>
   );
