@@ -262,10 +262,10 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                   <span className="font-medium">Total Transactions:</span> {csvData.length}
                 </div>
                 <div>
-                  <span className="font-medium">Revenues (Invoice):</span> {csvData.filter(row => row['Transaction Type'] === 'Invoice').length}
+                  <span className="font-medium">Revenues (Invoice):</span> {csvData.filter(row => row['Transaction type'] === 'Invoice').length}
                 </div>
                 <div>
-                  <span className="font-medium">Expenses (Bill/Check/Expense):</span> {csvData.filter(row => row['Transaction Type'] !== 'Invoice').length}
+                  <span className="font-medium">Expenses (Bill/Check/Expense):</span> {csvData.filter(row => row['Transaction type'] !== 'Invoice').length}
                 </div>
                 <div>
                   <span className="font-medium">Unassociated (No Project/WO #):</span> {csvData.filter(row => !row['Project/WO #'] || row['Project/WO #'].trim() === '').length}
@@ -290,8 +290,8 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                   <TableRow key={index}>
                     <TableCell>{row.Date}</TableCell>
                     <TableCell>
-                      <Badge variant={row['Transaction Type'] === 'Invoice' ? 'default' : 'secondary'}>
-                        {row['Transaction Type']}
+                      <Badge variant={row['Transaction type'] === 'Invoice' ? 'default' : 'secondary'}>
+                        {row['Transaction type']}
                       </Badge>
                     </TableCell>
                     <TableCell>${parseFloat(row.Amount || '0').toFixed(2)}</TableCell>
@@ -300,7 +300,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                     <TableCell className="text-xs">{row['Account Full Name']}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs">
-                        {row['Transaction Type'] === 'Invoice' ? 'Revenue' : 'Expense'}
+                        {row['Transaction type'] === 'Invoice' ? 'Revenue' : 'Expense'}
                       </Badge>
                     </TableCell>
                   </TableRow>
