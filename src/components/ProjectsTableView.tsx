@@ -500,6 +500,24 @@ export const ProjectsTableView = ({
       ),
     },
     {
+      key: 'totalEstimatedAmount',
+      label: 'Total Estimated Amount',
+      align: 'right' as const,
+      sortable: true,
+      render: (project: ProjectWithFinancials) => (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="text-right cursor-help">
+              <div className="font-medium text-sm">{formatCurrency(project.totalEstimatedAmount)}</div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Original total amount from approved estimate (baseline before quotes/change orders)</p>
+          </TooltipContent>
+        </Tooltip>
+      ),
+    },
+    {
       key: 'total_accepted_quotes',
       label: 'Accepted Quotes',
       align: 'right',

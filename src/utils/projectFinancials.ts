@@ -12,6 +12,7 @@ export interface ProjectWithFinancials extends Project {
   projectedMargin: number;
   nonInternalLineItemCount: number;
   totalLineItemCount: number; // Total count of all line items in approved estimate
+  totalEstimatedAmount: number; // Original total amount from approved estimate
   totalEstimatedCosts: number; // Internal labor + external costs (complete project cost estimate)
 }
 
@@ -38,9 +39,13 @@ export async function calculateProjectFinancials(
   let projectedCosts = 0;
   let nonInternalLineItemCount = 0;
   let totalLineItemCount = 0;
+  let totalEstimatedAmount = 0;
 
   // Only calculate financials if there's an approved estimate
   if (currentEstimate?.id) {
+    // Set total estimated amount from approved estimate
+    totalEstimatedAmount = currentEstimate.total_amount || 0;
+    
     try {
       // Get projected revenue from contract amount (approved estimate + change orders)
       // Fall back to estimate total if no contract amount is set
@@ -147,6 +152,7 @@ export async function calculateProjectFinancials(
     projectedMargin,
     nonInternalLineItemCount,
     totalLineItemCount,
+    totalEstimatedAmount,
     totalEstimatedCosts,
   };
 }
@@ -229,9 +235,13 @@ export async function calculateMultipleProjectFinancials(
     let projectedCosts = 0;
     let nonInternalLineItemCount = 0;
     let totalLineItemCount = 0;
+    let totalEstimatedAmount = 0;
 
     // Only calculate financials if there's an approved estimate
     if (currentEstimate?.id) {
+      // Set total estimated amount from approved estimate
+      totalEstimatedAmount = currentEstimate.total_amount || 0;
+      
       // Get projected revenue from contract amount (approved estimate + change orders)
       // Fall back to estimate total if no contract amount is set
       projectedRevenue = project.contracted_amount || currentEstimate.total_amount || 0;
@@ -313,6 +323,7 @@ export async function calculateMultipleProjectFinancials(
       projectedMargin,
       nonInternalLineItemCount,
       totalLineItemCount,
+      totalEstimatedAmount,
       totalEstimatedCosts,
     };
   });
