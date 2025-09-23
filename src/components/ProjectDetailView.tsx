@@ -33,6 +33,7 @@ import { ChangeOrdersList } from "@/components/ChangeOrdersList";
 import { ExpensesList } from "@/components/ExpensesList";
 import { QuotesList } from "@/components/QuotesList";
 import { LineItemControlDashboard } from "@/components/LineItemControlDashboard";
+import { ExpenseMatchingInterface } from "@/components/ExpenseMatchingInterface";
 import { Project, ProjectStatus } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
@@ -476,7 +477,7 @@ export const ProjectDetailView = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-5 w-full h-12 bg-muted/50 p-1 rounded-lg">
+        <TabsList className="grid grid-cols-6 w-full h-12 bg-muted/50 p-1 rounded-lg">
           <TabsTrigger 
             value="overview" 
             className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold"
@@ -490,6 +491,13 @@ export const ProjectDetailView = () => {
           >
             <Settings className="h-4 w-4 mr-2" />
             Line Item Control
+          </TabsTrigger>
+          <TabsTrigger 
+            value="matching"
+            className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+          >
+            <Target className="h-4 w-4 mr-2" />
+            Expense Matching
           </TabsTrigger>
           <TabsTrigger 
             value="estimates"
@@ -588,6 +596,19 @@ export const ProjectDetailView = () => {
 
         <TabsContent value="control" className="space-y-4">
           <LineItemControlDashboard projectId={project.id} />
+        </TabsContent>
+
+        <TabsContent value="matching" className="space-y-4">
+          <ExpenseMatchingInterface 
+            projectId={project.id} 
+            onMatchingComplete={() => {
+              toast({
+                title: "Matching Complete",
+                description: "Expense matching has been updated."
+              });
+              loadProjectData(); // Refresh data
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="estimates" className="space-y-4">

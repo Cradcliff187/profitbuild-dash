@@ -237,12 +237,29 @@ function processLineItemData(
       return sum + price;
     }, 0);
 
-    // Expenses currently matched by category (no direct link available in schema)
-    const matchingExpenses = (expenses || []).filter((expense: any) => 
-      expense.category === lineItem.category
-    ).map((expense: any) => ({
+    // Enhanced matching: payee + category matching with fallback to category only
+    const acceptedQuotePayeeIds = new Set(
+      acceptedQuotes.map((q: any) => q.payee_id).filter(Boolean)
+    );
+
+    const matchingExpenses = (expenses || []).filter((expense: any) => {
+      // Primary match: Category + Payee (if expense has payee and matches accepted quote payee)
+      if (expense.payee_id && acceptedQuotePayeeIds.has(expense.payee_id) && 
+          expense.category === lineItem.category) {
+        return true;
+      }
+      
+      // Fallback match: Category only (for expenses without payee or unmatched payees)
+      if (expense.category === lineItem.category && 
+          (!expense.payee_id || !acceptedQuotePayeeIds.size)) {
+        return true;
+      }
+      
+      return false;
+    }).map((expense: any) => ({
       ...expense,
-      payee_name: expense.payees?.payee_name
+      payee_name: expense.payees?.payee_name,
+      matching_confidence: expense.payee_id && acceptedQuotePayeeIds.has(expense.payee_id) ? 'high' : 'category_only'
     }));
 
     const actualAmount = matchingExpenses.reduce((sum: number, e: any) => sum + Number(e.amount ?? 0), 0);
