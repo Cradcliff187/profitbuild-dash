@@ -518,42 +518,37 @@ export const ProjectsTableView = ({
       ),
     },
     {
-      key: 'total_accepted_quotes',
-      label: 'Accepted Quotes',
-      align: 'right',
+      key: 'originalEstimatedMargin',
+      label: 'Original Est. Margin ($)',
+      align: 'right' as const,
       sortable: true,
-      render: (project) => (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="text-right cursor-help">
-              <div className="font-medium text-sm">{formatCurrency(project.total_accepted_quotes)}</div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Sum of all accepted subcontractor quotes plus approved change order costs</p>
-          </TooltipContent>
-        </Tooltip>
-      ),
-    },
-    {
-      key: 'estimatedCost',
-      label: 'Est Internal Labor Cost',
-      align: 'right',
-      render: (project) => (
-        <TooltipProvider>
+      render: (project: ProjectWithFinancials) => {
+        const contractValue = project.contracted_amount || 0;
+        const originalCosts = project.originalEstimatedCosts || 0;
+        const originalMargin = contractValue - originalCosts;
+        const isPositive = originalMargin >= 0;
+        
+        return (
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-right">
-                <div className="font-medium text-sm">{formatCurrency(project.estimatedCost)}</div>
-                {getBudgetPerformance(project.estimatedCost, project.actualExpenses)}
+              <div className="text-right cursor-help">
+                <div className={`font-medium text-sm ${
+                  isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                }`}>
+                  {formatCurrency(originalMargin)}
+                </div>
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Internal labor cost from approved estimate only</p>
+              <div>
+                <p><strong>Original Est. Margin:</strong> {formatCurrency(originalMargin)}</p>
+                <p>Calculation: Contract Value - Original Est. Costs</p>
+                <p>Shows initial profit expectation from original approved estimate</p>
+              </div>
             </TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-      ),
+        );
+      }
     },
     {
       key: 'totalEstimatedCosts',
@@ -569,24 +564,6 @@ export const ProjectsTableView = ({
           </TooltipTrigger>
           <TooltipContent>
             <p>Sum of internal labor costs + external costs (quotes where available, otherwise estimated costs) + approved change order costs</p>
-          </TooltipContent>
-        </Tooltip>
-      ),
-    },
-    {
-      key: 'actualExpenses',
-      label: 'Actual Expenses',
-      align: 'right',
-      sortable: true,
-      render: (project) => (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="text-right cursor-help">
-              <div className="font-medium text-sm">{formatCurrency(project.actualExpenses)}</div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Total expenses recorded to date</p>
           </TooltipContent>
         </Tooltip>
       ),
@@ -616,37 +593,6 @@ export const ProjectsTableView = ({
                 <p><strong>Projected Margin:</strong> {formatCurrency(projectedMargin)}</p>
                 <p>Calculation: Contract Value - External Costs (excludes internal labor)</p>
                 <p>Uses accepted quote prices + approved change order costs when available, otherwise estimated costs</p>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        );
-      }
-    },
-    {
-      key: 'current_margin',
-      label: 'Current Margin ($)',
-      align: 'right' as const,
-      sortable: true,
-      render: (project: ProjectWithFinancials) => {
-        const currentMargin = project.current_margin || 0;
-        const isPositive = currentMargin >= 0;
-        
-        return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="text-right cursor-help">
-                <div className={`font-medium text-sm ${
-                  isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                }`}>
-                  {formatCurrency(currentMargin)}
-                </div>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div>
-                <p><strong>Current Margin:</strong> {formatCurrency(currentMargin)}</p>
-                <p>Calculation: Contract Revenue - Actual Expenses</p>
-                <p>Based on real expenses incurred to date</p>
               </div>
             </TooltipContent>
           </Tooltip>
@@ -690,6 +636,24 @@ export const ProjectsTableView = ({
           </Tooltip>
         );
       }
+    },
+    {
+      key: 'actualExpenses',
+      label: 'Actual Expenses',
+      align: 'right',
+      sortable: true,
+      render: (project) => (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="text-right cursor-help">
+              <div className="font-medium text-sm">{formatCurrency(project.actualExpenses)}</div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Total expenses recorded to date</p>
+          </TooltipContent>
+        </Tooltip>
+      ),
     },
     {
       key: 'line_items',
