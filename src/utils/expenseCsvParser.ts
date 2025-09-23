@@ -139,8 +139,8 @@ export const validateExpenseCSVData = (
     errors.push('Amount column is required');
   }
   
-  if (!selectedProjectId && !mapping.project_name) {
-    errors.push('Project must be selected or project column must be mapped');
+  if (!selectedProjectId) {
+    errors.push('Fallback project is required to handle unmatched rows');
   }
   
   if (data.length === 0) {
@@ -190,9 +190,12 @@ export interface ExpenseImportData {
 export const mapCSVToExpenses = (
   data: ExpenseCSVRow[], 
   mapping: ExpenseColumnMapping,
-  selectedProjectId: string,
-  payeeMap: Map<string, string> = new Map() // Map payee names to IDs
+  fallbackProjectId: string,
+  payeeMap: Map<string, string> = new Map(), // Map payee names to IDs
+  projectMap: Map<string, string> = new Map() // Map normalized project identifiers to IDs
 ): ExpenseImportData[] => {
+  const normalizeKey = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, '');
+
   return data
     .filter(row => {
       // Basic validation - must have required fields
@@ -201,8 +204,19 @@ export const mapCSVToExpenses = (
              mapping.amount && row[mapping.amount]?.trim();
     })
     .map(row => {
+      // Determine project per-row using mapping if available, otherwise fallback
+      let project_id = fallbackProjectId;
+      if (mapping.project_name && row[mapping.project_name]?.trim()) {
+        const raw = row[mapping.project_name].trim();
+        const key = normalizeKey(raw);
+        const matched = projectMap.get(key);
+        if (matched) {
+          project_id = matched;
+        }
+      }
+
       const expense: ExpenseImportData = {
-        project_id: selectedProjectId,
+        project_id,
         description: row[mapping.description!]?.trim() || '',
         category: 'other' as ExpenseCategory, // Default category
         transaction_type: 'expense' as TransactionType, // Default type

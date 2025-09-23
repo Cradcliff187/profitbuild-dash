@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Upload, FileText, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
   const [mapping, setMapping] = useState<ExpenseColumnMapping>({});
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [payees, setPayees] = useState<Array<{id: string, payee_name: string}>>([]);
-  const [projects, setProjects] = useState<Array<{id: string, project_name: string}>>([]);
+  const [projects, setProjects] = useState<Array<{id: string, project_name: string, project_number?: string | null, qb_formatted_number?: string | null}>>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -56,7 +56,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     try {
       const [payeesResult, projectsResult] = await Promise.all([
         supabase.from('payees').select('id, payee_name').eq('is_active', true),
-        supabase.from('projects').select('id, project_name')
+        supabase.from('projects').select('id, project_name, project_number, qb_formatted_number')
       ]);
 
       if (payeesResult.data) setPayees(payeesResult.data);
@@ -124,7 +124,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         newMapping.payee_name = header;
       } else if (lowerHeader.includes('category') || lowerHeader.includes('type')) {
         newMapping.category = header;
-      } else if (lowerHeader.includes('project')) {
+      } else if (lowerHeader.includes('project') || lowerHeader.includes('wo') || lowerHeader.includes('work order') || lowerHeader.includes('job')) {
         newMapping.project_name = header;
       } else if (lowerHeader.includes('invoice') || lowerHeader.includes('ref')) {
         newMapping.invoice_number = header;
@@ -167,7 +167,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     const payeeMap = new Map<string, string>();
     payees.forEach(p => payeeMap.set(p.payee_name, p.id));
     
-    const expenses = mapCSVToExpenses(csvData, mapping, selectedProject, payeeMap);
+    const expenses = mapCSVToExpenses(csvData, mapping, selectedProject, payeeMap, projectMap);
     
     try {
       let successCount = 0;
@@ -215,6 +215,24 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
   const previewData = csvData.slice(0, 5);
   const payeeMap = new Map<string, string>();
   payees.forEach(p => payeeMap.set(p.payee_name, p.id));
+
+  const normalizeProjectKey = useCallback((v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, ''), []);
+  const projectMap = useMemo(() => {
+    const map = new Map<string, string>();
+    projects.forEach(p => {
+      [p.project_name, p.project_number as string | undefined | null, p.qb_formatted_number as string | undefined | null]
+        .forEach(val => { if (val) map.set(normalizeProjectKey(String(val)), p.id); });
+    });
+    return map;
+  }, [projects, normalizeProjectKey]);
+
+  const idToProjectName = useMemo(() => {
+    const m = new Map<string, string>();
+    projects.forEach(p => m.set(p.id, p.project_name));
+    return m;
+  }, [projects]);
+
+  const previewExpenses = useMemo(() => mapCSVToExpenses(previewData, mapping, selectedProject, payeeMap, projectMap), [previewData, mapping, selectedProject, payeeMap, projectMap]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -275,10 +293,10 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
             
             {/* Project Selection */}
             <div className="bg-blue-50 p-4 rounded-lg">
-              <label className="block text-sm font-medium mb-1">Project *</label>
+              <label className="block text-sm font-medium mb-1">Fallback Project *</label>
               <Select value={selectedProject} onValueChange={setSelectedProject}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select project for all expenses" />
+                  <SelectValue placeholder="Select fallback project for unmatched rows" />
                 </SelectTrigger>
                 <SelectContent>
                   {projects.map(project => (
@@ -288,7 +306,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-600 mt-1">All expenses will be assigned to this project</p>
+              <p className="text-xs text-gray-600 mt-1">Rows that don't match a Project/WO # from CSV will use this project</p>
             </div>
             
             {/* Column Mapping */}
@@ -328,6 +346,21 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                     <SelectValue placeholder="Select column" />
                   </SelectTrigger>
                   <SelectContent>
+                    {headers.filter(header => header && header.trim()).map(header => (
+                      <SelectItem key={header} value={header}>{header}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Project/WO # (Optional)</label>
+                <Select value={mapping.project_name || 'none'} onValueChange={(value) => setMapping(prev => ({ ...prev, project_name: value === 'none' ? undefined : value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select column" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None - Use fallback</SelectItem>
                     {headers.filter(header => header && header.trim()).map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
@@ -407,6 +440,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead>Description</TableHead>
+                    <TableHead>Project</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Payee</TableHead>
@@ -414,10 +448,11 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mapCSVToExpenses(previewData, mapping, selectedProject, payeeMap).map((expense, index) => (
+                  {previewExpenses.map((expense, index) => (
                     <TableRow key={index}>
                       <TableCell>{new Date(expense.expense_date).toLocaleDateString()}</TableCell>
                       <TableCell className="font-medium max-w-xs truncate">{expense.description}</TableCell>
+                      <TableCell>{idToProjectName.get(expense.project_id) || '-'}{expense.project_id === selectedProject ? ' (Fallback)' : ''}</TableCell>
                       <TableCell>${expense.amount.toFixed(2)}</TableCell>
                       <TableCell>
                         <Badge variant="secondary">
