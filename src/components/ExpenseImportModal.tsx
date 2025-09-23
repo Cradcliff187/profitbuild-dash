@@ -294,7 +294,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                         {row['Transaction type']}
                       </Badge>
                     </TableCell>
-                    <TableCell>${parseFloat(row.Amount || '0').toFixed(2)}</TableCell>
+                    <TableCell>${Math.abs(parseFloat(row.Amount || '0')).toFixed(2)}</TableCell>
                     <TableCell>{row.Name}</TableCell>
                     <TableCell>{row['Project/WO #'] || <span className="text-gray-400">Unassociated</span>}</TableCell>
                     <TableCell className="text-xs">{row['Account Full Name']}</TableCell>
