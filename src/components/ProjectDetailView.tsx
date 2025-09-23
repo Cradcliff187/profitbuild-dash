@@ -142,22 +142,31 @@ export const ProjectDetailView = () => {
       }));
 
       // Format quotes with proper typing
-      const formattedQuotes: Quote[] = (quotesData || []).map(quote => ({
+      const formattedQuotes = (quotesData || []).map(quote => ({
         ...quote,
-        date_received: new Date(quote.date_received),
-        created_at: new Date(quote.created_at),
-        updated_at: new Date(quote.updated_at),
-        valid_until: quote.valid_until ? new Date(quote.valid_until) : undefined,
+        dateReceived: new Date(quote.date_received),
+        createdAt: new Date(quote.created_at),
+        updatedAt: new Date(quote.updated_at),
+        validUntil: quote.valid_until ? new Date(quote.valid_until) : undefined,
         accepted_date: quote.accepted_date ? new Date(quote.accepted_date) : undefined,
+        status: quote.status as any, // Cast to handle enum differences
         // Add missing Quote fields
         projectName: formattedProject.project_name,
         client: formattedProject.client_name,
         quotedBy: '', // Will be populated from payee if needed
-        dateReceived: new Date(quote.date_received),
-        validUntil: quote.valid_until ? new Date(quote.valid_until) : undefined,
+        quoteNumber: quote.quote_number || '',
+        lineItems: [],
+        subtotals: {
+          labor: 0,
+          subcontractors: 0,
+          materials: 0,
+          equipment: 0,
+          other: 0
+        },
+        total: quote.total_amount || 0,
         isOverdue: false,
         daysUntilExpiry: 0
-      }));
+      })) as unknown as Quote[];
 
       // Format expenses with proper typing
       const formattedExpenses: Expense[] = (expensesData || []).map(expense => ({
@@ -305,8 +314,10 @@ export const ProjectDetailView = () => {
         current_margin: project.current_margin || 0,
         margin_percentage: project.margin_percentage,
         contingency_remaining: project.contingency_remaining || 0,
-        minimum_margin_threshold: project.minimum_margin_threshold || 10,
+        minimum_threshold: project.minimum_margin_threshold || 10,
         target_margin: project.target_margin || 20,
+        contingency_total: project.contingency_remaining || 0,
+        contingency_used: 0,
         at_risk: false
       })
     : 'unknown';
@@ -577,11 +588,24 @@ export const ProjectDetailView = () => {
         <TabsContent value="estimates" className="space-y-4">
           <EstimateVersionComparison projectId={project.id} />
           <Separator />
-          <QuotesList />
+          <QuotesList 
+            quotes={quotes} 
+            estimates={estimates}
+            onEdit={() => {}}
+            onDelete={() => {}}
+            onCompare={() => {}}
+            onAccept={() => {}}
+            onCreateNew={() => {}}
+          />
         </TabsContent>
 
         <TabsContent value="expenses" className="space-y-4">
-          <ExpensesList />
+          <ExpensesList 
+            expenses={expenses}
+            onEdit={() => {}}
+            onDelete={() => {}}
+            onRefresh={() => {}}
+          />
         </TabsContent>
 
         <TabsContent value="changes" className="space-y-4">

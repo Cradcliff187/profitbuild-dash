@@ -137,10 +137,10 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     {
       key: 'version_number',
       label: 'Version',
-      align: 'center',
+      align: 'left',
       width: '80px',
       render: (estimate) => (
-        <div className="flex items-center justify-center gap-1">
+        <div className="flex flex-col items-start gap-1">
           <Badge variant="outline" className="text-xs px-2 py-0.5">
             v{estimate.version_number || 1}
           </Badge>
