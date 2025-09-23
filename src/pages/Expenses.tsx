@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, Plus, Upload, BarChart3, List, FileDown } from "lucide-react";
+import { Receipt, Plus, Upload, BarChart3, List, FileDown, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -8,11 +8,12 @@ import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpensesList } from "@/components/ExpensesList";
 import { ProjectExpenseTracker } from "@/components/ProjectExpenseTracker";
 import { ExpenseImportModal } from "@/components/ExpenseImportModal";
+import { GlobalExpenseMatching } from "@/components/GlobalExpenseMatching";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-type ViewMode = 'dashboard' | 'form' | 'list' | 'tracker';
+type ViewMode = 'dashboard' | 'form' | 'list' | 'tracker' | 'matching';
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -137,6 +138,14 @@ const Expenses = () => {
         </div>
         <div className="flex items-center space-x-2">
           <Button 
+            onClick={() => setViewMode('matching')} 
+            variant="outline"
+            className="flex items-center space-x-2"
+          >
+            <Target className="h-4 w-4" />
+            <span>Match Expenses</span>
+          </Button>
+          <Button 
             onClick={() => setShowImportModal(true)} 
             variant="outline"
             className="flex items-center space-x-2"
@@ -156,6 +165,10 @@ const Expenses = () => {
           expense={selectedExpense}
           onSave={handleSaveExpense}
           onCancel={handleCancel}
+        />
+      ) : viewMode === 'matching' ? (
+        <GlobalExpenseMatching
+          onClose={() => setViewMode('dashboard')}
         />
       ) : (
         <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
