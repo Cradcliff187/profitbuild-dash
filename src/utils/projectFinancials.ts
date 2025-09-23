@@ -34,8 +34,9 @@ export async function calculateProjectFinancials(
 
   if (currentEstimate?.id) {
     try {
-      // Get projected revenue from estimate total
-      projectedRevenue = currentEstimate.total_amount || 0;
+      // Get projected revenue from contract amount (approved estimate + change orders)
+      // Fall back to estimate total if no contract amount is set
+      projectedRevenue = project.contracted_amount || currentEstimate.total_amount || 0;
 
       // Get estimate line items with category information
       const { data: lineItems } = await supabase
@@ -165,8 +166,9 @@ export async function calculateMultipleProjectFinancials(
     let nonInternalLineItemCount = 0;
 
     if (currentEstimate?.id) {
-      // Get projected revenue from estimate total
-      projectedRevenue = currentEstimate.total_amount || 0;
+      // Get projected revenue from contract amount (approved estimate + change orders)
+      // Fall back to estimate total if no contract amount is set
+      projectedRevenue = project.contracted_amount || currentEstimate.total_amount || 0;
 
       const projectLineItems = allLineItems.filter(
         item => item.estimate_id === currentEstimate.id
