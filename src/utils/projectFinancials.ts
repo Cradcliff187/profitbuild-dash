@@ -396,6 +396,7 @@ export async function calculateMultipleProjectFinancials(
 
   let allLineItems: any[] = [];
   let allQuotes: any[] = [];
+  let allQuoteLineItems: any[] = [];
   let allChangeOrders: any[] = [];
   
   if (currentEstimateIds.length > 0) {
@@ -411,9 +412,15 @@ export async function calculateMultipleProjectFinancials(
       // Get accepted quotes for all projects
       const { data: quotes } = await supabase
         .from('quotes')
-        .select('project_id, total_amount, estimate_line_item_id, includes_materials, includes_labor')
+        .select('id, project_id, total_amount, estimate_line_item_id, includes_materials, includes_labor')
         .in('project_id', projects.map(p => p.id))
         .eq('status', 'accepted');
+
+      // Get all quote line items with their actual costs
+      const { data: quoteLineItems } = await supabase
+        .from('quote_line_items')
+        .select('quote_id, category, total_cost, estimate_line_item_id')
+        .in('quote_id', (quotes || []).map(q => q.id));
 
       // Get approved change orders for all projects
       const { data: changeOrders } = await supabase
@@ -423,6 +430,7 @@ export async function calculateMultipleProjectFinancials(
         .eq('status', 'approved');
       
       allQuotes = quotes || [];
+      allQuoteLineItems = quoteLineItems || [];
       allChangeOrders = changeOrders || [];
     } catch (error) {
       console.error('Error fetching line items and quotes:', error);
@@ -489,8 +497,13 @@ export async function calculateMultipleProjectFinancials(
       );
       
       // Calculate approved estimate metrics
-      const internalLaborItems = projectLineItems.filter(item => item.category === 'labor_internal');
-      const externalItems = projectLineItems.filter(item => item.category !== 'labor_internal');
+      // Internal costs include both internal labor and management (company overhead)
+      const internalLaborItems = projectLineItems.filter(item => 
+        item.category === 'labor_internal' || item.category === 'management'
+      );
+      const externalItems = projectLineItems.filter(item => 
+        item.category !== 'labor_internal' && item.category !== 'management'
+      );
       
       // Internal labor costs
       estimatedCost = internalLaborItems.reduce((sum, item) => {
@@ -534,7 +547,8 @@ export async function calculateMultipleProjectFinancials(
 
       // Get quotes for this project
       const projectQuotes = allQuotes.filter(q => q.project_id === project.id);
-      const categoryQuotes = new Map();
+      const categoryQuotes = new Map(); // Maps estimate_line_item_id to quote price
+      const categoryQuoteCosts = new Map(); // Maps estimate_line_item_id to actual quote costs
       const changeOrderQuotes = new Map(); // Track quotes specifically for change order items
       
       if (projectQuotes.length > 0) {
@@ -543,6 +557,20 @@ export async function calculateMultipleProjectFinancials(
         projectQuotes.forEach(quote => {
           if (quote.estimate_line_item_id) {
             categoryQuotes.set(quote.estimate_line_item_id, quote.total_amount);
+          }
+        });
+      }
+
+      // Map quote line item costs to estimate line items (for external categories)
+      const projectQuoteLineItems = allQuoteLineItems.filter(qli => 
+        projectQuotes.some(q => q.id === qli.quote_id)
+      );
+      
+      if (projectQuoteLineItems.length > 0) {
+        projectQuoteLineItems.forEach(qli => {
+          if (qli.estimate_line_item_id) {
+            // For external categories, use the actual cost from quote line items
+            categoryQuoteCosts.set(qli.estimate_line_item_id, qli.total_cost || 0);
           }
         });
       }
@@ -593,14 +621,16 @@ export async function calculateMultipleProjectFinancials(
       // Calculate variances and projections
       quotedVsEstimatedVariance = quotedOriginalScope - approvedEstimateExternalCosts;
       
-      // Calculate projected costs
+      // Calculate projected costs using actual quote costs when available
       const projectedOriginalCosts = allQuotesUnlinked
         ? totalAcceptedQuoteAmount
         : externalItems.reduce((sum, item) => {
-            const quotedAmount = categoryQuotes.get(item.id);
-            if (quotedAmount !== undefined) {
-              return sum + quotedAmount;
+            // Use actual quote line item cost if available (this is the real cost to us)
+            const quotedCost = categoryQuoteCosts.get(item.id);
+            if (quotedCost !== undefined) {
+              return sum + quotedCost;
             }
+            // Fallback to estimated cost if no quote available
             const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
             return sum + itemCost;
           }, 0);
