@@ -32,7 +32,8 @@ export async function calculateProjectFinancials(
   let projectedCosts = 0;
   let nonInternalLineItemCount = 0;
 
-  if (currentEstimate?.id) {
+  // Only calculate financials if there's an approved estimate
+  if (currentEstimate?.id && currentEstimate.status === 'approved') {
     try {
       // Get projected revenue from contract amount (approved estimate + change orders)
       // Fall back to estimate total if no contract amount is set
@@ -196,7 +197,8 @@ export async function calculateMultipleProjectFinancials(
     let projectedCosts = 0;
     let nonInternalLineItemCount = 0;
 
-    if (currentEstimate?.id) {
+    // Only calculate financials if there's an approved estimate
+    if (currentEstimate?.id && currentEstimate.status === 'approved') {
       // Get projected revenue from contract amount (approved estimate + change orders)
       // Fall back to estimate total if no contract amount is set
       projectedRevenue = project.contracted_amount || currentEstimate.total_amount || 0;
