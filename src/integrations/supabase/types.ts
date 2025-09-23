@@ -829,6 +829,8 @@ export type Database = {
         | "in_progress"
         | "complete"
         | "cancelled"
+        | "approved"
+        | "on_hold"
       project_type: "construction_project" | "work_order"
       quote_status: "pending" | "accepted" | "rejected" | "expired"
       sync_status: "success" | "failed" | "pending"
@@ -978,6 +980,8 @@ export const Constants = {
         "in_progress",
         "complete",
         "cancelled",
+        "approved",
+        "on_hold",
       ],
       project_type: ["construction_project", "work_order"],
       quote_status: ["pending", "accepted", "rejected", "expired"],
