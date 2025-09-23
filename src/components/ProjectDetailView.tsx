@@ -306,21 +306,23 @@ export const ProjectDetailView = () => {
     );
   }
 
-  const marginStatus = project.margin_percentage !== null && project.margin_percentage !== undefined
-    ? getMarginStatusLevel({
-        project_id: project.id,
-        contracted_amount: project?.currentContractAmount || 0,
-        total_accepted_quotes: project.total_accepted_quotes || 0,
-        current_margin: project.current_margin || 0,
-        margin_percentage: project.margin_percentage,
-        contingency_remaining: project.contingency_remaining || 0,
-        minimum_threshold: project.minimum_margin_threshold || 10,
-        target_margin: project.target_margin || 20,
-        contingency_total: project.contingency_remaining || 0,
-        contingency_used: 0,
-        at_risk: false
-      })
-    : 'unknown';
+  const projectedMarginPct = project.currentContractAmount > 0 
+    ? ((project.projectedMargin || 0) / project.currentContractAmount) * 100 
+    : 0;
+    
+  const marginStatus = getMarginStatusLevel({
+    project_id: project.id,
+    contracted_amount: project?.currentContractAmount || 0,
+    total_accepted_quotes: project.total_accepted_quotes || 0,
+    current_margin: project.projectedMargin || 0,
+    margin_percentage: projectedMarginPct,
+    contingency_remaining: project.contingency_remaining || 0,
+    minimum_threshold: project.minimum_margin_threshold || 10,
+    target_margin: project.target_margin || 20,
+    contingency_total: project.contingency_remaining || 0,
+    contingency_used: 0,
+    at_risk: false
+  });
 
   const contextualActions = getContextualActions();
   const recentExpenses = expenses.slice(0, 3);
@@ -413,7 +415,7 @@ export const ProjectDetailView = () => {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="text-2xl font-bold">
-                {formatCurrency(project.current_margin)}
+                {formatCurrency(project.projectedMargin)}
               </div>
               <div className={cn(
                 "text-xs font-medium",
@@ -422,7 +424,10 @@ export const ProjectDetailView = () => {
                 marginStatus === 'on_target' && 'text-blue-600',
                 marginStatus === 'excellent' && 'text-green-600'
               )}>
-                {project.margin_percentage?.toFixed(1)}% margin
+                {project.currentContractAmount > 0 
+                  ? ((project.projectedMargin || 0) / project.currentContractAmount * 100).toFixed(1)
+                  : '0.0'
+                }% projected margin
               </div>
             </CardContent>
           </Card>
