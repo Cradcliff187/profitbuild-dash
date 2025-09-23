@@ -9,6 +9,7 @@ import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpensesList } from "@/components/ExpensesList";
 import { ProjectExpenseTracker } from "@/components/ProjectExpenseTracker";
 import { TransactionImportModal } from "@/components/TransactionImportModal";
+import { EnhancedTransactionImportModal } from "@/components/EnhancedTransactionImportModal";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +24,7 @@ const Expenses = () => {
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
   const [loading, setLoading] = useState(true);
   const [showTransactionImport, setShowTransactionImport] = useState(false);
+  const [showEnhancedImport, setShowEnhancedImport] = useState(false);
   const { toast } = useToast();
 
   // Load expenses from Supabase
@@ -145,6 +147,14 @@ const Expenses = () => {
             <FileDown className="h-4 w-4" />
             <span>Import Transactions</span>
           </Button>
+          <Button 
+            onClick={() => setShowEnhancedImport(true)} 
+            variant="secondary"
+            className="flex items-center space-x-2"
+          >
+            <Upload className="h-4 w-4" />
+            <span>Enhanced QB Import</span>
+          </Button>
           <Button onClick={handleCreateNew} className="flex items-center space-x-2">
             <Plus className="h-4 w-4" />
             <span>Add Expense</span>
@@ -209,6 +219,15 @@ const Expenses = () => {
         open={showTransactionImport}
         onOpenChange={setShowTransactionImport}
         onTransactionsImported={handleExpensesImported}
+      />
+      
+      <EnhancedTransactionImportModal
+        open={showEnhancedImport}
+        onOpenChange={setShowEnhancedImport}
+        onTransactionsImported={(expenses, revenues) => {
+          handleExpensesImported(expenses);
+          fetchData();
+        }}
       />
     </div>
   );
