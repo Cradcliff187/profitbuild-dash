@@ -174,7 +174,7 @@ export const ExpenseUpload: React.FC<ExpenseUploadProps> = ({ estimates, onExpen
                     <SelectValue placeholder="Select date column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map(header => (
+                    {headers.filter(header => header && header.trim()).map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>
@@ -188,7 +188,7 @@ export const ExpenseUpload: React.FC<ExpenseUploadProps> = ({ estimates, onExpen
                     <SelectValue placeholder="Select description column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map(header => (
+                    {headers.filter(header => header && header.trim()).map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>
@@ -202,7 +202,7 @@ export const ExpenseUpload: React.FC<ExpenseUploadProps> = ({ estimates, onExpen
                     <SelectValue placeholder="Select amount column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map(header => (
+                    {headers.filter(header => header && header.trim()).map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>
@@ -216,7 +216,7 @@ export const ExpenseUpload: React.FC<ExpenseUploadProps> = ({ estimates, onExpen
                     <SelectValue placeholder="Select payee column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map(header => (
+                    {headers.filter(header => header && header.trim()).map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>

@@ -109,49 +109,70 @@ export const parseEnhancedQuickBooksCSV = (file: File): Promise<{
 }> => {
   return new Promise((resolve) => {
     Papa.parse(file, {
+      header: true,
       skipEmptyLines: true,
+      transform: (value: string) => value.trim(),
       complete: (results) => {
-        // Skip first 4 rows (QuickBooks headers)
-        const dataRows = results.data.slice(4);
-        const headers = dataRows[0] as string[];
-        const actualData = dataRows.slice(1);
-
-        const transactions: QBTransaction[] = actualData.map((row: any) => {
-          const transaction: QBTransaction = {} as QBTransaction;
-          headers.forEach((header, index) => {
-            const cleanHeader = header.toLowerCase().trim();
-            if (cleanHeader.includes('date')) {
-              transaction.date = row[index] || '';
-            } else if (cleanHeader.includes('type') || cleanHeader.includes('transaction')) {
-              transaction.transaction_type = row[index] || '';
-            } else if (cleanHeader.includes('project') || cleanHeader.includes('job') || cleanHeader.includes('wo')) {
-              transaction.project_wo_number = row[index] || '';
-            } else if (cleanHeader.includes('amount') || cleanHeader.includes('total')) {
-              transaction.amount = row[index] || '0';
-            } else if (cleanHeader.includes('payee') || cleanHeader.includes('name') || cleanHeader.includes('vendor')) {
-              transaction.name = row[index] || '';
-            } else if (cleanHeader === 'account name') {
-              transaction.account_name = row[index] || '';
-            } else if (cleanHeader === 'account full name') {
-              transaction.account_full_name = row[index] || '';
+        let data = results.data as QBTransaction[];
+        let errors: string[] = [];
+        
+        // Handle QuickBooks format - skip metadata rows
+        if (data.length > 0) {
+          let skipRows = 0;
+          
+          // Check first few rows for QuickBooks metadata
+          for (let i = 0; i < Math.min(5, data.length); i++) {
+            const row = data[i];
+            const rowValues = Object.values(row);
+            const hasQuickBooksMetadata = rowValues.some(val => 
+              val?.toLowerCase().includes('quickbooks') || 
+              val?.toLowerCase().includes('report') ||
+              (!val || val.trim() === '') // Empty row
+            );
+            
+            if (hasQuickBooksMetadata) {
+              skipRows = i + 1;
+            } else {
+              break; // Found actual data row
             }
-            transaction[header] = row[index] || '';
+          }
+          
+          if (skipRows > 0) {
+            data = data.slice(skipRows);
+          }
+        }
+        
+        // Clean and filter headers to remove empty ones
+        let headers: string[] = [];
+        if (data.length > 0) {
+          const rawHeaders = Object.keys(data[0]);
+          headers = rawHeaders.filter(header => 
+            header && 
+            header.trim() !== '' && 
+            header !== '__parsed_extra' // Papa Parse internal field
+          );
+          
+          // Clean the data to only include valid columns
+          data = data.map(row => {
+            const cleanedRow: QBTransaction = {} as QBTransaction;
+            headers.forEach(header => {
+              if (row[header as keyof QBTransaction] !== undefined) {
+                (cleanedRow as any)[header] = row[header as keyof QBTransaction];
+              }
+            });
+            return cleanedRow;
           });
-          return transaction;
-        });
-
-        resolve({
-          data: transactions,
-          errors: results.errors.map(error => `Row ${error.row}: ${error.message}`),
-          headers
-        });
+        }
+        
+        // Add any Papa Parse errors
+        if (results.errors && results.errors.length > 0) {
+          errors.push(...results.errors.map(e => e.message));
+        }
+        
+        resolve({ data, headers, errors });
       },
       error: (error) => {
-        resolve({
-          data: [],
-          errors: [error.message],
-          headers: []
-        });
+        resolve({ data: [], headers: [], errors: [error.message] });
       }
     });
   });
