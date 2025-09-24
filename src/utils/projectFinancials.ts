@@ -231,7 +231,9 @@ export async function calculateProjectFinancials(
     .reduce((sum, expense) => sum + expense.amount, 0);
 
   // Calculate projected margin (revenue minus all projected costs including internal labor)
-  const projectedMargin = projectedRevenue - projectedCosts;
+    const projectedMargin = project.adjusted_est_costs 
+      ? projectedRevenue - project.adjusted_est_costs
+      : projectedRevenue - projectedCosts;
 
   // Calculate current margin (revenue - actual expenses so far)
   const currentMargin = projectedRevenue - actualExpenses;
@@ -517,7 +519,9 @@ export async function calculateMultipleProjectFinancials(
       .reduce((sum, expense) => sum + expense.amount, 0);
 
     // Calculate projected margin (revenue minus all projected costs including internal labor)
-    const projectedMargin = projectedRevenue - projectedCosts;
+    const projectedMargin = project.adjusted_est_costs 
+      ? projectedRevenue - project.adjusted_est_costs
+      : projectedRevenue - projectedCosts;
 
     // Calculate current margin (revenue - actual expenses so far)
     const currentMargin = projectedRevenue - actualExpenses;
