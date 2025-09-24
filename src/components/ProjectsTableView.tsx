@@ -667,22 +667,33 @@ export const ProjectsTableView = ({
       }
     },
     {
-      key: 'totalEstimatedCosts',
-      label: 'Total Estimated Costs',
+      key: 'adjusted_est_costs',
+      label: 'Adjusted Est. Costs',
       align: 'right',
       sortable: true,
-      render: (project) => (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="text-right cursor-help">
-              <div className="font-medium text-sm">{formatCurrency(project.totalEstimatedCosts)}</div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Estimated Costs with Available Quotes: Internal labor + external work (quoted amounts where available, estimated costs otherwise) + approved change orders</p>
-          </TooltipContent>
-        </Tooltip>
-      ),
+      render: (project) => {
+        const hasApprovedEstimate = estimates.some(e => 
+          e.project_id === project.id && e.status === 'approved'
+        );
+        
+        if (!hasApprovedEstimate) return <span className="text-muted-foreground">-</span>;
+        
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className="font-medium text-sm">
+                  {formatCurrency(project.adjustedEstCosts || 0)}
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Total estimated costs after quotes received</p>
+              <p>Includes: External costs (quoted or estimated) + Internal labor + Change orders</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'projected_margin',
