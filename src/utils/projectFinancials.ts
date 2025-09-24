@@ -47,6 +47,11 @@ export interface ProjectWithFinancials extends Project {
   totalLineItemCount: number; // Total count of all line items in approved estimate
   originalEstimatedCosts: number; // Sum of all line item costs from original approved estimate
   totalEstimatedCosts: number; // Internal labor + external costs (complete project cost estimate)
+  
+  // Enhanced Cost Analysis
+  adjustedEstCosts: number; // Uses database value if available, fallback to projectedCosts
+  originalEstCosts: number; // Uses database value if available, fallback to originalEstimatedCosts
+  costVariance: number; // Difference between adjusted and original estimated costs
 }
 
 /**
@@ -187,7 +192,11 @@ export async function calculateProjectFinancials(
           totalAcceptedQuoteAmount = acceptedQuotes.reduce((sum, quote) => sum + (quote.total_amount || 0), 0);
         }
 
-        // Calculate projected costs: use quotes where available, fallback to estimates
+        // Calculate projected costs including internal labor
+        const internalLaborCost = approvedEstimateInternalLaborCost;
+        const changeOrderCostImpact = changeOrderCosts;
+        
+        let externalCostsWithQuotes = 0;
         if (acceptedQuotes && acceptedQuotes.length > 0) {
           // Map quotes to their estimate line items
           const quotesByLineItem = new Map();
@@ -198,16 +207,18 @@ export async function calculateProjectFinancials(
           });
           
           // Calculate external costs: use quote amount if available, otherwise estimate cost
-          projectedCosts = externalItems.reduce((sum, item) => {
+          externalCostsWithQuotes = externalItems.reduce((sum, item) => {
             const quoteAmount = quotesByLineItem.get(item.id);
             const itemCost = quoteAmount !== undefined ? quoteAmount : 
               (item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0));
             return sum + itemCost;
-          }, 0) + changeOrderCosts;
+          }, 0);
         } else {
           // Fallback to estimated external costs
-          projectedCosts = approvedEstimateExternalCosts + changeOrderCosts;
+          externalCostsWithQuotes = approvedEstimateExternalCosts;
         }
+        
+        projectedCosts = internalLaborCost + externalCostsWithQuotes + changeOrderCostImpact;
       }
     } catch (error) {
       console.error('Error calculating project financials:', error);
@@ -219,9 +230,8 @@ export async function calculateProjectFinancials(
     .filter(e => e.project_id === project.id)
     .reduce((sum, expense) => sum + expense.amount, 0);
 
-  // Calculate projected margin (revenue minus both external costs and internal labor costs)
-  // Uses quoted prices for external costs when available, estimated costs for internal labor
-  const projectedMargin = projectedRevenue - (projectedCosts + approvedEstimateInternalLaborCost);
+  // Calculate projected margin (revenue minus all projected costs including internal labor)
+  const projectedMargin = projectedRevenue - projectedCosts;
 
   // Calculate current margin (revenue - actual expenses so far)
   const currentMargin = projectedRevenue - actualExpenses;
@@ -241,7 +251,7 @@ export async function calculateProjectFinancials(
 
   // Calculate three-tier margins
   const originalMargin = originalContractAmount - (approvedEstimateInternalLaborCost + approvedEstimateExternalCosts);
-  const projectedMarginValue = currentContractAmount - (projectedCosts + approvedEstimateInternalLaborCost);
+  const projectedMarginValue = currentContractAmount - projectedCosts;
   const actualMargin = currentContractAmount - actualExpenses;
 
   return {
@@ -289,6 +299,11 @@ export async function calculateProjectFinancials(
     totalLineItemCount,
     originalEstimatedCosts,
     totalEstimatedCosts,
+    
+    // Enhanced cost analysis
+    adjustedEstCosts: project.adjusted_est_costs || projectedCosts,
+    originalEstCosts: project.original_est_costs || originalEstimatedCosts,
+    costVariance: (project.adjusted_est_costs || projectedCosts) - (project.original_est_costs || originalEstimatedCosts),
   };
 }
 
@@ -467,7 +482,11 @@ export async function calculateMultipleProjectFinancials(
         totalAcceptedQuoteAmount = projectQuotes.reduce((sum, quote) => sum + (quote.total_amount || 0), 0);
       }
 
-      // Calculate projected costs: use quotes where available, fallback to estimates
+      // Calculate projected costs including internal labor
+      const internalLaborCost = approvedEstimateInternalLaborCost;
+      const changeOrderCostImpact = changeOrderCosts;
+      
+      let externalCostsWithQuotes = 0;
       if (projectQuotes.length > 0) {
         // Map quotes to their estimate line items
         const quotesByLineItem = new Map();
@@ -478,16 +497,18 @@ export async function calculateMultipleProjectFinancials(
         });
         
         // Calculate external costs: use quote amount if available, otherwise estimate cost
-        projectedCosts = externalItems.reduce((sum, item) => {
+        externalCostsWithQuotes = externalItems.reduce((sum, item) => {
           const quoteAmount = quotesByLineItem.get(item.id);
           const itemCost = quoteAmount !== undefined ? quoteAmount : 
             (item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0));
           return sum + itemCost;
-        }, 0) + changeOrderCosts;
+        }, 0);
       } else {
         // Fallback to estimated external costs
-        projectedCosts = approvedEstimateExternalCosts + changeOrderCosts;
+        externalCostsWithQuotes = approvedEstimateExternalCosts;
       }
+      
+      projectedCosts = internalLaborCost + externalCostsWithQuotes + changeOrderCostImpact;
     }
 
     // Calculate actual expenses for this project
@@ -495,8 +516,8 @@ export async function calculateMultipleProjectFinancials(
       .filter(e => e.project_id === project.id)
       .reduce((sum, expense) => sum + expense.amount, 0);
 
-    // Calculate projected margin (revenue minus both external costs and internal labor costs)
-    const projectedMargin = projectedRevenue - (projectedCosts + approvedEstimateInternalLaborCost);
+    // Calculate projected margin (revenue minus all projected costs including internal labor)
+    const projectedMargin = projectedRevenue - projectedCosts;
 
     // Calculate current margin (revenue - actual expenses so far)
     const currentMargin = projectedRevenue - actualExpenses;
@@ -516,7 +537,7 @@ export async function calculateMultipleProjectFinancials(
 
     // Calculate three-tier margins
     const originalMargin = originalContractAmount - (approvedEstimateInternalLaborCost + approvedEstimateExternalCosts);
-    const projectedMarginValue = currentContractAmount - (projectedCosts + approvedEstimateInternalLaborCost);
+    const projectedMarginValue = currentContractAmount - projectedCosts;
     const actualMargin = currentContractAmount - actualExpenses;
 
     return {
@@ -564,6 +585,11 @@ export async function calculateMultipleProjectFinancials(
       totalLineItemCount,
       originalEstimatedCosts,
       totalEstimatedCosts,
+      
+      // Enhanced cost analysis
+      adjustedEstCosts: project.adjusted_est_costs || projectedCosts,
+      originalEstCosts: project.original_est_costs || originalEstimatedCosts,
+      costVariance: (project.adjusted_est_costs || projectedCosts) - (project.original_est_costs || originalEstimatedCosts),
     };
   });
 }
