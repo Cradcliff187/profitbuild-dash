@@ -187,8 +187,27 @@ export async function calculateProjectFinancials(
           totalAcceptedQuoteAmount = acceptedQuotes.reduce((sum, quote) => sum + (quote.total_amount || 0), 0);
         }
 
-        // Calculate projected costs using estimated values
-        projectedCosts = approvedEstimateExternalCosts + changeOrderCosts;
+        // Calculate projected costs: use quotes where available, fallback to estimates
+        if (acceptedQuotes && acceptedQuotes.length > 0) {
+          // Map quotes to their estimate line items
+          const quotesByLineItem = new Map();
+          acceptedQuotes.forEach(quote => {
+            if (quote.estimate_line_item_id) {
+              quotesByLineItem.set(quote.estimate_line_item_id, quote.total_amount || 0);
+            }
+          });
+          
+          // Calculate external costs: use quote amount if available, otherwise estimate cost
+          projectedCosts = externalItems.reduce((sum, item) => {
+            const quoteAmount = quotesByLineItem.get(item.id);
+            const itemCost = quoteAmount !== undefined ? quoteAmount : 
+              (item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0));
+            return sum + itemCost;
+          }, 0) + changeOrderCosts;
+        } else {
+          // Fallback to estimated external costs
+          projectedCosts = approvedEstimateExternalCosts + changeOrderCosts;
+        }
       }
     } catch (error) {
       console.error('Error calculating project financials:', error);
@@ -448,8 +467,27 @@ export async function calculateMultipleProjectFinancials(
         totalAcceptedQuoteAmount = projectQuotes.reduce((sum, quote) => sum + (quote.total_amount || 0), 0);
       }
 
-      // Calculate projected costs using estimated values
-      projectedCosts = approvedEstimateExternalCosts + changeOrderCosts;
+      // Calculate projected costs: use quotes where available, fallback to estimates
+      if (projectQuotes.length > 0) {
+        // Map quotes to their estimate line items
+        const quotesByLineItem = new Map();
+        projectQuotes.filter(q => q.status === 'accepted').forEach(quote => {
+          if (quote.estimate_line_item_id) {
+            quotesByLineItem.set(quote.estimate_line_item_id, quote.total_amount || 0);
+          }
+        });
+        
+        // Calculate external costs: use quote amount if available, otherwise estimate cost
+        projectedCosts = externalItems.reduce((sum, item) => {
+          const quoteAmount = quotesByLineItem.get(item.id);
+          const itemCost = quoteAmount !== undefined ? quoteAmount : 
+            (item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0));
+          return sum + itemCost;
+        }, 0) + changeOrderCosts;
+      } else {
+        // Fallback to estimated external costs
+        projectedCosts = approvedEstimateExternalCosts + changeOrderCosts;
+      }
     }
 
     // Calculate actual expenses for this project

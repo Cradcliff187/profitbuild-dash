@@ -679,7 +679,7 @@ export const ProjectsTableView = ({
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Sum of internal labor costs + external costs (quotes where available, otherwise estimated costs) + approved change order costs</p>
+            <p>Estimated Costs with Available Quotes: Internal labor + external work (quoted amounts where available, estimated costs otherwise) + approved change orders</p>
           </TooltipContent>
         </Tooltip>
       ),
