@@ -605,6 +605,7 @@ export type Database = {
         Row: {
           actual_margin: number | null
           address: string | null
+          adjusted_est_costs: number | null
           client_id: string | null
           client_name: string
           contingency_remaining: number | null
@@ -617,6 +618,7 @@ export type Database = {
           last_synced_at: string | null
           margin_percentage: number | null
           minimum_margin_threshold: number | null
+          original_est_costs: number | null
           original_margin: number | null
           payment_terms: string | null
           project_name: string
@@ -637,6 +639,7 @@ export type Database = {
         Insert: {
           actual_margin?: number | null
           address?: string | null
+          adjusted_est_costs?: number | null
           client_id?: string | null
           client_name: string
           contingency_remaining?: number | null
@@ -649,6 +652,7 @@ export type Database = {
           last_synced_at?: string | null
           margin_percentage?: number | null
           minimum_margin_threshold?: number | null
+          original_est_costs?: number | null
           original_margin?: number | null
           payment_terms?: string | null
           project_name: string
@@ -669,6 +673,7 @@ export type Database = {
         Update: {
           actual_margin?: number | null
           address?: string | null
+          adjusted_est_costs?: number | null
           client_id?: string | null
           client_name?: string
           contingency_remaining?: number | null
@@ -681,6 +686,7 @@ export type Database = {
           last_synced_at?: string | null
           margin_percentage?: number | null
           minimum_margin_threshold?: number | null
+          original_est_costs?: number | null
           original_margin?: number | null
           payment_terms?: string | null
           project_name?: string
