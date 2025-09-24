@@ -696,6 +696,55 @@ export const ProjectsTableView = ({
       },
     },
     {
+      key: 'cost_variance',
+      label: 'Cost Variance',
+      align: 'right',
+      sortable: true,
+      render: (project) => {
+        const hasApprovedEstimate = estimates.some(e => 
+          e.project_id === project.id && e.status === 'approved'
+        );
+        
+        if (!hasApprovedEstimate) return <span className="text-muted-foreground">-</span>;
+        
+        const originalCosts = project.originalEstCosts || 0;
+        const adjustedCosts = project.adjustedEstCosts || 0;
+        const variance = adjustedCosts - originalCosts;
+        const variancePercent = originalCosts > 0 ? (variance / originalCosts) * 100 : 0;
+        const isIncrease = variance > 0;
+        
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className={`font-medium text-sm ${
+                  isIncrease ? 'text-red-600 dark:text-red-400' : 
+                  variance < 0 ? 'text-green-600 dark:text-green-400' : 
+                  'text-muted-foreground'
+                }`}>
+                  {variance === 0 ? '-' : 
+                   (isIncrease ? '+' : '') + formatCurrency(variance)}
+                </div>
+                {variance !== 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    ({isIncrease ? '+' : ''}{variancePercent.toFixed(1)}%)
+                  </div>
+                )}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div>
+                <p><strong>Original Est. Costs:</strong> {formatCurrency(originalCosts)}</p>
+                <p><strong>Adjusted Est. Costs:</strong> {formatCurrency(adjustedCosts)}</p>
+                <p><strong>Variance:</strong> {formatCurrency(Math.abs(variance))} ({Math.abs(variancePercent).toFixed(1)}%)</p>
+                <p className="text-xs mt-1">Impact of quotes and change orders on costs</p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
+    },
+    {
       key: 'projected_margin',
       label: 'Projected Margin ($)',
       align: 'right' as const,
