@@ -33,7 +33,7 @@ import { ChangeOrdersList } from "@/components/ChangeOrdersList";
 import { ExpensesList } from "@/components/ExpensesList";
 import { QuotesList } from "@/components/QuotesList";
 import { LineItemControlDashboard } from "@/components/LineItemControlDashboard";
-import { ExpenseMatchingInterface } from "@/components/ExpenseMatchingInterface";
+import { GlobalExpenseMatching } from "@/components/GlobalExpenseMatching";
 import { Project, ProjectStatus } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
@@ -641,9 +641,9 @@ export const ProjectDetailView = () => {
         </TabsContent>
 
         <TabsContent value="matching" className="space-y-4">
-          <ExpenseMatchingInterface 
+          <GlobalExpenseMatching 
             projectId={project.id} 
-            onMatchingComplete={() => {
+            onClose={() => {
               toast({
                 title: "Matching Complete",
                 description: "Expense matching has been updated."

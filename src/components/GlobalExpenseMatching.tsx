@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 
 interface GlobalExpenseMatchingProps {
   onClose: () => void;
+  projectId?: string; // Optional - if provided, filter to single project
 }
 
 interface EnhancedExpense {
@@ -60,7 +61,8 @@ interface LineItemForMatching {
 }
 
 export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
-  onClose
+  onClose,
+  projectId
 }) => {
   const [expenses, setExpenses] = useState<EnhancedExpense[]>([]);
   const [lineItems, setLineItems] = useState<LineItemForMatching[]>([]);
@@ -81,37 +83,70 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
     try {
       // Load all expenses with their current correlations
       const [expensesResult, projectsResult, estimatesResult, quotesResult, correlationsResult] = await Promise.all([
-        supabase
-          .from('expenses')
-          .select(`
-            *,
-            payees (payee_name),
-            projects (project_name)
-          `),
+        projectId 
+          ? supabase
+              .from('expenses')
+              .select(`
+                *,
+                payees (payee_name),
+                projects (project_name)
+              `)
+              .eq('project_id', projectId)
+          : supabase
+              .from('expenses')
+              .select(`
+                *,
+                payees (payee_name),
+                projects (project_name)
+              `),
         supabase
           .from('projects')
           .select('id, project_name')
           .order('project_name'),
-        supabase
-          .from('estimates')
-          .select(`
-            id,
-            project_id,
-            projects (project_name),
-            estimate_line_items (*)
-          `)
-          .eq('is_current_version', true),
-        supabase
-          .from('quotes')
-          .select(`
-            id,
-            project_id,
-            status,
-            projects (project_name),
-            payees (payee_name),
-            quote_line_items (*)
-          `)
-          .eq('status', 'accepted'),
+        projectId
+          ? supabase
+              .from('estimates')
+              .select(`
+                id,
+                project_id,
+                projects (project_name),
+                estimate_line_items (*)
+              `)
+              .eq('is_current_version', true)
+              .eq('project_id', projectId)
+          : supabase
+              .from('estimates')
+              .select(`
+                id,
+                project_id,
+                projects (project_name),
+                estimate_line_items (*)
+              `)
+              .eq('is_current_version', true),
+        projectId
+          ? supabase
+              .from('quotes')
+              .select(`
+                id,
+                project_id,
+                status,
+                projects (project_name),
+                payees (payee_name),
+                quote_line_items (*)
+              `)
+              .eq('status', 'accepted')
+              .eq('project_id', projectId)
+          : supabase
+              .from('quotes')
+              .select(`
+                id,
+                project_id,
+                status,
+                projects (project_name),
+                payees (payee_name),
+                quote_line_items (*)
+              `)
+              .eq('status', 'accepted'),
         supabase
           .from('expense_line_item_correlations')
           .select('*')
