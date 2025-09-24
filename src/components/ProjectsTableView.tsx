@@ -683,7 +683,7 @@ export const ProjectsTableView = ({
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
                 <div className="font-medium text-sm">
-                  {formatCurrency(project.adjustedEstCosts || 0)}
+                  {formatCurrency(project.adjusted_est_costs || 0)}
                 </div>
               </div>
             </TooltipTrigger>
@@ -707,11 +707,17 @@ export const ProjectsTableView = ({
         
         if (!hasApprovedEstimate) return <span className="text-muted-foreground">-</span>;
         
-        const originalCosts = project.originalEstCosts || 0;
-        const adjustedCosts = project.adjustedEstCosts || 0;
+        const originalCosts = project.original_est_costs || 0; // Original COSTS (not prices)
+        const adjustedCosts = project.adjusted_est_costs || 0; // Adjusted COSTS (not prices)
         const variance = adjustedCosts - originalCosts;
         const variancePercent = originalCosts > 0 ? (variance / originalCosts) * 100 : 0;
         const isIncrease = variance > 0;
+        
+        // Validation: Both should be costs, not prices
+        const contractValue = project.contracted_amount || 0;
+        if (originalCosts > contractValue || adjustedCosts > contractValue) {
+          console.error('ERROR: Costs exceed contract value - likely using prices instead of costs');
+        }
         
         return (
           <Tooltip>
@@ -734,10 +740,13 @@ export const ProjectsTableView = ({
             </TooltipTrigger>
             <TooltipContent>
               <div>
-                <p><strong>Original Est. Costs:</strong> {formatCurrency(originalCosts)}</p>
-                <p><strong>Adjusted Est. Costs:</strong> {formatCurrency(adjustedCosts)}</p>
+                <p><strong>Original Est. COSTS:</strong> {formatCurrency(originalCosts)}</p>
+                <p><strong>Adjusted Est. COSTS:</strong> {formatCurrency(adjustedCosts)}</p>
                 <p><strong>Variance:</strong> {formatCurrency(Math.abs(variance))} ({Math.abs(variancePercent).toFixed(1)}%)</p>
-                <p className="text-xs mt-1">Impact of quotes and change orders on costs</p>
+                <p className="text-xs mt-1 text-muted-foreground">
+                  {isIncrease ? 'Costs increased from estimate' : 'Costs decreased from estimate (savings!)'}
+                </p>
+                <p className="text-xs font-bold">These are vendor COSTS, not client prices</p>
               </div>
             </TooltipContent>
           </Tooltip>
