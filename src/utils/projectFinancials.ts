@@ -245,8 +245,8 @@ export async function calculateProjectFinancials(
   const budgetBurnRate = projectedRevenue > 0 ? (actualExpenses / projectedRevenue) * 100 : 0;
   const changeOrderImpactOnMargin = changeOrderNetMargin;
 
-  // Calculate total estimated costs: internal labor + external costs
-  const totalEstimatedCosts = estimatedCost + projectedCosts;
+  // Calculate total estimated costs: internal labor + external costs (projectedCosts already includes internal labor)
+  const totalEstimatedCosts = projectedCosts;
 
   // Use contingency_remaining from the project record (calculated by database functions)
   const contingencyRemaining = project.contingency_remaining || 0;
@@ -533,8 +533,8 @@ export async function calculateMultipleProjectFinancials(
     const budgetBurnRate = projectedRevenue > 0 ? (actualExpenses / projectedRevenue) * 100 : 0;
     const changeOrderImpactOnMargin = changeOrderNetMargin;
 
-    // Calculate total estimated costs: internal labor + external costs
-    const totalEstimatedCosts = estimatedCost + projectedCosts;
+    // Calculate total estimated costs: internal labor + external costs (projectedCosts already includes internal labor)
+    const totalEstimatedCosts = projectedCosts;
 
     // Use contingency_remaining from the project record (calculated by database functions)
     const contingencyRemaining = project.contingency_remaining || 0;
