@@ -120,11 +120,14 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
         matched_amount: 0
       }));
 
-      // Identify unmatched expenses (those that don't clearly match to line items)
+      // Check if expense has a correlation to a line item
+      const { data: correlations } = await supabase
+        .from('expense_line_item_correlations')
+        .select('expense_id')
+        .in('expense_id', expenses.map(e => e.id));
+
       const unmatched: UnmatchedExpense[] = expenses.filter(expense => {
-        // Add logic to identify which expenses are "unmatched"
-        // For now, mark expenses without clear payee-category matches as unmatched
-        return true; // Placeholder - in production would have smarter logic
+        return !correlations?.some(c => c.expense_id === expense.id);
       }).map(expense => ({
         ...expense,
         suggested_line_item_id: suggestLineItemMatch(expense, lineItems),
