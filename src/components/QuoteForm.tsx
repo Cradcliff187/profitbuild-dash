@@ -24,6 +24,40 @@ import { supabase } from "@/integrations/supabase/client";
 import { calculateQuoteFinancials, calculateQuoteTotalProfit, calculateQuoteProfitMargin, getProfitStatus } from "@/utils/quoteFinancials";
 import { calculateEstimateFinancials } from "@/utils/estimateFinancials";
 
+interface QuoteValidationResult {
+  isValid: boolean;
+  error?: string;
+  severity?: 'critical' | 'warning';
+}
+
+const validateQuoteAmount = (costPerUnit: number, quantity: number, estimateLineItem?: LineItem): QuoteValidationResult => {
+  if (!estimateLineItem) return { isValid: true };
+  
+  const quoteAmount = costPerUnit * quantity;
+  const clientPrice = estimateLineItem.pricePerUnit * quantity;
+  const estimatedCost = estimateLineItem.costPerUnit * quantity;
+  
+  // Critical: Quote cost >= client price
+  if (quoteAmount >= clientPrice) {
+    return {
+      isValid: false,
+      error: `Vendor cost ($${quoteAmount.toFixed(2)}) equals/exceeds client price ($${clientPrice.toFixed(2)}). Quotes should be vendor COSTS, not client prices.`,
+      severity: 'critical'
+    };
+  }
+  
+  // Warning: Quote cost >20% higher than estimate
+  if (quoteAmount > estimatedCost * 1.2) {
+    return {
+      isValid: false,
+      error: `Vendor cost ($${quoteAmount.toFixed(2)}) is 20% higher than estimated cost ($${estimatedCost.toFixed(2)}). Please verify this is the vendor cost, not client price.`,
+      severity: 'warning'
+    };
+  }
+  
+  return { isValid: true };
+};
+
 interface QuoteFormProps {
   estimates: Estimate[];
   initialQuote?: Quote;
@@ -43,6 +77,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   const [notes, setNotes] = useState("");
   const [attachmentUrl, setAttachmentUrl] = useState<string>("");
   const [lineItems, setLineItems] = useState<QuoteLineItem[]>([]);
+  const [validationErrors, setValidationErrors] = useState<Record<string, QuoteValidationResult>>({});
 
   const generateQuoteNumber = async (projectId: string, projectNumber: string, estimateId: string) => {
     try {
@@ -180,6 +215,16 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
             updated.quantity = quantity;
             updated.costPerUnit = costPerUnit;
             updated.totalCost = quantity * costPerUnit;
+            
+            // Validate quote amount when cost changes
+            if (field === 'costPerUnit' || field === 'quantity') {
+              const estimateLineItem = selectedEstimate?.lineItems.find(est => est.id === updated.estimateLineItemId);
+              const validation = validateQuoteAmount(costPerUnit, quantity, estimateLineItem);
+              setValidationErrors(prev => ({
+                ...prev,
+                [id]: validation
+              }));
+            }
           }
           
           // Ensure all numeric fields are valid numbers
@@ -261,6 +306,46 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
         variant: "destructive"
       });
       return;
+    }
+
+    // Validate all line items before saving
+    const validLineItems = lineItems.filter(item => item.description.trim());
+    let hasErrors = false;
+    let hasWarnings = false;
+    
+    validLineItems.forEach(item => {
+      const estimateLineItem = selectedEstimate?.lineItems.find(est => est.id === item.estimateLineItemId);
+      const validation = validateQuoteAmount(item.costPerUnit, item.quantity, estimateLineItem);
+      
+      if (!validation.isValid) {
+        if (validation.severity === 'critical') {
+          hasErrors = true;
+        } else {
+          hasWarnings = true;
+        }
+        setValidationErrors(prev => ({
+          ...prev,
+          [item.id]: validation
+        }));
+      }
+    });
+
+    // Prevent save if critical errors exist
+    if (hasErrors) {
+      toast({
+        title: "Validation Errors",
+        description: "Please fix the critical validation errors before saving.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Show warning confirmation if warnings exist
+    if (hasWarnings) {
+      const proceed = window.confirm(
+        "There are validation warnings for some line items. These may indicate price/cost confusion. Do you want to proceed anyway?"
+      );
+      if (!proceed) return;
     }
 
     const financials = calculateQuoteFinancials(lineItems);
@@ -732,17 +817,35 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                         <tr className="border-b hover:bg-muted/20 bg-blue-50/30">
                           <td className="p-3 font-medium text-sm">Vendor Cost per Unit</td>
                           <td className="p-3 text-sm">${estimateItem?.costPerUnit.toFixed(2) || 'N/A'}</td>
-                          <td className="p-3">
-                            <Input
-                              type="number"
-                              value={item.costPerUnit}
-                              min="0"
-                              step="0.01"
-                              onChange={(e) => updateLineItem(item.id, 'costPerUnit', parseFloat(e.target.value) || 0)}
-                              placeholder="0.00"
-                              className="h-8 border-blue-300 focus:border-blue-500"
-                            />
-                          </td>
+                           <td className="p-3">
+                             <div className="space-y-2">
+                               <Input
+                                 type="number"
+                                 value={item.costPerUnit}
+                                 min="0"
+                                 step="0.01"
+                                 onChange={(e) => updateLineItem(item.id, 'costPerUnit', parseFloat(e.target.value) || 0)}
+                                 placeholder="0.00"
+                                 className={cn(
+                                   "h-8 border-blue-300 focus:border-blue-500",
+                                   validationErrors[item.id] && !validationErrors[item.id].isValid && 
+                                   validationErrors[item.id].severity === 'critical' && "border-destructive focus:border-destructive",
+                                   validationErrors[item.id] && !validationErrors[item.id].isValid && 
+                                   validationErrors[item.id].severity === 'warning' && "border-amber-500 focus:border-amber-500"
+                                 )}
+                               />
+                               {validationErrors[item.id] && !validationErrors[item.id].isValid && (
+                                 <div className={cn(
+                                   "text-xs p-2 rounded-md",
+                                   validationErrors[item.id].severity === 'critical' 
+                                     ? "bg-destructive/10 text-destructive border border-destructive/20" 
+                                     : "bg-amber-50 text-amber-700 border border-amber-200"
+                                 )}>
+                                   {validationErrors[item.id].error}
+                                 </div>
+                               )}
+                             </div>
+                           </td>
                           <td className="p-3 text-sm">
                             {estimateItem ? (
                               <span className={`flex items-center gap-1 font-medium ${getProfitColor(estimateItem.pricePerUnit - item.costPerUnit)}`}>
