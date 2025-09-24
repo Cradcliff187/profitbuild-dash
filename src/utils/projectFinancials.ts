@@ -245,7 +245,7 @@ export async function calculateProjectFinancials(
 
   // Calculate projected margin (revenue minus all projected costs including internal labor)
   const validatedAdjustedCosts = validateCostNotPrice(
-    project.adjusted_est_costs || projectedCosts,
+    project.adjusted_est_costs || 0,
     'Adjusted Costs',
     projectedRevenue
   );
@@ -332,7 +332,7 @@ export async function calculateProjectFinancials(
     // Enhanced cost analysis with validation
     adjustedEstCosts: validatedAdjustedCosts,
     originalEstCosts: validateCostNotPrice(
-      project.original_est_costs || originalEstimatedCosts,
+      project.original_est_costs || 0,
       'Original Costs',
       originalContractAmount
     ),
@@ -642,7 +642,7 @@ export async function calculateMultipleProjectFinancials(
       // Enhanced cost analysis with validation
       adjustedEstCosts: validatedAdjustedCosts,
       originalEstCosts: validateCostNotPrice(
-        project.original_est_costs || originalEstimatedCosts,
+        project.original_est_costs || 0,
         'Original Costs',
         originalContractAmount
       ),

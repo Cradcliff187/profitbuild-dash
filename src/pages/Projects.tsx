@@ -85,6 +85,8 @@ const Projects = () => {
         payment_terms: project.payment_terms,
         minimum_margin_threshold: project.minimum_margin_threshold,
         target_margin: project.target_margin,
+        adjusted_est_costs: project.adjusted_est_costs,
+        original_est_costs: project.original_est_costs,
         created_at: new Date(project.created_at),
         updated_at: new Date(project.updated_at)
       })) || [];
