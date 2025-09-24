@@ -207,18 +207,24 @@ export async function calculateProjectFinancials(
           });
           
           // Calculate external costs: use quote amount if available, otherwise estimate cost
-          externalCostsWithQuotes = externalItems.reduce((sum, item) => {
-            const quoteAmount = quotesByLineItem.get(item.id);
-            const itemCost = quoteAmount !== undefined ? quoteAmount : 
-              (item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0));
-            return sum + itemCost;
-          }, 0);
+        // Calculate external costs: use QUOTE COST if available, else ESTIMATE COST (never use price)
+        externalCostsWithQuotes = externalItems.reduce((sum, item) => {
+          const quoteAmount = quotesByLineItem.get(item.id);
+          const itemCost = quoteAmount !== undefined ? quoteAmount : 
+            (item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0));
+          return sum + itemCost;
+        }, 0);
         } else {
           // Fallback to estimated external costs
           externalCostsWithQuotes = approvedEstimateExternalCosts;
         }
         
         projectedCosts = internalLaborCost + externalCostsWithQuotes + changeOrderCostImpact;
+        
+        // Validate: projectedCosts should NEVER exceed the contract value (indicates price/cost confusion)
+        if (projectedCosts > approvedEstimateTotal) {
+          console.warn(`Warning: Projected costs (${projectedCosts}) exceed contract value (${approvedEstimateTotal}) for project ${project.project_name} - check for price/cost confusion`);
+        }
       }
     } catch (error) {
       console.error('Error calculating project financials:', error);
@@ -498,7 +504,7 @@ export async function calculateMultipleProjectFinancials(
           }
         });
         
-        // Calculate external costs: use quote amount if available, otherwise estimate cost
+        // Calculate external costs: use QUOTE COST if available, else ESTIMATE COST (never use price)
         externalCostsWithQuotes = externalItems.reduce((sum, item) => {
           const quoteAmount = quotesByLineItem.get(item.id);
           const itemCost = quoteAmount !== undefined ? quoteAmount : 
@@ -511,6 +517,11 @@ export async function calculateMultipleProjectFinancials(
       }
       
       projectedCosts = internalLaborCost + externalCostsWithQuotes + changeOrderCostImpact;
+      
+      // Validate: projectedCosts should NEVER exceed the contract value (indicates price/cost confusion)
+      if (projectedCosts > approvedEstimateTotal) {
+        console.warn(`Warning: Projected costs (${projectedCosts}) exceed contract value (${approvedEstimateTotal}) for project ${project.project_name} - check for price/cost confusion`);
+      }
     }
 
     // Calculate actual expenses for this project
