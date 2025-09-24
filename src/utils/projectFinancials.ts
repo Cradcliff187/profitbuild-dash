@@ -3,6 +3,14 @@ import { Estimate } from "@/types/estimate";
 import { Expense } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 
+// CRITICAL: Ensure we're using costs, not prices
+const validateCostNotPrice = (value: number, label: string, contractAmount: number) => {
+  if (value > contractAmount * 0.95) { // Allow 5% margin for edge cases
+    console.error(`WARNING: ${label} (${value}) may be using PRICE instead of COST. Contract: ${contractAmount}`);
+  }
+  return value;
+};
+
 export interface ProjectWithFinancials extends Project {
   // Three-Tier Margin Analysis
   original_margin: number; // Revenue from approved estimate minus estimated costs only
@@ -221,10 +229,9 @@ export async function calculateProjectFinancials(
         
         projectedCosts = internalLaborCost + externalCostsWithQuotes + changeOrderCostImpact;
         
-        // Validate: projectedCosts should NEVER exceed the contract value (indicates price/cost confusion)
-        if (projectedCosts > approvedEstimateTotal) {
-          console.warn(`Warning: Projected costs (${projectedCosts}) exceed contract value (${approvedEstimateTotal}) for project ${project.project_name} - check for price/cost confusion`);
-        }
+        // Validate: projectedCosts should NEVER exceed the full contract value (indicates price/cost confusion)
+        const fullContractAmount = originalContractAmount + changeOrderRevenue;
+        projectedCosts = validateCostNotPrice(projectedCosts, 'Projected Costs', fullContractAmount);
       }
     } catch (error) {
       console.error('Error calculating project financials:', error);
@@ -237,9 +244,12 @@ export async function calculateProjectFinancials(
     .reduce((sum, expense) => sum + expense.amount, 0);
 
   // Calculate projected margin (revenue minus all projected costs including internal labor)
-    const projectedMargin = project.adjusted_est_costs 
-      ? projectedRevenue - project.adjusted_est_costs
-      : projectedRevenue - projectedCosts;
+  const validatedAdjustedCosts = validateCostNotPrice(
+    project.adjusted_est_costs || projectedCosts,
+    'Adjusted Costs',
+    projectedRevenue
+  );
+  const projectedMargin = projectedRevenue - validatedAdjustedCosts;
 
   // Calculate current margin (revenue - actual expenses so far)
   const currentMargin = projectedRevenue - actualExpenses;
@@ -261,6 +271,17 @@ export async function calculateProjectFinancials(
   const originalMargin = originalContractAmount - (approvedEstimateInternalLaborCost + approvedEstimateExternalCosts);
   const projectedMarginValue = currentContractAmount - projectedCosts;
   const actualMargin = currentContractAmount - actualExpenses;
+
+  // Add margin percentage validation
+  if (projectedMargin < 0) {
+    console.error('CRITICAL: Negative margin detected - costs may be using prices');
+  }
+  if (projectedMarginValue < 0) {
+    console.error('CRITICAL: Negative projected margin detected - costs may be using prices');
+  }
+  if (actualMargin < 0) {
+    console.error('CRITICAL: Negative actual margin detected - costs may be using prices');
+  }
 
   return {
     ...project,
@@ -308,10 +329,14 @@ export async function calculateProjectFinancials(
     originalEstimatedCosts,
     totalEstimatedCosts,
     
-    // Enhanced cost analysis
-    adjustedEstCosts: project.adjusted_est_costs || projectedCosts,
-    originalEstCosts: project.original_est_costs || originalEstimatedCosts,
-    costVariance: (project.adjusted_est_costs || projectedCosts) - (project.original_est_costs || originalEstimatedCosts),
+    // Enhanced cost analysis with validation
+    adjustedEstCosts: validatedAdjustedCosts,
+    originalEstCosts: validateCostNotPrice(
+      project.original_est_costs || originalEstimatedCosts,
+      'Original Costs',
+      originalContractAmount
+    ),
+    costVariance: validatedAdjustedCosts - (project.original_est_costs || originalEstimatedCosts),
   };
 }
 
@@ -518,10 +543,9 @@ export async function calculateMultipleProjectFinancials(
       
       projectedCosts = internalLaborCost + externalCostsWithQuotes + changeOrderCostImpact;
       
-      // Validate: projectedCosts should NEVER exceed the contract value (indicates price/cost confusion)
-      if (projectedCosts > approvedEstimateTotal) {
-        console.warn(`Warning: Projected costs (${projectedCosts}) exceed contract value (${approvedEstimateTotal}) for project ${project.project_name} - check for price/cost confusion`);
-      }
+      // Validate: projectedCosts should NEVER exceed the full contract value (indicates price/cost confusion)
+      const fullContractAmount = originalContractAmount + changeOrderRevenue;
+      projectedCosts = validateCostNotPrice(projectedCosts, 'Projected Costs', fullContractAmount);
     }
 
     // Calculate actual expenses for this project
@@ -530,9 +554,12 @@ export async function calculateMultipleProjectFinancials(
       .reduce((sum, expense) => sum + expense.amount, 0);
 
     // Calculate projected margin (revenue minus all projected costs including internal labor)
-    const projectedMargin = project.adjusted_est_costs 
-      ? projectedRevenue - project.adjusted_est_costs
-      : projectedRevenue - projectedCosts;
+    const validatedAdjustedCosts = validateCostNotPrice(
+      project.adjusted_est_costs || projectedCosts,
+      'Adjusted Costs',
+      projectedRevenue
+    );
+    const projectedMargin = projectedRevenue - validatedAdjustedCosts;
 
     // Calculate current margin (revenue - actual expenses so far)
     const currentMargin = projectedRevenue - actualExpenses;
@@ -554,6 +581,17 @@ export async function calculateMultipleProjectFinancials(
     const originalMargin = originalContractAmount - (approvedEstimateInternalLaborCost + approvedEstimateExternalCosts);
     const projectedMarginValue = currentContractAmount - projectedCosts;
     const actualMargin = currentContractAmount - actualExpenses;
+
+    // Add margin percentage validation
+    if (projectedMargin < 0) {
+      console.error('CRITICAL: Negative margin detected - costs may be using prices');
+    }
+    if (projectedMarginValue < 0) {
+      console.error('CRITICAL: Negative projected margin detected - costs may be using prices');
+    }
+    if (actualMargin < 0) {
+      console.error('CRITICAL: Negative actual margin detected - costs may be using prices');
+    }
 
     return {
       ...project,
@@ -601,10 +639,14 @@ export async function calculateMultipleProjectFinancials(
       originalEstimatedCosts,
       totalEstimatedCosts,
       
-      // Enhanced cost analysis
-      adjustedEstCosts: project.adjusted_est_costs || projectedCosts,
-      originalEstCosts: project.original_est_costs || originalEstimatedCosts,
-      costVariance: (project.adjusted_est_costs || projectedCosts) - (project.original_est_costs || originalEstimatedCosts),
+      // Enhanced cost analysis with validation
+      adjustedEstCosts: validatedAdjustedCosts,
+      originalEstCosts: validateCostNotPrice(
+        project.original_est_costs || originalEstimatedCosts,
+        'Original Costs',
+        originalContractAmount
+      ),
+      costVariance: validatedAdjustedCosts - (project.original_est_costs || originalEstimatedCosts),
     };
   });
 }
