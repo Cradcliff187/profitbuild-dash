@@ -805,22 +805,39 @@ export const ProjectsTableView = ({
       }
     },
     {
-      key: 'actualExpenses',
+      key: 'actual_expenses',
       label: 'Actual Expenses',
       align: 'right',
       sortable: true,
-      render: (project) => (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="text-right cursor-help">
-              <div className="font-medium text-sm">{formatCurrency(project.actualExpenses)}</div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Total expenses recorded to date</p>
-          </TooltipContent>
-        </Tooltip>
-      ),
+      render: (project) => {
+        const actualExpenses = project.actualExpenses || 0;
+        const adjustedCosts = project.adjustedEstCosts || 0;
+        const percentOfBudget = adjustedCosts > 0 ? (actualExpenses / adjustedCosts) * 100 : 0;
+        
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className="font-medium text-sm">{formatCurrency(actualExpenses)}</div>
+                {adjustedCosts > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    {percentOfBudget.toFixed(0)}% of budget
+                  </div>
+                )}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p><strong>Total expenses incurred:</strong> {formatCurrency(actualExpenses)}</p>
+              {adjustedCosts > 0 && (
+                <>
+                  <p><strong>Budget:</strong> {formatCurrency(adjustedCosts)}</p>
+                  <p><strong>Used:</strong> {percentOfBudget.toFixed(1)}%</p>
+                </>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'line_items',
