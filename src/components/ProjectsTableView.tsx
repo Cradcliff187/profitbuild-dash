@@ -731,11 +731,6 @@ export const ProjectsTableView = ({
                   {variance === 0 ? '-' : 
                    (isIncrease ? '+' : '') + formatCurrency(variance)}
                 </div>
-                {variance !== 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    ({isIncrease ? '+' : ''}{variancePercent.toFixed(1)}%)
-                  </div>
-                )}
               </div>
             </TooltipTrigger>
             <TooltipContent>
