@@ -30,10 +30,12 @@ import { ProjectFinancialPendingView } from "@/components/ProjectFinancialPendin
 import { VarianceAnalysis } from "@/components/VarianceAnalysis";
 import { EstimateVersionComparison } from "@/components/EstimateVersionComparison";
 import { ChangeOrdersList } from "@/components/ChangeOrdersList";
+import { ChangeOrderForm } from "@/components/ChangeOrderForm";
 import { ExpensesList } from "@/components/ExpensesList";
 import { QuotesList } from "@/components/QuotesList";
 import { LineItemControlDashboard } from "@/components/LineItemControlDashboard";
 import { GlobalExpenseMatching } from "@/components/GlobalExpenseMatching";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Project, ProjectStatus } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
@@ -59,6 +61,10 @@ export const ProjectDetailView = () => {
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  
+  // Change Order Modal State
+  const [showChangeOrderModal, setShowChangeOrderModal] = useState(false);
+  const [editingChangeOrder, setEditingChangeOrder] = useState<ChangeOrder | null>(null);
 
   useEffect(() => {
     if (projectId) {
@@ -679,11 +685,45 @@ export const ProjectDetailView = () => {
         <TabsContent value="changes" className="space-y-4">
           <ChangeOrdersList
             projectId={project.id}
-            onEdit={() => {}}
-            onCreateNew={() => {}}
+            onEdit={(changeOrder) => {
+              setEditingChangeOrder(changeOrder);
+              setShowChangeOrderModal(true);
+            }}
+            onCreateNew={() => {
+              setEditingChangeOrder(null);
+              setShowChangeOrderModal(true);
+            }}
           />
         </TabsContent>
       </Tabs>
+
+      {/* Change Order Modal */}
+      <Dialog open={showChangeOrderModal} onOpenChange={setShowChangeOrderModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingChangeOrder ? 'Edit Change Order' : 'Create New Change Order'}
+            </DialogTitle>
+          </DialogHeader>
+          <ChangeOrderForm
+            projectId={project.id}
+            changeOrder={editingChangeOrder || undefined}
+            onSuccess={() => {
+              setShowChangeOrderModal(false);
+              setEditingChangeOrder(null);
+              loadProjectData(); // Refresh project data
+              toast({
+                title: "Success",
+                description: `Change order ${editingChangeOrder ? 'updated' : 'created'} successfully.`
+              });
+            }}
+            onCancel={() => {
+              setShowChangeOrderModal(false);
+              setEditingChangeOrder(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
