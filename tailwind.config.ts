@@ -16,6 +16,26 @@ export default {
       gridTemplateColumns: {
         '15': 'repeat(15, minmax(0, 1fr))',
       },
+      spacing: {
+        'compact': 'var(--spacing-compact)',
+        'dense': 'var(--spacing-dense)', 
+        'cozy': 'var(--spacing-cozy)',
+      },
+      fontSize: {
+        'data': ['var(--text-data)', { lineHeight: '1.4' }],
+        'label': ['var(--text-label)', { lineHeight: '1.4' }], 
+        'compact': ['var(--text-compact)', { lineHeight: '1.5' }],
+        'interface': ['var(--text-interface)', { lineHeight: '1.5' }],
+      },
+      height: {
+        'input-compact': 'var(--input-compact)',
+        'input-dense': 'var(--input-dense)',
+        'btn-compact': 'var(--button-compact)', 
+        'btn-dense': 'var(--button-dense)',
+        'table-row': 'var(--table-row-compact)',
+        'table-row-dense': 'var(--table-row-dense)',
+        'table-header': 'var(--table-header-height)',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

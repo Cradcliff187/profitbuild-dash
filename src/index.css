@@ -64,6 +64,46 @@ All colors MUST be HSL.
     /* Smooth transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
+    /* =================================
+       COMPACT DESIGN SYSTEM EXTENSIONS
+       (Professional B2B Construction App)
+       ================================= */
+    
+    /* Compact spacing for data-dense layouts */
+    --spacing-compact: 0.25rem;    /* 4px - minimal padding */
+    --spacing-dense: 0.5rem;       /* 8px - dense but readable */
+    --spacing-cozy: 0.75rem;       /* 12px - comfortable data */
+    
+    /* Professional input and control sizes */
+    --input-compact: 28px;         /* Compact input height */
+    --input-dense: 32px;           /* Dense input height */
+    --button-compact: 28px;        /* Compact button height */
+    --button-dense: 32px;          /* Dense button height */
+    
+    /* Data table specifications */
+    --table-row-compact: 32px;     /* Excel-like row height */
+    --table-row-dense: 36px;       /* Comfortable data rows */
+    --table-cell-padding: 0.5rem;  /* Minimal cell padding */
+    --table-header-height: 40px;   /* Professional header */
+    
+    /* Typography scale for data density */
+    --text-data: 0.75rem;          /* 12px - data cells */
+    --text-label: 0.8125rem;       /* 13px - field labels */
+    --text-compact: 0.875rem;      /* 14px - compact UI */
+    --text-interface: 0.9375rem;   /* 15px - interface text */
+    
+    /* Professional card spacing */
+    --card-compact: 0.75rem;       /* 12px - minimal card padding */
+    --card-dense: 1rem;            /* 16px - comfortable cards */
+    
+    /* Form layout spacing */
+    --form-gap-compact: 0.75rem;   /* 12px - tight form spacing */
+    --form-gap-dense: 1rem;        /* 16px - readable form spacing */
+    
+    /* Professional shadows for compact UI */
+    --shadow-compact: 0 1px 3px 0 hsl(210 15% 15% / 0.1), 0 1px 2px 0 hsl(210 15% 15% / 0.06);
+    --shadow-data-row: 0 1px 2px 0 hsl(210 15% 15% / 0.05);
+
     --sidebar-background: 0 0% 98%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -205,5 +245,146 @@ All colors MUST be HSL.
   
   .field-auto:hover {
     @apply bg-amber-100;
+  }
+
+  /* =================================
+     COMPACT DESIGN UTILITIES
+     (Professional B2B Construction App)
+     ================================= */
+
+  /* Compact spacing utilities */
+  .spacing-compact {
+    padding: var(--spacing-compact);
+  }
+  
+  .spacing-dense {
+    padding: var(--spacing-dense);
+  }
+  
+  .spacing-cozy {
+    padding: var(--spacing-cozy);
+  }
+  
+  /* Professional input sizes */
+  .input-compact {
+    height: var(--input-compact);
+    padding: 0 0.5rem;
+    font-size: var(--text-compact);
+  }
+  
+  .input-dense {
+    height: var(--input-dense);
+    padding: 0 0.75rem;
+    font-size: var(--text-interface);
+  }
+  
+  /* Professional button sizes */
+  .btn-compact {
+    height: var(--button-compact);
+    padding: 0 0.75rem;
+    font-size: var(--text-compact);
+  }
+  
+  .btn-dense {
+    height: var(--button-dense);
+    padding: 0 1rem;
+    font-size: var(--text-interface);
+  }
+  
+  /* Data table layouts */
+  .table-compact {
+    font-size: var(--text-data);
+  }
+  
+  .table-compact th {
+    height: var(--table-header-height);
+    padding: var(--table-cell-padding);
+    font-size: var(--text-label);
+    font-weight: 500;
+  }
+  
+  .table-compact td {
+    height: var(--table-row-compact);
+    padding: var(--table-cell-padding);
+  }
+  
+  .table-dense td {
+    height: var(--table-row-dense);
+    padding: var(--table-cell-padding);
+  }
+  
+  /* Professional card layouts */
+  .card-compact {
+    padding: var(--card-compact);
+  }
+  
+  .card-dense {
+    padding: var(--card-dense);
+  }
+  
+  /* Form layouts */
+  .form-compact {
+    gap: var(--form-gap-compact);
+  }
+  
+  .form-dense {
+    gap: var(--form-gap-dense);
+  }
+  
+  /* Data row hover effects */
+  .data-row {
+    transition: var(--transition-smooth);
+    cursor: pointer;
+  }
+  
+  .data-row:hover {
+    background-color: hsl(var(--muted) / 0.3);
+    box-shadow: var(--shadow-data-row);
+  }
+  
+  /* Numerical data alignment */
+  .data-numerical {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  
+  /* Professional zebra striping */
+  .table-striped tbody tr:nth-child(even) {
+    background-color: hsl(var(--muted) / 0.15);
+  }
+  
+  /* Inline editing states */
+  .inline-editable {
+    transition: var(--transition-smooth);
+    border: 1px solid transparent;
+    border-radius: calc(var(--radius) - 2px);
+  }
+  
+  .inline-editable:hover {
+    border-color: hsl(var(--border));
+    background-color: hsl(var(--background));
+  }
+  
+  .inline-editable:focus-within {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+  }
+  
+  /* Compact navigation */
+  .nav-compact {
+    padding: var(--spacing-dense) var(--spacing-cozy);
+    font-size: var(--text-compact);
+  }
+  
+  /* Professional status indicators */
+  .status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: calc(var(--radius) - 4px);
+    font-size: var(--text-data);
+    font-weight: 500;
   }
 }
