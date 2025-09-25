@@ -19,15 +19,34 @@ interface LineItemTableProps {
 
 const getCategoryColor = (category: LineItemCategory): string => {
   switch (category) {
-    case LineItemCategory.LABOR: return 'bg-blue-500';
-    case LineItemCategory.SUBCONTRACTOR: return 'bg-green-500';
-    case LineItemCategory.MATERIALS: return 'bg-orange-500';
-    case LineItemCategory.EQUIPMENT: return 'bg-purple-500';
-    case LineItemCategory.PERMITS: return 'bg-red-500';
-    case LineItemCategory.MANAGEMENT: return 'bg-teal-500';
-    case LineItemCategory.OTHER: return 'bg-gray-500';
-    default: return 'bg-gray-500';
+    case LineItemCategory.LABOR: return 'bg-primary';
+    case LineItemCategory.SUBCONTRACTOR: return 'bg-accent';
+    case LineItemCategory.MATERIALS: return 'bg-secondary';
+    case LineItemCategory.EQUIPMENT: return 'bg-muted';
+    case LineItemCategory.PERMITS: return 'bg-destructive';
+    case LineItemCategory.MANAGEMENT: return 'bg-success';
+    case LineItemCategory.OTHER: return 'bg-muted-foreground';
+    default: return 'bg-muted-foreground';
   }
+};
+
+const getCategoryAbbrev = (category: LineItemCategory): string => {
+  switch (category) {
+    case LineItemCategory.LABOR: return 'Labor';
+    case LineItemCategory.SUBCONTRACTOR: return 'Sub';
+    case LineItemCategory.MATERIALS: return 'Mat';
+    case LineItemCategory.EQUIPMENT: return 'Equip';
+    case LineItemCategory.PERMITS: return 'Permit';
+    case LineItemCategory.MANAGEMENT: return 'Mgmt';
+    case LineItemCategory.OTHER: return 'Other';
+    default: return 'Other';
+  }
+};
+
+const getMarkupColor = (markupPercent: number): string => {
+  if (markupPercent < 0) return 'text-destructive';
+  if (markupPercent < 15) return 'text-warning';
+  return 'text-success';
 };
 
 const EditableCell: React.FC<{
@@ -36,7 +55,8 @@ const EditableCell: React.FC<{
   type?: 'text' | 'number';
   className?: string;
   currency?: boolean;
-}> = ({ value, onChange, type = 'text', className = '', currency = false }) => {
+  align?: 'left' | 'right';
+}> = ({ value, onChange, type = 'text', className = '', currency = false, align = 'left' }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(String(value));
 
@@ -73,7 +93,7 @@ const EditableCell: React.FC<{
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
         type={type}
-        className={`h-8 ${className}`}
+        className={`h-input-compact ${type === 'number' ? 'font-mono' : ''} ${align === 'right' ? 'text-right' : ''} ${className}`}
         autoFocus
         placeholder={currency ? "0.00" : ""}
       />
@@ -82,7 +102,9 @@ const EditableCell: React.FC<{
 
   return (
     <div
-      className={`cursor-pointer hover:bg-muted/50 border border-input bg-background px-3 py-2 rounded-md h-8 flex items-center text-sm ${className}`}
+      className={`cursor-pointer hover:bg-muted/50 border border-input bg-background px-compact py-1 rounded-md h-input-compact flex items-center text-data ${
+        type === 'number' ? 'font-mono' : ''
+      } ${align === 'right' ? 'text-right' : ''} ${className}`}
       onClick={() => {
         setEditValue(String(value));
         setIsEditing(true);
@@ -170,33 +192,35 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
         <div className="border rounded-md">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="w-[120px]">Category</TableHead>
-                <TableHead className="min-w-[200px]">Description</TableHead>
-                <TableHead className="w-[80px]">Qty</TableHead>
-                <TableHead className="w-[100px]">Cost</TableHead>
-                <TableHead className="w-[80px]">Markup%</TableHead>
-                <TableHead className="w-[100px]">Markup</TableHead>
-                <TableHead className="w-[100px]">Total Price</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+              <TableRow className="h-table-header">
+                <TableHead className="w-[100px] p-compact text-label font-medium">Category</TableHead>
+                <TableHead className="min-w-[180px] p-compact text-label font-medium">Description</TableHead>
+                <TableHead className="w-[60px] p-compact text-label font-medium text-right">Qty</TableHead>
+                <TableHead className="w-[80px] p-compact text-label font-medium text-right">Cost</TableHead>
+                <TableHead className="w-[60px] p-compact text-label font-medium text-right">Markup%</TableHead>
+                <TableHead className="w-[80px] p-compact text-label font-medium text-right">Markup</TableHead>
+                <TableHead className="w-[90px] p-compact text-label font-medium text-right">Total Price</TableHead>
+                <TableHead className="w-[40px] p-compact"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {lineItems.map((lineItem) => (
-                <TableRow key={lineItem.id}>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-3 h-3 rounded ${getCategoryColor(lineItem.category)}`} />
+                <TableRow key={lineItem.id} className="h-table-row-dense hover:bg-muted/20">
+                  <TableCell className="p-compact">
+                    <div className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full ${getCategoryColor(lineItem.category)}`} />
                       <Select
                         value={lineItem.category}
                         onValueChange={(value) => onUpdateLineItem(lineItem.id, 'category', value)}
                       >
-                        <SelectTrigger className="h-8 w-full">
-                          <SelectValue />
+                        <SelectTrigger className="h-button-compact border-0 bg-transparent p-0 hover:bg-muted/50">
+                          <Badge variant="outline" className="text-xs px-1 py-0 h-4 cursor-pointer">
+                            {getCategoryAbbrev(lineItem.category)}
+                          </Badge>
                         </SelectTrigger>
                         <SelectContent>
                           {Object.entries(CATEGORY_DISPLAY_MAP).map(([key, label]) => (
-                            <SelectItem key={key} value={key}>
+                            <SelectItem key={key} value={key} className="text-xs">
                               {label}
                             </SelectItem>
                           ))}
@@ -204,66 +228,71 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                       </Select>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-compact">
                     <EditableCell
                       value={lineItem.description}
                       onChange={(value) => onUpdateLineItem(lineItem.id, 'description', value)}
+                      className="text-xs"
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-compact text-right">
                     <EditableCell
                       value={lineItem.quantity}
                       onChange={(value) => onUpdateLineItem(lineItem.id, 'quantity', parseFloat(value) || 0)}
                       type="number"
+                      align="right"
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-compact text-right">
                     <EditableCell
                       value={calculateTotalCost(lineItem)}
                       onChange={(value) => handleTotalCostChange(lineItem.id, parseFloat(value) || 0)}
                       type="number"
                       currency={true}
+                      align="right"
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-compact text-right">
                     <EditableCell
                       value={calculateMarkupPercent(lineItem)}
                       onChange={(value) => handleMarkupPercentChange(lineItem.id, parseFloat(value) || 0)}
                       type="number"
-                      className={calculateMarkupPercent(lineItem) < 0 ? "text-destructive" : calculateMarkupPercent(lineItem) < 20 ? "text-muted-foreground" : "text-foreground"}
+                      align="right"
+                      className={getMarkupColor(calculateMarkupPercent(lineItem))}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-compact text-right">
                     <EditableCell
                       value={calculateMarkupAmount(lineItem)}
                       onChange={(value) => handleMarkupAmountChange(lineItem.id, parseFloat(value) || 0)}
                       type="number"
                       currency={true}
+                      align="right"
                     />
                   </TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell className="p-compact text-right font-mono text-data font-medium">
                     ${lineItem.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-compact">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="h-button-compact w-6 p-0">
+                          <MoreHorizontal className="h-3 w-3" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => onEditDetails(lineItem)}>
-                          <Edit className="h-4 w-4 mr-2" />
+                      <DropdownMenuContent align="end" className="w-36">
+                        <DropdownMenuItem onClick={() => onEditDetails(lineItem)} className="text-xs">
+                          <Edit className="h-3 w-3 mr-2" />
                           Edit Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => duplicateLineItem(lineItem)}>
-                          <Copy className="h-4 w-4 mr-2" />
+                        <DropdownMenuItem onClick={() => duplicateLineItem(lineItem)} className="text-xs">
+                          <Copy className="h-3 w-3 mr-2" />
                           Duplicate
                         </DropdownMenuItem>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                              <Trash2 className="h-4 w-4 mr-2" />
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-xs text-destructive">
+                              <Trash2 className="h-3 w-3 mr-2" />
                               Delete
                             </DropdownMenuItem>
                           </AlertDialogTrigger>
