@@ -126,8 +126,8 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
+                <TableRow className="h-table-header">
+                  <TableHead className="w-8 p-compact">
                     <Checkbox
                       checked={allSelected}
                       onCheckedChange={onSelectAll}
@@ -135,15 +135,15 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
                     />
                   </TableHead>
                   {columns.map((column) => (
-                    <TableHead key={column.key}>{column.label}</TableHead>
+                    <TableHead key={column.key} className="p-compact text-label font-medium">{column.label}</TableHead>
                   ))}
-                  <TableHead className="w-32">Actions</TableHead>
+                  <TableHead className="w-24 p-compact text-label">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayedData.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
+                {displayedData.map((item, index) => (
+                  <TableRow key={item.id} className="h-table-row-dense data-table-row">
+                    <TableCell className="p-compact">
                       <Checkbox
                         checked={selectedItems.includes(item.id)}
                         onCheckedChange={() => onSelectItem(item.id)}
@@ -151,29 +151,29 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
                       />
                     </TableCell>
                     {columns.map((column) => (
-                      <TableCell key={column.key}>
+                      <TableCell key={column.key} className="p-compact text-data">
                         {column.render ? column.render(item) : item[column.key] || '-'}
                       </TableCell>
                     ))}
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+                    <TableCell className="p-compact">
+                      <div className="flex items-center gap-1">
                         {onView && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => onView(item)}
-                            className="h-8 w-8 p-0"
+                            className="h-input-compact w-input-compact p-0"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-3 w-3" />
                           </Button>
                         )}
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => onEdit(item)}
-                          className="h-8 w-8 p-0"
+                          className="h-input-compact w-input-compact p-0"
                         >
-                          <Edit2 className="h-4 w-4" />
+                          <Edit2 className="h-3 w-3" />
                         </Button>
                         {onDelete && (
                           <AlertDialog>
@@ -181,9 +181,9 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                className="h-input-compact w-input-compact p-0 text-destructive hover:text-destructive"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3 w-3" />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>

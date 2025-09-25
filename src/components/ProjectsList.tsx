@@ -169,235 +169,130 @@ export const ProjectsList = ({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Projects Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div className="dense-spacing">
+      {/* Projects Grid - Compact Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
         {paginatedProjects.map((project) => (
           <Card 
             key={project.id} 
-            className={`hover:shadow-md transition-shadow cursor-pointer ${getCardBorderClass(project.margin_percentage)}`}
+            className={`compact-card hover:shadow-sm transition-shadow cursor-pointer ${getCardBorderClass(project.margin_percentage)}`}
             onClick={() => window.location.href = `/projects/${project.id}`}
           >
-            <CardHeader className="pb-3">
+            <CardHeader className="p-compact pb-2">
               <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="text-lg">{project.project_name}</CardTitle>
-                  <div className="text-sm text-muted-foreground">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <CardTitle className="text-interface font-medium leading-tight truncate">{project.project_name}</CardTitle>
+                  <div className="text-label text-muted-foreground truncate">
                     {project.project_number} • {project.client_name}
                   </div>
                 </div>
-                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-input-compact w-input-compact p-0"
                     onClick={() => onEdit(project)}
                   >
                     <Edit className="h-3 w-3" />
                   </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Project</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{project.project_name}"? 
-                          This will also delete all associated estimates, expenses, and quotes.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteProject(project.id)}>
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+...
                 </div>
               </div>
             </CardHeader>
             
-            <CardContent className="space-y-4">
-              {/* Action Buttons - Based on Estimate Existence */}
+            <CardContent className="p-compact space-y-2">
+              {/* Action Buttons - Compact */}
               {(() => {
                 const projectEstimates = estimates.filter(e => e.project_id === project.id);
                 const hasEstimates = projectEstimates.length > 0;
                 
                 if (!hasEstimates) {
                   return (
-                    <div className="mb-4">
-                      <Button 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={() => window.location.href = `/estimates?project=${project.id}`}
-                      >
-                        <Calculator className="h-4 w-4 mr-2" />
-                        Create First Estimate
-                      </Button>
-                    </div>
+                    <Button 
+                      size="sm"
+                      className="w-full h-button-compact text-label bg-primary hover:bg-primary/90"
+                      onClick={() => window.location.href = `/estimates?project=${project.id}`}
+                    >
+                      <Calculator className="h-3 w-3 mr-1" />
+                      Create Estimate
+                    </Button>
                   );
                 } else {
                   return (
-                    <div className="mb-4">
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => window.location.href = `/estimates?project=${project.id}`}
-                        >
-                          <Calculator className="h-4 w-4 mr-2" />
-                          View Estimates
-                        </Button>
-                        <Button 
-                          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                          onClick={() => window.location.href = `/estimates?project=${project.id}&action=new-version`}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          New Version
-                        </Button>
-                      </div>
+                    <div className="flex gap-1">
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-button-compact text-label"
+                        onClick={() => window.location.href = `/estimates?project=${project.id}`}
+                      >
+                        <Calculator className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                      <Button 
+                        size="sm"
+                        className="flex-1 h-button-compact text-label bg-primary hover:bg-primary/90"
+                        onClick={() => window.location.href = `/estimates?project=${project.id}&action=new-version`}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        New
+                      </Button>
                     </div>
                   );
                 }
               })()}
 
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2">
-                  {isProjectAtRisk(project.margin_percentage) && (
-                    <Badge className="bg-red-600 text-white border-red-600 flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" />
-                      AT RISK
-                    </Badge>
-                  )}
-                  <Badge className={getStatusColor(project.status)}>
-                    {project.status.replace('_', ' ').toUpperCase()}
+              <div className="flex items-center gap-1 flex-wrap">
+                {isProjectAtRisk(project.margin_percentage) && (
+                  <Badge className="compact-badge bg-destructive text-destructive-foreground flex items-center gap-1">
+                    <AlertTriangle className="h-2 w-2" />
+                    RISK
                   </Badge>
-                  <Badge variant="outline">
-                    {project.project_type.replace('_', ' ')}
+                )}
+                <Badge className={`compact-badge ${getStatusColor(project.status)}`}>
+                  {project.status.replace('_', ' ').toUpperCase()}
+                </Badge>
+                {project.margin_percentage !== null && project.margin_percentage !== undefined && (
+                  <Badge className={`compact-badge ${getMarginColor(project.margin_percentage)}`}>
+                    {project.margin_percentage.toFixed(1)}%
                   </Badge>
-                  {project.margin_percentage !== null && project.margin_percentage !== undefined && (
-                    <Badge className={getMarginColor(project.margin_percentage)}>
-                      {project.margin_percentage.toFixed(1)}% margin
-                    </Badge>
-                  )}
-                </div>
-                {project.variance && project.variancePercentage && (
-                  <VarianceBadge 
-                    variance={project.variance}
-                    percentage={project.variancePercentage}
-                    type={project.varianceType}
-                  />
                 )}
               </div>
 
-              {/* Margin Information */}
-              {(project.contracted_amount || project.current_margin !== null || project.margin_percentage !== null) && (
-                <div className="border rounded-lg p-3 bg-muted/20">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Financial Summary</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {project.margin_percentage !== null && project.margin_percentage !== undefined && (
-                        <div className="flex items-center space-x-1">
-                          {project.margin_percentage >= 0 ? (
-                            <TrendingUp className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <TrendingDown className="h-4 w-4 text-red-600" />
-                          )}
-                          <Badge className={getMarginColor(project.margin_percentage)}>
-                            {project.margin_percentage.toFixed(1)}% margin
-                          </Badge>
-                        </div>
-                      )}
-                      <div className="flex items-center space-x-1">
-                        <Target className="h-4 w-4 text-muted-foreground" />
-                        <Badge 
-                          style={{ 
-                            backgroundColor: getThresholdStatusColor(
-                              getMarginThresholdStatus(
-                                project.margin_percentage,
-                                project.minimum_margin_threshold || 10.0,
-                                project.target_margin || 20.0
-                              )
-                            ),
-                            color: 'white'
-                          }}
-                        >
-                          {getThresholdStatusLabel(
-                            getMarginThresholdStatus(
-                              project.margin_percentage,
-                              project.minimum_margin_threshold || 10.0,
-                              project.target_margin || 20.0
-                            )
-                          )}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+              {/* Financial Summary - Compact */}
+              {(project.contracted_amount || project.current_margin !== null) && (
+                <div className="compact-card-section bg-muted/10">
+                  <div className="grid grid-cols-2 gap-2 text-data">
                     <div>
-                      <p className="text-muted-foreground">Contract Amount</p>
-                      <p className="font-medium">{formatCurrency(project.contracted_amount)}</p>
+                      <p className="text-label text-muted-foreground">Contract</p>
+                      <p className="font-mono font-medium">{formatCurrency(project.contracted_amount)}</p>
                     </div>
                     {project.current_margin !== null && project.current_margin !== undefined && (
                       <div>
-                        <p className="text-muted-foreground">Current Profit</p>
-                        <p className={`font-medium ${project.current_margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <p className="text-label text-muted-foreground">Profit</p>
+                        <p className={`font-mono font-medium ${project.current_margin >= 0 ? 'text-success' : 'text-destructive'}`}>
                           {project.current_margin >= 0 ? '+' : ''}{formatCurrency(project.current_margin)}
                         </p>
                       </div>
                     )}
                   </div>
-                  {project.contingency_remaining !== null && project.contingency_remaining !== undefined && (
-                    <div className="mt-2 pt-2 border-t">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Contingency Remaining</span>
-                        <span className="font-medium">{formatContingencyRemaining(project.contingency_remaining)}</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-2 text-label">
                 <div>
                   <p className="text-muted-foreground">Type</p>
-                  <p className="font-medium">
+                  <p className="text-data font-medium truncate">
                     {project.project_type === 'construction_project' ? 'Construction' : 'Work Order'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Job Type</p>
-                  <p className="font-medium">{project.job_type || 'Not specified'}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Start Date</p>
-                  <p className="font-medium">
-                    {project.start_date ? format(project.start_date, "MMM dd, yyyy") : 'Not set'}
-                  </p>
-                </div>
-                <div>
                   <p className="text-muted-foreground">Created</p>
-                  <p className="font-medium">
-                    {format(project.created_at, "MMM dd, yyyy")}
+                  <p className="text-data font-medium">
+                    {format(project.created_at, "MMM dd")}
                   </p>
                 </div>
               </div>
-
-              {project.address && (
-                <div>
-                  <p className="text-muted-foreground text-sm">Address</p>
-                  <p className="text-sm">{project.address}</p>
-                </div>
-              )}
             </CardContent>
           </Card>
         ))}

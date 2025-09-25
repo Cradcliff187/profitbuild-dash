@@ -214,9 +214,9 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
   }
 
   return (
-    <div className="mobile-container space-y-6">
+    <div className="dense-spacing">
 
-      <div className="space-y-6">
+      <div className="space-y-3">
         {Object.entries(estimatesByProject).map(([projectId, projectEstimates]) => {
           const currentVersion = projectEstimates.find(e => e.is_current_version) || projectEstimates[0];
           const previousVersions = projectEstimates.filter(e => !e.is_current_version);
@@ -225,30 +225,28 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
           const bestQuoteVariance = getBestQuoteVariance(currentVersion);
           
           return (
-            <Card key={projectId} className="mobile-card overflow-hidden border-2 border-primary/10">
-              <CardHeader className="pb-4 bg-gradient-to-r from-primary/5 to-transparent">
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2 flex-wrap">
-                      <CardTitle className="text-lg sm:text-xl mobile-text-safe flex-1 min-w-0">{currentVersion.project_name}</CardTitle>
-                      <div className="flex gap-2 flex-shrink-0">
-                        <Badge className="bg-primary text-primary-foreground font-semibold text-xs">
-                          v{currentVersion.version_number || 1}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs border-green-200 text-green-700 bg-green-50">
-                          Current
-                        </Badge>
-                      </div>
+            <Card key={projectId} className="compact-card border border-primary/10">
+              <CardHeader className="p-compact bg-gradient-to-r from-primary/5 to-transparent">
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2 flex-wrap">
+                    <CardTitle className="text-interface font-medium flex-1 min-w-0 truncate">{currentVersion.project_name}</CardTitle>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <Badge className="compact-badge bg-primary text-primary-foreground font-medium">
+                        v{currentVersion.version_number || 1}
+                      </Badge>
+                      <Badge variant="outline" className="compact-badge border-success text-success bg-success/10">
+                        Current
+                      </Badge>
                     </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      {currentVersion.client_name} • {projectEstimates.length} version{projectEstimates.length !== 1 ? 's' : ''}
-                    </p>
                   </div>
-                  <div className="mobile-button-group">
+                  <p className="text-label text-muted-foreground">
+                    {currentVersion.client_name} • {projectEstimates.length} version{projectEstimates.length !== 1 ? 's' : ''}
+                  </p>
+                  <div className="flex gap-1">
                     <Button 
                       size="sm" 
                       onClick={() => createNewVersion(currentVersion)}
-                      className="bg-primary hover:bg-primary/90"
+                      className="h-button-compact text-label bg-primary hover:bg-primary/90"
                     >
                       <Plus className="h-3 w-3 mr-1" />
                       New Version
@@ -257,57 +255,49 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-4">
-                {/* Current Version Details */}
-                <div className="bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-lg p-3 sm:p-4">
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                        <h3 className="font-bold text-foreground text-base sm:text-lg">Latest Version</h3>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge className="bg-primary text-primary-foreground font-bold text-xs px-2 py-1">
-                            Version {currentVersion.version_number || 1}
-                          </Badge>
-                          <Badge variant="outline" className={`text-xs capitalize ${
-                            currentVersion.status === 'approved' ? 'border-green-200 text-green-700 bg-green-50' :
-                            currentVersion.status === 'draft' ? 'border-gray-200 text-gray-700 bg-gray-50' :
-                            'border-blue-200 text-blue-700 bg-blue-50'
-                          }`}>
-                            {currentVersion.status}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2 text-xs sm:text-sm text-muted-foreground">
-                        <span className="break-all">{currentVersion.estimate_number}</span>
-                        <span>•</span>
-                        <span>Created {format(currentVersion.date_created, 'MMM dd, yyyy')}</span>
-                        {currentVersion.contingency_percent > 0 && (
-                          <>
-                            <span>•</span>
-                            <span className="break-words">Contingency: {formatContingencyDisplay(currentVersion)}</span>
-                          </>
-                        )}
+              <CardContent className="p-compact space-y-2">
+                {/* Current Version Details - Compact */}
+                <div className="compact-card-section border border-primary/20">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-interface font-medium text-foreground">Latest Version</h3>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Badge className="compact-badge bg-primary text-primary-foreground font-medium">
+                          v{currentVersion.version_number || 1}
+                        </Badge>
+                        <Badge variant="outline" className={`compact-badge capitalize ${
+                          currentVersion.status === 'approved' ? 'border-success text-success bg-success/10' :
+                          currentVersion.status === 'draft' ? 'border-muted text-muted-foreground bg-muted/10' :
+                          'border-primary text-primary bg-primary/10'
+                        }`}>
+                          {currentVersion.status}
+                        </Badge>
                       </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-1 text-label text-muted-foreground flex-wrap">
+                      <span className="truncate">{currentVersion.estimate_number}</span>
+                      <span>•</span>
+                      <span>{format(currentVersion.date_created, 'MMM dd, yyyy')}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-2xl sm:text-3xl font-bold text-foreground">
+                        <div className="text-lg font-bold text-foreground font-mono">
                           ${currentVersion.total_amount.toLocaleString()}
                         </div>
-                        <div className="text-xs sm:text-sm text-muted-foreground">Total Amount</div>
+                        <div className="text-label text-muted-foreground">Total Amount</div>
                       </div>
                     </div>
 
-                  {/* Budget Comparison */}
+                  {/* Budget Comparison - Compact */}
                   {(quoteStatus !== 'awaiting-quotes') && (
-                    <div className="pt-3 border-t border-primary/20">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <span className="text-xs sm:text-sm font-medium text-foreground">Budget vs Actual:</span>
-                        <div className="flex items-center gap-2">
+                    <div className="pt-2 border-t border-primary/20">
+                      <div className="flex items-center justify-between">
+                        <span className="text-label font-medium text-foreground">Budget vs Actual:</span>
+                        <div className="flex items-center gap-1">
                           <BudgetComparisonBadge status={quoteStatus} />
                           {bestQuoteVariance && (
-                            <span className={`text-xs sm:text-sm font-semibold ${
-                              bestQuoteVariance.variance < 0 ? 'text-green-700' : 'text-red-700'
+                            <span className={`text-data font-mono font-medium ${
+                              bestQuoteVariance.variance < 0 ? 'text-success' : 'text-destructive'
                             }`}>
                               {bestQuoteVariance.variance < 0 ? '-' : '+'}${Math.abs(bestQuoteVariance.variance).toLocaleString()}
                             </span>
@@ -317,34 +307,34 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
                     </div>
                   )}
 
-                  {/* Action Buttons */}
-                  <div className="mobile-button-group pt-3">
+                  {/* Action Buttons - Compact */}
+                  <div className="flex gap-1 pt-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => onView(currentVersion)}
-                      className="border-primary/20 hover:bg-primary/5"
+                      className="flex-1 h-button-compact text-label border-primary/20 hover:bg-primary/5"
                     >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Details
+                      <Eye className="h-3 w-3 mr-1" />
+                      View
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => onEdit(currentVersion)}
-                      className="border-primary/20 hover:bg-primary/5"
+                      className="flex-1 h-button-compact text-label border-primary/20 hover:bg-primary/5"
                     >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Version
+                      <Edit className="h-3 w-3 mr-1" />
+                      Edit
                     </Button>
                     <Button 
                       size="sm" 
                       variant="outline"
                       onClick={() => createNewVersion(currentVersion)}
-                      className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                      className="flex-1 h-button-compact text-label border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                     >
-                      <Plus className="h-4 w-4 mr-2" />
-                      New Version
+                      <Plus className="h-3 w-3 mr-1" />
+                      New
                     </Button>
                   </div>
                   </div>

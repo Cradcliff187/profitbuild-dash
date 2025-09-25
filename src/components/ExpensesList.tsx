@@ -221,8 +221,8 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       key: 'expense_date',
       label: 'Date',
       render: (expense: Expense) => (
-        <div className="font-medium">
-          {expense.expense_date.toLocaleDateString()}
+        <div className="text-data font-mono">
+          {expense.expense_date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
         </div>
       )
     },
@@ -243,7 +243,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       key: 'category',
       label: 'Category',
       render: (expense: Expense) => (
-        <Badge variant={getCategoryBadgeVariant(expense.category)}>
+        <Badge variant={getCategoryBadgeVariant(expense.category)} className="compact-badge">
           {EXPENSE_CATEGORY_DISPLAY[expense.category]}
         </Badge>
       )
@@ -261,7 +261,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       key: 'amount',
       label: 'Amount',
       render: (expense: Expense) => (
-        <div className="text-right font-medium">
+        <div className="text-right text-data font-mono font-medium">
           ${expense.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
         </div>
       )
@@ -282,22 +282,22 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        <div className="flex items-center space-x-2">
-          <Search className="h-4 w-4 text-muted-foreground" />
+    <div className="dense-spacing">
+      {/* Filters - Compact */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex items-center space-x-1">
+          <Search className="h-3 w-3 text-muted-foreground" />
           <Input
             placeholder="Search expenses..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-64"
+            className="w-48 h-input-compact text-label"
           />
         </div>
         
         <Select value={filterProject} onValueChange={setFilterProject}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by project" />
+          <SelectTrigger className="w-40 h-input-compact text-label">
+            <SelectValue placeholder="Project" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Projects</SelectItem>
@@ -310,8 +310,8 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         </Select>
 
         <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by category" />
+          <SelectTrigger className="w-32 h-input-compact text-label">
+            <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
@@ -324,8 +324,8 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         </Select>
 
         <Select value={filterTransactionType} onValueChange={setFilterTransactionType}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by type" />
+          <SelectTrigger className="w-28 h-input-compact text-label">
+            <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
@@ -338,20 +338,20 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         </Select>
 
         <Select value={filterMatchStatus} onValueChange={setFilterMatchStatus}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by match status" />
+          <SelectTrigger className="w-32 h-input-compact text-label">
+            <SelectValue placeholder="Match Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Expenses</SelectItem>
-            <SelectItem value="matched">Matched to Line Items</SelectItem>
+            <SelectItem value="matched">Matched</SelectItem>
             <SelectItem value="unmatched">Unmatched</SelectItem>
-            <SelectItem value="unassigned">Unassigned Project</SelectItem>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
           </SelectContent>
         </Select>
 
-        <Button onClick={exportToCsv} variant="outline" size="sm">
-          <FileDown className="h-4 w-4 mr-2" />
-          Export CSV
+        <Button onClick={exportToCsv} variant="outline" size="sm" className="h-input-compact text-label">
+          <FileDown className="h-3 w-3 mr-1" />
+          Export
         </Button>
       </div>
 
