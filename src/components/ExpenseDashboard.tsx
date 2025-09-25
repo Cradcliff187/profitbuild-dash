@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Expense } from '@/types/expense';
 import { Estimate } from '@/types/estimate';
+import { formatCurrency } from '@/lib/utils';
 
 interface ExpenseDashboardProps {
   expenses: Expense[];
@@ -58,7 +59,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalExpenses.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalExpenses)}</div>
             <p className="text-xs text-muted-foreground">
               {expenses.length} total transactions
             </p>
@@ -71,7 +72,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${thisMonthExpenses.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(thisMonthExpenses)}</div>
             <p className="text-xs text-muted-foreground">
               Current month expenses
             </p>
@@ -85,7 +86,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${budgetVariance > 0 ? 'text-red-600' : budgetVariance < 0 ? 'text-green-600' : ''}`}>
-              ${Math.abs(budgetVariance).toFixed(2)} {budgetVariance >= 0 ? 'over' : 'under'}
+              {formatCurrency(Math.abs(budgetVariance))} {budgetVariance >= 0 ? 'over' : 'under'}
             </div>
             <p className="text-xs text-muted-foreground">
               {budgetUtilization.toFixed(1)}% of budget used
@@ -99,7 +100,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">${unplannedExpenses.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-orange-600">{formatCurrency(unplannedExpenses)}</div>
             <p className="text-xs text-muted-foreground">
               {unplannedExpenses > 0 ? ((unplannedExpenses / totalExpenses) * 100).toFixed(1) : '0'}% of total
             </p>
@@ -130,7 +131,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">${expense.amount.toFixed(2)}</p>
+                      <p className="font-medium">{formatCurrency(expense.amount)}</p>
                       <Badge variant={expense.is_planned ? 'default' : 'secondary'} className="text-xs">
                         {expense.is_planned ? 'Planned' : 'Unplanned'}
                       </Badge>
@@ -163,7 +164,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
                       <div key={category} className="space-y-1">
                         <div className="flex justify-between text-sm">
                           <span className="font-medium">{category}</span>
-                          <span>${amount.toFixed(2)} ({percentage.toFixed(1)}%)</span>
+                          <span>{formatCurrency(amount)} ({percentage.toFixed(1)}%)</span>
                         </div>
                         <div className="w-full bg-muted rounded-full h-2">
                           <div 
@@ -206,7 +207,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
                       <CardContent className="p-4">
                         <div className="space-y-2">
                           <h4 className="font-medium text-sm">{projectName}</h4>
-                          <div className="text-2xl font-bold">${amount.toFixed(2)}</div>
+                          <div className="text-2xl font-bold">{formatCurrency(amount)}</div>
                           <div className="text-xs text-muted-foreground">
                             {percentage.toFixed(1)}% of total expenses
                           </div>
@@ -214,7 +215,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
                             <div className="text-xs">
                               <span className="text-muted-foreground">vs estimate: </span>
                               <span className={variance > 0 ? 'text-red-600' : variance < 0 ? 'text-green-600' : ''}>
-                                {variance >= 0 ? '+' : ''}${variance.toFixed(2)}
+                                {variance >= 0 ? '+' : ''}{formatCurrency(variance)}
                               </span>
                             </div>
                           )}

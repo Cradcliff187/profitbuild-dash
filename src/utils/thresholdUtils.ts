@@ -1,4 +1,5 @@
 import { MarginThresholdStatus } from '@/types/project';
+import { formatCurrency } from '@/lib/utils';
 
 export const getMarginThresholdStatus = (
   currentMargin: number | null | undefined,
@@ -53,13 +54,5 @@ export const getThresholdStatusLabel = (status: MarginThresholdStatus): string =
 };
 
 export const formatContingencyRemaining = (amount: number | null | undefined): string => {
-  if (amount === null || amount === undefined) {
-    return 'N/A';
-  }
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return formatCurrency(amount, { showCents: false });
 };

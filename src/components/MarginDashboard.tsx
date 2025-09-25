@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Project } from '@/types/project';
 import { calculateProjectMargin, type ProjectMargin, getContingencyUtilization } from '@/types/margin';
 import { getMarginThresholdStatus, getThresholdStatusColor, getThresholdStatusLabel, formatContingencyRemaining } from '@/utils/thresholdUtils';
+import { formatCurrency } from '@/lib/utils';
 
 interface MarginDashboardProps {
   projectId: string;
@@ -131,14 +132,6 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
   const statusColor = getThresholdStatusColor(thresholdStatus);
   const statusLabel = getThresholdStatusLabel(thresholdStatus);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const getMarginColorClass = (percentage: number): string => {
     if (percentage >= 20) return 'text-green-600';

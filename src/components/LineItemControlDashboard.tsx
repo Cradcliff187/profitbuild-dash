@@ -18,7 +18,7 @@ import {
 import { useLineItemControl, LineItemControlData, QuoteData } from '@/hooks/useLineItemControl';
 import { CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { FinancialTableTemplate, FinancialTableColumn } from '@/components/FinancialTableTemplate';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 
 interface LineItemControlDashboardProps {
@@ -28,13 +28,6 @@ interface LineItemControlDashboardProps {
 export function LineItemControlDashboard({ projectId }: LineItemControlDashboardProps) {
   const { lineItems, summary, isLoading, error, refetch } = useLineItemControl(projectId);
   const [selectedLineItem, setSelectedLineItem] = useState<LineItemControlData | null>(null);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
 
   const getQuoteStatusBadge = (status: LineItemControlData['quoteStatus']) => {
     const variants = {

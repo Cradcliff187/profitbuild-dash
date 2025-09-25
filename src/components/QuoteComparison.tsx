@@ -10,6 +10,7 @@ import { MarginComparisonData } from "@/types/quote";
 import { VarianceBadge } from "@/components/ui/variance-badge";
 import { calculateQuoteFinancials, compareQuoteToEstimate } from "@/utils/quoteFinancials";
 import { calculateEstimateFinancials } from "@/utils/estimateFinancials";
+import { formatCurrency } from '@/lib/utils';
 
 interface QuoteComparisonProps {
   quote: Quote;
@@ -66,7 +67,7 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
 
   const formatDifference = (difference: number, percentage: number) => {
     const sign = difference >= 0 ? "+" : "";
-    return `${sign}$${difference.toFixed(2)} (${sign}${percentage.toFixed(1)}%)`;
+    return `${sign}${formatCurrency(difference)} (${sign}${percentage.toFixed(1)}%)`;
   };
 
   return (
@@ -94,7 +95,7 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">${yourTotalCost.toFixed(2)}</div>
+            <div className="text-xl font-bold">{formatCurrency(yourTotalCost)}</div>
             <div className="text-sm text-muted-foreground mt-1">
               Actual cost basis
             </div>
@@ -108,7 +109,7 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">${yourTotalPrice.toFixed(2)}</div>
+            <div className="text-xl font-bold">{formatCurrency(yourTotalPrice)}</div>
             <div className="text-sm text-muted-foreground mt-1">
               {estimate.estimate_number}
             </div>
@@ -122,7 +123,7 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">${vendorQuote.toFixed(2)}</div>
+            <div className="text-xl font-bold">{formatCurrency(vendorQuote)}</div>
             <div className="text-sm text-muted-foreground mt-1">
               {quote.quotedBy}
             </div>
@@ -158,7 +159,7 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">${minimumAcceptableQuote.toFixed(2)}</div>
+            <div className="text-xl font-bold">{formatCurrency(minimumAcceptableQuote)}</div>
             <div className="text-sm text-muted-foreground mt-1">
               {estimate.targetMarginPercent || 20}% target margin
             </div>

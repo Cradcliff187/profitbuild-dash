@@ -8,6 +8,7 @@ import { Expense, ProjectExpenseSummary, EXPENSE_CATEGORY_DISPLAY } from '@/type
 import { Estimate } from '@/types/estimate';
 import { VarianceBadge } from '@/components/ui/variance-badge';
 import { Database } from '@/integrations/supabase/types';
+import { formatCurrency } from '@/lib/utils';
 
 interface ProjectExpenseTrackerProps {
   expenses: Expense[];
@@ -174,23 +175,23 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-center">
             <div>
               <div className="text-sm text-muted-foreground mb-1">Original Contract</div>
-              <div className="text-xl font-semibold">${totalEstimated.toFixed(2)}</div>
+              <div className="text-xl font-semibold">{formatCurrency(totalEstimated)}</div>
             </div>
             <div>
               <div className="text-sm text-muted-foreground mb-1">Estimated Costs</div>
-              <div className="text-xl font-semibold text-orange-600">${totalEstimatedCosts.toFixed(2)}</div>
+              <div className="text-xl font-semibold text-orange-600">{formatCurrency(totalEstimatedCosts)}</div>
             </div>
             <div>
               <div className="text-sm text-muted-foreground mb-1">Approved Changes</div>
-              <div className="text-xl font-semibold text-blue-600">+${totalApprovedChanges.toFixed(2)}</div>
+              <div className="text-xl font-semibold text-blue-600">+{formatCurrency(totalApprovedChanges)}</div>
             </div>
             <div>
               <div className="text-sm text-muted-foreground mb-1">Revised Contract</div>
-              <div className="text-2xl font-bold">${totalRevisedContract.toFixed(2)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(totalRevisedContract)}</div>
             </div>
             <div>
               <div className="text-sm text-muted-foreground mb-1">Total Actual</div>
-              <div className="text-xl font-semibold">${totalActual.toFixed(2)}</div>
+              <div className="text-xl font-semibold">{formatCurrency(totalActual)}</div>
             </div>
           </div>
         </CardContent>
@@ -235,7 +236,7 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
               {totalTrueMargin.toFixed(1)}%
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              ${(totalRevisedContract - totalActual).toFixed(2)} profit
+              {formatCurrency(totalRevisedContract - totalActual)} profit
             </div>
           </CardContent>
         </Card>
@@ -261,7 +262,7 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Cost Overrun Alert:</strong> Actual expenses are ${totalCostOverrun.toFixed(2)} over estimated costs 
+            <strong>Cost Overrun Alert:</strong> Actual expenses are {formatCurrency(totalCostOverrun)} over estimated costs 
             ({totalEstimatedCosts > 0 ? ((totalCostOverrun / totalEstimatedCosts) * 100).toFixed(1) : 0}% overrun). 
             This is impacting your profit margins. Consider cost control measures.
           </AlertDescription>
@@ -273,7 +274,7 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Projects are currently ${totalVariance.toFixed(2)} over the revised contract total 
+            Projects are currently {formatCurrency(totalVariance)} over the revised contract total 
             (including approved change orders). Review project expenses and consider scope adjustments.
           </AlertDescription>
         </Alert>
@@ -288,7 +289,7 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">{summary.project_name}</CardTitle>
                 <Badge variant={summary.variance > 0 ? 'destructive' : summary.variance < 0 ? 'default' : 'secondary'}>
-                  {summary.variance >= 0 ? '+' : ''}${summary.variance.toFixed(2)}
+                  {summary.variance >= 0 ? '+' : ''}{formatCurrency(summary.variance)}
                 </Badge>
               </div>
             </CardHeader>
@@ -299,15 +300,15 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div>
                     <span className="text-muted-foreground">Original:</span>
-                    <div className="font-semibold">${summary.estimate_total.toFixed(2)}</div>
+                    <div className="font-semibold">{formatCurrency(summary.estimate_total)}</div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Changes:</span>
-                    <div className="font-semibold text-blue-600">+${summary.approved_change_orders.toFixed(2)}</div>
+                    <div className="font-semibold text-blue-600">+{formatCurrency(summary.approved_change_orders)}</div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Revised:</span>
-                    <div className="font-bold">${summary.revised_contract_total.toFixed(2)}</div>
+                    <div className="font-bold">{formatCurrency(summary.revised_contract_total)}</div>
                   </div>
                 </div>
               </div>
@@ -324,8 +325,8 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
                     className={summary.percentage_spent > 100 ? 'bg-red-100' : ''}
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>Contract: ${summary.revised_contract_total.toFixed(2)}</span>
-                    <span>Actual: ${summary.actual_expenses.toFixed(2)}</span>
+                    <span>Contract: {formatCurrency(summary.revised_contract_total)}</span>
+                    <span>Actual: {formatCurrency(summary.actual_expenses)}</span>
                   </div>
                 </div>
 
@@ -340,8 +341,8 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
                     className={summary.cost_utilization_percentage > 100 ? 'bg-red-100' : summary.cost_utilization_percentage > 90 ? 'bg-yellow-100' : 'bg-green-100'}
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>Cost Budget: ${summary.estimated_total_cost.toFixed(2)}</span>
-                    <span>Actual: ${summary.actual_expenses.toFixed(2)}</span>
+                    <span>Cost Budget: {formatCurrency(summary.estimated_total_cost)}</span>
+                    <span>Actual: {formatCurrency(summary.actual_expenses)}</span>
                   </div>
                 </div>
               </div>
@@ -350,16 +351,16 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium mb-2">Expense Types</p>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span>Planned:</span>
-                      <span>${summary.planned_expenses.toFixed(2)}</span>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Planned:</span>
+                        <span>{formatCurrency(summary.planned_expenses)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Unplanned:</span>
+                        <span className="text-orange-600">{formatCurrency(summary.unplanned_expenses)}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Unplanned:</span>
-                      <span className="text-orange-600">${summary.unplanned_expenses.toFixed(2)}</span>
-                    </div>
-                  </div>
                 </div>
 
                 <div>
@@ -371,16 +372,16 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
                        .map(([category, data], catIndex) => (
                          <div key={`top-${category}-${catIndex}`} className="flex justify-between items-center">
                           <span>{EXPENSE_CATEGORY_DISPLAY[category as keyof typeof EXPENSE_CATEGORY_DISPLAY]}:</span>
-                          <div className="text-right">
-                            <span className={data.cost_overrun > 0 ? 'text-red-600' : data.cost_overrun < 0 ? 'text-green-600' : ''}>
-                              ${data.actual.toFixed(2)}
-                            </span>
-                            {data.cost_overrun !== 0 && (
-                              <div className="text-xs text-muted-foreground">
-                                {data.cost_overrun > 0 ? '+' : ''}${data.cost_overrun.toFixed(2)} vs cost
-                              </div>
-                            )}
-                          </div>
+                           <div className="text-right">
+                             <span className={data.cost_overrun > 0 ? 'text-red-600' : data.cost_overrun < 0 ? 'text-green-600' : ''}>
+                               {formatCurrency(data.actual)}
+                             </span>
+                             {data.cost_overrun !== 0 && (
+                               <div className="text-xs text-muted-foreground">
+                                 {data.cost_overrun > 0 ? '+' : ''}{formatCurrency(data.cost_overrun)} vs cost
+                               </div>
+                             )}
+                           </div>
                         </div>
                       ))}
                   </div>
@@ -396,7 +397,7 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
                        <div key={`breakdown-${category}-${catIndex}`} className="text-xs">
                         <div className="font-medium">{EXPENSE_CATEGORY_DISPLAY[category as keyof typeof EXPENSE_CATEGORY_DISPLAY]}</div>
                         <div className={getVarianceColor(data.cost_overrun)}>
-                          {data.cost_overrun >= 0 ? '+' : ''}${data.cost_overrun.toFixed(2)}
+                          {data.cost_overrun >= 0 ? '+' : ''}{formatCurrency(data.cost_overrun)}
                         </div>
                         <div className="text-muted-foreground">
                           {data.estimated_cost > 0 ? ((data.cost_overrun / data.estimated_cost) * 100).toFixed(0) : '0'}%
@@ -411,11 +412,11 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
                   <div className="p-2 bg-muted/30 rounded text-xs">
                     <div className="flex justify-between">
                       <span>Contract Value:</span>
-                      <span>${summary.revised_contract_total.toFixed(2)}</span>
+                      <span>{formatCurrency(summary.revised_contract_total)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Actual Costs:</span>
-                      <span>${summary.actual_expenses.toFixed(2)}</span>
+                      <span>{formatCurrency(summary.actual_expenses)}</span>
                     </div>
                     <div className="flex justify-between font-semibold border-t pt-1 mt-1">
                       <span>True Margin:</span>
