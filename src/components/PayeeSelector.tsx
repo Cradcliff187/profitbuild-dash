@@ -20,6 +20,7 @@ interface PayeeSelectorProps {
   required?: boolean;
   error?: string;
   label?: string;
+  showLabel?: boolean;
 }
 
 export const PayeeSelector = ({ 
@@ -29,7 +30,8 @@ export const PayeeSelector = ({
   placeholder = "Select a payee...",
   required = false,
   error = "",
-  label = "Payee"
+  label = "Payee",
+  showLabel = true
 }: PayeeSelectorProps) => {
   const [open, setOpen] = useState(false);
   const [showPayeeForm, setShowPayeeForm] = useState(false);
@@ -133,9 +135,11 @@ export const PayeeSelector = ({
 
   return (
     <div className="space-y-2">
-      <Label className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
-        {label}
-      </Label>
+      {showLabel && (
+        <Label className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
+          {label}
+        </Label>
+      )}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button

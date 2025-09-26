@@ -394,17 +394,18 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Payee</FormLabel>
-                    <FormControl>
-                      <PayeeSelector
-                        value={field.value || ''}
-                        onValueChange={(payeeId, payeeName, payee) => {
-                          field.onChange(payeeId);
-                          setSelectedPayee(payee || null);
-                        }}
-                        placeholder="Select payee"
-                        error={form.formState.errors.payee_id?.message}
-                      />
-                    </FormControl>
+                     <FormControl>
+                       <PayeeSelector
+                         value={field.value || ''}
+                         onValueChange={(payeeId, payeeName, payee) => {
+                           field.onChange(payeeId);
+                           setSelectedPayee(payee || null);
+                         }}
+                         placeholder="Select payee"
+                         error={form.formState.errors.payee_id?.message}
+                         showLabel={false}
+                       />
+                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

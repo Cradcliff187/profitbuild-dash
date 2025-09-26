@@ -215,13 +215,14 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
             </div>
             
             <div className="space-y-2">
-              <Label>Client *</Label>
-              <ClientSelector
-                value={selectedClientId}
-                onValueChange={handleClientChange}
-                placeholder="Select a client"
-                required
-              />
+               <Label>Client *</Label>
+               <ClientSelector
+                 value={selectedClientId}
+                 onValueChange={handleClientChange}
+                 placeholder="Select a client"
+                 required
+                 showLabel={false}
+               />
             </div>
           </div>
 
