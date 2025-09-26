@@ -6,7 +6,7 @@ import { AlertCircle, Download } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { useVarianceCalculation } from "@/hooks/useVarianceCalculation";
 
 interface VarianceAnalysisProps {
@@ -16,14 +16,6 @@ interface VarianceAnalysisProps {
 export function VarianceAnalysis({ projectId }: VarianceAnalysisProps) {
   const { variances, loading, error, totals } = useVarianceCalculation(projectId);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const getVarianceColor = (variance: number) => {
     if (Math.abs(variance) < 1) return '';
@@ -185,7 +177,7 @@ export function VarianceAnalysis({ projectId }: VarianceAnalysisProps) {
                         {formatCurrency(variance.actual)}
                       </TableCell>
                       <TableCell className={cn("text-right font-medium", getVarianceColor(variance.variance))}>
-                        {variance.variance >= 0 ? '+' : ''}{formatCurrency(variance.variance)}
+                        {formatCurrency(variance.variance, { showCents: false })}
                       </TableCell>
                       <TableCell className={cn("text-right font-medium", getVarianceColor(variance.variance))}>
                         {variance.variancePercentage >= 0 ? '+' : ''}{variance.variancePercentage.toFixed(1)}%
@@ -204,7 +196,7 @@ export function VarianceAnalysis({ projectId }: VarianceAnalysisProps) {
                       {formatCurrency(totals.actual)}
                     </TableCell>
                     <TableCell className={cn("text-right font-medium", getVarianceColor(totals.variance))}>
-                      {totals.variance >= 0 ? '+' : ''}{formatCurrency(totals.variance)}
+                      {formatCurrency(totals.variance, { showCents: false })}
                     </TableCell>
                     <TableCell className={cn("text-right font-medium", getVarianceColor(totals.variance))}>
                       {totals.estimated > 0 ? 
@@ -232,7 +224,7 @@ export function VarianceAnalysis({ projectId }: VarianceAnalysisProps) {
                             {variance.lineItems.length} items
                           </span>
                           <span className={cn("font-medium", getVarianceColor(variance.variance))}>
-                            {variance.variance >= 0 ? '+' : ''}{formatCurrency(variance.variance)}
+                            {formatCurrency(variance.variance, { showCents: false })}
                           </span>
                         </div>
                       </div>
@@ -272,9 +264,9 @@ export function VarianceAnalysis({ projectId }: VarianceAnalysisProps) {
                                   <TableCell className="text-right">
                                     {formatCurrency(item.actual)}
                                   </TableCell>
-                                  <TableCell className={cn("text-right", getVarianceColor(item.variance))}>
-                                    {item.variance >= 0 ? '+' : ''}{formatCurrency(item.variance)}
-                                  </TableCell>
+                                   <TableCell className={cn("text-right", getVarianceColor(item.variance))}>
+                                     {formatCurrency(item.variance, { showCents: false })}
+                                   </TableCell>
                                   <TableCell className={cn("text-right", getVarianceColor(item.variance))}>
                                     {item.variancePercentage >= 0 ? '+' : ''}{item.variancePercentage.toFixed(1)}%
                                   </TableCell>

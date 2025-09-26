@@ -214,9 +214,9 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
                           {estimatedAmount > 0 && (
                             <div className="text-xs">
                               <span className="text-muted-foreground">vs estimate: </span>
-                              <span className={variance > 0 ? 'text-red-600' : variance < 0 ? 'text-green-600' : ''}>
-                                {variance >= 0 ? '+' : ''}{formatCurrency(variance)}
-                              </span>
+                               <span className={variance > 0 ? 'text-red-600' : variance < 0 ? 'text-green-600' : ''}>
+                                 {formatCurrency(variance)}
+                               </span>
                             </div>
                           )}
                         </div>

@@ -270,9 +270,9 @@ export const ProjectsList = ({
                     {project.current_margin !== null && project.current_margin !== undefined && (
                       <div>
                         <p className="text-label text-muted-foreground">Profit</p>
-                        <p className={`font-mono font-medium ${project.current_margin >= 0 ? 'text-success' : 'text-destructive'}`}>
-                          {project.current_margin >= 0 ? '+' : ''}{formatCurrency(project.current_margin)}
-                        </p>
+                         <p className={`font-mono font-medium ${project.current_margin >= 0 ? 'text-success' : 'text-destructive'}`}>
+                           {formatCurrency(project.current_margin)}
+                         </p>
                       </div>
                     )}
                   </div>

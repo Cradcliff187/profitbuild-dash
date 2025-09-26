@@ -264,8 +264,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     const totalProfit = profitPerUnit * quantity;
     const marginPercent = estimatePrice > 0 ? (profitPerUnit / estimatePrice) * 100 : 0;
     
-    const sign = totalProfit >= 0 ? "+" : "";
-    return `${sign}${formatCurrency(totalProfit)} (${marginPercent.toFixed(1)}%)`;
+    return `${formatCurrency(totalProfit)} (${marginPercent.toFixed(1)}%)`;
   };
 
   const determineQuoteIncludes = (lineItems: QuoteLineItem[]) => {

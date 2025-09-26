@@ -66,8 +66,8 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
   };
 
   const formatDifference = (difference: number, percentage: number) => {
-    const sign = difference >= 0 ? "+" : "";
-    return `${sign}${formatCurrency(difference)} (${sign}${percentage.toFixed(1)}%)`;
+    const percentageSign = percentage >= 0 ? "+" : "";
+    return `${formatCurrency(difference)} (${percentageSign}${percentage.toFixed(1)}%)`;
   };
 
   return (

@@ -288,9 +288,9 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">{summary.project_name}</CardTitle>
-                <Badge variant={summary.variance > 0 ? 'destructive' : summary.variance < 0 ? 'default' : 'secondary'}>
-                  {summary.variance >= 0 ? '+' : ''}{formatCurrency(summary.variance)}
-                </Badge>
+                 <Badge variant={summary.variance > 0 ? 'destructive' : summary.variance < 0 ? 'default' : 'secondary'}>
+                   {formatCurrency(summary.variance)}
+                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -377,9 +377,9 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
                                {formatCurrency(data.actual)}
                              </span>
                              {data.cost_overrun !== 0 && (
-                               <div className="text-xs text-muted-foreground">
-                                 {data.cost_overrun > 0 ? '+' : ''}{formatCurrency(data.cost_overrun)} vs cost
-                               </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {formatCurrency(data.cost_overrun)} vs cost
+                                </div>
                              )}
                            </div>
                         </div>
@@ -396,9 +396,9 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
                      {Object.entries(summary.category_breakdown).map(([category, data], catIndex) => (
                        <div key={`breakdown-${category}-${catIndex}`} className="text-xs">
                         <div className="font-medium">{EXPENSE_CATEGORY_DISPLAY[category as keyof typeof EXPENSE_CATEGORY_DISPLAY]}</div>
-                        <div className={getVarianceColor(data.cost_overrun)}>
-                          {data.cost_overrun >= 0 ? '+' : ''}{formatCurrency(data.cost_overrun)}
-                        </div>
+                         <div className={getVarianceColor(data.cost_overrun)}>
+                           {formatCurrency(data.cost_overrun)}
+                         </div>
                         <div className="text-muted-foreground">
                           {data.estimated_cost > 0 ? ((data.cost_overrun / data.estimated_cost) * 100).toFixed(0) : '0'}%
                         </div>
