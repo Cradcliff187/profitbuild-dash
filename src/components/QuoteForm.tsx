@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { ProjectSelector } from "./ProjectSelector";
 import { PayeeSelector } from "./PayeeSelector";
 import { PdfUpload } from "./PdfUpload";
@@ -41,7 +41,7 @@ const validateQuoteAmount = (costPerUnit: number, quantity: number, estimateLine
   if (quoteAmount >= clientPrice) {
     return {
       isValid: false,
-      error: `Vendor cost ($${quoteAmount.toFixed(2)}) equals/exceeds client price ($${clientPrice.toFixed(2)}). Quotes should be vendor COSTS, not client prices.`,
+      error: `Vendor cost (${formatCurrency(quoteAmount)}) equals/exceeds client price (${formatCurrency(clientPrice)}). Quotes should be vendor COSTS, not client prices.`,
       severity: 'critical'
     };
   }
@@ -50,7 +50,7 @@ const validateQuoteAmount = (costPerUnit: number, quantity: number, estimateLine
   if (quoteAmount > estimatedCost * 1.2) {
     return {
       isValid: false,
-      error: `Vendor cost ($${quoteAmount.toFixed(2)}) is 20% higher than estimated cost ($${estimatedCost.toFixed(2)}). Please verify this is the vendor cost, not client price.`,
+      error: `Vendor cost (${formatCurrency(quoteAmount)}) is 20% higher than estimated cost (${formatCurrency(estimatedCost)}). Please verify this is the vendor cost, not client price.`,
       severity: 'warning'
     };
   }
@@ -265,7 +265,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     const marginPercent = estimatePrice > 0 ? (profitPerUnit / estimatePrice) * 100 : 0;
     
     const sign = totalProfit >= 0 ? "+" : "";
-    return `${sign}$${totalProfit.toFixed(2)} (${marginPercent.toFixed(1)}%)`;
+    return `${sign}${formatCurrency(totalProfit)} (${marginPercent.toFixed(1)}%)`;
   };
 
   const determineQuoteIncludes = (lineItems: QuoteLineItem[]) => {
@@ -445,7 +445,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="font-medium">${estimate.total_amount.toFixed(2)}</div>
+                                <div className="font-medium">{formatCurrency(estimate.total_amount)}</div>
                                 <div className="text-sm text-muted-foreground">
                                   {estimate.lineItems.length} line item{estimate.lineItems.length !== 1 ? 's' : ''}
                                 </div>
@@ -538,12 +538,12 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                               <Badge variant="outline" className="text-xs">
                                 {CATEGORY_DISPLAY_MAP[item.category]}
                               </Badge>
-                              {item.quantity} {item.unit || 'units'} × ${item.pricePerUnit.toFixed(2)}
+                              {item.quantity} {item.unit || 'units'} × {formatCurrency(item.pricePerUnit)}
                             </span>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-medium">${item.total.toFixed(2)}</div>
+                          <div className="font-medium">{formatCurrency(item.total)}</div>
                         </div>
                       </div>
                     </div>
@@ -677,7 +677,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
             <CardTitle className="text-sm text-muted-foreground">Your Estimate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${estimateFinancials.totalAmount.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(estimateFinancials.totalAmount)}</div>
             <div className="text-sm text-muted-foreground">Original estimated price</div>
           </CardContent>
         </Card>
@@ -687,7 +687,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
             <CardTitle className="text-sm text-muted-foreground">Vendor Cost</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${quoteFinancials.totalCost.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(quoteFinancials.totalCost)}</div>
             <div className="text-sm text-muted-foreground">{selectedPayee?.payee_name || 'Total cost'}</div>
           </CardContent>
         </Card>
@@ -699,7 +699,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
           <CardContent>
             <div className={`text-2xl font-bold flex items-center gap-2 ${getProfitColor(totalProfit)}`}>
               {getProfitIcon(totalProfit)}
-              ${totalProfit.toFixed(2)}
+              {formatCurrency(totalProfit)}
             </div>
             <div className={`text-sm flex items-center gap-1 ${getProfitColor(totalProfit)}`}>
               {profitMargin.toFixed(1)}% margin • {profitStatus}
@@ -807,7 +807,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                           <td className="p-3 text-sm">
                             {estimateItem ? (
                               <span className={item.quantity !== estimateItem.quantity ? "text-amber-600" : "text-muted-foreground"}>
-                                {item.quantity - estimateItem.quantity > 0 ? '+' : ''}{(item.quantity - estimateItem.quantity).toFixed(2)}
+                                {(item.quantity - estimateItem.quantity) > 0 ? '+' : ''}{(item.quantity - estimateItem.quantity).toFixed(2)}
                               </span>
                             ) : '—'}
                           </td>
@@ -816,7 +816,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                         {/* Cost Per Unit Row - Now the main vendor input */}
                         <tr className="border-b hover:bg-muted/20 bg-blue-50/30">
                           <td className="p-3 font-medium text-sm">Vendor Cost per Unit</td>
-                          <td className="p-3 text-sm">${estimateItem?.costPerUnit.toFixed(2) || 'N/A'}</td>
+                          <td className="p-3 text-sm">{formatCurrency(estimateItem?.costPerUnit || 0) || 'N/A'}</td>
                            <td className="p-3">
                              <div className="space-y-2">
                                <Input
@@ -850,7 +850,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                             {estimateItem ? (
                               <span className={`flex items-center gap-1 font-medium ${getProfitColor(estimateItem.pricePerUnit - item.costPerUnit)}`}>
                                 {getProfitIcon(estimateItem.pricePerUnit - item.costPerUnit)}
-                                ${(estimateItem.pricePerUnit - item.costPerUnit).toFixed(2)} per unit
+                                {formatCurrency(estimateItem.pricePerUnit - item.costPerUnit)} per unit
                               </span>
                             ) : '—'}
                           </td>
@@ -861,7 +861,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                           <tr className="border-b hover:bg-muted/20">
                             <td className="p-3 font-medium text-sm">Markup</td>
                             <td className="p-3 text-sm">
-                              {estimateItem.markupPercent !== null ? `${estimateItem.markupPercent}%` : `$${(estimateItem.markupAmount || 0).toFixed(2)}`}
+                              {estimateItem.markupPercent !== null ? `${estimateItem.markupPercent}%` : formatCurrency(estimateItem.markupAmount || 0)}
                             </td>
                             <td className="p-3 text-sm text-muted-foreground">Not disclosed</td>
                             <td className="p-3 text-sm text-muted-foreground">—</td>
@@ -871,10 +871,10 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                         {/* Price Per Unit Row - Now locked to estimate */}
                         <tr className="border-b hover:bg-muted/20">
                           <td className="p-3 font-medium text-sm">Price per Unit</td>
-                          <td className="p-3 text-sm">${estimateItem?.pricePerUnit.toFixed(2) || 'N/A'}</td>
+                          <td className="p-3 text-sm">{formatCurrency(estimateItem?.pricePerUnit || 0) || 'N/A'}</td>
                           <td className="p-3">
                             <div className="flex items-center h-8 px-3 py-2 bg-muted rounded-md text-sm font-medium border">
-                              ${item.pricePerUnit.toFixed(2)} (locked)
+                              {formatCurrency(item.pricePerUnit)} (locked)
                             </div>
                           </td>
                           <td className="p-3 text-sm text-muted-foreground">
@@ -885,10 +885,10 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                         {/* Total Row */}
                         <tr className="border-b bg-muted/10">
                           <td className="p-3 font-medium text-sm">Revenue</td>
-                          <td className="p-3 text-sm font-medium">${estimateItem?.total.toFixed(2) || 'N/A'}</td>
+                          <td className="p-3 text-sm font-medium">{formatCurrency(estimateItem?.total || 0) || 'N/A'}</td>
                           <td className="p-3">
                             <div className="flex items-center h-8 px-3 py-2 bg-muted rounded-md text-sm font-medium">
-                              ${item.total.toFixed(2)}
+                              {formatCurrency(item.total)}
                             </div>
                           </td>
                           <td className="p-3 text-sm">

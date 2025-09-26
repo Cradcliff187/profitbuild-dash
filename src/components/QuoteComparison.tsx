@@ -175,11 +175,11 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold">${(yourTotalPrice - vendorQuote).toFixed(2)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(yourTotalPrice - vendorQuote)}</div>
               <div className="text-sm text-muted-foreground">Margin Dollar Impact</div>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold">${(vendorQuote - yourTotalCost).toFixed(2)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(vendorQuote - yourTotalCost)}</div>
               <div className="text-sm text-muted-foreground">Profit Above Cost</div>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
@@ -210,15 +210,15 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
                   <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                     <div className="bg-muted/50 p-3 rounded-lg">
                       <div className="text-sm text-muted-foreground">Your Cost</div>
-                      <div className="font-semibold">${categoryData.estimatedCost.toFixed(2)}</div>
+                      <div className="font-semibold">{formatCurrency(categoryData.estimatedCost)}</div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-lg">
                       <div className="text-sm text-muted-foreground">Your Price</div>
-                      <div className="font-semibold">${categoryData.estimatedPrice.toFixed(2)}</div>
+                      <div className="font-semibold">{formatCurrency(categoryData.estimatedPrice)}</div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-lg">
                       <div className="text-sm text-muted-foreground">Vendor Quote</div>
-                      <div className="font-semibold">${categoryData.quotedPrice.toFixed(2)}</div>
+                      <div className="font-semibold">{formatCurrency(categoryData.quotedPrice)}</div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-lg">
                       <div className="text-sm text-muted-foreground">Cost Variance</div>
@@ -270,10 +270,10 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
                   <div className="flex-1">
                     <div className="font-medium">{item.description}</div>
                     <div className="text-sm text-muted-foreground">
-                      {item.category} • {item.quantity} × ${item.pricePerUnit.toFixed(2)}
+                      {item.category} • {item.quantity} × {formatCurrency(item.pricePerUnit)}
                     </div>
                   </div>
-                  <div className="font-semibold">${item.total.toFixed(2)}</div>
+                  <div className="font-semibold">{formatCurrency(item.total)}</div>
                 </div>
               ))}
             </div>
@@ -292,10 +292,10 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
                   <div className="flex-1">
                     <div className="font-medium">{item.description}</div>
                     <div className="text-sm text-muted-foreground">
-                      {item.category} • {item.quantity} × ${item.pricePerUnit.toFixed(2)}
+                      {item.category} • {item.quantity} × {formatCurrency(item.costPerUnit)}
                     </div>
                   </div>
-                  <div className="font-semibold">${item.total.toFixed(2)}</div>
+                  <div className="font-semibold">{formatCurrency(item.totalCost)}</div>
                 </div>
               ))}
             </div>

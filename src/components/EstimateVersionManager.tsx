@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { History, Plus } from "lucide-react";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 import type { Estimate } from "@/types/estimate";
 
 interface EstimateVersionManagerProps {
@@ -214,7 +215,7 @@ export const EstimateVersionManager = ({ estimate, onVersionCreated }: EstimateV
                       </div>
                       <div className="text-sm text-muted-foreground space-y-1">
                         <p>Created: {format(version.date_created, 'MMM dd, yyyy')}</p>
-                        <p>Total: ${version.total_amount.toFixed(2)}</p>
+                        <p>Total: {formatCurrency(version.total_amount)}</p>
                         {version.valid_until && (
                           <p>Valid until: {format(version.valid_until, 'MMM dd, yyyy')}</p>
                         )}

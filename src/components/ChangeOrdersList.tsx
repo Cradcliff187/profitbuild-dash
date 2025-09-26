@@ -10,6 +10,7 @@ import { ChangeOrderStatusBadge, ChangeOrderStatus } from './ChangeOrderStatusBa
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
 import type { Database } from '@/integrations/supabase/types';
 import { usePagination } from '@/hooks/usePagination';
 import { CompletePagination } from '@/components/ui/complete-pagination';
@@ -272,13 +273,13 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                       </TableCell>
                       <TableCell>
                         {changeOrder.client_amount ? 
-                          `$${changeOrder.client_amount.toFixed(2)}` : 
+                          formatCurrency(changeOrder.client_amount) : 
                           <span className="text-muted-foreground">-</span>
                         }
                       </TableCell>
                       <TableCell>
                         {changeOrder.cost_impact ? 
-                          `$${changeOrder.cost_impact.toFixed(2)}` : 
+                          formatCurrency(changeOrder.cost_impact) : 
                           <span className="text-muted-foreground">-</span>
                         }
                       </TableCell>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 // Base field wrapper component
 interface BaseFieldProps {
@@ -145,7 +146,7 @@ const CalculatedField = React.forwardRef<HTMLDivElement, CalculatedFieldProps>(
         >
           <Calculator className="h-3 w-3 flex-shrink-0" />
           <span className="truncate">
-            {prefix}{typeof value === 'number' ? value.toFixed(2) : value}{suffix}
+            {prefix}{typeof value === 'number' ? formatCurrency(value) : value}{suffix}
           </span>
           <Badge variant="secondary" className="text-xs ml-auto flex-shrink-0">
             Calculated

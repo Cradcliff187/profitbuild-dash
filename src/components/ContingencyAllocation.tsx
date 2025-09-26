@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { formatCurrency } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ContingencyAllocationProps {
@@ -75,7 +76,7 @@ export const ContingencyAllocation = ({
     if (amount > contingencyRemaining) {
       toast({
         title: "Insufficient Contingency",
-        description: `Amount cannot exceed remaining contingency of $${contingencyRemaining.toFixed(2)}.`,
+        description: `Amount cannot exceed remaining contingency of ${formatCurrency(contingencyRemaining)}.`,
         variant: "destructive"
       });
       return;
@@ -128,7 +129,7 @@ export const ContingencyAllocation = ({
 
       toast({
         title: "Contingency Allocated",
-        description: `$${amount.toFixed(2)} has been allocated from contingency.`
+        description: `${formatCurrency(amount)} has been allocated from contingency.`
       });
 
       onAllocationComplete?.();
@@ -150,7 +151,7 @@ export const ContingencyAllocation = ({
       <CardHeader>
         <CardTitle>Allocate Contingency</CardTitle>
         <div className="text-sm text-muted-foreground">
-          Available Contingency: <span className="font-semibold">${contingencyRemaining.toFixed(2)}</span>
+          Available Contingency: <span className="font-semibold">{formatCurrency(contingencyRemaining)}</span>
         </div>
       </CardHeader>
       <CardContent>
@@ -173,7 +174,7 @@ export const ContingencyAllocation = ({
             {numericAmount > 0 && (
               <div className="text-sm">
                 <span className={`font-medium ${remainingAfterAllocation >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  Remaining after allocation: ${remainingAfterAllocation.toFixed(2)}
+                  Remaining after allocation: {formatCurrency(remainingAfterAllocation)}
                 </span>
               </div>
             )}

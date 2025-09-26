@@ -14,7 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { Estimate } from "@/types/estimate";
 
 interface ProjectSelectorProps {
@@ -106,7 +106,7 @@ export const ProjectSelector = ({
                   <div className="flex flex-col">
                     <span className="font-medium">{estimate.project_name}</span>
                     <span className="text-sm text-muted-foreground">
-                      {estimate.estimate_number} • ${estimate.total_amount.toFixed(2)}
+                      {estimate.estimate_number} • {formatCurrency(estimate.total_amount)}
                     </span>
                   </div>
                 </CommandItem>

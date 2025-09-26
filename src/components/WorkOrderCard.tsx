@@ -17,6 +17,7 @@ import { Project, ProjectStatus } from "@/types/project";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { formatCurrency } from '@/lib/utils';
 
 interface WorkOrderCardProps {
   workOrder: Project & {
@@ -162,7 +163,7 @@ const WorkOrderCard = ({ workOrder, onUpdate }: WorkOrderCardProps) => {
           </div>
           <div>
             <p className="text-muted-foreground">Total Expenses</p>
-            <p className="font-medium">${workOrder.total_expenses.toFixed(2)}</p>
+            <p className="font-medium">{formatCurrency(workOrder.total_expenses)}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Start Date</p>

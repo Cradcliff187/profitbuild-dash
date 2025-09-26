@@ -10,6 +10,7 @@ import { CSVRow, ColumnMapping, Expense } from '@/types/expense';
 import { Estimate } from '@/types/estimate';
 import { ProjectSelector } from './ProjectSelector';
 import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/utils';
 
 interface ExpenseUploadProps {
   estimates: Estimate[];
@@ -277,7 +278,7 @@ export const ExpenseUpload: React.FC<ExpenseUploadProps> = ({ estimates, onExpen
                   {csvData.slice(0, 10).map((row, index) => (
                     <TableRow key={index}>
                       <TableCell>{mapping.description ? row[mapping.description] : '-'}</TableCell>
-                      <TableCell>${mapping.amount ? parseFloat(row[mapping.amount].replace(/[$,]/g, '') || '0').toFixed(2) : '0.00'}</TableCell>
+                      <TableCell>{mapping.amount ? formatCurrency(parseFloat(row[mapping.amount].replace(/[$,]/g, '') || '0')) : formatCurrency(0)}</TableCell>
                       <TableCell>{mapping.expense_date ? new Date(row[mapping.expense_date]).toLocaleDateString() : '-'}</TableCell>
                       <TableCell>Auto-detected</TableCell>
                       <TableCell>{mapping.payee_id ? row[mapping.payee_id] : '-'}</TableCell>

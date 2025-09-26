@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
+import { formatCurrency } from '@/lib/utils';
 
 interface LineItemDetailModalProps {
   lineItem: LineItem | null;
@@ -248,13 +249,13 @@ export const LineItemDetailModal: React.FC<LineItemDetailModalProps> = ({
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Total Cost</div>
               <div className="text-lg font-semibold">
-                ${formData.totalCost.toFixed(2)}
+                {formatCurrency(formData.totalCost)}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Total Markup</div>
               <div className="text-lg font-semibold">
-                ${formData.totalMarkup.toFixed(2)}
+                {formatCurrency(formData.totalMarkup)}
               </div>
             </div>
             <div className="text-center">
@@ -269,7 +270,7 @@ export const LineItemDetailModal: React.FC<LineItemDetailModalProps> = ({
           <div className="text-right">
             <div className="text-sm text-muted-foreground">Line Item Total</div>
             <div className="text-2xl font-bold text-primary">
-              ${formData.total.toFixed(2)}
+              {formatCurrency(formData.total)}
             </div>
           </div>
         </div>

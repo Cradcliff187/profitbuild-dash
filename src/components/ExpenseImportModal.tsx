@@ -17,6 +17,7 @@ import {
   RevenueImportData
 } from '@/utils/enhancedTransactionImporter';
 import { ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from '@/types/expense';
+import { formatCurrency } from '@/lib/utils';
 
 interface ExpenseImportModalProps {
   open: boolean;
@@ -302,7 +303,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                         {row['Transaction type']}
                       </Badge>
                     </TableCell>
-                    <TableCell>${Math.abs(parseFloat(row.Amount || '0')).toFixed(2)}</TableCell>
+                    <TableCell>{formatCurrency(Math.abs(parseFloat(row.Amount || '0')))}</TableCell>
                     <TableCell>{row.Name}</TableCell>
                     <TableCell>{row['Project/WO #'] || <span className="text-gray-400">Unassociated</span>}</TableCell>
                     <TableCell className="text-xs">{row['Account Full Name']}</TableCell>

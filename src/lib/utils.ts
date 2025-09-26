@@ -9,7 +9,7 @@ export function formatCurrency(
   amount: number | null | undefined, 
   options?: { showCents?: boolean }
 ): string {
-  if (amount === null || amount === undefined) {
+  if (amount === null || amount === undefined || isNaN(amount)) {
     return '$0.00';
   }
   

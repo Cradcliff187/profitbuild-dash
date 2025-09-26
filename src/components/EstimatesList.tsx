@@ -14,6 +14,7 @@ import { BudgetComparisonBadge, BudgetComparisonStatus } from "@/components/Budg
 import { VarianceBadge } from "@/components/ui/variance-badge";
 import { EstimateVersionManager } from "./EstimateVersionManager";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { EstimatesTableView } from "./EstimatesTableView";
 import { supabase } from "@/integrations/supabase/client";
@@ -123,7 +124,7 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
       const contingencyAmount = estimate.contingency_amount || 
         (estimate.total_amount * (estimate.contingency_percent / 100)) / (1 + (estimate.contingency_percent / 100));
       
-      return `Includes ${estimate.contingency_percent}% contingency: $${contingencyAmount.toFixed(2)}`;
+      return `Includes ${estimate.contingency_percent}% contingency: ${formatCurrency(contingencyAmount)}`;
     };
 
     // Create a new version and open it for editing with copied line items

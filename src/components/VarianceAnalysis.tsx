@@ -35,20 +35,20 @@ export function VarianceAnalysis({ projectId }: VarianceAnalysisProps) {
     const summaryHeaders = ['Category', 'Estimated', 'Quoted', 'Actual', 'Variance ($)', 'Variance (%)'];
     const summaryRows = variances.map(variance => [
       `"${CATEGORY_DISPLAY_MAP[variance.category]}"`,
-      variance.estimated.toFixed(2),
-      variance.quoted.toFixed(2),
-      variance.actual.toFixed(2),
-      variance.variance.toFixed(2),
+      Number(variance.estimated).toFixed(2),
+      Number(variance.quoted).toFixed(2),
+      Number(variance.actual).toFixed(2),
+      Number(variance.variance).toFixed(2),
       (variance.variancePercentage / 100).toFixed(4)
     ]);
 
     // Add totals row
     const totalsRow = [
       '"TOTAL"',
-      totals.estimated.toFixed(2),
-      totals.quoted.toFixed(2),
-      totals.actual.toFixed(2),
-      totals.variance.toFixed(2),
+      Number(totals.estimated).toFixed(2),
+      Number(totals.quoted).toFixed(2),
+      Number(totals.actual).toFixed(2),
+      Number(totals.variance).toFixed(2),
       (totals.estimated > 0 ? (totals.variance / totals.estimated).toFixed(4) : '0.0000')
     ];
 
@@ -58,10 +58,10 @@ export function VarianceAnalysis({ projectId }: VarianceAnalysisProps) {
       variance.lineItems.map(item => [
         `"${CATEGORY_DISPLAY_MAP[variance.category]}"`,
         `"${item.description}"`,
-        item.estimated.toFixed(2),
-        item.quoted.toFixed(2),
-        item.actual.toFixed(2),
-        item.variance.toFixed(2),
+        Number(item.estimated).toFixed(2),
+        Number(item.quoted).toFixed(2),
+        Number(item.actual).toFixed(2),
+        Number(item.variance).toFixed(2),
         (item.variancePercentage / 100).toFixed(4)
       ])
     );

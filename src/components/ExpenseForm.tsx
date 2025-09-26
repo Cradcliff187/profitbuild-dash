@@ -18,6 +18,7 @@ import { Project } from '@/types/project';
 import { Payee } from '@/types/payee';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 const expenseSchema = z.object({
@@ -470,7 +471,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                       <div className="space-y-1 leading-none">
                         <FormLabel>Use Contingency?</FormLabel>
                         <p className="text-xs text-muted-foreground">
-                          Available contingency: ${projectContingency.available.toFixed(2)}
+                          Available contingency: {formatCurrency(projectContingency.available)}
                         </p>
                       </div>
                     </FormItem>

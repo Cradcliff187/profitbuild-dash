@@ -27,6 +27,7 @@ import { QuotesTableView } from "./QuotesTableView";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { formatCurrency } from "@/lib/utils";
 
 interface QuotesListProps {
   quotes: Quote[];
@@ -461,14 +462,14 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
                   </div>
                   <div>
                     <div className="text-muted-foreground">Quote Total</div>
-                    <div className="font-bold text-lg">${quote.total.toFixed(2)}</div>
+                    <div className="font-bold text-lg">{formatCurrency(quote.total)}</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Estimate Cost</div>
                     <div className="font-medium">
                       {(() => {
                         const estimateCost = getEstimateLineItemCost(quote);
-                        return estimateCost !== null ? `$${estimateCost.toFixed(2)}` : 'N/A';
+                        return estimateCost !== null ? formatCurrency(estimateCost) : 'N/A';
                       })()}
                     </div>
                   </div>
@@ -477,7 +478,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
                     <div className="font-bold">
                       {(() => {
                         const quotedAmount = getQuotedAmountForEstimateMatch(quote);
-                        return quotedAmount !== null ? `$${quotedAmount.toFixed(2)}` : 'N/A';
+                        return quotedAmount !== null ? formatCurrency(quotedAmount) : 'N/A';
                       })()}
                     </div>
                   </div>
@@ -516,7 +517,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
                       >
                         {variance.status === 'over' && '+'}
                         {variance.status === 'under' && '-'}
-                        ${variance.amount.toFixed(2)} ({variance.percentage.toFixed(1)}%)
+                        {formatCurrency(variance.amount)} ({variance.percentage.toFixed(1)}%)
                       </Badge>
                     </div>
                     {variance.status === 'over' && (
