@@ -204,6 +204,7 @@ export const ProjectFormInline = ({ onSave, onCancel }: ProjectFormInlineProps) 
           </div>
           
           <div className="space-y-2">
+            <RequiredLabel>Client</RequiredLabel>
             <ClientSelector
               value={selectedClientId}
               onValueChange={handleClientChange}
@@ -211,7 +212,7 @@ export const ProjectFormInline = ({ onSave, onCancel }: ProjectFormInlineProps) 
               placeholder="Select a client"
               required={true}
               error={clientError}
-              showLabel={true}
+              showLabel={false}
             />
           </div>
         </div>
