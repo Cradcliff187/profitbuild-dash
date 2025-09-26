@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { LineItem } from '@/types/estimate';
+import { LineItem, LineItemCategory } from '@/types/estimate';
 import { Expense, ExpenseCategory } from '@/types/expense';
 
 export interface QuoteData {
@@ -32,7 +32,7 @@ export interface LineItemControlData {
   variance: number; // legacy: actualAmount - estimatedPrice
   variancePercent: number; // legacy percent
   // Quotes/Expenses
-  quoteStatus: 'none' | 'partial' | 'full' | 'over';
+  quoteStatus: 'none' | 'partial' | 'full' | 'over' | 'internal';
   quotes: QuoteData[];
   expenses: Expense[];
   estimateLineItemId?: string;
@@ -182,6 +182,13 @@ export function useLineItemControl(projectId: string): UseLineItemControlReturn 
   };
 }
 
+// Categories that are internal and should never have quotes
+const INTERNAL_CATEGORIES = [LineItemCategory.LABOR, LineItemCategory.MANAGEMENT];
+
+function isInternalCategory(category: string): boolean {
+  return INTERNAL_CATEGORIES.includes(category as LineItemCategory);
+}
+
 function processLineItemData(
   estimateLineItems: any[],
   quotes: any[],
@@ -272,24 +279,29 @@ function processLineItemData(
     const costVariance = quotedCost - estimatedCost;
     const costVariancePercent = estimatedCost > 0 ? (costVariance / estimatedCost) * 100 : 0;
 
-    // Quote status based on all quotes amounts for THIS line only
-    const allQuotesAmountForLine = relatedQuotes.reduce((sum: number, q: any) => {
-      const itemsForLine = (q.quote_line_items || []).filter((qli: any) => qli.estimate_line_item_id === lineItem.id);
-      const price = itemsForLine.reduce((s: number, li: any) => s + Number(li.total ?? (Number(li.rate ?? 0) * Number(li.quantity ?? 0))), 0);
-      return sum + price;
-    }, 0);
-
-    let quoteStatus: 'none' | 'partial' | 'full' | 'over' = 'none';
-    if (relatedQuotes.length === 0) {
-      quoteStatus = 'none';
-    } else if (allQuotesAmountForLine === 0) {
-      quoteStatus = 'partial';
-    } else if (allQuotesAmountForLine > estimatedPrice * 1.2) {
-      quoteStatus = 'over';
-    } else if (allQuotesAmountForLine < estimatedPrice * 0.8) {
-      quoteStatus = 'partial';
+    // Determine quote status based on category and quotes
+    let quoteStatus: 'none' | 'partial' | 'full' | 'over' | 'internal' = 'none';
+    
+    // Internal categories should never have quotes
+    if (isInternalCategory(lineItem.category)) {
+      quoteStatus = 'internal';
     } else {
-      quoteStatus = 'full';
+      // Quote status based on all quotes amounts for THIS line only
+      const allQuotesAmountForLine = relatedQuotes.reduce((sum: number, q: any) => {
+        const itemsForLine = (q.quote_line_items || []).filter((qli: any) => qli.estimate_line_item_id === lineItem.id);
+        const price = itemsForLine.reduce((s: number, li: any) => s + Number(li.total ?? (Number(li.rate ?? 0) * Number(li.quantity ?? 0))), 0);
+        return sum + price;
+      }, 0);
+
+      if (relatedQuotes.length === 0 || allQuotesAmountForLine === 0) {
+        quoteStatus = 'none';
+      } else if (allQuotesAmountForLine > estimatedPrice * 1.2) {
+        quoteStatus = 'over';
+      } else if (allQuotesAmountForLine < estimatedPrice * 0.8) {
+        quoteStatus = 'partial';
+      } else {
+        quoteStatus = 'full';
+      }
     }
 
     return {

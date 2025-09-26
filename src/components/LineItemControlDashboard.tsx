@@ -34,7 +34,8 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
       none: { variant: 'destructive' as const, label: 'No Quotes' },
       partial: { variant: 'secondary' as const, label: 'Partial' },
       full: { variant: 'default' as const, label: 'Quoted' },
-      over: { variant: 'outline' as const, label: 'Over-Quoted' }
+      over: { variant: 'outline' as const, label: 'Over-Quoted' },
+      internal: { variant: 'secondary' as const, label: 'Internal' }
     };
     
     const config = variants[status];
@@ -240,8 +241,14 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
           <TooltipContent>
             <div>
               <p><strong>Quote Status:</strong> {item.quoteStatus}</p>
-              <p>{item.quotes.length} quotes received for this line item</p>
-              <p>Quoted price: {formatCurrency(item.quotedPrice)}</p>
+              {item.quoteStatus === 'internal' ? (
+                <p>Internal work - no external quotes needed</p>
+              ) : (
+                <>
+                  <p>{item.quotes.length} quotes received for this line item</p>
+                  <p>Quoted price: {formatCurrency(item.quotedPrice)}</p>
+                </>
+              )}
             </div>
           </TooltipContent>
         </Tooltip>
