@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ClientFormProps {
   client?: Client | null;
-  onSave: () => void;
+  onSave: (createdClient?: Client) => void;
   onCancel: () => void;
 }
 
@@ -68,9 +68,11 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
           description: "Client updated successfully",
         });
       } else {
-        const { error } = await supabase
+        const { data: createdClient, error } = await supabase
           .from("clients")
-          .insert([formData as CreateClientRequest]);
+          .insert([formData as CreateClientRequest])
+          .select()
+          .single();
 
         if (error) throw error;
 
@@ -78,6 +80,9 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
           title: "Success",
           description: "Client created successfully",
         });
+
+        onSave(createdClient as Client);
+        return;
       }
 
       onSave();

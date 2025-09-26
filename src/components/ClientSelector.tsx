@@ -55,9 +55,18 @@ export const ClientSelector = ({
     client.company_name?.toLowerCase().includes(searchValue.toLowerCase())
   );
 
-  const handleClientCreated = () => {
+  const handleClientCreated = (createdClient?: Client) => {
     setShowClientForm(false);
-    refetch();
+    
+    // Add delay to ensure database transaction is committed
+    setTimeout(() => {
+      refetch();
+      
+      // Auto-select the newly created client
+      if (createdClient) {
+        onValueChange(createdClient.id, createdClient.client_name);
+      }
+    }, 150);
   };
 
   return (
