@@ -24,6 +24,7 @@ export interface UnitDefinition {
 export const CONSTRUCTION_UNITS: UnitDefinition[] = [
   // Count
   { code: 'EA', name: 'Each', category: UnitCategory.COUNT, symbol: 'ea' },
+  { code: 'SET', name: 'Set', category: UnitCategory.COUNT, symbol: 'set' },
   
   // Length
   { code: 'IN', name: 'Inch', category: UnitCategory.LENGTH, symbol: 'in' },
@@ -73,7 +74,11 @@ export const CONSTRUCTION_UNITS: UnitDefinition[] = [
 export const CATEGORY_UNIT_RECOMMENDATIONS: Record<string, string[]> = {
   'labor_internal': ['HR', 'DAY', 'WK'],
   'materials': ['SF', 'LF', 'EA', 'BAG', 'ROLL', 'BOX', 'PALLET', 'SHEET', 'CY', 'CF', 'GAL', 'LB', 'TON'],
-  'equipment': ['HR', 'DAY', 'WK', 'MO', 'EA']
+  'equipment': ['HR', 'DAY', 'WK', 'MO', 'EA'],
+  'subcontractors': ['HR', 'DAY', 'WK', 'SF', 'LF', 'EA'],
+  'permits': ['EA', 'SET'],
+  'management': ['HR', 'DAY', 'WK', 'MO'],
+  'other': ['EA', 'SF', 'LF', 'HR', 'CY']
 };
 
 // Utility function to format quantity with unit
@@ -133,7 +138,7 @@ export function validateUnitCompatibility(
     ['LB', 'TON', 'KG'], // Weight units
     ['HR', 'DAY', 'WK', 'MO'], // Time units
     ['PT', 'QT', 'GAL', 'L'], // Liquid units
-    ['BAG', 'ROLL', 'BOX', 'PALLET', 'SHEET', 'EA'] // Material/Count units
+    ['BAG', 'ROLL', 'BOX', 'PALLET', 'SHEET', 'EA', 'SET'] // Material/Count units
   ];
 
   // Check if both units are in the same compatible group
