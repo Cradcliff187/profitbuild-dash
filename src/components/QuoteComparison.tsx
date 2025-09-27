@@ -1,4 +1,4 @@
-import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Percent } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Percent, TriangleAlert } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { VarianceBadge } from "@/components/ui/variance-badge";
 import { calculateQuoteFinancials, compareQuoteToEstimate } from "@/utils/quoteFinancials";
 import { calculateEstimateFinancials } from "@/utils/estimateFinancials";
 import { formatCurrency } from '@/lib/utils';
+import { validateUnitCompatibility, formatQuantityWithUnit } from '@/utils/units';
 
 interface QuoteComparisonProps {
   quote: Quote;
@@ -68,6 +69,11 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
   const formatDifference = (difference: number, percentage: number) => {
     const percentageSign = percentage >= 0 ? "+" : "";
     return `${formatCurrency(difference)} (${percentageSign}${percentage.toFixed(1)}%)`;
+  };
+
+  // Helper function to find matching quote item by category
+  const findMatchingQuoteItem = (estimateItem: any) => {
+    return quote.lineItems.find(quoteItem => quoteItem.category === estimateItem.category);
   };
 
   return (
@@ -265,17 +271,33 @@ export const QuoteComparison = ({ quote, estimate, onBack }: QuoteComparisonProp
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {estimate.lineItems.map((item) => (
-                <div key={item.id} className="flex justify-between items-start p-3 bg-muted/30 rounded-lg">
-                  <div className="flex-1">
-                    <div className="font-medium">{item.description}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {item.category} • {item.quantity} × {formatCurrency(item.pricePerUnit)}
+              {estimate.lineItems.map((item) => {
+                const matchingQuoteItem = findMatchingQuoteItem(item);
+                const hasUnitConcern = item.unit && matchingQuoteItem; // Show warning if estimate has unit but quote can't specify units
+
+                return (
+                  <div key={item.id} className="flex justify-between items-start p-3 bg-muted/30 rounded-lg">
+                    <div className="flex-1">
+                      <div className="font-medium">{item.description}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {item.category} • {formatQuantityWithUnit(item.quantity, item.unit)} × {formatCurrency(item.pricePerUnit)}
+                      </div>
+                      {hasUnitConcern && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                            <TriangleAlert className="h-3 w-3 mr-1" />
+                            Quote units not specified
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            Estimate: {item.unit} | Quote: verify units match
+                          </span>
+                        </div>
+                      )}
                     </div>
+                    <div className="font-semibold">{formatCurrency(item.total)}</div>
                   </div>
-                  <div className="font-semibold">{formatCurrency(item.total)}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
