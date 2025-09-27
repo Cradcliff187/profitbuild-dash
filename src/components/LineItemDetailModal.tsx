@@ -61,7 +61,7 @@ export const LineItemDetailModal: React.FC<LineItemDetailModalProps> = ({
     // Special handling when category changes - auto-update unit
     if (field === 'category') {
       const recommendedUnits = getRecommendedUnitCodes(value);
-      if (recommendedUnits.length > 0) {
+      if (recommendedUnits.length > 0 && !formData.unit) {
         updatedItem.unit = recommendedUnits[0];
       }
     }

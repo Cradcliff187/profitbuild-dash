@@ -246,6 +246,7 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                 <TableHead className="w-[100px] p-compact text-label font-medium">Category</TableHead>
                 <TableHead className="min-w-[180px] p-compact text-label font-medium">Description</TableHead>
                 <TableHead className="w-[60px] p-compact text-label font-medium text-right">Qty</TableHead>
+                <TableHead className="w-[60px] p-compact text-label font-medium text-right">Unit</TableHead>
                 <TableHead className="w-[80px] p-compact text-label font-medium text-right">Cost</TableHead>
                 <TableHead className="w-[60px] p-compact text-label font-medium text-right">Markup%</TableHead>
                 <TableHead className="w-[80px] p-compact text-label font-medium text-right">Markup</TableHead>
@@ -298,6 +299,25 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                         </div>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell className="p-compact">
+                    <Select 
+                      value={lineItem.unit || ''} 
+                      onValueChange={(value) => onUpdateLineItem(lineItem.id, 'unit', value)}
+                    >
+                      <SelectTrigger className="h-button-compact text-xs">
+                        <SelectValue placeholder="Unit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">-</SelectItem>
+                        <SelectItem value="EA">ea</SelectItem>
+                        <SelectItem value="SF">sf</SelectItem>
+                        <SelectItem value="LF">lf</SelectItem>
+                        <SelectItem value="CY">cy</SelectItem>
+                        <SelectItem value="HR">hr</SelectItem>
+                        <SelectItem value="GAL">gal</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell className="p-compact text-right">
                     <EditableCell
