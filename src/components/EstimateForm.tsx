@@ -22,6 +22,7 @@ import { LineItemRow } from "@/components/LineItemRow";
 import { LineItemTable } from "@/components/LineItemTable";
 import { LineItemDetailModal } from "@/components/LineItemDetailModal";
 import { EstimateStatusActions } from "@/components/EstimateStatusActions";
+import { getRecommendedUnitCodes } from "@/utils/units";
 
 
 
@@ -219,27 +220,44 @@ useEffect(() => {
     }
   };
 
-  const createNewLineItem = (category: LineItemCategory = LineItemCategory.LABOR): LineItem => ({
-    id: Date.now().toString() + Math.random(),
-    category,
-    description: '',
-    quantity: 1,
-    pricePerUnit: 0,
-    total: 0,
-    unit: '',
-    sort_order: lineItems.length,
-    costPerUnit: 0,
-    markupPercent: 15, // Default 15% markup
-    markupAmount: null,
-    totalCost: 0,
-    totalMarkup: 0
-  });
+  // Helper function to detect new items
+  const isNewItem = (item: LineItem): boolean => {
+    return !item.description.trim() || item.id.includes(Date.now().toString().slice(-5));
+  };
+
+  const createNewLineItem = (category: LineItemCategory = LineItemCategory.LABOR): LineItem => {
+    // Get default unit for the category
+    const recommendedUnits = getRecommendedUnitCodes(category);
+    const defaultUnit = recommendedUnits[0] || 'EA';
+
+    return {
+      id: Date.now().toString() + Math.random(),
+      category,
+      description: '',
+      quantity: 1,
+      pricePerUnit: 0,
+      total: 0,
+      unit: defaultUnit,
+      sort_order: lineItems.length,
+      costPerUnit: 0,
+      markupPercent: 15, // Default 15% markup
+      markupAmount: null,
+      totalCost: 0,
+      totalMarkup: 0
+    };
+  };
 
   const updateLineItem = (id: string, field: keyof LineItem, value: any) => {
     setLineItems(prev =>
       prev.map(item => {
         if (item.id === id) {
           const updated = { ...item, [field]: value };
+          
+          // If category is changing on a new item, update unit to new category's default
+          if (field === 'category' && isNewItem(item)) {
+            const recommendedUnits = getRecommendedUnitCodes(value);
+            updated.unit = recommendedUnits[0] || 'EA';
+          }
           
           // Recalculate derived values based on what changed
           if (field === 'costPerUnit' || field === 'markupPercent' || field === 'markupAmount') {
