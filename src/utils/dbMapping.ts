@@ -10,24 +10,85 @@ export const normalizeUnit = (unit: string | null | undefined): string | null =>
   
   // Common unit variations mapping
   const unitMappings: Record<string, string> = {
+    // Area units
     'sqft': 'SF',
     'sq ft': 'SF',
     'square ft': 'SF',
     'square foot': 'SF',
     'square feet': 'SF',
+    'sq yd': 'SY',
+    'square yard': 'SY',
+    'square yards': 'SY',
+    'square meter': 'SM',
+    'square meters': 'SM',
+    
+    // Length units
+    'inch': 'IN',
+    'inches': 'IN',
+    'foot': 'FT',
+    'feet': 'FT',
     'lf': 'LF',
     'linear ft': 'LF',
     'linear foot': 'LF',
     'linear feet': 'LF',
+    'yard': 'YD',
+    'yards': 'YD',
+    'meter': 'M',
+    'meters': 'M',
+    
+    // Volume units
+    'cubic foot': 'CF',
+    'cubic feet': 'CF',
+    'cu ft': 'CF',
     'cubic yard': 'CY',
     'cubic yards': 'CY',
     'cu yd': 'CY',
     'cy': 'CY',
-    'each': 'EA',
-    'ea': 'EA',
+    'cubic meter': 'CM3',
+    'cubic meters': 'CM3',
+    
+    // Weight units
+    'pound': 'LB',
+    'pounds': 'LB',
+    'lbs': 'LB',
+    'kilogram': 'KG',
+    'kilograms': 'KG',
+    'kgs': 'KG',
+    
+    // Time units
     'hr': 'HR',
     'hour': 'HR',
-    'hours': 'HR'
+    'hours': 'HR',
+    'day': 'DAY',
+    'days': 'DAY',
+    'week': 'WK',
+    'weeks': 'WK',
+    'month': 'MO',
+    'months': 'MO',
+    
+    // Liquid units
+    'pint': 'PT',
+    'pints': 'PT',
+    'quart': 'QT',
+    'quarts': 'QT',
+    'gallon': 'GAL',
+    'gallons': 'GAL',
+    'liter': 'L',
+    'liters': 'L',
+    
+    // Material/Count units
+    'each': 'EA',
+    'ea': 'EA',
+    'bag': 'BAG',
+    'bags': 'BAG',
+    'roll': 'ROLL',
+    'rolls': 'ROLL',
+    'box': 'BOX',
+    'boxes': 'BOX',
+    'pallet': 'PALLET',
+    'pallets': 'PALLET',
+    'sheet': 'SHEET',
+    'sheets': 'SHEET'
   };
   
   // Return mapped unit or uppercase original

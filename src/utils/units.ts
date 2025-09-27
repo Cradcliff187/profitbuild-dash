@@ -20,23 +20,60 @@ export interface UnitDefinition {
   symbol: string;
 }
 
-// Common construction units (Phase 1 - starting small)
+// Comprehensive construction units library
 export const CONSTRUCTION_UNITS: UnitDefinition[] = [
+  // Count
   { code: 'EA', name: 'Each', category: UnitCategory.COUNT, symbol: 'ea' },
+  
+  // Length
+  { code: 'IN', name: 'Inch', category: UnitCategory.LENGTH, symbol: 'in' },
+  { code: 'FT', name: 'Foot', category: UnitCategory.LENGTH, symbol: 'ft' },
   { code: 'LF', name: 'Linear Foot', category: UnitCategory.LENGTH, symbol: 'lf' },
+  { code: 'YD', name: 'Yard', category: UnitCategory.LENGTH, symbol: 'yd' },
+  { code: 'M', name: 'Meter', category: UnitCategory.LENGTH, symbol: 'm' },
+  
+  // Area
   { code: 'SF', name: 'Square Foot', category: UnitCategory.AREA, symbol: 'sf' },
   { code: 'SY', name: 'Square Yard', category: UnitCategory.AREA, symbol: 'sy' },
+  { code: 'SQ', name: 'Square (100 SF)', category: UnitCategory.AREA, symbol: 'sq' },
+  { code: 'ACRE', name: 'Acre', category: UnitCategory.AREA, symbol: 'acre' },
+  { code: 'SM', name: 'Square Meter', category: UnitCategory.AREA, symbol: 'sm' },
+  
+  // Volume
+  { code: 'CF', name: 'Cubic Foot', category: UnitCategory.VOLUME, symbol: 'cf' },
   { code: 'CY', name: 'Cubic Yard', category: UnitCategory.VOLUME, symbol: 'cy' },
+  { code: 'CM3', name: 'Cubic Meter', category: UnitCategory.VOLUME, symbol: 'cm³' },
+  
+  // Weight
+  { code: 'LB', name: 'Pound', category: UnitCategory.WEIGHT, symbol: 'lb' },
+  { code: 'TON', name: 'Ton', category: UnitCategory.WEIGHT, symbol: 'ton' },
+  { code: 'KG', name: 'Kilogram', category: UnitCategory.WEIGHT, symbol: 'kg' },
+  
+  // Time
   { code: 'HR', name: 'Hour', category: UnitCategory.TIME, symbol: 'hr' },
+  { code: 'DAY', name: 'Day', category: UnitCategory.TIME, symbol: 'day' },
+  { code: 'WK', name: 'Week', category: UnitCategory.TIME, symbol: 'wk' },
+  { code: 'MO', name: 'Month', category: UnitCategory.TIME, symbol: 'mo' },
+  
+  // Liquid
+  { code: 'PT', name: 'Pint', category: UnitCategory.LIQUID, symbol: 'pt' },
+  { code: 'QT', name: 'Quart', category: UnitCategory.LIQUID, symbol: 'qt' },
   { code: 'GAL', name: 'Gallon', category: UnitCategory.LIQUID, symbol: 'gal' },
+  { code: 'L', name: 'Liter', category: UnitCategory.LIQUID, symbol: 'l' },
+  
+  // Material
+  { code: 'BAG', name: 'Bag', category: UnitCategory.MATERIAL, symbol: 'bag' },
+  { code: 'ROLL', name: 'Roll', category: UnitCategory.MATERIAL, symbol: 'roll' },
+  { code: 'BOX', name: 'Box', category: UnitCategory.MATERIAL, symbol: 'box' },
+  { code: 'PALLET', name: 'Pallet', category: UnitCategory.MATERIAL, symbol: 'pallet' },
   { code: 'SHEET', name: 'Sheet', category: UnitCategory.MATERIAL, symbol: 'sheet' }
 ];
 
 // Category-based unit recommendations for line items
 export const CATEGORY_UNIT_RECOMMENDATIONS: Record<string, string[]> = {
-  'labor_internal': ['HR'],
-  'materials': ['SF', 'LF', 'CY', 'EA', 'GAL', 'SHEET'],
-  'equipment': ['HR', 'EA']
+  'labor_internal': ['HR', 'DAY', 'WK'],
+  'materials': ['SF', 'LF', 'EA', 'BAG', 'ROLL', 'BOX', 'PALLET', 'SHEET', 'CY', 'CF', 'GAL', 'LB', 'TON'],
+  'equipment': ['HR', 'DAY', 'WK', 'MO', 'EA']
 };
 
 // Utility function to format quantity with unit
@@ -88,12 +125,24 @@ export function validateUnitCompatibility(
     return { isCompatible: true, message: "Units match" };
   }
 
-  // Check for compatible area units (SF and SY)
-  const areaUnits = ['SF', 'SY'];
-  if (estimateUnit && quoteUnit && 
-      areaUnits.includes(estimateUnit) && 
-      areaUnits.includes(quoteUnit)) {
-    return { isCompatible: true, message: "Compatible area units" };
+  // Define compatible unit groups
+  const compatibleUnitGroups = [
+    ['IN', 'FT', 'LF', 'YD', 'M'], // Length units
+    ['SF', 'SY', 'SQ', 'ACRE', 'SM'], // Area units
+    ['CF', 'CY', 'CM3'], // Volume units
+    ['LB', 'TON', 'KG'], // Weight units
+    ['HR', 'DAY', 'WK', 'MO'], // Time units
+    ['PT', 'QT', 'GAL', 'L'], // Liquid units
+    ['BAG', 'ROLL', 'BOX', 'PALLET', 'SHEET', 'EA'] // Material/Count units
+  ];
+
+  // Check if both units are in the same compatible group
+  if (estimateUnit && quoteUnit) {
+    for (const group of compatibleUnitGroups) {
+      if (group.includes(estimateUnit) && group.includes(quoteUnit)) {
+        return { isCompatible: true, message: "Compatible units within same category" };
+      }
+    }
   }
 
   // Unit mismatch
