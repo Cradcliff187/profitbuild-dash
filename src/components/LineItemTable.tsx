@@ -287,18 +287,11 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                     />
                   </TableCell>
                   <TableCell className="p-compact text-right">
-                    <div className="space-y-1">
-                      <QuantityEditableCell
-                        quantity={lineItem.quantity}
-                        unit={lineItem.unit}
-                        onChange={(value) => onUpdateLineItem(lineItem.id, 'quantity', parseFloat(value) || 0)}
-                      />
-                      {lineItem.unit && (
-                        <div className="text-xs text-muted-foreground text-right">
-                          {lineItem.unit}
-                        </div>
-                      )}
-                    </div>
+                    <QuantityEditableCell
+                      quantity={lineItem.quantity}
+                      unit={lineItem.unit}
+                      onChange={(value) => onUpdateLineItem(lineItem.id, 'quantity', parseFloat(value) || 0)}
+                    />
                   </TableCell>
                   <TableCell className="p-compact">
                     <Select 
