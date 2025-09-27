@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
+import { formatQuantityWithUnit } from '@/utils/units';
 
 interface LineItemTableProps {
   lineItems: LineItem[];
@@ -111,6 +112,55 @@ const EditableCell: React.FC<{
       }}
     >
       {formatValue(value)}
+    </div>
+  );
+};
+
+const QuantityEditableCell: React.FC<{
+  quantity: number;
+  unit?: string | null;
+  onChange: (value: string) => void;
+}> = ({ quantity, unit, onChange }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(String(quantity));
+
+  const handleSave = () => {
+    onChange(editValue);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setEditValue(String(quantity));
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <Input
+        value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={handleKeyDown}
+        type="number"
+        className="h-input-compact font-mono text-right"
+        autoFocus
+      />
+    );
+  }
+
+  return (
+    <div
+      className="cursor-pointer hover:bg-muted/50 border border-input bg-background px-compact py-1 rounded-md h-input-compact flex items-center text-data font-mono text-right"
+      onClick={() => {
+        setEditValue(String(quantity));
+        setIsEditing(true);
+      }}
+    >
+      {unit ? formatQuantityWithUnit(quantity, unit) : quantity.toLocaleString()}
     </div>
   );
 };
@@ -236,12 +286,18 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                     />
                   </TableCell>
                   <TableCell className="p-compact text-right">
-                    <EditableCell
-                      value={lineItem.quantity}
-                      onChange={(value) => onUpdateLineItem(lineItem.id, 'quantity', parseFloat(value) || 0)}
-                      type="number"
-                      align="right"
-                    />
+                    <div className="space-y-1">
+                      <QuantityEditableCell
+                        quantity={lineItem.quantity}
+                        unit={lineItem.unit}
+                        onChange={(value) => onUpdateLineItem(lineItem.id, 'quantity', parseFloat(value) || 0)}
+                      />
+                      {lineItem.unit && (
+                        <div className="text-xs text-muted-foreground text-right">
+                          {lineItem.unit}
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="p-compact text-right">
                     <EditableCell
