@@ -160,7 +160,7 @@ const QuantityEditableCell: React.FC<{
         setIsEditing(true);
       }}
     >
-      {unit ? formatQuantityWithUnit(quantity, unit) : quantity.toLocaleString()}
+      {quantity.toLocaleString()}
     </div>
   );
 };
