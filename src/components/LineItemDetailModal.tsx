@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { formatCurrency } from '@/lib/utils';
-import { CONSTRUCTION_UNITS, UnitCategory } from '@/utils/units';
+import { CONSTRUCTION_UNITS, UnitCategory, getRecommendedUnitCodes } from '@/utils/units';
 
 interface LineItemDetailModalProps {
   lineItem: LineItem | null;
@@ -57,6 +57,14 @@ export const LineItemDetailModal: React.FC<LineItemDetailModalProps> = ({
 
   const handleFieldChange = (field: keyof LineItem, value: any) => {
     const updatedItem = { ...formData, [field]: value };
+
+    // Special handling when category changes - auto-update unit
+    if (field === 'category') {
+      const recommendedUnits = getRecommendedUnitCodes(value);
+      if (recommendedUnits.length > 0) {
+        updatedItem.unit = recommendedUnits[0];
+      }
+    }
 
     // Calculate totals when relevant fields change
     if (['quantity', 'costPerUnit', 'markupPercent', 'markupAmount'].includes(field)) {
