@@ -3,11 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { formatCurrency } from '@/lib/utils';
+import { CONSTRUCTION_UNITS, UnitCategory } from '@/utils/units';
 
 interface LineItemDetailModalProps {
   lineItem: LineItem | null;
@@ -139,11 +140,32 @@ export const LineItemDetailModal: React.FC<LineItemDetailModalProps> = ({
             </div>
             <div className="space-y-2">
               <Label>Unit (Optional)</Label>
-              <Input
+              <Select
                 value={formData.unit || ''}
-                onChange={(e) => handleFieldChange('unit', e.target.value)}
-                placeholder="ea, sqft, hrs, etc."
-              />
+                onValueChange={(value) => handleFieldChange('unit', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select unit..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No unit</SelectItem>
+                  {Object.values(UnitCategory).map((category) => {
+                    const unitsInCategory = CONSTRUCTION_UNITS.filter(u => u.category === category);
+                    if (unitsInCategory.length === 0) return null;
+                    
+                    return (
+                      <SelectGroup key={category}>
+                        <SelectLabel className="capitalize">{category}</SelectLabel>
+                        {unitsInCategory.map((unit) => (
+                          <SelectItem key={unit.code} value={unit.code}>
+                            {unit.symbol} - {unit.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
