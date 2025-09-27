@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { EditableField, CalculatedField } from "@/components/ui/field-types";
 import { LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
+import { formatQuantityWithUnit } from "@/utils/units";
 
 interface LineItemRowProps {
   lineItem: LineItem;
@@ -106,18 +107,47 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
         </div>
 
         {/* Main Numbers Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <EditableField
-            label="Quantity"
-            type="number"
-            placeholder="Qty"
-            value={lineItem.quantity || ''}
-            onChange={(e) => handleQuantityChange(e.target.value)}
-            min="0"
-            step="0.01"
-            required
-            tooltip="Enter the quantity needed for this line item"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div>
+            <EditableField
+              label="Quantity"
+              type="number"
+              placeholder="Qty"
+              value={lineItem.quantity || ''}
+              onChange={(e) => handleQuantityChange(e.target.value)}
+              min="0"
+              step="0.01"
+              required
+              tooltip="Enter the quantity needed for this line item"
+            />
+            {lineItem.unit && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {formatQuantityWithUnit(lineItem.quantity || 0, lineItem.unit)}
+              </p>
+            )}
+          </div>
+          
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">Unit</label>
+            <Select 
+              value={lineItem.unit || ''} 
+              onValueChange={(value) => onUpdate(lineItem.id, 'unit', value)}
+            >
+              <SelectTrigger className="w-24">
+                <SelectValue placeholder="Unit" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                <SelectItem value="EA">ea</SelectItem>
+                <SelectItem value="SF">sf</SelectItem>
+                <SelectItem value="LF">lf</SelectItem>
+                <SelectItem value="CY">cy</SelectItem>
+                <SelectItem value="HR">hr</SelectItem>
+                <SelectItem value="GAL">gal</SelectItem>
+                <SelectItem value="SHEET">sheet</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           
           <CalculatedField
             label="Price/Unit"
