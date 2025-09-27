@@ -67,3 +67,38 @@ export function getRecommendedUnits(category: string): UnitDefinition[] {
   return codes.map(code => CONSTRUCTION_UNITS.find(u => u.code === code))
              .filter(Boolean) as UnitDefinition[];
 }
+
+// Helper function to get recommended unit codes for a line item category
+export function getRecommendedUnitCodes(category: string): string[] {
+  return CATEGORY_UNIT_RECOMMENDATIONS[category] || ['EA'];
+}
+
+// Validation function to check unit compatibility between estimate and quote
+export function validateUnitCompatibility(
+  estimateUnit: string | null, 
+  quoteUnit: string | null
+): { isCompatible: boolean; message: string } {
+  // Both null - compatible but with warning
+  if (!estimateUnit && !quoteUnit) {
+    return { isCompatible: true, message: "No units specified" };
+  }
+
+  // Same units - perfect match
+  if (estimateUnit === quoteUnit) {
+    return { isCompatible: true, message: "Units match" };
+  }
+
+  // Check for compatible area units (SF and SY)
+  const areaUnits = ['SF', 'SY'];
+  if (estimateUnit && quoteUnit && 
+      areaUnits.includes(estimateUnit) && 
+      areaUnits.includes(quoteUnit)) {
+    return { isCompatible: true, message: "Compatible area units" };
+  }
+
+  // Unit mismatch
+  return { 
+    isCompatible: false, 
+    message: `Unit mismatch: ${estimateUnit || 'none'} vs ${quoteUnit || 'none'}` 
+  };
+}
