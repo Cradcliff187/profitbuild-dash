@@ -302,14 +302,14 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                   </TableCell>
                   <TableCell className="p-compact">
                     <Select 
-                      value={lineItem.unit || ''} 
-                      onValueChange={(value) => onUpdateLineItem(lineItem.id, 'unit', value)}
+                      value={lineItem.unit || 'none'} 
+                      onValueChange={(value) => onUpdateLineItem(lineItem.id, 'unit', value === 'none' ? null : value)}
                     >
                       <SelectTrigger className="h-button-compact text-xs">
                         <SelectValue placeholder="Unit" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">-</SelectItem>
+                        <SelectItem value="none">-</SelectItem>
                         <SelectItem value="EA">ea</SelectItem>
                         <SelectItem value="SF">sf</SelectItem>
                         <SelectItem value="LF">lf</SelectItem>

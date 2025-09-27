@@ -130,14 +130,14 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
           <div>
             <label className="text-xs font-medium text-muted-foreground block mb-1">Unit</label>
             <Select 
-              value={lineItem.unit || ''} 
-              onValueChange={(value) => onUpdate(lineItem.id, 'unit', value)}
+              value={lineItem.unit || 'none'} 
+              onValueChange={(value) => onUpdate(lineItem.id, 'unit', value === 'none' ? null : value)}
             >
               <SelectTrigger className="w-24">
                 <SelectValue placeholder="Unit" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 <SelectItem value="EA">ea</SelectItem>
                 <SelectItem value="SF">sf</SelectItem>
                 <SelectItem value="LF">lf</SelectItem>

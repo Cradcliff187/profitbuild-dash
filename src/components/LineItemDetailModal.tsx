@@ -149,14 +149,14 @@ export const LineItemDetailModal: React.FC<LineItemDetailModalProps> = ({
             <div className="space-y-2">
               <Label>Unit (Optional)</Label>
               <Select
-                value={formData.unit || ''}
-                onValueChange={(value) => handleFieldChange('unit', value)}
+                value={formData.unit || 'none'}
+                onValueChange={(value) => handleFieldChange('unit', value === 'none' ? null : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select unit..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No unit</SelectItem>
+                  <SelectItem value="none">No unit</SelectItem>
                   {Object.values(UnitCategory).map((category) => {
                     const unitsInCategory = CONSTRUCTION_UNITS.filter(u => u.category === category);
                     if (unitsInCategory.length === 0) return null;
