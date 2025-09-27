@@ -2,6 +2,38 @@
 
 import { LineItem } from '@/types/estimate';
 
+// Normalizes unit variations to standard codes
+export const normalizeUnit = (unit: string | null | undefined): string | null => {
+  if (!unit) return null;
+  
+  const normalizedUnit = unit.toLowerCase().trim();
+  
+  // Common unit variations mapping
+  const unitMappings: Record<string, string> = {
+    'sqft': 'SF',
+    'sq ft': 'SF',
+    'square ft': 'SF',
+    'square foot': 'SF',
+    'square feet': 'SF',
+    'lf': 'LF',
+    'linear ft': 'LF',
+    'linear foot': 'LF',
+    'linear feet': 'LF',
+    'cubic yard': 'CY',
+    'cubic yards': 'CY',
+    'cu yd': 'CY',
+    'cy': 'CY',
+    'each': 'EA',
+    'ea': 'EA',
+    'hr': 'HR',
+    'hour': 'HR',
+    'hours': 'HR'
+  };
+  
+  // Return mapped unit or uppercase original
+  return unitMappings[normalizedUnit] || unit.toUpperCase();
+};
+
 // Maps camelCase LineItem to snake_case database fields
 export const mapLineItemToDb = (item: LineItem) => ({
   id: item.id,
@@ -28,7 +60,7 @@ export const mapDbToLineItem = (dbItem: any): LineItem => ({
   quantity: dbItem.quantity || 1,
   pricePerUnit: dbItem.price_per_unit || dbItem.rate || 0,
   total: dbItem.total || 0,
-  unit: dbItem.unit,
+  unit: normalizeUnit(dbItem.unit),
   sort_order: dbItem.sort_order,
   costPerUnit: dbItem.cost_per_unit || 0,
   markupPercent: dbItem.markup_percent,
