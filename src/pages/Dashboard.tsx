@@ -17,6 +17,7 @@ import WorkOrdersList from "@/components/WorkOrdersList";
 import CreateWorkOrderModal from "@/components/CreateWorkOrderModal";
 import { calculateProjectProfit } from "@/utils/profitCalculations";
 import { getBudgetAlertThreshold } from "@/utils/budgetUtils";
+import { formatCurrency } from "@/lib/utils";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
@@ -444,7 +445,7 @@ const Dashboard = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalProfit.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalProfit, { showCents: false })}</div>
           </CardContent>
         </Card>
       </div>
@@ -494,14 +495,14 @@ const Dashboard = () => {
                       <p className="text-sm text-muted-foreground">Client: {project.client}</p>
                       {project.quotedAmount > 0 && (
                         <p className="text-xs text-muted-foreground">
-                          Quoted: ${project.quotedAmount.toLocaleString()} | 
-                          Actual: ${project.actualCosts.toLocaleString()}
+                          Quoted: {formatCurrency(project.quotedAmount, { showCents: false })} | 
+                          Actual: {formatCurrency(project.actualCosts, { showCents: false })}
                         </p>
                       )}
                     </div>
                     <div className="text-right">
                       <div className={`font-semibold ${project.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${project.profit.toLocaleString()}
+                        {formatCurrency(project.profit, { showCents: false })}
                       </div>
                       <div className="text-sm text-muted-foreground">Profit</div>
                       {project.quotedAmount > 0 && (

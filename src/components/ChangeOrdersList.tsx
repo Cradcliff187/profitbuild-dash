@@ -418,21 +418,21 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                   <div className="text-center p-4 border rounded-lg">
                     <p className="text-sm text-muted-foreground mb-1">Total Client Amount</p>
                     <p className="text-xl font-bold text-green-600">
-                      ${totalClientAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      {formatCurrency(totalClientAmount, { showCents: false })}
                     </p>
                     <p className="text-xs text-muted-foreground">Approved change orders</p>
                   </div>
                   <div className="text-center p-4 border rounded-lg">
                     <p className="text-sm text-muted-foreground mb-1">Total Cost Impact</p>
                     <p className="text-xl font-bold text-orange-600">
-                      ${totalCostImpact.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      {formatCurrency(totalCostImpact, { showCents: false })}
                     </p>
                     <p className="text-xs text-muted-foreground">Our costs</p>
                   </div>
                   <div className="text-center p-4 border rounded-lg">
                     <p className="text-sm text-muted-foreground mb-1">Net Profit Impact</p>
                     <p className={`text-xl font-bold ${totalMarginImpact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ${totalMarginImpact.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      {formatCurrency(totalMarginImpact, { showCents: false })}
                     </p>
                     <p className={`text-sm font-medium ${
                       overallMarginPercentage >= 20 ? 'text-green-600' : 

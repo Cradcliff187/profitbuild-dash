@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, DollarSign, Target, AlertTriangle } from "luc
 import { Badge } from "@/components/ui/badge";
 import { getMarginThresholdStatus, getThresholdStatusColor, getThresholdStatusLabel, formatContingencyRemaining } from "@/utils/thresholdUtils";
 import { ProjectMargin, formatMarginCurrency, getMarginStatusLevel } from "@/types/margin";
+import { formatCurrency } from "@/lib/utils";
 
 interface ProjectProfitMarginProps {
   contractAmount: number;
@@ -178,13 +179,6 @@ export const ProjectProfitMargin = ({
   const thresholdStatus = getMarginThresholdStatus(profitPercentage, minimumThreshold, targetThreshold);
   const thresholdColor = getThresholdStatusColor(thresholdStatus);
   const thresholdLabel = getThresholdStatusLabel(thresholdStatus);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
 
   return (
     <Card className="w-full">

@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { formatQuantityWithUnit } from '@/utils/units';
+import { formatCurrency } from '@/lib/utils';
 
 interface LineItemTableProps {
   lineItems: LineItem[];
@@ -79,7 +80,7 @@ const EditableCell: React.FC<{
     if (type === 'number') {
       const numVal = typeof val === 'number' ? val : parseFloat(val) || 0;
       if (currency) {
-        return `$${numVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return formatCurrency(numVal);
       }
       return numVal.toLocaleString();
     }
@@ -340,7 +341,7 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                     />
                   </TableCell>
                   <TableCell className="p-compact text-right font-mono text-data font-medium">
-                    ${lineItem.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {formatCurrency(lineItem.total)}
                   </TableCell>
                   <TableCell className="p-compact">
                     <DropdownMenu>
