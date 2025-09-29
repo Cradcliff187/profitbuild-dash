@@ -46,7 +46,7 @@ const Payees = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Payees</h1>
+          <h1 className="text-xl font-bold text-foreground">Payees</h1>
           <p className="text-muted-foreground">Manage your construction payees</p>
         </div>
         {!showForm && (

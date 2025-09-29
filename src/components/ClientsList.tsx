@@ -191,7 +191,7 @@ export const ClientsList = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold">Clients</h1>
+          <h1 className="text-xl font-bold">Clients</h1>
           <p className="text-muted-foreground mt-2">
             Manage your client database and contact information
           </p>

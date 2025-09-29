@@ -149,7 +149,7 @@ export function FinancialTableTemplate<T>({
         <TableCell
           key={column.key}
           className={cn(
-            "text-sm px-2 py-1",
+            "text-xs px-2 py-1",
             column.align === 'right' && "text-right tabular-nums",
             column.align === 'center' && "text-center",
             column.className
