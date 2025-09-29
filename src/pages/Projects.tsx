@@ -430,11 +430,11 @@ const Projects = () => {
   }, [projects, filters]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div className="flex items-center space-x-3">
-        <Building2 className="h-8 w-8 text-primary" />
+        <Building2 className="h-5 w-5 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Projects</h1>
+          <h1 className="text-xl font-bold text-foreground">Projects</h1>
           <p className="text-muted-foreground">
             {viewMode === 'create' ? 'Create a new project' : 
              'Manage your construction projects and work orders'}

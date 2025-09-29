@@ -127,12 +127,12 @@ const Expenses = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <Receipt className="h-8 w-8 text-primary" />
+          <Receipt className="h-5 w-5 text-primary" />
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Expenses</h1>
+            <h1 className="text-xl font-bold text-foreground">Expenses</h1>
             <p className="text-muted-foreground">Track project costs and manage expenses</p>
           </div>
         </div>
@@ -140,6 +140,7 @@ const Expenses = () => {
           <Button 
             onClick={() => setViewMode('matching')} 
             variant="outline"
+            size="sm"
             className="flex items-center space-x-2"
           >
             <Target className="h-4 w-4" />
@@ -148,12 +149,13 @@ const Expenses = () => {
           <Button 
             onClick={() => setShowImportModal(true)} 
             variant="outline"
+            size="sm"
             className="flex items-center space-x-2"
           >
             <Upload className="h-4 w-4" />
             <span>Import Expenses</span>
           </Button>
-          <Button onClick={handleCreateNew} className="flex items-center space-x-2">
+          <Button onClick={handleCreateNew} size="sm" className="flex items-center space-x-2">
             <Plus className="h-4 w-4" />
             <span>Add Expense</span>
           </Button>

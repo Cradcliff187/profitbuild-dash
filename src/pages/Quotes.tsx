@@ -423,13 +423,13 @@ const Quotes = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <FileText className="h-8 w-8 text-primary" />
+          <FileText className="h-5 w-5 text-primary" />
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Quotes</h1>
+            <h1 className="text-xl font-bold text-foreground">Quotes</h1>
             <p className="text-muted-foreground">
               {view === 'create' ? 'Create new quote' : 
                view === 'edit' ? 'Edit quote' :
@@ -443,12 +443,13 @@ const Quotes = () => {
           <div className="flex gap-2">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setView('list')}
             >
               <List className="h-4 w-4 mr-2" />
               All Quotes
             </Button>
-            <Button onClick={() => setView('create')}>
+            <Button onClick={() => setView('create')} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               New Quote
             </Button>

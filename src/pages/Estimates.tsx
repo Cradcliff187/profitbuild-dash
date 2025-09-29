@@ -341,17 +341,17 @@ const EstimatesPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Estimates</h1>
+          <h1 className="text-xl font-bold">Estimates</h1>
           <p className="text-muted-foreground">
             Manage project estimates, versions, and approvals
           </p>
         </div>
         
         {viewMode === 'list' && (
-          <Button onClick={handleCreateNew}>
+          <Button onClick={handleCreateNew} size="sm">
             <Plus className="h-4 w-4 mr-2" />
             {getCreateButtonText()}
           </Button>

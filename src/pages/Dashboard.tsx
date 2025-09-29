@@ -341,7 +341,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Budget Alert Banner */}
       {overBudgetProjects.length > 0 && (
         <Alert className="border-destructive bg-destructive/10">
@@ -355,7 +355,7 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground">Overview of your construction projects</p>
         </div>
         
