@@ -240,7 +240,7 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -248,7 +248,7 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
             Create New Project
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           {/* Completion Progress */}
           <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg">
             <CheckCircle className="h-5 w-5 text-green-600" />
@@ -272,7 +272,7 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
           />
 
           {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <EditableField
               label="Project Name"
               value={projectName}
@@ -304,7 +304,7 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
           {/* Client Details */}
           {selectedClientData && (
             <Card className="bg-muted/30">
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 <div className="flex items-center gap-2 mb-3">
                   <User className="h-4 w-4 text-primary" />
                   <Label className="text-sm font-semibold">Selected Client Details</Label>
@@ -447,14 +447,14 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
 
           {/* Margin Thresholds */}
           <Card className="bg-muted/20">
-            <CardContent className="p-4 space-y-4">
+            <CardContent className="p-3 space-y-3">
               <div>
                 <Label className="text-sm font-semibold">Margin Thresholds</Label>
                 <p className="text-xs text-muted-foreground mt-1">
                   Set profit margin targets and minimum acceptable levels for this project
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="minimumMargin">Minimum Margin (%)</Label>
                   <Input

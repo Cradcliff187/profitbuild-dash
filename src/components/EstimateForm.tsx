@@ -830,7 +830,7 @@ useEffect(() => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card ref={step2Ref}>
         <CardHeader>
           <CardTitle>
@@ -852,10 +852,10 @@ useEffect(() => {
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           {/* Selected Project Summary - Show when coming from Step 1 */}
           {projectSelectedFromStep1 && selectedProject && (
-            <div className="bg-accent/50 border border-border rounded-lg p-4">
+            <div className="bg-accent/50 border border-border rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground">
@@ -899,7 +899,7 @@ useEffect(() => {
           )}
 
           {/* Estimate Details */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-2">
               <RequiredLabel>Estimate Date</RequiredLabel>
               <Popover>

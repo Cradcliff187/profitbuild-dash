@@ -397,13 +397,13 @@ export const ProjectDetailView = () => {
           {/* Revenue Section */}
           <Card className="border-l-4 border-l-primary/20">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary" />
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-primary" />
                 Contract Value
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="text-3xl font-bold text-primary">
+              <div className="text-xl font-bold text-primary">
                 {formatCurrency(project?.currentContractAmount)}
               </div>
               {approvedChangeOrders.length > 0 && (
@@ -425,7 +425,7 @@ export const ProjectDetailView = () => {
                 <p className="text-xs text-muted-foreground">Budget Planning</p>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="text-2xl font-bold">
+                <div className="text-lg font-bold">
                   {formatCurrency(project.original_margin)}
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -443,7 +443,7 @@ export const ProjectDetailView = () => {
                 <p className="text-xs text-muted-foreground">With Quotes</p>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="text-2xl font-bold">
+                <div className="text-lg font-bold">
                   {formatCurrency(project.projected_margin)}
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -473,7 +473,7 @@ export const ProjectDetailView = () => {
                 <p className="text-xs text-muted-foreground">Real Performance</p>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="text-2xl font-bold">
+                <div className="text-lg font-bold">
                   {formatCurrency(project.actual_margin)}
                 </div>
                 <div className="text-xs text-muted-foreground">
