@@ -105,8 +105,8 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
           <DialogTitle>{isEditing ? "Edit Client" : "Add New Client"}</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
             <div>
               <Label htmlFor="client_name">Client Name *</Label>
               <Input
@@ -129,7 +129,7 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <div>
               <Label htmlFor="contact_person">Contact Person</Label>
               <Input
@@ -157,7 +157,7 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <div>
               <Label htmlFor="email">Email</Label>
               <Input
@@ -202,7 +202,7 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <div>
               <Label htmlFor="payment_terms">Payment Terms</Label>
               <Select value={formData.payment_terms} onValueChange={(value) => setFormData({ ...formData, payment_terms: value })}>
@@ -251,7 +251,7 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>

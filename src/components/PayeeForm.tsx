@@ -161,7 +161,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
             <FormField
               control={form.control}
               name="payee_name"
@@ -259,7 +259,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2">
               <FormField
                 control={form.control}
                 name="provides_labor"
@@ -335,7 +335,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2">
               {watchedPayeeType === PayeeType.SUBCONTRACTOR && (
                 <>
                   <FormField
@@ -438,7 +438,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
               )}
             </div>
 
-            <div className="flex gap-2 pt-4">
+            <div className="flex gap-2 pt-2">
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Saving..." : payee ? "Update Payee" : "Add Payee"}
               </Button>

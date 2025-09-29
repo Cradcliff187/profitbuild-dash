@@ -197,7 +197,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
             <div className="flex items-center gap-2">
               <FormLabel>Change Order Number:</FormLabel>
               <span className="font-mono font-medium">{changeOrderNumber}</span>
@@ -248,7 +248,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <FormField
                 control={form.control}
                 name="client_amount"
