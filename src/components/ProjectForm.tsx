@@ -240,17 +240,17 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="form-dense space-y-2">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
+        <CardHeader className="p-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Building2 className="h-4 w-4" />
             Create New Project
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-2 p-3">
           {/* Completion Progress */}
-          <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
             <CheckCircle className="h-5 w-5 text-green-600" />
             <div>
               <p className="font-medium text-green-700">
@@ -272,7 +272,7 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
           />
 
           {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <EditableField
               label="Project Name"
               value={projectName}
@@ -304,12 +304,12 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
           {/* Client Details */}
           {selectedClientData && (
             <Card className="bg-muted/30">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2 mb-3">
-                  <User className="h-4 w-4 text-primary" />
-                  <Label className="text-sm font-semibold">Selected Client Details</Label>
+              <CardContent className="p-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="h-3 w-3 text-primary" />
+                  <Label className="text-xs font-semibold">Selected Client Details</Label>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <User className="h-3 w-3 text-muted-foreground" />
@@ -366,7 +366,7 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
           </div>
 
           {/* Project Type, Status, Job Type */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div className="space-y-2">
               <RequiredLabel>Project Type</RequiredLabel>
               <Select value={projectType} onValueChange={handleProjectTypeChange}>
@@ -447,14 +447,14 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
 
           {/* Margin Thresholds */}
           <Card className="bg-muted/20">
-            <CardContent className="p-3 space-y-3">
+            <CardContent className="p-2 space-y-2">
               <div>
-                <Label className="text-sm font-semibold">Margin Thresholds</Label>
-                <p className="text-xs text-muted-foreground mt-1">
+                <Label className="text-xs font-semibold">Margin Thresholds</Label>
+                <p className="text-[10px] text-muted-foreground mt-1">
                   Set profit margin targets and minimum acceptable levels for this project
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-2">
                   <Label htmlFor="minimumMargin">Minimum Margin (%)</Label>
                   <Input

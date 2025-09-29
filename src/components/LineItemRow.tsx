@@ -66,9 +66,9 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
   return (
     <div className={`border rounded-lg border-l-4 ${categoryColors[lineItem.category]} bg-card`}>
       {/* Mobile-First Layout */}
-      <div className="p-4 space-y-4">
+      <div className="p-2 space-y-2">
         {/* Top Row: Category, Description, Remove Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <div className="sm:w-48">
             <Select value={lineItem.category} onValueChange={(value: LineItemCategory) => onUpdate(lineItem.id, 'category', value)}>
               <SelectTrigger>
@@ -107,7 +107,7 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
         </div>
 
         {/* Main Numbers Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
           <div>
             <EditableField
               label="Quantity"
@@ -183,11 +183,11 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
 
       {/* Cost & Markup Details Section */}
       <Separator />
-      <div className="p-4 bg-muted/30 space-y-4">
-        <div className="text-sm font-medium text-muted-foreground">Cost & Markup Details</div>
+      <div className="p-2 bg-muted/30 space-y-2">
+        <div className="text-xs font-medium text-muted-foreground">Cost & Markup Details</div>
         
         {/* Cost Input */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <EditableField
             label="Cost per Unit"
             type="number"
@@ -219,9 +219,9 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
         </div>
         
         {/* Markup Controls */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-2">Markup Type</label>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">Markup Type</label>
             <div className="flex gap-2">
               <Button
                 variant={markupType === 'percent' ? 'default' : 'outline'}
@@ -244,7 +244,7 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
             </div>
           </div>
           
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <EditableField
               label={markupType === 'percent' ? 'Markup Percentage' : 'Markup Amount'}
               type="number"

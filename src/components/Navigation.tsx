@@ -33,17 +33,17 @@ const Navigation = () => {
   const allItems = [...primaryItems, ...secondaryItems];
 
   const NavItem = ({ to, label, icon: Icon, onClick }: { to: string; label: string; icon: any; onClick?: () => void }) => (
-    <NavLink
-      to={to}
-      onClick={onClick}
-      className={({ isActive }) =>
-        `flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-          isActive
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground"
-        }`
-      }
-    >
+      <NavLink
+        to={to}
+        onClick={onClick}
+        className={({ isActive }) =>
+          `flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            isActive
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`
+        }
+      >
       <Icon className="h-4 w-4" />
       <span>{label}</span>
     </NavLink>
@@ -52,7 +52,7 @@ const Navigation = () => {
   return (
     <nav className="bg-card border-b border-border shadow-sm">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-12">
           {/* Logo */}
           <div className="flex items-center space-x-2">
             <Building2 className="h-8 w-8 text-primary" />

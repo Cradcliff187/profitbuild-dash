@@ -411,11 +411,11 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   if (!selectedEstimate) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Create New Quote</CardTitle>
+        <CardHeader className="p-3">
+          <CardTitle className="text-base">Create New Quote</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="p-3">
+          <div className="space-y-2">
             <div className="space-y-2">
               <Label>Select Project Estimate</Label>
               <div className="space-y-3">
@@ -434,7 +434,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                           className="cursor-pointer hover:bg-accent transition-colors"
                           onClick={() => setSelectedEstimate(estimate)}
                         >
-                          <CardContent className="p-4">
+                          <CardContent className="p-2">
                             <div className="flex items-center justify-between">
                               <div>
                                 <div className="font-medium">{estimate.project_name}</div>
@@ -506,7 +506,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
                   Select the line items you want to include in this quote ({selectedLineItemIds.length} selected)
@@ -589,7 +589,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   const profitStatus = getProfitStatus(profitMargin);
 
   return (
-    <div className="space-y-4">
+    <div className="form-dense space-y-2">
       {/* Header with Project Info */}
       <Card>
         <CardHeader>
@@ -614,8 +614,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <CardContent className="p-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <PayeeSelector
               value={selectedPayee?.id}
               onValueChange={(payeeId, payeeName, payee) => {
@@ -743,7 +743,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {lineItems.map((item, index) => {
               const estimateItem = selectedEstimate.lineItems.find(e => e.id === item.estimateLineItemId);
               
@@ -911,7 +911,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       </Card>
 
       {/* Notes and Attachments */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
         <Card>
           <CardHeader>
             <CardTitle>Notes</CardTitle>

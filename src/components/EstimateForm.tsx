@@ -755,9 +755,9 @@ useEffect(() => {
   // If still loading projects, show loading state
   if (projectsLoading && !preselectedProjectId && !initialEstimate) {
     return (
-      <div className="space-y-4">
+      <div className="form-dense space-y-2">
         <Card>
-          <CardContent className="py-8">
+          <CardContent className="py-6">
             <div className="text-center">Loading projects...</div>
           </CardContent>
         </Card>
@@ -766,19 +766,19 @@ useEffect(() => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="form-dense space-y-2">
       <Card>
-        <CardHeader>
-          <CardTitle>
+        <CardHeader className="p-3">
+          <CardTitle className="text-base">
             {initialEstimate ? 'Edit Estimate' : 'Create Estimate'}
             {projectName && (
-              <div className="text-sm font-normal text-muted-foreground mt-1">
+              <div className="text-xs font-normal text-muted-foreground mt-1">
                 Project: {projectName} • Client: {clientName}
               </div>
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-2 p-3">
           {/* Project Selection - Show if no project is preselected */}
           {!preselectedProjectId && !initialEstimate && (
             <div className="space-y-2">
@@ -862,9 +862,9 @@ useEffect(() => {
           </div>
 
           {/* Line Items */}
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <RequiredLabel className="text-lg font-semibold">Line Items</RequiredLabel>
+              <RequiredLabel className="text-sm font-semibold">Line Items</RequiredLabel>
               <div className="flex items-center space-x-2">
                 {/* View Toggle */}
                 <div className="flex rounded-md border overflow-hidden">
@@ -912,7 +912,7 @@ useEffect(() => {
                 onDuplicateLineItem={duplicateLineItem}
               />
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {lineItems.map(lineItem => (
                   <LineItemRow
                     key={lineItem.id}
@@ -926,7 +926,7 @@ useEffect(() => {
           </div>
 
           {/* Contingency Section */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <EditableField
               label="Contingency %"
               type="number"
@@ -946,7 +946,7 @@ useEffect(() => {
           </div>
 
           {/* Calculated Totals */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
             <CalculatedField
               label="Subtotal"
               value={calculateTotal()}
