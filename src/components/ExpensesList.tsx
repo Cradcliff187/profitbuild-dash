@@ -137,18 +137,17 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   };
 
   const exportToCsv = () => {
-    const headers = ['Date', 'Project', 'Description', 'Category', 'Transaction Type', 'Amount', 'Payee', 'Line Item Match'];
+    const headers = ['Date', 'Project', 'Payee', 'Category', 'Transaction Type', 'Amount', 'Line Item Match'];
     const csvContent = [
       headers.join(','),
       ...filteredExpenses.map(expense =>
         [
           expense.expense_date.toLocaleDateString(),
           `"${expense.project_name || ''}"`,
-          `"${expense.description || ''}"`,
+          `"${expense.payee_name || ''}"`,
           `"${EXPENSE_CATEGORY_DISPLAY[expense.category] || expense.category}"`,
           `"${TRANSACTION_TYPE_DISPLAY[expense.transaction_type] || expense.transaction_type}"`,
           expense.amount,
-          `"${expense.payee_name || ''}"`,
           expenseMatches[expense.id] ? 'Matched' : 'Unmatched'
         ].join(',')
       )
@@ -237,8 +236,8 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       )
     },
     {
-      key: 'description',
-      label: 'Description'
+      key: 'payee_name',
+      label: 'Payee'
     },
     {
       key: 'category',
@@ -266,10 +265,6 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           {formatCurrency(expense.amount, { showCents: true })}
         </div>
       )
-    },
-    {
-      key: 'payee_name',
-      label: 'Payee'
     },
     {
       key: 'line_item_match',
