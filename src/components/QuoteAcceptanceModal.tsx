@@ -163,13 +163,13 @@ export function QuoteAcceptanceModal({
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Quote Details Header */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Quote Information</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
@@ -219,8 +219,8 @@ export function QuoteAcceptanceModal({
               <CardHeader>
                 <CardTitle className="text-lg">Amount Comparison</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
                     <div className="text-sm text-muted-foreground mb-1">Original Estimate</div>
                     <div className="text-2xl font-bold">
@@ -259,7 +259,7 @@ export function QuoteAcceptanceModal({
                 </div>
 
                 {/* Category Breakdown */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t">
                   <div className="text-center">
                     <div className="text-sm text-muted-foreground">Labor</div>
                     <div className="font-medium">
@@ -308,8 +308,8 @@ export function QuoteAcceptanceModal({
                   Margin Impact Analysis
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {/* Current Margin */}
                   <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="text-sm text-muted-foreground mb-2">Current Margin</div>
@@ -467,7 +467,7 @@ export function QuoteAcceptanceModal({
               Please provide a reason for rejecting this quote. This will help with future communications and record keeping.
             </p>
             
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="rejection-reason">Rejection Reason</Label>
               <Textarea
                 id="rejection-reason"

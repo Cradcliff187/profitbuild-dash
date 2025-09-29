@@ -68,13 +68,13 @@ export const EntityDetailsModal: React.FC<EntityDetailsModalProps> = ({
           {subtitle && <DialogDescription>{subtitle}</DialogDescription>}
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {sections.map((section, sectionIndex) => (
             <div key={sectionIndex} className="space-y-3">
               <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
                 {section.title}
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {section.fields.map((field, fieldIndex) => (
                   <div key={fieldIndex} className="space-y-1">
                     <label className="text-sm font-medium">{field.label}</label>

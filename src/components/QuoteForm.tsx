@@ -589,7 +589,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   const profitStatus = getProfitStatus(profitMargin);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header with Project Info */}
       <Card>
         <CardHeader>
@@ -615,7 +615,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <PayeeSelector
               value={selectedPayee?.id}
               onValueChange={(payeeId, payeeName, payee) => {
@@ -670,7 +670,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       </Card>
 
       {/* Financial Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm text-muted-foreground">Your Estimate</CardTitle>
@@ -748,7 +748,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
               const estimateItem = selectedEstimate.lineItems.find(e => e.id === item.estimateLineItemId);
               
               return (
-                <div key={item.id} className="border rounded-lg p-4 space-y-4">
+                <div key={item.id} className="border rounded-lg p-3 space-y-3">
                   <div className="flex items-center justify-between">
                     <Badge variant="outline">{CATEGORY_DISPLAY_MAP[item.category]}</Badge>
                     {!estimateItem && (
@@ -911,7 +911,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       </Card>
 
       {/* Notes and Attachments */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
             <CardTitle>Notes</CardTitle>
