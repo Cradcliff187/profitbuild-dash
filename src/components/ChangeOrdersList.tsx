@@ -286,11 +286,11 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                       <TableCell>
                         {changeOrder.margin_impact !== null && changeOrder.margin_impact !== undefined && changeOrder.client_amount ? (
                           <div className="space-y-1">
-                            <span className={`font-medium ${
-                              changeOrder.margin_impact >= 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              ${changeOrder.margin_impact.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                            </span>
+                             <span className={`font-medium ${
+                               changeOrder.margin_impact >= 0 ? 'text-green-600' : 'text-red-600'
+                             }`}>
+                               {formatCurrency(changeOrder.margin_impact, { showCents: false })}
+                             </span>
                             <div className={`text-xs ${
                               changeOrder.margin_impact >= 0 ? 'text-green-500' : 'text-red-500'
                             }`}>
@@ -332,9 +332,9 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Approve Change Order</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to approve change order {changeOrder.change_order_number} for ${(changeOrder.client_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}?
-                                    </AlertDialogDescription>
+                                   <AlertDialogDescription>
+                                     Are you sure you want to approve change order {changeOrder.change_order_number} for {formatCurrency(changeOrder.client_amount || 0, { showCents: true })}?
+                                   </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>

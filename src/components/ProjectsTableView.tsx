@@ -28,7 +28,7 @@ import { Project, ProjectStatus } from "@/types/project";
 import { ProjectWithFinancials } from "@/utils/projectFinancials";
 import { FinancialTableTemplate, FinancialTableColumn } from "@/components/FinancialTableTemplate";
 
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 interface ProjectsTableViewProps {
   projects: ProjectWithFinancials[];
@@ -267,15 +267,6 @@ export const ProjectsTableView = ({
     );
   };
 
-  const formatCurrency = (amount: number | null | undefined) => {
-    if (amount === null || amount === undefined) return <span className="text-muted-foreground text-xs">N/A</span>;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const getProjectType = (type: string) => {
     return type === 'construction_project' ? 'Construction' : 'Work Order';

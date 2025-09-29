@@ -7,7 +7,7 @@ import { Estimate, EstimateStatus } from "@/types/estimate";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
 import { BudgetComparisonBadge, BudgetComparisonStatus } from "./BudgetComparisonBadge";
 import { EstimateActionsMenu } from "./EstimateActionsMenu";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { 
   calculateEstimateFinancials, 
   getMarginPerformanceStatus, 
@@ -193,7 +193,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       width: '120px',
       render: (estimate) => (
         <div className="font-semibold text-sm tabular-nums">
-          ${estimate.total_amount.toLocaleString()}
+          {formatCurrency(estimate.total_amount, { showCents: false })}
         </div>
       ),
     },
@@ -206,7 +206,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         const financials = calculateEstimateFinancials(estimate.lineItems);
         return (
           <div className="text-sm tabular-nums text-foreground/80">
-            ${financials.totalCost.toLocaleString()}
+            {formatCurrency(financials.totalCost, { showCents: false })}
           </div>
         );
       },
@@ -223,7 +223,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
             "text-sm tabular-nums font-medium",
             financials.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'
           )}>
-            ${financials.grossProfit.toLocaleString()}
+            {formatCurrency(financials.grossProfit, { showCents: false })}
           </div>
         );
       },
@@ -281,7 +281,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         const financials = calculateEstimateFinancials(estimate.lineItems);
         return (
           <div className="text-sm tabular-nums text-foreground/80">
-            ${financials.totalMarkupAmount.toLocaleString()}
+            {formatCurrency(financials.totalMarkupAmount, { showCents: false })}
           </div>
         );
       },
@@ -310,7 +310,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
             "text-xs font-semibold tabular-nums",
             variance < 0 ? 'text-green-700' : 'text-red-700'
           )}>
-            {variance < 0 ? '-' : '+'}${Math.abs(variance).toLocaleString()}
+            {formatCurrency(variance, { showCents: false })}
           </div>
         );
       },

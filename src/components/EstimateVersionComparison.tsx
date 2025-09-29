@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Estimate } from "@/types/estimate";
+import { formatCurrency } from "@/lib/utils";
 
 interface EstimateVersionComparisonProps {
   projectId: string;
@@ -106,11 +107,11 @@ export const EstimateVersionComparison = ({ projectId, onClose }: EstimateVersio
     const color = amount > 0 ? 'text-green-600' : 'text-red-600';
     const sign = amount > 0 ? '+' : '';
     
-    return (
-      <span className={color}>
-        {sign}${Math.abs(amount).toLocaleString()} ({sign}{percentage.toFixed(1)}%)
-      </span>
-    );
+     return (
+       <span className={color}>
+         {formatCurrency(amount, { showCents: false })} ({sign}{percentage.toFixed(1)}%)
+       </span>
+     );
   };
 
   if (loading) {
@@ -171,11 +172,11 @@ export const EstimateVersionComparison = ({ projectId, onClose }: EstimateVersio
                 <SelectValue placeholder="Select version" />
               </SelectTrigger>
               <SelectContent>
-                {estimates.map((estimate) => (
-                  <SelectItem key={estimate.id} value={estimate.id}>
-                    Version {estimate.version_number} - ${estimate.total_amount.toLocaleString()}
-                  </SelectItem>
-                ))}
+                 {estimates.map((estimate) => (
+                   <SelectItem key={estimate.id} value={estimate.id}>
+                     Version {estimate.version_number} - {formatCurrency(estimate.total_amount, { showCents: false })}
+                   </SelectItem>
+                 ))}
               </SelectContent>
             </Select>
           </div>
@@ -191,12 +192,12 @@ export const EstimateVersionComparison = ({ projectId, onClose }: EstimateVersio
                 <SelectValue placeholder="Select version" />
               </SelectTrigger>
               <SelectContent>
-                {estimates.map((estimate) => (
-                  <SelectItem key={estimate.id} value={estimate.id}>
-                    Version {estimate.version_number} - ${estimate.total_amount.toLocaleString()}
-                    {estimate.is_current_version && " (Current)"}
-                  </SelectItem>
-                ))}
+                 {estimates.map((estimate) => (
+                   <SelectItem key={estimate.id} value={estimate.id}>
+                     Version {estimate.version_number} - {formatCurrency(estimate.total_amount, { showCents: false })}
+                     {estimate.is_current_version && " (Current)"}
+                   </SelectItem>
+                 ))}
               </SelectContent>
             </Select>
           </div>
@@ -216,11 +217,11 @@ export const EstimateVersionComparison = ({ projectId, onClose }: EstimateVersio
                     <Badge variant="outline">{version1.status}</Badge>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <div className="text-2xl font-bold">
-                      ${version1.total_amount.toLocaleString()}
-                    </div>
+                 <CardContent className="space-y-3">
+                   <div>
+                     <div className="text-2xl font-bold">
+                       {formatCurrency(version1.total_amount, { showCents: false })}
+                     </div>
                     <div className="text-sm text-muted-foreground">
                       Created: {format(version1.date_created, 'MMM dd, yyyy')}
                     </div>
@@ -258,11 +259,11 @@ export const EstimateVersionComparison = ({ projectId, onClose }: EstimateVersio
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <div className="text-2xl font-bold">
-                      ${version2.total_amount.toLocaleString()}
-                    </div>
+                 <CardContent className="space-y-3">
+                   <div>
+                     <div className="text-2xl font-bold">
+                       {formatCurrency(version2.total_amount, { showCents: false })}
+                     </div>
                     <div className="text-sm text-muted-foreground">
                       Created: {format(version2.date_created, 'MMM dd, yyyy')}
                     </div>

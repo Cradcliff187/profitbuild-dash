@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ProfitChart from './ProfitChart';
 import ProjectProfitTable from './ProjectProfitTable';
 import { DollarSign, TrendingUp, Calendar, Target } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 interface ProfitAnalysisProps {
   estimates: Estimate[];
@@ -39,36 +40,36 @@ export default function ProfitAnalysis({ estimates, quotes, expenses, projects }
     [estimates, quotes, expenses, projects]
   );
 
-  const summaryCards = [
-    {
-      title: 'Total Profit',
-      value: `$${analytics.totalProfit.toLocaleString()}`,
-      description: 'Across all projects',
-      icon: DollarSign,
-      color: analytics.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'
-    },
-    {
-      title: 'Average Margin',
-      value: `${analytics.averageMargin.toFixed(1)}%`,  
-      description: 'Profit margin percentage',
-      icon: Target,
-      color: analytics.averageMargin >= 20 ? 'text-green-600' : analytics.averageMargin >= 10 ? 'text-yellow-600' : 'text-red-600'
-    },
-    {
-      title: 'Monthly Run Rate',
-      value: `$${analytics.quarterlyRunRate.toLocaleString()}`,
-      description: 'Average monthly profit',
-      icon: Calendar,
-      color: 'text-primary'
-    },
-    {
-      title: 'Projected Annual',
-      value: `$${analytics.projectedAnnualProfit.toLocaleString()}`,
-      description: 'Based on current trends',
-      icon: TrendingUp,
-      color: 'text-primary'
-    }
-  ];
+   const summaryCards = [
+     {
+       title: 'Total Profit',
+       value: formatCurrency(analytics.totalProfit, { showCents: false }),
+       description: 'Across all projects',
+       icon: DollarSign,
+       color: analytics.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'
+     },
+     {
+       title: 'Average Margin',
+       value: `${analytics.averageMargin.toFixed(1)}%`,  
+       description: 'Profit margin percentage',
+       icon: Target,
+       color: analytics.averageMargin >= 20 ? 'text-green-600' : analytics.averageMargin >= 10 ? 'text-yellow-600' : 'text-red-600'
+     },
+     {
+       title: 'Monthly Run Rate',
+       value: formatCurrency(analytics.quarterlyRunRate, { showCents: false }),
+       description: 'Average monthly profit',
+       icon: Calendar,
+       color: 'text-primary'
+     },
+     {
+       title: 'Projected Annual',
+       value: formatCurrency(analytics.projectedAnnualProfit, { showCents: false }),
+       description: 'Based on current trends',
+       icon: TrendingUp,
+       color: 'text-primary'
+     }
+   ];
 
   return (
     <div className="space-y-6">
@@ -182,12 +183,12 @@ export default function ProfitAnalysis({ estimates, quotes, expenses, projects }
                 </div>
                 <div className="text-sm text-muted-foreground">Total Projects</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">
-                  ${analytics.totalRevenue.toLocaleString()}
-                </div>
-                <div className="text-sm text-muted-foreground">Total Revenue</div>
-              </div>
+               <div className="text-center">
+                 <div className="text-2xl font-bold text-primary">
+                   {formatCurrency(analytics.totalRevenue, { showCents: false })}
+                 </div>
+                 <div className="text-sm text-muted-foreground">Total Revenue</div>
+               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
                   {analytics.monthlyTrends.length}

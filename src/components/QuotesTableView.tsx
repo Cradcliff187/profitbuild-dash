@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -250,7 +251,7 @@ export const QuotesTableView = ({
       width: '120px',
       render: (quote) => (
         <div className="font-semibold text-sm tabular-nums">
-          ${quote.total.toLocaleString()}
+          {formatCurrency(quote.total, { showCents: false })}
         </div>
       ),
     },
@@ -263,7 +264,7 @@ export const QuotesTableView = ({
         const estimateCost = getEstimateLineItemCost(quote);
         return (
           <div className="text-sm tabular-nums text-foreground/80">
-            {estimateCost !== null ? `$${estimateCost.toLocaleString()}` : 'N/A'}
+            {estimateCost !== null ? formatCurrency(estimateCost, { showCents: false }) : 'N/A'}
           </div>
         );
       },
@@ -277,7 +278,7 @@ export const QuotesTableView = ({
         const quotedAmount = getQuotedAmountForEstimateMatch(quote);
         return (
           <div className="text-sm tabular-nums font-medium">
-            {quotedAmount !== null ? `$${quotedAmount.toLocaleString()}` : 'N/A'}
+            {quotedAmount !== null ? formatCurrency(quotedAmount, { showCents: false }) : 'N/A'}
           </div>
         );
       },
@@ -298,8 +299,7 @@ export const QuotesTableView = ({
               variance.status === 'under' ? 'text-green-700' : 
               variance.status === 'over' ? 'text-red-700' : 'text-foreground/70'
             )}>
-              {variance.status === 'over' ? '+' : variance.status === 'under' ? '-' : ''}
-              ${variance.amount.toLocaleString()}
+              {formatCurrency(variance.status === 'under' ? -variance.amount : variance.amount, { showCents: false })}
             </div>
             <div className={cn(
               "text-xs tabular-nums",

@@ -282,9 +282,9 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-lg font-bold text-foreground font-mono">
-                          ${currentVersion.total_amount.toLocaleString()}
-                        </div>
+                         <div className="text-lg font-bold text-foreground font-mono">
+                           {formatCurrency(currentVersion.total_amount, { showCents: false })}
+                         </div>
                         <div className="text-label text-muted-foreground">Total Amount</div>
                       </div>
                     </div>
@@ -297,11 +297,11 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
                         <div className="flex items-center gap-1">
                           <BudgetComparisonBadge status={quoteStatus} />
                           {bestQuoteVariance && (
-                            <span className={`text-data font-mono font-medium ${
-                              bestQuoteVariance.variance < 0 ? 'text-success' : 'text-destructive'
-                            }`}>
-                              {bestQuoteVariance.variance < 0 ? '-' : '+'}${Math.abs(bestQuoteVariance.variance).toLocaleString()}
-                            </span>
+                             <span className={`text-data font-mono font-medium ${
+                               bestQuoteVariance.variance < 0 ? 'text-success' : 'text-destructive'
+                             }`}>
+                               {formatCurrency(bestQuoteVariance.variance, { showCents: false })}
+                             </span>
                           )}
                         </div>
                       </div>
@@ -391,12 +391,12 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
                                     )}
                                   </div>
                                 </div>
-                                <div className="flex items-center space-x-3">
-                                  <div className="text-right">
-                                    <span className="font-semibold text-sm">
-                                      ${estimate.total_amount.toLocaleString()}
-                                    </span>
-                                  </div>
+                                 <div className="flex items-center space-x-3">
+                                   <div className="text-right">
+                                     <span className="font-semibold text-sm">
+                                       {formatCurrency(estimate.total_amount, { showCents: false })}
+                                     </span>
+                                   </div>
                                   <div className="flex space-x-1">
                                     <Button
                                       variant="ghost"

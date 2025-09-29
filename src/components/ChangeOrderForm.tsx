@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Database } from "@/integrations/supabase/types";
+import { formatCurrency } from "@/lib/utils";
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 
@@ -293,14 +294,9 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
                   <h4 className="text-sm font-medium text-muted-foreground">Profit Calculation</h4>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Margin Impact:</span>
-                    <span className={`text-lg font-semibold ${marginImpact >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
-                      {marginImpact.toLocaleString('en-US', {
-                        style: 'currency',
-                        currency: 'USD',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      })}
-                    </span>
+                     <span className={`text-lg font-semibold ${marginImpact >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
+                       {formatCurrency(marginImpact, { showCents: false })}
+                     </span>
                   </div>
                   {form.watch("client_amount") > 0 && (
                     <div className="flex items-center justify-between">
@@ -337,13 +333,13 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
                         <p>This change order will be funded from project contingency</p>
                         {contingencyRemaining > 0 && (
                           <div className="space-y-1">
-                            <p>Remaining contingency: ${contingencyRemaining.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-                            {usesContingency && costImpactValue > 0 && (
-                              <p className={`${showContingencyWarning ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                                After this change: ${Math.max(contingencyAfterUse, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                {showContingencyWarning && " (Exceeds available contingency!)"}
-                              </p>
-                            )}
+                             <p>Remaining contingency: {formatCurrency(contingencyRemaining, { showCents: true })}</p>
+                             {usesContingency && costImpactValue > 0 && (
+                               <p className={`${showContingencyWarning ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                                 After this change: {formatCurrency(Math.max(contingencyAfterUse, 0), { showCents: true })}
+                                 {showContingencyWarning && " (Exceeds available contingency!)"}
+                               </p>
+                             )}
                           </div>
                         )}
                         {usesContingency && (

@@ -1,6 +1,7 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { ProfitTrend } from '@/types/profit';
+import { formatCurrency } from '@/lib/utils';
 
 interface ProfitChartProps {
   data: ProfitTrend[];
@@ -22,12 +23,12 @@ export default function ProfitChart({ data, type, dataKey, title, height = 300 }
     },
   };
 
-  const formatValue = (value: number) => {
-    if (dataKey === 'totalProfit') {
-      return `$${value.toLocaleString()}`;
-    }
-    return `${value.toFixed(1)}%`;
-  };
+   const formatValue = (value: number) => {
+     if (dataKey === 'totalProfit') {
+       return formatCurrency(value, { showCents: false });
+     }
+     return `${value.toFixed(1)}%`;
+   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -41,11 +42,11 @@ export default function ProfitChart({ data, type, dataKey, title, height = 300 }
           <p className="text-sm font-medium" style={{ color: payload[0].color }}>
             {payload[0].name}: {formatValue(payload[0].value)}
           </p>
-          {dataKey === 'totalProfit' && (
-            <p className="text-sm text-muted-foreground">
-              Revenue: ${data.totalRevenue?.toLocaleString()}
-            </p>
-          )}
+           {dataKey === 'totalProfit' && (
+             <p className="text-sm text-muted-foreground">
+               Revenue: {formatCurrency(data.totalRevenue, { showCents: false })}
+             </p>
+           )}
         </div>
       );
     }

@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { EntityTableTemplate } from "./EntityTableTemplate";
 import { ExpenseBulkActions } from "./ExpenseBulkActions";
 import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from "@/types/expense";
+import { formatCurrency } from "@/lib/utils";
 
 interface ExpensesListProps {
   expenses: Expense[];
@@ -262,7 +263,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       label: 'Amount',
       render: (expense: Expense) => (
         <div className="text-right text-data font-mono font-medium">
-          ${expense.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          {formatCurrency(expense.amount, { showCents: true })}
         </div>
       )
     },
@@ -357,7 +358,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
 
       <EntityTableTemplate
         title="All Expenses"
-        description={`Manage your project expenses (${filteredExpenses.length} total) • Total: $${filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+        description={`Manage your project expenses (${filteredExpenses.length} total) • Total: ${formatCurrency(filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0), { showCents: true })}`}
         data={filteredExpenses}
         columns={columns}
         isLoading={false}

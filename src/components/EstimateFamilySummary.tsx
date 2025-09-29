@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Estimate } from "@/types/estimate";
+import { formatCurrency } from "@/lib/utils";
 
 interface EstimateFamilySummaryProps {
   projectId: string;
@@ -190,14 +191,14 @@ export const EstimateFamilySummary = ({
                 {currentVersion.status}
               </Badge>
             </div>
-            <div className="text-right">
-              <div className="font-bold text-lg">
-                ${currentVersion.total_amount.toLocaleString()}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {format(currentVersion.date_created, 'MMM dd, yyyy')}
-              </div>
-            </div>
+             <div className="text-right">
+               <div className="font-bold text-lg">
+                 {formatCurrency(currentVersion.total_amount, { showCents: false })}
+               </div>
+               <div className="text-xs text-muted-foreground">
+                 {format(currentVersion.date_created, 'MMM dd, yyyy')}
+               </div>
+             </div>
           </div>
 
           {currentVersion.valid_until && (
@@ -209,12 +210,12 @@ export const EstimateFamilySummary = ({
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Contingency:</span>
-              <div className="font-medium">
-                {currentVersion.contingency_percent}% (${(currentVersion.contingency_amount || 0).toLocaleString()})
-              </div>
-            </div>
+             <div>
+               <span className="text-muted-foreground">Contingency:</span>
+               <div className="font-medium">
+                 {currentVersion.contingency_percent}% ({formatCurrency(currentVersion.contingency_amount || 0, { showCents: false })})
+               </div>
+             </div>
             <div>
               <span className="text-muted-foreground">Status:</span>
               <div className="font-medium capitalize">{currentVersion.status.replace('_', ' ')}</div>
@@ -238,12 +239,12 @@ export const EstimateFamilySummary = ({
                       {estimate.status}
                     </Badge>
                   </div>
-                  <div className="text-right">
-                    <div className="font-medium">${estimate.total_amount.toLocaleString()}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {format(estimate.date_created, 'MMM dd')}
-                    </div>
-                  </div>
+                   <div className="text-right">
+                     <div className="font-medium">{formatCurrency(estimate.total_amount, { showCents: false })}</div>
+                     <div className="text-xs text-muted-foreground">
+                       {format(estimate.date_created, 'MMM dd')}
+                     </div>
+                   </div>
                 </div>
               ))}
               {totalVersions > 3 && (

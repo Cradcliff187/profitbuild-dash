@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { VarianceBadge } from '@/components/ui/variance-badge';
 import { CompletePagination } from '@/components/ui/complete-pagination';
 import { usePagination } from '@/hooks/usePagination';
+import { formatCurrency } from '@/lib/utils';
 
 interface ProjectProfitTableProps {
   data: ProjectProfitData[];
@@ -254,15 +255,15 @@ export default function ProjectProfitTable({
                     <TableCell>
                       {getStatusBadge(project.status)}
                     </TableCell>
-                    <TableCell className="text-right font-medium">
-                      ${project.quoteTotal.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      ${project.actualExpenses.toLocaleString()}
-                    </TableCell>
-                    <TableCell className={`text-right font-medium ${getProfitColor(project.actualProfit)}`}>
-                      ${project.actualProfit.toLocaleString()}
-                    </TableCell>
+                     <TableCell className="text-right font-medium">
+                       {formatCurrency(project.quoteTotal, { showCents: false })}
+                     </TableCell>
+                     <TableCell className="text-right">
+                       {formatCurrency(project.actualExpenses, { showCents: false })}
+                     </TableCell>
+                     <TableCell className={`text-right font-medium ${getProfitColor(project.actualProfit)}`}>
+                       {formatCurrency(project.actualProfit, { showCents: false })}
+                     </TableCell>
                     <TableCell className={`text-right font-medium ${getProfitColor(project.profitMargin)}`}>
                       {project.profitMargin.toFixed(1)}%
                     </TableCell>

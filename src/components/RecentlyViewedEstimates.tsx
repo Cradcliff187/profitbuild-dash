@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Eye, Calculator } from "lucide-react";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 interface RecentEstimate {
   id: string;
@@ -132,10 +133,10 @@ export const RecentlyViewedEstimates = ({ onViewEstimate }: RecentlyViewedEstima
                   {estimate.status}
                 </Badge>
               </div>
-              <div className="text-xs text-muted-foreground">
-                <p className="truncate">{estimate.client_name}</p>
-                <p>${estimate.total_amount.toLocaleString()}</p>
-              </div>
+               <div className="text-xs text-muted-foreground">
+                 <p className="truncate">{estimate.client_name}</p>
+                 <p>{formatCurrency(estimate.total_amount, { showCents: false })}</p>
+               </div>
             </div>
             <div className="flex items-center gap-2 ml-3">
               <div className="text-right text-xs text-muted-foreground">
