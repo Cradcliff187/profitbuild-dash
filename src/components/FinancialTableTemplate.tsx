@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ChevronUp, ChevronDown, Eye, Edit, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -101,7 +102,7 @@ export function FinancialTableTemplate<T>({
   };
 
   const renderTableHeader = () => (
-    <TableHeader>
+    <TableHeader className="sticky top-0 bg-card z-10 border-b">
       <TableRow className="border-b border-border/50 hover:bg-transparent">
         {columns.map((column) => (
           <TableHead
@@ -256,13 +257,15 @@ export function FinancialTableTemplate<T>({
 
   return (
     <>
-      <div className={cn("border border-border/50 rounded-lg overflow-hidden bg-card", className)}>
-        <Table>
-          {renderTableHeader()}
-          <TableBody>
-            {isGrouped ? renderGroupedData() : renderSimpleData()}
-          </TableBody>
-        </Table>
+      <div className={cn("border border-border/50 rounded-lg bg-card", className)}>
+        <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px]">
+          <Table>
+            {renderTableHeader()}
+            <TableBody>
+              {isGrouped ? renderGroupedData() : renderSimpleData()}
+            </TableBody>
+          </Table>
+        </ScrollArea>
       </div>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

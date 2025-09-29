@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Eye, Edit2, Trash2 } from 'lucide-react';
@@ -55,7 +56,7 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
   emptyMessage = "No items found.",
   noResultsMessage = "No items match your current filters.",
   enablePagination = false,
-  pageSize = 10,
+  pageSize = 25,
   currentPage,
   onPageChange
 }) => {
@@ -124,93 +125,95 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
               {noResultsMessage}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="h-table-header">
-                  <TableHead className="w-8 p-compact">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={onSelectAll}
-                      aria-label="Select all items"
-                    />
-                  </TableHead>
-                  {columns.map((column) => (
-                    <TableHead key={column.key} className="p-compact text-label font-medium">{column.label}</TableHead>
-                  ))}
-                  <TableHead className="w-24 p-compact text-label">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {displayedData.map((item, index) => (
-                  <TableRow key={item.id} className="h-table-row-dense data-table-row">
-                    <TableCell className="p-compact">
+            <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px]">
+              <Table>
+                <TableHeader className="sticky top-0 bg-card z-10 border-b">
+                  <TableRow className="h-table-header">
+                    <TableHead className="w-8 p-compact">
                       <Checkbox
-                        checked={selectedItems.includes(item.id)}
-                        onCheckedChange={() => onSelectItem(item.id)}
-                        aria-label={`Select ${item.name || item.client_name || item.payee_name}`}
+                        checked={allSelected}
+                        onCheckedChange={onSelectAll}
+                        aria-label="Select all items"
                       />
-                    </TableCell>
+                    </TableHead>
                     {columns.map((column) => (
-                      <TableCell key={column.key} className="p-compact text-data">
-                        {column.render ? column.render(item) : item[column.key] || '-'}
-                      </TableCell>
+                      <TableHead key={column.key} className="p-compact text-label font-medium">{column.label}</TableHead>
                     ))}
-                    <TableCell className="p-compact">
-                      <div className="flex items-center gap-1">
-                        {onView && (
+                    <TableHead className="w-24 p-compact text-label">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {displayedData.map((item, index) => (
+                    <TableRow key={item.id} className="h-table-row-dense data-table-row">
+                      <TableCell className="p-compact">
+                        <Checkbox
+                          checked={selectedItems.includes(item.id)}
+                          onCheckedChange={() => onSelectItem(item.id)}
+                          aria-label={`Select ${item.name || item.client_name || item.payee_name}`}
+                        />
+                      </TableCell>
+                      {columns.map((column) => (
+                        <TableCell key={column.key} className="p-compact text-data">
+                          {column.render ? column.render(item) : item[column.key] || '-'}
+                        </TableCell>
+                      ))}
+                      <TableCell className="p-compact">
+                        <div className="flex items-center gap-1">
+                          {onView && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onView(item)}
+                              className="h-input-compact w-input-compact p-0"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => onView(item)}
+                            onClick={() => onEdit(item)}
                             className="h-input-compact w-input-compact p-0"
                           >
-                            <Eye className="h-3 w-3" />
+                            <Edit2 className="h-3 w-3" />
                           </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onEdit(item)}
-                          className="h-input-compact w-input-compact p-0"
-                        >
-                          <Edit2 className="h-3 w-3" />
-                        </Button>
-                        {onDelete && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-input-compact w-input-compact p-0 text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Item</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete this item? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => onDelete(item.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          {onDelete && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-input-compact w-input-compact p-0 text-destructive hover:text-destructive"
                                 >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Item</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this item? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => onDelete(item.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
           )}
           
           {enablePagination && data.length > 0 && totalPages > 1 && (
