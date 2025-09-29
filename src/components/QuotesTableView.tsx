@@ -250,7 +250,7 @@ export const QuotesTableView = ({
       align: 'right',
       width: '120px',
       render: (quote) => (
-        <div className="font-semibold text-sm tabular-nums">
+        <div className="font-semibold text-sm font-mono tabular-nums">
           {formatCurrency(quote.total, { showCents: false })}
         </div>
       ),
@@ -263,7 +263,7 @@ export const QuotesTableView = ({
       render: (quote) => {
         const estimateCost = getEstimateLineItemCost(quote);
         return (
-          <div className="text-sm tabular-nums text-foreground/80">
+          <div className="text-sm font-mono tabular-nums text-foreground/80">
             {estimateCost !== null ? formatCurrency(estimateCost, { showCents: false }) : 'N/A'}
           </div>
         );
@@ -277,7 +277,7 @@ export const QuotesTableView = ({
       render: (quote) => {
         const quotedAmount = getQuotedAmountForEstimateMatch(quote);
         return (
-          <div className="text-sm tabular-nums font-medium">
+          <div className="text-sm font-mono tabular-nums font-medium">
             {quotedAmount !== null ? formatCurrency(quotedAmount, { showCents: false }) : 'N/A'}
           </div>
         );
@@ -295,14 +295,14 @@ export const QuotesTableView = ({
         return (
           <div className="space-y-1">
             <div className={cn(
-              "text-xs font-semibold tabular-nums",
+              "text-xs font-semibold font-mono tabular-nums",
               variance.status === 'under' ? 'text-green-700' : 
               variance.status === 'over' ? 'text-red-700' : 'text-foreground/70'
             )}>
               {formatCurrency(variance.status === 'under' ? -variance.amount : variance.amount, { showCents: false })}
             </div>
             <div className={cn(
-              "text-xs tabular-nums",
+              "text-xs font-mono tabular-nums",
               variance.status === 'under' ? 'text-green-600' : 
               variance.status === 'over' ? 'text-red-600' : 'text-foreground/50'
             )}>

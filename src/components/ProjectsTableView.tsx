@@ -106,7 +106,7 @@ export const ProjectsTableView = ({
     }
     
     return (
-      <Badge variant="outline" className={className}>
+      <Badge variant="outline" className={cn(className, "font-mono tabular-nums")}>
         {icon}
         {marginPercentage.toFixed(1)}%
       </Badge>
@@ -505,7 +505,7 @@ export const ProjectsTableView = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="text-right cursor-help">
-                  <div className="font-medium text-sm text-muted-foreground">
+                  <div className="font-medium text-sm font-mono tabular-nums text-muted-foreground">
                     {formatCurrency(latestEstimate.total_amount)}
                   </div>
                   <div className="text-xs text-blue-600">Pending approval</div>
@@ -522,7 +522,7 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className="font-medium text-sm">{formatCurrency(project.contracted_amount)}</div>
+                <div className="font-medium text-sm font-mono tabular-nums">{formatCurrency(project.contracted_amount)}</div>
               </div>
             </TooltipTrigger>
             <TooltipContent>
@@ -541,7 +541,7 @@ export const ProjectsTableView = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="text-right cursor-help">
-              <div className="font-medium text-sm">{formatCurrency(project.originalContractAmount)}</div>
+              <div className="font-medium text-sm font-mono tabular-nums">{formatCurrency(project.originalContractAmount)}</div>
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -615,7 +615,7 @@ export const ProjectsTableView = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="text-right cursor-help">
-              <div className="font-medium text-sm">{formatCurrency(project.originalEstimatedCosts)}</div>
+              <div className="font-medium text-sm font-mono tabular-nums">{formatCurrency(project.originalEstimatedCosts)}</div>
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -639,7 +639,7 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className={`font-medium text-sm ${
+                <div className={`font-medium text-sm font-mono tabular-nums ${
                   isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`}>
                   {formatCurrency(originalMargin)}
@@ -673,7 +673,7 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className="font-medium text-sm">
+                <div className="font-medium text-sm font-mono tabular-nums">
                   {formatCurrency(project.adjusted_est_costs || 0)}
                 </div>
               </div>
@@ -714,7 +714,7 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className={`font-medium text-sm ${
+                <div className={`font-medium text-sm font-mono tabular-nums ${
                   isIncrease ? 'text-red-600 dark:text-red-400' : 
                   variance < 0 ? 'text-green-600 dark:text-green-400' : 
                   'text-muted-foreground'
@@ -752,7 +752,7 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className={`font-medium text-sm ${
+                <div className={`font-medium text-sm font-mono tabular-nums ${
                   isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`}>
                   {formatCurrency(projectedMargin)}
@@ -774,7 +774,7 @@ export const ProjectsTableView = ({
     {
       key: 'margin_percentage',
       label: 'Projected Margin %',
-      align: 'center' as const,
+      align: 'right' as const,
       sortable: true,
       render: (project: ProjectWithFinancials) => {
         const projectedMarginPct = project.currentContractAmount > 0 
@@ -786,8 +786,8 @@ export const ProjectsTableView = ({
         return (
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-center cursor-help">
-                <div className="flex items-center justify-center">
+              <div className="text-right cursor-help">
+                <div className="flex items-center justify-end">
                   {getMarginBadge(projectedMarginPct, project.target_margin, project.minimum_margin_threshold)}
                 </div>
               </div>
@@ -813,7 +813,7 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className="font-medium text-sm">{formatCurrency(actualExpenses)}</div>
+                <div className="font-medium text-sm font-mono tabular-nums">{formatCurrency(actualExpenses)}</div>
                 {adjustedCosts > 0 && (
                   <div className="text-xs text-muted-foreground">
                     {percentOfBudget.toFixed(0)}% of budget
@@ -867,8 +867,8 @@ export const ProjectsTableView = ({
       render: (project) => (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="cursor-help">
-              {formatCurrency(project.contingencyRemaining)}
+            <div className="cursor-help text-right">
+              <span className="font-mono tabular-nums">{formatCurrency(project.contingencyRemaining)}</span>
             </div>
           </TooltipTrigger>
           <TooltipContent>

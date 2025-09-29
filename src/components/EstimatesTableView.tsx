@@ -192,7 +192,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       align: 'right',
       width: '120px',
       render: (estimate) => (
-        <div className="font-semibold text-sm tabular-nums">
+        <div className="font-semibold text-sm font-mono tabular-nums">
           {formatCurrency(estimate.total_amount, { showCents: false })}
         </div>
       ),
@@ -205,7 +205,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       render: (estimate) => {
         const financials = calculateEstimateFinancials(estimate.lineItems);
         return (
-          <div className="text-sm tabular-nums text-foreground/80">
+          <div className="text-sm font-mono tabular-nums text-foreground/80">
             {formatCurrency(financials.totalCost, { showCents: false })}
           </div>
         );
@@ -220,7 +220,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         const financials = calculateEstimateFinancials(estimate.lineItems);
         return (
           <div className={cn(
-            "text-sm tabular-nums font-medium",
+            "text-sm font-mono tabular-nums font-medium",
             financials.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'
           )}>
             {formatCurrency(financials.grossProfit, { showCents: false })}
@@ -231,7 +231,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     {
       key: 'gross_margin_percent',
       label: 'Margin %',
-      align: 'center',
+      align: 'right',
       width: '90px',
       render: (estimate) => {
         const financials = calculateEstimateFinancials(estimate.lineItems);
@@ -239,7 +239,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         
         return (
           <div className={cn(
-            "text-sm font-semibold tabular-nums",
+            "text-sm font-semibold font-mono tabular-nums",
             status === 'excellent' && 'text-green-700',
             status === 'good' && 'text-blue-700',
             status === 'poor' && 'text-yellow-700',
@@ -253,7 +253,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     {
       key: 'markup_percent',
       label: 'Markup %',
-      align: 'center',
+      align: 'right',
       width: '90px',
       render: (estimate) => {
         const financials = calculateEstimateFinancials(estimate.lineItems);
@@ -261,7 +261,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         
         return (
           <div className={cn(
-            "text-sm tabular-nums",
+            "text-sm font-mono tabular-nums",
             status === 'excellent' && 'text-green-700',
             status === 'good' && 'text-blue-700',
             status === 'poor' && 'text-yellow-700',
@@ -280,7 +280,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       render: (estimate) => {
         const financials = calculateEstimateFinancials(estimate.lineItems);
         return (
-          <div className="text-sm tabular-nums text-foreground/80">
+          <div className="text-sm font-mono tabular-nums text-foreground/80">
             {formatCurrency(financials.totalMarkupAmount, { showCents: false })}
           </div>
         );
@@ -307,7 +307,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         
         return (
           <div className={cn(
-            "text-xs font-semibold tabular-nums",
+            "text-xs font-semibold font-mono tabular-nums",
             variance < 0 ? 'text-green-700' : 'text-red-700'
           )}>
             {formatCurrency(variance, { showCents: false })}
