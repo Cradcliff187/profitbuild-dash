@@ -17,6 +17,7 @@ interface LineItemTableProps {
   onRemoveLineItem: (id: string) => void;
   onAddLineItem: () => void;
   onEditDetails: (lineItem: LineItem) => void;
+  onDuplicateLineItem?: (lineItem: LineItem) => void;
 }
 
 const getCategoryColor = (category: LineItemCategory): string => {
@@ -172,6 +173,7 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
   onRemoveLineItem,
   onAddLineItem,
   onEditDetails,
+  onDuplicateLineItem,
 }) => {
   const calculateMarkupPercent = (lineItem: LineItem): number => {
     const { costPerUnit, pricePerUnit } = lineItem;
@@ -222,15 +224,10 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
     onUpdateLineItem(lineItemId, 'total', newTotal);
   };
 
-  const duplicateLineItem = (lineItem: LineItem) => {
-    // Create a new line item with the same data but new ID
-    const newLineItem = {
-      ...lineItem,
-      id: crypto.randomUUID(),
-      description: `${lineItem.description} (Copy)`,
-    };
-    // This would need to be handled by the parent component
-    console.log('Duplicate line item:', newLineItem);
+  const handleDuplicate = (lineItem: LineItem) => {
+    if (onDuplicateLineItem) {
+      onDuplicateLineItem(lineItem);
+    }
   };
 
   return (
@@ -355,7 +352,7 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                           <Edit className="h-3 w-3 mr-2" />
                           Edit Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => duplicateLineItem(lineItem)} className="text-xs">
+                        <DropdownMenuItem onClick={() => handleDuplicate(lineItem)} className="text-xs" disabled={!onDuplicateLineItem}>
                           <Copy className="h-3 w-3 mr-2" />
                           Duplicate
                         </DropdownMenuItem>

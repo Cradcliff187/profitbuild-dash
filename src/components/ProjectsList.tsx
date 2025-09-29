@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator } from "lucide-react";
+import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Project, ProjectStatus, ProjectType } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -132,6 +139,15 @@ export const ProjectsList = ({
     }
   };
 
+  const handleDuplicateProject = (project: Project) => {
+    // For now, just route to create new project page
+    // In the future, this could pre-populate the form with project data
+    toast({
+      title: "Feature Coming Soon",
+      description: "Project duplication will be available in a future update",
+    });
+  };
+
 
   // Pagination
   const {
@@ -187,15 +203,28 @@ export const ProjectsList = ({
                   </div>
                 </div>
                 <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-input-compact w-input-compact p-0"
-                    onClick={() => onEdit(project)}
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-...
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-input-compact w-input-compact p-0">
+                        <MoreHorizontal className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem onClick={() => onEdit(project)}>
+                        <Edit className="h-3 w-3 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDuplicateProject(project)}>
+                        <Copy className="h-3 w-3 mr-2" />
+                        Duplicate
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleDeleteProject(project.id)} className="text-destructive">
+                        <Trash2 className="h-3 w-3 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </CardHeader>

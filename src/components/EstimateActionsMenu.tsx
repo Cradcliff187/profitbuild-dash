@@ -168,6 +168,20 @@ export const EstimateActionsMenu = ({
     }
   };
 
+  const duplicateEstimate = async () => {
+    try {
+      // Simply call the same function as version creation - it does exactly what we need
+      await createVersion();
+    } catch (error) {
+      console.error('Error duplicating estimate:', error);
+      toast({
+        title: "Error",
+        description: "Failed to duplicate estimate",
+        variant: "destructive"
+      });
+    }
+  };
+
   const createQuote = () => {
     // Navigate to quotes page with estimate pre-selected
     window.location.href = `/quotes?estimateId=${estimate.id}`;
@@ -292,9 +306,14 @@ export const EstimateActionsMenu = ({
 
         <DropdownMenuSeparator />
 
-        {/* Versioning Actions */}
-        <DropdownMenuItem onClick={createVersion}>
+        {/* Versioning & Duplication Actions */}
+        <DropdownMenuItem onClick={duplicateEstimate}>
           <Copy className="h-4 w-4 mr-2" />
+          Duplicate Estimate
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem onClick={createVersion}>
+          <FileText className="h-4 w-4 mr-2" />
           Create New Version
         </DropdownMenuItem>
 

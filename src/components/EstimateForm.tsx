@@ -51,18 +51,12 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   const [isLoading, setIsLoading] = useState(false);
   const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
-  const [showProjectCreationFirst, setShowProjectCreationFirst] = useState(false);
   
   // View state for line items
   const [viewMode, setViewMode] = useState<'compact' | 'detailed'>('compact');
   const [selectedLineItemForEdit, setSelectedLineItemForEdit] = useState<LineItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [projectsLoading, setProjectsLoading] = useState(true);
-  const [createdProjectFromFlow, setCreatedProjectFromFlow] = useState(false);
-  const [projectSelectedFromStep1, setProjectSelectedFromStep1] = useState(false);
-  
-  // Ref for smooth scrolling to Step 2
-  const step2Ref = useRef<HTMLDivElement>(null);
 
 useEffect(() => {
   // Load available projects once on mount
@@ -85,10 +79,9 @@ useEffect(() => {
 }, [projectId]);
 
 useEffect(() => {
-  // If a project is preselected via URL, ensure we don't show the project creation step
+  // If a project is preselected via URL, set it
   if (preselectedProjectId && !projectId) {
     setProjectId(preselectedProjectId);
-    setShowProjectCreationFirst(false);
   }
 }, [preselectedProjectId]);
 
@@ -111,11 +104,6 @@ useEffect(() => {
       })) || [];
 
       setAvailableProjects(formattedProjects);
-      
-      // Show project step only when no project is already chosen or preselected
-      if (!initialEstimate && !preselectedProjectId && !projectId && !createdProjectFromFlow && !projectSelectedFromStep1) {
-        setShowProjectCreationFirst(true);
-      }
     } catch (error) {
       console.error('Error loading available projects:', error);
       toast({
@@ -140,10 +128,8 @@ useEffect(() => {
   const handleCreateNewProject = (newProject: Project) => {
     // Add the new project to the available projects list
     setAvailableProjects(prev => [newProject, ...prev]);
-    // Auto-select the new project and transition to estimate form
+    // Auto-select the new project
     handleProjectSelect(newProject);
-    setShowProjectCreationFirst(false);
-    setCreatedProjectFromFlow(true);
   };
 
 
@@ -291,6 +277,15 @@ useEffect(() => {
 
   const addLineItem = () => {
     setLineItems(prev => [...prev, createNewLineItem()]);
+  };
+
+  const duplicateLineItem = (lineItem: LineItem) => {
+    const duplicated: LineItem = {
+      ...lineItem,
+      id: Date.now().toString() + Math.random(),
+      description: `${lineItem.description} (Copy)`,
+    };
+    setLineItems(prev => [...prev, duplicated]);
   };
 
   const calculateTotal = () => {
@@ -757,69 +752,10 @@ useEffect(() => {
     }
   };
 
-  // Debug logging
-  console.log('EstimateForm Debug:', {
-    showProjectCreationFirst,
-    projectsLoading,
-    availableProjects: availableProjects.length,
-    preselectedProjectId,
-    initialEstimate: !!initialEstimate
-  });
-
-  // Show project selection/creation step first for new estimates
-  if (showProjectCreationFirst && !projectsLoading && !projectId && !preselectedProjectId && !initialEstimate) {
-    console.log('Showing project step first');
-    return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-medium">1</span>
-              Project Selection
-              <span className="text-muted-foreground">→</span>
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-muted-foreground text-sm font-medium">2</span>
-              <span className="text-muted-foreground">Create Estimate</span>
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Choose a project for this estimate. You can select an existing project or create a new one.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ProjectSelectorNew
-              projects={availableProjects}
-              selectedProject={selectedProject}
-              onSelect={(project) => {
-                handleProjectSelect(project);
-                setShowProjectCreationFirst(false);
-                setProjectSelectedFromStep1(true);
-                
-                // Show success toast
-                toast({
-                  title: "Project Selected",
-                  description: `Selected "${project.project_name}" for this estimate.`
-                });
-                
-                // Smooth scroll to Step 2 after a brief delay
-                setTimeout(() => {
-                  step2Ref.current?.scrollIntoView({ 
-                    behavior: 'smooth',
-                    block: 'start'
-                  });
-                }, 100);
-              }}
-              onCreateNew={handleCreateNewProject}
-              placeholder="Select a project or create a new one..."
-            />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // If still loading projects, show loading state
   if (projectsLoading && !preselectedProjectId && !initialEstimate) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <Card>
           <CardContent className="py-8">
             <div className="text-center">Loading projects...</div>
@@ -831,20 +767,10 @@ useEffect(() => {
 
   return (
     <div className="space-y-4">
-      <Card ref={step2Ref}>
+      <Card>
         <CardHeader>
           <CardTitle>
-            {initialEstimate ? 'Edit Estimate' : (
-              createdProjectFromFlow ? 'Create Estimate' : (
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-muted-foreground text-sm font-medium">1</span>
-                  <span className="text-muted-foreground line-through">Create Project</span>
-                  <span className="text-muted-foreground">→</span>
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-medium">2</span>
-                  Create Estimate
-                </div>
-              )
-            )}
+            {initialEstimate ? 'Edit Estimate' : 'Create Estimate'}
             {projectName && (
               <div className="text-sm font-normal text-muted-foreground mt-1">
                 Project: {projectName} • Client: {clientName}
@@ -853,37 +779,8 @@ useEffect(() => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Selected Project Summary - Show when coming from Step 1 */}
-          {projectSelectedFromStep1 && selectedProject && (
-            <div className="bg-accent/50 border border-border rounded-lg p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground">
-                    ✓
-                  </div>
-                  <div>
-                    <p className="font-medium">Selected Project</p>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedProject.project_name} • {selectedProject.client_name}
-                    </p>
-                  </div>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => {
-                    setShowProjectCreationFirst(true);
-                    setProjectSelectedFromStep1(false);
-                  }}
-                >
-                  Change
-                </Button>
-              </div>
-            </div>
-          )}
-          
-          {/* Project Selection - Only show if no project is preselected and we didn't just create one or select one from Step 1 */}
-          {!preselectedProjectId && !initialEstimate && !createdProjectFromFlow && !projectSelectedFromStep1 && (
+          {/* Project Selection - Show if no project is preselected */}
+          {!preselectedProjectId && !initialEstimate && (
             <div className="space-y-2">
               <RequiredLabel>Select Project</RequiredLabel>
               {!projectsLoading && availableProjects.length > 0 && (
@@ -1012,6 +909,7 @@ useEffect(() => {
                   setSelectedLineItemForEdit(lineItem);
                   setIsDetailModalOpen(true);
                 }}
+                onDuplicateLineItem={duplicateLineItem}
               />
             ) : (
               <div className="space-y-4">

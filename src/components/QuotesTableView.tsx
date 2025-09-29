@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal } from "lucide-react";
+import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal, Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
@@ -348,6 +348,10 @@ export const QuotesTableView = ({
             <DropdownMenuItem onClick={() => onEdit(quote)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onEdit(quote)}>
+              <Copy className="h-4 w-4 mr-2" />
+              Duplicate
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={() => onCompare(quote)}
