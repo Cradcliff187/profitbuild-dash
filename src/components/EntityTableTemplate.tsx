@@ -125,59 +125,60 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
               {noResultsMessage}
             </div>
           ) : (
-            <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px]">
-              <Table className="min-w-[900px]">
-                <TableHeader className="sticky top-0 bg-card z-10 border-b">
-                  <TableRow className="h-table-header">
-                    <TableHead className="w-8 p-compact">
-                      <Checkbox
-                        checked={allSelected}
-                        onCheckedChange={onSelectAll}
-                        aria-label="Select all items"
-                      />
-                    </TableHead>
-                    {columns.map((column) => (
-                      <TableHead key={column.key} className="p-compact text-label font-medium">{column.label}</TableHead>
-                    ))}
-                    <TableHead className="w-24 p-compact text-label">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {displayedData.map((item, index) => (
-                    <TableRow key={item.id} className="h-table-row-dense data-table-row">
-                      <TableCell className="p-compact">
+            <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px] w-full overflow-x-auto">
+              <div className="w-full overflow-x-auto">
+                <Table className="min-w-[1000px] w-full">
+                  <TableHeader className="sticky top-0 bg-card z-10 border-b">
+                    <TableRow className="h-table-header">
+                      <TableHead className="w-8 p-compact">
                         <Checkbox
-                          checked={selectedItems.includes(item.id)}
-                          onCheckedChange={() => onSelectItem(item.id)}
-                          aria-label={`Select ${item.name || item.client_name || item.payee_name}`}
+                          checked={allSelected}
+                          onCheckedChange={onSelectAll}
+                          aria-label="Select all items"
                         />
-                      </TableCell>
+                      </TableHead>
                       {columns.map((column) => (
-                        <TableCell key={column.key} className="p-compact text-data">
-                          {column.render ? column.render(item) : item[column.key] || '-'}
-                        </TableCell>
+                        <TableHead key={column.key} className="p-compact text-label font-medium">{column.label}</TableHead>
                       ))}
-                      <TableCell className="p-compact">
-                        <div className="flex items-center gap-1">
-                          {onView && (
+                      <TableHead className="w-24 p-compact text-label">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {displayedData.map((item, index) => (
+                      <TableRow key={item.id} className="h-table-row-dense data-table-row">
+                        <TableCell className="p-compact">
+                          <Checkbox
+                            checked={selectedItems.includes(item.id)}
+                            onCheckedChange={() => onSelectItem(item.id)}
+                            aria-label={`Select ${item.name || item.client_name || item.payee_name}`}
+                          />
+                        </TableCell>
+                        {columns.map((column) => (
+                          <TableCell key={column.key} className="p-compact text-data">
+                            {column.render ? column.render(item) : item[column.key] || '-'}
+                          </TableCell>
+                        ))}
+                        <TableCell className="p-compact">
+                          <div className="flex items-center gap-1">
+                            {onView && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onView(item)}
+                                className="h-input-compact w-input-compact p-0"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => onView(item)}
+                              onClick={() => onEdit(item)}
                               className="h-input-compact w-input-compact p-0"
                             >
-                              <Eye className="h-3 w-3" />
+                              <Edit2 className="h-3 w-3" />
                             </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onEdit(item)}
-                            className="h-input-compact w-input-compact p-0"
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </Button>
-                          {onDelete && (
+                            {onDelete && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button
@@ -213,7 +214,8 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
                   ))}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
+          </ScrollArea>
           )}
           
           {enablePagination && data.length > 0 && totalPages > 1 && (

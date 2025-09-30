@@ -26,7 +26,7 @@ import { Progress } from "@/components/ui/progress";
 import { format, differenceInDays, isPast, isFuture } from "date-fns";
 import { Project, ProjectStatus } from "@/types/project";
 import { ProjectWithFinancials } from "@/utils/projectFinancials";
-import { FinancialTableTemplate, FinancialTableColumn } from "@/components/FinancialTableTemplate";
+import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "@/components/FinancialTableTemplate";
 
 import { cn, formatCurrency } from "@/lib/utils";
 
@@ -945,6 +945,36 @@ export const ProjectsTableView = ({
     },
   ];
 
+  // Group projects by client
+  const projectsByClient = projects.reduce((groups, project) => {
+    const clientKey = project.client_name;
+    if (!groups[clientKey]) {
+      groups[clientKey] = [];
+    }
+    groups[clientKey].push(project);
+    return groups;
+  }, {} as Record<string, ProjectWithFinancials[]>);
+
+  // Sort projects within each client by created date (newest first)
+  Object.keys(projectsByClient).forEach(clientName => {
+    projectsByClient[clientName].sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  });
+
+  // Convert to grouped format for the table
+  const groupedData: FinancialTableGroup<ProjectWithFinancials>[] = Object.entries(projectsByClient).map(
+    ([clientName, clientProjects]) => ({
+      groupKey: clientName,
+      groupLabel: `${clientName} - ${clientProjects.length} Project${clientProjects.length !== 1 ? 's' : ''}`,
+      items: clientProjects,
+      isCollapsible: true,
+      defaultExpanded: true,
+    })
+  );
+
+  const ProjectsTable = FinancialTableTemplate<ProjectWithFinancials>;
+
   return (
     <TooltipProvider>
       <div className="space-y-4">
@@ -963,9 +993,10 @@ export const ProjectsTableView = ({
           </Button>
         </div>
         
-        <FinancialTableTemplate
-          data={projects}
+        <ProjectsTable
+          data={groupedData}
           columns={columns}
+          isGrouped={true}
           onView={handleViewDetails}
           onEdit={onEdit}
           getItemId={(project) => project.id}

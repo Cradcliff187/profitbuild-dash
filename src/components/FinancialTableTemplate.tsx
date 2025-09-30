@@ -257,14 +257,16 @@ export function FinancialTableTemplate<T>({
 
   return (
     <>
-      <div className={cn("border border-border/50 rounded-lg bg-card", className)}>
-        <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px]">
-          <Table className="min-w-[1100px]">
-            {renderTableHeader()}
-            <TableBody>
-              {isGrouped ? renderGroupedData() : renderSimpleData()}
-            </TableBody>
-          </Table>
+      <div className={cn("border border-border/50 rounded-lg bg-card overflow-hidden", className)}>
+        <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px] w-full overflow-x-auto">
+          <div className="w-full overflow-x-auto">
+            <Table className="min-w-[1200px] w-full">
+              {renderTableHeader()}
+              <TableBody>
+                {isGrouped ? renderGroupedData() : renderSimpleData()}
+              </TableBody>
+            </Table>
+          </div>
         </ScrollArea>
       </div>
 
