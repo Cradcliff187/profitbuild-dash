@@ -18,7 +18,7 @@ import {
 import { useLineItemControl, LineItemControlData, QuoteData } from '@/hooks/useLineItemControl';
 import { CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { FinancialTableTemplate, FinancialTableColumn } from '@/components/FinancialTableTemplate';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
 import { format } from 'date-fns';
 
 interface LineItemControlDashboardProps {
@@ -568,15 +568,10 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
                             <CardContent className="p-4">
                               <div className="flex justify-between items-start mb-2">
                                 <div>
-                                  <div className="font-medium">{expense.payee_name || 'Unknown Payee'}</div>
+                                  <div className="font-medium">{getExpensePayeeLabel(expense)}</div>
                                   <div className="text-muted-foreground text-sm">
                                     {format(new Date(expense.expense_date), 'MMM d, yyyy')}
                                   </div>
-                                  {expense.payee_name && (
-                                    <div className="text-xs text-muted-foreground">
-                                      {expense.payee_name}
-                                    </div>
-                                  )}
                                 </div>
                                 <div className="text-right">
                                   <div className="font-medium">{formatCurrency(expense.amount)}</div>

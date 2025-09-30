@@ -126,7 +126,7 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
             </div>
           ) : (
             <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px]">
-              <Table>
+              <Table className="min-w-[900px]">
                 <TableHeader className="sticky top-0 bg-card z-10 border-b">
                   <TableRow className="h-table-header">
                     <TableHead className="w-8 p-compact">

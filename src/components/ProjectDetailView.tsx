@@ -44,7 +44,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { calculateMultipleProjectFinancials, ProjectWithFinancials } from "@/utils/projectFinancials";
 import { getMarginStatusLevel } from "@/types/margin";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency, getExpensePayeeLabel } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
@@ -227,16 +227,6 @@ export const ProjectDetailView = () => {
         {status.replace(/_/g, ' ')}
       </Badge>
     );
-  };
-
-  const formatCurrency = (amount: number | null | undefined) => {
-    if (amount === null || amount === undefined) return '$0';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
   };
 
   const getContextualActions = () => {
@@ -617,7 +607,7 @@ export const ProjectDetailView = () => {
                     {recentExpenses.map((expense) => (
                       <div key={expense.id} className="flex justify-between items-center py-2 border-b last:border-0">
                         <div>
-                          <div className="font-medium text-sm">{expense.payee_name || expense.description || 'Unknown Payee'}</div>
+                          <div className="font-medium text-sm">{getExpensePayeeLabel(expense)}</div>
                           <div className="text-xs text-muted-foreground">
                             {format(expense.expense_date, 'MMM d, yyyy')} • {expense.category}
                           </div>

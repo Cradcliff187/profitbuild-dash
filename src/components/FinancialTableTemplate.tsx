@@ -259,7 +259,7 @@ export function FinancialTableTemplate<T>({
     <>
       <div className={cn("border border-border/50 rounded-lg bg-card", className)}>
         <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px]">
-          <Table>
+          <Table className="min-w-[1100px]">
             {renderTableHeader()}
             <TableBody>
               {isGrouped ? renderGroupedData() : renderSimpleData()}

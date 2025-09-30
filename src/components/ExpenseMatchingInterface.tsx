@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ExpenseCategory, EXPENSE_CATEGORY_DISPLAY } from '@/types/expense';
 import { LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
 
 interface ExpenseMatchingInterfaceProps {
   projectId: string;
@@ -229,13 +229,6 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
     return matchesSearch && matchesCategory;
   });
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
-
   const getConfidenceBadge = (score: number) => {
     if (score >= 80) return <Badge className="bg-green-100 text-green-800">High</Badge>;
     if (score >= 50) return <Badge className="bg-yellow-100 text-yellow-800">Medium</Badge>;
@@ -340,7 +333,7 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
                   </div>
                 </div>
                 
-                <div className="text-sm mb-1">{expense.payee_name || expense.description || 'Unknown Payee'}</div>
+                <div className="text-sm mb-1">{getExpensePayeeLabel(expense)}</div>
                 
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">

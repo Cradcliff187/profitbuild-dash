@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Expense } from '@/types/expense';
 import { Estimate } from '@/types/estimate';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
 
 interface ExpenseDashboardProps {
   expenses: Expense[];
@@ -125,7 +125,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
                 {recentExpenses.map((expense) => (
                   <div key={expense.id} className="flex items-center justify-between border-b pb-2">
                     <div className="flex-1">
-                      <p className="font-medium text-sm">{expense.payee_name || expense.description || 'Unknown Payee'}</p>
+                      <p className="font-medium text-sm">{getExpensePayeeLabel(expense)}</p>
                       <p className="text-xs text-muted-foreground">
                         {expense.project_name || 'Unknown Project'} • {new Date(expense.expense_date).toLocaleDateString()}
                       </p>

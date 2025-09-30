@@ -27,3 +27,33 @@ export function formatCurrency(
   
   return useAccounting && isNegative ? `(${formatted})` : formatted;
 }
+
+export function getExpensePayeeLabel(expense: { 
+  payee_name?: string | null; 
+  description?: string | null;
+}): string {
+  if (expense.payee_name) {
+    return expense.payee_name.trim();
+  }
+  
+  if (!expense.description) {
+    return 'Unknown Payee';
+  }
+  
+  const description = expense.description.trim();
+  const parts = description.split(' - ').map(p => p.trim());
+  
+  if (parts.length === 1) {
+    return description;
+  }
+  
+  const transactionTypes = ['expense', 'bill', 'check', 'credit card', 'credit_card', 'cash'];
+  
+  const filtered = parts.filter(part => 
+    !transactionTypes.some(type => 
+      part.toLowerCase().replace('_', ' ') === type
+    )
+  );
+  
+  return filtered.length > 0 ? filtered[0] : description;
+}
