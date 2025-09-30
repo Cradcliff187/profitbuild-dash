@@ -814,11 +814,6 @@ export const ProjectsTableView = ({
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
                 <div className="font-medium text-sm font-mono tabular-nums">{formatCurrency(actualExpenses)}</div>
-                {adjustedCosts > 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    {percentOfBudget.toFixed(0)}% of budget
-                  </div>
-                )}
               </div>
             </TooltipTrigger>
             <TooltipContent>
