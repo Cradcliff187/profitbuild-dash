@@ -617,7 +617,7 @@ export const ProjectDetailView = () => {
                     {recentExpenses.map((expense) => (
                       <div key={expense.id} className="flex justify-between items-center py-2 border-b last:border-0">
                         <div>
-                          <div className="font-medium text-sm">{expense.description}</div>
+                          <div className="font-medium text-sm">{expense.payee_name || expense.description || 'Unknown Payee'}</div>
                           <div className="text-xs text-muted-foreground">
                             {format(expense.expense_date, 'MMM d, yyyy')} • {expense.category}
                           </div>

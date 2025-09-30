@@ -568,7 +568,7 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
                             <CardContent className="p-4">
                               <div className="flex justify-between items-start mb-2">
                                 <div>
-                                  <div className="font-medium">{expense.description || 'No description'}</div>
+                                  <div className="font-medium">{expense.payee_name || 'Unknown Payee'}</div>
                                   <div className="text-muted-foreground text-sm">
                                     {format(new Date(expense.expense_date), 'MMM d, yyyy')}
                                   </div>

@@ -340,7 +340,7 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
                   </div>
                 </div>
                 
-                <div className="text-sm mb-1">{expense.description}</div>
+                <div className="text-sm mb-1">{expense.payee_name || expense.description || 'Unknown Payee'}</div>
                 
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
