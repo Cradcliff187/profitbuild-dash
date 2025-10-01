@@ -152,7 +152,6 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
           <CalculatedField
             label="Price/Unit"
             value={lineItem.pricePerUnit || 0}
-            prefix="$"
             formula={markupType === 'percent' ? 'Cost × (1 + Markup%)' : 'Cost + Markup Amount'}
             tooltip="Calculated from cost and markup - set cost and markup below to adjust this value"
             variant="success"
@@ -161,7 +160,6 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
           <CalculatedField
             label="Total"
             value={lineItem.total}
-            prefix="$"
             formula="Quantity × Price per Unit"
             tooltip="Automatically calculated: Quantity × Price per Unit"
             variant={lineItem.total > 0 ? "success" : "default"}
@@ -203,14 +201,12 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
             <CalculatedField
               label="Total Cost"
               value={lineItem.totalCost || 0}
-              prefix="$"
               formula="Quantity × Cost per Unit"
               tooltip="Total cost: Quantity × Cost per Unit"
             />
             <CalculatedField
               label="Total Markup"
               value={lineItem.totalMarkup || 0}
-              prefix="$"
               formula="Quantity × (Price - Cost)"
               tooltip="Total markup: Quantity × (Price per Unit - Cost per Unit)"
               variant="success"
@@ -259,7 +255,6 @@ export const LineItemRow = ({ lineItem, onUpdate, onRemove }: LineItemRowProps) 
             <CalculatedField
               label="Margin per Unit"
               value={(lineItem.pricePerUnit || 0) - (lineItem.costPerUnit || 0)}
-              prefix="$"
               formula="Price per Unit - Cost per Unit"
               tooltip="Profit margin per unit"
               variant="success"

@@ -950,7 +950,6 @@ useEffect(() => {
             <CalculatedField
               label="Subtotal"
               value={calculateTotal()}
-              prefix="$"
               formula="Sum of all line item totals"
               tooltip="Total of all line items before contingency"
               variant="default"
@@ -959,7 +958,6 @@ useEffect(() => {
             <CalculatedField
               label="Estimated Gross Profit"
               value={calculateGrossProfit()}
-              prefix="$"
               formula="Subtotal - Total Cost"
               tooltip="Expected profit: Subtotal minus total costs"
               variant={calculateGrossProfit() < 0 ? "destructive" : "success"}
@@ -982,7 +980,6 @@ useEffect(() => {
             <CalculatedField
               label="Contingency Amount"
               value={calculateContingencyAmount()}
-              prefix="$"
               formula={`${contingencyPercent}% of Subtotal`}
               tooltip={`Contingency amount: ${contingencyPercent}% of subtotal`}
               variant="default"
@@ -994,7 +991,6 @@ useEffect(() => {
             <CalculatedField
               label="Total with Contingency"
               value={calculateTotal() + calculateContingencyAmount()}
-              prefix="$"
               formula="Subtotal + Contingency Amount"
               tooltip="Final estimate total including contingency"
               variant="success"

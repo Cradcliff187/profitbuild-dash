@@ -134,6 +134,11 @@ const CalculatedField = React.forwardRef<HTMLDivElement, CalculatedFieldProps>(
       destructive: "bg-red-50 border-red-200 text-red-900"
     };
 
+    // Smart formatting: if value is a number and prefix is $, format as currency without adding prefix
+    const displayValue = typeof value === 'number' && prefix === '$' 
+      ? formatCurrency(value) 
+      : `${prefix || ''}${value}${suffix || ''}`;
+
     return (
       <BaseField label={label} tooltip={tooltip || formula} className={className}>
         <div
@@ -146,7 +151,7 @@ const CalculatedField = React.forwardRef<HTMLDivElement, CalculatedFieldProps>(
         >
           <Calculator className="h-3 w-3 flex-shrink-0" />
           <span className="truncate">
-            {prefix}{typeof value === 'number' ? formatCurrency(value) : value}{suffix}
+            {displayValue}
           </span>
           <Badge variant="secondary" className="text-xs ml-auto flex-shrink-0">
             Calculated
