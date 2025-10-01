@@ -14,7 +14,7 @@ import {
   getMarkupPerformanceStatus 
 } from "@/utils/estimateFinancials";
 
-type EstimateWithQuotes = Estimate & { quotes?: Array<{ id: string; total_amount: number }> };
+type EstimateWithQuotes = Estimate & { quotes?: Array<{ id: string; total_amount: number; status: string }> };
 
 interface EstimatesTableViewProps {
   estimates: EstimateWithQuotes[];
@@ -62,29 +62,34 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       return 'awaiting-quotes';
     }
     
-    const hasUnderBudgetQuote = estimate.quotes.some(q => q.total_amount < estimate.total_amount);
-    if (hasUnderBudgetQuote) {
-      return 'under-budget';
+    const acceptedQuotes = estimate.quotes.filter(q => q.status === 'accepted');
+    if (acceptedQuotes.length === 0) {
+      return 'awaiting-quotes';
     }
     
-    const allQuotesOverBudget = estimate.quotes.every(q => q.total_amount > estimate.total_amount);
-    if (allQuotesOverBudget) {
+    const totalAcceptedAmount = acceptedQuotes.reduce((sum, q) => sum + q.total_amount, 0);
+    
+    if (totalAcceptedAmount < estimate.total_amount) {
+      return 'under-budget';
+    } else if (totalAcceptedAmount > estimate.total_amount) {
       return 'over-budget';
     }
     
     return 'awaiting-quotes';
   };
 
-  const getBestQuoteVariance = (estimate: EstimateWithQuotes) => {
+  const getAcceptedQuoteVariance = (estimate: EstimateWithQuotes) => {
     if (!estimate.quotes || estimate.quotes.length === 0) {
       return null;
     }
     
-    const bestQuote = estimate.quotes.reduce((best, current) => 
-      current.total_amount < best.total_amount ? current : best
-    );
+    const acceptedQuotes = estimate.quotes.filter(q => q.status === 'accepted');
+    if (acceptedQuotes.length === 0) {
+      return null;
+    }
     
-    const variance = bestQuote.total_amount - estimate.total_amount;
+    const totalAcceptedAmount = acceptedQuotes.reduce((sum, q) => sum + q.total_amount, 0);
+    const variance = totalAcceptedAmount - estimate.total_amount;
     return variance;
   };
 
@@ -297,11 +302,11 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     },
     {
       key: 'variance',
-      label: 'Variance',
+      label: 'Quote Variance',
       align: 'right',
       width: '100px',
       render: (estimate) => {
-        const variance = getBestQuoteVariance(estimate);
+        const variance = getAcceptedQuoteVariance(estimate);
         if (variance === null) return <span className="text-xs text-muted-foreground">-</span>;
         
         return (

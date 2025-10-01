@@ -20,7 +20,7 @@ import { EstimatesTableView } from "./EstimatesTableView";
 import { supabase } from "@/integrations/supabase/client";
 
 interface EstimatesListProps {
-  estimates: (Estimate & { quotes?: Array<{ id: string; total_amount: number }> })[];
+  estimates: (Estimate & { quotes?: Array<{ id: string; total_amount: number; status: string }> })[];
   onEdit: (estimate: Estimate) => void;
   onDelete: (id: string) => void;
   onView: (estimate: Estimate) => void;

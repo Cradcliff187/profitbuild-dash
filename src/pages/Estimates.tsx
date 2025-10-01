@@ -167,7 +167,7 @@ const EstimatesPage = () => {
       // Then get quotes for each estimate
       const { data: quotesData, error: quotesError } = await supabase
         .from('quotes')
-        .select('id, estimate_id, total_amount');
+        .select('id, estimate_id, total_amount, status');
 
       if (quotesError) throw quotesError;
 
