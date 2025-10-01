@@ -922,17 +922,6 @@ useEffect(() => {
             )}
           </div>
 
-          {/* Contingency Section */}
-          <div className="grid grid-cols-1 gap-2">
-            <EditableField
-              label="Contingency %"
-              type="number"
-              step="0.1"
-              value={contingencyPercent}
-              onChange={(e) => setContingencyPercent(parseFloat(e.target.value) || 0)}
-              tooltip="Percentage added as contingency for unexpected costs"
-            />
-          </div>
 
           {/* Estimate Summary Section */}
           <div className="bg-slate-100 border-2 border-slate-300 rounded-lg p-4 mt-6">
@@ -970,13 +959,27 @@ useEffect(() => {
                 }
               />
               
-              <CalculatedField
-                label="Contingency Amount"
-                value={calculateContingencyAmount()}
-                formula={`${contingencyPercent}% of Subtotal`}
-                tooltip={`Contingency amount: ${contingencyPercent}% of subtotal`}
-                variant="default"
-              />
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground">Contingency</Label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={contingencyPercent}
+                    onChange={(e) => setContingencyPercent(parseFloat(e.target.value) || 0)}
+                    className="w-14 h-6 px-1.5 text-xs border rounded text-right"
+                    title="Percentage added as contingency for unexpected costs"
+                  />
+                  <span className="text-xs text-muted-foreground">%</span>
+                </div>
+                <CalculatedField
+                  label=""
+                  value={calculateContingencyAmount()}
+                  formula={`${contingencyPercent}% of Subtotal`}
+                  tooltip={`Contingency amount: ${contingencyPercent}% of subtotal`}
+                  variant="default"
+                />
+              </div>
             </div>
 
             {/* Final Total */}
