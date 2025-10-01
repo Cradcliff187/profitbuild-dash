@@ -46,7 +46,6 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   const [notes, setNotes] = useState(initialEstimate?.notes || "");
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [contingencyPercent, setContingencyPercent] = useState(initialEstimate?.contingency_percent || 10.0);
-  const [contingencyUsed, setContingencyUsed] = useState(initialEstimate?.contingency_used || 0);
   const [status, setStatus] = useState<EstimateStatus>(initialEstimate?.status || 'draft');
   const [isLoading, setIsLoading] = useState(false);
   const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
@@ -387,7 +386,6 @@ useEffect(() => {
               notes: notes.trim() || null,
               valid_until: validUntil?.toISOString().split('T')[0],
               contingency_percent: contingencyPercent,
-              contingency_used: contingencyUsed,
               is_current_version: true,
               updated_at: new Date().toISOString()
             })
@@ -432,7 +430,7 @@ useEffect(() => {
             notes: estimateData.notes,
             valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
             contingency_percent: estimateData.contingency_percent,
-            contingency_used: estimateData.contingency_used,
+            contingency_used: 0, // Keep for type compatibility, but set to 0 for new versions
             updated_at: new Date(estimateData.updated_at),
             lineItems: validLineItems,
             version_number: estimateData.version_number,
@@ -458,7 +456,6 @@ useEffect(() => {
               notes: notes.trim() || null,
               valid_until: validUntil?.toISOString().split('T')[0],
               contingency_percent: contingencyPercent,
-              contingency_used: contingencyUsed,
               updated_at: new Date().toISOString()
             })
             .eq('id', initialEstimate.id)
@@ -554,7 +551,6 @@ useEffect(() => {
               notes: notes.trim() || null,
               valid_until: validUntil?.toISOString().split('T')[0],
               contingency_percent: contingencyPercent,
-              contingency_used: contingencyUsed,
               is_current_version: true,
               status: 'draft',
               updated_at: new Date().toISOString()
@@ -608,7 +604,7 @@ useEffect(() => {
             client_name: clientName,
             contingency_percent: estimateData.contingency_percent,
             contingency_amount: estimateData.contingency_amount,
-            contingency_used: estimateData.contingency_used,
+            contingency_used: 0, // Keep for type compatibility, but set to 0 for new versions
             version_number: estimateData.version_number,
             parent_estimate_id: estimateData.parent_estimate_id,
             is_current_version: true,
@@ -641,7 +637,6 @@ useEffect(() => {
             valid_until: validUntil?.toISOString().split('T')[0],
             contingency_percent: contingencyPercent,
             contingency_amount: contingencyAmount,
-            contingency_used: contingencyUsed,
             revision_number: 1,
             version_number: 1,
             parent_estimate_id: null,
@@ -707,7 +702,7 @@ useEffect(() => {
             revision_number: createdEstimate.revision_number,
             contingency_percent: createdEstimate.contingency_percent,
             contingency_amount: createdEstimate.contingency_amount,
-            contingency_used: createdEstimate.contingency_used,
+            contingency_used: 0, // Default to 0 for new estimates (only used during project execution)
             version_number: createdEstimate.version_number || 1,
             parent_estimate_id: createdEstimate.parent_estimate_id || undefined,
             is_current_version: createdEstimate.is_current_version ?? true,
@@ -928,7 +923,7 @@ useEffect(() => {
           </div>
 
           {/* Contingency Section */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             <EditableField
               label="Contingency %"
               type="number"
@@ -936,14 +931,6 @@ useEffect(() => {
               value={contingencyPercent}
               onChange={(e) => setContingencyPercent(parseFloat(e.target.value) || 0)}
               tooltip="Percentage added as contingency for unexpected costs"
-            />
-            <EditableField
-              label="Contingency Used"
-              type="number"
-              step="0.01"
-              value={contingencyUsed}
-              onChange={(e) => setContingencyUsed(parseFloat(e.target.value) || 0)}
-              tooltip="Amount of contingency already used in this project"
             />
           </div>
 

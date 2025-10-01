@@ -36,7 +36,7 @@ export interface Estimate {
   // Contingency fields
   contingency_percent: number;
   contingency_amount?: number;
-  contingency_used: number;
+  contingency_used: number; // Only tracked during project execution, not during estimate creation
   // Versioning fields
   version_number: number;
   parent_estimate_id?: string;
