@@ -83,7 +83,7 @@ const EditableCell: React.FC<{
       if (currency) {
         return formatCurrency(numVal);
       }
-      return numVal.toLocaleString();
+      return numVal.toLocaleString('en-US', { maximumFractionDigits: 2 });
     }
     return val || '';
   };
@@ -96,7 +96,7 @@ const EditableCell: React.FC<{
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
         type={type}
-        className={`h-input-compact ${type === 'number' ? 'font-mono' : ''} ${align === 'right' ? 'text-right' : ''} ${className}`}
+        className={`h-input-dense ${type === 'number' ? 'font-mono' : ''} ${align === 'right' ? 'text-right' : ''} ${className}`}
         autoFocus
         placeholder={currency ? "0.00" : ""}
       />
@@ -105,9 +105,9 @@ const EditableCell: React.FC<{
 
   return (
     <div
-      className={`cursor-pointer hover:bg-muted/50 border border-input bg-background px-compact py-1 rounded-md h-input-compact flex items-center text-data ${
+      className={`cursor-pointer hover:bg-muted/50 border border-input bg-background px-2 py-1 rounded-md h-input-dense flex items-center text-xs ${
         type === 'number' ? 'font-mono' : ''
-      } ${align === 'right' ? 'text-right' : ''} ${className}`}
+      } ${align === 'right' ? 'text-right justify-end' : ''} ${className}`}
       onClick={() => {
         setEditValue(String(value));
         setIsEditing(true);
@@ -148,7 +148,7 @@ const QuantityEditableCell: React.FC<{
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
         type="number"
-        className="h-input-compact font-mono text-right"
+        className="h-input-dense font-mono text-right text-xs"
         autoFocus
       />
     );
@@ -156,13 +156,13 @@ const QuantityEditableCell: React.FC<{
 
   return (
     <div
-      className="cursor-pointer hover:bg-muted/50 border border-input bg-background px-compact py-1 rounded-md h-input-compact flex items-center text-data font-mono text-right"
+      className="cursor-pointer hover:bg-muted/50 border border-input bg-background px-2 py-1 rounded-md h-input-dense flex items-center justify-end text-xs font-mono text-right"
       onClick={() => {
         setEditValue(String(quantity));
         setIsEditing(true);
       }}
     >
-      {quantity.toLocaleString()}
+      {quantity.toLocaleString('en-US', { maximumFractionDigits: 2 })}
     </div>
   );
 };
@@ -241,29 +241,29 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
           <Table>
             <TableHeader>
               <TableRow className="h-table-header">
-                <TableHead className="w-[100px] p-compact text-label font-medium">Category</TableHead>
-                <TableHead className="min-w-[180px] p-compact text-label font-medium">Description</TableHead>
-                <TableHead className="w-[60px] p-compact text-label font-medium text-right">Qty</TableHead>
-                <TableHead className="w-[60px] p-compact text-label font-medium text-right">Unit</TableHead>
-                <TableHead className="w-[80px] p-compact text-label font-medium text-right">Cost</TableHead>
-                <TableHead className="w-[60px] p-compact text-label font-medium text-right">Markup%</TableHead>
-                <TableHead className="w-[80px] p-compact text-label font-medium text-right">Markup</TableHead>
-                <TableHead className="w-[90px] p-compact text-label font-medium text-right">Total Price</TableHead>
-                <TableHead className="w-[40px] p-compact"></TableHead>
+                <TableHead className="w-[90px] p-2 text-xs font-medium">Cat</TableHead>
+                <TableHead className="min-w-[200px] p-2 text-xs font-medium">Description</TableHead>
+                <TableHead className="w-[80px] p-2 text-xs font-medium text-right">Qty</TableHead>
+                <TableHead className="w-[70px] p-2 text-xs font-medium">Unit</TableHead>
+                <TableHead className="w-[90px] p-2 text-xs font-medium text-right">Cost/Unit</TableHead>
+                <TableHead className="w-[70px] p-2 text-xs font-medium text-right">Markup%</TableHead>
+                <TableHead className="w-[90px] p-2 text-xs font-medium text-right">Markup $</TableHead>
+                <TableHead className="w-[100px] p-2 text-xs font-medium text-right">Total</TableHead>
+                <TableHead className="w-[40px] p-2"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {lineItems.map((lineItem) => (
-                <TableRow key={lineItem.id} className="h-table-row-dense hover:bg-muted/20">
-                  <TableCell className="p-compact">
+                <TableRow key={lineItem.id} className="h-[36px] hover:bg-muted/20">
+                  <TableCell className="p-2">
                     <div className="flex items-center gap-1">
-                      <div className={`w-2 h-2 rounded-full ${getCategoryColor(lineItem.category)}`} />
+                      <div className={`w-1.5 h-1.5 rounded-full ${getCategoryColor(lineItem.category)}`} />
                       <Select
                         value={lineItem.category}
                         onValueChange={(value) => onUpdateLineItem(lineItem.id, 'category', value)}
                       >
-                        <SelectTrigger className="h-button-compact border-0 bg-transparent p-0 hover:bg-muted/50">
-                          <Badge variant="outline" className="text-xs px-1 py-0 h-4 cursor-pointer">
+                        <SelectTrigger className="h-[28px] border-0 bg-transparent p-0 hover:bg-muted/50">
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-3.5 cursor-pointer">
                             {getCategoryAbbrev(lineItem.category)}
                           </Badge>
                         </SelectTrigger>
@@ -277,27 +277,26 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                       </Select>
                     </div>
                   </TableCell>
-                  <TableCell className="p-compact">
+                  <TableCell className="p-2">
                     <EditableCell
                       value={lineItem.description}
                       onChange={(value) => onUpdateLineItem(lineItem.id, 'description', value)}
-                      className="text-xs"
                     />
                   </TableCell>
-                  <TableCell className="p-compact text-right">
+                  <TableCell className="p-2 text-right">
                     <QuantityEditableCell
                       quantity={lineItem.quantity}
                       unit={lineItem.unit}
                       onChange={(value) => onUpdateLineItem(lineItem.id, 'quantity', parseFloat(value) || 0)}
                     />
                   </TableCell>
-                  <TableCell className="p-compact">
+                  <TableCell className="p-2">
                     <Select 
                       value={lineItem.unit || 'none'} 
                       onValueChange={(value) => onUpdateLineItem(lineItem.id, 'unit', value === 'none' ? null : value)}
                     >
-                      <SelectTrigger className="h-button-compact text-xs">
-                        <SelectValue placeholder="Unit" />
+                      <SelectTrigger className="h-[32px] text-xs">
+                        <SelectValue placeholder="-" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">-</SelectItem>
@@ -310,25 +309,25 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell className="p-compact text-right">
+                  <TableCell className="p-2 text-right">
                     <EditableCell
-                      value={calculateTotalCost(lineItem)}
-                      onChange={(value) => handleTotalCostChange(lineItem.id, parseFloat(value) || 0)}
+                      value={lineItem.costPerUnit}
+                      onChange={(value) => onUpdateLineItem(lineItem.id, 'costPerUnit', parseFloat(value) || 0)}
                       type="number"
                       currency={true}
                       align="right"
                     />
                   </TableCell>
-                  <TableCell className="p-compact text-right">
+                  <TableCell className="p-2 text-right">
                     <EditableCell
-                      value={calculateMarkupPercent(lineItem)}
+                      value={calculateMarkupPercent(lineItem).toFixed(1)}
                       onChange={(value) => handleMarkupPercentChange(lineItem.id, parseFloat(value) || 0)}
                       type="number"
                       align="right"
                       className={getMarkupColor(calculateMarkupPercent(lineItem))}
                     />
                   </TableCell>
-                  <TableCell className="p-compact text-right">
+                  <TableCell className="p-2 text-right">
                     <EditableCell
                       value={calculateMarkupAmount(lineItem)}
                       onChange={(value) => handleMarkupAmountChange(lineItem.id, parseFloat(value) || 0)}
@@ -337,13 +336,13 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                       align="right"
                     />
                   </TableCell>
-                  <TableCell className="p-compact text-right font-mono text-data font-medium">
+                  <TableCell className="p-2 text-right font-mono text-xs font-semibold">
                     {formatCurrency(lineItem.total)}
                   </TableCell>
-                  <TableCell className="p-compact">
+                  <TableCell className="p-2">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-button-compact w-6 p-0">
+                        <Button variant="ghost" size="sm" className="h-[28px] w-6 p-0">
                           <MoreHorizontal className="h-3 w-3" />
                         </Button>
                       </DropdownMenuTrigger>
