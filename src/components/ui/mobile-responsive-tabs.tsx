@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   DropdownMenu,
@@ -38,6 +38,9 @@ export function MobileResponsiveTabs({
   className,
   maxMobileTabs = 3,
 }: MobileResponsiveTabsProps) {
+  const defaultValue = defaultTab || tabs[0]?.value;
+  const [activeTab, setActiveTab] = useState(defaultValue);
+
   // Determine which tabs are shown on mobile
   const mobileTabs = tabs
     .map((tab, idx) => ({
@@ -50,10 +53,8 @@ export function MobileResponsiveTabs({
     (tab) => !mobileTabs.find((mt) => mt.value === tab.value)
   );
 
-  const defaultValue = defaultTab || tabs[0]?.value;
-
   return (
-    <Tabs defaultValue={defaultValue} className={cn("w-full", className)}>
+    <Tabs value={activeTab} onValueChange={setActiveTab} className={cn("w-full", className)}>
       {/* Mobile: Fixed grid layout + overflow menu */}
       <div className="md:hidden mobile-container">
         <TabsList
@@ -91,17 +92,14 @@ export function MobileResponsiveTabs({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" className="w-full">
               {overflowTabs.map((tab) => (
-                <TabsTrigger
+                <DropdownMenuItem
                   key={tab.value}
-                  value={tab.value}
-                  asChild
-                  className="w-full"
+                  className="min-h-[44px] cursor-pointer"
+                  onClick={() => setActiveTab(tab.value)}
                 >
-                  <DropdownMenuItem className="min-h-[44px] cursor-pointer">
-                    {tab.icon && <span className="mr-2">{tab.icon}</span>}
-                    {tab.label}
-                  </DropdownMenuItem>
-                </TabsTrigger>
+                  {tab.icon && <span className="mr-2">{tab.icon}</span>}
+                  {tab.label}
+                </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
