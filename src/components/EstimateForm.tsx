@@ -935,6 +935,7 @@ useEffect(() => {
                 formula="Sum of all line item totals"
                 tooltip="Total of all line items before contingency"
                 variant="default"
+                prefix="$"
               />
               
               <CalculatedField
@@ -943,6 +944,7 @@ useEffect(() => {
                 formula="Subtotal - Total Cost"
                 tooltip="Expected profit: Subtotal minus total costs"
                 variant={calculateGrossProfit() < 0 ? "destructive" : "success"}
+                prefix="$"
               />
               
               <CalculatedField
@@ -959,25 +961,24 @@ useEffect(() => {
                 }
               />
               
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground">Contingency</Label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={contingencyPercent}
-                    onChange={(e) => setContingencyPercent(parseFloat(e.target.value) || 0)}
-                    className="w-14 h-6 px-1.5 text-xs border rounded text-right"
-                    title="Percentage added as contingency for unexpected costs"
-                  />
-                  <span className="text-xs text-muted-foreground">%</span>
-                </div>
+              <div className="relative">
                 <CalculatedField
-                  label=""
+                  label={`Contingency (${contingencyPercent}%)`}
                   value={calculateContingencyAmount()}
                   formula={`${contingencyPercent}% of Subtotal`}
-                  tooltip={`Contingency amount: ${contingencyPercent}% of subtotal`}
+                  tooltip="Click to edit contingency percentage"
                   variant="default"
+                  prefix="$"
+                />
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={contingencyPercent}
+                  onChange={(e) => setContingencyPercent(parseFloat(e.target.value) || 0)}
+                  className="absolute top-1 right-1 w-12 h-5 px-1 text-xs border rounded text-right bg-white/90 hover:bg-white focus:bg-white focus:ring-1 focus:ring-primary"
+                  title="Edit contingency percentage"
                 />
               </div>
             </div>
@@ -991,6 +992,7 @@ useEffect(() => {
                 tooltip="Final estimate total including contingency"
                 variant="success"
                 className="text-center"
+                prefix="$"
               />
             </div>
           </div>
