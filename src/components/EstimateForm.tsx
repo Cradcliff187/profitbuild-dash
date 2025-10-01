@@ -18,7 +18,6 @@ import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
-import { LineItemRow } from "@/components/LineItemRow";
 import { LineItemTable } from "@/components/LineItemTable";
 import { LineItemDetailModal } from "@/components/LineItemDetailModal";
 import { EstimateStatusActions } from "@/components/EstimateStatusActions";
@@ -52,7 +51,6 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
   
   // View state for line items
-  const [viewMode, setViewMode] = useState<'compact' | 'detailed'>('compact');
   const [selectedLineItemForEdit, setSelectedLineItemForEdit] = useState<LineItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [projectsLoading, setProjectsLoading] = useState(true);
@@ -862,64 +860,23 @@ useEffect(() => {
           <div className="space-y-3 mt-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-2 border-b">
               <RequiredLabel className="text-sm font-semibold">Line Items</RequiredLabel>
-              <div className="flex items-center gap-3">
-                {/* View Toggle */}
-                <div className="flex rounded-md border overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('compact')}
-                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                      viewMode === 'compact'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background hover:bg-muted'
-                    }`}
-                  >
-                    Compact
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('detailed')}
-                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                      viewMode === 'detailed'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background hover:bg-muted'
-                    }`}
-                  >
-                    Detailed
-                  </button>
-                </div>
-                <Button onClick={addLineItem} variant="default" size="sm" className="h-8">
-                  <Plus className="h-3.5 w-3.5 mr-1.5" />
-                  Add Line Item
-                </Button>
-              </div>
+              <Button onClick={addLineItem} variant="default" size="sm" className="h-8">
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                Add Line Item
+              </Button>
             </div>
 
-            {/* Line Items - Conditional Rendering */}
-            {viewMode === 'compact' ? (
-              <LineItemTable
-                lineItems={lineItems}
-                onUpdateLineItem={updateLineItem}
-                onRemoveLineItem={removeLineItem}
-                onAddLineItem={addLineItem}
-                onEditDetails={(lineItem) => {
-                  setSelectedLineItemForEdit(lineItem);
-                  setIsDetailModalOpen(true);
-                }}
-                onDuplicateLineItem={duplicateLineItem}
-              />
-            ) : (
-              <div className="space-y-2">
-                {lineItems.map(lineItem => (
-                  <LineItemRow
-                    key={lineItem.id}
-                    lineItem={lineItem}
-                    onUpdate={updateLineItem}
-                    onRemove={removeLineItem}
-                  />
-                ))}
-              </div>
-            )}
+            <LineItemTable
+              lineItems={lineItems}
+              onUpdateLineItem={updateLineItem}
+              onRemoveLineItem={removeLineItem}
+              onAddLineItem={addLineItem}
+              onEditDetails={(lineItem) => {
+                setSelectedLineItemForEdit(lineItem);
+                setIsDetailModalOpen(true);
+              }}
+              onDuplicateLineItem={duplicateLineItem}
+            />
           </div>
 
 
