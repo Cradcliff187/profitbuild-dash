@@ -14,21 +14,21 @@ export const ChangeOrderStatusBadge = ({ status }: ChangeOrderStatusBadgeProps) 
         return {
           text: 'Approved',
           variant: 'default' as const,
-          className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200',
+          className: 'border-green-300 text-green-700',
           icon: CheckCircle
         };
       case 'pending':
         return {
           text: 'Pending',
           variant: 'secondary' as const,
-          className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200',
+          className: 'border-yellow-300 text-yellow-700',
           icon: Clock
         };
       case 'rejected':
         return {
           text: 'Rejected',
           variant: 'destructive' as const,
-          className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200',
+          className: 'border-red-300 text-red-700',
           icon: XCircle
         };
       default:
@@ -45,8 +45,8 @@ export const ChangeOrderStatusBadge = ({ status }: ChangeOrderStatusBadgeProps) 
   const Icon = config.icon;
 
   return (
-    <Badge variant={config.variant} className={`text-sm flex items-center gap-1 ${config.className}`}>
-      <Icon className="h-3 w-3" />
+    <Badge variant="outline" className={`text-[10px] flex items-center gap-0.5 px-1.5 py-0 h-4 leading-none ${config.className}`}>
+      <Icon className="h-2 w-2" />
       {config.text}
     </Badge>
   );

@@ -116,20 +116,15 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
             <div className="font-mono text-xs text-foreground/80">
               {estimate.estimate_number}
             </div>
-            <div className="flex items-center gap-1.5">
-              <Badge 
-                variant="outline" 
-                className={cn(
-                  "text-xs px-1.5 py-0.5",
-                  hasDataIssue ? "border-amber-200 text-amber-700 bg-amber-50" : "border-blue-200 text-blue-700 bg-blue-50"
-                )}
-              >
-                {lineItemCount} item{lineItemCount !== 1 ? 's' : ''}
-              </Badge>
-              {hasDataIssue && (
-                <AlertTriangle className="h-3 w-3 text-amber-500" />
+            <Badge 
+              variant="outline" 
+              className={cn(
+                "text-[10px] px-1 py-0 h-4 leading-none",
+                hasDataIssue ? "border-amber-300 text-amber-700" : "border-muted text-muted-foreground"
               )}
-            </div>
+            >
+              {lineItemCount}
+            </Badge>
           </div>
         );
       },
@@ -140,18 +135,22 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       align: 'left',
       width: '80px',
       render: (estimate) => (
-        <Badge 
-          variant={estimate.is_current_version ? "default" : "outline"} 
-          className={cn(
-            "text-xs px-2 py-0.5 font-medium",
-            estimate.is_current_version 
-              ? "bg-primary/10 text-primary border-primary/20" 
-              : "text-muted-foreground"
+        <div className="flex items-center gap-1">
+          <Badge 
+            variant="outline" 
+            className={cn(
+              "text-[10px] px-1 py-0 h-4 leading-none font-mono",
+              estimate.is_current_version 
+                ? "border-primary/30 text-primary bg-primary/5" 
+                : "border-muted text-muted-foreground"
+            )}
+          >
+            v{estimate.version_number || 1}
+          </Badge>
+          {estimate.is_current_version && (
+            <div className="h-1.5 w-1.5 rounded-full bg-primary" title="Current Version" />
           )}
-        >
-          v{estimate.version_number || 1}
-          {estimate.is_current_version && " (Current)"}
-        </Badge>
+        </div>
       ),
     },
     {
@@ -163,12 +162,12 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         <Badge 
           variant="outline" 
           className={cn(
-            "text-xs capitalize px-2 py-0.5",
-            estimate.status === 'approved' && 'border-green-200 text-green-700 bg-green-50',
-            estimate.status === 'draft' && 'border-gray-200 text-gray-700 bg-gray-50',
-            estimate.status === 'sent' && 'border-blue-200 text-blue-700 bg-blue-50',
-            estimate.status === 'rejected' && 'border-red-200 text-red-700 bg-red-50',
-            estimate.status === 'expired' && 'border-yellow-200 text-yellow-700 bg-yellow-50'
+            "text-[10px] capitalize px-1.5 py-0 h-4 leading-none",
+            estimate.status === 'approved' && 'border-green-300 text-green-700',
+            estimate.status === 'draft' && 'border-gray-300 text-gray-700',
+            estimate.status === 'sent' && 'border-blue-300 text-blue-700',
+            estimate.status === 'rejected' && 'border-red-300 text-red-700',
+            estimate.status === 'expired' && 'border-yellow-300 text-yellow-700'
           )}
         >
           {estimate.status}

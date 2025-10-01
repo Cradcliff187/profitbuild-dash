@@ -15,28 +15,28 @@ export const QuoteStatusBadge = ({ status }: QuoteStatusBadgeProps) => {
         return {
           text: 'Pending',
           variant: 'secondary' as const,
-          className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200',
+          className: 'border-yellow-300 text-yellow-700',
           icon: Clock
         };
       case QuoteStatus.ACCEPTED:
         return {
           text: 'Accepted',
           variant: 'default' as const,
-          className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200',
+          className: 'border-green-300 text-green-700',
           icon: CheckCircle
         };
       case QuoteStatus.REJECTED:
         return {
           text: 'Rejected',
           variant: 'destructive' as const,
-          className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200',
+          className: 'border-red-300 text-red-700',
           icon: XCircle
         };
       case QuoteStatus.EXPIRED:
         return {
           text: 'Expired',
           variant: 'outline' as const,
-          className: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 border-gray-200',
+          className: 'border-gray-300 text-gray-700',
           icon: AlertTriangle
         };
       default:
@@ -53,8 +53,8 @@ export const QuoteStatusBadge = ({ status }: QuoteStatusBadgeProps) => {
   const Icon = config.icon;
 
   return (
-    <Badge variant={config.variant} className={`text-sm flex items-center gap-1 ${config.className}`}>
-      <Icon className="h-3 w-3" />
+    <Badge variant="outline" className={`text-[10px] flex items-center gap-0.5 px-1.5 py-0 h-4 leading-none ${config.className}`}>
+      <Icon className="h-2 w-2" />
       {config.text}
     </Badge>
   );

@@ -12,23 +12,23 @@ export const BudgetComparisonBadge = ({ status }: BudgetComparisonBadgeProps) =>
     switch (status) {
       case 'under-budget':
         return {
-          text: 'Under Budget',
+          text: 'Under',
           variant: 'default' as const,
-          className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200',
+          className: 'border-green-300 text-green-700',
           icon: CheckCircle
         };
       case 'over-budget':
         return {
-          text: 'Over Budget',
+          text: 'Over',
           variant: 'destructive' as const,
-          className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200',
+          className: 'border-red-300 text-red-700',
           icon: AlertTriangle
         };
       case 'awaiting-quotes':
         return {
-          text: 'Awaiting Quotes',
+          text: 'Pending',
           variant: 'secondary' as const,
-          className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200',
+          className: 'border-blue-300 text-blue-700',
           icon: Clock
         };
       default:
@@ -45,8 +45,8 @@ export const BudgetComparisonBadge = ({ status }: BudgetComparisonBadgeProps) =>
   const Icon = config.icon;
 
   return (
-    <Badge variant={config.variant} className={`text-xs flex items-center gap-1 ${config.className}`}>
-      <Icon className="h-2.5 w-2.5" />
+    <Badge variant="outline" className={`text-[10px] flex items-center gap-0.5 px-1.5 py-0 h-4 leading-none ${config.className}`}>
+      <Icon className="h-2 w-2" />
       {config.text}
     </Badge>
   );

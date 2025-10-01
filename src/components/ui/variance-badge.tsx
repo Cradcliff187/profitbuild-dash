@@ -30,22 +30,17 @@ export function VarianceBadge({ variance, percentage, type, className }: Varianc
   const formattedPercentage = Math.abs(percentage).toFixed(1);
 
   const badgeClass = cn(
-    "inline-flex items-center gap-1 text-xs font-medium",
+    "inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0 h-4 leading-none",
     isOverBudget 
-      ? "bg-destructive/10 text-destructive border-destructive/20" 
-      : "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800",
+      ? "text-red-700 border-red-300" 
+      : "text-green-700 border-green-300",
     className
   );
 
   return (
     <Badge variant="outline" className={badgeClass}>
-      <Icon className="h-3 w-3" />
+      <Icon className="h-2 w-2" />
       <span>{formattedAmount} ({formattedPercentage}%)</span>
-      {type && (
-        <span className="text-muted-foreground">
-          {type === 'estimate' ? 'vs Est.' : 'vs Quote'}
-        </span>
-      )}
     </Badge>
   );
 }
