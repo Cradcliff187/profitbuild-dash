@@ -796,7 +796,7 @@ useEffect(() => {
           )}
 
           {/* Estimate Details */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
               <RequiredLabel>Estimate Date</RequiredLabel>
               <Popover>
@@ -804,7 +804,7 @@ useEffect(() => {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal h-9",
                       !date && "text-muted-foreground"
                     )}
                   >
@@ -830,7 +830,7 @@ useEffect(() => {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal h-9",
                       !validUntil && "text-muted-foreground"
                     )}
                   >
@@ -848,30 +848,32 @@ useEffect(() => {
                 </PopoverContent>
               </Popover>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Additional notes"
-                rows={1}
-              />
-            </div>
           </div>
 
-          {/* Line Items */}
+          {/* Notes - Full Width */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Additional notes for this estimate..."
+              rows={2}
+              className="resize-none"
+            />
+          </div>
+
+          {/* Line Items Section */}
+          <div className="space-y-3 mt-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-2 border-b">
               <RequiredLabel className="text-sm font-semibold">Line Items</RequiredLabel>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-3">
                 {/* View Toggle */}
                 <div className="flex rounded-md border overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setViewMode('compact')}
-                    className={`px-3 py-1 text-sm ${
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                       viewMode === 'compact'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-background hover:bg-muted'
@@ -882,7 +884,7 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={() => setViewMode('detailed')}
-                    className={`px-3 py-1 text-sm ${
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                       viewMode === 'detailed'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-background hover:bg-muted'
@@ -891,8 +893,8 @@ useEffect(() => {
                     Detailed
                   </button>
                 </div>
-                <Button onClick={addLineItem} variant="outline" size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button onClick={addLineItem} variant="default" size="sm" className="h-8">
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
                   Add Line Item
                 </Button>
               </div>

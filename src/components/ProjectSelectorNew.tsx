@@ -61,12 +61,23 @@ export const ProjectSelectorNew = ({
             <div className="flex items-center">
               <FolderOpen className="mr-2 h-4 w-4 text-muted-foreground" />
               {selectedProject ? (
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">{selectedProject.project_name}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {selectedProject.project_number}
-                  </span>
-                </div>
+                <>
+                  {/* Desktop: Horizontal layout */}
+                  <div className="hidden sm:flex items-center gap-2">
+                    <span className="font-medium">{selectedProject.project_name}</span>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="text-sm text-muted-foreground">
+                      {selectedProject.project_number}
+                    </span>
+                  </div>
+                  {/* Mobile: Vertical layout */}
+                  <div className="flex sm:hidden flex-col items-start">
+                    <span className="font-medium">{selectedProject.project_name}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {selectedProject.project_number}
+                    </span>
+                  </div>
+                </>
               ) : (
                 <span className="text-muted-foreground">{placeholder}</span>
               )}
