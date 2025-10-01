@@ -946,48 +946,50 @@ useEffect(() => {
           </div>
 
           {/* Calculated Totals */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-            <CalculatedField
-              label="Subtotal"
-              value={calculateTotal()}
-              formula="Sum of all line item totals"
-              tooltip="Total of all line items before contingency"
-              variant="default"
-            />
-            
-            <CalculatedField
-              label="Estimated Gross Profit"
-              value={calculateGrossProfit()}
-              formula="Subtotal - Total Cost"
-              tooltip="Expected profit: Subtotal minus total costs"
-              variant={calculateGrossProfit() < 0 ? "destructive" : "success"}
-            />
-            
-            <CalculatedField
-              label="Estimated Gross Margin"
-              value={`${calculateGrossMarginPercent().toFixed(1)}%`}
-              formula="(Gross Profit / Subtotal) × 100"
-              tooltip="Profit margin percentage"
-              variant={
-                calculateGrossMarginPercent() < 0 
-                  ? "destructive" 
-                  : calculateGrossMarginPercent() < 20 
-                    ? "warning" 
-                    : "success"
-              }
-            />
-            
-            <CalculatedField
-              label="Contingency Amount"
-              value={calculateContingencyAmount()}
-              formula={`${contingencyPercent}% of Subtotal`}
-              tooltip={`Contingency amount: ${contingencyPercent}% of subtotal`}
-              variant="default"
-            />
+          <div className="bg-slate-50/50 border border-slate-200/50 rounded-md p-3 mt-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+              <CalculatedField
+                label="Subtotal"
+                value={calculateTotal()}
+                formula="Sum of all line item totals"
+                tooltip="Total of all line items before contingency"
+                variant="default"
+              />
+              
+              <CalculatedField
+                label="Estimated Gross Profit"
+                value={calculateGrossProfit()}
+                formula="Subtotal - Total Cost"
+                tooltip="Expected profit: Subtotal minus total costs"
+                variant={calculateGrossProfit() < 0 ? "destructive" : "success"}
+              />
+              
+              <CalculatedField
+                label="Estimated Gross Margin"
+                value={`${calculateGrossMarginPercent().toFixed(1)}%`}
+                formula="(Gross Profit / Subtotal) × 100"
+                tooltip="Profit margin percentage"
+                variant={
+                  calculateGrossMarginPercent() < 0 
+                    ? "destructive" 
+                    : calculateGrossMarginPercent() < 20 
+                      ? "warning" 
+                      : "success"
+                }
+              />
+              
+              <CalculatedField
+                label="Contingency Amount"
+                value={calculateContingencyAmount()}
+                formula={`${contingencyPercent}% of Subtotal`}
+                tooltip={`Contingency amount: ${contingencyPercent}% of subtotal`}
+                variant="default"
+              />
+            </div>
           </div>
 
           {/* Final Total */}
-          <div className="border-t pt-4">
+          <div className="bg-emerald-50/50 border border-emerald-200/50 rounded-md p-3 mt-2">
             <CalculatedField
               label="Total with Contingency"
               value={calculateTotal() + calculateContingencyAmount()}
