@@ -441,12 +441,6 @@ const Projects = () => {
             </div>
           }
           subtitle={`${filteredAndSortedProjects.length} project${filteredAndSortedProjects.length !== 1 ? 's' : ''}`}
-          primaryAction={{
-            label: "New Project",
-            icon: <Plus className="h-4 w-4" />,
-            onClick: handleCreateNew,
-            variant: "default"
-          }}
         />
       )}
 
@@ -479,25 +473,36 @@ const Projects = () => {
                 resultCount={filteredAndSortedProjects.length}
               />
 
-              {/* View Toggle - Desktop Only */}
+              {/* Desktop Toolbar */}
               {!isMobile && (
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-between gap-2">
                   <Button
-                    variant={displayMode === 'cards' ? 'default' : 'outline'}
+                    variant="default"
                     size="sm"
-                    onClick={() => setDisplayMode('cards')}
+                    onClick={handleCreateNew}
                   >
-                    <Grid className="h-4 w-4 mr-2" />
-                    Cards
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    New Project
                   </Button>
-                  <Button
-                    variant={displayMode === 'table' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setDisplayMode('table')}
-                  >
-                    <Table className="h-4 w-4 mr-2" />
-                    Table
-                  </Button>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={displayMode === 'cards' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setDisplayMode('cards')}
+                    >
+                      <Grid className="h-4 w-4 mr-1.5" />
+                      Cards
+                    </Button>
+                    <Button
+                      variant={displayMode === 'table' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setDisplayMode('table')}
+                    >
+                      <Table className="h-4 w-4 mr-1.5" />
+                      Table
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -523,12 +528,13 @@ const Projects = () => {
                 />
               )}
               
-              {/* Mobile FAB for quick access */}
+              {/* Mobile FAB */}
               {isMobile && (
                 <Button
+                  variant="default"
                   onClick={handleCreateNew}
-                  size="lg"
-                  className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-elevated z-50"
+                  size="icon"
+                  className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
                 >
                   <Plus className="h-6 w-6" />
                 </Button>
