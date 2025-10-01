@@ -763,8 +763,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                   </div>
 
                   {/* Side-by-side table format */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
+                  <div className="mobile-table-wrapper">
+                    <table className="w-full border-collapse min-w-[600px]">
                       <thead>
                         <tr className="border-b bg-muted/30">
                           <th className="text-left p-3 font-medium text-sm text-muted-foreground">Field</th>

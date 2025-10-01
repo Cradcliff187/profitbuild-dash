@@ -517,13 +517,10 @@ export const ProjectDetailView = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className={cn(
-          "flex overflow-x-auto w-full h-12 bg-muted/50 p-1 rounded-lg scrollbar-hide",
-          isMobile ? "gap-1" : "lg:grid lg:grid-cols-6"
-        )}>
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-auto bg-muted/50 p-1 rounded-lg gap-1">
           <TabsTrigger 
             value="overview" 
-            className="text-sm font-medium flex-shrink-0 min-w-[120px] data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+            className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
           >
             <Building2 className="h-4 w-4 mr-2" />
             Overview
@@ -531,7 +528,7 @@ export const ProjectDetailView = () => {
           {!isMobile && (
             <TabsTrigger 
               value="control"
-              className="text-sm font-medium flex-shrink-0 min-w-[140px] data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+              className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
               <Settings className="h-4 w-4 mr-2" />
               Line Item Control
@@ -540,7 +537,7 @@ export const ProjectDetailView = () => {
           {!isMobile && (
             <TabsTrigger 
               value="matching"
-              className="text-sm font-medium flex-shrink-0 min-w-[140px] data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+              className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
               <Target className="h-4 w-4 mr-2" />
               Expense Matching
@@ -548,25 +545,25 @@ export const ProjectDetailView = () => {
           )}
           <TabsTrigger 
             value="estimates"
-            className="text-sm font-medium flex-shrink-0 min-w-[120px] data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+            className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
           >
             <Calculator className="h-4 w-4 mr-2" />
-            {isMobile ? `Estimates (${estimates.length})` : `Estimates & Quotes (${estimates.length})`}
+            {isMobile ? "Estimates" : `Estimates & Quotes`}
           </TabsTrigger>
           <TabsTrigger 
             value="expenses"
-            className="text-sm font-medium flex-shrink-0 min-w-[120px] data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+            className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
           >
             <BarChart3 className="h-4 w-4 mr-2" />
-            Expenses ({expenses.length})
+            Expenses
           </TabsTrigger>
           {!isMobile && (
             <TabsTrigger 
               value="changes"
-              className="text-sm font-medium flex-shrink-0 min-w-[140px] data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+              className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
               <FileText className="h-4 w-4 mr-2" />
-              Change Orders ({changeOrders.length})
+              Change Orders
             </TabsTrigger>
           )}
         </TabsList>

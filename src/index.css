@@ -387,14 +387,4 @@ All colors MUST be HSL.
     font-size: var(--text-data);
     font-weight: 500;
   }
-  
-  /* Hide scrollbar for horizontal scroll areas */
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
 }

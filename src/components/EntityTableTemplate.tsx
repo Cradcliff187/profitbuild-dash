@@ -125,9 +125,9 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
               {noResultsMessage}
             </div>
           ) : (
-            <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px] w-full overflow-x-auto">
-              <div className="w-full overflow-x-auto">
-                <Table className="min-w-[1000px] w-full">
+            <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px] w-full">
+              <div className="mobile-table-wrapper">
+                <Table className="min-w-[800px] w-full">
                   <TableHeader className="sticky top-0 bg-card z-10 border-b">
                     <TableRow className="h-table-header">
                       <TableHead className="w-8 p-compact">
