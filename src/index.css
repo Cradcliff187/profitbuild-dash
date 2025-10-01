@@ -170,8 +170,16 @@ All colors MUST be HSL.
   }
 }
 
-/* Mobile-first responsive utilities */
+/* =================================
+   UNIVERSAL MOBILE STANDARDS
+   (Enforced across entire application)
+   ================================= */
 @layer utilities {
+  /* CRITICAL: Prevent horizontal overflow globally */
+  .no-horizontal-scroll {
+    @apply w-full max-w-full overflow-x-hidden;
+  }
+
   /* Prevent horizontal overflow globally */
   .mobile-container {
     @apply w-full max-w-full overflow-x-hidden;
@@ -192,7 +200,7 @@ All colors MUST be HSL.
     @apply w-full min-w-0 break-words;
   }
   
-  /* Mobile table wrapper */
+  /* Mobile table wrapper - ONLY place overflow-x-auto is allowed */
   .mobile-table-wrapper {
     @apply w-full overflow-x-auto -mx-3 sm:mx-0;
   }
@@ -201,9 +209,14 @@ All colors MUST be HSL.
     @apply min-w-full;
   }
   
-  /* Mobile button groups */
+  /* Mobile button groups - responsive overflow pattern */
   .mobile-button-group {
     @apply flex flex-col gap-2 w-full sm:flex-row sm:gap-2 sm:w-auto;
+  }
+
+  /* Mobile action overflow - use with dropdown for action buttons */
+  .mobile-action-overflow {
+    @apply flex items-center gap-2 flex-shrink-0;
   }
   
   /* Mobile grid responsive */
@@ -214,6 +227,33 @@ All colors MUST be HSL.
   /* Text overflow handling */
   .mobile-text-safe {
     @apply text-sm sm:text-base overflow-hidden text-ellipsis;
+  }
+
+  /* Mobile touch targets - minimum 44px for iOS/Android standards */
+  .mobile-touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Mobile tab grid patterns - enforced layouts */
+  .mobile-tabs-2 {
+    @apply grid grid-cols-2 gap-1 w-full;
+  }
+
+  .mobile-tabs-3 {
+    @apply grid grid-cols-3 gap-1 w-full;
+  }
+
+  /* Mobile header pattern - prevents overflow */
+  .mobile-header {
+    @apply flex items-start justify-between gap-3 min-w-0 mobile-container;
+  }
+
+  .mobile-header-title {
+    @apply min-w-0 flex-1 truncate;
+  }
+
+  .mobile-header-actions {
+    @apply flex items-center gap-2 flex-shrink-0;
   }
 
   /* Field type utilities */

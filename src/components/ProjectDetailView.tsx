@@ -21,7 +21,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MobileResponsiveHeader, HeaderAction } from "@/components/ui/mobile-responsive-header";
+import { MobileResponsiveTabs, TabDefinition } from "@/components/ui/mobile-responsive-tabs";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -231,45 +233,57 @@ export const ProjectDetailView = () => {
     );
   };
 
-  const getContextualActions = () => {
+  const getHeaderActions = (): HeaderAction[] => {
     if (!project) return [];
     
-    const actions = [];
+    const actions: HeaderAction[] = [];
     
+    // Edit project - always available
+    actions.push({
+      label: 'Edit',
+      icon: <Edit className="h-4 w-4" />,
+      onClick: () => navigate(`/projects/${project.id}/edit`),
+      variant: 'outline',
+      showOnMobile: false
+    });
+
+    // Contextual actions based on status
     switch (project.status) {
       case 'estimating':
-        actions.push({
+        actions.unshift({
           label: 'Create Estimate',
-          variant: 'default' as const,
-          icon: Calculator,
-          href: `/estimates/new?project=${project.id}`
+          icon: <Calculator className="h-4 w-4" />,
+          onClick: () => navigate(`/estimates/new?project=${project.id}`),
+          variant: 'default',
+          showOnMobile: true
         });
         break;
       case 'quoted':
-        actions.push({
+        actions.unshift({
           label: 'Follow Up',
-          variant: 'outline' as const,
-          icon: Calendar,
+          icon: <Calendar className="h-4 w-4" />,
           onClick: () => {
             toast({
               title: "Follow Up",
               description: "Feature coming soon - client follow-up tracking."
             });
-          }
+          },
+          variant: 'outline',
+          showOnMobile: false
         });
         break;
       case 'approved':
-        actions.push({
+        actions.unshift({
           label: 'Start Project',
-          variant: 'default' as const,
-          icon: Plus,
+          icon: <Plus className="h-4 w-4" />,
           onClick: () => {
-            // TODO: Implement start project workflow
             toast({
               title: "Start Project",
               description: "Feature coming soon - project kickoff workflow."
             });
-          }
+          },
+          variant: 'default',
+          showOnMobile: true
         });
         break;
     }
@@ -323,23 +337,184 @@ export const ProjectDetailView = () => {
     at_risk: false
   });
 
-  const contextualActions = getContextualActions();
+  const headerActions = getHeaderActions();
   const recentExpenses = expenses.slice(0, 3);
   const currentEstimate = estimates.find(e => e.is_current_version);
   const approvedChangeOrders = changeOrders.filter(co => co.status === 'approved');
   const hasApprovedEstimate = estimates.some(e => e.status === 'approved');
 
+  const tabs: TabDefinition[] = [
+    {
+      value: 'overview',
+      label: 'Overview',
+      icon: <Building2 className="h-4 w-4" />,
+      content: (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Project Details */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Building2 className="h-5 w-5" />
+                Project Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">Project Type</div>
+                <div className="font-medium">
+                  {project.project_type === 'construction_project' ? 'Construction Project' : 'Work Order'}
+                </div>
+              </div>
+              {project.job_type && (
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Job Type</div>
+                  <div className="font-medium">{project.job_type}</div>
+                </div>
+              )}
+              {project.address && (
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Address</div>
+                  <div className="font-medium">{project.address}</div>
+                </div>
+              )}
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">Payment Terms</div>
+                <div className="font-medium">{project.payment_terms || 'Net 30'}</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {recentExpenses.length > 0 ? (
+                <div className="space-y-3">
+                  {recentExpenses.map((expense) => (
+                    <div key={expense.id} className="flex justify-between items-center py-2 border-b last:border-0">
+                      <div>
+                        <div className="font-medium text-sm">{getExpensePayeeLabel(expense)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(expense.expense_date, 'MMM d, yyyy')} • {expense.category}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium">{formatCurrency(expense.amount)}</div>
+                      </div>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" onClick={() => setActiveTab('expenses')}>
+                    View All Expenses
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No recent activity</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      ),
+      showOnMobile: true
+    },
+    {
+      value: 'estimates',
+      label: isMobile ? 'Estimates' : 'Estimates & Quotes',
+      icon: <Calculator className="h-4 w-4" />,
+      content: (
+        <div className="space-y-4">
+          <EstimateVersionComparison projectId={project.id} />
+          <Separator />
+          <QuotesList 
+            quotes={quotes} 
+            estimates={estimates}
+            onEdit={() => loadProjectData()}
+            onDelete={() => loadProjectData()}
+            onCompare={() => {}}
+            onAccept={() => loadProjectData()}
+            onCreateNew={() => {}}
+          />
+        </div>
+      ),
+      showOnMobile: true
+    },
+    {
+      value: 'expenses',
+      label: 'Expenses',
+      icon: <BarChart3 className="h-4 w-4" />,
+      content: (
+        <ExpensesList 
+          expenses={expenses}
+          onEdit={() => loadProjectData()}
+          onDelete={() => loadProjectData()}
+          onRefresh={loadProjectData}
+        />
+      ),
+      showOnMobile: true
+    },
+    {
+      value: 'control',
+      label: 'Line Item Control',
+      icon: <Settings className="h-4 w-4" />,
+      content: <LineItemControlDashboard projectId={project.id} />,
+      showOnMobile: false
+    },
+    {
+      value: 'matching',
+      label: 'Expense Matching',
+      icon: <Target className="h-4 w-4" />,
+      content: (
+        <GlobalExpenseMatching 
+          projectId={project.id} 
+          onClose={() => {
+            setActiveTab('overview');
+            loadProjectData();
+          }}
+        />
+      ),
+      showOnMobile: false
+    },
+    {
+      value: 'changes',
+      label: 'Change Orders',
+      icon: <FileText className="h-4 w-4" />,
+      content: (
+        <ChangeOrdersList 
+          projectId={project.id}
+          onEdit={(co) => {
+            setEditingChangeOrder(co);
+            setShowChangeOrderModal(true);
+          }}
+          onCreateNew={() => {
+            setEditingChangeOrder(null);
+            setShowChangeOrderModal(true);
+          }}
+        />
+      ),
+      showOnMobile: false
+    }
+  ];
+
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/projects')}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
-              {project.project_name}
+    <MobilePageWrapper>
+      {/* Back button - mobile friendly */}
+      <div className="mb-4">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/projects')} className="min-h-[44px] sm:min-h-0">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Projects
+        </Button>
+      </div>
+
+      {/* Header with responsive actions */}
+      <div className="mb-4">
+        <MobileResponsiveHeader
+          title={
+            <div className="flex items-center gap-2">
+              <span>{project.project_name}</span>
               <ProjectStatusSelector
                 projectId={project.id}
                 currentStatus={project.status}
@@ -348,39 +523,24 @@ export const ProjectDetailView = () => {
                 estimateStatus={estimates.find(e => e.is_current_version)?.status || 
                               estimates.sort((a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime())[0]?.status}
                 onStatusChange={() => {
-                  // Refresh project data
                   loadProjectData();
                 }}
               />
-            </h1>
-            <p className="text-muted-foreground text-sm">
+            </div>
+          }
+          subtitle={
+            <>
               #{project.project_number} • {project.client_name}
               {project.status !== 'estimating' && project.start_date && project.end_date && (
-                <span className="ml-4">
+                <span className="hidden sm:inline ml-4">
                   {format(project.start_date, 'MMM dd')} - {format(project.end_date, 'MMM dd, yyyy')}
                 </span>
               )}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {contextualActions.map((action, index) => (
-            <Button 
-              key={index}
-              variant={action.variant}
-              size="sm"
-              onClick={action.onClick}
-              {...(action.href ? { onClick: () => window.location.href = action.href } : {})}
-            >
-              <action.icon className="h-4 w-4 mr-2" />
-              {action.label}
-            </Button>
-          ))}
-          <Button variant="outline" size="sm" onClick={() => navigate(`/projects/${project.id}/edit`)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Project
-          </Button>
-        </div>
+            </>
+          }
+          actions={headerActions}
+          maxVisibleActions={2}
+        />
       </div>
 
       {/* Three-Tier Margin Dashboard */}
@@ -515,185 +675,12 @@ export const ProjectDetailView = () => {
         />
       )}
 
-      {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-auto bg-muted/50 p-1 rounded-lg gap-1">
-          <TabsTrigger 
-            value="overview" 
-            className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
-          >
-            <Building2 className="h-4 w-4 mr-2" />
-            Overview
-          </TabsTrigger>
-          {!isMobile && (
-            <TabsTrigger 
-              value="control"
-              className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Line Item Control
-            </TabsTrigger>
-          )}
-          {!isMobile && (
-            <TabsTrigger 
-              value="matching"
-              className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Target className="h-4 w-4 mr-2" />
-              Expense Matching
-            </TabsTrigger>
-          )}
-          <TabsTrigger 
-            value="estimates"
-            className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
-          >
-            <Calculator className="h-4 w-4 mr-2" />
-            {isMobile ? "Estimates" : `Estimates & Quotes`}
-          </TabsTrigger>
-          <TabsTrigger 
-            value="expenses"
-            className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Expenses
-          </TabsTrigger>
-          {!isMobile && (
-            <TabsTrigger 
-              value="changes"
-              className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Change Orders
-            </TabsTrigger>
-          )}
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Project Details */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Building2 className="h-5 w-5" />
-                  Project Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">Project Type</div>
-                  <div className="font-medium">
-                    {project.project_type === 'construction_project' ? 'Construction Project' : 'Work Order'}
-                  </div>
-                </div>
-                {project.job_type && (
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground">Job Type</div>
-                    <div className="font-medium">{project.job_type}</div>
-                  </div>
-                )}
-                {project.address && (
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground">Address</div>
-                    <div className="font-medium">{project.address}</div>
-                  </div>
-                )}
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">Payment Terms</div>
-                  <div className="font-medium">{project.payment_terms || 'Net 30'}</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {recentExpenses.length > 0 ? (
-                  <div className="space-y-3">
-                    {recentExpenses.map((expense) => (
-                      <div key={expense.id} className="flex justify-between items-center py-2 border-b last:border-0">
-                        <div>
-                          <div className="font-medium text-sm">{getExpensePayeeLabel(expense)}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {format(expense.expense_date, 'MMM d, yyyy')} • {expense.category}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">{formatCurrency(expense.amount)}</div>
-                        </div>
-                      </div>
-                    ))}
-                    <Button variant="outline" size="sm" onClick={() => setActiveTab('expenses')}>
-                      View All Expenses
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>No recent activity</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="control" className="space-y-4">
-          <LineItemControlDashboard projectId={project.id} />
-        </TabsContent>
-
-        <TabsContent value="matching" className="space-y-4">
-          <GlobalExpenseMatching 
-            projectId={project.id} 
-            onClose={() => {
-              toast({
-                title: "Matching Complete",
-                description: "Expense matching has been updated."
-              });
-              loadProjectData(); // Refresh data
-            }}
-          />
-        </TabsContent>
-
-        <TabsContent value="estimates" className="space-y-4">
-          <EstimateVersionComparison projectId={project.id} />
-          <Separator />
-          <QuotesList 
-            quotes={quotes} 
-            estimates={estimates}
-            onEdit={() => {}}
-            onDelete={() => {}}
-            onCompare={() => {}}
-            onAccept={() => {}}
-            onCreateNew={() => {}}
-          />
-        </TabsContent>
-
-        <TabsContent value="expenses" className="space-y-4">
-          <ExpensesList 
-            expenses={expenses}
-            onEdit={() => {}}
-            onDelete={() => {}}
-            onRefresh={() => {}}
-          />
-        </TabsContent>
-
-        <TabsContent value="changes" className="space-y-4">
-          <ChangeOrdersList
-            projectId={project.id}
-            onEdit={(changeOrder) => {
-              setEditingChangeOrder(changeOrder);
-              setShowChangeOrderModal(true);
-            }}
-            onCreateNew={() => {
-              setEditingChangeOrder(null);
-              setShowChangeOrderModal(true);
-            }}
-          />
-        </TabsContent>
-      </Tabs>
+      {/* Main Content Tabs - Mobile Responsive */}
+      <MobileResponsiveTabs 
+        tabs={tabs}
+        defaultTab="overview"
+        maxMobileTabs={3}
+      />
 
       {/* Change Order Modal */}
       <Dialog open={showChangeOrderModal} onOpenChange={setShowChangeOrderModal}>
@@ -722,6 +709,6 @@ export const ProjectDetailView = () => {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </MobilePageWrapper>
   );
 };
