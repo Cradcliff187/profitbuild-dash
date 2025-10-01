@@ -945,9 +945,12 @@ useEffect(() => {
             />
           </div>
 
-          {/* Calculated Totals */}
-          <div className="bg-slate-50/50 border border-slate-200/50 rounded-md p-3 mt-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+          {/* Estimate Summary Section */}
+          <div className="bg-slate-100 border-2 border-slate-300 rounded-lg p-4 mt-6">
+            <h3 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Estimate Summary</h3>
+            
+            {/* Calculated Totals */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
               <CalculatedField
                 label="Subtotal"
                 value={calculateTotal()}
@@ -986,18 +989,18 @@ useEffect(() => {
                 variant="default"
               />
             </div>
-          </div>
 
-          {/* Final Total */}
-          <div className="bg-emerald-50/50 border border-emerald-200/50 rounded-md p-3 mt-2">
-            <CalculatedField
-              label="Total with Contingency"
-              value={calculateTotal() + calculateContingencyAmount()}
-              formula="Subtotal + Contingency Amount"
-              tooltip="Final estimate total including contingency"
-              variant="success"
-              className="text-center"
-            />
+            {/* Final Total */}
+            <div className="border-t-2 border-slate-300 pt-3">
+              <CalculatedField
+                label="Total with Contingency"
+                value={calculateTotal() + calculateContingencyAmount()}
+                formula="Subtotal + Contingency Amount"
+                tooltip="Final estimate total including contingency"
+                variant="success"
+                className="text-center"
+              />
+            </div>
           </div>
 
           {/* Actions */}
