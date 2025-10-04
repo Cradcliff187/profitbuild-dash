@@ -196,7 +196,7 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
 
       {/* Caption Modal with Error Boundary */}
       <ErrorBoundary
-        fallback={
+        fallback={({ retry }) => (
           <Alert variant="destructive" className="m-4">
             <AlertDescription className="space-y-2">
               <p>Caption feature temporarily unavailable.</p>
@@ -208,16 +208,13 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
                 >
                   Close
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => window.location.reload()}
-                >
-                  Reload
+                <Button size="sm" onClick={retry}>
+                  Try Again
                 </Button>
               </div>
             </AlertDescription>
           </Alert>
-        }
+        )}
       >
         <QuickCaptionModal
           photo={currentPhoto}

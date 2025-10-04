@@ -268,7 +268,7 @@ export default function FieldPhotoCapture() {
 
       {/* Caption Modal with Error Boundary */}
       <ErrorBoundary
-        fallback={
+        fallback={({ retry }) => (
           <Alert variant="destructive" className="m-4">
             <AlertDescription className="space-y-2">
               <p>Caption feature temporarily unavailable.</p>
@@ -280,16 +280,13 @@ export default function FieldPhotoCapture() {
                 >
                   Skip Caption
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => window.location.reload()}
-                >
-                  Reload
+                <Button size="sm" onClick={retry}>
+                  Try Again
                 </Button>
               </div>
             </AlertDescription>
           </Alert>
-        }
+        )}
       >
         <QuickCaptionModal
           photo={mockPhoto}
