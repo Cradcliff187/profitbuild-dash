@@ -15,7 +15,9 @@ import {
   FileText,
   Settings,
   BarChart3,
-  Clock
+  Clock,
+  Camera,
+  Image as ImageIcon
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,7 @@ import { ExpensesList } from "@/components/ExpensesList";
 import { QuotesList } from "@/components/QuotesList";
 import { LineItemControlDashboard } from "@/components/LineItemControlDashboard";
 import { GlobalExpenseMatching } from "@/components/GlobalExpenseMatching";
+import { ProjectPhotoGallery } from "@/components/ProjectPhotoGallery";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Project, ProjectStatus } from "@/types/project";
 import { Estimate } from "@/types/estimate";
@@ -496,6 +499,13 @@ export const ProjectDetailView = () => {
         />
       ),
       showOnMobile: false
+    },
+    {
+      value: 'photos',
+      label: 'Photos',
+      icon: <ImageIcon className="h-4 w-4" />,
+      content: <ProjectPhotoGallery projectId={project.id} />,
+      showOnMobile: true
     }
   ];
 
@@ -681,6 +691,15 @@ export const ProjectDetailView = () => {
         defaultTab="overview"
         maxMobileTabs={3}
       />
+
+      {/* Floating Action Button - Camera Access */}
+      <Button
+        size="lg"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-40"
+        onClick={() => navigate(`/projects/${project.id}/capture`)}
+      >
+        <Camera className="h-6 w-6" />
+      </Button>
 
       {/* Change Order Modal */}
       <Dialog open={showChangeOrderModal} onOpenChange={setShowChangeOrderModal}>

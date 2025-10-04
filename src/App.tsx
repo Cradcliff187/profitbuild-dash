@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import ProjectDetail from "./pages/ProjectDetail";
 import ProjectEdit from "./pages/ProjectEdit";
+import FieldPhotoCapture from "./pages/FieldPhotoCapture";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
                   <Route path="projects" element={<Projects />} />
                   <Route path="projects/:id" element={<ProjectDetail />} />
                   <Route path="projects/:id/edit" element={<ProjectEdit />} />
+                  <Route path="projects/:id/capture" element={<FieldPhotoCapture />} />
                   <Route path="estimates" element={<Estimates />} />
                   <Route path="quotes" element={<Quotes />} />
                   <Route path="expenses" element={<Expenses />} />
