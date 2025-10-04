@@ -52,8 +52,21 @@ export default function FieldPhotoCapture() {
     try {
       // Convert photo URI to File
       const response = await fetch(capturedPhotoUri);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch photo file');
+      }
+      
       const blob = await response.blob();
       const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+      // Check file size (warn if > 15MB)
+      const fileSizeMB = file.size / (1024 * 1024);
+      if (fileSizeMB > 15) {
+        toast.warning(`Large file: ${fileSizeMB.toFixed(1)}MB`, {
+          description: 'Upload may take longer',
+        });
+      }
 
       await upload({
         file,
@@ -70,6 +83,7 @@ export default function FieldPhotoCapture() {
       setPendingCaption('');
     } catch (error) {
       console.error('Upload failed:', error);
+      toast.error('Failed to upload photo');
     }
   };
 

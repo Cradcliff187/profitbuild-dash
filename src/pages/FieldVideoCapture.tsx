@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import ErrorBoundary from '@/components/ui/error-boundary';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { useVideoCapture } from '@/hooks/useVideoCapture';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -71,10 +71,23 @@ export default function FieldVideoCapture() {
     try {
       // Convert URI to File object
       const response = await fetch(capturedVideo.webPath || capturedVideo.path || '');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch video file');
+      }
+      
       const blob = await response.blob();
       const file = new File([blob], `video-${Date.now()}.${capturedVideo.format}`, {
         type: `video/${capturedVideo.format}`,
       });
+
+      // Check file size (warn if > 100MB, approaching 150MB limit)
+      const fileSizeMB = file.size / (1024 * 1024);
+      if (fileSizeMB > 100) {
+        toast.warning(`Large file: ${fileSizeMB.toFixed(1)}MB`, {
+          description: 'Upload may take longer',
+        });
+      }
 
       // Extract video duration
       let duration: number | undefined;
@@ -110,10 +123,23 @@ export default function FieldVideoCapture() {
 
     try {
       const response = await fetch(capturedVideo.webPath || capturedVideo.path || '');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch video file');
+      }
+      
       const blob = await response.blob();
       const file = new File([blob], `video-${Date.now()}.${capturedVideo.format}`, {
         type: `video/${capturedVideo.format}`,
       });
+
+      // Check file size
+      const fileSizeMB = file.size / (1024 * 1024);
+      if (fileSizeMB > 100) {
+        toast.warning(`Large file: ${fileSizeMB.toFixed(1)}MB`, {
+          description: 'Upload may take longer',
+        });
+      }
 
       // Extract video duration
       let duration: number | undefined;
@@ -315,34 +341,36 @@ export default function FieldVideoCapture() {
       </div>
 
       {/* Caption Modal with Error Boundary */}
-      <ErrorBoundary
-        fallback={({ retry }) => (
-          <Alert variant="destructive" className="m-4">
-            <AlertDescription className="space-y-2">
-              <p>Caption feature temporarily unavailable.</p>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowCaptionModal(false)}
-                >
-                  Skip Caption
-                </Button>
-                <Button size="sm" onClick={retry}>
-                  Try Again
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-      >
-        <QuickCaptionModal
-          photo={mockPhoto!}
-          open={showCaptionModal}
-          onClose={() => setShowCaptionModal(false)}
-          onSave={handleSaveCaption}
-        />
-      </ErrorBoundary>
+      {mockPhoto && (
+        <ErrorBoundary
+          fallback={({ retry }) => (
+            <Alert variant="destructive" className="m-4">
+              <AlertDescription className="space-y-2">
+                <p>Caption feature temporarily unavailable.</p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowCaptionModal(false)}
+                  >
+                    Skip Caption
+                  </Button>
+                  <Button size="sm" onClick={retry}>
+                    Try Again
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+        >
+          <QuickCaptionModal
+            photo={mockPhoto}
+            open={showCaptionModal}
+            onClose={() => setShowCaptionModal(false)}
+            onSave={handleSaveCaption}
+          />
+        </ErrorBoundary>
+      )}
     </div>
   );
 }

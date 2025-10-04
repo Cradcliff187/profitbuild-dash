@@ -22,6 +22,11 @@ export function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaption
   const transcription = useAudioTranscription();
   const transcriptionInitiatedRef = useRef(false);
 
+  // Early return if photo is null/undefined
+  if (!photo) {
+    return null;
+  }
+
   useEffect(() => {
     if (open) {
       setCaption(photo.caption || '');
