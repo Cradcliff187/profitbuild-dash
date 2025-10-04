@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 
+const MAX_RECORDING_DURATION = 120; // 2 minutes
+
 type RecordingState = 'idle' | 'recording' | 'processing';
 
 export function useAudioRecording() {
@@ -52,9 +54,19 @@ export function useAudioRecording() {
       mediaRecorderRef.current = mediaRecorder;
       setState('recording');
 
-      // Start duration timer
+      // Start duration timer with max duration check
       timerRef.current = window.setInterval(() => {
-        setDuration(prev => prev + 1);
+        setDuration(prev => {
+          const newDuration = prev + 1;
+          
+          // Auto-stop at max duration
+          if (newDuration >= MAX_RECORDING_DURATION) {
+            stopRecording();
+            setError('Recording stopped: 2 minute maximum reached');
+          }
+          
+          return newDuration;
+        });
       }, 1000);
 
     } catch (err) {

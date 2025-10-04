@@ -28,7 +28,18 @@ export function useAudioTranscription() {
 
     } catch (err) {
       console.error('Transcription failed:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Transcription failed';
+      let errorMessage = 'Transcription failed';
+      
+      if (err instanceof Error) {
+        if (err.message.includes('Rate limit')) {
+          errorMessage = 'Too many requests. Please wait 30 seconds and try again.';
+        } else if (err.message.includes('credits exhausted')) {
+          errorMessage = 'AI credits exhausted. Please contact your administrator.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
       setError(errorMessage);
       return null;
     } finally {

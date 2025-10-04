@@ -6,34 +6,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Process base64 in chunks to prevent memory issues
-function processBase64Chunks(base64String: string, chunkSize = 32768) {
-  const chunks: Uint8Array[] = [];
-  let position = 0;
-  
-  while (position < base64String.length) {
-    const chunk = base64String.slice(position, position + chunkSize);
-    const binaryChunk = atob(chunk);
-    const bytes = new Uint8Array(binaryChunk.length);
+// Process base64 audio data
+function processBase64Chunks(base64String: string) {
+  try {
+    // Decode the ENTIRE base64 string at once
+    const binaryString = atob(base64String);
+    const bytes = new Uint8Array(binaryString.length);
     
-    for (let i = 0; i < binaryChunk.length; i++) {
-      bytes[i] = binaryChunk.charCodeAt(i);
+    // Convert to Uint8Array
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
     }
     
-    chunks.push(bytes);
-    position += chunkSize;
+    return bytes;
+  } catch (error) {
+    console.error('Base64 decoding error:', error);
+    throw new Error('Invalid base64 audio data');
   }
-
-  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  return result;
 }
 
 serve(async (req) => {
@@ -76,7 +65,36 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Lovable AI API error:', response.status, errorText);
-      throw new Error(`Lovable AI API error: ${errorText}`);
+      
+      // Handle specific error codes
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Rate limit exceeded. Please wait a moment and try again.',
+            code: 'RATE_LIMIT'
+          }),
+          { 
+            status: 429, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'AI transcription credits exhausted. Please contact support.',
+            code: 'PAYMENT_REQUIRED'
+          }),
+          { 
+            status: 402, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
+      // Generic API error
+      throw new Error(`Lovable AI API error (${response.status}): ${errorText}`);
     }
 
     const result = await response.json();

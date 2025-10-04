@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Mic, StopCircle, Loader2, MessageSquare } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ export function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaption
   const [manualMode, setManualMode] = useState(false);
   const recording = useAudioRecording();
   const transcription = useAudioTranscription();
+  const transcriptionInitiatedRef = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -27,14 +28,21 @@ export function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaption
       setManualMode(false);
       recording.reset();
       transcription.reset();
+      transcriptionInitiatedRef.current = false; // Reset flag
     }
   }, [open, photo.caption]);
 
   useEffect(() => {
-    if (recording.audioData && !transcription.isTranscribing && !transcription.transcription) {
+    if (
+      recording.audioData && 
+      !transcription.isTranscribing && 
+      !transcription.transcription &&
+      !transcriptionInitiatedRef.current // Prevent duplicate calls
+    ) {
+      transcriptionInitiatedRef.current = true;
       handleTranscribe();
     }
-  }, [recording.audioData]);
+  }, [recording.audioData, transcription.isTranscribing, transcription.transcription]);
 
   useEffect(() => {
     if (transcription.transcription) {
@@ -110,6 +118,12 @@ export function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaption
                   </Button>
                 )}
               </div>
+
+              {recording.isRecording && recording.duration >= 110 && (
+                <p className="text-xs text-amber-600 font-medium">
+                  {120 - recording.duration}s remaining
+                </p>
+              )}
 
               {recording.isProcessing && (
                 <p className="text-xs text-muted-foreground">Processing audio...</p>
