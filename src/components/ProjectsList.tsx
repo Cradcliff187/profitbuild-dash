@@ -239,7 +239,8 @@ export const ProjectsList = ({
                   return (
                     <Button 
                       size="sm"
-                      className="w-full h-button-compact text-label bg-primary hover:bg-primary/90"
+                      variant="default"
+                      className="w-full h-button-compact"
                       onClick={() => window.location.href = `/estimates?project=${project.id}`}
                     >
                       <Calculator className="h-3 w-3 mr-1" />
@@ -260,7 +261,8 @@ export const ProjectsList = ({
                       </Button>
                       <Button 
                         size="sm"
-                        className="flex-1 h-button-compact text-label bg-primary hover:bg-primary/90"
+                        variant="default"
+                        className="flex-1 h-button-compact"
                         onClick={() => window.location.href = `/estimates?project=${project.id}&action=new-version`}
                       >
                         <Plus className="h-3 w-3 mr-1" />

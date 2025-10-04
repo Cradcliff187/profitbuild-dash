@@ -246,8 +246,9 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
                   <div className="flex gap-1">
                     <Button 
                       size="sm" 
+                      variant="default"
                       onClick={() => createNewVersion(currentVersion)}
-                      className="h-button-compact text-label bg-primary hover:bg-primary/90"
+                      className="h-button-compact"
                     >
                       <Plus className="h-3 w-3 mr-1" />
                       New Version
