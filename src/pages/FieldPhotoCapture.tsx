@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Camera, MapPin, Clock, X, Check, Eye, MessageSquare, RefreshCw } from 'lucide-react';
+import { Camera, MapPin, Clock, X, Check, Eye, MessageSquare, RefreshCw, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -8,6 +8,7 @@ import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
 import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { isWebPlatform } from '@/utils/platform';
 import { toast } from 'sonner';
 import type { ProjectMedia } from '@/types/project';
 
@@ -149,6 +150,24 @@ export default function FieldPhotoCapture() {
         </div>
         <div className="w-8" />
       </div>
+
+      {/* Platform Warning for Web */}
+      {isWebPlatform() && (
+        <Alert className="m-3 border-primary/50 bg-primary/5">
+          <Smartphone className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            <strong>Limited Functionality:</strong> Camera and GPS features work best on mobile devices.{' '}
+            <a 
+              href="https://lovable.dev/blogs/TODO" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-primary"
+            >
+              Learn how to build for mobile
+            </a>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Camera View */}
       {!capturedPhotoUri ? (

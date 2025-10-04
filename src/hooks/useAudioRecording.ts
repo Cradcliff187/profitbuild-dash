@@ -20,6 +20,15 @@ export function useAudioRecording() {
       setAudioData(null);
       setDuration(0);
 
+      // Check if running in secure context (HTTPS or localhost)
+      if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+        throw new Error('Microphone access requires a secure connection (HTTPS)');
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Audio recording is not supported in this browser');
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm',

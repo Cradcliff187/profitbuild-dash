@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
 import { toast } from 'sonner';
+import { isWebPlatform } from '@/utils/platform';
 
 interface CameraPermissions {
   camera: boolean;
@@ -20,6 +21,7 @@ interface UseCameraCaptureResult {
 export function useCameraCapture(): UseCameraCaptureResult {
   const [isCapturing, setIsCapturing] = useState(false);
   const [permissionsGranted, setPermissionsGranted] = useState<CameraPermissions | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const requestPermissions = async (): Promise<boolean> => {
     try {
@@ -55,24 +57,73 @@ export function useCameraCapture(): UseCameraCaptureResult {
     setIsCapturing(true);
 
     try {
-      // Check permissions first
-      if (!permissionsGranted) {
-        const granted = await requestPermissions();
-        if (!granted) {
-          return null;
+      // Try Capacitor Camera API first (native platforms)
+      if (!isWebPlatform()) {
+        try {
+          if (!permissionsGranted) {
+            const granted = await requestPermissions();
+            if (!granted) {
+              return null;
+            }
+          }
+
+          const photo = await Camera.getPhoto({
+            resultType: CameraResultType.Uri,
+            source,
+            quality: 90,
+            allowEditing: false,
+            saveToGallery: source === CameraSource.Camera,
+            correctOrientation: true,
+          });
+
+          return photo;
+        } catch (capacitorError) {
+          console.warn('Capacitor Camera failed, trying web fallback:', capacitorError);
         }
       }
 
-      const photo = await Camera.getPhoto({
-        resultType: CameraResultType.Uri,
-        source,
-        quality: 90,
-        allowEditing: false,
-        saveToGallery: source === CameraSource.Camera,
-        correctOrientation: true,
-      });
+      // Web fallback using file input
+      return new Promise((resolve) => {
+        // Create hidden file input if it doesn't exist
+        if (!fileInputRef.current) {
+          fileInputRef.current = document.createElement('input');
+          fileInputRef.current.type = 'file';
+          fileInputRef.current.accept = 'image/*';
+          fileInputRef.current.capture = 'environment';
+        }
 
-      return photo;
+        const handleFileSelect = (event: Event) => {
+          const target = event.target as HTMLInputElement;
+          const file = target.files?.[0];
+          
+          if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const webPath = reader.result as string;
+              const photo: Photo = {
+                webPath,
+                format: file.type.split('/')[1] || 'jpeg',
+                saved: false,
+              };
+              resolve(photo);
+            };
+            reader.onerror = () => {
+              toast.error('Failed to read image file');
+              resolve(null);
+            };
+            reader.readAsDataURL(file);
+          } else {
+            resolve(null);
+          }
+          
+          // Clean up
+          fileInputRef.current!.removeEventListener('change', handleFileSelect);
+          fileInputRef.current!.value = '';
+        };
+
+        fileInputRef.current.addEventListener('change', handleFileSelect);
+        fileInputRef.current.click();
+      });
     } catch (error) {
       const err = error as Error;
       if (err.message !== 'User cancelled photos app') {

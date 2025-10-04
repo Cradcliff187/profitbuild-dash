@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Geolocation, Position } from '@capacitor/geolocation';
 import { toast } from 'sonner';
+import { isWebPlatform } from '@/utils/platform';
 
 interface Coordinates {
   latitude: number;
@@ -51,48 +52,89 @@ export function useGeolocation(): UseGeolocationResult {
     setIsLoading(true);
 
     try {
-      // Check permissions first
-      const permission = await Geolocation.checkPermissions();
-      
-      if (permission.location !== 'granted') {
-        const granted = await requestPermission();
-        if (!granted) {
-          return null;
+      // Try Capacitor API first (native platforms)
+      if (!isWebPlatform()) {
+        try {
+          const permission = await Geolocation.checkPermissions();
+          
+          if (permission.location !== 'granted') {
+            const granted = await requestPermission();
+            if (!granted) {
+              return null;
+            }
+          }
+
+          const position: Position = await Geolocation.getCurrentPosition({
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+          });
+
+          const coords: Coordinates = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            altitude: position.coords.altitude,
+            accuracy: position.coords.accuracy,
+            timestamp: position.timestamp,
+          };
+
+          setCoordinates(coords);
+          setPermissionDenied(false);
+          return coords;
+        } catch (capacitorError) {
+          console.warn('Capacitor Geolocation failed, trying web fallback:', capacitorError);
         }
       }
 
-      const position: Position = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
+      // Web fallback using browser Geolocation API
+      if (!navigator.geolocation) {
+        throw new Error('Geolocation is not supported by this browser');
+      }
+
+      return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const coords: Coordinates = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              altitude: position.coords.altitude,
+              accuracy: position.coords.accuracy,
+              timestamp: position.timestamp,
+            };
+
+            setCoordinates(coords);
+            setPermissionDenied(false);
+            resolve(coords);
+          },
+          (error) => {
+            console.error('Browser geolocation error:', error);
+            
+            if (error.code === error.PERMISSION_DENIED) {
+              setPermissionDenied(true);
+              toast.error('Location access denied', {
+                description: 'Enable location services to add GPS data',
+              });
+            } else {
+              toast.error('Failed to get location', {
+                description: error.message,
+              });
+            }
+            
+            resolve(null);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+          }
+        );
       });
-
-      const coords: Coordinates = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        altitude: position.coords.altitude,
-        accuracy: position.coords.accuracy,
-        timestamp: position.timestamp,
-      };
-
-      setCoordinates(coords);
-      setPermissionDenied(false);
-      return coords;
     } catch (error) {
       const err = error as Error;
       console.error('Error getting location:', error);
-      
-      if (err.message.includes('permission')) {
-        setPermissionDenied(true);
-        toast.error('Location access denied', {
-          description: 'Enable location services to add GPS data to photos',
-        });
-      } else {
-        toast.error('Failed to get location', {
-          description: err.message,
-        });
-      }
-      
+      toast.error('Failed to get location', {
+        description: err.message,
+      });
       return null;
     } finally {
       setIsLoading(false);

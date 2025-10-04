@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
 import { toast } from 'sonner';
+import { isWebPlatform } from '@/utils/platform';
 
 interface CameraPermissions {
   camera: boolean;
@@ -22,6 +23,7 @@ interface UseVideoCaptureResult {
 export function useVideoCapture(): UseVideoCaptureResult {
   const [isRecording, setIsRecording] = useState(false);
   const [permissionsGranted, setPermissionsGranted] = useState<CameraPermissions | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const requestPermissions = async (): Promise<boolean> => {
     try {
@@ -57,29 +59,78 @@ export function useVideoCapture(): UseVideoCaptureResult {
     setIsRecording(true);
 
     try {
-      // Check permissions first
-      if (!permissionsGranted) {
-        const granted = await requestPermissions();
-        if (!granted) {
-          setIsRecording(false);
-          return null;
+      // Try Capacitor Camera API first (native platforms)
+      if (!isWebPlatform()) {
+        try {
+          if (!permissionsGranted) {
+            const granted = await requestPermissions();
+            if (!granted) {
+              setIsRecording(false);
+              return null;
+            }
+          }
+
+          // Note: Capacitor Camera getPhoto with Video doesn't return until recording is complete
+          // The recording UI (stop button, duration) must be handled by the native camera app
+          const video = await Camera.getPhoto({
+            resultType: CameraResultType.Uri,
+            source,
+            quality: 80, // Medium quality for file size management
+            allowEditing: false,
+            saveToGallery: true,
+            correctOrientation: true,
+            // @ts-ignore - Video mode exists but isn't in types
+            mediaType: 'video',
+          });
+
+          return video;
+        } catch (capacitorError) {
+          console.warn('Capacitor Camera failed, trying web fallback:', capacitorError);
         }
       }
 
-      // Note: Capacitor Camera getPhoto with Video doesn't return until recording is complete
-      // The recording UI (stop button, duration) must be handled by the native camera app
-      const video = await Camera.getPhoto({
-        resultType: CameraResultType.Uri,
-        source,
-        quality: 80, // Medium quality for file size management
-        allowEditing: false,
-        saveToGallery: true,
-        correctOrientation: true,
-        // @ts-ignore - Video mode exists but isn't in types
-        mediaType: 'video',
-      });
+      // Web fallback using file input
+      return new Promise((resolve) => {
+        // Create hidden file input if it doesn't exist
+        if (!fileInputRef.current) {
+          fileInputRef.current = document.createElement('input');
+          fileInputRef.current.type = 'file';
+          fileInputRef.current.accept = 'video/*';
+          fileInputRef.current.capture = 'environment';
+        }
 
-      return video;
+        const handleFileSelect = (event: Event) => {
+          const target = event.target as HTMLInputElement;
+          const file = target.files?.[0];
+          
+          if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const webPath = reader.result as string;
+              const video: Photo = {
+                webPath,
+                format: file.type.split('/')[1] || 'mp4',
+                saved: false,
+              };
+              resolve(video);
+            };
+            reader.onerror = () => {
+              toast.error('Failed to read video file');
+              resolve(null);
+            };
+            reader.readAsDataURL(file);
+          } else {
+            resolve(null);
+          }
+          
+          // Clean up
+          fileInputRef.current!.removeEventListener('change', handleFileSelect);
+          fileInputRef.current!.value = '';
+        };
+
+        fileInputRef.current.addEventListener('change', handleFileSelect);
+        fileInputRef.current.click();
+      });
     } catch (error) {
       const err = error as Error;
       if (err.message !== 'User cancelled photos app') {

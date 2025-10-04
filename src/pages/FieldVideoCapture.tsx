@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Video, MapPin, Clock, Check, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Video, MapPin, Clock, Check, RotateCcw, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -11,6 +11,7 @@ import { useVideoCapture } from '@/hooks/useVideoCapture';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
 import { formatFileSize, getVideoDuration } from '@/utils/videoUtils';
+import { isWebPlatform } from '@/utils/platform';
 import { toast } from 'sonner';
 
 export default function FieldVideoCapture() {
@@ -18,7 +19,7 @@ export default function FieldVideoCapture() {
   const navigate = useNavigate();
   
   const { startRecording, isRecording } = useVideoCapture();
-  const { getLocation, coordinates } = useGeolocation();
+  const { getLocation, coordinates, isLoading: isLoadingLocation } = useGeolocation();
   const { upload, isUploading } = useProjectMediaUpload(projectId!);
   
   const [capturedVideo, setCapturedVideo] = useState<{
@@ -201,7 +202,12 @@ export default function FieldVideoCapture() {
             <div className="flex-1">
               <h1 className="text-lg font-semibold">Field Video Capture</h1>
             </div>
-            {coordinates && (
+            {isLoadingLocation && (
+              <Badge variant="outline" className="text-xs">
+                Getting GPS...
+              </Badge>
+            )}
+            {coordinates && !isLoadingLocation && (
               <Badge variant="outline" className="text-xs">
                 <MapPin className="h-3 w-3 mr-1" />
                 ±{coordinates.accuracy.toFixed(0)}m
@@ -210,6 +216,24 @@ export default function FieldVideoCapture() {
           </div>
         </div>
       </div>
+
+      {/* Platform Warning for Web */}
+      {isWebPlatform() && (
+        <Alert className="m-4 border-primary/50 bg-primary/5">
+          <Smartphone className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            <strong>Limited Functionality:</strong> Camera, video, and GPS features work best on mobile devices.{' '}
+            <a 
+              href="https://lovable.dev/blogs/TODO" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-primary"
+            >
+              Learn how to build for mobile
+            </a>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center p-4">
@@ -228,7 +252,15 @@ export default function FieldVideoCapture() {
                 </p>
               </div>
 
-              {coordinates && gpsAccuracy && (
+              {isLoadingLocation && (
+                <Alert>
+                  <AlertDescription className="text-xs">
+                    🔄 Acquiring GPS location...
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {coordinates && gpsAccuracy && !isLoadingLocation && (
                 <Alert>
                   <MapPin className="h-4 w-4" />
                   <AlertDescription className="text-xs">
@@ -286,7 +318,7 @@ export default function FieldVideoCapture() {
                   <span className="font-medium">Captured</span>
                 </div>
                 <div className="text-xs">
-                  {new Date().toLocaleTimeString()}
+                  {new Date().toLocaleTimeString()} · {new Date().toLocaleDateString()}
                 </div>
               </Card>
             </div>
