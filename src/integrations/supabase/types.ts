@@ -574,6 +574,7 @@ export type Database = {
           mime_type: string
           project_id: string
           taken_at: string | null
+          thumbnail_url: string | null
           updated_at: string
           upload_source: string | null
           uploaded_by: string | null
@@ -595,6 +596,7 @@ export type Database = {
           mime_type: string
           project_id: string
           taken_at?: string | null
+          thumbnail_url?: string | null
           updated_at?: string
           upload_source?: string | null
           uploaded_by?: string | null
@@ -616,6 +618,7 @@ export type Database = {
           mime_type?: string
           project_id?: string
           taken_at?: string | null
+          thumbnail_url?: string | null
           updated_at?: string
           upload_source?: string | null
           uploaded_by?: string | null

@@ -334,10 +334,18 @@ export function ProjectVideoGallery({ projectId }: ProjectVideoGalleryProps) {
                         onClick={() => setSelectedVideo(video)}
                         className="w-full aspect-video rounded-lg overflow-hidden bg-muted hover:ring-2 hover:ring-primary transition-all"
                       >
-                        {/* Placeholder */}
-                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                          <VideoIcon className="h-8 w-8 text-primary/40" />
-                        </div>
+                        {/* Thumbnail or Placeholder */}
+                        {video.thumbnail_url ? (
+                          <img 
+                            src={video.thumbnail_url} 
+                            alt={video.caption || 'Video thumbnail'} 
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                            <VideoIcon className="h-8 w-8 text-primary/40" />
+                          </div>
+                        )}
 
                         {/* Duration Badge */}
                         {video.duration && (
@@ -411,8 +419,16 @@ export function ProjectVideoGallery({ projectId }: ProjectVideoGalleryProps) {
                           )}
                         </button>
 
-                        <div className="w-16 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                          <VideoIcon className="h-5 w-5 text-primary/40" />
+                        <div className="w-16 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+                          {video.thumbnail_url ? (
+                            <img 
+                              src={video.thumbnail_url} 
+                              alt="" 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <VideoIcon className="h-5 w-5 text-primary/40" />
+                          )}
                         </div>
 
                         <div className="flex-1 min-w-0">

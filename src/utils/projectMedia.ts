@@ -109,6 +109,23 @@ export async function uploadProjectMedia(
       .from('project-media')
       .createSignedUrl(uploadData.path, 3600); // 1 hour expiry
 
+    // Generate thumbnail for videos in background (don't await)
+    if (fileType === 'video') {
+      supabase.functions
+        .invoke('generate-video-thumbnail', {
+          body: { 
+            mediaId: mediaRecord.id, 
+            videoPath: uploadData.path 
+          }
+        })
+        .then(({ error }) => {
+          if (error) {
+            console.error('Thumbnail generation failed:', error);
+          }
+        })
+        .catch(err => console.error('Thumbnail generation error:', err));
+    }
+
     return {
       data: {
         ...mediaRecord,
@@ -231,9 +248,19 @@ export async function getProjectMediaList(
           .from('project-media')
           .createSignedUrl(media.file_url, 3600);
 
+        // Get signed URL for thumbnail if it exists
+        let thumbnailUrl = media.thumbnail_url;
+        if (thumbnailUrl && media.file_type === 'video') {
+          const { data: thumbSignedUrl } = await supabase.storage
+            .from('project-media-thumbnails')
+            .createSignedUrl(`thumbnails/${media.id}.jpg`, 3600);
+          thumbnailUrl = thumbSignedUrl?.signedUrl || thumbnailUrl;
+        }
+
         return {
           ...media,
           file_url: signedUrlData?.signedUrl || media.file_url,
+          thumbnail_url: thumbnailUrl,
         } as ProjectMedia;
       })
     );

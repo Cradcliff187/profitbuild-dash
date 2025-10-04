@@ -107,6 +107,7 @@ export interface ProjectMedia {
   uploaded_by?: string;
   upload_source?: 'camera' | 'gallery' | 'web';
   duration?: number; // Duration in seconds for videos
+  thumbnail_url?: string; // Generated thumbnail URL for videos
   created_at: string;
   updated_at: string;
 }
