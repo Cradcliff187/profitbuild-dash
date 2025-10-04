@@ -556,6 +556,87 @@ export type Database = {
         }
         Relationships: []
       }
+      project_media: {
+        Row: {
+          altitude: number | null
+          caption: string | null
+          created_at: string
+          description: string | null
+          device_model: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id: string
+          latitude: number | null
+          location_name: string | null
+          longitude: number | null
+          mime_type: string
+          project_id: string
+          taken_at: string | null
+          updated_at: string
+          upload_source: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          altitude?: number | null
+          caption?: string | null
+          created_at?: string
+          description?: string | null
+          device_model?: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id?: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          mime_type: string
+          project_id: string
+          taken_at?: string | null
+          updated_at?: string
+          upload_source?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          altitude?: number | null
+          caption?: string | null
+          created_at?: string
+          description?: string | null
+          device_model?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          mime_type?: string
+          project_id?: string
+          taken_at?: string | null
+          updated_at?: string
+          upload_source?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_media_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_media_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_revenues: {
         Row: {
           account_full_name: string | null

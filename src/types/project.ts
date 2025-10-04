@@ -87,6 +87,29 @@ export const PROJECT_STATUSES = [
   { value: 'cancelled', label: 'Cancelled' }
 ] as const;
 
+// Project Media interface for photos/videos with location metadata
+export interface ProjectMedia {
+  id: string;
+  project_id: string;
+  file_url: string;
+  file_name: string;
+  file_type: 'image' | 'video';
+  mime_type: string;
+  file_size: number;
+  caption?: string;
+  description?: string;
+  taken_at?: string;
+  latitude?: number;
+  longitude?: number;
+  location_name?: string;
+  altitude?: number;
+  device_model?: string;
+  uploaded_by?: string;
+  upload_source?: 'camera' | 'gallery' | 'web';
+  created_at: string;
+  updated_at: string;
+}
+
 // Utility function to generate project numbers using sequential hierarchy
 export const generateProjectNumber = async (): Promise<string> => {
   try {
