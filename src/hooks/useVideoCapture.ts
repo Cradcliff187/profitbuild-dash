@@ -89,16 +89,16 @@ export function useVideoCapture(): UseVideoCaptureResult {
         }
       }
 
-      // Web fallback using file input
+      // Web fallback using file input (iOS/Chrome compatible)
       return new Promise((resolve) => {
-        // Create hidden file input if it doesn't exist
-        if (!fileInputRef.current) {
-          fileInputRef.current = document.createElement('input');
-          fileInputRef.current.type = 'file';
-          fileInputRef.current.accept = 'video/*';
-          fileInputRef.current.capture = 'environment';
-        }
-
+        // Create new file input each time for iOS compatibility
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'video/*';
+        input.style.display = 'none';
+        
+        // Don't set capture attribute for iOS - let browser decide
+        
         const handleFileSelect = (event: Event) => {
           const target = event.target as HTMLInputElement;
           const file = target.files?.[0];
@@ -124,12 +124,24 @@ export function useVideoCapture(): UseVideoCaptureResult {
           }
           
           // Clean up
-          fileInputRef.current!.removeEventListener('change', handleFileSelect);
-          fileInputRef.current!.value = '';
+          input.remove();
         };
 
-        fileInputRef.current.addEventListener('change', handleFileSelect);
-        fileInputRef.current.click();
+        const handleCancel = () => {
+          setTimeout(() => {
+            if (!input.files?.length) {
+              resolve(null);
+              input.remove();
+            }
+          }, 300);
+        };
+
+        input.addEventListener('change', handleFileSelect);
+        input.addEventListener('cancel', handleCancel);
+        
+        // CRITICAL: Append to body before clicking (iOS requirement)
+        document.body.appendChild(input);
+        input.click();
       });
     } catch (error) {
       const err = error as Error;

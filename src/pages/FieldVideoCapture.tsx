@@ -37,8 +37,12 @@ export default function FieldVideoCapture() {
   }, []);
 
   const handleCapture = async () => {
-    // Refresh GPS before recording
-    const location = await getLocation();
+    // Parallelize GPS and video capture to preserve user gesture
+    const capturePromise = startRecording();
+    const gpsPromise = getLocation();
+    
+    const [video, location] = await Promise.all([capturePromise, gpsPromise]);
+    
     if (location) {
       const age = Date.now() - location.timestamp;
       const ageSeconds = Math.floor(age / 1000);
@@ -52,12 +56,15 @@ export default function FieldVideoCapture() {
         });
       }
     }
-
-    const video = await startRecording();
     
     if (video) {
       setCapturedVideo(video);
       setShowCaptionModal(true);
+    } else if (window.top !== window.self) {
+      // Running in iframe - suggest opening in new tab
+      toast.error('Camera blocked in embedded view', {
+        description: 'Open app in a new tab to use camera',
+      });
     }
   };
 

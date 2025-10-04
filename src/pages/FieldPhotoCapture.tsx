@@ -33,10 +33,12 @@ export default function FieldPhotoCapture() {
   }, [coordinates]);
 
   const handleCapture = async () => {
-    // Refresh GPS before capture
-    const freshCoords = await getLocation();
+    // Parallelize GPS and photo capture to preserve user gesture
+    const capturePromise = capturePhoto();
+    const gpsPromise = getLocation();
     
-    const photo = await capturePhoto();
+    const [photo, freshCoords] = await Promise.all([capturePromise, gpsPromise]);
+    
     if (photo) {
       setCapturedPhotoUri(photo.webPath || photo.path);
       
@@ -44,6 +46,11 @@ export default function FieldPhotoCapture() {
       if (freshCoords) {
         toast.success(`Photo captured with GPS accuracy ±${freshCoords.accuracy.toFixed(0)}m`);
       }
+    } else if (window.top !== window.self) {
+      // Running in iframe - suggest opening in new tab
+      toast.error('Camera blocked in embedded view', {
+        description: 'Open app in a new tab to use camera',
+      });
     }
   };
 
