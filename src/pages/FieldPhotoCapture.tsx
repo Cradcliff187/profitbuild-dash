@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Camera, MapPin, Clock, X, Check, Eye, MessageSquare } from 'lucide-react';
+import { Camera, MapPin, Clock, X, Check, Eye, MessageSquare, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
 import { QuickCaptionModal } from '@/components/QuickCaptionModal';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import type { ProjectMedia } from '@/types/project';
 
@@ -19,24 +21,28 @@ export default function FieldPhotoCapture() {
   const [locationName, setLocationName] = useState<string>('');
   const [showCaptionModal, setShowCaptionModal] = useState(false);
   const [pendingCaption, setPendingCaption] = useState<string>('');
+  const [gpsAge, setGpsAge] = useState<number | null>(null);
 
-  // Request GPS on mount
-  useEffect(() => {
-    getLocation();
-  }, []);
-
-  // Reverse geocode coordinates to address
+  // Calculate GPS age
   useEffect(() => {
     if (coordinates) {
       setLocationName(`${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`);
-      // Optional: Add reverse geocoding API call here
+      setGpsAge(Date.now() - coordinates.timestamp);
     }
   }, [coordinates]);
 
   const handleCapture = async () => {
+    // Refresh GPS before capture
+    const freshCoords = await getLocation();
+    
     const photo = await capturePhoto();
     if (photo) {
       setCapturedPhotoUri(photo.webPath || photo.path);
+      
+      // Show GPS accuracy toast
+      if (freshCoords) {
+        toast.success(`Photo captured with GPS accuracy ±${freshCoords.accuracy.toFixed(0)}m`);
+      }
     }
   };
 
@@ -140,17 +146,25 @@ export default function FieldPhotoCapture() {
 
           {/* GPS Status Strip */}
           <div className="absolute bottom-32 left-0 right-0 bg-background/90 backdrop-blur-sm border-y border-border p-3 space-y-1">
-            <div className="flex items-center gap-2 text-xs text-foreground">
-              <MapPin className="h-3 w-3 text-primary" />
-              {isLoadingLocation ? (
-                <span>Getting location...</span>
-              ) : coordinates ? (
-                <span>
-                  GPS: {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)} (±
-                  {coordinates.accuracy.toFixed(0)}m)
-                </span>
-              ) : (
-                <span className="text-warning">GPS unavailable</span>
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 text-foreground">
+                <MapPin className="h-3 w-3 text-primary" />
+                {isLoadingLocation ? (
+                  <span>Getting location...</span>
+                ) : coordinates ? (
+                  <span>
+                    GPS: {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)} (±
+                    {coordinates.accuracy.toFixed(0)}m)
+                  </span>
+                ) : (
+                  <span className="text-warning">GPS unavailable</span>
+                )}
+              </div>
+              {coordinates && gpsAge && gpsAge < 5000 && (
+                <div className="flex items-center gap-1 text-primary">
+                  <RefreshCw className="h-3 w-3" />
+                  <span>Fresh</span>
+                </div>
               )}
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -252,13 +266,38 @@ export default function FieldPhotoCapture() {
         </div>
       )}
 
-      {/* Caption Modal */}
-      <QuickCaptionModal
-        photo={mockPhoto}
-        open={showCaptionModal}
-        onClose={() => setShowCaptionModal(false)}
-        onSave={handleSaveCaption}
-      />
+      {/* Caption Modal with Error Boundary */}
+      <ErrorBoundary
+        fallback={
+          <Alert variant="destructive" className="m-4">
+            <AlertDescription className="space-y-2">
+              <p>Caption feature temporarily unavailable.</p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowCaptionModal(false)}
+                >
+                  Skip Caption
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                >
+                  Reload
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        }
+      >
+        <QuickCaptionModal
+          photo={mockPhoto}
+          open={showCaptionModal}
+          onClose={() => setShowCaptionModal(false)}
+          onSave={handleSaveCaption}
+        />
+      </ErrorBoundary>
     </div>
   );
 }

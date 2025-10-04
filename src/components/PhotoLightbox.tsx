@@ -3,6 +3,8 @@ import { format } from 'date-fns';
 import { X, ChevronLeft, ChevronRight, MapPin, Clock, Smartphone, Trash2, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import type { ProjectMedia } from '@/types/project';
 import { deleteProjectMedia, updateMediaMetadata } from '@/utils/projectMedia';
 import { toast } from 'sonner';
@@ -192,13 +194,38 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Caption Modal */}
-      <QuickCaptionModal
-        photo={currentPhoto}
-        open={showCaptionModal}
-        onClose={() => setShowCaptionModal(false)}
-        onSave={handleSaveCaption}
-      />
+      {/* Caption Modal with Error Boundary */}
+      <ErrorBoundary
+        fallback={
+          <Alert variant="destructive" className="m-4">
+            <AlertDescription className="space-y-2">
+              <p>Caption feature temporarily unavailable.</p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowCaptionModal(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                >
+                  Reload
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        }
+      >
+        <QuickCaptionModal
+          photo={currentPhoto}
+          open={showCaptionModal}
+          onClose={() => setShowCaptionModal(false)}
+          onSave={handleSaveCaption}
+        />
+      </ErrorBoundary>
     </>
   );
 }

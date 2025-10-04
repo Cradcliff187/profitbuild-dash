@@ -7,6 +7,7 @@ interface Coordinates {
   longitude: number;
   altitude: number | null;
   accuracy: number;
+  timestamp: number;
 }
 
 interface UseGeolocationResult {
@@ -71,6 +72,7 @@ export function useGeolocation(): UseGeolocationResult {
         longitude: position.coords.longitude,
         altitude: position.coords.altitude,
         accuracy: position.coords.accuracy,
+        timestamp: position.timestamp,
       };
 
       setCoordinates(coords);
