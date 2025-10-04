@@ -10,7 +10,7 @@ import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { useVideoCapture } from '@/hooks/useVideoCapture';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
-import { formatFileSize } from '@/utils/videoUtils';
+import { formatFileSize, getVideoDuration } from '@/utils/videoUtils';
 import { toast } from 'sonner';
 
 export default function FieldVideoCapture() {
@@ -76,6 +76,14 @@ export default function FieldVideoCapture() {
         type: `video/${capturedVideo.format}`,
       });
 
+      // Extract video duration
+      let duration: number | undefined;
+      try {
+        duration = await getVideoDuration(file);
+      } catch (error) {
+        console.warn('Failed to extract video duration:', error);
+      }
+
       // Upload with metadata
       await upload({
         file,
@@ -84,6 +92,7 @@ export default function FieldVideoCapture() {
         longitude: coordinates?.longitude,
         altitude: coordinates?.altitude,
         uploadSource: 'camera',
+        duration,
       });
 
       // Reset and stay on capture screen
@@ -106,6 +115,14 @@ export default function FieldVideoCapture() {
         type: `video/${capturedVideo.format}`,
       });
 
+      // Extract video duration
+      let duration: number | undefined;
+      try {
+        duration = await getVideoDuration(file);
+      } catch (error) {
+        console.warn('Failed to extract video duration:', error);
+      }
+
       await upload({
         file,
         caption: videoCaption,
@@ -113,6 +130,7 @@ export default function FieldVideoCapture() {
         longitude: coordinates?.longitude,
         altitude: coordinates?.altitude,
         uploadSource: 'camera',
+        duration,
       });
 
       navigate(`/projects/${projectId}`);

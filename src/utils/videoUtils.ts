@@ -63,3 +63,26 @@ export function getTimeRemainingBeforeSizeLimit(currentDuration: number): number
   const maxDurationForSize = MAX_VIDEO_SIZE / BYTES_PER_SECOND;
   return Math.max(0, maxDurationForSize - currentDuration);
 }
+
+/**
+ * Extract video duration from a video file or blob
+ * Returns duration in seconds
+ */
+export async function getVideoDuration(file: File | Blob): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    
+    video.onloadedmetadata = () => {
+      window.URL.revokeObjectURL(video.src);
+      resolve(video.duration);
+    };
+    
+    video.onerror = () => {
+      window.URL.revokeObjectURL(video.src);
+      reject(new Error('Failed to load video metadata'));
+    };
+    
+    video.src = URL.createObjectURL(file);
+  });
+}

@@ -14,6 +14,7 @@ export interface UploadProjectMediaParams {
   deviceModel?: string;
   takenAt?: string;
   uploadSource?: 'camera' | 'gallery' | 'web';
+  duration?: number;
 }
 
 export interface UploadProjectMediaResult {
@@ -89,6 +90,7 @@ export async function uploadProjectMedia(
         device_model: metadata.deviceModel,
         uploaded_by: user.id,
         upload_source: metadata.uploadSource || 'web',
+        duration: metadata.duration,
       })
       .select()
       .single();
