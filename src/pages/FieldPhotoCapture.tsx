@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Camera, MapPin, Clock, X, Check, Eye } from 'lucide-react';
+import { Camera, MapPin, Clock, X, Check, Eye, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
+import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { toast } from 'sonner';
+import type { ProjectMedia } from '@/types/project';
 
 export default function FieldPhotoCapture() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -15,6 +17,8 @@ export default function FieldPhotoCapture() {
   const { upload, isUploading, progress } = useProjectMediaUpload(projectId!);
   const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
   const [locationName, setLocationName] = useState<string>('');
+  const [showCaptionModal, setShowCaptionModal] = useState(false);
+  const [pendingCaption, setPendingCaption] = useState<string>('');
 
   // Request GPS on mount
   useEffect(() => {
@@ -47,7 +51,7 @@ export default function FieldPhotoCapture() {
 
       await upload({
         file,
-        caption: '',
+        caption: pendingCaption || '',
         description: '',
         locationName: locationName,
         latitude: coordinates?.latitude,
@@ -57,6 +61,7 @@ export default function FieldPhotoCapture() {
 
       // Reset for next photo
       setCapturedPhotoUri(null);
+      setPendingCaption('');
     } catch (error) {
       console.error('Upload failed:', error);
     }
@@ -65,6 +70,35 @@ export default function FieldPhotoCapture() {
   const handleUploadAndReview = async () => {
     await handleUploadAndContinue();
     navigate(`/projects/${projectId}`);
+  };
+
+  const handleSaveCaption = (caption: string) => {
+    setPendingCaption(caption);
+    setShowCaptionModal(false);
+    toast.success('Caption added');
+  };
+
+  // Create a mock ProjectMedia object for the caption modal
+  const mockPhoto: ProjectMedia = {
+    id: 'temp',
+    project_id: projectId!,
+    file_url: capturedPhotoUri || '',
+    file_name: 'preview.jpg',
+    file_type: 'image',
+    file_size: 0,
+    mime_type: 'image/jpeg',
+    caption: pendingCaption || null,
+    description: null,
+    latitude: coordinates?.latitude || null,
+    longitude: coordinates?.longitude || null,
+    altitude: coordinates?.altitude || null,
+    location_name: locationName || null,
+    taken_at: new Date().toISOString(),
+    device_model: null,
+    uploaded_by: null,
+    upload_source: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
   const currentTime = new Date().toLocaleTimeString('en-US', {
@@ -168,6 +202,24 @@ export default function FieldPhotoCapture() {
 
           {/* Action Controls */}
           <div className="p-4 bg-card border-t border-border space-y-2">
+            {pendingCaption && (
+              <div className="p-2 bg-muted rounded border mb-2">
+                <p className="text-xs text-muted-foreground">Caption:</p>
+                <p className="text-sm font-medium">{pendingCaption}</p>
+              </div>
+            )}
+            
+            <Button
+              onClick={() => setShowCaptionModal(true)}
+              disabled={isUploading}
+              variant="outline"
+              className="w-full"
+              size="lg"
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              {pendingCaption ? 'Edit Caption' : 'Add Caption'}
+            </Button>
+            
             <Button
               onClick={handleUploadAndContinue}
               disabled={isUploading}
@@ -199,6 +251,14 @@ export default function FieldPhotoCapture() {
           </div>
         </div>
       )}
+
+      {/* Caption Modal */}
+      <QuickCaptionModal
+        photo={mockPhoto}
+        open={showCaptionModal}
+        onClose={() => setShowCaptionModal(false)}
+        onSave={handleSaveCaption}
+      />
     </div>
   );
 }
