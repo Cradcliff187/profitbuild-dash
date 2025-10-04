@@ -106,6 +106,7 @@ export interface ProjectMedia {
   device_model?: string;
   uploaded_by?: string;
   upload_source?: 'camera' | 'gallery' | 'web';
+  duration?: number; // Duration in seconds for videos
   created_at: string;
   updated_at: string;
 }

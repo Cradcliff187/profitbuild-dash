@@ -17,6 +17,7 @@ import {
   BarChart3,
   Clock,
   Camera,
+  Video,
   Image as ImageIcon
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -41,6 +42,7 @@ import { QuotesList } from "@/components/QuotesList";
 import { LineItemControlDashboard } from "@/components/LineItemControlDashboard";
 import { GlobalExpenseMatching } from "@/components/GlobalExpenseMatching";
 import { ProjectPhotoGallery } from "@/components/ProjectPhotoGallery";
+import { ProjectVideoGallery } from "@/components/ProjectVideoGallery";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Project, ProjectStatus } from "@/types/project";
 import { Estimate } from "@/types/estimate";
@@ -506,6 +508,13 @@ export const ProjectDetailView = () => {
       icon: <ImageIcon className="h-4 w-4" />,
       content: <ProjectPhotoGallery projectId={project.id} />,
       showOnMobile: true
+    },
+    {
+      value: 'videos',
+      label: 'Videos',
+      icon: <Video className="h-4 w-4" />,
+      content: <ProjectVideoGallery projectId={project.id} />,
+      showOnMobile: true
     }
   ];
 
@@ -692,14 +701,25 @@ export const ProjectDetailView = () => {
         maxMobileTabs={3}
       />
 
-      {/* Floating Action Button - Camera Access */}
-      <Button
-        size="lg"
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-40"
-        onClick={() => navigate(`/projects/${project.id}/capture`)}
-      >
-        <Camera className="h-6 w-6" />
-      </Button>
+      {/* Floating Action Buttons - Photo & Video */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+        <Button
+          size="lg"
+          className="h-14 w-14 rounded-full shadow-lg"
+          onClick={() => navigate(`/projects/${project.id}/capture-video`)}
+          title="Capture Video"
+        >
+          <Video className="h-6 w-6" />
+        </Button>
+        <Button
+          size="lg"
+          className="h-14 w-14 rounded-full shadow-lg"
+          onClick={() => navigate(`/projects/${project.id}/capture`)}
+          title="Capture Photo"
+        >
+          <Camera className="h-6 w-6" />
+        </Button>
+      </div>
 
       {/* Change Order Modal */}
       <Dialog open={showChangeOrderModal} onOpenChange={setShowChangeOrderModal}>
