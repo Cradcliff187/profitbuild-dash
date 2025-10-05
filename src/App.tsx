@@ -18,7 +18,6 @@ import ProfitAnalysis from "./pages/ProfitAnalysis";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import ProjectDetail from "./pages/ProjectDetail";
-import ProjectEdit from "./pages/ProjectEdit";
 import FieldPhotoCapture from "./pages/FieldPhotoCapture";
 import FieldVideoCapture from "./pages/FieldVideoCapture";
 import NotFound from "./pages/NotFound";
@@ -41,8 +40,7 @@ const App = () => (
                   <Route path="dashboard" element={<Navigate to="/" replace />} />
                   <Route path="work-orders" element={<WorkOrders />} />
                   <Route path="projects" element={<Projects />} />
-                  <Route path="projects/:id" element={<ProjectDetail />} />
-                  <Route path="projects/:id/edit" element={<ProjectEdit />} />
+                  <Route path="projects/:id/*" element={<ProjectDetail />} />
                   <Route path="projects/:id/capture" element={<FieldPhotoCapture />} />
                   <Route path="projects/:id/capture-video" element={<FieldVideoCapture />} />
                   <Route path="estimates" element={<Estimates />} />
