@@ -24,7 +24,7 @@ async function transcribeWithGemini(audioBase64: string, apiKey: string) {
         content: [
           {
             type: 'text',
-            text: 'Transcribe this audio EXACTLY word-for-word. Output ONLY what was actually spoken - do not add, interpret, clean up, or guess at any words. If a section is unclear, write [inaudible] instead of guessing. Do not add punctuation unless you are certain. Do not add context or commentary. Provide the literal transcription only.'
+            text: 'Transcribe this audio.'
           },
           {
             type: 'audio',
@@ -71,7 +71,7 @@ async function transcribeWithGeminiLite(audioBase64: string, apiKey: string) {
         content: [
           {
             type: 'text',
-            text: 'Transcribe this audio EXACTLY word-for-word. Output ONLY what was actually spoken - do not add, interpret, clean up, or guess at any words. If a section is unclear, write [inaudible] instead of guessing. Do not add punctuation unless you are certain. Do not add context or commentary. Provide the literal transcription only.'
+            text: 'Transcribe this audio.'
           },
           {
             type: 'audio',
