@@ -263,7 +263,7 @@ export const ProjectsList = ({
               })()}
 
               <div className="flex items-center gap-1 flex-wrap">
-                {isProjectAtRisk(project.margin_percentage) && (
+                {isProjectAtRisk((project as any).currentContractAmount > 0 ? ((project as any).projected_margin / (project as any).currentContractAmount) * 100 : 0) && (
                   <Badge className="compact-badge bg-destructive text-destructive-foreground flex items-center gap-1">
                     <AlertTriangle className="h-2 w-2" />
                     RISK
@@ -272,29 +272,42 @@ export const ProjectsList = ({
                 <Badge className={`compact-badge ${getStatusColor(project.status)}`}>
                   {project.status.replace('_', ' ').toUpperCase()}
                 </Badge>
-                {project.margin_percentage !== null && project.margin_percentage !== undefined && (
-                  <Badge className={`compact-badge ${getMarginColor(project.margin_percentage)}`}>
-                    {project.margin_percentage.toFixed(1)}%
+                {(project as any).projected_margin !== null && (project as any).currentContractAmount > 0 && (
+                  <Badge className={`compact-badge ${getMarginColor(((project as any).projected_margin / (project as any).currentContractAmount) * 100)}`}>
+                    {(((project as any).projected_margin / (project as any).currentContractAmount) * 100).toFixed(1)}%
                   </Badge>
                 )}
               </div>
 
-              {/* Financial Summary - Compact */}
-              {(project.contracted_amount || project.current_margin !== null) && (
-                <div className="compact-card-section bg-muted/10">
-                  <div className="grid grid-cols-2 gap-2 text-data">
+              {/* Financial Summary - Compact Three-Tier */}
+              {((project as any).currentContractAmount || (project as any).projected_margin !== null) && (
+                <div className="compact-card-section bg-muted/10 space-y-2">
+                  {/* Contract Value */}
+                  <div className="flex justify-between text-data">
+                    <span className="text-label text-muted-foreground">Contract</span>
+                    <span className="font-mono font-medium">{formatCurrency((project as any).currentContractAmount)}</span>
+                  </div>
+                  
+                  {/* Three-Tier Margins - Compact Grid */}
+                  <div className="grid grid-cols-3 gap-2 text-data pt-1 border-t border-border/50">
                     <div>
-                      <p className="text-label text-muted-foreground">Contract</p>
-                      <p className="font-mono font-medium">{formatCurrency(project.contracted_amount)}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight">Original</p>
+                      <p className="font-mono text-xs font-medium">{formatCurrency((project as any).original_margin)}</p>
                     </div>
-                    {project.current_margin !== null && project.current_margin !== undefined && (
-                      <div>
-                        <p className="text-label text-muted-foreground">Profit</p>
-                         <p className={`font-mono font-medium ${project.current_margin >= 0 ? 'text-success' : 'text-destructive'}`}>
-                           {formatCurrency(project.current_margin)}
-                         </p>
-                      </div>
-                    )}
+                    <div>
+                      <p className="text-[10px] text-muted-foreground leading-tight">Projected</p>
+                      <p className="font-mono text-xs font-medium">{formatCurrency((project as any).projected_margin)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground leading-tight">Actual</p>
+                      <p className="font-mono text-xs font-medium">{formatCurrency((project as any).actual_margin)}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Expenses Total */}
+                  <div className="flex justify-between text-data pt-1 border-t border-border/50">
+                    <span className="text-label text-muted-foreground">Expenses</span>
+                    <span className="font-mono font-medium">{formatCurrency((project as any).actualExpenses)}</span>
                   </div>
                 </div>
               )}
