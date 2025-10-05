@@ -249,26 +249,15 @@ export const ProjectsList = ({
                   );
                 } else {
                   return (
-                    <div className="flex gap-1">
-                      <Button 
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 h-button-compact text-label"
-                        onClick={() => window.location.href = `/estimates?project=${project.id}`}
-                      >
-                        <Calculator className="h-3 w-3 mr-1" />
-                        View
-                      </Button>
-                      <Button 
-                        size="sm"
-                        variant="default"
-                        className="flex-1 h-button-compact"
-                        onClick={() => window.location.href = `/estimates?project=${project.id}&action=new-version`}
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        New
-                      </Button>
-                    </div>
+                    <Button 
+                      size="sm"
+                      variant="default"
+                      className="w-full h-button-compact"
+                      onClick={() => window.location.href = `/estimates?project=${project.id}`}
+                    >
+                      <Calculator className="h-3 w-3 mr-1" />
+                      View Estimates
+                    </Button>
                   );
                 }
               })()}
