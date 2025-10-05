@@ -97,7 +97,7 @@ export default function FieldPhotoCapture() {
 
   const handleUploadAndReview = async () => {
     await handleUploadAndContinue();
-    navigate(`/projects/${projectId}`);
+    navigate(`/projects/${projectId}`, { state: { activeTab: 'photos' } });
   };
 
   const handleSaveCaption = (caption: string) => {

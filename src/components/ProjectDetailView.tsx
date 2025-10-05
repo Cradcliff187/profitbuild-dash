@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from "date-fns";
 import { 
   Building2, 
@@ -60,6 +61,8 @@ type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 export const ProjectDetailView = () => {
   const { id: projectId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
@@ -69,7 +72,7 @@ export const ProjectDetailView = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'overview');
   
   // Change Order Modal State
   const [showChangeOrderModal, setShowChangeOrderModal] = useState(false);
@@ -80,6 +83,13 @@ export const ProjectDetailView = () => {
       loadProjectData();
     }
   }, [projectId]);
+
+  // Invalidate media queries when returning from capture pages
+  useEffect(() => {
+    if (location.state?.activeTab === 'photos' || location.state?.activeTab === 'videos') {
+      queryClient.invalidateQueries({ queryKey: ['project-media'] });
+    }
+  }, [location.state, queryClient]);
 
   const loadProjectData = async () => {
     if (!projectId) return;
@@ -697,7 +707,7 @@ export const ProjectDetailView = () => {
       {/* Main Content Tabs - Mobile Responsive */}
       <MobileResponsiveTabs 
         tabs={tabs}
-        defaultTab="overview"
+        defaultTab={activeTab}
         maxMobileTabs={3}
       />
 
