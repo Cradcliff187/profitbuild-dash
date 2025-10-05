@@ -24,7 +24,7 @@ async function transcribeWithGemini(audioBase64: string, apiKey: string) {
         content: [
           {
             type: 'text',
-            text: 'Transcribe the following audio caption for a construction project photo. Provide only the transcription text without any additional commentary.'
+            text: 'Transcribe this audio EXACTLY word-for-word. Output ONLY what was actually spoken - do not add, interpret, clean up, or guess at any words. If a section is unclear, write [inaudible] instead of guessing. Do not add punctuation unless you are certain. Do not add context or commentary. Provide the literal transcription only.'
           },
           {
             type: 'audio',
@@ -54,7 +54,9 @@ async function transcribeWithGemini(audioBase64: string, apiKey: string) {
   }
 
   const result = await response.json();
-  return result.choices[0].message.content;
+  const transcription = result.choices[0].message.content;
+  console.log('Transcribed text preview:', transcription.slice(0, 100) + (transcription.length > 100 ? '...' : ''));
+  return transcription;
 }
 
 // Transcribe with Gemini 2.5 Flash Lite (fallback method)
@@ -69,7 +71,7 @@ async function transcribeWithGeminiLite(audioBase64: string, apiKey: string) {
         content: [
           {
             type: 'text',
-            text: 'Transcribe the following audio caption for a construction project photo. Provide only the transcription text without any additional commentary.'
+            text: 'Transcribe this audio EXACTLY word-for-word. Output ONLY what was actually spoken - do not add, interpret, clean up, or guess at any words. If a section is unclear, write [inaudible] instead of guessing. Do not add punctuation unless you are certain. Do not add context or commentary. Provide the literal transcription only.'
           },
           {
             type: 'audio',
@@ -99,7 +101,9 @@ async function transcribeWithGeminiLite(audioBase64: string, apiKey: string) {
   }
 
   const result = await response.json();
-  return result.choices[0].message.content;
+  const transcription = result.choices[0].message.content;
+  console.log('Fallback transcribed text preview:', transcription.slice(0, 100) + (transcription.length > 100 ? '...' : ''));
+  return transcription;
 }
 
 serve(async (req) => {
