@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal } from "lucide-react";
+import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -253,10 +253,10 @@ export const ProjectsList = ({
                       size="sm"
                       variant="default"
                       className="w-full h-button-compact"
-                      onClick={() => window.location.href = `/estimates?project=${project.id}`}
+                      onClick={() => window.location.href = `/projects/${project.id}`}
                     >
-                      <Calculator className="h-3 w-3 mr-1" />
-                      View Estimates
+                      <FileText className="h-3 w-3 mr-1" />
+                      Details
                     </Button>
                   );
                 }
