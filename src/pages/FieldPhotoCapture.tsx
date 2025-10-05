@@ -231,9 +231,9 @@ export default function FieldPhotoCapture() {
         </div>
       ) : (
         /* Photo Preview */
-        <div className="flex-1 flex flex-col bg-muted">
+        <div className="flex-1 flex flex-col bg-muted overflow-y-auto">
           {/* Preview Image */}
-          <div className="flex-1 flex items-center justify-center p-4">
+          <div className="flex-shrink-0 flex items-center justify-center p-4 min-h-0">
             <img
               src={capturedPhotoUri}
               alt="Captured"
@@ -255,7 +255,7 @@ export default function FieldPhotoCapture() {
           )}
 
           {/* Action Controls */}
-          <div className="p-4 bg-card border-t border-border space-y-2">
+          <div className="flex-shrink-0 p-4 bg-card border-t border-border space-y-2">
             {pendingCaption && (
               <div className="p-2 bg-muted rounded border mb-2">
                 <p className="text-xs text-muted-foreground">Caption:</p>

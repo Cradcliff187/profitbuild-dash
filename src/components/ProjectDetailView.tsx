@@ -221,10 +221,10 @@ export const ProjectDetailView = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full no-horizontal-scroll">
         <ProjectSidebar />
         
-        <SidebarInset className="flex-1">
+        <SidebarInset className="flex-1 no-horizontal-scroll">
           {/* Compact Header */}
           <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background px-3">
             <SidebarTrigger />
@@ -250,7 +250,7 @@ export const ProjectDetailView = () => {
           </header>
 
           {/* Main Content Area */}
-          <main className="flex-1 p-3 space-y-3">
+          <main className="flex-1 p-3 space-y-3 no-horizontal-scroll">
             <Routes>
               <Route index element={
                 <ProjectOverviewCompact
