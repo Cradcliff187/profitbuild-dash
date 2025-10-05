@@ -563,6 +563,7 @@ export type Database = {
           created_at: string
           description: string | null
           device_model: string | null
+          duration: number | null
           file_name: string
           file_size: number
           file_type: string
@@ -585,6 +586,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           device_model?: string | null
+          duration?: number | null
           file_name: string
           file_size: number
           file_type: string
@@ -607,6 +609,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           device_model?: string | null
+          duration?: number | null
           file_name?: string
           file_size?: number
           file_type?: string

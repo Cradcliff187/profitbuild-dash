@@ -44,6 +44,15 @@ export function useProjectMediaUpload(projectId: string): UseProjectMediaUploadR
         return null;
       }
 
+      if (!result.data) {
+        const error = new Error('Upload failed - no data returned');
+        setError(error);
+        toast.error('Upload failed', {
+          description: 'The file was uploaded but database record creation failed. Please try again.',
+        });
+        return null;
+      }
+
       toast.success('Media uploaded successfully');
       return result.data;
     } catch (err) {
