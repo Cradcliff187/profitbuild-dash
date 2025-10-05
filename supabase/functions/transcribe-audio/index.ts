@@ -47,6 +47,7 @@ serve(async (req) => {
     const blob = new Blob([binaryAudio], { type: 'audio/webm' });
     formData.append('file', blob, 'audio.webm');
     formData.append('model', 'whisper-1');
+    formData.append('prompt', 'Transcribe the following audio caption for a construction project photo:');
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -67,10 +68,23 @@ serve(async (req) => {
       console.error('Lovable AI API error:', response.status, errorText);
       
       // Handle specific error codes
+      if (response.status === 400) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Audio format not supported. Please try recording again.',
+            code: 'INVALID_AUDIO'
+          }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ 
-            error: 'Rate limit exceeded. Please wait a moment and try again.',
+            error: 'Rate limit exceeded. Please wait 30 seconds and try again.',
             code: 'RATE_LIMIT'
           }),
           { 
