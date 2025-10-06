@@ -316,7 +316,13 @@ export const ProjectDetailView = () => {
               } />
               
               <Route path="media" element={
-                <ProjectMediaGallery projectId={project.id} />
+                <ProjectMediaGallery 
+                  projectId={project.id}
+                  projectName={project.project_name}
+                  projectNumber={project.project_number}
+                  clientName={project.client_name}
+                  address={project.address}
+                />
               } />
               
               <Route path="edit" element={

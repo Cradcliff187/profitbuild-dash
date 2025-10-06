@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
-import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Download, Trash2, Grid3x3, List, SortAsc, CheckSquare, Square, FileImage, FileVideo } from 'lucide-react';
+import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Download, Trash2, Grid3x3, List, SortAsc, CheckSquare, Square, FileImage, FileVideo, FileText } from 'lucide-react';
 import { useProjectMedia } from '@/hooks/useProjectMedia';
 import { PhotoLightbox } from './PhotoLightbox';
 import { VideoLightbox } from './VideoLightbox';
+import { MediaReportBuilderModal } from './MediaReportBuilderModal';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
@@ -22,9 +23,19 @@ type MediaTab = 'all' | 'photos' | 'videos';
 
 interface ProjectMediaGalleryProps {
   projectId: string;
+  projectName: string;
+  projectNumber: string;
+  clientName: string;
+  address?: string;
 }
 
-export function ProjectMediaGallery({ projectId }: ProjectMediaGalleryProps) {
+export function ProjectMediaGallery({ 
+  projectId, 
+  projectName, 
+  projectNumber, 
+  clientName, 
+  address 
+}: ProjectMediaGalleryProps) {
   const { media: allMedia, isLoading, refetch } = useProjectMedia(projectId);
   const [activeTab, setActiveTab] = useState<MediaTab>('all');
   const [selectedMedia, setSelectedMedia] = useState<ProjectMedia | null>(null);
@@ -33,6 +44,7 @@ export function ProjectMediaGallery({ projectId }: ProjectMediaGalleryProps) {
   const [sortBy, setSortBy] = useState<SortBy>('date-desc');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Filter media by tab
@@ -331,6 +343,15 @@ export function ProjectMediaGallery({ projectId }: ProjectMediaGalleryProps) {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => setShowReportModal(true)}
+                    className="h-7 px-2"
+                  >
+                    <FileText className="h-4 w-4 mr-1" />
+                    Report
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={handleBatchDownload}
                     className="h-7 px-2"
                   >
@@ -487,6 +508,18 @@ export function ProjectMediaGallery({ projectId }: ProjectMediaGalleryProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Report Builder Modal */}
+      <MediaReportBuilderModal
+        open={showReportModal}
+        onOpenChange={setShowReportModal}
+        projectName={projectName}
+        projectNumber={projectNumber}
+        clientName={clientName}
+        address={address}
+        selectedMedia={allMedia.filter(m => selectedItems.has(m.id))}
+        onComplete={clearSelection}
+      />
     </div>
   );
 }
