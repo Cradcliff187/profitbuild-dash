@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { FileText, Loader2, Image as ImageIcon, Video as VideoIcon } from 'lucide-react';
+import { FileText, Loader2, Image as ImageIcon, Video as VideoIcon, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -8,8 +8,10 @@ import { Label } from './ui/label';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { ScrollArea } from './ui/scroll-area';
+import { Alert, AlertDescription } from './ui/alert';
 import { toast } from 'sonner';
 import { generateMediaReportPDF } from '@/utils/mediaReportPdfGenerator';
+import { generatePDFFileName, estimatePDFSize } from '@/utils/pdfHelpers';
 import type { ProjectMedia } from '@/types/project';
 
 interface MediaReportBuilderModalProps {
@@ -35,66 +37,80 @@ export function MediaReportBuilderModal({
 }: MediaReportBuilderModalProps) {
   const [reportTitle, setReportTitle] = useState('Project Media Report');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
 
   const photoCount = selectedMedia.filter(m => m.file_type === 'image').length;
   const videoCount = selectedMedia.filter(m => m.file_type === 'video').length;
 
-  const handleGeneratePDF = async () => {
+  const handleGeneratePDF = async (preview: boolean = false) => {
     setIsGenerating(true);
-    setProgress(0);
+    setProgress({ current: 0, total: selectedMedia.length });
 
     try {
-      // Sort media by date (oldest to newest)
+      // Sort by date for consistent ordering
       const sortedMedia = [...selectedMedia].sort((a, b) => {
         const dateA = new Date(a.taken_at || a.created_at).getTime();
         const dateB = new Date(b.taken_at || b.created_at).getTime();
         return dateA - dateB;
       });
 
-      // Simulate progress for user feedback
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
-      }, 300);
-
-      // Generate PDF
-      const blob = await generateMediaReportPDF({
+      // Generate PDF with progress tracking
+      const result = await generateMediaReportPDF({
         projectName,
         projectNumber,
         clientName,
         address,
         mediaItems: sortedMedia,
         reportTitle,
+        onProgress: (current, total) => {
+          setProgress({ current, total });
+        },
       });
 
-      clearInterval(progressInterval);
-      setProgress(100);
+      const fileName = generatePDFFileName({
+        projectName,
+        projectNumber,
+        itemCount: selectedMedia.length,
+      });
 
-      // Generate filename
-      const date = format(new Date(), 'yyyy-MM-dd');
-      const safeProjectNumber = projectNumber.replace(/[^a-z0-9]/gi, '-');
-      const filename = `${safeProjectNumber}-Media-Report-${selectedMedia.length}items-${date}.pdf`;
+      const url = URL.createObjectURL(result.blob);
 
-      // Download file
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
+      if (preview) {
+        // Open in new tab for preview
+        window.open(url, '_blank');
+        toast.success('Preview opened in new tab');
+      } else {
+        // Auto-download
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        toast.success(`PDF generated: ${fileName}`);
+      }
+
       URL.revokeObjectURL(url);
-      document.body.removeChild(a);
 
-      toast.success(`PDF generated successfully: ${selectedMedia.length} items`);
+      // Show warning if any items failed
+      if (result.stats.failed > 0) {
+        toast.error(
+          `${result.stats.failed} of ${result.stats.total} items failed to process`,
+          {
+            description: result.stats.failedItems.join(', ')
+          }
+        );
+      }
+
       onComplete();
       onOpenChange(false);
-      
     } catch (error) {
       console.error('PDF generation failed:', error);
       toast.error('Failed to generate PDF. Please try again.');
     } finally {
       setIsGenerating(false);
-      setProgress(0);
+      setProgress({ current: 0, total: 0 });
     }
   };
 
@@ -127,14 +143,14 @@ export function MediaReportBuilderModal({
                 <span className="text-xs text-muted-foreground">videos</span>
               </div>
               <Badge variant="secondary" className="ml-auto">
-                {selectedMedia.length} total items
+                {selectedMedia.length} total • {estimatePDFSize(selectedMedia.length)}
               </Badge>
             </div>
 
             {/* Thumbnail Preview */}
             <ScrollArea className="h-24 w-full rounded-lg border">
               <div className="flex gap-2 p-2">
-                {selectedMedia.map((item) => (
+                {selectedMedia.slice(0, 30).map((item) => (
                   <div key={item.id} className="relative flex-shrink-0">
                     <div className="h-16 w-16 rounded overflow-hidden bg-muted">
                       {item.file_type === 'image' ? (
@@ -162,9 +178,25 @@ export function MediaReportBuilderModal({
                     )}
                   </div>
                 ))}
+                {selectedMedia.length > 30 && (
+                  <div className="h-16 w-16 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                    +{selectedMedia.length - 30}
+                  </div>
+                )}
               </div>
             </ScrollArea>
           </div>
+
+          {/* Large Report Warning */}
+          {selectedMedia.length > 50 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Large reports ({selectedMedia.length} items) may take several minutes to generate
+                and could be {estimatePDFSize(selectedMedia.length)} or larger.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Configuration Section */}
           <div className="space-y-3">
@@ -197,9 +229,13 @@ export function MediaReportBuilderModal({
               {address && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Address:</span>
-                  <span className="font-medium">{address}</span>
+                  <span className="font-medium truncate ml-2">{address}</span>
                 </div>
               )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Date:</span>
+                <span className="font-medium">{format(new Date(), 'MMM d, yyyy')}</span>
+              </div>
             </div>
           </div>
 
@@ -208,17 +244,22 @@ export function MediaReportBuilderModal({
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Generating PDF...</span>
-                <span className="font-medium">{progress}%</span>
+                <span className="font-medium">
+                  {progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0}%
+                </span>
               </div>
-              <Progress value={progress} className="h-2" />
+              <Progress 
+                value={progress.total > 0 ? (progress.current / progress.total) * 100 : 0} 
+                className="h-2" 
+              />
               <p className="text-xs text-muted-foreground text-center">
-                Processing {selectedMedia.length} items, please wait...
+                Processing {progress.current} of {progress.total} items...
               </p>
             </div>
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -227,7 +268,14 @@ export function MediaReportBuilderModal({
             Cancel
           </Button>
           <Button
-            onClick={handleGeneratePDF}
+            variant="outline"
+            onClick={() => handleGeneratePDF(true)}
+            disabled={isGenerating || selectedMedia.length === 0}
+          >
+            Preview
+          </Button>
+          <Button
+            onClick={() => handleGeneratePDF(false)}
             disabled={isGenerating || selectedMedia.length === 0}
           >
             {isGenerating ? (
@@ -238,7 +286,7 @@ export function MediaReportBuilderModal({
             ) : (
               <>
                 <FileText className="h-4 w-4 mr-2" />
-                Generate PDF
+                Download PDF
               </>
             )}
           </Button>

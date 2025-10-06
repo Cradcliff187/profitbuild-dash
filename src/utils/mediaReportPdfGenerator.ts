@@ -11,6 +11,17 @@ export interface MediaReportOptions {
   mediaItems: ProjectMedia[];
   reportTitle?: string;
   includeThumbnails?: boolean;
+  onProgress?: (current: number, total: number) => void;
+}
+
+export interface PDFGenerationResult {
+  blob: Blob;
+  stats: {
+    total: number;
+    successful: number;
+    failed: number;
+    failedItems: string[];
+  };
 }
 
 // PDF Layout Constants
@@ -115,7 +126,7 @@ function getImageDimensions(base64: string): Promise<{ width: number; height: nu
 /**
  * Generate PDF report for project media
  */
-export async function generateMediaReportPDF(options: MediaReportOptions): Promise<Blob> {
+export async function generateMediaReportPDF(options: MediaReportOptions): Promise<PDFGenerationResult> {
   const {
     projectName,
     projectNumber,
@@ -123,6 +134,7 @@ export async function generateMediaReportPDF(options: MediaReportOptions): Promi
     address,
     mediaItems,
     reportTitle = 'Project Media Report',
+    onProgress,
   } = options;
 
   const doc = new jsPDF({
@@ -130,6 +142,13 @@ export async function generateMediaReportPDF(options: MediaReportOptions): Promi
     unit: 'mm',
     format: 'a4',
   });
+
+  const stats = {
+    total: mediaItems.length,
+    successful: 0,
+    failed: 0,
+    failedItems: [] as string[]
+  };
 
   // Count media types
   const photoCount = mediaItems.filter(m => m.file_type === 'image').length;
@@ -180,6 +199,12 @@ export async function generateMediaReportPDF(options: MediaReportOptions): Promi
   // === MEDIA PAGES ===
   for (let i = 0; i < mediaItems.length; i++) {
     const media = mediaItems[i];
+    
+    // Report progress
+    if (onProgress) {
+      onProgress(i + 1, mediaItems.length);
+    }
+    
     doc.addPage();
 
     try {
@@ -280,8 +305,12 @@ export async function generateMediaReportPDF(options: MediaReportOptions): Promi
         doc.text(`File: ${fileDetails.join(' - ')}`, MARGIN, metaY);
       }
 
+      stats.successful++;
+
     } catch (error) {
       console.error(`Failed to load media ${media.id}:`, error);
+      stats.failed++;
+      stats.failedItems.push(media.file_name || media.caption || 'Unknown file');
       
       // Add placeholder for failed media
       doc.setTextColor(200, 0, 0);
@@ -305,6 +334,9 @@ export async function generateMediaReportPDF(options: MediaReportOptions): Promi
     }
   }
 
-  // Return as Blob
-  return doc.output('blob');
+  // Return result with stats
+  return {
+    blob: doc.output('blob'),
+    stats
+  };
 }

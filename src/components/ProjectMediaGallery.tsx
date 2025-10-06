@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Download, Trash2, Grid3x3, List, SortAsc, CheckSquare, Square, FileImage, FileVideo, FileText } from 'lucide-react';
 import { useProjectMedia } from '@/hooks/useProjectMedia';
@@ -12,6 +12,7 @@ import { Card } from './ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './ui/tooltip';
 import { toast } from 'sonner';
 import { deleteProjectMedia } from '@/utils/projectMedia';
 import { formatFileSize, formatDuration } from '@/utils/videoUtils';
@@ -151,6 +152,36 @@ export function ProjectMediaGallery({
     setSelectedItems(new Set());
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Ctrl+A / Cmd+A = Select All
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a' && !e.shiftKey) {
+        e.preventDefault();
+        selectAll();
+      }
+
+      // Escape = Clear Selection
+      if (e.key === 'Escape' && selectedItems.size > 0) {
+        clearSelection();
+      }
+
+      // Ctrl+G / Cmd+G = Generate Report (if items selected)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'g' && selectedItems.size > 0) {
+        e.preventDefault();
+        setShowReportModal(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [selectedItems, filteredAndSortedMedia]);
+
   const handleBatchDelete = async () => {
     setIsDeleting(true);
     const itemIds = Array.from(selectedItems);
@@ -272,104 +303,150 @@ export function ProjectMediaGallery({
           </Card>
 
           {/* Controls Bar */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search media..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8"
-              />
-            </div>
+          <TooltipProvider>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search media..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 h-8"
+                />
+              </div>
 
-            <div className="flex items-center gap-2">
-              <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
-                <SelectTrigger className="w-[140px] h-8">
-                  <SortAsc className="h-4 w-4 mr-1" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="date-desc">Newest First</SelectItem>
-                  <SelectItem value="date-asc">Oldest First</SelectItem>
-                  {activeTab !== 'photos' && (
-                    <>
-                      <SelectItem value="duration-desc">Longest First</SelectItem>
-                      <SelectItem value="duration-asc">Shortest First</SelectItem>
-                    </>
-                  )}
-                  <SelectItem value="caption">By Caption</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
+                      <SelectTrigger className="w-[140px] h-8">
+                        <SortAsc className="h-4 w-4 mr-1" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="date-desc">Newest First</SelectItem>
+                        <SelectItem value="date-asc">Oldest First</SelectItem>
+                        {activeTab !== 'photos' && (
+                          <>
+                            <SelectItem value="duration-desc">Longest First</SelectItem>
+                            <SelectItem value="duration-asc">Shortest First</SelectItem>
+                          </>
+                        )}
+                        <SelectItem value="caption">By Caption</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Sort media items</p>
+                  </TooltipContent>
+                </Tooltip>
 
-              <div className="flex items-center gap-1 border rounded-md">
-                <Button
-                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="h-8 px-2"
-                >
-                  <Grid3x3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="h-8 px-2"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1 border rounded-md">
+                  <Button
+                    variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('grid')}
+                    className="h-8 px-2"
+                  >
+                    <Grid3x3 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('list')}
+                    className="h-8 px-2"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          </TooltipProvider>
 
           {/* Batch Selection Bar */}
           {selectedItems.size > 0 && (
-            <Card className="p-2 bg-accent">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{selectedItems.size} selected</Badge>
-                  <Button variant="ghost" size="sm" onClick={clearSelection} className="h-7 px-2">
-                    Clear
-                  </Button>
-                  {selectedItems.size < filteredAndSortedMedia.length && (
-                    <Button variant="ghost" size="sm" onClick={selectAll} className="h-7 px-2">
-                      Select All ({filteredAndSortedMedia.length})
-                    </Button>
-                  )}
-                </div>
+            <TooltipProvider>
+              <Card className="p-2 bg-accent">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">{selectedItems.size} selected</Badge>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="sm" onClick={clearSelection} className="h-7 px-2">
+                          Clear
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Clear selection (Esc)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    {selectedItems.size < filteredAndSortedMedia.length && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="sm" onClick={selectAll} className="h-7 px-2">
+                            Select All ({filteredAndSortedMedia.length})
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Select all filtered media (Ctrl+A)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
 
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowReportModal(true)}
-                    className="h-7 px-2"
-                  >
-                    <FileText className="h-4 w-4 mr-1" />
-                    Report
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleBatchDownload}
-                    className="h-7 px-2"
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowDeleteDialog(true)}
-                    className="h-7 px-2 text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Delete
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowReportModal(true)}
+                          className="h-7 px-2"
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          Report
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Create PDF report (Ctrl+G)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleBatchDownload}
+                          className="h-7 px-2"
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Download selected media</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowDeleteDialog(true)}
+                          className="h-7 px-2 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Delete selected media</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 </div>
-              </div>
-            </Card>
+              </Card>
+            </TooltipProvider>
           )}
 
           {/* Media Grid */}
