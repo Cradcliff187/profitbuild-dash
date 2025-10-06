@@ -13,8 +13,7 @@ import { LineItemControlDashboard } from "@/components/LineItemControlDashboard"
 import { GlobalExpenseMatching } from "@/components/GlobalExpenseMatching";
 import { ChangeOrdersList } from "@/components/ChangeOrdersList";
 import { ChangeOrderForm } from "@/components/ChangeOrderForm";
-import { ProjectPhotoGallery } from "@/components/ProjectPhotoGallery";
-import { ProjectVideoGallery } from "@/components/ProjectVideoGallery";
+import { ProjectMediaGallery } from "@/components/ProjectMediaGallery";
 import { ProjectEditForm } from "@/components/ProjectEditForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
@@ -316,12 +315,8 @@ export const ProjectDetailView = () => {
                 />
               } />
               
-              <Route path="photos" element={
-                <ProjectPhotoGallery projectId={project.id} />
-              } />
-              
-              <Route path="videos" element={
-                <ProjectVideoGallery projectId={project.id} />
+              <Route path="media" element={
+                <ProjectMediaGallery projectId={project.id} />
               } />
               
               <Route path="edit" element={
