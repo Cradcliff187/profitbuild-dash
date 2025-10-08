@@ -12,7 +12,71 @@ function extractBase64(input: string): string {
   return dataUrlIndex !== -1 ? input.slice(dataUrlIndex + 1) : input;
 }
 
-// Transcribe with Gemini 2.5 Flash (primary method)
+// Transcribe with OpenAI Whisper (primary method - specialized for speech-to-text)
+async function transcribeWithWhisper(audioBase64: string, format: string, apiKey: string) {
+  console.log('Transcribing with OpenAI Whisper...');
+  console.log('Audio format:', format);
+  
+  // Convert base64 to Uint8Array in chunks to prevent memory issues
+  const processBase64Chunks = (base64String: string, chunkSize = 32768) => {
+    const chunks: Uint8Array[] = [];
+    let position = 0;
+    
+    while (position < base64String.length) {
+      const chunk = base64String.slice(position, position + chunkSize);
+      const binaryChunk = atob(chunk);
+      const bytes = new Uint8Array(binaryChunk.length);
+      
+      for (let i = 0; i < binaryChunk.length; i++) {
+        bytes[i] = binaryChunk.charCodeAt(i);
+      }
+      
+      chunks.push(bytes);
+      position += chunkSize;
+    }
+
+    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    return result;
+  };
+
+  // Convert base64 to binary
+  const binaryAudio = processBase64Chunks(audioBase64);
+  
+  // Create Blob and FormData
+  const audioBlob = new Blob([binaryAudio], { type: format });
+  const formData = new FormData();
+  formData.append('file', audioBlob, 'audio.wav');
+  formData.append('model', 'whisper-1');
+
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Whisper API error:', response.status, errorText);
+    throw new Error(`Whisper API error (${response.status}): ${errorText}`);
+  }
+
+  const result = await response.json();
+  const transcription = result.text;
+  console.log('Transcribed text preview:', transcription.slice(0, 100) + (transcription.length > 100 ? '...' : ''));
+  return transcription;
+}
+
+// Transcribe with Gemini 2.5 Flash (fallback method)
 async function transcribeWithGemini(audioBase64: string, format: string, apiKey: string) {
   console.log('Transcribing with Gemini 2.5 Flash...');
   console.log('Audio format:', format);
@@ -122,7 +186,13 @@ serve(async (req) => {
 
     console.log('Processing audio transcription request...');
 
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    
+    if (!OPENAI_API_KEY) {
+      console.warn('OPENAI_API_KEY not configured, will use Gemini fallback only');
+    }
+    
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
@@ -163,17 +233,28 @@ serve(async (req) => {
     let transcribedText: string;
     
     try {
-      // Try Gemini 2.5 Flash first (FREE during promotional period)
-      transcribedText = await transcribeWithGemini(audioBase64, format, LOVABLE_API_KEY);
-      console.log('✅ Gemini Flash transcription successful');
-    } catch (geminiError) {
-      // Fallback to Gemini Flash Lite if Flash fails
-      console.warn('Gemini Flash failed, falling back to Gemini Flash Lite:', geminiError);
+      // Try OpenAI Whisper first (PRIMARY - specialized for speech-to-text)
+      if (OPENAI_API_KEY) {
+        transcribedText = await transcribeWithWhisper(audioBase64, format, OPENAI_API_KEY);
+        console.log('✅ Whisper transcription successful');
+      } else {
+        throw new Error('Whisper not available, using fallback');
+      }
+    } catch (whisperError) {
+      // Fallback to Gemini Flash if Whisper fails
+      console.warn('Whisper failed, falling back to Gemini Flash:', whisperError);
       
       try {
-        transcribedText = await transcribeWithGeminiLite(audioBase64, format, LOVABLE_API_KEY);
-        console.log('✅ Gemini Flash Lite fallback successful');
-      } catch (liteError) {
+        transcribedText = await transcribeWithGemini(audioBase64, format, LOVABLE_API_KEY);
+        console.log('✅ Gemini Flash fallback successful');
+      } catch (geminiError) {
+        // Final fallback to Gemini Flash Lite
+        console.warn('Gemini Flash failed, trying Gemini Flash Lite:', geminiError);
+        
+        try {
+          transcribedText = await transcribeWithGeminiLite(audioBase64, format, LOVABLE_API_KEY);
+          console.log('✅ Gemini Flash Lite fallback successful');
+        } catch (liteError) {
         console.error('Both Gemini models failed:', liteError);
         
         // Handle specific error codes
@@ -218,7 +299,7 @@ serve(async (req) => {
           );
         }
         
-        // Both models failed
+        // All transcription methods failed
         return new Response(
           JSON.stringify({ 
             error: 'Transcription service temporarily unavailable. Please try again.',
@@ -229,6 +310,7 @@ serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
+        }
       }
     }
 

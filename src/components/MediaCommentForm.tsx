@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Mic, Square, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +15,7 @@ export function MediaCommentForm({ mediaId }: MediaCommentFormProps) {
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [manualMode, setManualMode] = useState(false);
+  const transcriptionInitiatedRef = useRef(false);
 
   const {
     startRecording,
@@ -36,10 +37,18 @@ export function MediaCommentForm({ mediaId }: MediaCommentFormProps) {
     reset: resetTranscription
   } = useAudioTranscription();
 
-  // Auto-transcribe when audio data is ready
+  // Auto-transcribe when audio data is ready (prevent duplicate calls)
   useEffect(() => {
-    if (audioData && !manualMode) {
+    if (audioData && !manualMode && !transcriptionInitiatedRef.current) {
+      transcriptionInitiatedRef.current = true;
       handleTranscribe();
+    }
+  }, [audioData, manualMode]);
+
+  // Reset transcription flag when audio is cleared
+  useEffect(() => {
+    if (!audioData) {
+      transcriptionInitiatedRef.current = false;
     }
   }, [audioData]);
 
