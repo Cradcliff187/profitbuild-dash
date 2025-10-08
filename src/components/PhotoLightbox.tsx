@@ -137,7 +137,7 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
         </div>
 
         {/* Metadata Footer */}
-        <div className="p-4 border-t border-border bg-card space-y-3">
+        <div className="p-4 border-t border-border bg-card space-y-3 overflow-y-auto max-h-[40vh]">
           {currentPhoto.caption && (
             <p className="text-sm text-foreground font-medium">{currentPhoto.caption}</p>
           )}

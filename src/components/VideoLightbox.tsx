@@ -186,7 +186,7 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
 
       {/* Metadata Panel */}
       <div className="bg-black/50 backdrop-blur border-t border-white/10 p-4">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[40vh]">
           <Card className="bg-white/5 border-white/10 text-white p-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
