@@ -68,21 +68,41 @@ export default function FieldVideoCapture() {
       setIsAutoTranscribing(true);
       try {
         // Convert video to blob for audio extraction
+        console.log('🎬 Step 1: Fetching video from path:', video.webPath || video.path);
         const response = await fetch(video.webPath || video.path || '');
+        console.log('✅ Step 1 complete - Fetch response:', response.ok, response.status);
+        
         if (response.ok) {
           const blob = await response.blob();
+          console.log('✅ Step 2 complete - Blob created:', {
+            size: `${(blob.size / 1024 / 1024).toFixed(2)} MB`,
+            type: blob.type
+          });
+          
+          console.log('🎵 Step 3: Extracting audio from video...');
           const audioBase64 = await extractAudioFromVideo(blob);
+          console.log('✅ Step 3 complete - Audio extracted:', {
+            base64Length: audioBase64.length,
+            estimatedSizeMB: `${(audioBase64.length * 0.75 / 1024 / 1024).toFixed(2)} MB`
+          });
+          
+          console.log('🤖 Step 4: Transcribing audio...');
           const transcribedText = await transcribe(audioBase64, 'audio/wav');
+          console.log('✅ Step 4 complete - Transcription result:', transcribedText?.slice(0, 50));
           
           if (transcribedText) {
             setVideoCaption(transcribedText);
             toast.success('Caption auto-generated from video audio');
           }
+        } else {
+          throw new Error(`Fetch failed with status: ${response.status}`);
         }
       } catch (error) {
-        console.error('Auto-transcription failed:', error);
-        toast.warning('Auto-caption failed', {
-          description: 'You can add a caption manually',
+        console.error('❌ Auto-transcription failed at:', error);
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        toast.error('Auto-caption failed', {
+          description: errorMsg.slice(0, 100),
+          duration: 8000,
         });
       } finally {
         setIsAutoTranscribing(false);
