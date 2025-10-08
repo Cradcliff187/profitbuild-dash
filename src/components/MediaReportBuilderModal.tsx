@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { FileText, Loader2, Image as ImageIcon, Video as VideoIcon, AlertTriangle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -9,10 +10,23 @@ import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { ScrollArea } from './ui/scroll-area';
 import { Alert, AlertDescription } from './ui/alert';
+import { Checkbox } from './ui/checkbox';
 import { toast } from 'sonner';
 import { generateMediaReportPDF } from '@/utils/mediaReportPdfGenerator';
 import { generatePDFFileName, estimatePDFSize } from '@/utils/pdfHelpers';
 import type { ProjectMedia } from '@/types/project';
+
+interface MediaComment {
+  id: string;
+  media_id: string;
+  comment_text: string;
+  created_at: string;
+  user_id: string;
+  profiles?: {
+    full_name?: string;
+    email?: string;
+  };
+}
 
 interface MediaReportBuilderModalProps {
   open: boolean;
@@ -38,6 +52,7 @@ export function MediaReportBuilderModal({
   const [reportTitle, setReportTitle] = useState('Project Media Report');
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [aggregateComments, setAggregateComments] = useState(false);
 
   const photoCount = selectedMedia.filter(m => m.file_type === 'image').length;
   const videoCount = selectedMedia.filter(m => m.file_type === 'video').length;
@@ -54,6 +69,38 @@ export function MediaReportBuilderModal({
         return dateA - dateB;
       });
 
+      // Fetch all comments for selected media
+      const mediaIds = sortedMedia.map(m => m.id);
+      const { data: comments, error: commentsError } = await supabase
+        .from('media_comments')
+        .select(`
+          id,
+          media_id,
+          comment_text,
+          created_at,
+          user_id,
+          profiles:user_id (
+            full_name,
+            email
+          )
+        `)
+        .in('media_id', mediaIds)
+        .order('created_at', { ascending: true });
+
+      if (commentsError) {
+        console.error('Failed to fetch comments:', commentsError);
+        toast.error('Failed to load comments for report');
+      }
+
+      // Group comments by media_id
+      const commentsByMedia = new Map<string, MediaComment[]>();
+      (comments || []).forEach((comment) => {
+        if (!commentsByMedia.has(comment.media_id)) {
+          commentsByMedia.set(comment.media_id, []);
+        }
+        commentsByMedia.get(comment.media_id)!.push(comment as MediaComment);
+      });
+
       // Generate PDF with progress tracking
       const result = await generateMediaReportPDF({
         projectName,
@@ -62,6 +109,8 @@ export function MediaReportBuilderModal({
         address,
         mediaItems: sortedMedia,
         reportTitle,
+        comments: commentsByMedia,
+        aggregateComments,
         onProgress: (current, total) => {
           setProgress({ current, total });
         },
@@ -210,6 +259,22 @@ export function MediaReportBuilderModal({
                 disabled={isGenerating}
                 className="h-9"
               />
+            </div>
+
+            {/* Comment Aggregation Option */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="aggregate-comments"
+                checked={aggregateComments}
+                onCheckedChange={(checked) => setAggregateComments(checked as boolean)}
+                disabled={isGenerating}
+              />
+              <Label
+                htmlFor="aggregate-comments"
+                className="text-sm font-normal cursor-pointer"
+              >
+                Aggregate all comments at end of report
+              </Label>
             </div>
 
             {/* Project Info Preview */}

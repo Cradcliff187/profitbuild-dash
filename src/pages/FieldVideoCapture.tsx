@@ -10,7 +10,9 @@ import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { useVideoCapture } from '@/hooks/useVideoCapture';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
+import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { formatFileSize, getVideoDuration } from '@/utils/videoUtils';
+import { extractAudioFromVideo } from '@/utils/videoAudioExtractor';
 import { isWebPlatform } from '@/utils/platform';
 import { toast } from 'sonner';
 
@@ -21,6 +23,7 @@ export default function FieldVideoCapture() {
   const { startRecording, isRecording } = useVideoCapture();
   const { getLocation, coordinates, isLoading: isLoadingLocation } = useGeolocation();
   const { upload, isUploading } = useProjectMediaUpload(projectId!);
+  const { transcribe, isTranscribing } = useAudioTranscription();
   
   const [capturedVideo, setCapturedVideo] = useState<{
     path?: string;
@@ -30,6 +33,7 @@ export default function FieldVideoCapture() {
   const [showCaptionModal, setShowCaptionModal] = useState(false);
   const [videoCaption, setVideoCaption] = useState('');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [isAutoTranscribing, setIsAutoTranscribing] = useState(false);
 
   useEffect(() => {
     // Refresh GPS on mount
@@ -59,6 +63,31 @@ export default function FieldVideoCapture() {
     
     if (video) {
       setCapturedVideo(video);
+      
+      // Auto-transcribe video audio for caption
+      setIsAutoTranscribing(true);
+      try {
+        // Convert video to blob for audio extraction
+        const response = await fetch(video.webPath || video.path || '');
+        if (response.ok) {
+          const blob = await response.blob();
+          const audioBase64 = await extractAudioFromVideo(blob);
+          const transcribedText = await transcribe(audioBase64, 'audio/wav');
+          
+          if (transcribedText) {
+            setVideoCaption(transcribedText);
+            toast.success('Caption auto-generated from video audio');
+          }
+        }
+      } catch (error) {
+        console.error('Auto-transcription failed:', error);
+        toast.warning('Auto-caption failed', {
+          description: 'You can add a caption manually',
+        });
+      } finally {
+        setIsAutoTranscribing(false);
+      }
+      
       setShowCaptionModal(true);
     } else if (window.top !== window.self) {
       // Running in iframe - suggest opening in new tab
@@ -331,9 +360,17 @@ export default function FieldVideoCapture() {
             </div>
 
             {/* Caption Display */}
-            {videoCaption && (
+            {isAutoTranscribing && (
               <Card className="p-3">
-                <div className="text-sm font-medium mb-1">Caption</div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  Auto-transcribing video audio...
+                </div>
+              </Card>
+            )}
+            {videoCaption && !isAutoTranscribing && (
+              <Card className="p-3">
+                <div className="text-sm font-medium mb-1">Caption (Auto-generated)</div>
                 <p className="text-sm text-muted-foreground">{videoCaption}</p>
               </Card>
             )}
@@ -344,6 +381,7 @@ export default function FieldVideoCapture() {
                 variant="outline"
                 className="w-full"
                 onClick={() => setShowCaptionModal(true)}
+                disabled={isAutoTranscribing}
               >
                 {videoCaption ? 'Edit Caption' : 'Add Caption'}
               </Button>
@@ -352,14 +390,14 @@ export default function FieldVideoCapture() {
                 <Button
                   variant="outline"
                   onClick={handleRetake}
-                  disabled={isUploading}
+                  disabled={isUploading || isAutoTranscribing}
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Retake
                 </Button>
                 <Button
                   onClick={handleUploadAndContinue}
-                  disabled={isUploading}
+                  disabled={isUploading || isAutoTranscribing}
                 >
                   <Check className="h-4 w-4 mr-2" />
                   Upload & Continue
@@ -370,7 +408,7 @@ export default function FieldVideoCapture() {
                 variant="secondary"
                 className="w-full"
                 onClick={handleUploadAndReview}
-                disabled={isUploading}
+                disabled={isUploading || isAutoTranscribing}
               >
                 Upload & Review Gallery
               </Button>

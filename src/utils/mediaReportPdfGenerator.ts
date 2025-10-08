@@ -3,6 +3,18 @@ import { format } from 'date-fns';
 import type { ProjectMedia } from '@/types/project';
 import { formatFileSize, formatDuration } from './videoUtils';
 
+export interface MediaComment {
+  id: string;
+  media_id: string;
+  comment_text: string;
+  created_at: string;
+  user_id: string;
+  profiles?: {
+    full_name?: string;
+    email?: string;
+  };
+}
+
 export interface MediaReportOptions {
   projectName: string;
   projectNumber: string;
@@ -10,6 +22,8 @@ export interface MediaReportOptions {
   address?: string;
   mediaItems: ProjectMedia[];
   reportTitle?: string;
+  comments?: Map<string, MediaComment[]>;
+  aggregateComments?: boolean;
   includeThumbnails?: boolean;
   onProgress?: (current: number, total: number) => void;
 }
@@ -124,6 +138,77 @@ function getImageDimensions(base64: string): Promise<{ width: number; height: nu
 }
 
 /**
+ * Format user display name from profile data
+ */
+function formatUserName(comment: MediaComment): string {
+  if (comment.profiles?.full_name) {
+    return comment.profiles.full_name;
+  }
+  if (comment.profiles?.email) {
+    return comment.profiles.email.split('@')[0];
+  }
+  return 'Unknown User';
+}
+
+/**
+ * Render comments section in PDF
+ */
+function renderComments(
+  doc: jsPDF,
+  comments: MediaComment[],
+  startY: number,
+  maxY: number = PAGE_HEIGHT - MARGIN
+): number {
+  if (comments.length === 0) return startY;
+
+  let currentY = startY;
+
+  // Comments header
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Comments:', MARGIN, currentY);
+  currentY += 6;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(60, 60, 60);
+
+  for (const comment of comments) {
+    // Check if we need a new page
+    if (currentY > maxY - 15) {
+      doc.addPage();
+      currentY = MARGIN;
+    }
+
+    const userName = formatUserName(comment);
+    const timestamp = formatTimestamp(comment.created_at);
+    const header = `• ${userName} (${timestamp}):`;
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text(header, MARGIN + 3, currentY);
+    currentY += 5;
+
+    // Comment text (wrapped)
+    doc.setFont('helvetica', 'normal');
+    const commentLines = doc.splitTextToSize(`"${comment.comment_text}"`, CONTENT_WIDTH - 6);
+    
+    for (const line of commentLines) {
+      if (currentY > maxY - 10) {
+        doc.addPage();
+        currentY = MARGIN;
+      }
+      doc.text(line, MARGIN + 6, currentY);
+      currentY += 4;
+    }
+    
+    currentY += 3; // Space between comments
+  }
+
+  doc.setTextColor(0, 0, 0);
+  return currentY;
+}
+
+/**
  * Generate PDF report for project media
  */
 export async function generateMediaReportPDF(options: MediaReportOptions): Promise<PDFGenerationResult> {
@@ -134,6 +219,8 @@ export async function generateMediaReportPDF(options: MediaReportOptions): Promi
     address,
     mediaItems,
     reportTitle = 'Project Media Report',
+    comments = new Map(),
+    aggregateComments = false,
     onProgress,
   } = options;
 
@@ -303,6 +390,16 @@ export async function generateMediaReportPDF(options: MediaReportOptions): Promi
       }
       if (fileDetails.length > 0) {
         doc.text(`File: ${fileDetails.join(' - ')}`, MARGIN, metaY);
+        metaY += 6;
+      }
+
+      // Render comments for this media (if not aggregating)
+      if (!aggregateComments && comments.has(media.id)) {
+        const mediaComments = comments.get(media.id)!;
+        if (mediaComments.length > 0) {
+          metaY += 3;
+          renderComments(doc, mediaComments, metaY, PAGE_HEIGHT - MARGIN);
+        }
       }
 
       stats.successful++;
@@ -332,6 +429,70 @@ export async function generateMediaReportPDF(options: MediaReportOptions): Promi
       
       doc.text(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, MARGIN, errorY);
     }
+  }
+
+  // === AGGREGATED COMMENTS PAGE (if enabled) ===
+  if (aggregateComments && comments.size > 0) {
+    doc.addPage();
+    
+    // Page header
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Project Comments Summary', PAGE_WIDTH / 2, MARGIN + 10, { align: 'center' });
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(MARGIN, MARGIN + 15, PAGE_WIDTH - MARGIN, MARGIN + 15);
+    
+    let currentY = MARGIN + 25;
+    let totalComments = 0;
+
+    // Iterate through media items in order
+    for (const media of mediaItems) {
+      const mediaComments = comments.get(media.id);
+      if (!mediaComments || mediaComments.length === 0) continue;
+
+      totalComments += mediaComments.length;
+
+      // Check if we need a new page
+      if (currentY > PAGE_HEIGHT - 50) {
+        doc.addPage();
+        currentY = MARGIN;
+      }
+
+      // Media header
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      
+      const mediaTitle = media.caption || media.file_name || `Media ${mediaItems.indexOf(media) + 1}`;
+      doc.text(mediaTitle, MARGIN, currentY);
+      currentY += 7;
+
+      // Render comments for this media
+      currentY = renderComments(doc, mediaComments, currentY, PAGE_HEIGHT - MARGIN);
+      currentY += 5; // Space before next media section
+    }
+
+    // Summary footer
+    if (currentY > PAGE_HEIGHT - 30) {
+      doc.addPage();
+      currentY = MARGIN;
+    }
+
+    currentY += 5;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(MARGIN, currentY, PAGE_WIDTH - MARGIN, currentY);
+    currentY += 8;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100, 100, 100);
+    doc.text(
+      `Total: ${totalComments} comments across ${mediaItems.length} media items`,
+      PAGE_WIDTH / 2,
+      currentY,
+      { align: 'center' }
+    );
   }
 
   // Return result with stats
