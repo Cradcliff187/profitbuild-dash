@@ -58,7 +58,10 @@ export function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaption
   const handleTranscribe = async () => {
     if (!recording.audioData) return;
     
-    const result = await transcription.transcribe(recording.audioData);
+    const result = await transcription.transcribe(
+      recording.audioData, 
+      recording.audioFormat || 'audio/wav'
+    );
     if (!result) {
       toast.error('Transcription failed. Try typing manually.');
       setManualMode(true);

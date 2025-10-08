@@ -13,8 +13,9 @@ function extractBase64(input: string): string {
 }
 
 // Transcribe with Gemini 2.5 Flash (primary method)
-async function transcribeWithGemini(audioBase64: string, apiKey: string) {
+async function transcribeWithGemini(audioBase64: string, format: string, apiKey: string) {
   console.log('Transcribing with Gemini 2.5 Flash...');
+  console.log('Audio format:', format);
   
   const requestBody = {
     model: 'google/gemini-2.5-flash',
@@ -24,13 +25,13 @@ async function transcribeWithGemini(audioBase64: string, apiKey: string) {
         content: [
           {
             type: 'text',
-            text: 'Transcribe this audio.'
+            text: 'Transcribe this audio accurately. Return only the spoken words.'
           },
           {
             type: 'audio',
             audio: {
               data: audioBase64,
-              format: 'webm'
+              format: format // Use full MIME type (e.g., 'audio/wav')
             }
           }
         ]
@@ -60,8 +61,9 @@ async function transcribeWithGemini(audioBase64: string, apiKey: string) {
 }
 
 // Transcribe with Gemini 2.5 Flash Lite (fallback method)
-async function transcribeWithGeminiLite(audioBase64: string, apiKey: string) {
+async function transcribeWithGeminiLite(audioBase64: string, format: string, apiKey: string) {
   console.log('Transcribing with Gemini 2.5 Flash Lite (fallback)...');
+  console.log('Audio format:', format);
   
   const requestBody = {
     model: 'google/gemini-2.5-flash-lite',
@@ -71,13 +73,13 @@ async function transcribeWithGeminiLite(audioBase64: string, apiKey: string) {
         content: [
           {
             type: 'text',
-            text: 'Transcribe this audio.'
+            text: 'Transcribe this audio accurately. Return only the spoken words.'
           },
           {
             type: 'audio',
             audio: {
               data: audioBase64,
-              format: 'webm'
+              format: format // Use full MIME type (e.g., 'audio/wav')
             }
           }
         ]
@@ -112,7 +114,7 @@ serve(async (req) => {
   }
 
   try {
-    const { audio } = await req.json();
+    const { audio, format = 'audio/wav' } = await req.json();
     
     if (!audio) {
       throw new Error('No audio data provided');
@@ -127,20 +129,49 @@ serve(async (req) => {
 
     // Extract clean base64 (remove data URL prefix if present)
     const audioBase64 = extractBase64(audio);
-    console.log(`Audio size: ~${Math.round(audioBase64.length * 0.75 / 1024)}KB`);
+    const audioSizeKB = Math.round(audioBase64.length * 0.75 / 1024);
+    console.log(`Audio size: ~${audioSizeKB}KB`);
+    console.log(`Audio format: ${format}`);
+    
+    // Validate audio size
+    if (audioSizeKB < 1) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Audio data too short. Please record at least 1 second.',
+          code: 'AUDIO_TOO_SHORT'
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    if (audioSizeKB > 25000) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Audio data too large. Maximum 25MB allowed.',
+          code: 'AUDIO_TOO_LARGE'
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
     
     let transcribedText: string;
     
     try {
       // Try Gemini 2.5 Flash first (FREE during promotional period)
-      transcribedText = await transcribeWithGemini(audioBase64, LOVABLE_API_KEY);
+      transcribedText = await transcribeWithGemini(audioBase64, format, LOVABLE_API_KEY);
       console.log('✅ Gemini Flash transcription successful');
     } catch (geminiError) {
       // Fallback to Gemini Flash Lite if Flash fails
       console.warn('Gemini Flash failed, falling back to Gemini Flash Lite:', geminiError);
       
       try {
-        transcribedText = await transcribeWithGeminiLite(audioBase64, LOVABLE_API_KEY);
+        transcribedText = await transcribeWithGeminiLite(audioBase64, format, LOVABLE_API_KEY);
         console.log('✅ Gemini Flash Lite fallback successful');
       } catch (liteError) {
         console.error('Both Gemini models failed:', liteError);

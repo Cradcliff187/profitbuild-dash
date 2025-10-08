@@ -20,6 +20,7 @@ export function MediaCommentForm({ mediaId }: MediaCommentFormProps) {
     startRecording,
     stopRecording,
     audioData,
+    audioFormat,
     duration,
     isRecording,
     isProcessing,
@@ -51,7 +52,7 @@ export function MediaCommentForm({ mediaId }: MediaCommentFormProps) {
 
   const handleTranscribe = async () => {
     if (!audioData) return;
-    await transcribe(audioData);
+    await transcribe(audioData, audioFormat);
   };
 
   const handleSubmit = async () => {

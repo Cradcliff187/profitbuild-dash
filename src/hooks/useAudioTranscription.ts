@@ -6,13 +6,32 @@ export function useAudioTranscription() {
   const [transcription, setTranscription] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const transcribe = async (audioBase64: string) => {
+  const transcribe = async (audioBase64: string, format: string = 'audio/wav') => {
     try {
       setIsTranscribing(true);
       setError(null);
 
+      // Pre-flight validation
+      if (!audioBase64 || audioBase64.length < 100) {
+        throw new Error('Audio data is too short or invalid');
+      }
+
+      // Check size (base64 to bytes: length * 0.75)
+      const sizeKB = (audioBase64.length * 0.75) / 1024;
+      
+      if (sizeKB < 1) {
+        throw new Error('Recording too short. Please speak for at least 1 second.');
+      }
+      
+      if (sizeKB > 25000) {
+        throw new Error('Recording too long. Maximum 2 minutes allowed.');
+      }
+
       const { data, error: functionError } = await supabase.functions.invoke('transcribe-audio', {
-        body: { audio: audioBase64 },
+        body: { 
+          audio: audioBase64,
+          format: format 
+        },
       });
 
       if (functionError) {
