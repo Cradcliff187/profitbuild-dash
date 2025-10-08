@@ -12,7 +12,6 @@ import { useGeolocation } from '@/hooks/useGeolocation';
 import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { formatFileSize, getVideoDuration } from '@/utils/videoUtils';
-import { extractAudioFromVideo } from '@/utils/videoAudioExtractor';
 import { isWebPlatform } from '@/utils/platform';
 import { toast } from 'sonner';
 
@@ -64,41 +63,45 @@ export default function FieldVideoCapture() {
     if (video) {
       setCapturedVideo(video);
       
-      // Auto-transcribe video audio for caption
+      // Auto-transcribe video directly (OpenAI Whisper supports video formats)
       setIsAutoTranscribing(true);
       try {
-        // Convert video to blob for audio extraction
-        console.log('🎬 Step 1: Fetching video from path:', video.webPath || video.path);
+        console.log('🎬 Fetching video from path:', video.webPath || video.path);
         const response = await fetch(video.webPath || video.path || '');
-        console.log('✅ Step 1 complete - Fetch response:', response.ok, response.status);
+        console.log('✅ Fetch response:', response.ok, response.status);
         
         if (response.ok) {
           const blob = await response.blob();
-          console.log('✅ Step 2 complete - Blob created:', {
+          console.log('✅ Video blob created:', {
             size: `${(blob.size / 1024 / 1024).toFixed(2)} MB`,
             type: blob.type
           });
           
-          console.log('🎵 Step 3: Extracting audio from video...');
-          const { audioBase64, mimeType } = await extractAudioFromVideo(blob);
-          console.log('✅ Step 3 complete - Audio extracted:', {
-            base64Length: audioBase64.length,
-            estimatedSizeMB: `${(audioBase64.length * 0.75 / 1024 / 1024).toFixed(2)} MB`,
-            format: mimeType
+          // Convert blob to base64
+          const videoBase64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64 = (reader.result as string).split(',')[1];
+              resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
           });
           
-          const approxKB = Math.round(audioBase64.length * 0.75 / 1024);
-          if (approxKB < 5) {
-            throw new Error('Extracted audio too small for transcription');
-          }
+          console.log('✅ Video converted to base64:', {
+            length: videoBase64.length,
+            estimatedSizeMB: `${(videoBase64.length * 0.75 / 1024 / 1024).toFixed(2)} MB`
+          });
           
-          console.log('🤖 Step 4: Transcribing audio with format:', mimeType);
-          const transcribedText = await transcribe(audioBase64, mimeType);
-          console.log('✅ Step 4 complete - Transcription result:', transcribedText?.slice(0, 50));
+          // Send video directly to transcription (Whisper supports video formats)
+          const videoFormat = `video/${video.format}`;
+          console.log('🤖 Transcribing video with format:', videoFormat);
+          const transcribedText = await transcribe(videoBase64, videoFormat);
+          console.log('✅ Transcription result:', transcribedText?.slice(0, 50));
           
           if (transcribedText) {
             setVideoCaption(transcribedText);
-            toast.success('Caption auto-generated from video audio');
+            toast.success('Caption auto-generated from video');
           } else {
             console.warn('⚠️ No transcription returned');
             toast.error('Transcription failed', {

@@ -53,8 +53,15 @@ async function transcribeWithWhisper(audioBase64: string, format: string, apiKey
   // Create Blob and FormData
   const audioBlob = new Blob([binaryAudio], { type: format });
   const formData = new FormData();
-  const ext = format.includes('webm') ? 'webm' : format.includes('mp4') ? 'mp4' : format.includes('wav') ? 'wav' : 'webm';
-  formData.append('file', audioBlob, `audio.${ext}`);
+  
+  // Determine file extension based on format (support both audio and video)
+  const ext = format.includes('quicktime') ? 'mov' 
+            : format.includes('mp4') ? 'mp4'
+            : format.includes('webm') ? 'webm'
+            : format.includes('wav') ? 'wav' 
+            : 'mov';
+  
+  formData.append('file', audioBlob, `media.${ext}`);
   formData.append('model', 'whisper-1');
 
   const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
