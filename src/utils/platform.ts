@@ -15,3 +15,10 @@ export function isWebPlatform(): boolean {
 export function getPlatformName(): string {
   return Capacitor.getPlatform(); // 'web', 'ios', 'android'
 }
+
+export function isIOSDevice(): boolean {
+  const ua = navigator.userAgent.toLowerCase();
+  const isIOSUA = /ipad|iphone|ipod/.test(ua);
+  const isMacWithTouch = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  return isIOSUA || isMacWithTouch;
+}

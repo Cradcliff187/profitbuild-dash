@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
 import { toast } from 'sonner';
-import { isWebPlatform } from '@/utils/platform';
+import { isWebPlatform, isIOSDevice } from '@/utils/platform';
 
 interface CameraPermissions {
   camera: boolean;
@@ -94,8 +94,16 @@ export function useVideoCapture(): UseVideoCaptureResult {
         // Create new file input each time for iOS compatibility
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'video/*';
+        // Use audio-only on iOS for reliable transcription, video elsewhere
+        input.accept = isIOSDevice() ? 'audio/*' : 'video/*';
         input.style.display = 'none';
+        
+        // Show toast notification for iOS users
+        if (isIOSDevice()) {
+          toast.info('iOS detected - Using audio-only mode', {
+            description: 'Audio provides more reliable transcription on iOS devices'
+          });
+        }
         
         // Don't set capture attribute for iOS - let browser decide
         
