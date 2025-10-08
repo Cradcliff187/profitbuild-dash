@@ -454,6 +454,48 @@ export type Database = {
           },
         ]
       }
+      media_comments: {
+        Row: {
+          comment_text: string
+          created_at: string
+          id: string
+          media_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment_text: string
+          created_at?: string
+          id?: string
+          media_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment_text?: string
+          created_at?: string
+          id?: string
+          media_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_comments_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "project_media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payees: {
         Row: {
           account_number: string | null
