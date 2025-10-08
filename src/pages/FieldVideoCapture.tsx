@@ -80,14 +80,15 @@ export default function FieldVideoCapture() {
           });
           
           console.log('🎵 Step 3: Extracting audio from video...');
-          const audioBase64 = await extractAudioFromVideo(blob);
+          const { audioBase64, mimeType } = await extractAudioFromVideo(blob);
           console.log('✅ Step 3 complete - Audio extracted:', {
             base64Length: audioBase64.length,
-            estimatedSizeMB: `${(audioBase64.length * 0.75 / 1024 / 1024).toFixed(2)} MB`
+            estimatedSizeMB: `${(audioBase64.length * 0.75 / 1024 / 1024).toFixed(2)} MB`,
+            format: mimeType
           });
           
-          console.log('🤖 Step 4: Transcribing audio...');
-          const transcribedText = await transcribe(audioBase64, 'audio/wav');
+          console.log('🤖 Step 4: Transcribing audio with format:', mimeType);
+          const transcribedText = await transcribe(audioBase64, mimeType);
           console.log('✅ Step 4 complete - Transcription result:', transcribedText?.slice(0, 50));
           
           if (transcribedText) {
