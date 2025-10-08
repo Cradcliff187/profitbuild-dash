@@ -35,6 +35,14 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
     setCurrentVideo(video);
   }, [video]);
 
+  // Lock body scroll when lightbox is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -106,9 +114,9 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col overscroll-contain">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-black/50 backdrop-blur">
+      <div className="flex-shrink-0 flex items-center justify-between p-4 bg-black/50 backdrop-blur">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
@@ -149,7 +157,7 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
       </div>
 
       {/* Video Player */}
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex-1 min-h-0 flex items-center justify-center p-4">
         <div className="relative max-w-5xl w-full">
           <video
             controls
@@ -185,8 +193,8 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
       </div>
 
       {/* Metadata Panel */}
-      <div className="bg-black/50 backdrop-blur border-t border-white/10 p-4">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[40vh]">
+      <div className="flex-shrink-0 bg-black/50 backdrop-blur border-t border-white/10 p-4 overflow-y-auto max-h-[40vh] overscroll-contain">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="bg-white/5 border-white/10 text-white p-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">

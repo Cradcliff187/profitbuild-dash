@@ -29,6 +29,14 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < allPhotos.length - 1;
 
+  // Lock body scroll when lightbox is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -76,9 +84,9 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
 
   return (
     <>
-      <div className="fixed inset-0 bg-background z-50 flex flex-col">
+      <div className="fixed inset-0 bg-background z-50 flex flex-col overscroll-contain">
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-border bg-card">
+        <div className="flex-shrink-0 flex items-center justify-between p-3 border-b border-border bg-card">
           <Button variant="ghost" size="sm" onClick={onClose} className="h-8">
             <X className="h-4 w-4" />
           </Button>
@@ -106,7 +114,7 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
         </div>
 
         {/* Photo */}
-        <div className="flex-1 flex items-center justify-center bg-muted relative">
+        <div className="flex-1 min-h-0 flex items-center justify-center bg-muted relative">
           <img
             src={currentPhoto.file_url}
             alt={currentPhoto.caption || 'Field photo'}
@@ -137,7 +145,7 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
         </div>
 
         {/* Metadata Footer */}
-        <div className="p-4 border-t border-border bg-card space-y-3 overflow-y-auto max-h-[40vh]">
+        <div className="flex-shrink-0 p-4 border-t border-border bg-card space-y-3 overflow-y-auto max-h-[40vh] overscroll-contain">
           {currentPhoto.caption && (
             <p className="text-sm text-foreground font-medium">{currentPhoto.caption}</p>
           )}
