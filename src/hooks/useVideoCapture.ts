@@ -95,15 +95,15 @@ export function useVideoCapture(): UseVideoCaptureResult {
         const input = document.createElement('input');
         input.type = 'file';
         // Use audio-only on iOS for reliable transcription, video elsewhere
-        input.accept = isIOSDevice() ? 'audio/*' : 'video/*';
+        input.accept = 'video/*'; // Test iOS video with Whisper
         input.style.display = 'none';
         
-        // Show toast notification for iOS users
-        if (isIOSDevice()) {
-          toast.info('iOS detected - Using audio-only mode', {
-            description: 'Audio provides more reliable transcription on iOS devices'
-          });
-        }
+        // Commented out for testing iOS video transcription
+        // if (isIOSDevice()) {
+        //   toast.info('iOS detected - Using audio-only mode', {
+        //     description: 'Audio provides more reliable transcription on iOS devices'
+        //   });
+        // }
         
         // Don't set capture attribute for iOS - let browser decide
         
