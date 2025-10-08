@@ -10,6 +10,7 @@ import { deleteProjectMedia, updateMediaMetadata } from '@/utils/projectMedia';
 import { toast } from 'sonner';
 import { QuickCaptionModal } from './QuickCaptionModal';
 import { MediaCommentsList } from './MediaCommentsList';
+import { MediaCommentForm } from './MediaCommentForm';
 
 interface PhotoLightboxProps {
   photo: ProjectMedia;
@@ -175,6 +176,7 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
           <div className="border-t border-border pt-3 mt-3">
             <div className="text-xs font-medium text-foreground mb-2">Comments</div>
             <MediaCommentsList mediaId={currentPhoto.id} />
+            <MediaCommentForm mediaId={currentPhoto.id} />
           </div>
         </div>
       </div>
