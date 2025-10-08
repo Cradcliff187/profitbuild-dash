@@ -5,6 +5,7 @@ import { useProjectMedia } from '@/hooks/useProjectMedia';
 import { PhotoLightbox } from './PhotoLightbox';
 import { VideoLightbox } from './VideoLightbox';
 import { MediaReportBuilderModal } from './MediaReportBuilderModal';
+import { MediaCommentBadge } from './MediaCommentBadge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
@@ -465,9 +466,9 @@ export function ProjectMediaGallery({
                   <div className={viewMode === 'grid' ? 'grid grid-cols-3 gap-2' : 'space-y-2'}>
                     {items.map((item) => (
                       <div key={item.id} className="relative">
-                        <button
+                        <div
                           onClick={() => setSelectedMedia(item)}
-                          className={`relative ${viewMode === 'grid' ? 'aspect-square' : 'aspect-video'} w-full rounded-lg overflow-hidden bg-muted hover:ring-2 hover:ring-primary transition-all group`}
+                          className={`relative ${viewMode === 'grid' ? 'aspect-square' : 'aspect-video'} w-full rounded-lg overflow-hidden bg-muted hover:ring-2 hover:ring-primary transition-all group cursor-pointer`}
                         >
                           {/* Selection Checkbox */}
                           <button
@@ -492,6 +493,9 @@ export function ProjectMediaGallery({
                               'Photo'
                             )}
                           </Badge>
+
+                          {/* Comment Count Badge */}
+                          <MediaCommentBadge mediaId={item.id} />
 
                           {/* Thumbnail/Image */}
                           {item.file_type === 'image' ? (
@@ -538,7 +542,7 @@ export function ProjectMediaGallery({
                               </div>
                             </div>
                           </div>
-                        </button>
+                        </div>
                       </div>
                     ))}
                   </div>
