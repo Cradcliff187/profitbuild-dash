@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import ErrorBoundary from '@/components/ui/error-boundary';
 import { QuickCaptionModal } from './QuickCaptionModal';
+import { MediaCommentsList } from './MediaCommentsList';
 import { deleteProjectMedia, updateMediaMetadata } from '@/utils/projectMedia';
 import { formatFileSize } from '@/utils/videoUtils';
 import { toast } from 'sonner';
@@ -236,6 +237,12 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
                 Size: {formatFileSize(currentVideo.file_size)}
               </div>
             </div>
+          </Card>
+
+          {/* Comments Section */}
+          <Card className="bg-white/5 border-white/10 text-white p-4 md:col-span-2">
+            <div className="text-sm font-medium mb-2">Comments</div>
+            <MediaCommentsList mediaId={currentVideo.id} />
           </Card>
         </div>
       </div>
