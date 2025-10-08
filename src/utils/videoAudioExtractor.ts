@@ -35,15 +35,26 @@ export async function extractAudioFromVideo(videoBlob: Blob): Promise<{ audioBas
       
       // Create video element
       const video = document.createElement('video');
-      video.muted = false; // Need unmuted for audio capture
-      video.playsInline = true;
-      video.volume = 1.0; // Ensure full volume
-      
-      // Create audio context
-      const audioContext = new AudioContext();
-      const source = audioContext.createMediaElementSource(video);
-      const destination = audioContext.createMediaStreamDestination();
-      source.connect(destination);
+  video.muted = true; // Mute for autoplay policies; audio still flows to WebAudio
+  video.playsInline = true;
+  video.volume = 1.0; // Ensure full volume (does not affect muted)
+  
+  // Create audio context
+  const audioContext = new AudioContext();
+  // Ensure context is running (iOS may start suspended)
+  audioContext.resume().then(() => console.log('🎚️ AudioContext resumed:', audioContext.state)).catch((e) => console.warn('⚠️ AudioContext resume failed:', e));
+  const source = audioContext.createMediaElementSource(video);
+  const destination = audioContext.createMediaStreamDestination();
+  // Connect to MediaRecorder destination
+  source.connect(destination);
+  // Keep audio graph alive: connect to a near-silent gain node to destination output
+  const keepAliveGain = audioContext.createGain();
+  keepAliveGain.gain.value = 0.0001;
+  source.connect(keepAliveGain);
+  keepAliveGain.connect(audioContext.destination);
+  audioContext.onstatechange = () => {
+    console.log('🎚️ AudioContext state changed:', audioContext.state);
+  };
       
       // Verify audio stream has tracks
       console.log('🎵 Audio stream tracks:', destination.stream.getAudioTracks().length);
@@ -141,6 +152,10 @@ export async function extractAudioFromVideo(videoBlob: Blob): Promise<{ audioBas
         console.error('❌ Video element error:', error);
         clearTimeout(recordingTimeout);
         reject(new Error('Failed to load video'));
+      };
+      
+      video.onplay = () => {
+        console.log('▶️ Video element is playing; readyState:', video.readyState, 'AudioContext:', audioContext.state);
       };
       
       // Wait for video to be fully ready

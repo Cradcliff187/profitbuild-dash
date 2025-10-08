@@ -23,7 +23,7 @@ export default function FieldVideoCapture() {
   const { startRecording, isRecording } = useVideoCapture();
   const { getLocation, coordinates, isLoading: isLoadingLocation } = useGeolocation();
   const { upload, isUploading } = useProjectMediaUpload(projectId!);
-  const { transcribe, isTranscribing } = useAudioTranscription();
+  const { transcribe, isTranscribing, error: transcriptionError } = useAudioTranscription();
   
   const [capturedVideo, setCapturedVideo] = useState<{
     path?: string;
@@ -87,6 +87,11 @@ export default function FieldVideoCapture() {
             format: mimeType
           });
           
+          const approxKB = Math.round(audioBase64.length * 0.75 / 1024);
+          if (approxKB < 5) {
+            throw new Error('Extracted audio too small for transcription');
+          }
+          
           console.log('🤖 Step 4: Transcribing audio with format:', mimeType);
           const transcribedText = await transcribe(audioBase64, mimeType);
           console.log('✅ Step 4 complete - Transcription result:', transcribedText?.slice(0, 50));
@@ -94,6 +99,12 @@ export default function FieldVideoCapture() {
           if (transcribedText) {
             setVideoCaption(transcribedText);
             toast.success('Caption auto-generated from video audio');
+          } else {
+            console.warn('⚠️ No transcription returned');
+            toast.error('Transcription failed', {
+              description: transcriptionError ?? 'No text returned from service',
+              duration: 8000,
+            });
           }
         } else {
           throw new Error(`Fetch failed with status: ${response.status}`);

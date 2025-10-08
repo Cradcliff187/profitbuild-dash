@@ -27,6 +27,7 @@ export function useAudioTranscription() {
         throw new Error('Recording too long. Maximum 2 minutes allowed.');
       }
 
+      console.log('[Transcription] Invoking edge function transcribe-audio...', { format, approxSizeKB: Math.round(audioBase64.length * 0.75 / 1024) });
       const { data, error: functionError } = await supabase.functions.invoke('transcribe-audio', {
         body: { 
           audio: audioBase64,
@@ -35,11 +36,20 @@ export function useAudioTranscription() {
       });
 
       if (functionError) {
+        console.error('[Transcription] Function error:', functionError);
         throw functionError;
+      }
+
+      if (!data) {
+        throw new Error('No response from transcription service');
       }
 
       if (data?.error) {
         throw new Error(data.error);
+      }
+
+      if (!data.text || typeof data.text !== 'string' || data.text.trim().length === 0) {
+        throw new Error('Empty transcription result');
       }
 
       setTranscription(data.text);

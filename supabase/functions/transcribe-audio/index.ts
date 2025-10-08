@@ -53,7 +53,8 @@ async function transcribeWithWhisper(audioBase64: string, format: string, apiKey
   // Create Blob and FormData
   const audioBlob = new Blob([binaryAudio], { type: format });
   const formData = new FormData();
-  formData.append('file', audioBlob, 'audio.wav');
+  const ext = format.includes('webm') ? 'webm' : format.includes('mp4') ? 'mp4' : format.includes('wav') ? 'wav' : 'webm';
+  formData.append('file', audioBlob, `audio.${ext}`);
   formData.append('model', 'whisper-1');
 
   const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
@@ -178,6 +179,8 @@ serve(async (req) => {
   }
 
   try {
+    const hasAuth = !!req.headers.get('authorization');
+    console.log('Incoming request to transcribe-audio. Auth header present:', hasAuth);
     const { audio, format = 'audio/wav' } = await req.json();
     
     if (!audio) {
