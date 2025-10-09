@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
-import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Download, Trash2, Grid3x3, List, SortAsc, CheckSquare, Square, FileImage, FileVideo, FileText } from 'lucide-react';
+import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Download, Trash2, Grid3x3, List, SortAsc, CheckSquare, Square, FileImage, FileVideo, FileText, Clock4 } from 'lucide-react';
 import { useProjectMedia } from '@/hooks/useProjectMedia';
 import { PhotoLightbox } from './PhotoLightbox';
 import { VideoLightbox } from './VideoLightbox';
 import { MediaReportBuilderModal } from './MediaReportBuilderModal';
 import { MediaCommentBadge } from './MediaCommentBadge';
+import { TimelineStoryView } from './TimelineStoryView';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
@@ -21,7 +22,7 @@ import type { ProjectMedia } from '@/types/project';
 
 type ViewMode = 'grid' | 'list';
 type SortBy = 'date-desc' | 'date-asc' | 'caption' | 'duration-desc' | 'duration-asc';
-type MediaTab = 'all' | 'photos' | 'videos';
+type MediaTab = 'all' | 'photos' | 'videos' | 'timeline';
 
 interface ProjectMediaGalleryProps {
   projectId: string;
@@ -264,7 +265,7 @@ export function ProjectMediaGallery({
     <div className="space-y-3">
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as MediaTab)}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all" className="text-xs">
             All ({stats.photoCount + stats.videoCount})
           </TabsTrigger>
@@ -276,9 +277,14 @@ export function ProjectMediaGallery({
             <FileVideo className="h-3 w-3 mr-1" />
             Videos ({stats.videoCount})
           </TabsTrigger>
+          <TabsTrigger value="timeline" className="text-xs">
+            <Clock4 className="h-3 w-3 mr-1" />
+            Timeline
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value={activeTab} className="space-y-3 mt-3">
+        {/* Gallery Tab Content */}
+        <TabsContent value={activeTab === 'timeline' ? 'all' : activeTab} className="space-y-3 mt-3" hidden={activeTab === 'timeline'}>
           {/* Statistics Card */}
           <Card className="p-3">
             <div className="grid grid-cols-4 gap-3 text-center">
@@ -549,6 +555,25 @@ export function ProjectMediaGallery({
                 </div>
               ))}
             </div>
+          )}
+        </TabsContent>
+
+        {/* Timeline Tab Content */}
+        <TabsContent value="timeline" className="mt-3">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredAndSortedMedia.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Clock4 className="h-12 w-12 text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground">No media to display</p>
+            </div>
+          ) : (
+            <TimelineStoryView 
+              media={filteredAndSortedMedia}
+              onMediaClick={setSelectedMedia}
+            />
           )}
         </TabsContent>
       </Tabs>
