@@ -94,10 +94,10 @@ export default function FieldVideoCapture() {
             estimatedSizeMB: `${(videoBase64.length * 0.75 / 1024 / 1024).toFixed(2)} MB`
           });
           
-          // Send video directly to transcription (Whisper supports video formats)
-          const videoFormat = `video/${video.format}`;
-          console.log('🤖 Transcribing video with format:', videoFormat);
-          const transcribedText = await transcribe(videoBase64, videoFormat);
+          // Send video directly to transcription with proper MIME type
+          const mimeType = blob.type || `video/${video.format}`;
+          console.log('🤖 Transcribing with MIME type:', mimeType);
+          const transcribedText = await transcribe(videoBase64, mimeType);
           console.log('✅ Transcription result:', transcribedText?.slice(0, 50));
           
           if (transcribedText) {
@@ -116,10 +116,22 @@ export default function FieldVideoCapture() {
       } catch (error) {
         console.error('❌ Auto-transcription failed at:', error);
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        toast.error('Auto-caption failed', {
-          description: errorMsg.slice(0, 100),
-          duration: 8000,
-        });
+        
+        // Parse specific error codes for better UX
+        if (errorMsg.includes('NO_SPEECH_DETECTED')) {
+          toast.error('No speech detected', {
+            description: 'Please speak clearly during recording and try again'
+          });
+        } else if (errorMsg.includes('INVALID_AUDIO')) {
+          toast.error('Audio format issue', {
+            description: 'Try recording again or use manual caption'
+          });
+        } else {
+          toast.error('Auto-caption failed', {
+            description: errorMsg.slice(0, 100),
+            duration: 8000,
+          });
+        }
       } finally {
         setIsAutoTranscribing(false);
       }

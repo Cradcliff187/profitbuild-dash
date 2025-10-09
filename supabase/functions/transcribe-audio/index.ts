@@ -15,12 +15,42 @@ function extractBase64(input: string): string {
 // Transcribe with OpenAI Whisper (specialized for speech-to-text)
 async function transcribeWithWhisper(audioBase64: string, format: string, apiKey: string) {
   console.log('Transcribing with OpenAI Whisper...');
-  console.log('Audio format:', format);
+  console.log('Original format received:', format);
   
-  // Log iOS video detection
-  if (format.includes('quicktime') || format.includes('video/mp4')) {
-    console.log('🎥 iOS video detected - Whisper will extract audio automatically');
+  // Normalize MIME types for Whisper compatibility
+  // Whisper validates the Blob's Content-Type header, not just the filename
+  let normalizedFormat = format;
+  let ext = 'mov';
+  
+  if (format.includes('quicktime')) {
+    // iOS QuickTime videos are valid MP4 containers - tell Whisper it's MP4
+    normalizedFormat = 'video/mp4';
+    ext = 'mp4';
+    console.log('🎥 iOS QuickTime video detected - normalized to video/mp4 for Whisper');
+  } else if (format.includes('video/mp4') || format.includes('mp4')) {
+    normalizedFormat = 'video/mp4';
+    ext = 'mp4';
+    console.log('🎥 MP4 video detected');
+  } else if (format.includes('webm')) {
+    normalizedFormat = 'video/webm';
+    ext = 'webm';
+    console.log('🎥 WebM video detected');
+  } else if (format.includes('wav')) {
+    normalizedFormat = 'audio/wav';
+    ext = 'wav';
+    console.log('🎤 WAV audio detected');
+  } else if (format.includes('m4a')) {
+    normalizedFormat = 'audio/m4a';
+    ext = 'm4a';
+    console.log('🎤 M4A audio detected');
+  } else {
+    // Default to MP4 for unknown formats
+    normalizedFormat = 'video/mp4';
+    ext = 'mp4';
+    console.log('⚠️ Unknown format, defaulting to video/mp4');
   }
+  
+  console.log('Normalized format for Whisper:', normalizedFormat);
   
   // Convert base64 to Uint8Array in chunks to prevent memory issues
   const processBase64Chunks = (base64String: string, chunkSize = 32768) => {
@@ -55,16 +85,9 @@ async function transcribeWithWhisper(audioBase64: string, format: string, apiKey
   // Convert base64 to binary
   const binaryAudio = processBase64Chunks(audioBase64);
   
-  // Create Blob and FormData
-  const audioBlob = new Blob([binaryAudio], { type: format });
+  // Create Blob with normalized MIME type and FormData
+  const audioBlob = new Blob([binaryAudio], { type: normalizedFormat });
   const formData = new FormData();
-  
-  // Determine file extension based on format (support both audio and video)
-  const ext = format.includes('quicktime') ? 'mov' 
-            : format.includes('mp4') ? 'mp4'
-            : format.includes('webm') ? 'webm'
-            : format.includes('wav') ? 'wav' 
-            : 'mov';
   
   formData.append('file', audioBlob, `media.${ext}`);
   formData.append('model', 'whisper-1');
@@ -85,7 +108,17 @@ async function transcribeWithWhisper(audioBase64: string, format: string, apiKey
 
   const result = await response.json();
   const transcription = result.text;
-  console.log('Transcribed text preview:', transcription.slice(0, 100) + (transcription.length > 100 ? '...' : ''));
+  
+  // Validate transcription is not empty
+  if (!transcription || transcription.trim().length === 0) {
+    console.error('⚠️ Whisper returned empty transcription');
+    console.error('Format sent:', normalizedFormat);
+    console.error('File extension:', ext);
+    console.error('Audio size:', Math.round(binaryAudio.length / 1024), 'KB');
+    throw new Error('NO_SPEECH_DETECTED: Whisper could not detect any speech in the audio. The recording may be silent, too quiet, or contain no spoken words.');
+  }
+  
+  console.log('✅ Transcribed text preview:', transcription.slice(0, 100) + (transcription.length > 100 ? '...' : ''));
   return transcription;
 }
 
@@ -125,8 +158,10 @@ serve(async (req) => {
     // Extract clean base64 (remove data URL prefix if present)
     const audioBase64 = extractBase64(audio);
     const audioSizeKB = Math.round(audioBase64.length * 0.75 / 1024);
-    console.log(`Audio size: ~${audioSizeKB}KB`);
-    console.log(`Audio format: ${format}`);
+    console.log(`📊 Audio/Video Details:`);
+    console.log(`  - Size: ~${audioSizeKB}KB`);
+    console.log(`  - Format received: ${format}`);
+    console.log(`  - Platform detected: ${format.includes('quicktime') ? 'iOS' : format.includes('webm') ? 'Android/Chrome' : 'Desktop/Other'}`);
     
     // Validate audio size
     if (audioSizeKB < 1) {
@@ -164,9 +199,21 @@ serve(async (req) => {
       console.error('❌ Whisper transcription failed:', whisperError);
       
       // Parse error and return specific user-facing message
-      const errorMessage = whisperError.message.toLowerCase();
+      const errorMessage = whisperError.message;
       
-      if (errorMessage.includes('400') || errorMessage.includes('invalid')) {
+      // Check for empty transcription error
+      if (errorMessage.includes('NO_SPEECH_DETECTED')) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'No speech detected in the recording. Please ensure you speak clearly and try again.',
+            code: 'NO_SPEECH_DETECTED'
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Check for invalid format
+      if (errorMessage.toLowerCase().includes('400') || errorMessage.toLowerCase().includes('invalid')) {
         return new Response(
           JSON.stringify({ 
             error: 'Audio format not supported. Please try recording again.',
@@ -177,7 +224,8 @@ serve(async (req) => {
         );
       }
       
-      if (errorMessage.includes('429')) {
+      // Check for rate limiting
+      if (errorMessage.toLowerCase().includes('429')) {
         return new Response(
           JSON.stringify({ 
             error: 'Too many requests. Please wait 30 seconds and try again.',
@@ -191,7 +239,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'Transcription service temporarily unavailable. Please try again in a few moments.',
-          code: 'TRANSCRIPTION_FAILED'
+          code: 'TRANSCRIPTION_FAILED',
+          details: errorMessage
         }),
         { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

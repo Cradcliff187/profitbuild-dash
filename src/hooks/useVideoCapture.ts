@@ -94,18 +94,9 @@ export function useVideoCapture(): UseVideoCaptureResult {
         // Create new file input each time for iOS compatibility
         const input = document.createElement('input');
         input.type = 'file';
-        // Use audio-only on iOS for reliable transcription, video elsewhere
-        input.accept = 'video/*'; // Test iOS video with Whisper
+        // Support video on all platforms - Whisper can extract audio from video
+        input.accept = 'video/*';
         input.style.display = 'none';
-        
-        // Commented out for testing iOS video transcription
-        // if (isIOSDevice()) {
-        //   toast.info('iOS detected - Using audio-only mode', {
-        //     description: 'Audio provides more reliable transcription on iOS devices'
-        //   });
-        // }
-        
-        // Don't set capture attribute for iOS - let browser decide
         
         const handleFileSelect = (event: Event) => {
           const target = event.target as HTMLInputElement;
