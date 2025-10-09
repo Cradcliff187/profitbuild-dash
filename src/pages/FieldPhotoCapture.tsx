@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Camera, MapPin, Clock, X, Check, Eye, MessageSquare, RefreshCw, Smartphone } from 'lucide-react';
+import { Camera, MapPin, Clock, X, Check, Eye, MessageSquare, RefreshCw, Smartphone, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
 import { QuickCaptionModal } from '@/components/QuickCaptionModal';
+import { VoiceCaptionModal } from '@/components/VoiceCaptionModal';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { isWebPlatform } from '@/utils/platform';
@@ -21,6 +22,7 @@ export default function FieldPhotoCapture() {
   const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
   const [locationName, setLocationName] = useState<string>('');
   const [showCaptionModal, setShowCaptionModal] = useState(false);
+  const [showVoiceCaptionModal, setShowVoiceCaptionModal] = useState(false);
   const [pendingCaption, setPendingCaption] = useState<string>('');
   const [gpsAge, setGpsAge] = useState<number | null>(null);
 
@@ -104,6 +106,12 @@ export default function FieldPhotoCapture() {
     setPendingCaption(caption);
     setShowCaptionModal(false);
     toast.success('Caption added');
+  };
+
+  const handleVoiceCaptionReady = (caption: string) => {
+    setPendingCaption(caption);
+    setShowVoiceCaptionModal(false);
+    toast.success('Voice caption added');
   };
 
   // Create a mock ProjectMedia object for the caption modal
@@ -263,16 +271,28 @@ export default function FieldPhotoCapture() {
               </div>
             )}
             
-            <Button
-              onClick={() => setShowCaptionModal(true)}
-              disabled={isUploading}
-              variant="outline"
-              className="w-full"
-              size="lg"
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              {pendingCaption ? 'Edit Caption' : 'Add Caption'}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowVoiceCaptionModal(true)}
+                disabled={isUploading}
+                variant="default"
+                className="flex-1"
+                size="lg"
+              >
+                <Mic className="h-4 w-4 mr-2" />
+                Voice Caption
+              </Button>
+              <Button
+                onClick={() => setShowCaptionModal(true)}
+                disabled={isUploading}
+                variant="outline"
+                className="flex-1"
+                size="lg"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Type
+              </Button>
+            </div>
             
             <Button
               onClick={handleUploadAndContinue}
@@ -335,6 +355,13 @@ export default function FieldPhotoCapture() {
           onSave={handleSaveCaption}
         />
       </ErrorBoundary>
+
+      {/* Voice Caption Modal */}
+      <VoiceCaptionModal
+        open={showVoiceCaptionModal}
+        onClose={() => setShowVoiceCaptionModal(false)}
+        onCaptionReady={handleVoiceCaptionReady}
+      />
     </div>
   );
 }
