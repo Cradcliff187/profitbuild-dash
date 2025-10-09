@@ -53,6 +53,7 @@ export function MediaReportBuilderModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [aggregateComments, setAggregateComments] = useState(false);
+  const [storyFormat, setStoryFormat] = useState(false);
 
   const photoCount = selectedMedia.filter(m => m.file_type === 'image').length;
   const videoCount = selectedMedia.filter(m => m.file_type === 'video').length;
@@ -111,6 +112,7 @@ export function MediaReportBuilderModal({
         reportTitle,
         comments: commentsByMedia,
         aggregateComments,
+        storyFormat,
         onProgress: (current, total) => {
           setProgress({ current, total });
         },
@@ -261,13 +263,34 @@ export function MediaReportBuilderModal({
               />
             </div>
 
+            {/* Story Format Option */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="story-format"
+                checked={storyFormat}
+                onCheckedChange={(checked) => setStoryFormat(checked as boolean)}
+                disabled={isGenerating}
+              />
+              <Label
+                htmlFor="story-format"
+                className="text-sm font-normal cursor-pointer"
+              >
+                Generate as Story Report (narrative timeline)
+              </Label>
+            </div>
+            {storyFormat && (
+              <div className="text-xs text-muted-foreground pl-6 -mt-1">
+                Compact layout with time grouping, continuous flow, and narrative captions
+              </div>
+            )}
+
             {/* Comment Aggregation Option */}
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="aggregate-comments"
                 checked={aggregateComments}
                 onCheckedChange={(checked) => setAggregateComments(checked as boolean)}
-                disabled={isGenerating}
+                disabled={isGenerating || storyFormat}
               />
               <Label
                 htmlFor="aggregate-comments"
@@ -276,6 +299,11 @@ export function MediaReportBuilderModal({
                 Aggregate all comments at end of report
               </Label>
             </div>
+            {storyFormat && (
+              <div className="text-xs text-muted-foreground pl-6 -mt-1">
+                (Comments are inline in story format)
+              </div>
+            )}
 
             {/* Project Info Preview */}
             <div className="p-3 bg-muted/50 rounded-lg space-y-1 text-xs">

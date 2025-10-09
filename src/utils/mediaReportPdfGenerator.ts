@@ -24,6 +24,7 @@ export interface MediaReportOptions {
   reportTitle?: string;
   comments?: Map<string, MediaComment[]>;
   aggregateComments?: boolean;
+  storyFormat?: boolean;
   includeThumbnails?: boolean;
   onProgress?: (current: number, total: number) => void;
 }
@@ -44,6 +45,7 @@ const PAGE_HEIGHT = 297; // A4 height in mm
 const MARGIN = 20;
 const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
 const IMAGE_MAX_HEIGHT = 180; // Leave room for metadata
+const STORY_IMAGE_MAX_HEIGHT = 120; // Smaller images for story format
 
 /**
  * Fetch image from URL and convert to base64 data URI
@@ -151,6 +153,90 @@ function formatUserName(comment: MediaComment): string {
 }
 
 /**
+ * Group media into time sessions (morning, afternoon, evening)
+ */
+interface TimeSession {
+  label: string;
+  startTime: Date;
+  endTime: Date;
+  media: ProjectMedia[];
+}
+
+function groupByTimeSessions(mediaItems: ProjectMedia[]): TimeSession[] {
+  if (mediaItems.length === 0) return [];
+  
+  const sessions: TimeSession[] = [];
+  let currentSession: TimeSession | null = null;
+  
+  for (const media of mediaItems) {
+    const timestamp = new Date(media.taken_at || media.created_at);
+    const hour = timestamp.getHours();
+    
+    // Determine session label
+    let sessionLabel: string;
+    if (hour >= 5 && hour < 12) {
+      sessionLabel = 'Morning Session';
+    } else if (hour >= 12 && hour < 17) {
+      sessionLabel = 'Afternoon Session';
+    } else {
+      sessionLabel = 'Evening Session';
+    }
+    
+    // Check if we need a new session
+    if (!currentSession || currentSession.label !== sessionLabel) {
+      currentSession = {
+        label: sessionLabel,
+        startTime: timestamp,
+        endTime: timestamp,
+        media: [media]
+      };
+      sessions.push(currentSession);
+    } else {
+      currentSession.endTime = timestamp;
+      currentSession.media.push(media);
+    }
+  }
+  
+  return sessions;
+}
+
+/**
+ * Detect significant location changes (>50m)
+ */
+function hasLocationChange(media1: ProjectMedia, media2: ProjectMedia): boolean {
+  if (!media1.latitude || !media1.longitude || !media2.latitude || !media2.longitude) {
+    return false;
+  }
+  
+  // Haversine formula for distance calculation
+  const R = 6371000; // Earth radius in meters
+  const lat1 = media1.latitude * Math.PI / 180;
+  const lat2 = media2.latitude * Math.PI / 180;
+  const deltaLat = (media2.latitude - media1.latitude) * Math.PI / 180;
+  const deltaLon = (media2.longitude - media1.longitude) * Math.PI / 180;
+  
+  const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+            Math.cos(lat1) * Math.cos(lat2) *
+            Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+  
+  return distance > 50; // 50m threshold
+}
+
+/**
+ * Format time only (without date)
+ */
+function formatTimeOnly(isoString?: string): string {
+  if (!isoString) return '';
+  try {
+    return format(new Date(isoString), 'h:mm a');
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Render comments section in PDF
  */
 function renderComments(
@@ -209,6 +295,293 @@ function renderComments(
 }
 
 /**
+ * Render inline comments in compact format for story mode
+ */
+function renderInlineComments(
+  doc: jsPDF,
+  comments: MediaComment[],
+  startY: number,
+  maxY: number = PAGE_HEIGHT - MARGIN
+): number {
+  if (comments.length === 0) return startY;
+
+  let currentY = startY;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+
+  for (const comment of comments) {
+    if (currentY > maxY - 10) break; // Stop if we run out of space
+    
+    const userName = formatUserName(comment);
+    const commentText = `💬 ${userName}: "${comment.comment_text}"`;
+    const lines = doc.splitTextToSize(commentText, CONTENT_WIDTH - 4);
+    
+    for (const line of lines) {
+      if (currentY > maxY - 10) break;
+      doc.text(line, MARGIN + 2, currentY);
+      currentY += 3.5;
+    }
+  }
+
+  doc.setTextColor(0, 0, 0);
+  return currentY;
+}
+
+/**
+ * Generate story format PDF with continuous flow layout
+ */
+async function generateStoryFormatPDF(options: MediaReportOptions): Promise<PDFGenerationResult> {
+  const {
+    projectName,
+    projectNumber,
+    clientName,
+    address,
+    mediaItems,
+    reportTitle = 'Project Timeline Story',
+    comments = new Map(),
+    onProgress,
+  } = options;
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const stats = {
+    total: mediaItems.length,
+    successful: 0,
+    failed: 0,
+    failedItems: [] as string[]
+  };
+
+  const photoCount = mediaItems.filter(m => m.file_type === 'image').length;
+  const videoCount = mediaItems.filter(m => m.file_type === 'video').length;
+  const sessions = groupByTimeSessions(mediaItems);
+
+  // === STORY COVER PAGE ===
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.text(reportTitle, PAGE_WIDTH / 2, 40, { align: 'center' });
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text(projectName, PAGE_WIDTH / 2, 50, { align: 'center' });
+
+  // Timeline overview
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Site Visit Overview', MARGIN, 75);
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  let y = 90;
+
+  const firstMedia = mediaItems[0];
+  const lastMedia = mediaItems[mediaItems.length - 1];
+  const visitDate = format(new Date(firstMedia.taken_at || firstMedia.created_at), 'MMMM d, yyyy');
+  const startTime = formatTimeOnly(firstMedia.taken_at || firstMedia.created_at);
+  const endTime = formatTimeOnly(lastMedia.taken_at || lastMedia.created_at);
+
+  doc.text(`Date: ${visitDate}`, MARGIN, y);
+  y += 8;
+  doc.text(`Time: ${startTime} - ${endTime}`, MARGIN, y);
+  y += 8;
+  doc.text(`Documentation: ${photoCount} photos, ${videoCount} videos`, MARGIN, y);
+  y += 8;
+  doc.text(`Sessions: ${sessions.length} (${sessions.map(s => s.label.replace(' Session', '')).join(', ')})`, MARGIN, y);
+  y += 15;
+
+  // Project details
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Project Information', MARGIN, y);
+  y += 10;
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Project #: ${projectNumber}`, MARGIN, y);
+  y += 8;
+  doc.text(`Client: ${clientName}`, MARGIN, y);
+  y += 8;
+  if (address) {
+    doc.text(`Location: ${address}`, MARGIN, y);
+    y += 8;
+  }
+  doc.text(`Report Generated: ${format(new Date(), 'MMM d, yyyy h:mm a')}`, MARGIN, y);
+
+  // === STORY CONTENT ===
+  let currentY = MARGIN;
+  let previousMedia: ProjectMedia | null = null;
+
+  for (let i = 0; i < mediaItems.length; i++) {
+    const media = mediaItems[i];
+    
+    if (onProgress) {
+      onProgress(i + 1, mediaItems.length);
+    }
+
+    try {
+      // Check if we need a new page (conservative estimate)
+      if (currentY > PAGE_HEIGHT - 90) {
+        doc.addPage();
+        currentY = MARGIN;
+        previousMedia = null; // Reset location tracking on new page
+      }
+
+      // Detect location change
+      if (previousMedia && hasLocationChange(previousMedia, media)) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100, 100, 100);
+        doc.text('📍 Location Changed', MARGIN, currentY);
+        currentY += 6;
+        doc.setTextColor(0, 0, 0);
+      }
+
+      // Time marker
+      const timeLabel = formatTimeOnly(media.taken_at || media.created_at);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(120, 120, 120);
+      doc.text(timeLabel, MARGIN, currentY);
+      currentY += 6;
+      doc.setTextColor(0, 0, 0);
+
+      // Fetch and embed image
+      const imageUrl = media.file_type === 'video' ? media.thumbnail_url : media.file_url;
+      if (!imageUrl) throw new Error('No image URL');
+
+      const base64Image = await fetchImageAsBase64(imageUrl);
+      const imgDims = await getImageDimensions(base64Image);
+      
+      const dims = calculateImageDimensions(
+        imgDims.width,
+        imgDims.height,
+        CONTENT_WIDTH,
+        STORY_IMAGE_MAX_HEIGHT
+      );
+
+      // Center horizontally and place at current Y
+      const imgX = MARGIN + (CONTENT_WIDTH - dims.width) / 2;
+      doc.addImage(base64Image, 'JPEG', imgX, currentY, dims.width, dims.height);
+
+      // Video badge
+      if (media.file_type === 'video') {
+        doc.setFillColor(0, 0, 0);
+        doc.rect(imgX + 8, currentY + 8, 35, 12, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('▶ VIDEO', imgX + 12, currentY + 16);
+        doc.setTextColor(0, 0, 0);
+      }
+
+      currentY += dims.height + 4;
+
+      // Caption as narrative (no label)
+      if (media.caption) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const captionLines = doc.splitTextToSize(media.caption, CONTENT_WIDTH);
+        for (const line of captionLines) {
+          doc.text(line, MARGIN, currentY);
+          currentY += 4.5;
+        }
+        currentY += 1;
+      }
+
+      // GPS coordinates (compact)
+      const gps = formatGPSCoordinates(media.latitude, media.longitude);
+      if (gps) {
+        doc.setFontSize(7);
+        doc.setTextColor(140, 140, 140);
+        doc.text(`📍 ${gps}`, MARGIN, currentY);
+        currentY += 4;
+        doc.setTextColor(0, 0, 0);
+      }
+
+      // Inline comments
+      if (comments.has(media.id)) {
+        const mediaComments = comments.get(media.id)!;
+        currentY = renderInlineComments(doc, mediaComments, currentY);
+      }
+
+      currentY += 6; // Space before next entry
+      previousMedia = media;
+      stats.successful++;
+
+    } catch (error) {
+      console.error(`Failed to load media ${media.id}:`, error);
+      stats.failed++;
+      stats.failedItems.push(media.file_name || media.caption || 'Unknown');
+      
+      // Minimal error placeholder
+      doc.setFontSize(9);
+      doc.setTextColor(180, 0, 0);
+      doc.text('[Image failed to load]', MARGIN, currentY);
+      currentY += 8;
+      doc.setTextColor(0, 0, 0);
+    }
+  }
+
+  // === TIMELINE SUMMARY PAGE ===
+  doc.addPage();
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Visit Summary', PAGE_WIDTH / 2, MARGIN + 10, { align: 'center' });
+  
+  let summaryY = MARGIN + 30;
+  
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Timeline Breakdown', MARGIN, summaryY);
+  summaryY += 10;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  
+  for (const session of sessions) {
+    const startTime = formatTimeOnly(session.startTime.toISOString());
+    const endTime = formatTimeOnly(session.endTime.toISOString());
+    const photoSessionCount = session.media.filter(m => m.file_type === 'image').length;
+    const videoSessionCount = session.media.filter(m => m.file_type === 'video').length;
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${session.label}: ${startTime} - ${endTime}`, MARGIN, summaryY);
+    summaryY += 6;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text(`  • ${photoSessionCount} photos, ${videoSessionCount} videos`, MARGIN, summaryY);
+    summaryY += 8;
+  }
+
+  summaryY += 10;
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Documentation Quality', MARGIN, summaryY);
+  summaryY += 8;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const captionedCount = mediaItems.filter(m => m.caption).length;
+  const gpsCount = mediaItems.filter(m => m.latitude && m.longitude).length;
+  const commentedCount = Array.from(comments.values()).reduce((sum, arr) => sum + arr.length, 0);
+
+  doc.text(`Captioned: ${captionedCount} of ${mediaItems.length} (${Math.round(captionedCount / mediaItems.length * 100)}%)`, MARGIN, summaryY);
+  summaryY += 6;
+  doc.text(`GPS Tagged: ${gpsCount} of ${mediaItems.length} (${Math.round(gpsCount / mediaItems.length * 100)}%)`, MARGIN, summaryY);
+  summaryY += 6;
+  doc.text(`Total Comments: ${commentedCount}`, MARGIN, summaryY);
+
+  return {
+    blob: doc.output('blob'),
+    stats
+  };
+}
+
+/**
  * Generate PDF report for project media
  */
 export async function generateMediaReportPDF(options: MediaReportOptions): Promise<PDFGenerationResult> {
@@ -221,8 +594,14 @@ export async function generateMediaReportPDF(options: MediaReportOptions): Promi
     reportTitle = 'Project Media Report',
     comments = new Map(),
     aggregateComments = false,
+    storyFormat = false,
     onProgress,
   } = options;
+  
+  // Use story format generator if requested
+  if (storyFormat) {
+    return generateStoryFormatPDF(options);
+  }
 
   const doc = new jsPDF({
     orientation: 'portrait',
