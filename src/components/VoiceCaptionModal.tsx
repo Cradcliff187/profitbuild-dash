@@ -115,7 +115,7 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady }: VoiceCaptio
         <DialogHeader>
           <DialogTitle>Voice Caption</DialogTitle>
           <DialogDescription>
-            Record a short voice note to caption your photo (max 60 seconds)
+            Record a voice note to caption your photo (max 2 minutes)
           </DialogDescription>
         </DialogHeader>
 
@@ -139,7 +139,7 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady }: VoiceCaptio
                     {formatDuration(duration)}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {duration >= 60 ? 'Maximum duration reached' : 'Tap to stop recording'}
+                    {duration >= 120 ? 'Maximum duration reached' : 'Tap to stop recording'}
                   </div>
                   <div className="flex items-center justify-center gap-1 mt-2">
                     <span className="h-2 w-2 bg-destructive rounded-full animate-pulse" />

@@ -47,6 +47,19 @@ const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
 const IMAGE_MAX_HEIGHT = 180; // Leave room for metadata
 const STORY_IMAGE_MAX_HEIGHT = 120; // Smaller images for story format
 
+// Location and Time Constants
+const LOCATION_CHANGE_THRESHOLD_METERS = 50; // Distance threshold for detecting location changes
+const SESSION_HOUR_MORNING_START = 5; // Morning session starts at 5 AM
+const SESSION_HOUR_AFTERNOON_START = 12; // Afternoon session starts at noon
+const SESSION_HOUR_EVENING_START = 17; // Evening session starts at 5 PM
+
+// Time Session Labels
+const TIME_SESSION_LABELS = {
+  MORNING: 'Morning Session',
+  AFTERNOON: 'Afternoon Session',
+  EVENING: 'Evening Session',
+} as const;
+
 /**
  * Fetch image from URL and convert to base64 data URI
  */
@@ -174,12 +187,12 @@ function groupByTimeSessions(mediaItems: ProjectMedia[]): TimeSession[] {
     
     // Determine session label
     let sessionLabel: string;
-    if (hour >= 5 && hour < 12) {
-      sessionLabel = 'Morning Session';
-    } else if (hour >= 12 && hour < 17) {
-      sessionLabel = 'Afternoon Session';
+    if (hour >= SESSION_HOUR_MORNING_START && hour < SESSION_HOUR_AFTERNOON_START) {
+      sessionLabel = TIME_SESSION_LABELS.MORNING;
+    } else if (hour >= SESSION_HOUR_AFTERNOON_START && hour < SESSION_HOUR_EVENING_START) {
+      sessionLabel = TIME_SESSION_LABELS.AFTERNOON;
     } else {
-      sessionLabel = 'Evening Session';
+      sessionLabel = TIME_SESSION_LABELS.EVENING;
     }
     
     // Check if we need a new session
@@ -201,27 +214,51 @@ function groupByTimeSessions(mediaItems: ProjectMedia[]): TimeSession[] {
 }
 
 /**
- * Detect significant location changes (>50m)
+ * Detect significant location changes
  */
 function hasLocationChange(media1: ProjectMedia, media2: ProjectMedia): boolean {
   if (!media1.latitude || !media1.longitude || !media2.latitude || !media2.longitude) {
     return false;
   }
   
-  // Haversine formula for distance calculation
-  const R = 6371000; // Earth radius in meters
-  const lat1 = media1.latitude * Math.PI / 180;
-  const lat2 = media2.latitude * Math.PI / 180;
-  const deltaLat = (media2.latitude - media1.latitude) * Math.PI / 180;
-  const deltaLon = (media2.longitude - media1.longitude) * Math.PI / 180;
-  
-  const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-            Math.cos(lat1) * Math.cos(lat2) *
-            Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  
-  return distance > 50; // 50m threshold
+  try {
+    // Validate coordinates are within valid ranges
+    const isValidLat = (lat: number) => !isNaN(lat) && lat >= -90 && lat <= 90;
+    const isValidLon = (lon: number) => !isNaN(lon) && lon >= -180 && lon <= 180;
+    
+    if (!isValidLat(media1.latitude) || !isValidLat(media2.latitude) ||
+        !isValidLon(media1.longitude) || !isValidLon(media2.longitude)) {
+      console.warn('Invalid GPS coordinates detected in location change calculation', {
+        media1: { lat: media1.latitude, lon: media1.longitude },
+        media2: { lat: media2.latitude, lon: media2.longitude }
+      });
+      return false;
+    }
+    
+    // Haversine formula for distance calculation
+    const R = 6371000; // Earth radius in meters
+    const lat1 = media1.latitude * Math.PI / 180;
+    const lat2 = media2.latitude * Math.PI / 180;
+    const deltaLat = (media2.latitude - media1.latitude) * Math.PI / 180;
+    const deltaLon = (media2.longitude - media1.longitude) * Math.PI / 180;
+    
+    const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+              Math.cos(lat1) * Math.cos(lat2) *
+              Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    
+    // Validate result
+    if (isNaN(distance) || distance < 0) {
+      console.warn('Distance calculation resulted in invalid value:', distance);
+      return false;
+    }
+    
+    return distance > LOCATION_CHANGE_THRESHOLD_METERS;
+  } catch (error) {
+    console.error('Error calculating location change:', error);
+    return false;
+  }
 }
 
 /**
@@ -314,7 +351,7 @@ function renderInlineComments(
     if (currentY > maxY - 10) break; // Stop if we run out of space
     
     const userName = formatUserName(comment);
-    const commentText = `💬 ${userName}: "${comment.comment_text}"`;
+    const commentText = `[Comment] ${userName}: "${comment.comment_text}"`;
     const lines = doc.splitTextToSize(commentText, CONTENT_WIDTH - 4);
     
     for (const line of lines) {
@@ -435,7 +472,7 @@ async function generateStoryFormatPDF(options: MediaReportOptions): Promise<PDFG
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(100, 100, 100);
-        doc.text('📍 Location Changed', MARGIN, currentY);
+        doc.text('[Location Change]', MARGIN, currentY);
         currentY += 6;
         doc.setTextColor(0, 0, 0);
       }
@@ -497,7 +534,7 @@ async function generateStoryFormatPDF(options: MediaReportOptions): Promise<PDFG
       if (gps) {
         doc.setFontSize(7);
         doc.setTextColor(140, 140, 140);
-        doc.text(`📍 ${gps}`, MARGIN, currentY);
+        doc.text(`GPS: ${gps}`, MARGIN, currentY);
         currentY += 4;
         doc.setTextColor(0, 0, 0);
       }
