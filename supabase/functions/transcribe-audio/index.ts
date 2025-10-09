@@ -12,10 +12,15 @@ function extractBase64(input: string): string {
   return dataUrlIndex !== -1 ? input.slice(dataUrlIndex + 1) : input;
 }
 
-// Transcribe with OpenAI Whisper (primary method - specialized for speech-to-text)
+// Transcribe with OpenAI Whisper (specialized for speech-to-text)
 async function transcribeWithWhisper(audioBase64: string, format: string, apiKey: string) {
   console.log('Transcribing with OpenAI Whisper...');
   console.log('Audio format:', format);
+  
+  // Log iOS video detection
+  if (format.includes('quicktime') || format.includes('video/mp4')) {
+    console.log('🎥 iOS video detected - Whisper will extract audio automatically');
+  }
   
   // Convert base64 to Uint8Array in chunks to prevent memory issues
   const processBase64Chunks = (base64String: string, chunkSize = 32768) => {
@@ -84,101 +89,6 @@ async function transcribeWithWhisper(audioBase64: string, format: string, apiKey
   return transcription;
 }
 
-// Transcribe with Gemini 2.5 Flash (fallback method)
-async function transcribeWithGemini(audioBase64: string, format: string, apiKey: string) {
-  console.log('Transcribing with Gemini 2.5 Flash...');
-  console.log('Audio format:', format);
-  
-  const requestBody = {
-    model: 'google/gemini-2.5-flash',
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: 'Transcribe this audio accurately. Return only the spoken words.'
-          },
-          {
-            type: 'audio',
-            audio: {
-              data: audioBase64,
-              format: format // Use full MIME type (e.g., 'audio/wav')
-            }
-          }
-        ]
-      }
-    ]
-  };
-
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Gemini API error:', response.status, errorText);
-    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
-  }
-
-  const result = await response.json();
-  const transcription = result.choices[0].message.content;
-  console.log('Transcribed text preview:', transcription.slice(0, 100) + (transcription.length > 100 ? '...' : ''));
-  return transcription;
-}
-
-// Transcribe with Gemini 2.5 Flash Lite (fallback method)
-async function transcribeWithGeminiLite(audioBase64: string, format: string, apiKey: string) {
-  console.log('Transcribing with Gemini 2.5 Flash Lite (fallback)...');
-  console.log('Audio format:', format);
-  
-  const requestBody = {
-    model: 'google/gemini-2.5-flash-lite',
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: 'Transcribe this audio accurately. Return only the spoken words.'
-          },
-          {
-            type: 'audio',
-            audio: {
-              data: audioBase64,
-              format: format // Use full MIME type (e.g., 'audio/wav')
-            }
-          }
-        ]
-      }
-    ]
-  };
-
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Gemini Lite API error:', response.status, errorText);
-    throw new Error(`Gemini Lite API error (${response.status}): ${errorText}`);
-  }
-
-  const result = await response.json();
-  const transcription = result.choices[0].message.content;
-  console.log('Fallback transcribed text preview:', transcription.slice(0, 100) + (transcription.length > 100 ? '...' : ''));
-  return transcription;
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -197,14 +107,19 @@ serve(async (req) => {
     console.log('Processing audio transcription request...');
 
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
+    // Check for required API key FIRST
     if (!OPENAI_API_KEY) {
-      console.warn('OPENAI_API_KEY not configured, will use Gemini fallback only');
-    }
-    
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Transcription service not configured. Please contact support.',
+          code: 'SERVICE_UNAVAILABLE'
+        }),
+        { 
+          status: 503, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     // Extract clean base64 (remove data URL prefix if present)
@@ -240,88 +155,46 @@ serve(async (req) => {
       );
     }
     
+    // Single try-catch for Whisper only
     let transcribedText: string;
-    
     try {
-      // Try OpenAI Whisper first (PRIMARY - specialized for speech-to-text)
-      if (OPENAI_API_KEY) {
-        transcribedText = await transcribeWithWhisper(audioBase64, format, OPENAI_API_KEY);
-        console.log('✅ Whisper transcription successful');
-      } else {
-        throw new Error('Whisper not available, using fallback');
-      }
+      transcribedText = await transcribeWithWhisper(audioBase64, format, OPENAI_API_KEY);
+      console.log('✅ Whisper transcription successful');
     } catch (whisperError) {
-      // Fallback to Gemini Flash if Whisper fails
-      console.warn('Whisper failed, falling back to Gemini Flash:', whisperError);
+      console.error('❌ Whisper transcription failed:', whisperError);
       
-      try {
-        transcribedText = await transcribeWithGemini(audioBase64, format, LOVABLE_API_KEY);
-        console.log('✅ Gemini Flash fallback successful');
-      } catch (geminiError) {
-        // Final fallback to Gemini Flash Lite
-        console.warn('Gemini Flash failed, trying Gemini Flash Lite:', geminiError);
-        
-        try {
-          transcribedText = await transcribeWithGeminiLite(audioBase64, format, LOVABLE_API_KEY);
-          console.log('✅ Gemini Flash Lite fallback successful');
-        } catch (liteError) {
-        console.error('Both Gemini models failed:', liteError);
-        
-        // Handle specific error codes
-        const errorMessage = liteError.message.toLowerCase();
-        
-        if (errorMessage.includes('400') || errorMessage.includes('invalid')) {
-          return new Response(
-            JSON.stringify({ 
-              error: 'Audio format not supported. Please try recording again.',
-              code: 'INVALID_AUDIO'
-            }),
-            { 
-              status: 400, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          );
-        }
-        
-        if (errorMessage.includes('429')) {
-          return new Response(
-            JSON.stringify({ 
-              error: 'Rate limit exceeded. Please wait 30 seconds and try again.',
-              code: 'RATE_LIMIT'
-            }),
-            { 
-              status: 429, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          );
-        }
-        
-        if (errorMessage.includes('402') || errorMessage.includes('payment')) {
-          return new Response(
-            JSON.stringify({ 
-              error: 'AI transcription credits exhausted. Please contact support.',
-              code: 'PAYMENT_REQUIRED'
-            }),
-            { 
-              status: 402, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          );
-        }
-        
-        // All transcription methods failed
+      // Parse error and return specific user-facing message
+      const errorMessage = whisperError.message.toLowerCase();
+      
+      if (errorMessage.includes('400') || errorMessage.includes('invalid')) {
         return new Response(
           JSON.stringify({ 
-            error: 'Transcription service temporarily unavailable. Please try again.',
-            code: 'TRANSCRIPTION_FAILED'
+            error: 'Audio format not supported. Please try recording again.',
+            code: 'INVALID_AUDIO',
+            details: 'Supported formats: MP4, MOV, WAV, WEBM, M4A'
           }),
-          { 
-            status: 503, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
-        }
       }
+      
+      if (errorMessage.includes('429')) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Too many requests. Please wait 30 seconds and try again.',
+            code: 'RATE_LIMIT'
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Generic 5xx error
+      return new Response(
+        JSON.stringify({ 
+          error: 'Transcription service temporarily unavailable. Please try again in a few moments.',
+          code: 'TRANSCRIPTION_FAILED'
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     return new Response(
