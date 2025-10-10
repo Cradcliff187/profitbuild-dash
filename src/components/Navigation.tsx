@@ -1,16 +1,56 @@
 import { NavLink } from "react-router-dom";
-import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck } from "lucide-react";
+import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 
 const Navigation = () => {
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandalone) {
+      setIsInstalled(true);
+      return;
+    }
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => {
+      setIsInstalled(true);
+      setIsInstallable(false);
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+    setIsInstallable(false);
+  };
 
   // Primary items (always visible on larger screens)
   const primaryItems = [
@@ -112,6 +152,19 @@ const Navigation = () => {
                 <NavItem key={to} to={to} label={label} icon={Icon} />
               ))}
               
+              {/* Install Button (Desktop only, when installable) */}
+              {!isInstalled && isInstallable && (
+                <Button 
+                  onClick={handleInstall} 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs"
+                >
+                  <Download className="h-3 w-3 mr-1.5" />
+                  Install
+                </Button>
+              )}
+
               {/* More Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedLayout from "@/components/ProtectedLayout";
+import { InstallPrompt } from "@/components/InstallPrompt";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import Dashboard from "./pages/Dashboard";
 import WorkOrders from "./pages/WorkOrders";
 import Estimates from "./pages/Estimates";
@@ -30,6 +32,8 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <InstallPrompt />
+        <OfflineIndicator />
         <BrowserRouter>
           <ErrorBoundary>
             <div className="min-h-screen bg-background mobile-container">
