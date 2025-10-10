@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Mic, MicOff, Check, X, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Check, X, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useAudioRecording } from '@/hooks/useAudioRecording';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
+import { AICaptionEnhancer } from '@/components/AICaptionEnhancer';
 import { toast } from 'sonner';
 
 interface VoiceCaptionModalProps {
   open: boolean;
   onClose: () => void;
   onCaptionReady: (caption: string) => void;
+  imageUrl?: string;
 }
 
-export function VoiceCaptionModal({ open, onClose, onCaptionReady }: VoiceCaptionModalProps) {
+export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: VoiceCaptionModalProps) {
   const {
     startRecording,
     stopRecording,
@@ -36,6 +38,7 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady }: VoiceCaptio
 
   const [editableCaption, setEditableCaption] = useState('');
   const [hasTranscribed, setHasTranscribed] = useState(false);
+  const [showAIEnhancer, setShowAIEnhancer] = useState(false);
 
   // Auto-transcribe when audio is ready
   useEffect(() => {
@@ -56,6 +59,7 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady }: VoiceCaptio
       resetTranscription();
       setEditableCaption('');
       setHasTranscribed(false);
+      setShowAIEnhancer(false);
     }
   }, [open, resetRecording, resetTranscription]);
 
@@ -168,40 +172,64 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady }: VoiceCaptio
 
           {/* Transcription Preview */}
           {showTranscription && !isProcessingAudio && (
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-foreground">Caption Preview</label>
-                <p className="text-xs text-muted-foreground">Review and edit your caption before applying</p>
-              </div>
-              <Textarea
-                value={editableCaption}
-                onChange={(e) => setEditableCaption(e.target.value)}
-                placeholder="Your caption will appear here..."
-                className="min-h-32 resize-none"
-                autoFocus
-              />
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleStartRecording}
-                  variant="outline"
-                  className="flex-1"
-                  size="sm"
-                >
-                  <Mic className="h-3 w-3 mr-1" />
-                  Re-record
-                </Button>
-                <Button
-                  onClick={handleUseCaption}
-                  variant="default"
-                  className="flex-1"
-                  disabled={!editableCaption.trim()}
-                  size="sm"
-                >
-                  <Check className="h-3 w-3 mr-1" />
-                  Use This Caption
-                </Button>
-              </div>
-            </div>
+            <>
+              {!showAIEnhancer ? (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-foreground">Caption Preview</label>
+                    <p className="text-xs text-muted-foreground">Review and edit your caption before applying</p>
+                  </div>
+                  <Textarea
+                    value={editableCaption}
+                    onChange={(e) => setEditableCaption(e.target.value)}
+                    placeholder="Your caption will appear here..."
+                    className="min-h-32 resize-none"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleStartRecording}
+                      variant="outline"
+                      className="flex-1"
+                      size="sm"
+                    >
+                      <Mic className="h-3 w-3 mr-1" />
+                      Re-record
+                    </Button>
+                    <Button
+                      onClick={() => setShowAIEnhancer(true)}
+                      variant="outline"
+                      className="flex-1"
+                      size="sm"
+                      disabled={!editableCaption.trim()}
+                    >
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Enhance with AI
+                    </Button>
+                    <Button
+                      onClick={handleUseCaption}
+                      variant="default"
+                      className="flex-1"
+                      disabled={!editableCaption.trim()}
+                      size="sm"
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      Use This Caption
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <AICaptionEnhancer
+                  imageUrl={imageUrl || ''}
+                  originalCaption={editableCaption}
+                  onAccept={(enhanced) => {
+                    setEditableCaption(enhanced);
+                    setShowAIEnhancer(false);
+                  }}
+                  onCancel={() => setShowAIEnhancer(false)}
+                />
+              )}
+            </>
           )}
 
           {/* Cancel Button */}

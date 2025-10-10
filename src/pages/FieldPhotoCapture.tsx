@@ -361,6 +361,7 @@ export default function FieldPhotoCapture() {
         open={showVoiceCaptionModal}
         onClose={() => setShowVoiceCaptionModal(false)}
         onCaptionReady={handleVoiceCaptionReady}
+        imageUrl={capturedPhotoUri || ''}
       />
     </div>
   );
