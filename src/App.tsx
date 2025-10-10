@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,23 +9,32 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import Dashboard from "./pages/Dashboard";
-import WorkOrders from "./pages/WorkOrders";
-import Estimates from "./pages/Estimates";
-import Quotes from "./pages/Quotes";
-import Expenses from "./pages/Expenses";
-import Payees from "./pages/Payees";
-import Clients from "./pages/Clients";
-import Projects from "./pages/Projects";
-import ProfitAnalysis from "./pages/ProfitAnalysis";
-import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
-import ProjectDetail from "./pages/ProjectDetail";
-import FieldPhotoCapture from "./pages/FieldPhotoCapture";
-import FieldVideoCapture from "./pages/FieldVideoCapture";
+import Projects from "./pages/Projects";
 import NotFound from "./pages/NotFound";
 
+// Lazy load heavy pages
+const WorkOrders = lazy(() => import("./pages/WorkOrders"));
+const Estimates = lazy(() => import("./pages/Estimates"));
+const Quotes = lazy(() => import("./pages/Quotes"));
+const Expenses = lazy(() => import("./pages/Expenses"));
+const Payees = lazy(() => import("./pages/Payees"));
+const Clients = lazy(() => import("./pages/Clients"));
+const ProfitAnalysis = lazy(() => import("./pages/ProfitAnalysis"));
+const Settings = lazy(() => import("./pages/Settings"));
+const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
+const FieldPhotoCapture = lazy(() => import("./pages/FieldPhotoCapture"));
+const FieldVideoCapture = lazy(() => import("./pages/FieldVideoCapture"));
+
 const queryClient = new QueryClient();
+
+const LazyRoute = ({ component: Component }: { component: React.ComponentType }) => (
+  <Suspense fallback={<LoadingSpinner variant="page" />}>
+    <Component />
+  </Suspense>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -42,18 +52,18 @@ const App = () => (
                 <Route path="/" element={<ProtectedLayout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="dashboard" element={<Navigate to="/" replace />} />
-                  <Route path="work-orders" element={<WorkOrders />} />
+                  <Route path="work-orders" element={<LazyRoute component={WorkOrders} />} />
                   <Route path="projects" element={<Projects />} />
-                  <Route path="projects/:id/*" element={<ProjectDetail />} />
-                  <Route path="projects/:id/capture" element={<FieldPhotoCapture />} />
-                  <Route path="projects/:id/capture-video" element={<FieldVideoCapture />} />
-                  <Route path="estimates" element={<Estimates />} />
-                  <Route path="quotes" element={<Quotes />} />
-                  <Route path="expenses" element={<Expenses />} />
-                  <Route path="payees" element={<Payees />} />
-                  <Route path="clients" element={<Clients />} />
-                  <Route path="profit-analysis" element={<ProfitAnalysis />} />
-                  <Route path="settings" element={<Settings />} />
+                  <Route path="projects/:id/*" element={<LazyRoute component={ProjectDetail} />} />
+                  <Route path="projects/:id/capture" element={<LazyRoute component={FieldPhotoCapture} />} />
+                  <Route path="projects/:id/capture-video" element={<LazyRoute component={FieldVideoCapture} />} />
+                  <Route path="estimates" element={<LazyRoute component={Estimates} />} />
+                  <Route path="quotes" element={<LazyRoute component={Quotes} />} />
+                  <Route path="expenses" element={<LazyRoute component={Expenses} />} />
+                  <Route path="payees" element={<LazyRoute component={Payees} />} />
+                  <Route path="clients" element={<LazyRoute component={Clients} />} />
+                  <Route path="profit-analysis" element={<LazyRoute component={ProfitAnalysis} />} />
+                  <Route path="settings" element={<LazyRoute component={Settings} />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
