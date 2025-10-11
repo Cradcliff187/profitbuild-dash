@@ -262,7 +262,7 @@ export default function FieldVideoCapture() {
         duration,
       });
 
-      navigate(`/projects/${projectId}`, { state: { activeTab: 'videos' } });
+      navigate(`/projects/${projectId}/media`);
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('Failed to upload video');
