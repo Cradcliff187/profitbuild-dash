@@ -14,6 +14,7 @@ import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { formatFileSize, getVideoDuration } from '@/utils/videoUtils';
 import { isWebPlatform, isIOSDevice } from '@/utils/platform';
 import { toast } from 'sonner';
+import { showCaptionPrompt, CAPTION_PROMPTS } from '@/components/CaptionPromptToast';
 
 export default function FieldVideoCapture() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -34,6 +35,7 @@ export default function FieldVideoCapture() {
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [isAutoTranscribing, setIsAutoTranscribing] = useState(false);
   const [isIOS] = useState(isIOSDevice());
+  const [captureCount, setCaptureCount] = useState(0);
 
   useEffect(() => {
     // Refresh GPS on mount
@@ -63,6 +65,8 @@ export default function FieldVideoCapture() {
     
     if (video) {
       setCapturedVideo(video);
+      const newCaptureCount = captureCount + 1;
+      setCaptureCount(newCaptureCount);
       
       // Auto-transcribe video directly (OpenAI Whisper supports video formats)
       setIsAutoTranscribing(true);
@@ -103,6 +107,18 @@ export default function FieldVideoCapture() {
           if (transcribedText) {
             setVideoCaption(transcribedText);
             toast.success(`Caption auto-generated from ${isIOS ? 'audio' : 'video'}`);
+            
+            // Suggest review after 2 seconds (only for first 2 captures)
+            setTimeout(() => {
+              if (newCaptureCount <= 2) {
+                showCaptionPrompt({
+                  onVoiceClick: () => setShowCaptionModal(true),
+                  onTypeClick: () => setShowCaptionModal(true),
+                  message: CAPTION_PROMPTS.reviewAiCaption,
+                  duration: 4000,
+                });
+              }
+            }, 2000);
           } else {
             console.warn('⚠️ No transcription returned');
             toast.error('Transcription failed', {
@@ -436,14 +452,21 @@ export default function FieldVideoCapture() {
 
             {/* Actions */}
             <div className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setShowCaptionModal(true)}
-                disabled={isAutoTranscribing}
-              >
-                {videoCaption ? 'Edit Caption' : 'Add Caption'}
-              </Button>
+              <div className="space-y-1">
+                <Button
+                  variant="outline"
+                  className="w-full h-12 font-medium"
+                  onClick={() => setShowCaptionModal(true)}
+                  disabled={isAutoTranscribing}
+                >
+                  {videoCaption ? 'Review AI Caption' : 'Add Caption'}
+                </Button>
+                {!videoCaption && (
+                  <p className="text-xs text-center text-muted-foreground">
+                    AI transcription attempted - verify or add details
+                  </p>
+                )}
+              </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <Button

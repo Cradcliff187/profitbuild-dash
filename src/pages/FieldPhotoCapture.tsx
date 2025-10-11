@@ -11,6 +11,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { isWebPlatform } from '@/utils/platform';
 import { toast } from 'sonner';
+import { showCaptionPrompt, CAPTION_PROMPTS } from '@/components/CaptionPromptToast';
 import type { ProjectMedia } from '@/types/project';
 
 export default function FieldPhotoCapture() {
@@ -25,6 +26,8 @@ export default function FieldPhotoCapture() {
   const [showVoiceCaptionModal, setShowVoiceCaptionModal] = useState(false);
   const [pendingCaption, setPendingCaption] = useState<string>('');
   const [gpsAge, setGpsAge] = useState<number | null>(null);
+  const [captureCount, setCaptureCount] = useState(0);
+  const [skipCount, setSkipCount] = useState(0);
 
   // Calculate GPS age
   useEffect(() => {
@@ -43,10 +46,28 @@ export default function FieldPhotoCapture() {
     
     if (photo) {
       setCapturedPhotoUri(photo.webPath || photo.path);
+      const newCaptureCount = captureCount + 1;
+      setCaptureCount(newCaptureCount);
       
       // Show GPS accuracy toast
       if (freshCoords) {
         toast.success(`Photo captured with GPS accuracy ±${freshCoords.accuracy.toFixed(0)}m`);
+        
+        // Smart caption prompt (3-second delay so GPS toast shows first)
+        setTimeout(() => {
+          // Only show on first 3 captures to avoid annoyance
+          if (newCaptureCount <= 3) {
+            const message = newCaptureCount === 1 
+              ? CAPTION_PROMPTS.firstCapture 
+              : CAPTION_PROMPTS.gpsAvailable;
+            
+            showCaptionPrompt({
+              onVoiceClick: () => setShowVoiceCaptionModal(true),
+              onTypeClick: () => setShowCaptionModal(true),
+              message,
+            });
+          }
+        }, 3000);
       }
     } else if (window.top !== window.self) {
       // Running in iframe - suggest opening in new tab
@@ -58,6 +79,20 @@ export default function FieldPhotoCapture() {
 
   const handleUploadAndContinue = async () => {
     if (!capturedPhotoUri) return;
+
+    // Track if user skipped caption
+    const skippedCaption = !pendingCaption.trim();
+    if (skippedCaption) {
+      const newSkipCount = skipCount + 1;
+      setSkipCount(newSkipCount);
+      
+      // Show gentle reminder after 3 consecutive skips
+      if (newSkipCount >= 3 && newSkipCount % 3 === 0) {
+        toast.info(CAPTION_PROMPTS.multipleSkips, {
+          duration: 4000,
+        });
+      }
+    }
 
     try {
       // Convert photo URI to File
@@ -105,13 +140,16 @@ export default function FieldPhotoCapture() {
   const handleSaveCaption = (caption: string) => {
     setPendingCaption(caption);
     setShowCaptionModal(false);
-    toast.success('Caption added');
+    setSkipCount(0); // Reset skip counter when user adds caption
+    toast.success('Caption saved - ready to upload');
   };
 
   const handleVoiceCaptionReady = (caption: string) => {
     setPendingCaption(caption);
     setShowVoiceCaptionModal(false);
-    toast.success('Voice caption added');
+    setSkipCount(0); // Reset skip counter
+    const wordCount = caption.split(' ').length;
+    toast.success(`Voice caption added (${wordCount} word${wordCount !== 1 ? 's' : ''})`);
   };
 
   // Create a mock ProjectMedia object for the caption modal
@@ -271,26 +309,32 @@ export default function FieldPhotoCapture() {
               </div>
             )}
             
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setShowVoiceCaptionModal(true)}
+            <div className="space-y-2">
+              {/* Primary Voice Caption CTA */}
+              <Button 
+                onClick={() => setShowVoiceCaptionModal(true)} 
+                variant="default" 
+                className="w-full text-base font-semibold"
+                size="xl"
                 disabled={isUploading}
-                variant="default"
-                className="flex-1"
-                size="lg"
               >
-                <Mic className="h-4 w-4 mr-2" />
-                Voice Caption
+                <Mic className="h-5 w-5 mr-2" />
+                Voice Caption (Recommended)
               </Button>
-              <Button
-                onClick={() => setShowCaptionModal(true)}
+              <p className="text-xs text-center text-muted-foreground -mt-1 mb-1">
+                Quick voice notes make reviews easier
+              </p>
+              
+              {/* Secondary Type Option */}
+              <Button 
+                onClick={() => setShowCaptionModal(true)} 
+                variant="outline" 
+                className="w-full"
+                size="sm"
                 disabled={isUploading}
-                variant="outline"
-                className="flex-1"
-                size="lg"
               >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Type
+                <MessageSquare className="h-3 w-3 mr-1" />
+                Type Caption Instead
               </Button>
             </div>
             
