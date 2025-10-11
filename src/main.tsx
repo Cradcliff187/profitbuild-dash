@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { registerSW } from 'virtual:pwa-register';
+import { toast } from 'sonner';
 
 createRoot(document.getElementById("root")!).render(<App />);
 
@@ -9,9 +10,17 @@ createRoot(document.getElementById("root")!).render(<App />);
 if ('serviceWorker' in navigator) {
   const updateSW = registerSW({
     onNeedRefresh() {
-      if (confirm('New version available! Reload to update?')) {
-        updateSW(true);
-      }
+      toast.info('🎉 New version available!', {
+        duration: Infinity,
+        dismissible: false,
+        action: {
+          label: 'Update Now',
+          onClick: () => {
+            toast.success('Updating app...');
+            updateSW(true);
+          },
+        },
+      });
     },
     onOfflineReady() {
       console.log('App ready to work offline');

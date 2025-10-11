@@ -16,6 +16,47 @@ function getSupportedAudioType(): string {
   return 'audio/webm'; // fallback
 }
 
+// Pre-flight microphone permission check
+async function checkMicrophonePermission(): Promise<{ granted: boolean; error?: string }> {
+  try {
+    // Check if in secure context
+    if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+      return { 
+        granted: false, 
+        error: 'Microphone requires HTTPS. Please use secure connection.' 
+      };
+    }
+
+    // Check browser support
+    if (!navigator.mediaDevices?.getUserMedia) {
+      return { 
+        granted: false, 
+        error: 'Microphone not supported in this browser. Try Chrome or Safari.' 
+      };
+    }
+
+    // Check permission state (if supported)
+    if (navigator.permissions) {
+      try {
+        const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        if (permission.state === 'denied') {
+          return { 
+            granted: false, 
+            error: 'Microphone access denied. Enable in browser settings.' 
+          };
+        }
+      } catch (e) {
+        // Permission API not supported, continue to getUserMedia
+        console.log('[AudioRecording] Permission query not supported, will try getUserMedia');
+      }
+    }
+
+    return { granted: true };
+  } catch (err) {
+    return { granted: false, error: 'Failed to check microphone permission' };
+  }
+}
+
 export function useAudioRecording() {
   const [state, setState] = useState<RecordingState>('idle');
   const [duration, setDuration] = useState(0);
@@ -33,16 +74,19 @@ export function useAudioRecording() {
       setAudioData(null);
       setDuration(0);
 
-      // Check if running in secure context (HTTPS or localhost)
-      if (!window.isSecureContext && window.location.hostname !== 'localhost') {
-        throw new Error('Microphone access requires a secure connection (HTTPS)');
+      console.log('[AudioRecording] Starting recording flow...');
+
+      // Pre-flight permission check
+      const permissionCheck = await checkMicrophonePermission();
+      if (!permissionCheck.granted) {
+        throw new Error(permissionCheck.error || 'Microphone access denied');
       }
 
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Audio recording is not supported in this browser');
-      }
-
+      console.log('[AudioRecording] Requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('[AudioRecording] Microphone access granted', {
+        audioTracks: stream.getAudioTracks().length,
+      });
       
       // Use best supported audio format
       const mimeType = getSupportedAudioType();
@@ -60,6 +104,10 @@ export function useAudioRecording() {
         setState('processing');
         try {
           const audioBlob = new Blob(chunksRef.current, { type: mimeType });
+          console.log('[AudioRecording] Processing audio blob', {
+            size: audioBlob.size,
+            type: audioBlob.type,
+          });
           
           // Validate audio
           const isValid = await validateAudioBlob(audioBlob);
@@ -87,6 +135,7 @@ export function useAudioRecording() {
       };
 
       mediaRecorder.start();
+      console.log('[AudioRecording] Recording started', { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       setState('recording');
 

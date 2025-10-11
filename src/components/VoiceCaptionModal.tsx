@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Mic, MicOff, Check, X, Loader2, Sparkles } from 'lucide-react';
+import { Mic, MicOff, Check, X, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAudioRecording } from '@/hooks/useAudioRecording';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { AICaptionEnhancer } from '@/components/AICaptionEnhancer';
+import { checkAudioRecordingSupport } from '@/utils/browserCompatibility';
 import { toast } from 'sonner';
 
 interface VoiceCaptionModalProps {
@@ -16,6 +18,7 @@ interface VoiceCaptionModalProps {
 }
 
 export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: VoiceCaptionModalProps) {
+  const [browserSupport] = useState(() => checkAudioRecordingSupport());
   const {
     startRecording,
     stopRecording,
@@ -39,6 +42,16 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
   const [editableCaption, setEditableCaption] = useState('');
   const [hasTranscribed, setHasTranscribed] = useState(false);
   const [showAIEnhancer, setShowAIEnhancer] = useState(false);
+
+  // Show browser compatibility warning on modal open
+  useEffect(() => {
+    if (open && !browserSupport.supported) {
+      toast.error('Voice recording not available', {
+        description: browserSupport.issues.join(', '),
+        duration: 6000,
+      });
+    }
+  }, [open, browserSupport]);
 
   // Auto-transcribe when audio is ready
   useEffect(() => {
@@ -76,11 +89,15 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
     }
   }, [transcriptionError]);
 
-  const handleStartRecording = () => {
+  const handleStartRecording = async () => {
     resetTranscription();
     setEditableCaption('');
     setHasTranscribed(false);
-    startRecording();
+    
+    // Show immediate feedback
+    toast.info('Requesting microphone access...', { duration: 2000 });
+    
+    await startRecording();
   };
 
   const handleStopRecording = () => {
@@ -127,12 +144,40 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
           {/* Recording Interface */}
           {!showTranscription && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              {/* Show error alert if there's a recording error */}
+              {recordingError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    <strong>Microphone Error:</strong> {recordingError}
+                    {recordingError.includes('denied') && (
+                      <>
+                        <br /><br />
+                        <strong>To fix:</strong>
+                        <ol className="list-decimal ml-4 mt-2 space-y-1">
+                          <li>Open browser settings (usually via address bar icon)</li>
+                          <li>Find "Site Settings" or "Permissions"</li>
+                          <li>Enable microphone for this site</li>
+                          <li>Reload the page and try again</li>
+                        </ol>
+                      </>
+                    )}
+                    {recordingError.includes('HTTPS') && (
+                      <>
+                        <br /><br />
+                        <strong>Solution:</strong> Microphone access requires a secure HTTPS connection.
+                      </>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
+              
               <Button
                 onClick={isRecording ? handleStopRecording : handleStartRecording}
                 size="lg"
                 variant={isRecording ? 'destructive' : 'default'}
                 className="h-20 w-20 rounded-full"
-                disabled={isProcessingAudio}
+                disabled={isProcessingAudio || !browserSupport.supported}
               >
                 {isRecording ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
               </Button>

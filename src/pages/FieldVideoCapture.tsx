@@ -64,9 +64,11 @@ export default function FieldVideoCapture() {
     }
     
     if (video) {
-      setCapturedVideo(video);
       const newCaptureCount = captureCount + 1;
       setCaptureCount(newCaptureCount);
+      
+      setCapturedVideo(video);
+      setGpsAccuracy(location?.accuracy || null);
       
       // Auto-transcribe video directly (OpenAI Whisper supports video formats)
       setIsAutoTranscribing(true);
@@ -461,11 +463,15 @@ export default function FieldVideoCapture() {
                 >
                   {videoCaption ? 'Review AI Caption' : 'Add Caption'}
                 </Button>
-                {!videoCaption && (
+                {isAutoTranscribing ? (
+                  <p className="text-xs text-center text-muted-foreground">
+                    Generating caption from audio...
+                  </p>
+                ) : !videoCaption ? (
                   <p className="text-xs text-center text-muted-foreground">
                     AI transcription attempted - verify or add details
                   </p>
-                )}
+                ) : null}
               </div>
 
               <div className="grid grid-cols-2 gap-2">

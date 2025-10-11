@@ -14,6 +14,9 @@ import { toast } from 'sonner';
 import { showCaptionPrompt, CAPTION_PROMPTS } from '@/components/CaptionPromptToast';
 import type { ProjectMedia } from '@/types/project';
 
+// Debug mode: set to true to always show caption prompts (helpful for testing)
+const DEBUG_ALWAYS_SHOW_PROMPT = false;
+
 export default function FieldPhotoCapture() {
   const { id: projectId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -45,6 +48,12 @@ export default function FieldPhotoCapture() {
     const [photo, freshCoords] = await Promise.all([capturePromise, gpsPromise]);
     
     if (photo) {
+      console.log('[PhotoCapture] Photo captured successfully', {
+        captureCount: captureCount + 1,
+        hasGPS: !!freshCoords,
+        willShowToast: DEBUG_ALWAYS_SHOW_PROMPT || (captureCount + 1) <= 3,
+      });
+      
       setCapturedPhotoUri(photo.webPath || photo.path);
       const newCaptureCount = captureCount + 1;
       setCaptureCount(newCaptureCount);
@@ -55,16 +64,22 @@ export default function FieldPhotoCapture() {
         
         // Smart caption prompt (3-second delay so GPS toast shows first)
         setTimeout(() => {
-          // Only show on first 3 captures to avoid annoyance
-          if (newCaptureCount <= 3) {
+          // Only show on first 3 captures (unless debugging)
+          if (DEBUG_ALWAYS_SHOW_PROMPT || newCaptureCount <= 3) {
             const message = newCaptureCount === 1 
               ? CAPTION_PROMPTS.firstCapture 
               : CAPTION_PROMPTS.gpsAvailable;
+            
+            console.log('[PhotoCapture] Showing caption prompt toast', {
+              captureNumber: newCaptureCount,
+              message: newCaptureCount === 1 ? 'firstCapture' : 'gpsAvailable',
+            });
             
             showCaptionPrompt({
               onVoiceClick: () => setShowVoiceCaptionModal(true),
               onTypeClick: () => setShowCaptionModal(true),
               message,
+              duration: DEBUG_ALWAYS_SHOW_PROMPT ? 10000 : 5000,
             });
           }
         }, 3000);
@@ -148,7 +163,7 @@ export default function FieldPhotoCapture() {
     setPendingCaption(caption);
     setShowVoiceCaptionModal(false);
     setSkipCount(0); // Reset skip counter
-    const wordCount = caption.split(' ').length;
+    const wordCount = caption.split(/\s+/).filter(w => w.length > 0).length;
     toast.success(`Voice caption added (${wordCount} word${wordCount !== 1 ? 's' : ''})`);
   };
 
@@ -310,6 +325,13 @@ export default function FieldPhotoCapture() {
             )}
             
             <div className="space-y-2">
+              {/* Show tip badge when prompt is suppressed */}
+              {captureCount > 3 && !pendingCaption && (
+                <div className="text-xs text-center text-muted-foreground bg-muted/50 p-2 rounded">
+                  💡 Tip: Caption prompts show for first 3 photos
+                </div>
+              )}
+              
               {/* Primary Voice Caption CTA */}
               <Button 
                 onClick={() => setShowVoiceCaptionModal(true)} 
