@@ -241,22 +241,22 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
 
   return (
     <div className="form-dense space-y-2">
-      <Card>
-        <CardHeader className="p-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Building2 className="h-4 w-4" />
+      <Card className="compact-card">
+        <CardHeader className="p-compact">
+          <CardTitle className="flex items-center gap-2 text-interface">
+            <Building2 className="h-3 w-3" />
             Create New Project
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 p-3">
+        <CardContent className="space-y-2 p-compact">
           {/* Completion Progress */}
-          <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
-            <CheckCircle className="h-5 w-5 text-green-600" />
+          <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-md">
+            <CheckCircle className="h-4 w-4 text-success" />
             <div>
-              <p className="font-medium text-green-700">
+              <p className="text-label font-medium text-success">
                 {getCompletedFieldsCount()} of 3 required fields complete
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-label text-muted-foreground">
                 Fill in all required fields to create your project
               </p>
             </div>
@@ -303,13 +303,13 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
 
           {/* Client Details */}
           {selectedClientData && (
-            <Card className="bg-muted/30">
-              <CardContent className="p-2">
-                <div className="flex items-center gap-2 mb-2">
+            <Card className="bg-muted/30 compact-card">
+              <CardContent className="p-compact">
+                <div className="flex items-center gap-2 mb-1">
                   <User className="h-3 w-3 text-primary" />
-                  <Label className="text-xs font-semibold">Selected Client Details</Label>
+                  <Label className="text-label font-semibold">Selected Client Details</Label>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-label">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <User className="h-3 w-3 text-muted-foreground" />
@@ -446,11 +446,11 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
           </div>
 
           {/* Margin Thresholds */}
-          <Card className="bg-muted/20">
-            <CardContent className="p-2 space-y-2">
+          <Card className="bg-muted/20 compact-card">
+            <CardContent className="p-compact space-y-1">
               <div>
-                <Label className="text-xs font-semibold">Margin Thresholds</Label>
-                <p className="text-[10px] text-muted-foreground mt-1">
+                <Label className="text-label font-semibold">Margin Thresholds</Label>
+                <p className="text-label text-muted-foreground mt-0.5">
                   Set profit margin targets and minimum acceptable levels for this project
                 </p>
               </div>

@@ -199,6 +199,38 @@ All colors MUST be HSL.
   .mobile-card {
     @apply w-full min-w-0 break-words;
   }
+
+  /* =================================
+     COMPACT UI UTILITY CLASSES
+     ================================= */
+  
+  /* Dense spacing for forms and lists */
+  .dense-spacing > * + * {
+    @apply mt-2;
+  }
+  
+  /* Compact card styles */
+  .compact-card {
+    @apply rounded-md border p-2;
+  }
+  
+  .compact-card-section {
+    @apply p-2 rounded border border-border bg-card;
+  }
+  
+  /* Compact badge */
+  .compact-badge {
+    @apply text-[10px] px-1.5 py-0.5 h-4 leading-none;
+  }
+  
+  /* Form compact mode */
+  .form-dense {
+    @apply space-y-2;
+  }
+  
+  .form-compact {
+    @apply space-y-1.5;
+  }
   
   /* Mobile table wrapper - ONLY place overflow-x-auto is allowed */
   .mobile-table-wrapper {

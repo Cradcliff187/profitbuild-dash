@@ -225,13 +225,13 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{expense ? 'Edit Expense' : 'Add New Expense'}</CardTitle>
+    <Card className="compact-card">
+      <CardHeader className="p-compact">
+        <CardTitle className="text-interface">{expense ? 'Edit Expense' : 'Add New Expense'}</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-compact">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="form-dense">
             <FormField
               control={form.control}
               name="project_id"
@@ -481,11 +481,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
               )}
             </div>
 
-            <div className="flex space-x-2">
-              <Button type="submit" disabled={loading}>
+            <div className="flex gap-1 justify-end mt-2">
+              <Button type="submit" disabled={loading} size="sm" className="h-btn-compact text-label">
                 {loading ? 'Saving...' : (expense ? 'Update Expense' : 'Add Expense')}
               </Button>
-              <Button type="button" variant="outline" onClick={onCancel}>
+              <Button type="button" variant="outline" onClick={onCancel} size="sm" className="h-btn-compact text-label">
                 Cancel
               </Button>
             </div>

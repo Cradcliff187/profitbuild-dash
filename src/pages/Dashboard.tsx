@@ -341,12 +341,12 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="dense-spacing">
       {/* Budget Alert Banner */}
       {overBudgetProjects.length > 0 && (
-        <Alert className="border-destructive bg-destructive/10">
-          <AlertTriangle className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive font-medium">
+        <Alert className="border-destructive bg-destructive/10 p-2">
+          <AlertTriangle className="h-3 w-3 text-destructive" />
+          <AlertDescription className="text-destructive text-label font-medium">
             <strong>WARNING:</strong> {overBudgetProjects.length} project{overBudgetProjects.length > 1 ? 's are' : ' is'} over their estimated/quoted budget
           </AlertDescription>
         </Alert>
@@ -355,47 +355,49 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Overview of your construction projects</p>
+          <h1 className="text-interface font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground text-label">Overview of your construction projects</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-construction hover:bg-construction/90 text-construction-foreground">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button size="sm" className="bg-construction hover:bg-construction/90 text-construction-foreground h-btn-compact text-label">
+              <Plus className="h-3 w-3 mr-1" />
               Add Project
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Project</DialogTitle>
+            <DialogHeader className="p-compact">
+              <DialogTitle className="text-interface">Add New Project</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="form-dense p-compact">
               <div>
-                <Label htmlFor="name">Project Name</Label>
+                <Label htmlFor="name" className="text-label">Project Name</Label>
                 <Input
                   id="name"
                   value={newProject.name}
                   onChange={(e) => setNewProject(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Enter project name"
+                  className="h-input-compact text-label"
                 />
               </div>
               <div>
-                <Label htmlFor="client">Client</Label>
+                <Label htmlFor="client" className="text-label">Client</Label>
                 <Input
                   id="client"
                   value={newProject.client}
                   onChange={(e) => setNewProject(prev => ({ ...prev, client: e.target.value }))}
                   placeholder="Enter client name"
+                  className="h-input-compact text-label"
                 />
               </div>
               <div>
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status" className="text-label">Status</Label>
                 <Select
                   value={newProject.status}
                   onValueChange={(value) => setNewProject(prev => ({ ...prev, status: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-input-compact text-label">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -409,7 +411,7 @@ const Dashboard = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleAddProject} className="w-full">
+              <Button onClick={handleAddProject} size="sm" className="w-full h-btn-compact text-label">
                 Add Project
               </Button>
             </div>
@@ -418,60 +420,60 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-            <Building className="h-4 w-4 text-muted-foreground" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <Card className="compact-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-compact pb-1">
+            <CardTitle className="text-label font-medium">Total Projects</CardTitle>
+            <Building className="h-3 w-3 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalProjects}</div>
+          <CardContent className="p-compact pt-0">
+            <div className="text-xl font-bold font-mono">{totalProjects}</div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+        <Card className="compact-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-compact pb-1">
+            <CardTitle className="text-label font-medium">Active Projects</CardTitle>
+            <CheckCircle className="h-3 w-3 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeProjects}</div>
+          <CardContent className="p-compact pt-0">
+            <div className="text-xl font-bold font-mono">{activeProjects}</div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Profit</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        <Card className="compact-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-compact pb-1">
+            <CardTitle className="text-label font-medium">Total Profit</CardTitle>
+            <TrendingUp className="h-3 w-3 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalProfit, { showCents: false })}</div>
+          <CardContent className="p-compact pt-0">
+            <div className="text-xl font-bold font-mono">{formatCurrency(totalProfit, { showCents: false })}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Projects Tabs */}
-      <Tabs defaultValue="all-projects" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="all-projects">All Projects</TabsTrigger>
-          <TabsTrigger value="work-orders">Work Orders</TabsTrigger>
+      <Tabs defaultValue="all-projects" className="dense-spacing">
+        <TabsList className="h-8">
+          <TabsTrigger value="all-projects" className="text-label">All Projects</TabsTrigger>
+          <TabsTrigger value="work-orders" className="text-label">Work Orders</TabsTrigger>
         </TabsList>
         
         <TabsContent value="all-projects">
-          <Card>
-            <CardHeader>
-              <CardTitle>All Projects</CardTitle>
+          <Card className="compact-card">
+            <CardHeader className="p-compact">
+              <CardTitle className="text-interface">All Projects</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+            <CardContent className="p-compact">
+              <div className="space-y-2">
                 {projectsWithProfit.map((project) => (
                   <div
                     key={project.id}
-                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between p-2 border border-border rounded-md hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <h3 className="font-semibold">{project.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-interface font-semibold">{project.name}</h3>
                         <Badge className={getStatusColor(project.status)}>
                           {project.status.replace('_', ' ')}
                         </Badge>
@@ -492,21 +494,21 @@ const Dashboard = () => {
                           />
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">Client: {project.client}</p>
+                      <p className="text-label text-muted-foreground">Client: {project.client}</p>
                       {project.quotedAmount > 0 && (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-label text-muted-foreground font-mono">
                           Quoted: {formatCurrency(project.quotedAmount, { showCents: false })} | 
                           Actual: {formatCurrency(project.actualCosts, { showCents: false })}
                         </p>
                       )}
                     </div>
                     <div className="text-right">
-                      <div className={`font-semibold ${project.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className={`text-interface font-semibold font-mono ${project.profit >= 0 ? 'text-success' : 'text-destructive'}`}>
                         {formatCurrency(project.profit, { showCents: false })}
                       </div>
-                      <div className="text-sm text-muted-foreground">Profit</div>
+                      <div className="text-label text-muted-foreground">Profit</div>
                       {project.quotedAmount > 0 && (
-                        <div className={`text-xs ${project.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <div className={`text-label font-mono ${project.profit >= 0 ? 'text-success' : 'text-destructive'}`}>
                           {((project.profit / project.quotedAmount) * 100).toFixed(1)}% margin
                         </div>
                       )}
@@ -515,8 +517,8 @@ const Dashboard = () => {
                 ))}
                 
                 {projectsWithProfit.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No projects yet. Add your first project to get started!
+                  <div className="text-center py-6 text-muted-foreground">
+                    <p className="text-label">No projects yet. Add your first project to get started!</p>
                   </div>
                 )}
               </div>
@@ -525,20 +527,20 @@ const Dashboard = () => {
         </TabsContent>
         
         <TabsContent value="work-orders">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <Card className="compact-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-compact">
               <div>
-                <CardTitle>Work Orders</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
+                <CardTitle className="text-interface">Work Orders</CardTitle>
+                <p className="text-label text-muted-foreground mt-0.5">
                   Quick projects with optional estimates
                 </p>
               </div>
-              <Button onClick={() => setShowCreateWorkOrderModal(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
+              <Button onClick={() => setShowCreateWorkOrderModal(true)} size="sm" className="h-btn-compact text-label">
+                <Plus className="h-3 w-3 mr-1" />
                 Create Work Order
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-compact">
               <WorkOrdersList />
             </CardContent>
           </Card>

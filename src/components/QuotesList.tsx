@@ -329,12 +329,12 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
 
   if (quotes.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-12">
+      <Card className="compact-card">
+        <CardContent className="py-8 p-compact">
           <div className="text-center text-muted-foreground">
-            <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-semibold mb-2">No Quotes Yet</h3>
-            <p>Create your first quote to start comparing against estimates.</p>
+            <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <h3 className="text-interface font-semibold mb-1">No Quotes Yet</h3>
+            <p className="text-label">Create your first quote to start comparing against estimates.</p>
           </div>
         </CardContent>
       </Card>
@@ -342,17 +342,18 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
   }
 
   return (
-    <div className="space-y-6">
+    <div className="dense-spacing">
       {/* Sort Controls */}
-      <Card>
-        <CardHeader className="pb-3">
+      <Card className="compact-card">
+        <CardHeader className="p-compact pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Quotes ({quotes.length})</CardTitle>
-            <div className="flex gap-2">
+            <CardTitle className="text-interface">Quotes ({quotes.length})</CardTitle>
+            <div className="flex gap-1">
               <Button
                 variant={sortBy === 'date' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleSort('date')}
+                className="h-btn-compact text-label"
               >
                 Date {sortBy === 'date' && <ArrowUpDown className="ml-1 h-3 w-3" />}
               </Button>
@@ -360,6 +361,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
                 variant={sortBy === 'project' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleSort('project')}
+                className="h-btn-compact text-label"
               >
                 Project {sortBy === 'project' && <ArrowUpDown className="ml-1 h-3 w-3" />}
               </Button>
@@ -367,6 +369,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
                 variant={sortBy === 'total' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleSort('total')}
+                className="h-btn-compact text-label"
               >
                 Total {sortBy === 'total' && <ArrowUpDown className="ml-1 h-3 w-3" />}
               </Button>
@@ -376,34 +379,34 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
       </Card>
 
       {/* Quotes Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {sortedQuotes.map((quote) => {
           const estimate = getEstimateForQuote(quote);
           const variance = getCostVariance(quote);
           
           return (
-            <Card key={quote.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
+            <Card key={quote.id} className="hover:shadow-md transition-shadow compact-card">
+              <CardHeader className="p-compact pb-2">
                 <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg">{quote.projectName}</CardTitle>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1">
+                      <CardTitle className="text-interface">{quote.projectName}</CardTitle>
                       <QuoteStatusBadge status={quote.status} />
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-label text-muted-foreground">
                       {quote.client} • {quote.quoteNumber}
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                     {quote.status === QuoteStatus.PENDING && (
                       <Button
                         variant="default"
                         size="sm"
                         onClick={() => handleAcceptClick(quote)}
                         disabled={loading}
-                        className="bg-green-600 hover:bg-green-700 text-white"
+                        className="bg-success hover:bg-success/90 text-success-foreground h-btn-compact text-label"
                       >
-                        <CheckCircle className="h-4 w-4 mr-1" />
+                        <CheckCircle className="h-3 w-3 mr-1" />
                         Accept
                       </Button>
                     )}
@@ -411,8 +414,9 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
                       variant="outline"
                       size="sm"
                       onClick={() => onEdit(quote)}
+                      className="h-btn-compact text-label"
                     >
-                      <Edit className="h-4 w-4 mr-1" />
+                      <Edit className="h-3 w-3 mr-1" />
                       Edit
                     </Button>
                     <Button
@@ -420,8 +424,9 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
                       size="sm"
                       onClick={() => onCompare(quote)}
                       disabled={!estimate}
+                      className="h-btn-compact text-label"
                     >
-                      <Eye className="h-4 w-4 mr-1" />
+                      <Eye className="h-3 w-3 mr-1" />
                       Compare
                     </Button>
                     <AlertDialog>
@@ -449,24 +454,24 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onA
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-compact space-y-2">
                 {/* Quote Details */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-2 text-label">
                   <div>
-                    <div className="text-muted-foreground">Quoted By</div>
+                    <div className="text-muted-foreground text-label">Quoted By</div>
                     <div className="font-medium">{quote.quotedBy}</div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground">Date Received</div>
+                    <div className="text-muted-foreground text-label">Date Received</div>
                     <div className="font-medium">{format(quote.dateReceived, "MMM dd, yyyy")}</div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground">Quote Total</div>
-                    <div className="font-bold text-lg">{formatCurrency(quote.total)}</div>
+                    <div className="text-muted-foreground text-label">Quote Total</div>
+                    <div className="text-interface font-bold font-mono">{formatCurrency(quote.total)}</div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground">Estimate Cost</div>
-                    <div className="font-medium">
+                    <div className="text-muted-foreground text-label">Estimate Cost</div>
+                    <div className="font-medium font-mono">
                       {(() => {
                         const estimateCost = getEstimateLineItemCost(quote);
                         return estimateCost !== null ? formatCurrency(estimateCost) : 'N/A';

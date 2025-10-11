@@ -410,45 +410,45 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
 
   if (!selectedEstimate) {
     return (
-      <Card>
-        <CardHeader className="p-3">
-          <CardTitle className="text-base">Create New Quote</CardTitle>
+      <Card className="compact-card">
+        <CardHeader className="p-compact">
+          <CardTitle className="text-interface">Create New Quote</CardTitle>
         </CardHeader>
-        <CardContent className="p-3">
-          <div className="space-y-2">
+        <CardContent className="p-compact">
+          <div className="form-dense">
             <div className="space-y-2">
-              <Label>Select Project Estimate</Label>
-              <div className="space-y-3">
+              <Label className="text-label">Select Project Estimate</Label>
+              <div className="space-y-2">
                 {estimates.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>No estimates available</p>
-                    <p className="text-sm">Create an estimate first to generate quotes</p>
+                  <div className="text-center py-6 text-muted-foreground">
+                    <p className="text-label">No estimates available</p>
+                    <p className="text-label">Create an estimate first to generate quotes</p>
                   </div>
                 ) : (
-                  <div className="grid gap-3">
+                  <div className="grid gap-2">
                     {estimates
                       .sort((a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime())
                       .map((estimate) => (
                         <Card 
                           key={estimate.id} 
-                          className="cursor-pointer hover:bg-accent transition-colors"
+                          className="cursor-pointer hover:bg-accent transition-colors compact-card"
                           onClick={() => setSelectedEstimate(estimate)}
                         >
-                          <CardContent className="p-2">
+                          <CardContent className="p-compact">
                             <div className="flex items-center justify-between">
                               <div>
-                                <div className="font-medium">{estimate.project_name}</div>
-                                <div className="text-sm text-muted-foreground">{estimate.client_name}</div>
-                                <div className="text-sm text-muted-foreground">
+                                <div className="text-interface font-medium">{estimate.project_name}</div>
+                                <div className="text-label text-muted-foreground">{estimate.client_name}</div>
+                                <div className="text-label text-muted-foreground">
                                   {estimate.estimate_number} • {format(new Date(estimate.date_created), "MMM d, yyyy")}
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="font-medium">{formatCurrency(estimate.total_amount)}</div>
-                                <div className="text-sm text-muted-foreground">
+                                <div className="text-interface font-medium font-mono">{formatCurrency(estimate.total_amount)}</div>
+                                <div className="text-label text-muted-foreground">
                                   {estimate.lineItems.length} line item{estimate.lineItems.length !== 1 ? 's' : ''}
                                 </div>
-                                <Badge variant={estimate.lineItems.length > 0 ? "default" : "secondary"}>
+                                <Badge variant={estimate.lineItems.length > 0 ? "default" : "secondary"} className="compact-badge">
                                   {estimate.lineItems.length > 0 ? "Ready" : "Empty"}
                                 </Badge>
                               </div>
@@ -460,8 +460,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                 )}
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onCancel}>Cancel</Button>
+            <div className="flex gap-1">
+              <Button variant="outline" onClick={onCancel} size="sm" className="h-btn-compact text-label">Cancel</Button>
             </div>
           </div>
         </CardContent>

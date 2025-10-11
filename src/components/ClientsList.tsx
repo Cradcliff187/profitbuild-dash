@@ -188,25 +188,26 @@ export const ClientsList = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="dense-spacing">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-xl font-bold">Clients</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-interface font-bold">Clients</h1>
+          <p className="text-muted-foreground text-label mt-1">
             Manage your client database and contact information
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <Button 
-            variant="outline" 
+            variant="outline"
+            size="sm"
             onClick={() => setShowImportModal(true)}
-            className="flex items-center gap-2"
+            className="h-btn-compact text-label"
           >
-            <Upload className="h-4 w-4" />
+            <Upload className="h-3 w-3 mr-1" />
             Import CSV
           </Button>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button onClick={() => setShowForm(true)} size="sm" className="h-btn-compact text-label">
+            <Plus className="h-3 w-3 mr-1" />
             Add Client
           </Button>
         </div>

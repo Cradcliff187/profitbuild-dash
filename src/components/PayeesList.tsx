@@ -351,7 +351,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="dense-spacing">
       <EntityTableTemplate
         title="Payee Directory"
         description={`Manage your payees and contractors (${filteredPayees.length} total)`}
