@@ -146,6 +146,7 @@ export function useAudioRecording() {
           
           // Auto-stop at max duration
           if (newDuration >= MAX_RECORDING_DURATION) {
+            console.log('[AudioRecording] Max duration reached, auto-stopping');
             stopRecording();
             setError('Recording stopped: 2 minute maximum reached');
           }
@@ -162,7 +163,9 @@ export function useAudioRecording() {
   }, []);
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && state === 'recording') {
+    // Only check ref, not React state (avoids stale closure)
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      console.log('[AudioRecording] Stopping recording...');
       mediaRecorderRef.current.stop();
       
       if (timerRef.current) {
@@ -170,7 +173,7 @@ export function useAudioRecording() {
         timerRef.current = null;
       }
     }
-  }, [state]);
+  }, []);
 
   const reset = useCallback(() => {
     setState('idle');
