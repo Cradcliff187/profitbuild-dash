@@ -16,7 +16,7 @@ import { Estimate } from "@/types/estimate";
 import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
 import { calculateQuoteTotalCost } from "@/utils/quoteFinancials";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
-import { QuoteStatusBadge } from "./QuoteStatusBadge";
+import { QuoteStatusSelector } from "./QuoteStatusSelector";
 import { BudgetComparisonBadge, BudgetComparisonStatus } from "./BudgetComparisonBadge";
 import { cn } from "@/lib/utils";
 import {
@@ -53,6 +53,22 @@ export const QuotesTableView = ({
 }: QuotesTableViewProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState<string | null>(null);
+  const [localQuotes, setLocalQuotes] = useState(quotes);
+
+  // Update local state when quotes prop changes
+  React.useEffect(() => {
+    setLocalQuotes(quotes);
+  }, [quotes]);
+
+  const handleStatusUpdate = (quoteId: string, newStatus: QuoteStatus) => {
+    setLocalQuotes(prev => 
+      prev.map(q => 
+        q.id === quoteId 
+          ? { ...q, status: newStatus }
+          : q
+      )
+    );
+  };
 
   const getEstimateForQuote = (quote: Quote): Estimate | undefined => {
     return estimates.find(est => est.project_id === quote.project_id);
@@ -129,7 +145,7 @@ export const QuotesTableView = ({
   };
 
   // Add estimate data to quotes
-  const quotesWithEstimates: QuoteWithEstimate[] = quotes.map(quote => ({
+  const quotesWithEstimates: QuoteWithEstimate[] = localQuotes.map(quote => ({
     ...quote,
     estimate: getEstimateForQuote(quote)
   }));
@@ -208,8 +224,18 @@ export const QuotesTableView = ({
       key: 'status',
       label: 'Status',
       align: 'center',
-      width: '100px',
-      render: (quote) => <QuoteStatusBadge status={quote.status} />,
+      width: '120px',
+      render: (quote) => (
+        <QuoteStatusSelector
+          quoteId={quote.id}
+          currentStatus={quote.status}
+          quoteNumber={quote.quoteNumber}
+          payeeName={quote.quotedBy}
+          projectId={quote.project_id}
+          totalAmount={quote.total}
+          onStatusChange={(newStatus) => handleStatusUpdate(quote.id, newStatus)}
+        />
+      ),
     },
     {
       key: 'date_received',

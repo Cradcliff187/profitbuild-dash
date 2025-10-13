@@ -7,6 +7,7 @@ import { Estimate, EstimateStatus } from "@/types/estimate";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
 import { BudgetComparisonBadge, BudgetComparisonStatus } from "./BudgetComparisonBadge";
 import { EstimateActionsMenu } from "./EstimateActionsMenu";
+import { EstimateStatusSelector } from "./EstimateStatusSelector";
 import { cn, formatCurrency } from "@/lib/utils";
 import { 
   calculateEstimateFinancials, 
@@ -164,19 +165,14 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       align: 'center',
       width: '100px',
       render: (estimate) => (
-        <Badge 
-          variant="outline" 
-          className={cn(
-            "text-[10px] capitalize px-1.5 py-0 h-4 leading-none",
-            estimate.status === 'approved' && 'border-green-300 text-green-700',
-            estimate.status === 'draft' && 'border-gray-300 text-gray-700',
-            estimate.status === 'sent' && 'border-blue-300 text-blue-700',
-            estimate.status === 'rejected' && 'border-red-300 text-red-700',
-            estimate.status === 'expired' && 'border-yellow-300 text-yellow-700'
-          )}
-        >
-          {estimate.status}
-        </Badge>
+        <EstimateStatusSelector
+          estimateId={estimate.id}
+          currentStatus={estimate.status}
+          estimateNumber={estimate.estimate_number}
+          projectId={estimate.project_id}
+          totalAmount={estimate.total_amount}
+          onStatusChange={(newStatus) => handleStatusUpdate(estimate.id, newStatus)}
+        />
       ),
     },
     {
@@ -346,7 +342,6 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
           onView={onView}
           onEdit={onEdit}
           onDelete={onDelete}
-          onStatusUpdate={handleStatusUpdate}
         />
       ),
     },
