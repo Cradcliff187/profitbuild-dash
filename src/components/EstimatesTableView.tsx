@@ -98,6 +98,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     ([projectId, projectEstimates]) => ({
       groupKey: projectId,
       groupLabel: `${projectEstimates[0].project_name} - ${projectEstimates[0].client_name}`,
+      groupLabelCollapsed: projectEstimates[0].estimate_number,
       items: projectEstimates,
       isCollapsible: true,
       defaultExpanded: true,

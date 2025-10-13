@@ -20,6 +20,7 @@ export interface FinancialTableColumn<T> {
 export interface FinancialTableGroup<T> {
   groupKey: string;
   groupLabel: string;
+  groupLabelCollapsed?: string;
   items: T[];
   isCollapsible?: boolean;
   defaultExpanded?: boolean;
@@ -225,11 +226,13 @@ export function FinancialTableTemplate<T>({
                       <ChevronUp className="h-3 w-3" />
                     }
                   </Button>
-                )}
-                <span>{group.groupLabel}</span>
+              )}
+              <span>{isCollapsed ? group.groupLabel : (group.groupLabelCollapsed || group.groupLabel)}</span>
+              {group.items.length > 0 && (
                 <Badge variant="outline" className="text-xs">
                   {group.items.length}
                 </Badge>
+              )}
               </div>
             </TableCell>
           </TableRow>
