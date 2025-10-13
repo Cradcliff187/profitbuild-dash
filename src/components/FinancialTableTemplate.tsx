@@ -228,7 +228,7 @@ export function FinancialTableTemplate<T>({
                   </Button>
               )}
               <span>{group.groupLabel}</span>
-              {group.items.length > 0 && (
+              {group.items.length > 1 && (
                 <Badge variant="outline" className="text-xs">
                   {group.items.length}
                 </Badge>
