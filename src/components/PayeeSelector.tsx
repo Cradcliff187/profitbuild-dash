@@ -113,12 +113,6 @@ export const PayeeSelector = ({
 
   const selectedPayee = payees.find(payee => payee.id === value);
 
-  const filteredPayees = payees.filter(payee =>
-    payee.payee_name.toLowerCase().includes(searchValue.toLowerCase()) ||
-    payee.email?.toLowerCase().includes(searchValue.toLowerCase()) ||
-    formatPayeeType(payee.payee_type).toLowerCase().includes(searchValue.toLowerCase())
-  );
-
   const handlePayeeCreated = async () => {
     setShowPayeeForm(false);
     await refetch();
@@ -206,7 +200,7 @@ export const PayeeSelector = ({
                   <Plus className="mr-2 h-4 w-4" />
                   Add New Payee
                 </CommandItem>
-                {groupPayeesByType(filteredPayees).map(([type, groupPayees]) => (
+                {groupPayeesByType(payees).map(([type, groupPayees]) => (
                   <CommandGroup key={type}>
                     <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
                       {formatPayeeType(type as PayeeType)}
@@ -216,11 +210,10 @@ export const PayeeSelector = ({
                       .map((payee) => (
                         <CommandItem
                           key={payee.id}
-                          value={`${formatPayeeDisplayName(payee)} ${payee.email || ''} ${formatPayeeType(payee.payee_type)}`}
+                          value={`${payee.id}__${payee.payee_name}__${payee.email || ''}__${formatPayeeType(payee.payee_type)}__${payee.hourly_rate || ''}`}
                           onSelect={(searchableValue) => {
-                            const selectedPayee = groupPayees.find(p => 
-                              `${formatPayeeDisplayName(p)} ${p.email || ''} ${formatPayeeType(p.payee_type)}` === searchableValue
-                            );
+                            const payeeId = searchableValue.split('__')[0];
+                            const selectedPayee = payees.find(p => p.id === payeeId);
                             if (selectedPayee) {
                               onValueChange(selectedPayee.id, selectedPayee.payee_name, selectedPayee);
                             }
