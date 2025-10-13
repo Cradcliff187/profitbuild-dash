@@ -44,9 +44,9 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
             <Filter className="h-3 w-3 text-muted-foreground" />
             <span className="text-xs font-semibold">
               {title}
-              {resultCount !== undefined && (
+              {resultCount !== undefined && hasActiveFilters && (
                 <span className="text-muted-foreground font-normal ml-1">
-                  ({resultCount})
+                  ({resultCount} result{resultCount !== 1 ? 's' : ''})
                 </span>
               )}
             </span>

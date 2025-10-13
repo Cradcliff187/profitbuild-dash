@@ -91,9 +91,9 @@ export const QuoteFilters = ({
       resultCount={resultCount}
       defaultExpanded={hasActiveFilters()}
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
         {/* Quick Search - Full Width */}
-        <div className="relative md:col-span-3 lg:col-span-4">
+        <div className="relative md:col-span-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search quotes, projects, payees, clients..."
@@ -302,7 +302,7 @@ export const QuoteFilters = ({
         </div>
 
         {/* Amount Range */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 md:col-span-2">
           <Input
             type="number"
             placeholder="Min $"
