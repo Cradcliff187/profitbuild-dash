@@ -26,6 +26,7 @@ const Projects = () => {
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [clients, setClients] = useState<Array<{ id: string; client_name: string; }>>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isLoading, setIsLoading] = useState(true);
   const [displayMode, setDisplayMode] = useState<DisplayMode>(isMobile ? 'cards' : 'table');
@@ -40,10 +41,26 @@ const Projects = () => {
     sortOrder: 'desc',
   });
 
-  // Load projects from Supabase
+  // Load projects and clients from Supabase
   useEffect(() => {
     loadProjects();
+    loadClients();
   }, []);
+
+  const loadClients = async () => {
+    const { data, error } = await supabase
+      .from('clients')
+      .select('id, client_name')
+      .eq('is_active', true)
+      .order('client_name', { ascending: true });
+    
+    if (error) {
+      console.error('Error loading clients:', error);
+      return;
+    }
+    
+    setClients(data || []);
+  };
 
   const loadProjects = async () => {
     try {
@@ -481,6 +498,7 @@ const Projects = () => {
                 filters={filters}
                 onFiltersChange={setFilters}
                 resultCount={filteredAndSortedProjects.length}
+                clients={clients}
                 actions={
                   !isMobile ? (
                     <>
