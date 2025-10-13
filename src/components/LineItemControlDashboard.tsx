@@ -320,7 +320,7 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
               <div className="cursor-help">
                 <Badge variant={config.variant} className="flex items-center gap-1 justify-center">
                   {config.icon}
-                  <span className="text-xs">{config.label}</span>
+                  {config.label}
                 </Badge>
               </div>
             </TooltipTrigger>
