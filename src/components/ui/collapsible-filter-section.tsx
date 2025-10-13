@@ -11,6 +11,7 @@ interface CollapsibleFilterSectionProps {
   hasActiveFilters?: boolean;
   onClearFilters?: () => void;
   defaultExpanded?: boolean;
+  alwaysExpanded?: boolean;
   resultCount?: number;
   className?: string;
 }
@@ -21,14 +22,15 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
   hasActiveFilters = false,
   onClearFilters,
   defaultExpanded = false,
+  alwaysExpanded = false,
   resultCount,
   className
 }) => {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [isExpanded, setIsExpanded] = useState(alwaysExpanded || defaultExpanded);
 
   return (
     <Card className={cn("w-full", className)}>
-      <CardHeader className="pb-3 pt-3">
+      <CardHeader className="pb-2 pt-2 px-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
@@ -53,24 +55,26 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
                 Clear
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="h-7 px-2"
-            >
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
+            {!alwaysExpanded && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="h-7 px-2"
+              >
+                {isExpanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
       
       {isExpanded && (
-        <CardContent className="pt-0 pb-3">
+        <CardContent className="pt-0 px-3 pb-2">
           {children}
         </CardContent>
       )}

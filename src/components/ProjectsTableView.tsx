@@ -977,22 +977,7 @@ export const ProjectsTableView = ({
 
   return (
     <TooltipProvider>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              <h2 className="text-lg font-semibold">
-                Projects ({projects.length})
-              </h2>
-            </div>
-          </div>
-          <Button onClick={onCreateNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Project
-          </Button>
-        </div>
-        
+      <div className="space-y-3">
         <ProjectsTable
           data={groupedData}
           columns={columns}

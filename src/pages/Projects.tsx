@@ -435,7 +435,7 @@ const Projects = () => {
   }, [projects, filters]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {viewMode === 'list' && (
         <MobileResponsiveHeader
           title={
@@ -469,7 +469,7 @@ const Projects = () => {
               className="min-h-[400px]" 
             />
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Project Filters */}
               <ProjectFilters
                 filters={filters}
@@ -479,32 +479,33 @@ const Projects = () => {
 
               {/* Desktop Toolbar */}
               {!isMobile && (
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center justify-between gap-2 py-2">
                   <Button
                     variant="default"
                     size="sm"
                     onClick={handleCreateNew}
+                    className="h-8"
                   >
-                    <Plus className="h-4 w-4 mr-1.5" />
+                    <Plus className="h-3 w-3 mr-1" />
                     New Project
                   </Button>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <Button
                       variant={displayMode === 'cards' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setDisplayMode('cards')}
+                      className="h-8 px-2"
                     >
-                      <Grid className="h-4 w-4 mr-1.5" />
-                      Cards
+                      <Grid className="h-3 w-3" />
                     </Button>
                     <Button
                       variant={displayMode === 'table' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setDisplayMode('table')}
+                      className="h-8 px-2"
                     >
-                      <Table className="h-4 w-4 mr-1.5" />
-                      Table
+                      <Table className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
