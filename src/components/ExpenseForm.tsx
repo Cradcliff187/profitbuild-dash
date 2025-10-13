@@ -51,6 +51,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
     used: number;
     total: number;
   } | null>(null);
+  const [hoursWorked, setHoursWorked] = useState<string>('');
+  const [isInternalLabor, setIsInternalLabor] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<ExpenseFormData>({
@@ -142,6 +144,33 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
       loadProjectContingency(projectId);
     }
   }, [form.watch('project_id')]);
+
+  // Handle internal labor payee selection
+  useEffect(() => {
+    if (selectedPayee?.is_internal && selectedPayee?.payee_type === 'internal_labor') {
+      setIsInternalLabor(true);
+      // Auto-set category to labor (internal)
+      form.setValue('category', ExpenseCategory.LABOR);
+      // Auto-set transaction type to expense
+      form.setValue('transaction_type', 'expense');
+      // Calculate amount if hours are entered
+      if (hoursWorked && selectedPayee.hourly_rate) {
+        const amount = parseFloat(hoursWorked) * selectedPayee.hourly_rate;
+        form.setValue('amount', amount.toFixed(2));
+      }
+    } else {
+      setIsInternalLabor(false);
+    }
+  }, [selectedPayee, hoursWorked, form]);
+
+  // Handle hours worked change
+  const handleHoursChange = (hours: string) => {
+    setHoursWorked(hours);
+    if (selectedPayee?.hourly_rate && hours) {
+      const amount = parseFloat(hours) * selectedPayee.hourly_rate;
+      form.setValue('amount', amount.toFixed(2));
+    }
+  };
 
   const onSubmit = async (data: ExpenseFormData) => {
     setLoading(true);
@@ -339,13 +368,81 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                         step="0.01"
                         placeholder="0.00"
                         {...field}
+                        readOnly={isInternalLabor && !!hoursWorked}
                       />
                     </FormControl>
+                    {isInternalLabor && selectedPayee?.hourly_rate && (
+                      <p className="text-xs text-muted-foreground">
+                        💡 Rate: {formatCurrency(selectedPayee.hourly_rate)}/hr
+                        {hoursWorked && ` × ${hoursWorked} hrs = ${formatCurrency(parseFloat(hoursWorked) * selectedPayee.hourly_rate)}`}
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
+              {isInternalLabor ? (
+                <FormItem>
+                  <FormLabel>Hours Worked *</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.25"
+                      placeholder="8.00"
+                      value={hoursWorked}
+                      onChange={(e) => handleHoursChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Enter hours (e.g., 8 or 8.5)
+                  </p>
+                </FormItem>
+              ) : (
+                <FormField
+                  control={form.control}
+                  name="expense_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date *</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date > new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+
+            {/* Date field for internal labor (shown separately) */}
+            {isInternalLabor && (
               <FormField
                 control={form.control}
                 name="expense_date"
@@ -385,7 +482,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                   </FormItem>
                 )}
               />
-            </div>
+            )}
 
             <div className="grid grid-cols-2 gap-2">
               <FormField
