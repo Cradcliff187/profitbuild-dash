@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Building2, Table, Grid, Plus, ChevronUp, ChevronDown } from "lucide-react";
+import { Building2, Table, Grid, Plus, ArrowUpAZ, ArrowDownZA } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -463,12 +463,48 @@ const Projects = () => {
             </p>
           </div>
           
-          {!isMobile && (
+          <div className="flex items-center gap-3">
+            {!isMobile && (
+              <>
+                <span className="text-xs text-muted-foreground">Sort by:</span>
+                <Select 
+                  value={filters.sortBy} 
+                  onValueChange={(value: 'name' | 'date' | 'status' | 'margin') => 
+                    setFilters({ ...filters, sortBy: value })
+                  }
+                >
+                  <SelectTrigger className="h-8 w-32 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="date">Date Created</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                    <SelectItem value="margin">Margin</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFilters({ 
+                    ...filters, 
+                    sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' 
+                  })}
+                  className="h-8 w-8 p-0"
+                >
+                  {filters.sortOrder === 'asc' ? (
+                    <ArrowUpAZ className="h-4 w-4" />
+                  ) : (
+                    <ArrowDownZA className="h-4 w-4" />
+                  )}
+                </Button>
+              </>
+            )}
             <Button onClick={handleCreateNew} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               New Project
             </Button>
-          )}
+          </div>
         </div>
       )}
 
@@ -520,43 +556,6 @@ const Projects = () => {
                         <Table className={cn("h-3 w-3", displayMode === 'table' && "text-primary")} />
                       </Button>
                     </>
-                  ) : undefined
-                }
-                actions={
-                  !isMobile ? (
-                    <div className="flex items-center gap-1 mr-1">
-                      <Select 
-                        value={filters.sortBy} 
-                        onValueChange={(value: 'name' | 'date' | 'status' | 'margin') => 
-                          setFilters({ ...filters, sortBy: value })
-                        }
-                      >
-                        <SelectTrigger className="h-7 w-32 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="name">Name</SelectItem>
-                          <SelectItem value="date">Date</SelectItem>
-                          <SelectItem value="status">Status</SelectItem>
-                          <SelectItem value="margin">Margin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setFilters({ 
-                          ...filters, 
-                          sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' 
-                        })}
-                        className="h-7 w-7 p-0"
-                      >
-                        {filters.sortOrder === 'asc' ? (
-                          <ChevronUp className="h-3 w-3" />
-                        ) : (
-                          <ChevronDown className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
                   ) : undefined
                 }
               />
