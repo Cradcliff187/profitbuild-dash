@@ -279,28 +279,23 @@ function processLineItemData(
     const costVariance = quotedCost - estimatedCost;
     const costVariancePercent = estimatedCost > 0 ? (costVariance / estimatedCost) * 100 : 0;
 
-    // Determine quote status based on category and quotes
+    // Determine quote status based on category and accepted quotes
     let quoteStatus: 'none' | 'partial' | 'full' | 'over' | 'internal' = 'none';
     
     // Internal categories should never have quotes
     if (isInternalCategory(lineItem.category)) {
       quoteStatus = 'internal';
     } else {
-      // Quote status based on all quotes amounts for THIS line only
-      const allQuotesAmountForLine = relatedQuotes.reduce((sum: number, q: any) => {
-        const itemsForLine = (q.quote_line_items || []).filter((qli: any) => qli.estimate_line_item_id === lineItem.id);
-        const price = itemsForLine.reduce((s: number, li: any) => s + Number(li.total ?? (Number(li.rate ?? 0) * Number(li.quantity ?? 0))), 0);
-        return sum + price;
-      }, 0);
-
-      if (relatedQuotes.length === 0 || allQuotesAmountForLine === 0) {
+      const acceptedQuoteCount = acceptedQuotes.length;
+      
+      if (acceptedQuoteCount === 0) {
         quoteStatus = 'none';
-      } else if (allQuotesAmountForLine > estimatedPrice * 1.2) {
-        quoteStatus = 'over';
-      } else if (allQuotesAmountForLine < estimatedPrice * 0.8) {
-        quoteStatus = 'partial';
-      } else {
+      } else if (acceptedQuoteCount === 1) {
+        // One accepted quote = fully quoted (work is covered)
         quoteStatus = 'full';
+      } else if (acceptedQuoteCount > 1) {
+        // Multiple accepted quotes = over-quoted (might be split work)
+        quoteStatus = 'over';
       }
     }
 

@@ -31,10 +31,10 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
 
   const getQuoteStatusBadge = (status: LineItemControlData['quoteStatus']) => {
     const variants = {
-      none: { variant: 'destructive' as const, label: 'No Quotes' },
-      partial: { variant: 'secondary' as const, label: 'Partial' },
+      none: { variant: 'destructive' as const, label: 'Not Quoted' },
+      partial: { variant: 'secondary' as const, label: 'Awaiting Quote' },
       full: { variant: 'default' as const, label: 'Quoted' },
-      over: { variant: 'outline' as const, label: 'Over-Quoted' },
+      over: { variant: 'outline' as const, label: 'Multiple Quotes' },
       internal: { variant: 'secondary' as const, label: 'Internal' }
     };
     
@@ -163,17 +163,38 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
       align: 'right',
       sortable: true,
       render: (item) => {
-        const acceptedCount = item.quotes.filter(q => q.status === 'accepted').length;
+        const acceptedQuotes = item.quotes.filter(q => q.status === 'accepted');
+        
         return (
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
                 <div className="font-medium text-sm">{formatCurrency(item.quotedCost)}</div>
-                <div className="text-xs text-muted-foreground">{acceptedCount} accepted</div>
+                {acceptedQuotes.length > 0 ? (
+                  <div className="text-xs text-muted-foreground truncate max-w-[120px]">
+                    {acceptedQuotes[0].quotedBy}
+                    {acceptedQuotes.length > 1 && ` +${acceptedQuotes.length - 1} more`}
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground">No quotes</div>
+                )}
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Sum of vendor costs from accepted quote line items linked to this estimate line</p>
+              <div className="space-y-1">
+                {acceptedQuotes.length > 0 ? (
+                  <>
+                    <p className="font-semibold">Accepted Quotes:</p>
+                    {acceptedQuotes.map(q => (
+                      <div key={q.id} className="text-xs">
+                        • {q.quotedBy}: {formatCurrency(q.total)} ({q.quoteNumber})
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <p>No accepted quotes for this line item</p>
+                )}
+              </div>
             </TooltipContent>
           </Tooltip>
         );
@@ -239,16 +260,20 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <div>
-              <p><strong>Quote Status:</strong> {item.quoteStatus}</p>
+            <div className="max-w-xs space-y-1">
+              <p className="font-semibold">Quote Status: {item.quoteStatus}</p>
               {item.quoteStatus === 'internal' ? (
-                <p>Internal work - no external quotes needed</p>
-              ) : (
-                <>
-                  <p>{item.quotes.length} quotes received for this line item</p>
-                  <p>Quoted price: {formatCurrency(item.quotedPrice)}</p>
-                </>
-              )}
+                <p className="text-xs">Internal work performed by your team - no external quotes needed</p>
+              ) : item.quoteStatus === 'full' ? (
+                <p className="text-xs">Work is covered by {item.quotes.filter(q => q.status === 'accepted').length} accepted quote(s)</p>
+              ) : item.quoteStatus === 'none' ? (
+                <p className="text-xs">⚠️ No quotes accepted yet - follow up with vendors or accept pending quotes</p>
+              ) : item.quoteStatus === 'over' ? (
+                <p className="text-xs">Multiple quotes accepted - may indicate split work or comparison</p>
+              ) : null}
+              <div className="text-xs text-muted-foreground pt-1 border-t mt-1">
+                {item.quotes.length} total quote{item.quotes.length !== 1 ? 's' : ''} received
+              </div>
             </div>
           </TooltipContent>
         </Tooltip>
