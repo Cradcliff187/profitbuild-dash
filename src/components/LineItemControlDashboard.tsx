@@ -388,8 +388,12 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
       label: 'Progress',
       align: 'center',
       render: (item) => {
-        const completionPercent = item.actualAmount > 0 && item.estimatedPrice > 0
-          ? Math.min(Math.round((item.actualAmount / item.estimatedPrice) * 100), 100)
+        // Use quoted cost if available (external work with quotes)
+        // Otherwise use estimated cost (internal work or no quotes)
+        const baseline = item.quotedCost > 0 ? item.quotedCost : item.estimatedCost;
+        
+        const completionPercent = item.actualAmount > 0 && baseline > 0
+          ? Math.min(Math.round((item.actualAmount / baseline) * 100), 100)
           : 0;
 
         return (
@@ -406,8 +410,39 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Completion based on actual expenses vs estimated price</p>
-              <p>{completionPercent}% of estimated price spent</p>
+              <div className="space-y-1 max-w-xs">
+                <p className="font-semibold">Progress: {completionPercent}%</p>
+                <p className="text-xs text-muted-foreground">
+                  {item.quotedCost > 0 
+                    ? 'Actual expenses vs Quoted cost'
+                    : 'Actual expenses vs Estimated cost'
+                  }
+                </p>
+                <div className="text-xs border-t pt-1 mt-1">
+                  <div className="flex justify-between">
+                    <span>Baseline:</span>
+                    <span className="font-medium">{formatCurrency(baseline)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Actual:</span>
+                    <span className="font-medium">{formatCurrency(item.actualAmount)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-1 mt-1">
+                    <span>Progress:</span>
+                    <span className="font-semibold">{completionPercent}%</span>
+                  </div>
+                </div>
+                {completionPercent >= 100 && item.quotedCost > 0 && (
+                  <p className="text-xs text-green-600 mt-2">
+                    ✅ All invoices received for accepted quote
+                  </p>
+                )}
+                {completionPercent < 100 && item.quotedCost > 0 && item.actualAmount > 0 && (
+                  <p className="text-xs text-yellow-600 mt-2">
+                    ⚠️ Still waiting for {formatCurrency(baseline - item.actualAmount)} in invoices
+                  </p>
+                )}
+              </div>
             </TooltipContent>
           </Tooltip>
         );
