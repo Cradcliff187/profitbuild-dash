@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { Building2, Table, Grid, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { MobileResponsiveHeader } from "@/components/ui/mobile-responsive-header";
 import { ProjectForm } from "@/components/ProjectForm";
 import { ProjectsList } from "@/components/ProjectsList";
 import { ProjectsTableView } from "@/components/ProjectsTableView";
@@ -15,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateMultipleProjectFinancials, ProjectWithFinancials } from "@/utils/projectFinancials";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 type ViewMode = 'list' | 'create';
 type DisplayMode = 'cards' | 'table';
@@ -437,22 +437,28 @@ const Projects = () => {
   return (
     <div className="space-y-3">
       {viewMode === 'list' && (
-        <MobileResponsiveHeader
-          title={
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              <span>Projects</span>
-            </div>
-          }
-          subtitle={`${filteredAndSortedProjects.length} project${filteredAndSortedProjects.length !== 1 ? 's' : ''}`}
-        />
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-bold">Projects</h1>
+            <p className="text-muted-foreground">
+              {filteredAndSortedProjects.length} project{filteredAndSortedProjects.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          
+          {!isMobile && (
+            <Button onClick={handleCreateNew} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              New Project
+            </Button>
+          )}
+        </div>
       )}
 
       {viewMode === 'create' && (
-        <div className="flex items-center space-x-3 mb-4">
+        <div className="flex items-center gap-2">
           <Building2 className="h-5 w-5 text-primary" />
           <div>
-            <h1 className="text-xl font-bold text-foreground">Create New Project</h1>
+            <h1 className="text-xl font-bold">Create New Project</h1>
             <p className="text-sm text-muted-foreground">
               Fill in the project details below
             </p>
@@ -475,41 +481,29 @@ const Projects = () => {
                 filters={filters}
                 onFiltersChange={setFilters}
                 resultCount={filteredAndSortedProjects.length}
+                actions={
+                  !isMobile ? (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDisplayMode('cards')}
+                        className="h-7 px-2"
+                      >
+                        <Grid className={cn("h-3 w-3", displayMode === 'cards' && "text-primary")} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDisplayMode('table')}
+                        className="h-7 px-2"
+                      >
+                        <Table className={cn("h-3 w-3", displayMode === 'table' && "text-primary")} />
+                      </Button>
+                    </>
+                  ) : undefined
+                }
               />
-
-              {/* Desktop Toolbar */}
-              {!isMobile && (
-                <div className="flex items-center justify-between gap-2 py-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={handleCreateNew}
-                    className="h-8"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    New Project
-                  </Button>
-                  
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant={displayMode === 'cards' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setDisplayMode('cards')}
-                      className="h-8 px-2"
-                    >
-                      <Grid className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant={displayMode === 'table' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setDisplayMode('table')}
-                      className="h-8 px-2"
-                    >
-                      <Table className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              )}
 
               {/* Display Projects */}
               {(displayMode === 'cards' || isMobile) ? (

@@ -14,6 +14,7 @@ interface CollapsibleFilterSectionProps {
   alwaysExpanded?: boolean;
   resultCount?: number;
   className?: string;
+  actions?: React.ReactNode;
 }
 
 export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> = ({
@@ -24,9 +25,12 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
   defaultExpanded = false,
   alwaysExpanded = false,
   resultCount,
-  className
+  className,
+  actions
 }) => {
-  const [isExpanded, setIsExpanded] = useState(alwaysExpanded || defaultExpanded);
+  const [isExpanded, setIsExpanded] = useState(
+    alwaysExpanded === true ? true : (defaultExpanded ?? false)
+  );
 
   return (
     <Card className={cn("w-full", className)}>
@@ -44,6 +48,7 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
           </div>
           
           <div className="flex items-center gap-1">
+            {actions}
             {hasActiveFilters && onClearFilters && (
               <Button
                 variant="ghost"

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Plus, List, BarChart3 } from "lucide-react";
+import { FileText, Plus, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuoteForm } from "@/components/QuoteForm";
 import { QuotesList } from "@/components/QuotesList";
@@ -423,39 +423,55 @@ const Quotes = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
+      {view === 'list' && (
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-bold">Quotes</h1>
+            <p className="text-muted-foreground">
+              Manage project quotes and compare against estimates
+            </p>
+          </div>
+          
+          <Button onClick={() => setView('create')} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            New Quote
+          </Button>
+        </div>
+      )}
+      
+      {view === 'create' && (
+        <div className="flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
           <div>
-            <h1 className="text-xl font-bold text-foreground">Quotes</h1>
-            <p className="text-muted-foreground">
-              {view === 'create' ? 'Create new quote' : 
-               view === 'edit' ? 'Edit quote' :
-               view === 'compare' ? 'Compare estimate vs quote' : 
-               'Manage project quotes and compare against estimates'}
+            <h1 className="text-xl font-bold">Create New Quote</h1>
+            <p className="text-sm text-muted-foreground">Enter quote details below</p>
+          </div>
+        </div>
+      )}
+      
+      {view === 'edit' && (
+        <div className="flex items-center gap-2">
+          <FileText className="h-5 w-5 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold">Edit Quote</h1>
+            <p className="text-sm text-muted-foreground">Update quote details</p>
+          </div>
+        </div>
+      )}
+      
+      {view === 'compare' && selectedQuote && (
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold">Compare Quote</h1>
+            <p className="text-sm text-muted-foreground">
+              Compare quote {selectedQuote.quoteNumber} against estimate
             </p>
           </div>
         </div>
-        
-        {view === 'list' && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setView('list')}
-            >
-              <List className="h-4 w-4 mr-2" />
-              All Quotes
-            </Button>
-            <Button onClick={() => setView('create')} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              New Quote
-            </Button>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Content */}
       {view === 'create' && (

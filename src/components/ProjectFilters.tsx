@@ -29,12 +29,14 @@ interface ProjectFiltersProps {
   filters: ProjectSearchFilters;
   onFiltersChange: (filters: ProjectSearchFilters) => void;
   resultCount?: number;
+  actions?: React.ReactNode;
 }
 
 export const ProjectFilters = ({
   filters,
   onFiltersChange,
   resultCount,
+  actions
 }: ProjectFiltersProps) => {
   const updateFilters = (updates: Partial<ProjectSearchFilters>) => {
     onFiltersChange({ ...filters, ...updates });
@@ -79,7 +81,8 @@ export const ProjectFilters = ({
       hasActiveFilters={hasActiveFilters()}
       onClearFilters={handleClearFilters}
       resultCount={resultCount}
-      alwaysExpanded={true}
+      defaultExpanded={hasActiveFilters()}
+      actions={actions}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {/* Quick Search - Full Width */}
