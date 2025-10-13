@@ -39,7 +39,7 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
     };
     
     const config = variants[status];
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return <Badge variant={config.variant} className="text-[10px] px-1.5 py-0 h-4 leading-none font-medium">{config.label}</Badge>;
   };
 
   const handleViewDetails = (item: LineItemControlData) => {
@@ -318,7 +318,7 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="cursor-help">
-                <Badge variant={config.variant} className="flex items-center gap-1 justify-center">
+                <Badge variant={config.variant} className="flex items-center gap-1 justify-center text-[10px] px-1.5 py-0 h-4 leading-none font-medium">
                   {config.icon}
                   {config.label}
                 </Badge>
