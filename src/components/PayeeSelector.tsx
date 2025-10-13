@@ -36,6 +36,10 @@ export const PayeeSelector = ({
   const [open, setOpen] = useState(false);
   const [showPayeeForm, setShowPayeeForm] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+
+  useEffect(() => {
+    if (!open) setSearchValue("");
+  }, [open]);
   const { toast } = useToast();
 
   const { data: payees = [], refetch } = useQuery({
@@ -164,7 +168,7 @@ export const PayeeSelector = ({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0">
+        <PopoverContent align="start" className="w-[--radix-popper-anchor-width] p-0 z-50">
           <Command>
             <CommandInput 
               placeholder="Search payees..." 
@@ -201,10 +205,7 @@ export const PayeeSelector = ({
                   Add New Payee
                 </CommandItem>
                 {groupPayeesByType(payees).map(([type, groupPayees]) => (
-                  <CommandGroup key={type}>
-                    <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                      {formatPayeeType(type as PayeeType)}
-                    </div>
+                  <CommandGroup key={type} heading={formatPayeeType(type as PayeeType)}>
                     {groupPayees
                       .sort((a, b) => a.payee_name.localeCompare(b.payee_name))
                       .map((payee) => (
