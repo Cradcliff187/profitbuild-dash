@@ -278,22 +278,14 @@ export const ProjectsTableView = ({
 
   const columns: FinancialTableColumn<ProjectWithFinancials>[] = [
     {
-      key: 'project_name',
-      label: 'Project',
+      key: 'project_number',
+      label: 'Project #',
       sortable: true,
       render: (project) => (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="space-y-1 cursor-help">
-              <div className="font-medium text-sm">{project.project_name}</div>
-              <div className="text-xs text-muted-foreground flex items-center gap-2">
-                <span>{project.project_number} • {project.client_name}</span>
-                {project.job_type && (
-                  <Badge variant="secondary" className="text-xs py-0 px-1">
-                    {project.job_type}
-                  </Badge>
-                )}
-              </div>
+            <div className="font-mono text-xs text-foreground/80 cursor-help">
+              {project.project_number}
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -945,33 +937,19 @@ export const ProjectsTableView = ({
     },
   ];
 
-  // Group projects by client
-  const projectsByClient = projects.reduce((groups, project) => {
-    const clientKey = project.client_name;
-    if (!groups[clientKey]) {
-      groups[clientKey] = [];
-    }
-    groups[clientKey].push(project);
-    return groups;
-  }, {} as Record<string, ProjectWithFinancials[]>);
-
-  // Sort projects within each client by created date (newest first)
-  Object.keys(projectsByClient).forEach(clientName => {
-    projectsByClient[clientName].sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  });
-
-  // Convert to grouped format for the table
-  const groupedData: FinancialTableGroup<ProjectWithFinancials>[] = Object.entries(projectsByClient).map(
-    ([clientName, clientProjects]) => ({
-      groupKey: clientName,
-      groupLabel: `${clientName} - ${clientProjects.length} Project${clientProjects.length !== 1 ? 's' : ''}`,
-      items: clientProjects,
-      isCollapsible: true,
-      defaultExpanded: true,
-    })
+  // Group by project - one project per group
+  const sortedProjects = [...projects].sort((a, b) => 
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
+
+  // Convert to grouped format - one group per project
+  const groupedData: FinancialTableGroup<ProjectWithFinancials>[] = sortedProjects.map(project => ({
+    groupKey: project.id,
+    groupLabel: project.project_name,
+    items: [project],
+    isCollapsible: true,
+    defaultExpanded: true,
+  }));
 
   const ProjectsTable = FinancialTableTemplate<ProjectWithFinancials>;
 
