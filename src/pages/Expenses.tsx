@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, Plus, Upload, BarChart3, List, FileDown, Target } from "lucide-react";
+import { Receipt, Plus, Upload, BarChart3, List, FileDown, Target, Clock, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -9,6 +9,7 @@ import { ExpensesList } from "@/components/ExpensesList";
 import { ProjectExpenseTracker } from "@/components/ProjectExpenseTracker";
 import { ExpenseImportModal } from "@/components/ExpenseImportModal";
 import { GlobalExpenseMatching } from "@/components/GlobalExpenseMatching";
+import { TimesheetGridView } from "@/components/TimesheetGridView";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +24,7 @@ const Expenses = () => {
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
   const [loading, setLoading] = useState(true);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showTimesheetModal, setShowTimesheetModal] = useState(false);
   const { toast } = useToast();
 
   // Load expenses from Supabase
@@ -93,7 +95,12 @@ const Expenses = () => {
   };
 
   const handleImportSuccess = () => {
-    fetchData(); // Refresh to show imported expenses
+    fetchData();
+    setViewMode('list');
+  };
+
+  const handleTimesheetSuccess = () => {
+    fetchData();
     setViewMode('list');
   };
 
@@ -147,13 +154,20 @@ const Expenses = () => {
             <span>Match Expenses</span>
           </Button>
           <Button 
+            onClick={() => setShowTimesheetModal(true)} 
+            variant="outline"
+            size="sm"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            <span>Timesheet</span>
+          </Button>
+          <Button 
             onClick={() => setShowImportModal(true)} 
             variant="outline"
             size="sm"
-            className="flex items-center space-x-2"
           >
-            <Upload className="h-4 w-4" />
-            <span>Import Expenses</span>
+            <Upload className="h-4 w-4 mr-2" />
+            <span>Import</span>
           </Button>
           <Button onClick={handleCreateNew} size="sm" className="flex items-center space-x-2">
             <Plus className="h-4 w-4" />
@@ -213,6 +227,12 @@ const Expenses = () => {
         onClose={() => setShowImportModal(false)}
         onSuccess={handleImportSuccess}
         estimates={estimates}
+      />
+
+      <TimesheetGridView
+        open={showTimesheetModal}
+        onClose={() => setShowTimesheetModal(false)}
+        onSuccess={handleTimesheetSuccess}
       />
     </div>
   );
