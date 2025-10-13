@@ -193,69 +193,63 @@ export const PayeeSelector = ({
                   </Button>
                 </div>
               </CommandEmpty>
-              <CommandGroup>
-                <CommandItem
-                  onSelect={() => {
-                    setShowPayeeForm(true);
-                    setOpen(false);
-                  }}
-                  className="font-medium"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add New Payee
-                </CommandItem>
-                {groupPayeesByType(payees).map(([type, groupPayees]) => (
-                  <CommandGroup key={type} heading={formatPayeeType(type as PayeeType)}>
-                    {groupPayees
-                      .sort((a, b) => a.payee_name.localeCompare(b.payee_name))
-                      .map((payee) => (
-                        <CommandItem
-                          key={payee.id}
-                          value={`${payee.id}__${payee.payee_name}__${payee.email || ''}__${formatPayeeType(payee.payee_type)}__${payee.hourly_rate || ''}`}
-                          onSelect={(searchableValue) => {
-                            const payeeId = searchableValue.split('__')[0];
-                            const selectedPayee = payees.find(p => p.id === payeeId);
-                            if (selectedPayee) {
-                              onValueChange(selectedPayee.id, selectedPayee.payee_name, selectedPayee);
-                            }
-                            setOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              value === payee.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          <div className="flex-1 truncate">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium">
-                                {formatPayeeDisplayName(payee)}
-                              </span>
-                              <Badge 
-                                variant={getPayeeTypeBadgeVariant(payee.payee_type)}
-                                className="text-xs"
-                              >
-                                {formatPayeeType(payee.payee_type)}
-                              </Badge>
-                            </div>
-                            <div className="flex flex-col text-xs text-muted-foreground">
-                              {payee.payee_type === 'internal_labor' && payee.hourly_rate && (
-                                <span className="text-primary font-medium">
-                                  ${payee.hourly_rate}/hr
-                                </span>
-                              )}
-                              {payee.email && payee.payee_type !== 'internal_labor' && (
-                                <span>{payee.email}</span>
-                              )}
-                            </div>
+              <CommandItem
+                onSelect={() => {
+                  setShowPayeeForm(true);
+                  setOpen(false);
+                }}
+                className="font-medium"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add New Payee
+              </CommandItem>
+              {groupPayeesByType(payees).map(([type, groupPayees]) => (
+                <CommandGroup key={type} heading={formatPayeeType(type as PayeeType)}>
+                  {groupPayees
+                    .sort((a, b) => a.payee_name.localeCompare(b.payee_name))
+                    .map((payee) => (
+                      <CommandItem
+                        key={payee.id}
+                        value={`${payee.payee_name} ${payee.email ?? ''} ${formatPayeeType(payee.payee_type)} ${payee.hourly_rate ?? ''}`}
+                        onSelect={() => {
+                          onValueChange(payee.id, payee.payee_name, payee);
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            value === payee.id ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <div className="flex-1 truncate">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">
+                              {formatPayeeDisplayName(payee)}
+                            </span>
+                            <Badge 
+                              variant={getPayeeTypeBadgeVariant(payee.payee_type)}
+                              className="text-xs"
+                            >
+                              {formatPayeeType(payee.payee_type)}
+                            </Badge>
                           </div>
-                        </CommandItem>
-                      ))
-                    }
-                  </CommandGroup>
-                ))}
-              </CommandGroup>
+                          <div className="flex flex-col text-xs text-muted-foreground">
+                            {payee.payee_type === 'internal_labor' && payee.hourly_rate && (
+                              <span className="text-primary font-medium">
+                                ${payee.hourly_rate}/hr
+                              </span>
+                            )}
+                            {payee.email && payee.payee_type !== 'internal_labor' && (
+                              <span>{payee.email}</span>
+                            )}
+                          </div>
+                        </div>
+                      </CommandItem>
+                    ))
+                  }
+                </CommandGroup>
+              ))}
             </CommandList>
           </Command>
         </PopoverContent>
