@@ -26,6 +26,11 @@ export interface LineItemControlData {
   marginImpact: number; // estimatedCost - quotedCost (positive = improves margin)
   // Actuals
   actualAmount: number; // actual expenses recorded (by category)
+  // Expense Allocation (explicitly matched expenses)
+  correlatedExpenses: any[]; // expenses explicitly matched via expense_line_item_correlations
+  allocatedAmount: number; // sum of correlated expense amounts
+  allocationStatus: 'full' | 'partial' | 'none' | 'internal' | 'not_quoted';
+  remainingToAllocate: number; // quotedCost - allocatedAmount
   // Variances
   costVariance: number; // quotedCost - estimatedCost (positive = worse)
   costVariancePercent: number;
@@ -147,11 +152,44 @@ export function useLineItemControl(projectId: string): UseLineItemControlReturn 
 
       if (expensesError) throw expensesError;
 
+      // Fetch correlated expenses (explicitly matched)
+      const estimateLineItemIds = (estimates?.estimate_line_items || []).map((li: any) => li.id);
+      const { data: correlatedExpensesData, error: correlationsError } = await supabase
+        .from('expense_line_item_correlations')
+        .select(`
+          estimate_line_item_id,
+          expense_id,
+          expenses (
+            id,
+            amount,
+            description,
+            expense_date,
+            category,
+            payee_id,
+            payees (payee_name)
+          )
+        `)
+        .in('estimate_line_item_id', estimateLineItemIds);
+
+      if (correlationsError) throw correlationsError;
+
+      // Group correlated expenses by line item
+      const correlationsByLineItem = new Map();
+      (correlatedExpensesData || []).forEach((corr: any) => {
+        if (!correlationsByLineItem.has(corr.estimate_line_item_id)) {
+          correlationsByLineItem.set(corr.estimate_line_item_id, []);
+        }
+        if (corr.expenses) {
+          correlationsByLineItem.get(corr.estimate_line_item_id).push(corr.expenses);
+        }
+      });
+
       // Process and match data
       const processedLineItems = processLineItemData(
         estimates?.estimate_line_items || [],
         quotes || [],
-        expenses || []
+        expenses || [],
+        correlationsByLineItem
       );
 
       setLineItems(processedLineItems);
@@ -192,7 +230,8 @@ function isInternalCategory(category: string): boolean {
 function processLineItemData(
   estimateLineItems: any[],
   quotes: any[],
-  expenses: any[]
+  expenses: any[],
+  correlationsByLineItem: Map<string, any[]>
 ): LineItemControlData[] {
   return estimateLineItems.map(lineItem => {
     const qty = Number(lineItem.quantity ?? 0);
@@ -278,6 +317,9 @@ function processLineItemData(
     // Cost variance (quoted vs estimated cost)
     const costVariance = quotedCost - estimatedCost;
     const costVariancePercent = estimatedCost > 0 ? (costVariance / estimatedCost) * 100 : 0;
+    
+    // Margin impact (positive = improves margin)
+    const marginImpact = estimatedCost - quotedCost;
 
     // Determine quote status based on category and accepted quotes
     let quoteStatus: 'none' | 'partial' | 'full' | 'over' | 'internal' = 'none';
@@ -299,6 +341,33 @@ function processLineItemData(
       }
     }
 
+    // Calculate expense allocation status
+    const correlatedExpenses = correlationsByLineItem.get(lineItem.id) || [];
+    const allocatedAmount = correlatedExpenses.reduce(
+      (sum: number, exp: any) => sum + Number(exp.amount ?? 0), 
+      0
+    );
+
+    let allocationStatus: 'full' | 'partial' | 'none' | 'internal' | 'not_quoted' = 'none';
+    let remainingToAllocate = 0;
+
+    if (isInternalCategory(lineItem.category)) {
+      allocationStatus = 'internal';
+    } else if (acceptedQuotes.length === 0) {
+      allocationStatus = 'not_quoted';
+    } else {
+      // Have accepted quotes - check if expenses are allocated
+      remainingToAllocate = quotedCost - allocatedAmount;
+      
+      if (allocatedAmount >= quotedCost * 0.95) { // 95% threshold for "full"
+        allocationStatus = 'full';
+      } else if (allocatedAmount > 0) {
+        allocationStatus = 'partial';
+      } else {
+        allocationStatus = 'none';
+      }
+    }
+
     return {
       id: lineItem.id,
       category: lineItem.category,
@@ -308,9 +377,15 @@ function processLineItemData(
       quotedPrice,
       estimatedCost,
       quotedCost,
+      marginImpact,
       actualAmount,
       costVariance,
       costVariancePercent,
+      // Expense allocation
+      correlatedExpenses,
+      allocatedAmount,
+      allocationStatus,
+      remainingToAllocate,
       // Legacy fields/aliases
       estimatedAmount: estimatedPrice,
       quotedAmount: quotedPrice,

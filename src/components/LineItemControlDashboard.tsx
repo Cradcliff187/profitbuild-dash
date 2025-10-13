@@ -42,16 +42,6 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getVarianceBadge = (variance: number, variancePercent: number) => {
-    if (Math.abs(variance) < 100) {
-      return <Badge variant="default">On Track</Badge>;
-    } else if (variance > 0) {
-      return <Badge variant="destructive">Over Budget</Badge>;
-    } else {
-      return <Badge variant="secondary">Under Budget</Badge>;
-    }
-  };
-
   const handleViewDetails = (item: LineItemControlData) => {
     setSelectedLineItem(item);
   };
@@ -63,7 +53,10 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
       'Est. Price',
       'Est. Cost',
       'Quoted Cost',
-      'Actual',
+      'Allocated Expenses',
+      'Remaining to Allocate',
+      'Allocation Status',
+      'Actual (Category Match)',
       'Cost Variance',
       'Cost Variance %',
       'Quote Status'
@@ -77,6 +70,9 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
         item.estimatedPrice,
         item.estimatedCost,
         item.quotedCost,
+        item.allocatedAmount,
+        item.remainingToAllocate,
+        item.allocationStatus,
         item.actualAmount,
         item.costVariance,
         item.costVariancePercent.toFixed(1) + '%',
@@ -280,21 +276,112 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
       ),
     },
     {
-      key: 'status',
-      label: 'Budget Status',
+      key: 'allocationStatus',
+      label: 'Expense Allocation',
       align: 'center',
-      render: (item) => (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="cursor-help">
-              {getVarianceBadge(item.costVariance, item.costVariancePercent)}
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Budget indicator based on quoted vs estimated costs</p>
-          </TooltipContent>
-        </Tooltip>
-      ),
+      render: (item) => {
+        const getAllocationBadge = (status: LineItemControlData['allocationStatus'], remaining: number) => {
+          const configs = {
+            full: {
+              variant: 'default' as const,
+              label: 'Fully Allocated',
+              icon: <CheckCircle className="h-3 w-3" />,
+            },
+            partial: {
+              variant: 'secondary' as const,
+              label: `${formatCurrency(remaining)} Remaining`,
+              icon: <AlertTriangle className="h-3 w-3" />,
+            },
+            none: {
+              variant: 'destructive' as const,
+              label: 'No Expenses',
+              icon: <AlertTriangle className="h-3 w-3" />,
+            },
+            internal: {
+              variant: 'outline' as const,
+              label: 'Internal',
+              icon: null,
+            },
+            not_quoted: {
+              variant: 'outline' as const,
+              label: 'Not Quoted',
+              icon: null,
+            }
+          };
+          
+          return configs[status];
+        };
+        
+        const config = getAllocationBadge(item.allocationStatus, item.remainingToAllocate);
+        
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="cursor-help">
+                <Badge variant={config.variant} className="flex items-center gap-1 justify-center">
+                  {config.icon}
+                  <span className="text-xs">{config.label}</span>
+                </Badge>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="max-w-xs space-y-2">
+                <p className="font-semibold">Expense Allocation Status</p>
+                
+                {item.allocationStatus === 'internal' ? (
+                  <p className="text-xs">Internal work - no expense tracking needed</p>
+                ) : item.allocationStatus === 'not_quoted' ? (
+                  <p className="text-xs">No accepted quote yet - accept a quote before allocating expenses</p>
+                ) : (
+                  <>
+                    <div className="text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span>Quoted Cost:</span>
+                        <span className="font-medium">{formatCurrency(item.quotedCost)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Allocated Expenses:</span>
+                        <span className="font-medium">{formatCurrency(item.allocatedAmount)}</span>
+                      </div>
+                      <div className="flex justify-between border-t pt-1">
+                        <span>Remaining:</span>
+                        <span className={cn(
+                          "font-semibold",
+                          item.remainingToAllocate > 0 ? "text-yellow-600" : "text-green-600"
+                        )}>
+                          {formatCurrency(item.remainingToAllocate)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {item.allocationStatus === 'none' && (
+                      <p className="text-xs text-destructive mt-2">
+                        ⚠️ No expenses allocated yet - import or match expenses to this line item
+                      </p>
+                    )}
+                    
+                    {item.allocationStatus === 'partial' && (
+                      <p className="text-xs text-yellow-700 mt-2">
+                        ⚠️ Still missing {formatCurrency(item.remainingToAllocate)} in expense receipts
+                      </p>
+                    )}
+                    
+                    {item.allocationStatus === 'full' && (
+                      <p className="text-xs text-green-700 mt-2">
+                        ✅ All quoted costs have matching expense allocations
+                      </p>
+                    )}
+                    
+                    <div className="text-xs text-muted-foreground pt-2 border-t">
+                      {item.correlatedExpenses.length} expense{item.correlatedExpenses.length !== 1 ? 's' : ''} explicitly matched
+                    </div>
+                  </>
+                )}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'completion',
@@ -533,7 +620,64 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Expense Allocation Breakdown */}
+                {selectedLineItem.allocationStatus !== 'internal' && 
+                 selectedLineItem.allocationStatus !== 'not_quoted' && (
+                  <div className="border-t pt-4">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Expense Allocation
+                    </h4>
+                    
+                    <div className="bg-muted p-3 rounded-lg mb-3 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Quoted Cost:</span>
+                        <span className="font-medium">{formatCurrency(selectedLineItem.quotedCost)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Allocated Expenses:</span>
+                        <span className="font-medium">{formatCurrency(selectedLineItem.allocatedAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm font-semibold border-t pt-2">
+                        <span>Remaining to Allocate:</span>
+                        <span className={cn(
+                          selectedLineItem.remainingToAllocate > 0 ? "text-yellow-600" : "text-green-600"
+                        )}>
+                          {formatCurrency(selectedLineItem.remainingToAllocate)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {selectedLineItem.correlatedExpenses.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Explicitly allocated expenses ({selectedLineItem.correlatedExpenses.length}):
+                        </p>
+                        {selectedLineItem.correlatedExpenses.map((expense: any) => (
+                          <div key={expense.id} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded">
+                            <div className="flex-1">
+                              <div className="font-medium">{expense.payees?.payee_name || 'Unknown'}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {format(new Date(expense.expense_date), 'MMM d, yyyy')} • {expense.description}
+                              </div>
+                            </div>
+                            <div className="font-medium">{formatCurrency(expense.amount)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4" />
+                          <span>No expenses have been explicitly allocated to this line item yet.
+                          Go to the Expense Matching interface to allocate expenses.</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-4">
                   {/* Quotes Section */}
                   <div>
                     <div className="font-medium mb-4 flex items-center gap-2">
@@ -580,11 +724,11 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
                     )}
                   </div>
 
-                  {/* Expenses Section */}
+                  {/* Expenses Section (Category Match) */}
                   <div>
                     <div className="font-medium mb-4 flex items-center gap-2">
                       <DollarSign className="h-4 w-4" />
-                      Expenses ({selectedLineItem.expenses.length})
+                      Category-Matched Expenses ({selectedLineItem.expenses.length})
                     </div>
                     {selectedLineItem.expenses.length > 0 ? (
                       <div className="space-y-3">
