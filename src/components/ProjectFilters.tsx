@@ -55,17 +55,19 @@ export const ProjectFilters = ({
     updateFilters({ status: newStatuses });
   };
 
+  const getActiveFilterCount = (): number => {
+    let count = 0;
+    if (filters.searchText) count++;
+    if (filters.status.length > 0) count++;
+    if (filters.jobType !== "all") count++;
+    if (filters.clientName) count++;
+    if (filters.dateRange.start || filters.dateRange.end) count++;
+    if (filters.budgetRange.min !== null || filters.budgetRange.max !== null) count++;
+    return count;
+  };
+
   const hasActiveFilters = () => {
-    return !!filters.searchText || 
-           filters.status.length > 0 || 
-           filters.jobType !== "all" || 
-           !!filters.clientName ||
-           !!filters.dateRange.start || 
-           !!filters.dateRange.end ||
-           filters.budgetRange.min !== null || 
-           filters.budgetRange.max !== null ||
-           filters.sortBy !== 'date' ||
-           filters.sortOrder !== 'desc';
+    return getActiveFilterCount() > 0;
   };
 
   const handleClearFilters = () => {
@@ -85,6 +87,7 @@ export const ProjectFilters = ({
     <CollapsibleFilterSection
       title="Filter Projects"
       hasActiveFilters={hasActiveFilters()}
+      activeFilterCount={getActiveFilterCount()}
       onClearFilters={handleClearFilters}
       resultCount={resultCount}
       defaultExpanded={hasActiveFilters()}
@@ -294,29 +297,6 @@ export const ProjectFilters = ({
             })}
             className="h-9"
           />
-        </div>
-
-        {/* Sorting */}
-        <div className="flex gap-2">
-          <Select value={filters.sortBy} onValueChange={(value: 'name' | 'date' | 'status' | 'margin') => updateFilters({ sortBy: value })}>
-            <SelectTrigger className="h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name">Name</SelectItem>
-              <SelectItem value="date">Date Created</SelectItem>
-              <SelectItem value="status">Status</SelectItem>
-              <SelectItem value="margin">Margin %</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => updateFilters({ sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' })}
-            className="h-9 w-9"
-          >
-            {filters.sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
         </div>
       </div>
     </CollapsibleFilterSection>

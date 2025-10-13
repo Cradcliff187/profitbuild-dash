@@ -9,6 +9,7 @@ interface CollapsibleFilterSectionProps {
   title: string;
   children: React.ReactNode;
   hasActiveFilters?: boolean;
+  activeFilterCount?: number;
   onClearFilters?: () => void;
   defaultExpanded?: boolean;
   alwaysExpanded?: boolean;
@@ -22,6 +23,7 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
   title,
   children,
   hasActiveFilters = false,
+  activeFilterCount = 0,
   onClearFilters,
   defaultExpanded = false,
   alwaysExpanded = false,
@@ -39,13 +41,19 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
       <CardHeader className="pb-2 pt-2 px-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">{title}</span>
-            {hasActiveFilters && (
-              <Badge variant="secondary" className="text-xs h-5">Active</Badge>
-            )}
-            {resultCount !== undefined && (
-              <Badge variant="outline" className="text-xs h-5">{resultCount}</Badge>
+            <Filter className="h-3 w-3 text-muted-foreground" />
+            <span className="text-xs font-semibold">
+              {title}
+              {resultCount !== undefined && (
+                <span className="text-muted-foreground font-normal ml-1">
+                  ({resultCount})
+                </span>
+              )}
+            </span>
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-semibold">
+                {activeFilterCount}
+              </Badge>
             )}
             {leftActions && (
               <>
@@ -57,11 +65,12 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
           
           <div className="flex items-center gap-1">
             {actions}
-            {hasActiveFilters && onClearFilters && (
+            {onClearFilters && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onClearFilters}
+                disabled={!hasActiveFilters}
                 className="h-7 px-2 text-xs"
               >
                 <X className="h-3 w-3 mr-1" />

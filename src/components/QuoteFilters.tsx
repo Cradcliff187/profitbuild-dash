@@ -56,15 +56,19 @@ export const QuoteFilters = ({
     updateFilters({ status: newStatuses });
   };
 
+  const getActiveFilterCount = (): number => {
+    let count = 0;
+    if (filters.searchText) count++;
+    if (filters.status.length > 0) count++;
+    if (filters.payeeName) count++;
+    if (filters.clientName) count++;
+    if (filters.dateRange.start || filters.dateRange.end) count++;
+    if (filters.amountRange.min !== null || filters.amountRange.max !== null) count++;
+    return count;
+  };
+
   const hasActiveFilters = (): boolean => {
-    return !!(filters.searchText || 
-           filters.status.length > 0 || 
-           filters.payeeName ||
-           filters.clientName ||
-           filters.dateRange.start || 
-           filters.dateRange.end ||
-           filters.amountRange.min !== null || 
-           filters.amountRange.max !== null);
+    return getActiveFilterCount() > 0;
   };
 
   const handleClearFilters = () => {
@@ -82,6 +86,7 @@ export const QuoteFilters = ({
     <CollapsibleFilterSection
       title="Filter Quotes"
       hasActiveFilters={hasActiveFilters()}
+      activeFilterCount={getActiveFilterCount()}
       onClearFilters={handleClearFilters}
       resultCount={resultCount}
       defaultExpanded={hasActiveFilters()}
