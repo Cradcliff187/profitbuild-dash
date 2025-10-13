@@ -23,8 +23,8 @@ const Quotes = () => {
   const [searchFilters, setSearchFilters] = useState<QuoteSearchFilters>({
     searchText: '',
     status: [],
-    payeeName: '',
-    clientName: '',
+    payeeName: [],
+    clientName: [],
     dateRange: { start: null, end: null },
     amountRange: { min: null, max: null },
   });
@@ -94,19 +94,23 @@ const Quotes = () => {
     }
 
     // Payee filter
-    if (searchFilters.payeeName) {
-      const payeeName = searchFilters.payeeName.toLowerCase();
-      filtered = filtered.filter(quote => 
-        quote.quotedBy?.toLowerCase().includes(payeeName)
-      );
+    if (searchFilters.payeeName.length > 0) {
+      filtered = filtered.filter(quote => {
+        if (!quote.quotedBy) return false;
+        return searchFilters.payeeName.some(payee =>
+          quote.quotedBy!.toLowerCase().includes(payee.toLowerCase())
+        );
+      });
     }
 
     // Client filter
-    if (searchFilters.clientName) {
-      const clientName = searchFilters.clientName.toLowerCase();
-      filtered = filtered.filter(quote => 
-        quote.client?.toLowerCase().includes(clientName)
-      );
+    if (searchFilters.clientName.length > 0) {
+      filtered = filtered.filter(quote => {
+        if (!quote.client) return false;
+        return searchFilters.clientName.some(client =>
+          quote.client!.toLowerCase().includes(client.toLowerCase())
+        );
+      });
     }
 
     // Date range filter

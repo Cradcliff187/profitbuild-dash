@@ -11,8 +11,8 @@ import { format } from "date-fns";
 export interface QuoteSearchFilters {
   searchText: string;
   status: string[];
-  payeeName: string;
-  clientName: string;
+  payeeName: string[];
+  clientName: string[];
   dateRange: {
     start: Date | null;
     end: Date | null;
@@ -56,12 +56,26 @@ export const QuoteFilters = ({
     updateFilters({ status: newStatuses });
   };
 
+  const togglePayee = (payeeName: string) => {
+    const newPayees = filters.payeeName.includes(payeeName)
+      ? filters.payeeName.filter(p => p !== payeeName)
+      : [...filters.payeeName, payeeName];
+    updateFilters({ payeeName: newPayees });
+  };
+
+  const toggleClient = (clientName: string) => {
+    const newClients = filters.clientName.includes(clientName)
+      ? filters.clientName.filter(c => c !== clientName)
+      : [...filters.clientName, clientName];
+    updateFilters({ clientName: newClients });
+  };
+
   const getActiveFilterCount = (): number => {
     let count = 0;
     if (filters.searchText) count++;
     if (filters.status.length > 0) count++;
-    if (filters.payeeName) count++;
-    if (filters.clientName) count++;
+    if (filters.payeeName.length > 0) count++;
+    if (filters.clientName.length > 0) count++;
     if (filters.dateRange.start || filters.dateRange.end) count++;
     if (filters.amountRange.min !== null || filters.amountRange.max !== null) count++;
     return count;
@@ -75,8 +89,8 @@ export const QuoteFilters = ({
     onFiltersChange({
       searchText: "",
       status: [],
-      payeeName: "",
-      clientName: "",
+      payeeName: [],
+      clientName: [],
       dateRange: { start: null, end: null },
       amountRange: { min: null, max: null },
     });
@@ -165,7 +179,7 @@ export const QuoteFilters = ({
           </PopoverContent>
         </Popover>
 
-        {/* Payee Filter - Searchable Dropdown */}
+        {/* Payee Multi-Select Filter - Searchable Dropdown */}
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -174,7 +188,12 @@ export const QuoteFilters = ({
               className="h-9 w-full justify-between text-xs"
             >
               <span className="truncate">
-                {filters.payeeName || "All Payees"}
+                {filters.payeeName.length === 0 
+                  ? "All Payees" 
+                  : filters.payeeName.length === payees.length
+                  ? "All Payees"
+                  : `${filters.payeeName.length} selected`
+                }
               </span>
               <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
             </Button>
@@ -184,26 +203,37 @@ export const QuoteFilters = ({
               <CommandInput placeholder="Search payees..." className="h-9" />
               <CommandEmpty>No payee found.</CommandEmpty>
               <CommandGroup className="max-h-64 overflow-auto">
-                <CommandItem
-                  onSelect={() => updateFilters({ payeeName: "" })}
-                  className="text-sm"
-                >
-                  <div className="flex items-center gap-2 w-full">
-                    {!filters.payeeName && <Check className="h-3 w-3" />}
-                    <span className={!filters.payeeName ? "font-medium" : ""}>All Payees</span>
-                  </div>
-                </CommandItem>
+                <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => updateFilters({ payeeName: payees.map(p => p.payee_name) })}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => updateFilters({ payeeName: [] })}
+                  >
+                    Clear
+                  </Button>
+                </div>
                 {payees.map((payee) => (
                   <CommandItem
                     key={payee.id}
                     value={payee.payee_name}
-                    onSelect={() => updateFilters({ payeeName: payee.payee_name })}
+                    onSelect={() => togglePayee(payee.payee_name)}
                     className="text-sm"
                   >
                     <div className="flex items-center gap-2 w-full">
-                      {filters.payeeName === payee.payee_name && (
-                        <Check className="h-3 w-3" />
-                      )}
+                      <Checkbox
+                        checked={filters.payeeName.includes(payee.payee_name)}
+                        onCheckedChange={() => togglePayee(payee.payee_name)}
+                        className="h-4 w-4"
+                      />
                       <span>{payee.payee_name}</span>
                     </div>
                   </CommandItem>
@@ -213,7 +243,7 @@ export const QuoteFilters = ({
           </PopoverContent>
         </Popover>
 
-        {/* Client Filter - Searchable Dropdown */}
+        {/* Client Multi-Select Filter - Searchable Dropdown */}
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -222,7 +252,12 @@ export const QuoteFilters = ({
               className="h-9 w-full justify-between text-xs"
             >
               <span className="truncate">
-                {filters.clientName || "All Clients"}
+                {filters.clientName.length === 0 
+                  ? "All Clients" 
+                  : filters.clientName.length === clients.length
+                  ? "All Clients"
+                  : `${filters.clientName.length} selected`
+                }
               </span>
               <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
             </Button>
@@ -232,26 +267,37 @@ export const QuoteFilters = ({
               <CommandInput placeholder="Search clients..." className="h-9" />
               <CommandEmpty>No client found.</CommandEmpty>
               <CommandGroup className="max-h-64 overflow-auto">
-                <CommandItem
-                  onSelect={() => updateFilters({ clientName: "" })}
-                  className="text-sm"
-                >
-                  <div className="flex items-center gap-2 w-full">
-                    {!filters.clientName && <Check className="h-3 w-3" />}
-                    <span className={!filters.clientName ? "font-medium" : ""}>All Clients</span>
-                  </div>
-                </CommandItem>
+                <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => updateFilters({ clientName: clients.map(c => c.client_name) })}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => updateFilters({ clientName: [] })}
+                  >
+                    Clear
+                  </Button>
+                </div>
                 {clients.map((client) => (
                   <CommandItem
                     key={client.id}
                     value={client.client_name}
-                    onSelect={() => updateFilters({ clientName: client.client_name })}
+                    onSelect={() => toggleClient(client.client_name)}
                     className="text-sm"
                   >
                     <div className="flex items-center gap-2 w-full">
-                      {filters.clientName === client.client_name && (
-                        <Check className="h-3 w-3" />
-                      )}
+                      <Checkbox
+                        checked={filters.clientName.includes(client.client_name)}
+                        onCheckedChange={() => toggleClient(client.client_name)}
+                        className="h-4 w-4"
+                      />
                       <span>{client.client_name}</span>
                     </div>
                   </CommandItem>

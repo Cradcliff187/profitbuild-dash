@@ -13,8 +13,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 export interface ProjectSearchFilters {
   searchText: string;
   status: ProjectStatus[];
-  jobType: string;
-  clientName: string;
+  jobType: string[];
+  clientName: string[];
   dateRange: {
     start: Date | null;
     end: Date | null;
@@ -55,12 +55,26 @@ export const ProjectFilters = ({
     updateFilters({ status: newStatuses });
   };
 
+  const toggleJobType = (jobType: string) => {
+    const newJobTypes = filters.jobType.includes(jobType)
+      ? filters.jobType.filter(j => j !== jobType)
+      : [...filters.jobType, jobType];
+    updateFilters({ jobType: newJobTypes });
+  };
+
+  const toggleClient = (clientName: string) => {
+    const newClients = filters.clientName.includes(clientName)
+      ? filters.clientName.filter(c => c !== clientName)
+      : [...filters.clientName, clientName];
+    updateFilters({ clientName: newClients });
+  };
+
   const getActiveFilterCount = (): number => {
     let count = 0;
     if (filters.searchText) count++;
     if (filters.status.length > 0) count++;
-    if (filters.jobType !== "all") count++;
-    if (filters.clientName) count++;
+    if (filters.jobType.length > 0) count++;
+    if (filters.clientName.length > 0) count++;
     if (filters.dateRange.start || filters.dateRange.end) count++;
     if (filters.budgetRange.min !== null || filters.budgetRange.max !== null) count++;
     return count;
@@ -74,8 +88,8 @@ export const ProjectFilters = ({
     onFiltersChange({
       searchText: "",
       status: [],
-      jobType: "all",
-      clientName: "",
+      jobType: [],
+      clientName: [],
       dateRange: { start: null, end: null },
       budgetRange: { min: null, max: null },
       sortBy: 'date',
@@ -168,22 +182,67 @@ export const ProjectFilters = ({
           </PopoverContent>
         </Popover>
 
-        {/* Job Type Filter */}
-        <Select value={filters.jobType} onValueChange={(value) => updateFilters({ jobType: value })}>
-          <SelectTrigger className="h-9">
-            <SelectValue placeholder="All Job Types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Job Types</SelectItem>
-            {JOB_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Job Type Multi-Select Dropdown */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-9 w-full justify-between text-xs"
+            >
+              <span className="truncate">
+                {filters.jobType.length === 0 
+                  ? "All Job Types" 
+                  : filters.jobType.length === JOB_TYPES.length
+                  ? "All Job Types"
+                  : `${filters.jobType.length} selected`
+                }
+              </span>
+              <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" align="start">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => updateFilters({ jobType: [...JOB_TYPES] })}
+                  >
+                    Select All
+                  </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs px-2"
+                  onClick={() => updateFilters({ jobType: [] })}
+                >
+                  Clear
+                </Button>
+              </div>
+              
+              {JOB_TYPES.map((type) => (
+                <div 
+                  key={type}
+                  className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                  onClick={() => toggleJobType(type)}
+                >
+                  <Checkbox
+                    checked={filters.jobType.includes(type)}
+                    onCheckedChange={() => toggleJobType(type)}
+                    className="h-4 w-4"
+                  />
+                  <label className="text-sm cursor-pointer flex-1">
+                    {type}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
 
-        {/* Client Filter - Searchable Dropdown */}
+        {/* Client Multi-Select Filter - Searchable Dropdown */}
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -192,7 +251,12 @@ export const ProjectFilters = ({
               className="h-9 w-full justify-between text-xs"
             >
               <span className="truncate">
-                {filters.clientName || "All Clients"}
+                {filters.clientName.length === 0 
+                  ? "All Clients" 
+                  : filters.clientName.length === clients.length
+                  ? "All Clients"
+                  : `${filters.clientName.length} selected`
+                }
               </span>
               <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
             </Button>
@@ -202,26 +266,37 @@ export const ProjectFilters = ({
               <CommandInput placeholder="Search clients..." className="h-9" />
               <CommandEmpty>No client found.</CommandEmpty>
               <CommandGroup className="max-h-64 overflow-auto">
-                <CommandItem
-                  onSelect={() => updateFilters({ clientName: "" })}
-                  className="text-sm"
-                >
-                  <div className="flex items-center gap-2 w-full">
-                    {!filters.clientName && <Check className="h-3 w-3" />}
-                    <span className={!filters.clientName ? "font-medium" : ""}>All Clients</span>
-                  </div>
-                </CommandItem>
+                <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => updateFilters({ clientName: clients.map(c => c.client_name) })}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => updateFilters({ clientName: [] })}
+                  >
+                    Clear
+                  </Button>
+                </div>
                 {clients.map((client) => (
                   <CommandItem
                     key={client.id}
                     value={client.client_name}
-                    onSelect={() => updateFilters({ clientName: client.client_name })}
+                    onSelect={() => toggleClient(client.client_name)}
                     className="text-sm"
                   >
                     <div className="flex items-center gap-2 w-full">
-                      {filters.clientName === client.client_name && (
-                        <Check className="h-3 w-3" />
-                      )}
+                      <Checkbox
+                        checked={filters.clientName.includes(client.client_name)}
+                        onCheckedChange={() => toggleClient(client.client_name)}
+                        className="h-4 w-4"
+                      />
                       <span>{client.client_name}</span>
                     </div>
                   </CommandItem>

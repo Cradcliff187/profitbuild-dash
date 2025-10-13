@@ -29,7 +29,7 @@ const EstimatesPage = () => {
     searchText: '',
     status: [],
     projectType: '',
-    clientName: '',
+    clientName: [],
     dateRange: { start: null, end: null },
     amountRange: { min: null, max: null },
     hasVersions: null
@@ -90,11 +90,13 @@ const EstimatesPage = () => {
     }
 
     // Client name filter
-    if (searchFilters.clientName) {
-      const clientName = searchFilters.clientName.toLowerCase();
-      filtered = filtered.filter(estimate => 
-        estimate.client_name?.toLowerCase().includes(clientName)
-      );
+    if (searchFilters.clientName.length > 0) {
+      filtered = filtered.filter(estimate => {
+        if (!estimate.client_name) return false;
+        return searchFilters.clientName.some(client =>
+          estimate.client_name!.toLowerCase().includes(client.toLowerCase())
+        );
+      });
     }
 
     // Date range filter
@@ -148,7 +150,7 @@ const EstimatesPage = () => {
       searchText: '',
       status: [],
       projectType: '',
-      clientName: '',
+      clientName: [],
       dateRange: { start: null, end: null },
       amountRange: { min: null, max: null },
       hasVersions: null

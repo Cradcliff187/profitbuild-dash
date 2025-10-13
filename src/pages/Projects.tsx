@@ -34,8 +34,8 @@ const Projects = () => {
   const [filters, setFilters] = useState<ProjectSearchFilters>({
     searchText: "",
     status: [],
-    jobType: "all",
-    clientName: "",
+    jobType: [],
+    clientName: [],
     dateRange: { start: null, end: null },
     budgetRange: { min: null, max: null },
     sortBy: 'date',
@@ -386,16 +386,16 @@ const Projects = () => {
       }
 
       // Job type filter
-      if (filters.jobType !== "all" && project.job_type !== filters.jobType) {
+      if (filters.jobType.length > 0 && !filters.jobType.includes(project.job_type || '')) {
         return false;
       }
 
       // Client name filter
-      if (filters.clientName) {
-        const clientLower = filters.clientName.toLowerCase();
-        if (!project.client_name.toLowerCase().includes(clientLower)) {
-          return false;
-        }
+      if (filters.clientName.length > 0) {
+        const matchesClient = filters.clientName.some(client =>
+          project.client_name.toLowerCase().includes(client.toLowerCase())
+        );
+        if (!matchesClient) return false;
       }
 
       // Date range filter

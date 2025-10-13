@@ -14,7 +14,7 @@ export interface SearchFilters {
   searchText: string;
   status: string[];
   projectType: string;
-  clientName: string;
+  clientName: string[];
   dateRange: {
     start: Date | null;
     end: Date | null;
@@ -63,12 +63,19 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
     updateFilters({ status: newStatuses });
   };
 
+  const toggleClient = (clientName: string) => {
+    const newClients = filters.clientName.includes(clientName)
+      ? filters.clientName.filter(c => c !== clientName)
+      : [...filters.clientName, clientName];
+    updateFilters({ clientName: newClients });
+  };
+
   const getActiveFilterCount = (): number => {
     let count = 0;
     if (filters.searchText) count++;
     if (filters.status.length > 0) count++;
     if (filters.projectType) count++;
-    if (filters.clientName) count++;
+    if (filters.clientName.length > 0) count++;
     if (filters.dateRange.start || filters.dateRange.end) count++;
     if (filters.amountRange.min !== null || filters.amountRange.max !== null) count++;
     if (filters.hasVersions !== null) count++;
@@ -166,7 +173,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
           </PopoverContent>
         </Popover>
 
-        {/* Client Filter - Searchable Dropdown */}
+        {/* Client Multi-Select Filter - Searchable Dropdown */}
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -175,7 +182,12 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
               className="h-9 w-full justify-between text-xs"
             >
               <span className="truncate">
-                {filters.clientName || "All Clients"}
+                {filters.clientName.length === 0 
+                  ? "All Clients" 
+                  : filters.clientName.length === clients.length
+                  ? "All Clients"
+                  : `${filters.clientName.length} selected`
+                }
               </span>
               <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
             </Button>
@@ -185,26 +197,37 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
               <CommandInput placeholder="Search clients..." className="h-9" />
               <CommandEmpty>No client found.</CommandEmpty>
               <CommandGroup className="max-h-64 overflow-auto">
-                <CommandItem
-                  onSelect={() => updateFilters({ clientName: "" })}
-                  className="text-sm"
-                >
-                  <div className="flex items-center gap-2 w-full">
-                    {!filters.clientName && <Check className="h-3 w-3" />}
-                    <span className={!filters.clientName ? "font-medium" : ""}>All Clients</span>
-                  </div>
-                </CommandItem>
+                <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => updateFilters({ clientName: clients.map(c => c.client_name) })}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => updateFilters({ clientName: [] })}
+                  >
+                    Clear
+                  </Button>
+                </div>
                 {clients.map((client) => (
                   <CommandItem
                     key={client.id}
                     value={client.client_name}
-                    onSelect={() => updateFilters({ clientName: client.client_name })}
+                    onSelect={() => toggleClient(client.client_name)}
                     className="text-sm"
                   >
                     <div className="flex items-center gap-2 w-full">
-                      {filters.clientName === client.client_name && (
-                        <Check className="h-3 w-3" />
-                      )}
+                      <Checkbox
+                        checked={filters.clientName.includes(client.client_name)}
+                        onCheckedChange={() => toggleClient(client.client_name)}
+                        className="h-4 w-4"
+                      />
                       <span>{client.client_name}</span>
                     </div>
                   </CommandItem>
@@ -221,7 +244,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
             hasVersions: value === "all" ? null : value === "true" 
           })}
         >
-          <SelectTrigger className="h-9">
+          <SelectTrigger className="h-9 text-xs">
             <SelectValue placeholder="All versions" />
           </SelectTrigger>
           <SelectContent>
