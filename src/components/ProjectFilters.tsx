@@ -81,161 +81,147 @@ export const ProjectFilters = ({
       resultCount={resultCount}
       defaultExpanded={hasActiveFilters()}
     >
-      <div className="space-y-4">
-        {/* Quick Search */}
-        <div className="relative">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {/* Quick Search - Full Width */}
+        <div className="relative md:col-span-3 lg:col-span-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search projects, clients, addresses..."
             value={filters.searchText}
             onChange={(e) => updateFilters({ searchText: e.target.value })}
-            className="pl-10"
+            className="pl-10 h-9"
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Status Multi-Select */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Status</label>
-            <div className="grid grid-cols-2 gap-2">
-              {PROJECT_STATUSES.map(option => (
-                <Button
-                  key={option.value}
-                  variant={filters.status.includes(option.value as ProjectStatus) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => toggleStatus(option.value as ProjectStatus)}
-                  className="text-xs"
-                >
-                  {option.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Job Type Filter */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Job Type</label>
-            <Select value={filters.jobType} onValueChange={(value) => updateFilters({ jobType: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Job Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Job Types</SelectItem>
-                {JOB_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Client Filter */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Client</label>
-            <Input
-              placeholder="Filter by client name"
-              value={filters.clientName}
-              onChange={(e) => updateFilters({ clientName: e.target.value })}
-            />
-          </div>
-
-          {/* Date Range */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Start Date Range</label>
-            <div className="flex gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full justify-start">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    {filters.dateRange.start ? format(filters.dateRange.start, "MMM dd") : "Start"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <DatePicker
-                    mode="single"
-                    selected={filters.dateRange.start || undefined}
-                    onSelect={(date) => updateFilters({ 
-                      dateRange: { ...filters.dateRange, start: date || null }
-                    })}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full justify-start">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    {filters.dateRange.end ? format(filters.dateRange.end, "MMM dd") : "End"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <DatePicker
-                    mode="single"
-                    selected={filters.dateRange.end || undefined}
-                    onSelect={(date) => updateFilters({ 
-                      dateRange: { ...filters.dateRange, end: date || null }
-                    })}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-
-          {/* Budget Range */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Budget Range</label>
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                placeholder="Min"
-                value={filters.budgetRange.min || ''}
-                onChange={(e) => updateFilters({ 
-                  budgetRange: { 
-                    ...filters.budgetRange, 
-                    min: e.target.value ? parseFloat(e.target.value) : null 
-                  }
-                })}
-              />
-              <Input
-                type="number"
-                placeholder="Max"
-                value={filters.budgetRange.max || ''}
-                onChange={(e) => updateFilters({ 
-                  budgetRange: { 
-                    ...filters.budgetRange, 
-                    max: e.target.value ? parseFloat(e.target.value) : null 
-                  }
-                })}
-              />
-            </div>
-          </div>
-
-          {/* Sorting */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Sort By</label>
-            <div className="flex gap-2">
-              <Select value={filters.sortBy} onValueChange={(value: 'name' | 'date' | 'status' | 'margin') => updateFilters({ sortBy: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="date">Date Created</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                  <SelectItem value="margin">Margin %</SelectItem>
-                </SelectContent>
-              </Select>
+        {/* Status Multi-Select - Compact Buttons */}
+        <div className="md:col-span-2 lg:col-span-2">
+          <div className="grid grid-cols-3 gap-2">
+            {PROJECT_STATUSES.map(option => (
               <Button
-                variant="outline"
-                size="icon"
-                onClick={() => updateFilters({ sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' })}
+                key={option.value}
+                variant={filters.status.includes(option.value as ProjectStatus) ? "default" : "outline"}
+                size="sm"
+                onClick={() => toggleStatus(option.value as ProjectStatus)}
+                className="text-xs h-9"
               >
-                {filters.sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {option.label}
               </Button>
-            </div>
+            ))}
           </div>
+        </div>
+
+        {/* Job Type Filter */}
+        <Select value={filters.jobType} onValueChange={(value) => updateFilters({ jobType: value })}>
+          <SelectTrigger className="h-9">
+            <SelectValue placeholder="All Job Types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Job Types</SelectItem>
+            {JOB_TYPES.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Client Filter */}
+        <Input
+          placeholder="Client name"
+          value={filters.clientName}
+          onChange={(e) => updateFilters({ clientName: e.target.value })}
+          className="h-9"
+        />
+
+        {/* Date Range */}
+        <div className="flex gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 flex-1 justify-start text-xs">
+                <Calendar className="h-3 w-3 mr-1" />
+                {filters.dateRange.start ? format(filters.dateRange.start, "MMM dd") : "Start"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <DatePicker
+                mode="single"
+                selected={filters.dateRange.start || undefined}
+                onSelect={(date) => updateFilters({ 
+                  dateRange: { ...filters.dateRange, start: date || null }
+                })}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 flex-1 justify-start text-xs">
+                <Calendar className="h-3 w-3 mr-1" />
+                {filters.dateRange.end ? format(filters.dateRange.end, "MMM dd") : "End"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <DatePicker
+                mode="single"
+                selected={filters.dateRange.end || undefined}
+                onSelect={(date) => updateFilters({ 
+                  dateRange: { ...filters.dateRange, end: date || null }
+                })}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Budget Range */}
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            placeholder="Min $"
+            value={filters.budgetRange.min || ''}
+            onChange={(e) => updateFilters({ 
+              budgetRange: { 
+                ...filters.budgetRange, 
+                min: e.target.value ? parseFloat(e.target.value) : null 
+              }
+            })}
+            className="h-9"
+          />
+          <Input
+            type="number"
+            placeholder="Max $"
+            value={filters.budgetRange.max || ''}
+            onChange={(e) => updateFilters({ 
+              budgetRange: { 
+                ...filters.budgetRange, 
+                max: e.target.value ? parseFloat(e.target.value) : null 
+              }
+            })}
+            className="h-9"
+          />
+        </div>
+
+        {/* Sorting */}
+        <div className="flex gap-2">
+          <Select value={filters.sortBy} onValueChange={(value: 'name' | 'date' | 'status' | 'margin') => updateFilters({ sortBy: value })}>
+            <SelectTrigger className="h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">Name</SelectItem>
+              <SelectItem value="date">Date Created</SelectItem>
+              <SelectItem value="status">Status</SelectItem>
+              <SelectItem value="margin">Margin %</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => updateFilters({ sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' })}
+            className="h-9 w-9"
+          >
+            {filters.sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
         </div>
       </div>
     </CollapsibleFilterSection>

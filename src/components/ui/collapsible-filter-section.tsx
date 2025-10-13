@@ -28,26 +28,26 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
 
   return (
     <Card className={cn("w-full", className)}>
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-3 pt-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium">{title}</span>
             {hasActiveFilters && (
-              <Badge variant="secondary" className="text-xs">Active</Badge>
+              <Badge variant="secondary" className="text-xs h-5">Active</Badge>
             )}
             {resultCount !== undefined && (
-              <Badge variant="outline" className="text-xs">{resultCount} results</Badge>
+              <Badge variant="outline" className="text-xs h-5">{resultCount}</Badge>
             )}
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {hasActiveFilters && onClearFilters && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onClearFilters}
-                className="h-8 px-2 text-xs"
+                className="h-7 px-2 text-xs"
               >
                 <X className="h-3 w-3 mr-1" />
                 Clear
@@ -57,7 +57,7 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
               variant="ghost"
               size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="h-8 px-2"
+              className="h-7 px-2"
             >
               {isExpanded ? (
                 <ChevronUp className="h-4 w-4" />
@@ -70,7 +70,7 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
       </CardHeader>
       
       {isExpanded && (
-        <CardContent className="pt-0">
+        <CardContent className="pt-0 pb-3">
           {children}
         </CardContent>
       )}
