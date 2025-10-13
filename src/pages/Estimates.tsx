@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { EstimatesList } from "@/components/EstimatesList";
 import { EstimateForm } from "@/components/EstimateForm";
 import { EstimateSearchFilters, type SearchFilters } from "@/components/EstimateSearchFilters";
+import { EstimateExportModal } from "@/components/EstimateExportModal";
 import { EstimateFamilyAnalyticsDashboard } from "@/components/EstimateFamilyAnalyticsDashboard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +11,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Estimate } from "@/types/estimate";
-import { Plus, BarChart3 } from "lucide-react";
+import { Plus, BarChart3, Download } from "lucide-react";
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view';
 
@@ -20,6 +21,8 @@ const EstimatesPage = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate | undefined>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [clients, setClients] = useState<Array<{ id: string; client_name: string; }>>([]);
+  const [showExportModal, setShowExportModal] = useState(false);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
@@ -37,12 +40,28 @@ const EstimatesPage = () => {
 
   useEffect(() => {
     loadEstimates();
+    loadClients();
     
     // Check for preselected project from URL params
     if (preselectedProjectId && viewMode === 'list') {
       setViewMode('create');
     }
   }, [preselectedProjectId]);
+
+  const loadClients = async () => {
+    const { data, error } = await supabase
+      .from('clients')
+      .select('id, client_name')
+      .eq('is_active', true)
+      .order('client_name', { ascending: true });
+    
+    if (error) {
+      console.error('Error loading clients:', error);
+      return;
+    }
+    
+    setClients(data || []);
+  };
 
   // Apply filters when estimates or filters change
   useEffect(() => {
@@ -351,10 +370,20 @@ const EstimatesPage = () => {
         </div>
         
         {viewMode === 'list' && (
-          <Button onClick={handleCreateNew} size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            {getCreateButtonText()}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShowExportModal(true)}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button onClick={handleCreateNew} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              {getCreateButtonText()}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -375,6 +404,7 @@ const EstimatesPage = () => {
               onSearch={handleSearch}
               onReset={resetFilters}
               resultCount={filteredEstimates.length}
+              clients={clients}
             />
             <EstimatesList
               estimates={filteredEstimates}
@@ -397,6 +427,12 @@ const EstimatesPage = () => {
           onCancel={handleCancel}
         />
       )}
+
+      <EstimateExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        filters={searchFilters}
+      />
     </div>
   );
 };

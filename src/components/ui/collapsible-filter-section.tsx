@@ -14,6 +14,7 @@ interface CollapsibleFilterSectionProps {
   alwaysExpanded?: boolean;
   resultCount?: number;
   className?: string;
+  leftActions?: React.ReactNode;
   actions?: React.ReactNode;
 }
 
@@ -26,6 +27,7 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
   alwaysExpanded = false,
   resultCount,
   className,
+  leftActions,
   actions
 }) => {
   const [isExpanded, setIsExpanded] = useState(
@@ -44,6 +46,12 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
             )}
             {resultCount !== undefined && (
               <Badge variant="outline" className="text-xs h-5">{resultCount}</Badge>
+            )}
+            {leftActions && (
+              <>
+                <div className="h-4 w-px bg-border mx-1" />
+                {leftActions}
+              </>
             )}
           </div>
           

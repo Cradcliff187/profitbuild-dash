@@ -1,102 +1,97 @@
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Calendar as DatePicker } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, Calendar, ChevronUp, ChevronDown, Check } from "lucide-react";
-import { format } from "date-fns";
-import { ProjectStatus, PROJECT_STATUSES, JOB_TYPES } from "@/types/project";
 import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Search, Calendar, ChevronDown, Check } from "lucide-react";
+import { format } from "date-fns";
 
-export interface ProjectSearchFilters {
+export interface QuoteSearchFilters {
   searchText: string;
-  status: ProjectStatus[];
-  jobType: string;
+  status: string[];
+  payeeName: string;
   clientName: string;
   dateRange: {
     start: Date | null;
     end: Date | null;
   };
-  budgetRange: {
+  amountRange: {
     min: number | null;
     max: number | null;
   };
-  sortBy: 'name' | 'date' | 'status' | 'margin';
-  sortOrder: 'asc' | 'desc';
 }
 
-interface ProjectFiltersProps {
-  filters: ProjectSearchFilters;
-  onFiltersChange: (filters: ProjectSearchFilters) => void;
+interface QuoteFiltersProps {
+  filters: QuoteSearchFilters;
+  onFiltersChange: (filters: QuoteSearchFilters) => void;
   resultCount?: number;
-  leftActions?: React.ReactNode;
-  actions?: React.ReactNode;
   clients: Array<{ id: string; client_name: string; }>;
+  payees: Array<{ id: string; payee_name: string; }>;
 }
 
-export const ProjectFilters = ({
+const STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'accepted', label: 'Accepted' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'expired', label: 'Expired' }
+];
+
+export const QuoteFilters = ({
   filters,
   onFiltersChange,
   resultCount,
-  leftActions,
-  actions,
-  clients
-}: ProjectFiltersProps) => {
-  const updateFilters = (updates: Partial<ProjectSearchFilters>) => {
+  clients,
+  payees
+}: QuoteFiltersProps) => {
+  const updateFilters = (updates: Partial<QuoteSearchFilters>) => {
     onFiltersChange({ ...filters, ...updates });
   };
 
-  const toggleStatus = (status: ProjectStatus) => {
+  const toggleStatus = (status: string) => {
     const newStatuses = filters.status.includes(status)
       ? filters.status.filter(s => s !== status)
       : [...filters.status, status];
     updateFilters({ status: newStatuses });
   };
 
-  const hasActiveFilters = () => {
-    return !!filters.searchText || 
+  const hasActiveFilters = (): boolean => {
+    return !!(filters.searchText || 
            filters.status.length > 0 || 
-           filters.jobType !== "all" || 
-           !!filters.clientName ||
-           !!filters.dateRange.start || 
-           !!filters.dateRange.end ||
-           filters.budgetRange.min !== null || 
-           filters.budgetRange.max !== null ||
-           filters.sortBy !== 'date' ||
-           filters.sortOrder !== 'desc';
+           filters.payeeName ||
+           filters.clientName ||
+           filters.dateRange.start || 
+           filters.dateRange.end ||
+           filters.amountRange.min !== null || 
+           filters.amountRange.max !== null);
   };
 
   const handleClearFilters = () => {
     onFiltersChange({
       searchText: "",
       status: [],
-      jobType: "all",
+      payeeName: "",
       clientName: "",
       dateRange: { start: null, end: null },
-      budgetRange: { min: null, max: null },
-      sortBy: 'date',
-      sortOrder: 'desc',
+      amountRange: { min: null, max: null },
     });
   };
 
   return (
     <CollapsibleFilterSection
-      title="Filter Projects"
+      title="Filter Quotes"
       hasActiveFilters={hasActiveFilters()}
       onClearFilters={handleClearFilters}
       resultCount={resultCount}
       defaultExpanded={hasActiveFilters()}
-      leftActions={leftActions}
-      actions={actions}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {/* Quick Search - Full Width */}
         <div className="relative md:col-span-3 lg:col-span-4">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search projects, clients, addresses..."
+            placeholder="Search quotes, projects, payees, clients..."
             value={filters.searchText}
             onChange={(e) => updateFilters({ searchText: e.target.value })}
             className="pl-10 h-9"
@@ -114,7 +109,7 @@ export const ProjectFilters = ({
               <span className="truncate">
                 {filters.status.length === 0 
                   ? "All Statuses" 
-                  : filters.status.length === PROJECT_STATUSES.length
+                  : filters.status.length === STATUS_OPTIONS.length
                   ? "All Statuses"
                   : `${filters.status.length} selected`
                 }
@@ -130,7 +125,7 @@ export const ProjectFilters = ({
                   size="sm"
                   className="h-6 text-xs px-2"
                   onClick={() => updateFilters({ 
-                    status: PROJECT_STATUSES.map(s => s.value as ProjectStatus) 
+                    status: STATUS_OPTIONS.map(s => s.value) 
                   })}
                 >
                   Select All
@@ -145,15 +140,15 @@ export const ProjectFilters = ({
                 </Button>
               </div>
               
-              {PROJECT_STATUSES.map((option) => (
+              {STATUS_OPTIONS.map((option) => (
                 <div 
                   key={option.value}
                   className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
-                  onClick={() => toggleStatus(option.value as ProjectStatus)}
+                  onClick={() => toggleStatus(option.value)}
                 >
                   <Checkbox
-                    checked={filters.status.includes(option.value as ProjectStatus)}
-                    onCheckedChange={() => toggleStatus(option.value as ProjectStatus)}
+                    checked={filters.status.includes(option.value)}
+                    onCheckedChange={() => toggleStatus(option.value)}
                     className="h-4 w-4"
                   />
                   <label className="text-sm cursor-pointer flex-1">
@@ -165,20 +160,53 @@ export const ProjectFilters = ({
           </PopoverContent>
         </Popover>
 
-        {/* Job Type Filter */}
-        <Select value={filters.jobType} onValueChange={(value) => updateFilters({ jobType: value })}>
-          <SelectTrigger className="h-9">
-            <SelectValue placeholder="All Job Types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Job Types</SelectItem>
-            {JOB_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Payee Filter - Searchable Dropdown */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 w-full justify-between text-xs"
+            >
+              <span className="truncate">
+                {filters.payeeName || "All Payees"}
+              </span>
+              <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search payees..." className="h-9" />
+              <CommandEmpty>No payee found.</CommandEmpty>
+              <CommandGroup className="max-h-64 overflow-auto">
+                <CommandItem
+                  onSelect={() => updateFilters({ payeeName: "" })}
+                  className="text-sm"
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    {!filters.payeeName && <Check className="h-3 w-3" />}
+                    <span className={!filters.payeeName ? "font-medium" : ""}>All Payees</span>
+                  </div>
+                </CommandItem>
+                {payees.map((payee) => (
+                  <CommandItem
+                    key={payee.id}
+                    value={payee.payee_name}
+                    onSelect={() => updateFilters({ payeeName: payee.payee_name })}
+                    className="text-sm"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      {filters.payeeName === payee.payee_name && (
+                        <Check className="h-3 w-3" />
+                      )}
+                      <span>{payee.payee_name}</span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </Command>
+          </PopoverContent>
+        </Popover>
 
         {/* Client Filter - Searchable Dropdown */}
         <Popover>
@@ -268,15 +296,15 @@ export const ProjectFilters = ({
           </Popover>
         </div>
 
-        {/* Budget Range */}
+        {/* Amount Range */}
         <div className="flex gap-2">
           <Input
             type="number"
             placeholder="Min $"
-            value={filters.budgetRange.min || ''}
+            value={filters.amountRange.min || ''}
             onChange={(e) => updateFilters({ 
-              budgetRange: { 
-                ...filters.budgetRange, 
+              amountRange: { 
+                ...filters.amountRange, 
                 min: e.target.value ? parseFloat(e.target.value) : null 
               }
             })}
@@ -285,38 +313,15 @@ export const ProjectFilters = ({
           <Input
             type="number"
             placeholder="Max $"
-            value={filters.budgetRange.max || ''}
+            value={filters.amountRange.max || ''}
             onChange={(e) => updateFilters({ 
-              budgetRange: { 
-                ...filters.budgetRange, 
+              amountRange: { 
+                ...filters.amountRange, 
                 max: e.target.value ? parseFloat(e.target.value) : null 
               }
             })}
             className="h-9"
           />
-        </div>
-
-        {/* Sorting */}
-        <div className="flex gap-2">
-          <Select value={filters.sortBy} onValueChange={(value: 'name' | 'date' | 'status' | 'margin') => updateFilters({ sortBy: value })}>
-            <SelectTrigger className="h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name">Name</SelectItem>
-              <SelectItem value="date">Date Created</SelectItem>
-              <SelectItem value="status">Status</SelectItem>
-              <SelectItem value="margin">Margin %</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => updateFilters({ sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' })}
-            className="h-9 w-9"
-          >
-            {filters.sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
         </div>
       </div>
     </CollapsibleFilterSection>

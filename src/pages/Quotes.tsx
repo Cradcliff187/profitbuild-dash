@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FileText, Plus, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuoteForm } from "@/components/QuoteForm";
 import { QuotesList } from "@/components/QuotesList";
 import { QuoteComparison } from "@/components/QuoteComparison";
+import { QuoteFilters, QuoteSearchFilters } from "@/components/QuoteFilters";
 import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,14 +14,127 @@ const Quotes = () => {
   const { toast } = useToast();
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'compare'>('list');
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [filteredQuotes, setFilteredQuotes] = useState<Quote[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<Quote>();
   const [loading, setLoading] = useState(true);
+  const [clients, setClients] = useState<Array<{ id: string; client_name: string; }>>([]);
+  const [payees, setPayees] = useState<Array<{ id: string; payee_name: string; }>>([]);
+  const [searchFilters, setSearchFilters] = useState<QuoteSearchFilters>({
+    searchText: '',
+    status: [],
+    payeeName: '',
+    clientName: '',
+    dateRange: { start: null, end: null },
+    amountRange: { min: null, max: null },
+  });
 
   // Load data from Supabase on mount
   useEffect(() => {
     fetchData();
+    loadClients();
+    loadPayees();
   }, []);
+
+  // Apply filters when quotes or filters change
+  useEffect(() => {
+    applyFilters();
+  }, [quotes, searchFilters]);
+
+  const loadClients = async () => {
+    const { data, error } = await supabase
+      .from('clients')
+      .select('id, client_name')
+      .eq('is_active', true)
+      .order('client_name', { ascending: true });
+    
+    if (error) {
+      console.error('Error loading clients:', error);
+      return;
+    }
+    
+    setClients(data || []);
+  };
+
+  const loadPayees = async () => {
+    const { data, error } = await supabase
+      .from('payees')
+      .select('id, payee_name')
+      .eq('is_active', true)
+      .order('payee_name', { ascending: true });
+    
+    if (error) {
+      console.error('Error loading payees:', error);
+      return;
+    }
+    
+    setPayees(data || []);
+  };
+
+  const applyFilters = () => {
+    let filtered = [...quotes];
+
+    // Text search
+    if (searchFilters.searchText) {
+      const searchText = searchFilters.searchText.toLowerCase();
+      filtered = filtered.filter(quote => 
+        quote.quoteNumber.toLowerCase().includes(searchText) ||
+        quote.projectName?.toLowerCase().includes(searchText) ||
+        quote.client?.toLowerCase().includes(searchText) ||
+        quote.quotedBy?.toLowerCase().includes(searchText) ||
+        quote.notes?.toLowerCase().includes(searchText)
+      );
+    }
+
+    // Status filter
+    if (searchFilters.status.length > 0) {
+      filtered = filtered.filter(quote => 
+        searchFilters.status.includes(quote.status)
+      );
+    }
+
+    // Payee filter
+    if (searchFilters.payeeName) {
+      const payeeName = searchFilters.payeeName.toLowerCase();
+      filtered = filtered.filter(quote => 
+        quote.quotedBy?.toLowerCase().includes(payeeName)
+      );
+    }
+
+    // Client filter
+    if (searchFilters.clientName) {
+      const clientName = searchFilters.clientName.toLowerCase();
+      filtered = filtered.filter(quote => 
+        quote.client?.toLowerCase().includes(clientName)
+      );
+    }
+
+    // Date range filter
+    if (searchFilters.dateRange.start) {
+      filtered = filtered.filter(quote => 
+        new Date(quote.dateReceived) >= searchFilters.dateRange.start!
+      );
+    }
+    if (searchFilters.dateRange.end) {
+      filtered = filtered.filter(quote => 
+        new Date(quote.dateReceived) <= searchFilters.dateRange.end!
+      );
+    }
+
+    // Amount range filter
+    if (searchFilters.amountRange.min !== null) {
+      filtered = filtered.filter(quote => 
+        quote.total >= searchFilters.amountRange.min!
+      );
+    }
+    if (searchFilters.amountRange.max !== null) {
+      filtered = filtered.filter(quote => 
+        quote.total <= searchFilters.amountRange.max!
+      );
+    }
+
+    setFilteredQuotes(filtered);
+  };
 
   const fetchData = async () => {
     try {
@@ -425,55 +539,53 @@ const Quotes = () => {
   return (
     <div className="space-y-3">
       {/* Header */}
-      {view === 'list' && (
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-bold">Quotes</h1>
-            <p className="text-muted-foreground">
-              Manage project quotes and compare against estimates
-            </p>
-          </div>
-          
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-xl font-bold">
+            {view === 'list' ? 'Quotes' : 
+             view === 'create' ? 'Create New Quote' :
+             view === 'edit' ? 'Edit Quote' :
+             'Compare Quote'}
+          </h1>
+          <p className="text-muted-foreground">
+            {view === 'list' ? 'Manage project quotes and compare against estimates' :
+             view === 'create' ? 'Enter quote details below' :
+             view === 'edit' ? 'Update quote details' :
+             selectedQuote ? `Compare quote ${selectedQuote.quoteNumber} against estimate` : ''}
+          </p>
+        </div>
+        
+        {view === 'list' && (
           <Button onClick={() => setView('create')} size="sm">
             <Plus className="h-4 w-4 mr-2" />
             New Quote
           </Button>
-        </div>
-      )}
-      
-      {view === 'create' && (
-        <div className="flex items-center gap-2">
-          <FileText className="h-5 w-5 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold">Create New Quote</h1>
-            <p className="text-sm text-muted-foreground">Enter quote details below</p>
-          </div>
-        </div>
-      )}
-      
-      {view === 'edit' && (
-        <div className="flex items-center gap-2">
-          <FileText className="h-5 w-5 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold">Edit Quote</h1>
-            <p className="text-sm text-muted-foreground">Update quote details</p>
-          </div>
-        </div>
-      )}
-      
-      {view === 'compare' && selectedQuote && (
-        <div className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold">Compare Quote</h1>
-            <p className="text-sm text-muted-foreground">
-              Compare quote {selectedQuote.quoteNumber} against estimate
-            </p>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Content */}
+      {view === 'list' && (
+        <>
+          <QuoteFilters
+            filters={searchFilters}
+            onFiltersChange={setSearchFilters}
+            resultCount={filteredQuotes.length}
+            clients={clients}
+            payees={payees}
+          />
+          <QuotesList
+            quotes={filteredQuotes}
+            estimates={estimates}
+            onEdit={handleEditQuote}
+            onDelete={handleDeleteQuote}
+            onCompare={handleCompareQuote}
+            onAccept={handleAcceptQuote}
+            onExpire={handleExpireQuotes}
+            onCreateNew={() => setView('create')}
+          />
+        </>
+      )}
+
       {view === 'create' && (
         <QuoteForm
           estimates={estimates}
@@ -488,19 +600,6 @@ const Quotes = () => {
           initialQuote={selectedQuote}
           onSave={handleSaveQuote}
           onCancel={() => { setView('list'); setSelectedQuote(undefined); }}
-        />
-      )}
-
-      {view === 'list' && (
-        <QuotesList
-          quotes={quotes}
-          estimates={estimates}
-          onEdit={handleEditQuote}
-          onDelete={handleDeleteQuote}
-          onCompare={handleCompareQuote}
-          onAccept={handleAcceptQuote}
-          onExpire={handleExpireQuotes}
-          onCreateNew={() => setView('create')}
         />
       )}
 

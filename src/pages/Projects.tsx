@@ -499,14 +499,14 @@ const Projects = () => {
                 onFiltersChange={setFilters}
                 resultCount={filteredAndSortedProjects.length}
                 clients={clients}
-                actions={
+                leftActions={
                   !isMobile ? (
                     <>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setDisplayMode('cards')}
-                        className="h-7 px-2"
+                        className="h-6 px-2"
                       >
                         <Grid className={cn("h-3 w-3", displayMode === 'cards' && "text-primary")} />
                       </Button>
@@ -514,7 +514,7 @@ const Projects = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => setDisplayMode('table')}
-                        className="h-7 px-2"
+                        className="h-6 px-2"
                       >
                         <Table className={cn("h-3 w-3", displayMode === 'table' && "text-primary")} />
                       </Button>
