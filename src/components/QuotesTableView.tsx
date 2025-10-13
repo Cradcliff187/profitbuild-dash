@@ -154,7 +154,6 @@ export const QuotesTableView = ({
     ([projectId, projectQuotes]) => ({
       groupKey: projectId,
       groupLabel: `${projectQuotes[0].projectName} - ${projectQuotes[0].client}`,
-      groupLabelCollapsed: projectQuotes[0].quoteNumber,
       items: projectQuotes,
       isCollapsible: true,
       defaultExpanded: true,

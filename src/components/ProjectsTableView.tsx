@@ -967,7 +967,6 @@ export const ProjectsTableView = ({
     ([clientName, clientProjects]) => ({
       groupKey: clientName,
       groupLabel: `${clientName} - ${clientProjects.length} Project${clientProjects.length !== 1 ? 's' : ''}`,
-      groupLabelCollapsed: clientName,
       items: clientProjects,
       isCollapsible: true,
       defaultExpanded: true,

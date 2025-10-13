@@ -227,7 +227,7 @@ export function FinancialTableTemplate<T>({
                     }
                   </Button>
               )}
-              <span>{isCollapsed ? group.groupLabel : (group.groupLabelCollapsed || group.groupLabel)}</span>
+              <span>{group.groupLabel}</span>
               {group.items.length > 0 && (
                 <Badge variant="outline" className="text-xs">
                   {group.items.length}
