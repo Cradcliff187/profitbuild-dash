@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download } from "lucide-react";
+import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -56,6 +56,7 @@ const Navigation = () => {
   const primaryItems = [
     { to: "/", label: "Dashboard", icon: Building2 },
     { to: "/projects", label: "Projects", icon: Building2 },
+    { to: "/time-tracker", label: "Time Tracker", icon: Clock },
     { to: "/estimates", label: "Estimates", icon: Calculator },
     { to: "/expenses", label: "Expenses", icon: Receipt },
   ];

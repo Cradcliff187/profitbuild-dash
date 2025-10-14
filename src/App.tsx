@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 
 // Lazy load heavy pages
 const WorkOrders = lazy(() => import("./pages/WorkOrders"));
+const TimeTracker = lazy(() => import("./pages/TimeTracker"));
 const Estimates = lazy(() => import("./pages/Estimates"));
 const Quotes = lazy(() => import("./pages/Quotes"));
 const Expenses = lazy(() => import("./pages/Expenses"));
@@ -53,6 +54,7 @@ const App = () => (
                   <Route index element={<Dashboard />} />
                   <Route path="dashboard" element={<Navigate to="/" replace />} />
                   <Route path="work-orders" element={<LazyRoute component={WorkOrders} />} />
+                  <Route path="time-tracker" element={<LazyRoute component={TimeTracker} />} />
                   <Route path="projects" element={<Projects />} />
                   <Route path="projects/:id/*" element={<LazyRoute component={ProjectDetail} />} />
                   <Route path="projects/:id/capture" element={<LazyRoute component={FieldPhotoCapture} />} />
