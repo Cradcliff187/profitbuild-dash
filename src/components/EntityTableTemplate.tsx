@@ -1,19 +1,22 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Eye, Edit2, Trash2 } from 'lucide-react';
+import { Eye, Edit2, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { CompletePagination } from '@/components/ui/complete-pagination';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { usePagination } from '@/hooks/usePagination';
+import { cn } from '@/lib/utils';
 
 interface Column {
   key: string;
   label: string;
   render?: (item: any) => React.ReactNode;
+  sortable?: boolean;
+  sortKey?: string;
 }
 
 interface EntityTableTemplateProps {
@@ -37,6 +40,10 @@ interface EntityTableTemplateProps {
   pageSize?: number;
   currentPage?: number;
   onPageChange?: (page: number) => void;
+  // Sorting props
+  enableSorting?: boolean;
+  defaultSortColumn?: string;
+  defaultSortDirection?: 'asc' | 'desc';
 }
 
 export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
@@ -58,11 +65,67 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
   enablePagination = false,
   pageSize = 25,
   currentPage,
-  onPageChange
+  onPageChange,
+  enableSorting = false,
+  defaultSortColumn,
+  defaultSortDirection = 'asc',
 }) => {
+  const [sortColumn, setSortColumn] = useState<string | null>(defaultSortColumn || null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(defaultSortDirection);
+
+  const handleSort = (columnKey: string) => {
+    if (!enableSorting) return;
+    
+    if (sortColumn === columnKey) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedData = useMemo(() => {
+    if (!enableSorting || !sortColumn) return data;
+    
+    return [...data].sort((a, b) => {
+      const aValue = a[sortColumn];
+      const bValue = b[sortColumn];
+      
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+      
+      if (aValue instanceof Date && bValue instanceof Date) {
+        return sortDirection === 'asc' 
+          ? aValue.getTime() - bValue.getTime()
+          : bValue.getTime() - aValue.getTime();
+      }
+      
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' 
+          ? aValue - bValue
+          : bValue - aValue;
+      }
+      
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      
+      if (sortDirection === 'asc') {
+        return aStr < bStr ? -1 : aStr > bStr ? 1 : 0;
+      } else {
+        return aStr > bStr ? -1 : aStr < bStr ? 1 : 0;
+      }
+    });
+  }, [data, sortColumn, sortDirection, enableSorting]);
+
+  const renderSortIcon = (columnKey: string) => {
+    if (!enableSorting || sortColumn !== columnKey) return null;
+    return sortDirection === 'asc' ? 
+      <ChevronUp className="h-3 w-3 ml-1 inline" /> : 
+      <ChevronDown className="h-3 w-3 ml-1 inline" />;
+  };
   // Pagination logic
   const pagination = usePagination({
-    totalItems: data.length,
+    totalItems: sortedData.length,
     pageSize: pageSize,
     initialPage: currentPage || 1,
   });
@@ -74,13 +137,13 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
 
   // Calculate displayed data based on pagination
   const displayedData = enablePagination 
-    ? data.slice(
+    ? sortedData.slice(
         (currentPageValue - 1) * pageSize,
         currentPageValue * pageSize
       )
-    : data;
+    : sortedData;
 
-  const totalPages = Math.ceil(data.length / pageSize);
+  const totalPages = Math.ceil(sortedData.length / pageSize);
 
   if (isLoading) {
     return (
@@ -138,7 +201,19 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
                         />
                       </TableHead>
                       {columns.map((column) => (
-                        <TableHead key={column.key} className="p-compact text-label font-medium">{column.label}</TableHead>
+                        <TableHead 
+                          key={column.key} 
+                          className={cn(
+                            "p-compact text-label font-medium",
+                            enableSorting && column.sortable !== false && "cursor-pointer hover:text-foreground select-none"
+                          )}
+                          onClick={() => column.sortable !== false && handleSort(column.key)}
+                        >
+                          <div className="flex items-center">
+                            {column.label}
+                            {renderSortIcon(column.key)}
+                          </div>
+                        </TableHead>
                       ))}
                       <TableHead className="w-24 p-compact text-label">Actions</TableHead>
                     </TableRow>

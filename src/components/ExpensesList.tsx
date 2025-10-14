@@ -220,6 +220,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     {
       key: 'expense_date',
       label: 'Date',
+      sortable: true,
       render: (expense: Expense) => (
         <div className="text-data font-mono">
           {expense.expense_date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
@@ -229,6 +230,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     {
       key: 'project_name',
       label: 'Project',
+      sortable: true,
       render: (expense: Expense) => (
         <div className={expense.project_name?.includes("Unassigned") ? "text-muted-foreground italic" : ""}>
           {expense.project_name}
@@ -237,11 +239,13 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     },
     {
       key: 'payee_name',
-      label: 'Payee'
+      label: 'Payee',
+      sortable: true,
     },
     {
       key: 'category',
       label: 'Category',
+      sortable: true,
       render: (expense: Expense) => (
         <Badge variant={getCategoryBadgeVariant(expense.category)} className="compact-badge">
           {EXPENSE_CATEGORY_DISPLAY[expense.category]}
@@ -251,6 +255,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     {
       key: 'transaction_type',
       label: 'Type',
+      sortable: true,
       render: (expense: Expense) => (
         <Badge variant={getTypeBadgeVariant(expense.transaction_type)} className="compact-badge">
           {TRANSACTION_TYPE_DISPLAY[expense.transaction_type]}
@@ -260,6 +265,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     {
       key: 'amount',
       label: 'Amount',
+      sortable: true,
       render: (expense: Expense) => (
         <div className="text-right text-data font-mono font-medium">
           {formatCurrency(expense.amount, { showCents: true })}
@@ -269,6 +275,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     {
       key: 'line_item_match',
       label: 'Line Item Match',
+      sortable: false,
       render: (expense: Expense) => (
         <Badge variant={expenseMatches[expense.id] ? 'default' : 'outline'} className="compact-badge">
           {expenseMatches[expense.id] ? 'Matched' : 'Unmatched'}
@@ -364,6 +371,9 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         onDelete={handleDelete}
         enablePagination={enablePagination}
         pageSize={pageSize}
+        enableSorting={true}
+        defaultSortColumn="expense_date"
+        defaultSortDirection="desc"
         bulkActions={
           selectedExpenses.length > 0 ? (
             <ExpenseBulkActions
