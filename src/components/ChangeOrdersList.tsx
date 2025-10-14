@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ChangeOrderStatusBadge, ChangeOrderStatus } from './ChangeOrderStatusBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import type { Database } from '@/integrations/supabase/types';
@@ -36,6 +37,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const fetchChangeOrders = async () => {
     try {
@@ -101,12 +103,21 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
 
   const handleApprove = async (changeOrder: ChangeOrder) => {
     try {
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to approve change orders.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('change_orders')
         .update({
           status: 'approved',
           approved_date: new Date().toISOString().split('T')[0],
-          approved_by: null // Will be updated when auth system is implemented
+          approved_by: user.id
         })
         .eq('id', changeOrder.id);
 
@@ -114,7 +125,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
 
       setChangeOrders(prev => prev.map(co => 
         co.id === changeOrder.id 
-          ? { ...co, status: 'approved', approved_date: new Date().toISOString().split('T')[0], approved_by: null }
+          ? { ...co, status: 'approved', approved_date: new Date().toISOString().split('T')[0], approved_by: user.id }
           : co
       ));
       
@@ -126,7 +137,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
       console.error('Error approving change order:', error);
       toast({
         title: "Error",
-        description: "Failed to approve change order.",
+        description: error instanceof Error ? error.message : "Failed to approve change order.",
         variant: "destructive",
       });
     }
