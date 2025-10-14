@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, DollarSign, Calendar, Clock, AlertTriangle, Filter, Trash2 } from "lucide-react";
 import { ProjectStatusSelector } from "@/components/ProjectStatusSelector";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ import { ProjectWithFinancials } from "@/utils/projectFinancials";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "@/components/FinancialTableTemplate";
 
 import { cn, formatCurrency } from "@/lib/utils";
+import { ColumnSelector } from "@/components/ui/column-selector";
 
 interface ProjectsTableViewProps {
   projects: ProjectWithFinancials[];
@@ -57,6 +58,33 @@ export const ProjectsTableView = ({
   });
 
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
+
+  // Column visibility state with localStorage persistence
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem('projects-visible-columns');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    // Default visible columns
+    return [
+      'project_number',
+      'status',
+      'start_date',
+      'end_date',
+      'duration',
+      'contracted_amount',
+      'changeOrders',
+      'revenueToCost',
+      'marginPercent',
+      'marginDollars',
+      'actions'
+    ];
+  });
+
+  // Save visibility to localStorage
+  useEffect(() => {
+    localStorage.setItem('projects-visible-columns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
 
   const handleViewDetails = (project: Project) => {
     window.location.href = `/projects/${project.id}`;
@@ -276,7 +304,29 @@ export const ProjectsTableView = ({
     return estimates.some(e => e.project_id === projectId);
   };
 
-  const columns: FinancialTableColumn<ProjectWithFinancials>[] = [
+  // Define column metadata for selector
+  const columnDefinitions = [
+    { key: 'project_number', label: 'Project #', required: true },
+    { key: 'status', label: 'Status', required: true },
+    { key: 'start_date', label: 'Start Date', required: false },
+    { key: 'end_date', label: 'Target/End Date', required: false },
+    { key: 'duration', label: 'Schedule', required: false },
+    { key: 'contracted_amount', label: 'Contract Value', required: false },
+    { key: 'originalContract', label: 'Original Contract', required: false },
+    { key: 'changeOrders', label: 'Change Orders', required: false },
+    { key: 'originalEstimatedCosts', label: 'Original Est. Costs', required: false },
+    { key: 'originalEstimatedMargin', label: 'Original Est. Margin ($)', required: false },
+    { key: 'adjusted_est_costs', label: 'Adjusted Est. Costs', required: false },
+    { key: 'cost_variance', label: 'Cost Variance', required: false },
+    { key: 'projected_margin', label: 'Projected Margin ($)', required: false },
+    { key: 'margin_percentage', label: 'Projected Margin %', required: false },
+    { key: 'actual_expenses', label: 'Actual Expenses', required: false },
+    { key: 'line_items', label: 'Line Items', required: false },
+    { key: 'contingency_remaining', label: 'Contingency', required: false },
+    { key: 'actions', label: 'Actions', required: true },
+  ];
+
+  const allColumns: FinancialTableColumn<ProjectWithFinancials>[] = [
     {
       key: 'project_number',
       label: 'Project #',
@@ -549,7 +599,7 @@ export const ProjectsTableView = ({
     {
       key: 'changeOrders',
       label: 'Change Orders',
-      align: 'center' as const,
+      align: 'right' as const,
       sortable: true,
       render: (project: ProjectWithFinancials) => {
         const hasChangeOrders = (project.changeOrderCount || 0) > 0;
@@ -559,8 +609,8 @@ export const ProjectsTableView = ({
         
         if (!hasChangeOrders) {
           return (
-            <div className="flex items-center justify-center">
-              <span className="text-muted-foreground text-xs">None</span>
+            <div className="text-right">
+              <span className="text-muted-foreground text-xs font-mono tabular-nums">—</span>
             </div>
           );
         }
@@ -568,23 +618,24 @@ export const ProjectsTableView = ({
         return (
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center justify-center cursor-help">
-                <div className={`text-xs px-2 py-0.5 rounded ${
-                  netImpact > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' :
-                  netImpact < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' :
-                  'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400'
-                }`}>
+              <div className="text-right cursor-help">
+                <div className={cn(
+                  "font-medium text-sm font-mono tabular-nums",
+                  netImpact > 0 && "text-green-600 dark:text-green-400",
+                  netImpact < 0 && "text-red-600 dark:text-red-400",
+                  netImpact === 0 && "text-muted-foreground"
+                )}>
                   {formatCurrency(netImpact)}
                 </div>
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <div>
+              <div className="text-xs space-y-1">
                 <p><strong>Change Orders:</strong> {project.changeOrderCount} approved</p>
                 <p><strong>Revenue Impact:</strong> {formatCurrency(changeOrderRevenue)}</p>
                 <p><strong>Cost Impact:</strong> {formatCurrency(changeOrderCosts)}</p>
                 <p><strong>Net Impact:</strong> {formatCurrency(netImpact)}</p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-muted-foreground mt-1">
                   {netImpact > 0 ? 'Positive impact on project profitability' :
                    netImpact < 0 ? 'Negative impact on project profitability' :
                    'Neutral impact on project profitability'}
@@ -948,11 +999,25 @@ export const ProjectsTableView = ({
     defaultExpanded: true,
   }));
 
+  // Filter columns based on visibility
+  const columns = allColumns.filter(col => visibleColumns.includes(col.key));
+
   const ProjectsTable = FinancialTableTemplate<ProjectWithFinancials>;
 
   return (
     <TooltipProvider>
       <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {projects.length} {projects.length === 1 ? 'project' : 'projects'}
+          </div>
+          <ColumnSelector
+            columns={columnDefinitions}
+            visibleColumns={visibleColumns}
+            onVisibilityChange={setVisibleColumns}
+          />
+        </div>
+        
         <ProjectsTable
           data={groupedData}
           columns={columns}
