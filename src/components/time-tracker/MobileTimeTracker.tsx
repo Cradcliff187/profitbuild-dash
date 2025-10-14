@@ -6,6 +6,11 @@ import { Geolocation } from '@capacitor/geolocation';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ReceiptCapture } from './ReceiptCapture';
+import { WeekView } from './WeekView';
+import { EditTimeEntryModal } from './EditTimeEntryModal';
+import { ManualEntryModal } from './ManualEntryModal';
+import { BulkActionsBar } from './BulkActionsBar';
+import { ApprovalQueue } from './ApprovalQueue';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Project {
@@ -55,7 +60,10 @@ export const MobileTimeTracker: React.FC = () => {
   const [showWorkerSelect, setShowWorkerSelect] = useState(false);
   const [note, setNote] = useState('');
   const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
-  const [view, setView] = useState<'timer' | 'today'>('timer');
+  const [view, setView] = useState<'timer' | 'today' | 'week' | 'approve'>('timer');
+  const [editingEntry, setEditingEntry] = useState<any>(null);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [showReceiptCapture, setShowReceiptCapture] = useState(false);
@@ -375,25 +383,47 @@ export const MobileTimeTracker: React.FC = () => {
         <div className="flex">
           <button
             onClick={() => setView('timer')}
-            className={`flex-1 py-4 text-center font-semibold transition-all ${
+            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
               view === 'timer' 
                 ? 'text-primary border-b-2 border-primary bg-primary/5' 
                 : 'text-muted-foreground'
             }`}
           >
-            <Clock className="w-5 h-5 mx-auto mb-1" />
+            <Clock className="w-4 h-4 mx-auto mb-1" />
             Timer
           </button>
           <button
             onClick={() => setView('today')}
-            className={`flex-1 py-4 text-center font-semibold transition-all ${
+            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
               view === 'today' 
                 ? 'text-primary border-b-2 border-primary bg-primary/5' 
                 : 'text-muted-foreground'
             }`}
           >
-            <Calendar className="w-5 h-5 mx-auto mb-1" />
+            <Calendar className="w-4 h-4 mx-auto mb-1" />
             Today
+          </button>
+          <button
+            onClick={() => setView('week')}
+            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
+              view === 'week' 
+                ? 'text-primary border-b-2 border-primary bg-primary/5' 
+                : 'text-muted-foreground'
+            }`}
+          >
+            <Calendar className="w-4 h-4 mx-auto mb-1" />
+            Week
+          </button>
+          <button
+            onClick={() => setView('approve')}
+            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
+              view === 'approve' 
+                ? 'text-primary border-b-2 border-primary bg-primary/5' 
+                : 'text-muted-foreground'
+            }`}
+          >
+            <Clock className="w-4 h-4 mx-auto mb-1" />
+            Approve
           </button>
         </div>
       </div>
@@ -649,6 +679,23 @@ export const MobileTimeTracker: React.FC = () => {
         </div>
       )}
 
+      {/* Week View */}
+      {view === 'week' && (
+        <div className="p-4">
+          <WeekView
+            onEditEntry={(entry) => setEditingEntry(entry)}
+            onCreateEntry={() => setShowManualEntry(true)}
+          />
+        </div>
+      )}
+
+      {/* Approve View */}
+      {view === 'approve' && (
+        <div className="p-4">
+          <ApprovalQueue />
+        </div>
+      )}
+
       {/* Receipt Capture Modal */}
       {showReceiptCapture && activeTimer && (
         <ReceiptCapture
@@ -657,6 +704,34 @@ export const MobileTimeTracker: React.FC = () => {
           onSkip={() => completeClockOut()}
         />
       )}
+
+      {/* Edit Time Entry Modal */}
+      <EditTimeEntryModal
+        entry={editingEntry}
+        open={!!editingEntry}
+        onOpenChange={(open) => !open && setEditingEntry(null)}
+        onSaved={() => {
+          loadTodayEntries();
+          setEditingEntry(null);
+        }}
+      />
+
+      {/* Manual Entry Modal */}
+      <ManualEntryModal
+        open={showManualEntry}
+        onOpenChange={setShowManualEntry}
+        onSaved={() => {
+          loadTodayEntries();
+          setShowManualEntry(false);
+        }}
+      />
+
+      {/* Bulk Actions Bar */}
+      <BulkActionsBar
+        selectedIds={selectedEntries}
+        onClearSelection={() => setSelectedEntries([])}
+        onRefresh={loadTodayEntries}
+      />
     </div>
   );
 };

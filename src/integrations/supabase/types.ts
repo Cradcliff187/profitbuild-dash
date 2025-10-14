@@ -380,6 +380,9 @@ export type Database = {
           account_full_name: string | null
           account_name: string | null
           amount: number
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           attachment_url: string | null
           category: Database["public"]["Enums"]["expense_category"]
           created_at: string | null
@@ -387,17 +390,24 @@ export type Database = {
           expense_date: string | null
           id: string
           invoice_number: string | null
+          is_locked: boolean | null
           is_planned: boolean | null
           payee_id: string | null
           project_id: string
           quickbooks_transaction_id: string | null
+          rejection_reason: string | null
+          submitted_for_approval_at: string | null
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           account_full_name?: string | null
           account_name?: string | null
           amount: number
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           attachment_url?: string | null
           category: Database["public"]["Enums"]["expense_category"]
           created_at?: string | null
@@ -405,17 +415,24 @@ export type Database = {
           expense_date?: string | null
           id?: string
           invoice_number?: string | null
+          is_locked?: boolean | null
           is_planned?: boolean | null
           payee_id?: string | null
           project_id: string
           quickbooks_transaction_id?: string | null
+          rejection_reason?: string | null
+          submitted_for_approval_at?: string | null
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           account_full_name?: string | null
           account_name?: string | null
           amount?: number
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           attachment_url?: string | null
           category?: Database["public"]["Enums"]["expense_category"]
           created_at?: string | null
@@ -423,14 +440,25 @@ export type Database = {
           expense_date?: string | null
           id?: string
           invoice_number?: string | null
+          is_locked?: boolean | null
           is_planned?: boolean | null
           payee_id?: string | null
           project_id?: string
           quickbooks_transaction_id?: string | null
+          rejection_reason?: string | null
+          submitted_for_approval_at?: string | null
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_payee_id_fkey"
             columns: ["payee_id"]
@@ -450,6 +478,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
