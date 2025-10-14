@@ -252,7 +252,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       key: 'transaction_type',
       label: 'Type',
       render: (expense: Expense) => (
-        <Badge variant={getTypeBadgeVariant(expense.transaction_type)}>
+        <Badge variant={getTypeBadgeVariant(expense.transaction_type)} className="compact-badge">
           {TRANSACTION_TYPE_DISPLAY[expense.transaction_type]}
         </Badge>
       )
@@ -270,7 +270,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       key: 'line_item_match',
       label: 'Line Item Match',
       render: (expense: Expense) => (
-        <Badge variant={expenseMatches[expense.id] ? 'default' : 'outline'}>
+        <Badge variant={expenseMatches[expense.id] ? 'default' : 'outline'} className="compact-badge">
           {expenseMatches[expense.id] ? 'Matched' : 'Unmatched'}
         </Badge>
       )
