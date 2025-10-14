@@ -284,7 +284,7 @@ export const ProjectsTableView = ({
       render: (project) => (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="font-mono text-xs text-foreground/80 cursor-help">
+            <div className="font-mono text-xs text-foreground/80 cursor-help whitespace-nowrap">
               {project.project_number}
             </div>
           </TooltipTrigger>
@@ -559,7 +559,7 @@ export const ProjectsTableView = ({
         
         if (!hasChangeOrders) {
           return (
-            <div className="text-center">
+            <div className="flex items-center justify-center">
               <span className="text-muted-foreground text-xs">None</span>
             </div>
           );
@@ -568,16 +568,13 @@ export const ProjectsTableView = ({
         return (
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-center cursor-help">
-                <div className="flex flex-col items-center gap-1">
-                  <span className="font-medium text-sm">{project.changeOrderCount}</span>
-                  <div className={`text-xs px-2 py-0.5 rounded ${
-                    netImpact > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' :
-                    netImpact < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' :
-                    'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400'
-                  }`}>
-                    {formatCurrency(netImpact)}
-                  </div>
+              <div className="flex items-center justify-center cursor-help">
+                <div className={`text-xs px-2 py-0.5 rounded ${
+                  netImpact > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' :
+                  netImpact < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' :
+                  'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400'
+                }`}>
+                  {formatCurrency(netImpact)}
                 </div>
               </div>
             </TooltipTrigger>
