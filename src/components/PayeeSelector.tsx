@@ -137,11 +137,13 @@ export const PayeeSelector = ({
 
   const handlePayeeCreated = async () => {
     setShowPayeeForm(false);
-    await refetch();
     
-    // Auto-select the newly created payee (likely the most recently created one)
-    if (payees.length > 0) {
-      const sortedPayees = [...payees].sort((a, b) => 
+    // Refetch and get the updated data
+    const { data: updatedPayees } = await refetch();
+    
+    // Auto-select the newly created payee (the most recently created one)
+    if (updatedPayees && updatedPayees.length > 0) {
+      const sortedPayees = [...updatedPayees].sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       const newestPayee = sortedPayees[0];
