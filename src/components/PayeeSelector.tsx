@@ -21,6 +21,11 @@ interface PayeeSelectorProps {
   error?: string;
   label?: string;
   showLabel?: boolean;
+  filterInternal?: boolean;
+  filterLabor?: boolean;
+  defaultPayeeType?: PayeeType;
+  defaultIsInternal?: boolean;
+  defaultProvidesLabor?: boolean;
 }
 
 export const PayeeSelector = ({ 
@@ -31,7 +36,12 @@ export const PayeeSelector = ({
   required = false,
   error = "",
   label = "Payee",
-  showLabel = true
+  showLabel = true,
+  filterInternal = false,
+  filterLabor = false,
+  defaultPayeeType,
+  defaultIsInternal,
+  defaultProvidesLabor
 }: PayeeSelectorProps) => {
   const [open, setOpen] = useState(false);
   const [showPayeeForm, setShowPayeeForm] = useState(false);
@@ -43,13 +53,21 @@ export const PayeeSelector = ({
   const { toast } = useToast();
 
   const { data: payees = [], refetch } = useQuery({
-    queryKey: ["payees"],
+    queryKey: ["payees", filterInternal, filterLabor],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("payees")
         .select("*")
-        .eq("is_active", true)
-        .order("payee_name");
+        .eq("is_active", true);
+      
+      if (filterInternal) {
+        query = query.eq("is_internal", true);
+      }
+      if (filterLabor) {
+        query = query.eq("provides_labor", true);
+      }
+      
+      const { data, error } = await query.order("payee_name");
       
       if (error) throw error;
       return data as Payee[];
@@ -263,6 +281,9 @@ export const PayeeSelector = ({
         <PayeeForm
           onSuccess={handlePayeeCreated}
           onCancel={() => setShowPayeeForm(false)}
+          defaultPayeeType={defaultPayeeType}
+          defaultIsInternal={defaultIsInternal}
+          defaultProvidesLabor={defaultProvidesLabor}
         />
       )}
     </div>

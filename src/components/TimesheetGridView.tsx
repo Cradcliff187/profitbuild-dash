@@ -10,7 +10,7 @@ import { TimesheetSummary } from "@/components/TimesheetSummary";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Trash2 } from "lucide-react";
-import { Payee } from "@/types/payee";
+import { Payee, PayeeType } from "@/types/payee";
 import { Project } from "@/types/project";
 import { useQuery } from "@tanstack/react-query";
 
@@ -436,31 +436,20 @@ export function TimesheetGridView({ open, onClose, onSuccess, preselectedProject
           <DialogHeader>
             <DialogTitle>Select Internal Worker</DialogTitle>
           </DialogHeader>
-          <div className="max-h-96 overflow-y-auto">
-            <div className="space-y-2 p-2">
-              {internalPayees.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No internal labor workers found. Create one from the Payees page.
-                </p>
-              ) : (
-                internalPayees.map((payee) => (
-                  <Button
-                    key={payee.id}
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => addWorker(payee.id)}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <span>{payee.payee_name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        ${payee.hourly_rate || 0}/hr
-                      </span>
-                    </div>
-                  </Button>
-                ))
-              )}
-            </div>
-          </div>
+          <PayeeSelector
+            value=""
+            onValueChange={(payeeId) => {
+              addWorker(payeeId);
+              setShowPayeeSelector(false);
+            }}
+            placeholder="Select internal worker..."
+            showLabel={false}
+            filterInternal={true}
+            filterLabor={true}
+            defaultPayeeType={PayeeType.INTERNAL_LABOR}
+            defaultIsInternal={true}
+            defaultProvidesLabor={true}
+          />
         </DialogContent>
       </Dialog>
     </>

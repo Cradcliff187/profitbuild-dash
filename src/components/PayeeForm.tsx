@@ -42,9 +42,12 @@ interface PayeeFormProps {
   payee?: Payee;
   onSuccess: () => void;
   onCancel: () => void;
+  defaultPayeeType?: PayeeType;
+  defaultIsInternal?: boolean;
+  defaultProvidesLabor?: boolean;
 }
 
-export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
+export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaultIsInternal, defaultProvidesLabor }: PayeeFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -56,15 +59,15 @@ export const PayeeForm = ({ payee, onSuccess, onCancel }: PayeeFormProps) => {
       phone_numbers: payee?.phone_numbers || "",
       billing_address: payee?.billing_address || "",
       terms: payee?.terms || "Net 30",
-      payee_type: payee?.payee_type || PayeeType.SUBCONTRACTOR,
-      provides_labor: payee?.provides_labor || false,
+      payee_type: payee?.payee_type || defaultPayeeType || PayeeType.SUBCONTRACTOR,
+      provides_labor: payee?.provides_labor || defaultProvidesLabor || false,
       provides_materials: payee?.provides_materials || false,
       requires_1099: payee?.requires_1099 || false,
-      is_internal: payee?.is_internal || false,
+      is_internal: payee?.is_internal || defaultIsInternal || false,
       insurance_expires: payee?.insurance_expires ? new Date(payee.insurance_expires) : undefined,
       license_number: payee?.license_number || "",
       permit_issuer: payee?.permit_issuer || false,
-      hourly_rate: payee?.hourly_rate || "",
+      hourly_rate: payee?.hourly_rate || (defaultPayeeType === PayeeType.INTERNAL_LABOR ? 75 : ""),
     },
   });
 
