@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -15,8 +14,17 @@ interface TimeEntry {
   amount: number;
   description: string;
   approval_status?: string;
-  payee_name?: string;
-  project_name?: string;
+  hours: number;
+  note: string;
+  payee: {
+    payee_name: string;
+  };
+  project: {
+    project_number: string;
+    project_name: string;
+    client_name: string;
+    address?: string;
+  };
 }
 
 interface WeekViewProps {
@@ -28,7 +36,6 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [teamMembers, setTeamMembers] = useState<Array<{ id: string; name: string }>>([]);
 
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -41,36 +48,31 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
     try {
       setLoading(true);
 
-      // Load entries for the week
+      // Load entries for the week - show ALL entries regardless of status
       const { data: entriesData, error: entriesError } = await supabase
         .from('expenses')
         .select(`
           *,
           payees!expenses_payee_id_fkey(payee_name),
-          projects!expenses_project_id_fkey(project_name)
+          projects!expenses_project_id_fkey(project_number, project_name, client_name, address)
         `)
         .eq('category', 'labor_internal')
         .gte('expense_date', format(weekStart, 'yyyy-MM-dd'))
         .lte('expense_date', format(weekEnd, 'yyyy-MM-dd'))
-        .order('expense_date', { ascending: true });
+        .order('expense_date', { ascending: false })
+        .order('created_at', { ascending: false });
 
       if (entriesError) throw entriesError;
 
       const formattedEntries = entriesData.map(entry => ({
         ...entry,
-        payee_name: entry.payees?.payee_name,
-        project_name: entry.projects?.project_name,
+        payee: entry.payees,
+        project: entry.projects,
+        hours: parseFloat(entry.description.match(/(\d+\.?\d*)\s*hours?/i)?.[1] || '0'),
+        note: entry.description.replace(/\d+\.?\d*\s*hours?/i, '').trim()
       }));
 
       setEntries(formattedEntries);
-
-      // Get unique team members
-      const uniqueTeamMembers = Array.from(
-        new Map(
-          formattedEntries.map(e => [e.payee_id, { id: e.payee_id, name: e.payee_name || 'Unknown' }])
-        ).values()
-      );
-      setTeamMembers(uniqueTeamMembers);
     } catch (error) {
       console.error('Error loading week data:', error);
       toast.error('Failed to load timesheet data');
@@ -83,45 +85,6 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
   const goToNextWeek = () => setWeekStart(addWeeks(weekStart, 1));
   const goToToday = () => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
 
-  const getEntriesForWorkerAndDay = (memberId: string, day: Date) => {
-    return entries.filter(
-      e => e.payee_id === memberId && isSameDay(new Date(e.expense_date), day)
-    );
-  };
-
-  const getDayTotal = (day: Date) => {
-    const dayEntries = entries.filter(e => isSameDay(new Date(e.expense_date), day));
-    return dayEntries.reduce((sum, e) => {
-      const hours = parseFloat(e.description.match(/(\d+\.?\d*)\s*hours?/i)?.[1] || '0');
-      return sum + hours;
-    }, 0);
-  };
-
-  const getWorkerTotal = (memberId: string) => {
-    const memberEntries = entries.filter(e => e.payee_id === memberId);
-    return memberEntries.reduce((sum, e) => {
-      const hours = parseFloat(e.description.match(/(\d+\.?\d*)\s*hours?/i)?.[1] || '0');
-      return sum + hours;
-    }, 0);
-  };
-
-  const getStatusBadge = (status?: string) => {
-    if (!status || status === 'draft') return null;
-    
-    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-      pending: 'secondary',
-      approved: 'default',
-      rejected: 'destructive',
-      locked: 'outline',
-    };
-    
-    return (
-      <Badge variant={variants[status] || 'outline'} className="text-xs">
-        {status}
-      </Badge>
-    );
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -133,7 +96,7 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
   return (
     <div className="space-y-3">
       {/* Week Navigation */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-medium">
@@ -150,89 +113,116 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
           <Button size="sm" variant="outline" onClick={goToNextWeek}>
             <ChevronRight className="w-4 h-4" />
           </Button>
-          <Button size="sm" onClick={onCreateEntry}>
-            <Plus className="w-4 h-4 mr-1" />
-            Add
-          </Button>
         </div>
       </div>
 
-      {/* Week Grid */}
-      <Card className="overflow-x-auto">
-        <div className="min-w-[800px]">
-          {/* Header Row */}
-          <div className="grid grid-cols-8 border-b bg-muted/30">
-            <div className="p-2 text-xs font-medium border-r">Team Member</div>
-            {weekDays.map((day, i) => (
-              <div key={i} className="p-2 text-center text-xs font-medium border-r last:border-r-0">
-                <div>{format(day, 'EEE')}</div>
-                <div className="text-muted-foreground">{format(day, 'd')}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Team Member Rows */}
-          {teamMembers.map(member => (
-            <div key={member.id} className="grid grid-cols-8 border-b last:border-b-0 hover:bg-muted/20">
-              <div className="p-2 text-sm border-r font-medium truncate">
-                {member.name}
-              </div>
-              {weekDays.map((day, i) => {
-                const dayEntries = getEntriesForWorkerAndDay(member.id, day);
-                const totalHours = dayEntries.reduce((sum, e) => {
-                  const hours = parseFloat(e.description.match(/(\d+\.?\d*)\s*hours?/i)?.[1] || '0');
-                  return sum + hours;
-                }, 0);
-
-                return (
-                  <div
-                    key={i}
-                    className="p-2 text-center border-r last:border-r-0 cursor-pointer hover:bg-accent/50"
-                    onClick={() => dayEntries[0] && onEditEntry(dayEntries[0])}
-                  >
-                    {totalHours > 0 ? (
-                      <div className="space-y-1">
-                        <div className={`text-sm font-medium ${
-                          totalHours < 8 ? 'text-yellow-600' : 
-                          totalHours === 8 ? 'text-green-600' : 
-                          'text-blue-600'
-                        }`}>
-                          {totalHours.toFixed(1)}
-                        </div>
-                        {dayEntries.length > 0 && getStatusBadge(dayEntries[0].approval_status)}
-                      </div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground">---</div>
-                    )}
-                  </div>
-                );
-              })}
+      {/* Week Summary Card */}
+      <div className="bg-card rounded-xl shadow-sm p-4 mb-4 border">
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="text-3xl font-bold text-primary">
+              {entries.reduce((sum, e) => sum + e.hours, 0).toFixed(1)} hrs
             </div>
-          ))}
-
-          {/* Totals Row */}
-          <div className="grid grid-cols-8 bg-muted/40">
-            <div className="p-2 text-sm font-medium border-r">Daily Total</div>
-            {weekDays.map((day, i) => {
-              const total = getDayTotal(day);
-              return (
-                <div key={i} className="p-2 text-center text-sm font-medium border-r last:border-r-0">
-                  {total > 0 ? total.toFixed(1) : '---'}
-                </div>
-              );
-            })}
+            <div className="text-sm text-muted-foreground">
+              Total hours this week • {entries.length} entries
+            </div>
           </div>
         </div>
-      </Card>
-
-      {/* Summary */}
-      <div className="text-xs text-muted-foreground text-right">
-        Total entries: {entries.length} • 
-        Total hours: {entries.reduce((sum, e) => {
-          const hours = parseFloat(e.description.match(/(\d+\.?\d*)\s*hours?/i)?.[1] || '0');
-          return sum + hours;
-        }, 0).toFixed(1)}
       </div>
+
+      {/* Empty State */}
+      {entries.length === 0 ? (
+        <div className="bg-card rounded-xl shadow-sm p-8 text-center border">
+          <Clock className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground font-semibold mb-2">No time entries this week</p>
+          <p className="text-sm text-muted-foreground">Entries will appear here once logged</p>
+        </div>
+      ) : (
+        // Group entries by date
+        weekDays.map(day => {
+          const dayEntries = entries.filter(e => 
+            isSameDay(new Date(e.expense_date), day)
+          );
+          
+          if (dayEntries.length === 0) return null;
+          
+          const dayTotal = dayEntries.reduce((sum, e) => sum + e.hours, 0);
+          
+          return (
+            <div key={day.toISOString()} className="space-y-2">
+              {/* Day Header */}
+              <div className="flex items-center justify-between px-3 py-2 bg-muted/30 rounded-lg">
+                <div className="text-sm font-semibold">
+                  {format(day, 'EEEE, MMM d')}
+                </div>
+                <div className="text-sm font-medium text-primary">
+                  {dayTotal.toFixed(1)} hrs
+                </div>
+              </div>
+              
+              {/* Day's Time Entry Cards */}
+              {dayEntries.map(entry => (
+                <div 
+                  key={entry.id} 
+                  className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary cursor-pointer hover:shadow-md transition-shadow border"
+                  onClick={() => onEditEntry(entry)}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      {/* Team Member */}
+                      <div className="font-semibold text-foreground">
+                        {entry.payee.payee_name}
+                      </div>
+                      
+                      {/* Project Info */}
+                      <div className="text-sm text-muted-foreground">
+                        {entry.project.project_number} - {entry.project.client_name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {entry.project.project_name}
+                      </div>
+                      {entry.project.address && (
+                        <div className="text-xs text-muted-foreground">
+                          {entry.project.address}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="text-right">
+                      {/* Hours */}
+                      <div className="font-bold text-primary">
+                        {entry.hours.toFixed(2)} hrs
+                      </div>
+                      
+                      {/* Status Badge */}
+                      {entry.approval_status && entry.approval_status !== 'draft' && (
+                        <Badge 
+                          variant={
+                            entry.approval_status === 'approved' ? 'default' :
+                            entry.approval_status === 'pending' ? 'secondary' :
+                            entry.approval_status === 'rejected' ? 'destructive' :
+                            'outline'
+                          }
+                          className="text-xs mt-1"
+                        >
+                          {entry.approval_status}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Note */}
+                  {entry.note && (
+                    <div className="bg-muted rounded p-2 text-sm text-muted-foreground mt-2">
+                      {entry.note}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        })
+      )}
     </div>
   );
 };
