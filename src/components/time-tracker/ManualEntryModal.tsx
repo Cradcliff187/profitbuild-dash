@@ -56,6 +56,7 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
         .select('id, project_name, project_number, address')
         .in('status', ['approved', 'in_progress'])
         .neq('project_number', '000-UNASSIGNED')
+        .neq('project_number', 'SYS-000')
         .order('project_number', { ascending: false });
 
       if (projectsError) throw projectsError;

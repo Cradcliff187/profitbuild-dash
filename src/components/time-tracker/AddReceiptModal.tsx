@@ -47,6 +47,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
         .from('projects')
         .select('id, project_number, project_name, client_name')
         .in('status', ['estimating', 'quoted', 'approved', 'in_progress'])
+        .neq('project_number', 'SYS-000')
         .order('created_at', { ascending: false });
 
       setProjects(data || []);
@@ -201,7 +202,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
               </SelectTrigger>
               <SelectContent>
                 {projects
-                  .filter(p => p.project_number !== 'SYS-000')
+                  .filter(p => !p.project_number.startsWith('SYS-') && p.project_number !== '000-UNASSIGNED')
                   .map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.project_number} - {project.project_name}
