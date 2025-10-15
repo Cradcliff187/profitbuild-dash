@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { Receipt, Loader2, Search, Trash2, Eye } from 'lucide-react';
+import { Receipt, Loader2, Search, Trash2, Eye, Plus } from 'lucide-react';
+import { AddReceiptModal } from './AddReceiptModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -28,6 +29,7 @@ export const ReceiptsList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     loadReceipts();
@@ -266,6 +268,27 @@ export const ReceiptsList = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Floating Add Receipt Button */}
+      <div className="fixed bottom-24 right-6 z-20">
+        <Button
+          onClick={() => setShowAddModal(true)}
+          size="lg"
+          className="h-14 w-14 rounded-full shadow-lg hover:scale-105 transition-transform"
+        >
+          <Plus className="w-6 h-6" />
+        </Button>
+      </div>
+
+      {/* Add Receipt Modal */}
+      <AddReceiptModal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={(receipt) => {
+          loadReceipts();
+          setShowAddModal(false);
+        }}
+      />
     </div>
   );
 };

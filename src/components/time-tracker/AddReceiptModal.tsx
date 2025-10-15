@@ -21,7 +21,7 @@ interface Project {
 interface AddReceiptModalProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (receipt: { id: string }) => void;
 }
 
 export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
@@ -119,7 +119,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
       if (!urlData?.signedUrl) throw new Error('Failed to get signed URL');
 
       // Create receipt record (NOT an expense)
-      const { error: receiptError } = await supabase
+      const { data: receiptData, error: receiptError } = await supabase
         .from('receipts')
         .insert({
           user_id: user.id,
@@ -129,12 +129,14 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
           project_id: selectedProjectId || null,
           description: description || null,
           captured_at: new Date().toISOString(),
-        });
+        })
+        .select()
+        .single();
 
       if (receiptError) throw receiptError;
 
       toast.success('Receipt saved successfully');
-      onSuccess?.();
+      onSuccess?.(receiptData);
       handleClose();
     } catch (error) {
       console.error('Failed to save receipt:', error);

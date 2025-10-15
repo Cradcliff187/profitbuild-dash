@@ -6,7 +6,7 @@ import { Geolocation } from '@capacitor/geolocation';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { ReceiptCapture } from './ReceiptCapture';
+import { AddReceiptModal } from './AddReceiptModal';
 import { WeekView } from './WeekView';
 import { EditTimeEntryModal } from './EditTimeEntryModal';
 import { ManualEntryModal } from './ManualEntryModal';
@@ -74,7 +74,7 @@ export const MobileTimeTracker: React.FC = () => {
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
-  const [showReceiptCapture, setShowReceiptCapture] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [pendingReceiptExpenseId, setPendingReceiptExpenseId] = useState<string | null>(null);
 
   // Load projects and workers on mount
@@ -319,15 +319,15 @@ export const MobileTimeTracker: React.FC = () => {
     }
   };
 
-  const handleReceiptCaptured = useCallback(async (url: string) => {
-    setShowReceiptCapture(false);
+  const handleReceiptFromClockOut = async (receiptId: string) => {
+    setShowReceiptModal(false);
     
-    // Update existing expense with receipt URL
+    // Link the receipt to the expense
     if (pendingReceiptExpenseId) {
       try {
         const { error } = await supabase
           .from('expenses')
-          .update({ attachment_url: url })
+          .update({ receipt_id: receiptId })
           .eq('id', pendingReceiptExpenseId);
 
         if (error) throw error;
@@ -339,17 +339,17 @@ export const MobileTimeTracker: React.FC = () => {
 
         await loadTodayEntries();
       } catch (error) {
-        console.error('Error attaching receipt:', error);
+        console.error('Error linking receipt:', error);
         toast({
-          title: 'Failed to Attach Receipt',
-          description: 'Time entry saved but receipt upload failed',
+          title: 'Receipt Link Failed',
+          description: 'Receipt saved but failed to link to time entry',
           variant: 'destructive'
         });
       }
     }
     
     setPendingReceiptExpenseId(null);
-  }, [pendingReceiptExpenseId]);
+  };
 
   const completeClockOut = async (): Promise<string | null> => {
     if (!activeTimer) return null;
@@ -445,7 +445,7 @@ export const MobileTimeTracker: React.FC = () => {
     // Then offer receipt capture
     if (expenseId && isOnline) {
       setPendingReceiptExpenseId(expenseId);
-      setShowReceiptCapture(true);
+      setShowReceiptModal(true);
     }
   };
 
@@ -855,16 +855,16 @@ export const MobileTimeTracker: React.FC = () => {
       )}
 
       {/* Receipt Capture Modal */}
-      {showReceiptCapture && pendingReceiptExpenseId && (
-        <ReceiptCapture
-          projectId={selectedProject?.id || ''}
-          onCapture={handleReceiptCaptured}
-          onSkip={() => {
-            setShowReceiptCapture(false);
-            setPendingReceiptExpenseId(null);
-          }}
-        />
-      )}
+      <AddReceiptModal
+        open={showReceiptModal}
+        onClose={() => {
+          setShowReceiptModal(false);
+          setPendingReceiptExpenseId(null);
+        }}
+        onSuccess={(receipt) => {
+          handleReceiptFromClockOut(receipt.id);
+        }}
+      />
 
       {/* Edit Time Entry Modal */}
       <EditTimeEntryModal
