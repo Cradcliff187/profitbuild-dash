@@ -13,6 +13,7 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import ChangePassword from "./pages/ChangePassword";
 import Projects from "./pages/Projects";
 import NotFound from "./pages/NotFound";
 
@@ -53,6 +54,7 @@ const App = () => (
             <div className="min-h-screen bg-background mobile-container">
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/change-password" element={<ChangePassword />} />
                 <Route path="/" element={<ProtectedLayout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="dashboard" element={<Navigate to="/" replace />} />

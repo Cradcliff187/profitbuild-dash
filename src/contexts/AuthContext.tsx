@@ -81,14 +81,64 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // Check if account is locked
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('account_locked_until, failed_login_attempts')
+        .eq('email', email)
+        .single();
+
+      if (profile?.account_locked_until) {
+        const lockoutEnd = new Date(profile.account_locked_until);
+        if (lockoutEnd > new Date()) {
+          const minutesRemaining = Math.ceil((lockoutEnd.getTime() - Date.now()) / 60000);
+          toast.error(`Account is locked. Try again in ${minutesRemaining} minutes.`);
+          return { error: { message: 'Account locked' } };
+        }
+      }
+
+      const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        toast.error(error.message);
+        // Track failed login attempt
+        const failedAttempts = (profile?.failed_login_attempts || 0) + 1;
+        
+        if (failedAttempts >= 5) {
+          // Lock account for 30 minutes
+          const lockoutUntil = new Date(Date.now() + 30 * 60 * 1000);
+          await supabase
+            .from('profiles')
+            .update({
+              failed_login_attempts: failedAttempts,
+              account_locked_until: lockoutUntil.toISOString(),
+            })
+            .eq('email', email);
+          
+          toast.error('Too many failed attempts. Account locked for 30 minutes.');
+        } else {
+          await supabase
+            .from('profiles')
+            .update({ failed_login_attempts: failedAttempts })
+            .eq('email', email);
+          
+          toast.error(error.message);
+        }
+        
         return { error };
+      }
+
+      // Reset failed login attempts on successful login
+      if (data?.user) {
+        await supabase
+          .from('profiles')
+          .update({ 
+            failed_login_attempts: 0,
+            account_locked_until: null 
+          })
+          .eq('id', data.user.id);
       }
 
       toast.success('Welcome back!');

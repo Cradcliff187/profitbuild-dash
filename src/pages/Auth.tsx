@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,11 +35,25 @@ export default function Auth() {
     },
   });
 
-  // Redirect authenticated users to dashboard
+  // Check if user needs to change password after login
   useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
+    const checkPasswordChangeRequired = async () => {
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('must_change_password')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.must_change_password) {
+          navigate('/change-password');
+        } else {
+          navigate('/');
+        }
+      }
+    };
+
+    checkPasswordChangeRequired();
   }, [user, navigate]);
 
   const onSubmit = async (data: AuthFormData) => {
