@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle } from 'lucide-react';
+import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Geolocation } from '@capacitor/geolocation';
@@ -13,6 +13,7 @@ import { ManualEntryModal } from './ManualEntryModal';
 import { BulkActionsBar } from './BulkActionsBar';
 import { ApprovalQueue } from './ApprovalQueue';
 import { SyncStatusBanner } from './SyncStatusBanner';
+import { ReceiptsGallery } from './ReceiptsGallery';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { addToQueue } from '@/utils/syncQueue';
@@ -66,7 +67,8 @@ export const MobileTimeTracker: React.FC = () => {
   const [showWorkerSelect, setShowWorkerSelect] = useState(false);
   const [note, setNote] = useState('');
   const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
-  const [view, setView] = useState<'timer' | 'today' | 'week' | 'approve'>('timer');
+  const [view, setView] = useState<'timer' | 'entries' | 'receipts' | 'approve'>('timer');
+  const [entriesDateRange, setEntriesDateRange] = useState<'today' | 'week'>('today');
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
@@ -197,7 +199,7 @@ export const MobileTimeTracker: React.FC = () => {
           project: expense.projects,
           hours,
           note: cleanNote,
-          receiptUrl: expense.attachment_url,
+          attachment_url: expense.attachment_url,
           startTime: new Date(expense.created_at),
           endTime: new Date(expense.created_at)
         };
@@ -503,26 +505,26 @@ export const MobileTimeTracker: React.FC = () => {
             Timer
           </button>
           <button
-            onClick={() => setView('today')}
+            onClick={() => setView('entries')}
             className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
-              view === 'today' 
+              view === 'entries' 
                 ? 'text-primary border-b-2 border-primary bg-primary/5' 
                 : 'text-muted-foreground'
             }`}
           >
             <Calendar className="w-4 h-4 mx-auto mb-1" />
-            Today
+            Entries
           </button>
           <button
-            onClick={() => setView('week')}
+            onClick={() => setView('receipts')}
             className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
-              view === 'week' 
+              view === 'receipts' 
                 ? 'text-primary border-b-2 border-primary bg-primary/5' 
                 : 'text-muted-foreground'
             }`}
           >
-            <Calendar className="w-4 h-4 mx-auto mb-1" />
-            Week
+            <Camera className="w-4 h-4 mx-auto mb-1" />
+            Receipts
           </button>
           <button
             onClick={() => setView('approve')}
@@ -532,7 +534,7 @@ export const MobileTimeTracker: React.FC = () => {
                 : 'text-muted-foreground'
             }`}
           >
-            <Clock className="w-4 h-4 mx-auto mb-1" />
+            <CheckCircle className="w-4 h-4 mx-auto mb-1" />
             Approve
           </button>
         </div>
@@ -737,88 +739,96 @@ export const MobileTimeTracker: React.FC = () => {
         </div>
       )}
 
-      {/* Today View */}
-      {view === 'today' && (
-        <div className="p-4 space-y-3">
-          <div className="bg-card rounded-xl shadow-sm p-4 mb-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="text-3xl font-bold text-primary">{todayTotal.toFixed(1)} hrs</div>
-                <div className="text-sm text-muted-foreground">Total hours today • {todayEntries.length} entries</div>
-              </div>
+      {/* Entries View - Combined Today/Week */}
+      {view === 'entries' && (
+        <div className="space-y-3">
+          {/* Date Range Toggle */}
+          <div className="bg-card shadow-sm border-b p-2 sticky top-[57px] z-10">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEntriesDateRange('today')}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                  entriesDateRange === 'today'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                Today ({todayEntries.length})
+              </button>
+              <button
+                onClick={() => setEntriesDateRange('week')}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                  entriesDateRange === 'week'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                This Week
+              </button>
             </div>
           </div>
 
-          {todayEntries.length === 0 ? (
-            <div className="bg-card rounded-xl shadow-sm p-8 text-center">
-              <Clock className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground font-semibold mb-2">No time entries yet</p>
-              <p className="text-sm text-muted-foreground">Clock in to start tracking time</p>
-              <Button 
-                onClick={() => setView('timer')} 
-                className="mt-4"
-                variant="outline"
-              >
-                Go to Timer
-              </Button>
-            </div>
-          ) : (
-            todayEntries.map(entry => (
-              <div key={entry.id} className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex-1">
-                    <div className="font-semibold text-foreground">{entry.teamMember.payee_name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {entry.project.project_number} - {entry.project.client_name}
+          {/* Content based on selected range */}
+          {entriesDateRange === 'today' ? (
+            <div className="p-4 space-y-3">
+              <div className="bg-card rounded-xl shadow-sm p-4">
+                <div className="text-3xl font-bold text-primary">{todayTotal.toFixed(1)} hrs</div>
+                <div className="text-sm text-muted-foreground">Total today • {todayEntries.length} entries</div>
+              </div>
+              
+              {todayEntries.length === 0 ? (
+                <div className="bg-card rounded-xl shadow-sm p-8 text-center">
+                  <Clock className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground font-semibold mb-2">No time entries today</p>
+                  <Button onClick={() => setView('timer')} className="mt-4" variant="outline">
+                    Go to Timer
+                  </Button>
+                </div>
+              ) : (
+                todayEntries.map(entry => (
+                  <div 
+                    key={entry.id} 
+                    className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary cursor-pointer"
+                    onClick={() => setEditingEntry(entry)}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <div className="font-semibold text-foreground">{entry.teamMember.payee_name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {entry.project.project_number} - {entry.project.client_name}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{entry.project.project_name}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-primary">{entry.hours.toFixed(2)} hrs</div>
+                        {entry.attachment_url && (
+                          <div className="text-xs text-muted-foreground mt-1">📎 Receipt</div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {entry.project.project_name}
-                    </div>
-                    {entry.project.address && (
-                      <div className="text-xs text-muted-foreground">
-                        {entry.project.address}
+                    
+                    {entry.note && (
+                      <div className="bg-muted rounded p-2 text-sm text-muted-foreground mt-2">
+                        {entry.note}
                       </div>
                     )}
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold text-primary">{entry.hours.toFixed(2)} hrs</div>
-                  </div>
-                </div>
-                
-                {entry.note && (
-                  <div className="bg-muted rounded p-2 text-sm text-muted-foreground mt-2">
-                    {entry.note}
-                  </div>
-                )}
-
-                {entry.attachment_url && (
-                  <div className="mt-2 border rounded-lg overflow-hidden">
-                    <img 
-                      src={entry.attachment_url} 
-                      alt="Receipt"
-                      className="w-full h-auto max-h-64 object-contain bg-slate-50 cursor-pointer"
-                      onClick={() => window.open(entry.attachment_url, '_blank')}
-                    />
-                    <div className="text-xs text-center text-muted-foreground bg-muted p-1">
-                      📎 Receipt attached - Tap to view full size
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))
+                ))
+              )}
+            </div>
+          ) : (
+            <div className="p-4">
+              <WeekView
+                onEditEntry={(entry) => setEditingEntry(entry)}
+                onCreateEntry={() => setShowManualEntry(true)}
+              />
+            </div>
           )}
         </div>
       )}
 
-      {/* Week View */}
-      {view === 'week' && (
-        <div className="p-4">
-          <WeekView
-            onEditEntry={(entry) => setEditingEntry(entry)}
-            onCreateEntry={() => setShowManualEntry(true)}
-          />
-        </div>
-      )}
+      {/* Receipts View */}
+      {view === 'receipts' && <ReceiptsGallery />}
 
       {/* Approve View */}
       {view === 'approve' && (
