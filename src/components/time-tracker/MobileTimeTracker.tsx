@@ -13,7 +13,7 @@ import { ManualEntryModal } from './ManualEntryModal';
 import { BulkActionsBar } from './BulkActionsBar';
 import { ApprovalQueue } from './ApprovalQueue';
 import { SyncStatusBanner } from './SyncStatusBanner';
-import { ReceiptsGallery } from './ReceiptsGallery';
+import { ReceiptsList } from './ReceiptsList';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { addToQueue } from '@/utils/syncQueue';
@@ -845,7 +845,7 @@ export const MobileTimeTracker: React.FC = () => {
       )}
 
       {/* Receipts View */}
-      {view === 'receipts' && <ReceiptsGallery />}
+      {view === 'receipts' && <ReceiptsList />}
 
       {/* Approve View */}
       {view === 'approve' && (

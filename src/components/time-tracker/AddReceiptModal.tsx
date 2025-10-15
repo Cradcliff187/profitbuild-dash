@@ -10,12 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Camera as CameraIcon, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PayeeSelector } from '@/components/PayeeSelector';
 
 interface Project {
   id: string;
   project_number: string;
   project_name: string;
-  client_name: string;
 }
 
 interface AddReceiptModalProps {
@@ -31,10 +31,10 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 }) => {
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
+  const [selectedPayeeId, setSelectedPayeeId] = useState<string | undefined>();
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<string>('');
   const [uploading, setUploading] = useState(false);
-  const [unassignedProjectId, setUnassignedProjectId] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
@@ -45,29 +45,17 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
   const loadProjects = async () => {
     try {
-      // Load user-facing projects (exclude system projects)
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('projects')
-        .select('id, project_number, project_name, client_name')
-        .in('status', ['estimating', 'quoted', 'approved', 'in_progress'])
-        .neq('project_number', 'SYS-000')
-        .neq('project_number', '000-UNASSIGNED')
-        .order('created_at', { ascending: false });
+        .select('id, project_number, project_name')
+        .order('project_name');
 
+      if (error) throw error;
+      
       setProjects(data || []);
-
-      // Separate query: Get SYS-000 for backend fallback
-      const { data: sysProject } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('project_number', 'SYS-000')
-        .maybeSingle();
-
-      if (sysProject) {
-        setUnassignedProjectId(sysProject.id);
-      }
     } catch (error) {
-      console.error('Error loading projects:', error);
+      console.error('Failed to load projects:', error);
+      toast.error('Failed to load projects');
     }
   };
 
@@ -98,9 +86,8 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
       return;
     }
 
-    const targetProjectId = selectedProjectId || unassignedProjectId;
-    if (!targetProjectId) {
-      toast.error('No project available. Please try again.');
+    if (!selectedPayeeId) {
+      toast.error('Please select a payee');
       return;
     }
 
@@ -109,48 +96,45 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      // Convert photo to blob
+      // Convert data URL to blob
       const response = await fetch(capturedPhoto);
       const blob = await response.blob();
-
+      
       // Upload to storage
       const timestamp = Date.now();
       const filename = `${timestamp}_receipt.jpg`;
-      const storagePath = `${user.id}/receipts/${targetProjectId}/${filename}`;
+      const storagePath = `${user.id}/receipts/${filename}`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('time-tracker-documents')
-        .upload(storagePath, blob, {
-          cacheControl: '3600',
-          upsert: false
-        });
+        .upload(storagePath, blob);
 
       if (uploadError) throw uploadError;
 
       // Get signed URL
       const { data: urlData } = await supabase.storage
         .from('time-tracker-documents')
-        .createSignedUrl(uploadData.path, 31536000);
+        .createSignedUrl(uploadData.path, 31536000); // 1 year expiry
 
       if (!urlData?.signedUrl) throw new Error('Failed to get signed URL');
 
-      // Create expense record
-      const { error: dbError } = await supabase
-        .from('expenses')
+      // Create receipt record (NOT an expense)
+      const { error: receiptError } = await supabase
+        .from('receipts')
         .insert({
-          project_id: targetProjectId,
-          category: 'other',
-          transaction_type: 'expense',
+          user_id: user.id,
+          image_url: urlData.signedUrl,
           amount: parseFloat(amount),
-          expense_date: new Date().toISOString().split('T')[0],
-          description: description || 'Receipt',
-          attachment_url: urlData.signedUrl,
+          payee_id: selectedPayeeId,
+          project_id: selectedProjectId || null,
+          description: description || null,
+          captured_at: new Date().toISOString(),
         });
 
-      if (dbError) throw dbError;
+      if (receiptError) throw receiptError;
 
       toast.success('Receipt saved successfully');
-      onSuccess();
+      onSuccess?.();
       handleClose();
     } catch (error) {
       console.error('Failed to save receipt:', error);
@@ -163,6 +147,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   const handleClose = () => {
     setCapturedPhoto(null);
     setSelectedProjectId(undefined);
+    setSelectedPayeeId(undefined);
     setDescription('');
     setAmount('');
     onClose();
@@ -177,58 +162,34 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
         <div className="space-y-4">
           {/* Camera Capture / Photo Preview */}
-          {!capturedPhoto ? (
-            <Button
-              onClick={capturePhoto}
-              variant="outline"
-              className="w-full h-48 border-2 border-dashed"
-            >
-              <div className="flex flex-col items-center gap-2">
-                <CameraIcon className="w-12 h-12 text-muted-foreground" />
-                <span className="text-sm font-medium">Take Photo</span>
-              </div>
-            </Button>
-          ) : (
-            <div className="relative">
-              <img
-                src={capturedPhoto}
-                alt="Captured receipt"
-                className="w-full h-64 object-cover rounded-lg"
-              />
-              <Button
-                onClick={() => setCapturedPhoto(null)}
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-
-          {/* Project Selector (Optional) */}
           <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground">
-              Assign to Project (Optional)
-            </Label>
-            <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Leave blank for unassigned" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects
-                  .filter(p => !p.project_number.startsWith('SYS-') && p.project_number !== '000-UNASSIGNED')
-                  .map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.project_number} - {project.project_name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-            {!selectedProjectId && (
-              <p className="text-xs text-muted-foreground">
-                Will be saved as "Unassigned" - you can assign it to a project later
-              </p>
+            {!capturedPhoto ? (
+              <Button
+                onClick={capturePhoto}
+                variant="outline"
+                className="w-full h-48 border-2 border-dashed"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <CameraIcon className="w-12 h-12 text-muted-foreground" />
+                  <span className="text-sm font-medium">Take Photo</span>
+                </div>
+              </Button>
+            ) : (
+              <div className="relative">
+                <img
+                  src={capturedPhoto}
+                  alt="Captured receipt"
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+                <Button
+                  onClick={() => setCapturedPhoto(null)}
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             )}
           </div>
 
@@ -247,17 +208,46 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
             />
           </div>
 
+          {/* Payee (Required) */}
+          <div className="space-y-2">
+            <Label>Payee *</Label>
+            <PayeeSelector
+              value={selectedPayeeId}
+              onValueChange={setSelectedPayeeId}
+              required
+            />
+          </div>
+
+          {/* Project Assignment (Optional) */}
+          <div className="space-y-2">
+            <Label htmlFor="project" className="text-sm text-muted-foreground">
+              Assign to Project (Optional)
+            </Label>
+            <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+              <SelectTrigger id="project">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.project_number} - {project.project_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Description (Optional) */}
           <div className="space-y-2">
             <Label htmlFor="description" className="text-sm text-muted-foreground">
-              Description (Optional)
+              Notes (Optional)
             </Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add a note about this receipt..."
-              rows={3}
+              placeholder="Add notes about this receipt..."
+              rows={2}
             />
           </div>
 
@@ -274,11 +264,11 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
             <Button
               onClick={handleSave}
               className="flex-1"
-              disabled={!capturedPhoto || !amount || uploading}
+              disabled={!capturedPhoto || !amount || !selectedPayeeId || uploading}
             >
               {uploading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving...
                 </>
               ) : (

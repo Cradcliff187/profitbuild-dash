@@ -424,6 +424,7 @@ export type Database = {
           payee_id: string | null
           project_id: string
           quickbooks_transaction_id: string | null
+          receipt_id: string | null
           rejection_reason: string | null
           submitted_for_approval_at: string | null
           synced_at: string | null
@@ -453,6 +454,7 @@ export type Database = {
           payee_id?: string | null
           project_id: string
           quickbooks_transaction_id?: string | null
+          receipt_id?: string | null
           rejection_reason?: string | null
           submitted_for_approval_at?: string | null
           synced_at?: string | null
@@ -482,6 +484,7 @@ export type Database = {
           payee_id?: string | null
           project_id?: string
           quickbooks_transaction_id?: string | null
+          receipt_id?: string | null
           rejection_reason?: string | null
           submitted_for_approval_at?: string | null
           synced_at?: string | null
@@ -517,6 +520,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipts"
             referencedColumns: ["id"]
           },
           {
@@ -1194,6 +1204,67 @@ export type Database = {
           },
           {
             foreignKeyName: "quotes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receipts: {
+        Row: {
+          amount: number
+          captured_at: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string
+          payee_id: string | null
+          project_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          captured_at?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url: string
+          payee_id?: string | null
+          project_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          captured_at?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string
+          payee_id?: string | null
+          project_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipts_payee_id_fkey"
+            columns: ["payee_id"]
+            isOneToOne: false
+            referencedRelation: "payees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "receipts_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
