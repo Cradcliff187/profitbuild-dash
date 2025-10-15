@@ -5,15 +5,26 @@ const MAX_RECORDING_DURATION = 120; // 2 minutes
 
 type RecordingState = 'idle' | 'recording' | 'processing';
 
-// Detect best supported audio format
+// Detect best supported AUDIO-ONLY format (never video)
 function getSupportedAudioType(): string {
-  if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-    return 'audio/webm;codecs=opus';
+  // Priority order: Opus codec (best quality), then MP4 for iOS, then WebM, then MPEG
+  const audioFormats = [
+    'audio/webm;codecs=opus',
+    'audio/mp4', // iOS Safari
+    'audio/webm',
+    'audio/mpeg',
+  ];
+  
+  for (const format of audioFormats) {
+    if (MediaRecorder.isTypeSupported(format)) {
+      console.log(`[AudioRecording] Using format: ${format}`);
+      return format;
+    }
   }
-  if (MediaRecorder.isTypeSupported('audio/mp4')) {
-    return 'audio/mp4';
-  }
-  return 'audio/webm'; // fallback
+  
+  // Last resort fallback (should never happen on modern browsers)
+  console.warn('[AudioRecording] No preferred audio format supported, using audio/webm');
+  return 'audio/webm';
 }
 
 // Pre-flight microphone permission check
@@ -83,13 +94,22 @@ export function useAudioRecording() {
       }
 
       console.log('[AudioRecording] Requesting microphone access...');
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: true,
+        video: false // Explicitly disable video to ensure audio-only
+      });
       console.log('[AudioRecording] Microphone access granted', {
         audioTracks: stream.getAudioTracks().length,
       });
       
       // Use best supported audio format
       const mimeType = getSupportedAudioType();
+      
+      // Double-check we're not accidentally using video format
+      if (mimeType.startsWith('video/')) {
+        throw new Error('Video format detected - audio-only recording required');
+      }
+      
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
 
       chunksRef.current = [];

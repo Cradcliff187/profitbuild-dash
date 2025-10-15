@@ -53,15 +53,29 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
     }
   }, [open, browserSupport]);
 
-  // Auto-transcribe when audio is ready
+  // Auto-transcribe when audio is ready (with timeout protection)
   useEffect(() => {
     if (audioData && audioFormat && !hasTranscribed) {
       setHasTranscribed(true);
-      transcribe(audioData, audioFormat).then((text) => {
-        if (text) {
-          setEditableCaption(text);
-        }
-      });
+      
+      // Set up 30-second timeout
+      const timeoutId = setTimeout(() => {
+        toast.error('Transcription timeout', {
+          description: 'Taking too long. Please try recording again.',
+        });
+      }, 30000);
+      
+      transcribe(audioData, audioFormat)
+        .then((text) => {
+          clearTimeout(timeoutId);
+          if (text) {
+            setEditableCaption(text);
+          }
+        })
+        .catch((error) => {
+          clearTimeout(timeoutId);
+          console.error('Transcription failed:', error);
+        });
     }
   }, [audioData, audioFormat, transcribe, hasTranscribed]);
 
@@ -85,7 +99,17 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
 
   useEffect(() => {
     if (transcriptionError) {
-      toast.error(transcriptionError);
+      toast.error('Transcription failed', {
+        description: transcriptionError,
+        action: {
+          label: 'Try Again',
+          onClick: () => {
+            setHasTranscribed(false);
+            handleStartRecording();
+          },
+        },
+        duration: 8000,
+      });
     }
   }, [transcriptionError]);
 
@@ -220,14 +244,45 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
             <>
               {!showAIEnhancer ? (
                 <div className="space-y-3">
+                  {transcriptionError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="text-xs">
+                        <strong>Transcription failed:</strong> {transcriptionError}
+                        <br />
+                        <Button
+                          onClick={() => {
+                            setHasTranscribed(false);
+                            handleStartRecording();
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="mt-2"
+                        >
+                          <Mic className="h-3 w-3 mr-1" />
+                          Try Recording Again
+                        </Button>
+                        <Button
+                          onClick={() => setEditableCaption('')}
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 ml-2"
+                        >
+                          Type Instead
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-foreground">Caption Preview</label>
-                    <p className="text-xs text-muted-foreground">Review and edit your caption before applying</p>
+                    <p className="text-xs text-muted-foreground">
+                      {editableCaption ? 'Review and edit your caption before applying' : 'Type your caption manually'}
+                    </p>
                   </div>
                   <Textarea
                     value={editableCaption}
                     onChange={(e) => setEditableCaption(e.target.value)}
-                    placeholder="Your caption will appear here..."
+                    placeholder="Your caption will appear here... or type manually"
                     className="min-h-32 resize-none"
                     autoFocus
                   />
