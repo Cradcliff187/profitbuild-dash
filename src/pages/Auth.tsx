@@ -9,21 +9,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Building2, Loader2 } from 'lucide-react';
 
 const authSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  fullName: z.string().optional(),
 });
 
 type AuthFormData = z.infer<typeof authSchema>;
 
 export default function Auth() {
-  const [isSignUp, setIsSignUp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn } = useAuth();
   const navigate = useNavigate();
 
   const form = useForm<AuthFormData>({
@@ -31,7 +29,6 @@ export default function Auth() {
     defaultValues: {
       email: '',
       password: '',
-      fullName: '',
     },
   });
 
@@ -60,11 +57,7 @@ export default function Auth() {
     setIsSubmitting(true);
     
     try {
-      if (isSignUp) {
-        await signUp(data.email, data.password, data.fullName);
-      } else {
-        await signIn(data.email, data.password);
-      }
+      await signIn(data.email, data.password);
     } finally {
       setIsSubmitting(false);
     }
@@ -81,70 +74,46 @@ export default function Auth() {
             Construction Profit Tracker
           </CardTitle>
           <CardDescription>
-            {isSignUp ? 'Create your account to get started' : 'Sign in to your account'}
+            Sign in to your account
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={isSignUp ? "signup" : "signin"} onValueChange={(value) => setIsSignUp(value === "signup")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
-            
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-6">
-              <TabsContent value="signup" className="space-y-4 mt-0">
-                <div>
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Enter your full name"
-                    {...form.register('fullName')}
-                  />
-                  {form.formState.errors.fullName && (
-                    <p className="text-sm text-destructive mt-1">
-                      {form.formState.errors.fullName.message}
-                    </p>
-                  )}
-                </div>
-              </TabsContent>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-6">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                {...form.register('email')}
+              />
+              {form.formState.errors.email && (
+                <p className="text-sm text-destructive mt-1">
+                  {form.formState.errors.email.message}
+                </p>
+              )}
+            </div>
 
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  {...form.register('email')}
-                />
-                {form.formState.errors.email && (
-                  <p className="text-sm text-destructive mt-1">
-                    {form.formState.errors.email.message}
-                  </p>
-                )}
-              </div>
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                {...form.register('password')}
+              />
+              {form.formState.errors.password && (
+                <p className="text-sm text-destructive mt-1">
+                  {form.formState.errors.password.message}
+                </p>
+              )}
+            </div>
 
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  {...form.register('password')}
-                />
-                {form.formState.errors.password && (
-                  <p className="text-sm text-destructive mt-1">
-                    {form.formState.errors.password.message}
-                  </p>
-                )}
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSignUp ? 'Create Account' : 'Sign In'}
-              </Button>
-            </form>
-          </Tabs>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Sign In
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>
