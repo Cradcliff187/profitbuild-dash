@@ -131,42 +131,42 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
   }
 
   return (
-    <div className="space-y-3">
-      {/* Week Navigation */}
+    <div className="space-y-2">
+      {/* Compact Week Navigation */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium">
+        <div className="flex items-center gap-1.5">
+          <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium">
             {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" onClick={goToPreviousWeek}>
-            <ChevronLeft className="w-4 h-4" />
+          <Button size="sm" variant="outline" onClick={goToPreviousWeek} className="h-7 w-7 p-0">
+            <ChevronLeft className="w-3.5 h-3.5" />
           </Button>
-          <Button size="sm" variant="outline" onClick={goToToday}>
+          <Button size="sm" variant="outline" onClick={goToToday} className="h-7 px-2 text-xs">
             Today
           </Button>
-          <Button size="sm" variant="outline" onClick={goToNextWeek}>
-            <ChevronRight className="w-4 h-4" />
+          <Button size="sm" variant="outline" onClick={goToNextWeek} className="h-7 w-7 p-0">
+            <ChevronRight className="w-3.5 h-3.5" />
           </Button>
-          <Button size="sm" onClick={onCreateEntry}>
-            <Plus className="w-4 h-4 mr-1" />
+          <Button size="sm" onClick={onCreateEntry} className="h-7 px-2 text-xs">
+            <Plus className="w-3 h-3 mr-1" />
             Add
           </Button>
         </div>
       </div>
 
-      {/* Week Grid */}
+      {/* Compact Week Grid */}
       <Card className="overflow-x-auto">
         <div className="min-w-[800px]">
           {/* Header Row */}
           <div className="grid grid-cols-8 border-b bg-muted/30">
-            <div className="p-2 text-xs font-medium border-r">Worker</div>
+            <div className="p-1.5 text-[11px] font-medium border-r">Worker</div>
             {weekDays.map((day, i) => (
-              <div key={i} className="p-2 text-center text-xs font-medium border-r last:border-r-0">
+              <div key={i} className="p-1.5 text-center text-[11px] font-medium border-r last:border-r-0">
                 <div>{format(day, 'EEE')}</div>
-                <div className="text-muted-foreground">{format(day, 'd')}</div>
+                <div className="text-muted-foreground text-[10px]">{format(day, 'd')}</div>
               </div>
             ))}
           </div>
@@ -174,7 +174,7 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
           {/* Worker Rows */}
           {workers.map(worker => (
             <div key={worker.id} className="grid grid-cols-8 border-b last:border-b-0 hover:bg-muted/20">
-              <div className="p-2 text-sm border-r font-medium truncate">
+              <div className="p-1.5 text-xs border-r font-medium truncate">
                 {worker.name}
               </div>
               {weekDays.map((day, i) => {
@@ -187,12 +187,12 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
                 return (
                   <div
                     key={i}
-                    className="p-2 text-center border-r last:border-r-0 cursor-pointer hover:bg-accent/50"
+                    className="p-1.5 text-center border-r last:border-r-0 cursor-pointer hover:bg-accent/50"
                     onClick={() => dayEntries[0] && onEditEntry(dayEntries[0])}
                   >
                     {totalHours > 0 ? (
-                      <div className="space-y-1">
-                        <div className={`text-sm font-medium ${
+                      <div className="space-y-0.5">
+                        <div className={`text-xs font-medium ${
                           totalHours < 8 ? 'text-yellow-600' : 
                           totalHours === 8 ? 'text-green-600' : 
                           'text-blue-600'
@@ -202,7 +202,7 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
                         {dayEntries.length > 0 && getStatusBadge(dayEntries[0].approval_status)}
                       </div>
                     ) : (
-                      <div className="text-xs text-muted-foreground">---</div>
+                      <div className="text-[10px] text-muted-foreground">---</div>
                     )}
                   </div>
                 );
@@ -212,11 +212,11 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
 
           {/* Totals Row */}
           <div className="grid grid-cols-8 bg-muted/40">
-            <div className="p-2 text-sm font-medium border-r">Daily Total</div>
+            <div className="p-1.5 text-xs font-medium border-r">Daily Total</div>
             {weekDays.map((day, i) => {
               const total = getDayTotal(day);
               return (
-                <div key={i} className="p-2 text-center text-sm font-medium border-r last:border-r-0">
+                <div key={i} className="p-1.5 text-center text-xs font-medium border-r last:border-r-0">
                   {total > 0 ? total.toFixed(1) : '---'}
                 </div>
               );
@@ -225,8 +225,8 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
         </div>
       </Card>
 
-      {/* Summary */}
-      <div className="text-xs text-muted-foreground text-right">
+      {/* Compact Summary */}
+      <div className="text-[10px] text-muted-foreground text-right">
         Total entries: {entries.length} • 
         Total hours: {entries.reduce((sum, e) => {
           const hours = parseFloat(e.description.match(/(\d+\.?\d*)\s*hours?/i)?.[1] || '0');
