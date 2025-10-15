@@ -180,7 +180,7 @@ export const MobileTimeTracker: React.FC = () => {
           member => member.email?.toLowerCase() === user.email?.toLowerCase()
         );
         
-        if (currentUserPayee && !selectedTeamMember) {
+        if (currentUserPayee && !activeTimer) {
           setSelectedTeamMember({
             id: currentUserPayee.id,
             payee_name: currentUserPayee.payee_name,
