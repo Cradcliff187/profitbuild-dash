@@ -95,6 +95,15 @@ export const MobileTimeTracker: React.FC = () => {
     if (savedTimer) {
       try {
         const parsed = JSON.parse(savedTimer);
+        
+        // Sanitize: clear system project if cached
+        const isSystemProject = (num?: string) => 
+          !!num && (num === 'SYS-000' || num === '000-UNASSIGNED' || num.startsWith('SYS-'));
+        
+        if (parsed.project && isSystemProject(parsed.project.project_number)) {
+          parsed.project = null;
+        }
+        
         setActiveTimer({
           ...parsed,
           startTime: new Date(parsed.startTime)
@@ -121,17 +130,25 @@ export const MobileTimeTracker: React.FC = () => {
   const loadInitialData = async () => {
     setDataLoading(true);
     try {
-      // Load active projects
+      // Load active projects (exclude system projects)
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('id, project_number, project_name, client_name, address')
         .in('status', ['in_progress', 'approved'])
         .neq('project_number', '000-UNASSIGNED')
+        .neq('project_number', 'SYS-000')
         .order('project_number', { ascending: false })
         .limit(20);
 
       if (projectsError) throw projectsError;
-      setProjects(projectsData || []);
+      
+      // Defense-in-depth: filter any system projects
+      const cleanedProjects = (projectsData || []).filter(
+        p => p.project_number !== '000-UNASSIGNED' && 
+             p.project_number !== 'SYS-000' && 
+             !p.project_number.startsWith('SYS-')
+      );
+      setProjects(cleanedProjects);
 
       // Load internal labor team members
       const { data: teamMembersData, error: teamMembersError } = await supabase
