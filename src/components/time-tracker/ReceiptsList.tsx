@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
-import { Receipt, Loader2, Search, Trash2, Eye, Plus } from 'lucide-react';
+import { format, startOfWeek, startOfMonth, isWithinInterval } from 'date-fns';
+import { Receipt, Search, Trash2, Plus, Edit, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { AddReceiptModal } from './AddReceiptModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 
 interface ReceiptData {
   id: string;
@@ -22,22 +25,23 @@ interface ReceiptData {
   captured_at: string;
 }
 
+type FilterType = 'all' | 'unassigned' | 'thisWeek' | 'thisMonth';
+type SortType = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
+
 export const ReceiptsList = () => {
   const [receipts, setReceipts] = useState<ReceiptData[]>([]);
-  const [filteredReceipts, setFilteredReceipts] = useState<ReceiptData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
-  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [filter, setFilter] = useState<FilterType>('all');
+  const [sortBy, setSortBy] = useState<SortType>('date-desc');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     loadReceipts();
   }, []);
-
-  useEffect(() => {
-    filterReceipts();
-  }, [searchTerm, receipts]);
 
   const loadReceipts = async () => {
     try {
@@ -75,23 +79,61 @@ export const ReceiptsList = () => {
     }
   };
 
-  const filterReceipts = () => {
-    if (!searchTerm.trim()) {
-      setFilteredReceipts(receipts);
-      return;
+  const filteredAndSortedReceipts = useMemo(() => {
+    let result = [...receipts];
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(
+        (r) =>
+          r.payee_name?.toLowerCase().includes(term) ||
+          r.project_name?.toLowerCase().includes(term) ||
+          r.project_number?.toLowerCase().includes(term) ||
+          r.description?.toLowerCase().includes(term) ||
+          r.amount.toString().includes(term)
+      );
     }
 
-    const term = searchTerm.toLowerCase();
-    const filtered = receipts.filter(
-      (r) =>
-        r.payee_name?.toLowerCase().includes(term) ||
-        r.project_name?.toLowerCase().includes(term) ||
-        r.project_number?.toLowerCase().includes(term) ||
-        r.description?.toLowerCase().includes(term) ||
-        r.amount.toString().includes(term)
-    );
-    setFilteredReceipts(filtered);
-  };
+    // Apply quick filter
+    const now = new Date();
+    if (filter === 'unassigned') {
+      result = result.filter((r) => r.project_number === 'SYS-000');
+    } else if (filter === 'thisWeek') {
+      const weekStart = startOfWeek(now);
+      result = result.filter((r) => 
+        isWithinInterval(new Date(r.captured_at), { start: weekStart, end: now })
+      );
+    } else if (filter === 'thisMonth') {
+      const monthStart = startOfMonth(now);
+      result = result.filter((r) => 
+        isWithinInterval(new Date(r.captured_at), { start: monthStart, end: now })
+      );
+    }
+
+    // Apply sorting
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc':
+          return new Date(b.captured_at).getTime() - new Date(a.captured_at).getTime();
+        case 'date-asc':
+          return new Date(a.captured_at).getTime() - new Date(b.captured_at).getTime();
+        case 'amount-desc':
+          return b.amount - a.amount;
+        case 'amount-asc':
+          return a.amount - b.amount;
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [receipts, searchTerm, filter, sortBy]);
+
+  const unassignedCount = useMemo(
+    () => receipts.filter((r) => r.project_number === 'SYS-000').length,
+    [receipts]
+  );
 
   const handleDelete = async (receiptId: string) => {
     if (!confirm('Are you sure you want to delete this receipt?')) return;
@@ -106,171 +148,296 @@ export const ReceiptsList = () => {
 
       toast.success('Receipt deleted');
       loadReceipts();
+      setExpandedId(null);
     } catch (error) {
       console.error('Failed to delete receipt:', error);
       toast.error('Failed to delete receipt');
     }
   };
 
-  const handleView = (receipt: ReceiptData) => {
-    setSelectedReceipt(receipt);
-    setViewModalOpen(true);
+  const handleBulkDelete = async () => {
+    if (!confirm(`Delete ${selectedIds.length} selected receipts?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('receipts')
+        .delete()
+        .in('id', selectedIds);
+
+      if (error) throw error;
+
+      toast.success(`${selectedIds.length} receipts deleted`);
+      setSelectedIds([]);
+      setBulkMode(false);
+      loadReceipts();
+    } catch (error) {
+      console.error('Failed to delete receipts:', error);
+      toast.error('Failed to delete receipts');
+    }
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedIds(checked ? filteredAndSortedReceipts.map((r) => r.id) : []);
+  };
+
+  const handleExpand = (id: string) => {
+    if (bulkMode) {
+      toggleSelection(id);
+    } else {
+      setExpandedId(expandedId === id ? null : id);
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <LoadingSpinner />
-      </div>
+      <MobilePageWrapper>
+        <div className="flex justify-center items-center h-64">
+          <LoadingSpinner />
+        </div>
+      </MobilePageWrapper>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Search Bar */}
-      <div className="flex items-center gap-2">
+    <MobilePageWrapper className="space-y-3">
+      {/* Search & Sort Bar */}
+      <div className="flex gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search receipts by payee, project, or amount..."
+            placeholder="Search receipts..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-8 h-9 text-sm"
           />
         </div>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortType)}>
+          <SelectTrigger className="w-32 h-9 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="date-desc">Newest</SelectItem>
+            <SelectItem value="date-asc">Oldest</SelectItem>
+            <SelectItem value="amount-desc">Highest $</SelectItem>
+            <SelectItem value="amount-asc">Lowest $</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Receipts Count */}
-      <div className="text-sm text-muted-foreground">
-        {filteredReceipts.length} receipt{filteredReceipts.length !== 1 ? 's' : ''} found
+      {/* Quick Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <Button
+          variant={filter === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('all')}
+          className="h-8 px-3 text-xs whitespace-nowrap"
+        >
+          All ({receipts.length})
+        </Button>
+        <Button
+          variant={filter === 'unassigned' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('unassigned')}
+          className="h-8 px-3 text-xs whitespace-nowrap"
+        >
+          Unassigned ({unassignedCount})
+        </Button>
+        <Button
+          variant={filter === 'thisWeek' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('thisWeek')}
+          className="h-8 px-3 text-xs whitespace-nowrap"
+        >
+          This Week
+        </Button>
+        <Button
+          variant={filter === 'thisMonth' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('thisMonth')}
+          className="h-8 px-3 text-xs whitespace-nowrap"
+        >
+          This Month
+        </Button>
       </div>
 
-      {/* Receipts Grid */}
-      {filteredReceipts.length === 0 ? (
+      {/* Bulk Mode Toggle */}
+      <div className="flex justify-between items-center">
+        <div className="text-xs text-muted-foreground">
+          {filteredAndSortedReceipts.length} receipt{filteredAndSortedReceipts.length !== 1 ? 's' : ''}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setBulkMode(!bulkMode);
+            setSelectedIds([]);
+          }}
+          className="h-7 text-xs"
+        >
+          {bulkMode ? 'Cancel' : 'Select'}
+        </Button>
+      </div>
+
+      {/* Bulk Actions Bar */}
+      {bulkMode && selectedIds.length > 0 && (
+        <div className="sticky top-0 bg-background border rounded-lg p-2 flex justify-between items-center z-10">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={selectedIds.length === filteredAndSortedReceipts.length}
+              onCheckedChange={handleSelectAll}
+            />
+            <span className="text-sm font-medium">{selectedIds.length} selected</span>
+          </div>
+          <div className="flex gap-1">
+            <Button size="sm" variant="outline" className="h-7 text-xs px-2">
+              <FolderOpen className="w-3 h-3 mr-1" />
+              Assign
+            </Button>
+            <Button size="sm" variant="destructive" onClick={handleBulkDelete} className="h-7 text-xs px-2">
+              <Trash2 className="w-3 h-3 mr-1" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Receipts List */}
+      {filteredAndSortedReceipts.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Receipt className="h-12 w-12 mx-auto mb-4 opacity-20" />
-          <p>No receipts found</p>
+          <p className="text-sm">No receipts found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredReceipts.map((receipt) => (
-            <div
-              key={receipt.id}
-              className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-            >
-              {/* Receipt Image */}
-              <div className="relative aspect-[4/3] bg-muted">
+        <div className="divide-y border rounded-lg overflow-hidden">
+          {filteredAndSortedReceipts.map((receipt) => (
+            <div key={receipt.id}>
+              {/* Compact Row */}
+              <div
+                className="flex items-center gap-3 p-2 hover:bg-muted/50 active:bg-muted cursor-pointer transition-colors"
+                onClick={() => handleExpand(receipt.id)}
+              >
+                {bulkMode && (
+                  <Checkbox
+                    checked={selectedIds.includes(receipt.id)}
+                    onCheckedChange={() => toggleSelection(receipt.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                )}
+                
+                {/* Thumbnail */}
                 <img
                   src={receipt.image_url}
                   alt="Receipt"
-                  className="w-full h-full object-cover cursor-pointer"
-                  onClick={() => handleView(receipt)}
+                  className="w-10 h-10 rounded object-cover flex-shrink-0"
                 />
-              </div>
 
-              {/* Receipt Details */}
-              <div className="p-3 space-y-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-lg">
-                      ${receipt.amount.toFixed(2)}
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="font-semibold text-sm">${receipt.amount.toFixed(2)}</div>
+                    <div className="text-xs text-muted-foreground whitespace-nowrap">
+                      {format(new Date(receipt.captured_at), 'MMM d')}
                     </div>
-                    {receipt.payee_name && (
-                      <div className="text-sm text-muted-foreground truncate">
-                        {receipt.payee_name}
-                      </div>
-                    )}
-                    {receipt.project_number && (
-                      <div className="text-xs text-muted-foreground truncate">
-                        {receipt.project_number}
-                      </div>
-                    )}
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {format(new Date(receipt.captured_at), 'MMM d, yyyy')}
-                    </div>
-                    {receipt.description && (
-                      <div className="text-xs text-muted-foreground mt-1 truncate">
-                        {receipt.description}
-                      </div>
-                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {receipt.payee_name || 'No payee'} • {receipt.project_number || 'No project'}
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-2 pt-2 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleView(receipt)}
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    View
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(receipt.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                {/* Status Badge */}
+                <Badge
+                  variant={receipt.project_number === 'SYS-000' ? 'secondary' : 'outline'}
+                  className="h-5 px-2 text-xs whitespace-nowrap flex-shrink-0"
+                >
+                  {receipt.project_number === 'SYS-000' ? 'Unassigned' : 'Filed'}
+                </Badge>
+
+                {/* Expand Icon */}
+                {!bulkMode && (
+                  <div className="flex-shrink-0">
+                    {expandedId === receipt.id ? (
+                      <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                )}
               </div>
+
+              {/* Expanded Detail View */}
+              {expandedId === receipt.id && !bulkMode && (
+                <div className="bg-muted/30 p-3 space-y-3 border-t">
+                  {/* Receipt Image */}
+                  <img
+                    src={receipt.image_url}
+                    alt="Receipt"
+                    className="w-full rounded-lg"
+                  />
+
+                  {/* Details Grid */}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <div className="text-xs text-muted-foreground">Amount</div>
+                      <div className="font-semibold">${receipt.amount.toFixed(2)}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Date</div>
+                      <div>{format(new Date(receipt.captured_at), 'MMM d, yyyy')}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Payee</div>
+                      <div className="truncate">{receipt.payee_name || 'Not set'}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Project</div>
+                      <div className="truncate">{receipt.project_number || 'Not set'}</div>
+                    </div>
+                  </div>
+
+                  {receipt.description && (
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Notes</div>
+                      <div className="text-sm">{receipt.description}</div>
+                    </div>
+                  )}
+
+                  {/* Inline Actions */}
+                  <div className="flex gap-2 pt-2 border-t">
+                    <Button size="sm" variant="outline" className="flex-1 h-8 text-xs">
+                      <Edit className="w-3 h-3 mr-1" />
+                      Edit
+                    </Button>
+                    <Button size="sm" variant="outline" className="flex-1 h-8 text-xs">
+                      <FolderOpen className="w-3 h-3 mr-1" />
+                      Reassign
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(receipt.id);
+                      }}
+                      className="h-8 px-3"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {/* View Receipt Modal */}
-      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Receipt Details</DialogTitle>
-          </DialogHeader>
-          {selectedReceipt && (
-            <div className="space-y-4">
-              <img
-                src={selectedReceipt.image_url}
-                alt="Receipt"
-                className="w-full rounded-lg"
-              />
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Amount:</span>
-                  <span className="font-semibold">${selectedReceipt.amount.toFixed(2)}</span>
-                </div>
-                {selectedReceipt.payee_name && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Payee:</span>
-                    <span>{selectedReceipt.payee_name}</span>
-                  </div>
-                )}
-                {selectedReceipt.project_number && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Project:</span>
-                    <span>
-                      {selectedReceipt.project_number} - {selectedReceipt.project_name}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Captured:</span>
-                  <span>{format(new Date(selectedReceipt.captured_at), 'MMM d, yyyy h:mm a')}</span>
-                </div>
-                {selectedReceipt.description && (
-                  <div className="pt-2 border-t">
-                    <span className="text-muted-foreground">Notes:</span>
-                    <p className="mt-1">{selectedReceipt.description}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Floating Add Receipt Button */}
-      <div className="fixed bottom-24 right-6 z-20">
+      {/* Floating Add Button */}
+      <div className="fixed bottom-20 right-4 z-20">
         <Button
           onClick={() => setShowAddModal(true)}
           size="lg"
@@ -284,11 +451,11 @@ export const ReceiptsList = () => {
       <AddReceiptModal
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onSuccess={(receipt) => {
+        onSuccess={() => {
           loadReceipts();
           setShowAddModal(false);
         }}
       />
-    </div>
+    </MobilePageWrapper>
   );
 };
