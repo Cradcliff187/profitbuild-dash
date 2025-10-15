@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Camera as CameraIcon, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -31,6 +32,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
   const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState<string>('');
   const [uploading, setUploading] = useState(false);
   const [unassignedProjectId, setUnassignedProjectId] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -91,6 +93,11 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
       return;
     }
 
+    if (!amount || parseFloat(amount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
     const targetProjectId = selectedProjectId || unassignedProjectId;
     if (!targetProjectId) {
       toast.error('No project available. Please try again.');
@@ -134,7 +141,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
           project_id: targetProjectId,
           category: 'other',
           transaction_type: 'expense',
-          amount: 0,
+          amount: parseFloat(amount),
           expense_date: new Date().toISOString().split('T')[0],
           description: description || 'Receipt',
           attachment_url: urlData.signedUrl,
@@ -157,6 +164,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
     setCapturedPhoto(null);
     setSelectedProjectId(undefined);
     setDescription('');
+    setAmount('');
     onClose();
   };
 
@@ -224,6 +232,21 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
             )}
           </div>
 
+          {/* Amount (Required) */}
+          <div className="space-y-2">
+            <Label htmlFor="amount">Amount *</Label>
+            <Input
+              id="amount"
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              required
+            />
+          </div>
+
           {/* Description (Optional) */}
           <div className="space-y-2">
             <Label htmlFor="description" className="text-sm text-muted-foreground">
@@ -251,7 +274,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
             <Button
               onClick={handleSave}
               className="flex-1"
-              disabled={!capturedPhoto || uploading}
+              disabled={!capturedPhoto || !amount || uploading}
             >
               {uploading ? (
                 <>
