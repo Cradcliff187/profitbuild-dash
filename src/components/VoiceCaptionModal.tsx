@@ -8,6 +8,7 @@ import { useAudioRecording } from '@/hooks/useAudioRecording';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { AICaptionEnhancer } from '@/components/AICaptionEnhancer';
 import { checkAudioRecordingSupport } from '@/utils/browserCompatibility';
+import { isIOSPWA } from '@/utils/platform';
 import { toast } from 'sonner';
 
 interface VoiceCaptionModalProps {
@@ -43,10 +44,12 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
   const [hasTranscribed, setHasTranscribed] = useState(false);
   const [showAIEnhancer, setShowAIEnhancer] = useState(false);
   const [isInIframe, setIsInIframe] = useState(false);
+  const [isInIOSPWA, setIsInIOSPWA] = useState(false);
 
-  // Check if running in iframe on mount
+  // Check if running in iframe or iOS PWA on mount
   useEffect(() => {
     setIsInIframe(window.self !== window.top);
+    setIsInIOSPWA(isIOSPWA());
   }, []);
 
   // Show browser compatibility warning on modal open
@@ -203,6 +206,37 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
             </Alert>
           )}
 
+          {/* iOS PWA Warning - shown proactively */}
+          {isInIOSPWA && !isInIframe && (
+            <Alert className="mb-4 border-yellow-500/50 bg-yellow-500/10">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <AlertTitle>iOS PWA Microphone Limitations</AlertTitle>
+              <AlertDescription className="space-y-2">
+                <p className="text-sm">iOS restricts microphone access in installed web apps. For best results:</p>
+                <ul className="text-xs space-y-1 ml-4 list-disc">
+                  <li>Open this site in Safari browser (not the installed app)</li>
+                  <li>Grant microphone permission when prompted</li>
+                  <li>Keep Safari open while recording</li>
+                </ul>
+                <div className="flex gap-2 mt-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => {
+                      window.open(window.location.href, '_blank');
+                    }}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Open in Safari
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleCancel}>
+                    Use Text Instead
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Recording Interface */}
           {!showTranscription && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
@@ -213,24 +247,60 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
                   <AlertTitle>Microphone Error</AlertTitle>
                   <AlertDescription className="space-y-2">
                     <p className="text-sm">{recordingError}</p>
-                    {recordingError.includes('embedded preview') || recordingError.includes('iframe') ? (
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={handleOpenInNewTab}>
-                          <ExternalLink className="h-3 w-3 mr-1" />
-                          Open in New Tab
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={handleCancel}>
-                          Type Instead
-                        </Button>
-                      </div>
-                    ) : recordingError.includes('permission') || recordingError.includes('settings') || recordingError.includes('prompt did not appear') ? (
+                    
+                    {isInIOSPWA ? (
                       <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground">
-                          <strong>iOS Safari:</strong> Settings → Safari → Microphone: On, then tap "aA" in address bar → Website Settings → Microphone: Allow
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          <strong>Android Chrome:</strong> Tap lock icon → Permissions → Microphone: Allow
-                        </p>
+                        <p className="text-xs font-semibold">iOS PWA Microphone Blocked</p>
+                        <p className="text-xs">iOS Safari restricts microphone in installed apps. Solutions:</p>
+                        <div className="flex gap-2 flex-wrap">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => window.open(window.location.href, '_blank')}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Open in Safari
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => {
+                              resetRecording();
+                              handleStartRecording();
+                            }}
+                          >
+                            Try Again
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={handleCancel}>
+                            Type Instead
+                          </Button>
+                        </div>
+                      </div>
+                    ) : isInIframe ? (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold">Embedded View Blocked</p>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={handleOpenInNewTab}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Open in New Tab
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={handleCancel}>
+                            Type Instead
+                          </Button>
+                        </div>
+                      </div>
+                    ) : recordingError.includes('permission') || recordingError.includes('denied') ? (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold">Permission Required</p>
+                        <p className="text-xs">Enable microphone in browser settings:</p>
+                        <ul className="text-xs space-y-1 ml-4 list-disc">
+                          <li><strong>iOS Safari:</strong> Settings → Safari → Microphone → Ask</li>
+                          <li><strong>Android Chrome:</strong> Site Settings → Microphone → Allow</li>
+                        </ul>
                         <div className="flex gap-2">
                           <Button 
                             size="sm" 
@@ -257,7 +327,7 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
                             handleStartRecording();
                           }}
                         >
-                          Try Recording Again
+                          Try Again
                         </Button>
                         <Button size="sm" variant="outline" onClick={handleCancel}>
                           Type Instead
