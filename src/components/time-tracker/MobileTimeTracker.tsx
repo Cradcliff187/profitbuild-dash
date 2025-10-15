@@ -11,7 +11,10 @@ import { EditTimeEntryModal } from './EditTimeEntryModal';
 import { ManualEntryModal } from './ManualEntryModal';
 import { BulkActionsBar } from './BulkActionsBar';
 import { ApprovalQueue } from './ApprovalQueue';
+import { SyncStatusBanner } from './SyncStatusBanner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { addToQueue } from '@/utils/syncQueue';
 
 interface Project {
   id: string;
@@ -49,6 +52,7 @@ interface ActiveTimer {
 export const MobileTimeTracker: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isOnline } = useOnlineStatus();
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -67,6 +71,7 @@ export const MobileTimeTracker: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [showReceiptCapture, setShowReceiptCapture] = useState(false);
+  const [pendingReceiptExpenseId, setPendingReceiptExpenseId] = useState<string | null>(null);
 
   // Load projects and workers on mount
   useEffect(() => {
@@ -244,21 +249,32 @@ export const MobileTimeTracker: React.FC = () => {
 
     setLoading(true);
     try {
-      const loc = await captureLocation();
+      // Capture location only if online
+      const loc = isOnline ? await captureLocation() : { lat: 0, lng: 0, address: 'Offline - no location' };
       
-      setActiveTimer({
+      const timerData = {
         worker: selectedWorker,
         project: selectedProject,
         startTime: new Date(),
         note: note || undefined,
         location: loc || undefined
-      });
+      };
       
+      setActiveTimer(timerData);
       setNote('');
+      
+      // Queue for sync if offline
+      if (!isOnline) {
+        await addToQueue({
+          type: 'clock_in',
+          payload: timerData,
+          timestamp: Date.now()
+        });
+      }
       
       toast({
         title: 'Clocked In',
-        description: `Timer started for ${selectedWorker.payee_name}`,
+        description: `Timer started for ${selectedWorker.payee_name}${!isOnline ? ' (offline)' : ''}`,
       });
     } catch (error) {
       console.error('Error clocking in:', error);
@@ -272,13 +288,40 @@ export const MobileTimeTracker: React.FC = () => {
     }
   };
 
-  const handleReceiptCaptured = useCallback((url: string) => {
+  const handleReceiptCaptured = useCallback(async (url: string) => {
     setShowReceiptCapture(false);
-    completeClockOut(url);
-  }, []);
+    
+    // Update existing expense with receipt URL
+    if (pendingReceiptExpenseId) {
+      try {
+        const { error } = await supabase
+          .from('expenses')
+          .update({ attachment_url: url })
+          .eq('id', pendingReceiptExpenseId);
 
-  const completeClockOut = async (receiptUrl?: string) => {
-    if (!activeTimer) return;
+        if (error) throw error;
+
+        toast({
+          title: 'Receipt Added',
+          description: 'Receipt attached to time entry',
+        });
+
+        await loadTodayEntries();
+      } catch (error) {
+        console.error('Error attaching receipt:', error);
+        toast({
+          title: 'Failed to Attach Receipt',
+          description: 'Time entry saved but receipt upload failed',
+          variant: 'destructive'
+        });
+      }
+    }
+    
+    setPendingReceiptExpenseId(null);
+  }, [pendingReceiptExpenseId]);
+
+  const completeClockOut = async (): Promise<string | null> => {
+    if (!activeTimer) return null;
 
     setLoading(true);
     try {
@@ -286,33 +329,72 @@ export const MobileTimeTracker: React.FC = () => {
       const hours = (endTime.getTime() - activeTimer.startTime.getTime()) / (1000 * 60 * 60);
       const amount = hours * activeTimer.worker.hourly_rate;
 
-      const { error } = await supabase
-        .from('expenses')
-        .insert({
-          project_id: activeTimer.project.id,
-          payee_id: activeTimer.worker.id,
-          category: 'labor_internal',
-          transaction_type: 'expense',
-          amount: amount,
-          expense_date: activeTimer.startTime.toISOString().split('T')[0],
-          description: `${hours.toFixed(2)}hrs - ${activeTimer.worker.payee_name}${
-            activeTimer.note ? ` - ${activeTimer.note}` : ''
-          }`,
-          attachment_url: receiptUrl,
-          is_planned: false
+      const expenseData = {
+        project_id: activeTimer.project.id,
+        payee_id: activeTimer.worker.id,
+        category: 'labor_internal' as const,
+        transaction_type: 'expense' as const,
+        amount: amount,
+        expense_date: activeTimer.startTime.toISOString().split('T')[0],
+        description: `${hours.toFixed(2)}hrs - ${activeTimer.worker.payee_name}${
+          activeTimer.note ? ` - ${activeTimer.note}` : ''
+        }`,
+        is_planned: false,
+        created_offline: !isOnline
+      };
+
+      if (isOnline) {
+        // Save directly to DB
+        const { data, error } = await supabase
+          .from('expenses')
+          .insert(expenseData)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        toast({
+          title: 'Clocked Out',
+          description: `Saved ${hours.toFixed(2)} hours ($${amount.toFixed(2)})`,
         });
 
-      if (error) throw error;
+        await loadTodayEntries();
+        setActiveTimer(null);
+        setLocation(null);
 
-      toast({
-        title: 'Clocked Out',
-        description: `Saved ${hours.toFixed(2)} hours ($${amount.toFixed(2)})`,
-      });
+        return data.id;
+      } else {
+        // Queue for later sync
+        const localId = crypto.randomUUID();
+        await addToQueue({
+          type: 'clock_out',
+          payload: { ...expenseData, local_id: localId },
+          timestamp: Date.now()
+        });
 
-      await loadTodayEntries();
-      
-      setActiveTimer(null);
-      setLocation(null);
+        // Add to local today entries immediately (optimistic UI)
+        const localEntry = {
+          id: localId,
+          worker: activeTimer.worker,
+          project: activeTimer.project,
+          hours,
+          amount,
+          note: activeTimer.note,
+          startTime: activeTimer.startTime,
+          endTime: endTime
+        };
+        setTodayEntries(prev => [localEntry, ...prev]);
+
+        toast({
+          title: 'Clocked Out (Offline)',
+          description: `Saved ${hours.toFixed(2)} hours - will sync when online`,
+        });
+
+        setActiveTimer(null);
+        setLocation(null);
+
+        return localId;
+      }
     } catch (error) {
       console.error('Error clocking out:', error);
       toast({
@@ -320,13 +402,21 @@ export const MobileTimeTracker: React.FC = () => {
         description: 'Failed to save time entry',
         variant: 'destructive'
       });
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClockOut = () => {
-    setShowReceiptCapture(true);
+  const handleClockOut = async () => {
+    // Save time entry immediately
+    const expenseId = await completeClockOut();
+    
+    // Then offer receipt capture
+    if (expenseId && isOnline) {
+      setPendingReceiptExpenseId(expenseId);
+      setShowReceiptCapture(true);
+    }
   };
 
   const formatTime = (date: Date) => {
@@ -360,14 +450,24 @@ export const MobileTimeTracker: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 pb-20">
+      {/* Sync Status Banner */}
+      <SyncStatusBanner />
+
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-4 shadow-lg">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold">Time Tracker</h1>
-            <p className="text-sm opacity-90">
-              {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </p>
+          <div className="flex items-center gap-2">
+            <div>
+              <h1 className="text-xl font-bold">Time Tracker</h1>
+              <p className="text-sm opacity-90">
+                {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </p>
+            </div>
+            {!isOnline && (
+              <div className="bg-yellow-500 text-yellow-950 px-2 py-1 text-xs rounded font-medium">
+                OFFLINE
+              </div>
+            )}
           </div>
           <div className="text-right">
             <div className="text-2xl font-mono font-bold">
@@ -697,11 +797,14 @@ export const MobileTimeTracker: React.FC = () => {
       )}
 
       {/* Receipt Capture Modal */}
-      {showReceiptCapture && activeTimer && (
+      {showReceiptCapture && pendingReceiptExpenseId && (
         <ReceiptCapture
-          projectId={activeTimer.project.id}
+          projectId={selectedProject?.id || ''}
           onCapture={handleReceiptCaptured}
-          onSkip={() => completeClockOut()}
+          onSkip={() => {
+            setShowReceiptCapture(false);
+            setPendingReceiptExpenseId(null);
+          }}
         />
       )}
 
