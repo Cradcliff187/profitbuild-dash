@@ -43,19 +43,26 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
   const loadProjects = async () => {
     try {
+      // Load user-facing projects (exclude system projects)
       const { data } = await supabase
         .from('projects')
         .select('id, project_number, project_name, client_name')
         .in('status', ['estimating', 'quoted', 'approved', 'in_progress'])
         .neq('project_number', 'SYS-000')
+        .neq('project_number', '000-UNASSIGNED')
         .order('created_at', { ascending: false });
 
       setProjects(data || []);
 
-      // Find unassigned project
-      const unassigned = data?.find(p => p.project_number === 'SYS-000');
-      if (unassigned) {
-        setUnassignedProjectId(unassigned.id);
+      // Separate query: Get SYS-000 for backend fallback
+      const { data: sysProject } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('project_number', 'SYS-000')
+        .maybeSingle();
+
+      if (sysProject) {
+        setUnassignedProjectId(sysProject.id);
       }
     } catch (error) {
       console.error('Error loading projects:', error);
