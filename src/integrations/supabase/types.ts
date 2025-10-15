@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_actions: {
+        Row: {
+          action_details: Json | null
+          action_type: string
+          admin_user_id: string
+          created_at: string
+          id: string
+          target_user_id: string | null
+        }
+        Insert: {
+          action_details?: Json | null
+          action_type: string
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          target_user_id?: string | null
+        }
+        Update: {
+          action_details?: Json | null
+          action_type?: string
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       change_orders: {
         Row: {
           amount: number | null
@@ -623,24 +650,36 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_locked_until: string | null
           created_at: string
           email: string | null
+          failed_login_attempts: number | null
           full_name: string | null
           id: string
+          must_change_password: boolean | null
+          password_changed_at: string | null
           updated_at: string
         }
         Insert: {
+          account_locked_until?: string | null
           created_at?: string
           email?: string | null
+          failed_login_attempts?: number | null
           full_name?: string | null
           id: string
+          must_change_password?: boolean | null
+          password_changed_at?: string | null
           updated_at?: string
         }
         Update: {
+          account_locked_until?: string | null
           created_at?: string
           email?: string | null
+          failed_login_attempts?: number | null
           full_name?: string | null
           id?: string
+          must_change_password?: boolean | null
+          password_changed_at?: string | null
           updated_at?: string
         }
         Relationships: []
