@@ -162,17 +162,20 @@ export default function FieldPhotoCapture() {
   // Check if in iframe before opening voice modal
   const handleVoiceCaptionClick = () => {
     if (window.self !== window.top) {
-      toast.error('Microphone blocked in embedded view', {
-        description: 'Open in new tab to use voice captions',
+      toast.error('Microphone unavailable', {
+        description: 'Open in new tab for voice captions, or use text instead',
         duration: 5000,
+        action: {
+          label: 'Type Caption',
+          onClick: () => setShowCaptionModal(true),
+        },
       });
-      setShowCaptionModal(true); // Fallback to text modal
     } else if (isIOSPWA()) {
-      toast.warning('iOS PWA has limited mic support', {
-        description: 'Voice captions work better in Safari browser',
+      toast.warning('Limited iOS PWA support', {
+        description: 'Voice captions work best in Safari browser',
         duration: 6000,
         action: {
-          label: 'Continue Anyway',
+          label: 'Try Anyway',
           onClick: () => setShowVoiceCaptionModal(true),
         },
       });
