@@ -9,7 +9,7 @@ import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { VoiceCaptionModal } from '@/components/VoiceCaptionModal';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { isWebPlatform } from '@/utils/platform';
+import { isWebPlatform, isIOSPWA } from '@/utils/platform';
 import { toast } from 'sonner';
 import { showCaptionPrompt, CAPTION_PROMPTS } from '@/components/CaptionPromptToast';
 import type { ProjectMedia } from '@/types/project';
@@ -162,8 +162,20 @@ export default function FieldPhotoCapture() {
   // Check if in iframe before opening voice modal
   const handleVoiceCaptionClick = () => {
     if (window.self !== window.top) {
-      toast.error('Microphone blocked in embedded view — open in new tab to use voice captions');
+      toast.error('Microphone blocked in embedded view', {
+        description: 'Open in new tab to use voice captions',
+        duration: 5000,
+      });
       setShowCaptionModal(true); // Fallback to text modal
+    } else if (isIOSPWA()) {
+      toast.warning('iOS PWA has limited mic support', {
+        description: 'Voice captions work better in Safari browser',
+        duration: 6000,
+        action: {
+          label: 'Continue Anyway',
+          onClick: () => setShowVoiceCaptionModal(true),
+        },
+      });
     } else {
       setShowVoiceCaptionModal(true);
     }
@@ -234,15 +246,12 @@ export default function FieldPhotoCapture() {
         <Alert className="m-3 border-primary/50 bg-primary/5">
           <Smartphone className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            <strong>Limited Functionality:</strong> Camera and GPS features work best on mobile devices.{' '}
-            <a 
-              href="https://lovable.dev/blogs/TODO" 
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-primary"
-            >
-              Learn how to build for mobile
-            </a>
+            <strong>Mobile Device Recommended:</strong> Camera and GPS work best on phones/tablets.
+            {isIOSPWA() && (
+              <span className="block mt-1 text-yellow-600">
+                <strong>Note:</strong> Voice captions may not work in installed iOS apps - use Safari browser for full functionality.
+              </span>
+            )}
           </AlertDescription>
         </Alert>
       )}
