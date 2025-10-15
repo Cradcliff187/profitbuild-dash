@@ -18,7 +18,7 @@ interface ManualEntryModalProps {
 
 export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryModalProps) => {
   const [workers, setWorkers] = useState<Array<{ id: string; name: string; rate: number }>>([]);
-  const [projects, setProjects] = useState<Array<{ id: string; name: string; number: string }>>([]);
+  const [projects, setProjects] = useState<Array<{ id: string; name: string; number: string; address?: string }>>([]);
   const [loading, setLoading] = useState(false);
 
   // Form state
@@ -53,13 +53,18 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
       // Load projects
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
-        .select('id, project_name, project_number')
+        .select('id, project_name, project_number, address')
         .in('status', ['approved', 'in_progress'])
         .neq('project_number', '000-UNASSIGNED')
         .order('project_number', { ascending: false });
 
       if (projectsError) throw projectsError;
-      setProjects(projectsData.map(p => ({ id: p.id, name: p.project_name, number: p.project_number })));
+      setProjects(projectsData.map(p => ({ 
+        id: p.id, 
+        name: p.project_name, 
+        number: p.project_number,
+        address: p.address 
+      })));
     } catch (error) {
       console.error('Error loading dropdown data:', error);
     }
@@ -235,11 +240,17 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
                 <SelectValue placeholder="Select project" />
               </SelectTrigger>
               <SelectContent>
-                {projects.map(project => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.number} - {project.name}
-                  </SelectItem>
-                ))}
+                  {projects.map(project => (
+                    <SelectItem key={project.id} value={project.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{project.number}</span>
+                        <span className="text-xs text-muted-foreground">{project.name}</span>
+                        {project.address && (
+                          <span className="text-xs text-muted-foreground">{project.address}</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
