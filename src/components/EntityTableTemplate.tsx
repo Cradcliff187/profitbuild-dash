@@ -29,7 +29,7 @@ interface EntityTableTemplateProps {
   onSelectItem: (id: string) => void;
   onSelectAll: () => void;
   onView?: (item: any) => void;
-  onEdit: (item: any) => void;
+  onEdit?: (item: any) => void;
   onDelete?: (id: string) => void;
   bulkActions?: React.ReactNode;
   filters?: React.ReactNode;
@@ -44,6 +44,8 @@ interface EntityTableTemplateProps {
   enableSorting?: boolean;
   defaultSortColumn?: string;
   defaultSortDirection?: 'asc' | 'desc';
+  // Custom actions renderer
+  renderActions?: (item: any) => React.ReactNode;
 }
 
 export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
@@ -69,6 +71,7 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
   enableSorting = false,
   defaultSortColumn,
   defaultSortDirection = 'asc',
+  renderActions,
 }) => {
   const [sortColumn, setSortColumn] = useState<string | null>(defaultSortColumn || null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(defaultSortDirection);
@@ -234,57 +237,63 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
                           </TableCell>
                         ))}
                         <TableCell className="p-compact">
-                          <div className="flex items-center gap-1">
-                            {onView && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onView(item)}
-                                className="h-input-compact w-input-compact p-0"
-                              >
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onEdit(item)}
-                              className="h-input-compact w-input-compact p-0"
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </Button>
-                            {onDelete && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
+                          {renderActions ? (
+                            renderActions(item)
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              {onView && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-input-compact w-input-compact p-0 text-destructive hover:text-destructive"
+                                  onClick={() => onView(item)}
+                                  className="h-input-compact w-input-compact p-0"
                                 >
-                                  <Trash2 className="h-3 w-3" />
+                                  <Eye className="h-3 w-3" />
                                 </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Item</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete this item? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => onDelete(item.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              )}
+                              {onEdit && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => onEdit(item)}
+                                  className="h-input-compact w-input-compact p-0"
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </Button>
+                              )}
+                              {onDelete && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-input-compact w-input-compact p-0 text-destructive hover:text-destructive"
                                   >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Item</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this item? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => onDelete(item.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </div>
                           )}
-                        </div>
-                      </TableCell>
+                        </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

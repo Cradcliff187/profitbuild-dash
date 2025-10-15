@@ -3,13 +3,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, FileDown } from "lucide-react";
+import { Search, FileDown, MoreHorizontal, Edit2, Trash2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EntityTableTemplate } from "./EntityTableTemplate";
 import { ExpenseBulkActions } from "./ExpenseBulkActions";
 import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from "@/types/expense";
 import { formatCurrency } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ExpensesListProps {
   expenses: Expense[];
@@ -289,6 +296,16 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       sortable: true,
     },
     {
+      key: 'amount',
+      label: 'Amount',
+      sortable: true,
+      render: (expense: Expense) => (
+        <div className="text-right text-data font-mono font-medium">
+          {formatCurrency(expense.amount, { showCents: true })}
+        </div>
+      )
+    },
+    {
       key: 'category',
       label: 'Category',
       sortable: true,
@@ -306,16 +323,6 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         <Badge variant={getTypeBadgeVariant(expense.transaction_type)} className="compact-badge">
           {TRANSACTION_TYPE_DISPLAY[expense.transaction_type]}
         </Badge>
-      )
-    },
-    {
-      key: 'amount',
-      label: 'Amount',
-      sortable: true,
-      render: (expense: Expense) => (
-        <div className="text-right text-data font-mono font-medium">
-          {formatCurrency(expense.amount, { showCents: true })}
-        </div>
       )
     },
     {
@@ -343,6 +350,67 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       )
     }
   ];
+
+  const renderActions = (expense: Expense) => {
+    const status = expense.approval_status || 'draft';
+    
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-input-compact w-8 p-0"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={() => onEdit(expense)}>
+            <Edit2 className="h-3 w-3 mr-2" />
+            Edit Expense
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem 
+            onClick={() => handleDelete(expense.id)}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="h-3 w-3 mr-2" />
+            Delete Expense
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          {status === 'draft' && (
+            <DropdownMenuItem onClick={() => handleApprovalAction(expense.id, 'submit')}>
+              Submit for Approval
+            </DropdownMenuItem>
+          )}
+
+          {status === 'pending' && (
+            <>
+              <DropdownMenuItem onClick={() => handleApprovalAction(expense.id, 'approve')}>
+                Approve
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleApprovalAction(expense.id, 'reject')}>
+                Reject
+              </DropdownMenuItem>
+            </>
+          )}
+
+          {expense.project_id && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => window.location.href = `/projects/${expense.project_id}`}>
+                <ExternalLink className="h-3 w-3 mr-2" />
+                View Project
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
 
   return (
     <div className="dense-spacing">
@@ -440,8 +508,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         selectedItems={selectedExpenses}
         onSelectItem={handleSelectExpense}
         onSelectAll={handleSelectAll}
-        onEdit={onEdit}
-        onDelete={handleDelete}
+        renderActions={renderActions}
         enablePagination={enablePagination}
         pageSize={pageSize}
         enableSorting={true}
