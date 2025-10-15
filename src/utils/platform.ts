@@ -4,6 +4,12 @@ import { Capacitor } from '@capacitor/core';
  * Platform detection utilities for cross-platform functionality
  */
 
+declare global {
+  interface Navigator {
+    standalone?: boolean;
+  }
+}
+
 export function isNativePlatform(): boolean {
   return Capacitor.isNativePlatform();
 }
@@ -21,4 +27,12 @@ export function isIOSDevice(): boolean {
   const isIOSUA = /ipad|iphone|ipod/.test(ua);
   const isMacWithTouch = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
   return isIOSUA || isMacWithTouch;
+}
+
+export function isIOSPWA(): boolean {
+  if (!isIOSDevice()) return false;
+  
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                      window.navigator.standalone === true;
+  return isStandalone;
 }
