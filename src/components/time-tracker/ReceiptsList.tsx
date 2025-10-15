@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, startOfWeek, startOfMonth, isWithinInterval } from 'date-fns';
 import { Receipt, Search, Trash2, Plus, Edit, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { AddReceiptModal } from './AddReceiptModal';
+import { EditReceiptModal } from './EditReceiptModal';
+import { ReassignReceiptDialog } from './ReassignReceiptDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +40,8 @@ export const ReceiptsList = () => {
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingReceipt, setEditingReceipt] = useState<ReceiptData | null>(null);
+  const [reassigningReceiptIds, setReassigningReceiptIds] = useState<string[]>([]);
 
   useEffect(() => {
     loadReceipts();
@@ -295,7 +299,12 @@ export const ReceiptsList = () => {
             <span className="text-sm font-medium">{selectedIds.length} selected</span>
           </div>
           <div className="flex gap-1">
-            <Button size="sm" variant="outline" className="h-7 text-xs px-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="h-7 text-xs px-2"
+              onClick={() => setReassigningReceiptIds(selectedIds)}
+            >
               <FolderOpen className="w-3 h-3 mr-1" />
               Assign
             </Button>
@@ -409,11 +418,27 @@ export const ReceiptsList = () => {
 
                   {/* Inline Actions */}
                   <div className="flex gap-2 pt-2 border-t">
-                    <Button size="sm" variant="outline" className="flex-1 h-8 text-xs">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1 h-8 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingReceipt(receipt);
+                      }}
+                    >
                       <Edit className="w-3 h-3 mr-1" />
                       Edit
                     </Button>
-                    <Button size="sm" variant="outline" className="flex-1 h-8 text-xs">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1 h-8 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReassigningReceiptIds([receipt.id]);
+                      }}
+                    >
                       <FolderOpen className="w-3 h-3 mr-1" />
                       Reassign
                     </Button>
@@ -455,6 +480,35 @@ export const ReceiptsList = () => {
           loadReceipts();
           setShowAddModal(false);
         }}
+      />
+
+      {/* Edit Receipt Modal */}
+      <EditReceiptModal
+        open={!!editingReceipt}
+        onClose={() => setEditingReceipt(null)}
+        onSuccess={() => {
+          setEditingReceipt(null);
+          loadReceipts();
+        }}
+        receipt={editingReceipt!}
+      />
+
+      {/* Reassign Receipt Dialog */}
+      <ReassignReceiptDialog
+        open={reassigningReceiptIds.length > 0}
+        onClose={() => setReassigningReceiptIds([])}
+        onSuccess={() => {
+          setReassigningReceiptIds([]);
+          setSelectedIds([]);
+          setBulkMode(false);
+          loadReceipts();
+        }}
+        receiptIds={reassigningReceiptIds}
+        currentProjectNumber={
+          reassigningReceiptIds.length === 1
+            ? receipts.find((r) => r.id === reassigningReceiptIds[0])?.project_number
+            : undefined
+        }
       />
     </MobilePageWrapper>
   );
