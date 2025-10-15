@@ -169,9 +169,6 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
     }
   };
 
-  const selectedWorker = workers.find(w => w.id === workerId);
-  const calculatedAmount = selectedWorker && hours ? (parseFloat(hours) * selectedWorker.rate).toFixed(2) : '0.00';
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -215,15 +212,15 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
           </div>
 
           <div>
-            <Label htmlFor="worker">Worker *</Label>
+            <Label htmlFor="worker">Team Member *</Label>
             <Select value={workerId} onValueChange={setWorkerId}>
               <SelectTrigger id="worker">
-                <SelectValue placeholder="Select worker" />
+                <SelectValue placeholder="Select team member" />
               </SelectTrigger>
               <SelectContent>
                 {workers.map(worker => (
                   <SelectItem key={worker.id} value={worker.id}>
-                    {worker.name} (${worker.rate}/hr)
+                    {worker.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -298,21 +295,6 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
               placeholder="Optional notes..."
               rows={2}
             />
-          </div>
-
-          <div className="p-2 bg-muted rounded text-sm">
-            <div className="flex justify-between">
-              <span>Hours:</span>
-              <span className="font-medium">{hours || '0'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Rate:</span>
-              <span className="font-medium">${selectedWorker?.rate || 0}/hr</span>
-            </div>
-            <div className="flex justify-between font-medium">
-              <span>Amount:</span>
-              <span>${calculatedAmount}</span>
-            </div>
           </div>
         </div>
 

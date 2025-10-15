@@ -28,7 +28,7 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [workers, setWorkers] = useState<Array<{ id: string; name: string }>>([]);
+  const [teamMembers, setTeamMembers] = useState<Array<{ id: string; name: string }>>([]);
 
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -64,13 +64,13 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
 
       setEntries(formattedEntries);
 
-      // Get unique workers
-      const uniqueWorkers = Array.from(
+      // Get unique team members
+      const uniqueTeamMembers = Array.from(
         new Map(
           formattedEntries.map(e => [e.payee_id, { id: e.payee_id, name: e.payee_name || 'Unknown' }])
         ).values()
       );
-      setWorkers(uniqueWorkers);
+      setTeamMembers(uniqueTeamMembers);
     } catch (error) {
       console.error('Error loading week data:', error);
       toast.error('Failed to load timesheet data');
@@ -83,9 +83,9 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
   const goToNextWeek = () => setWeekStart(addWeeks(weekStart, 1));
   const goToToday = () => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
 
-  const getEntriesForWorkerAndDay = (workerId: string, day: Date) => {
+  const getEntriesForWorkerAndDay = (memberId: string, day: Date) => {
     return entries.filter(
-      e => e.payee_id === workerId && isSameDay(new Date(e.expense_date), day)
+      e => e.payee_id === memberId && isSameDay(new Date(e.expense_date), day)
     );
   };
 
@@ -97,9 +97,9 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
     }, 0);
   };
 
-  const getWorkerTotal = (workerId: string) => {
-    const workerEntries = entries.filter(e => e.payee_id === workerId);
-    return workerEntries.reduce((sum, e) => {
+  const getWorkerTotal = (memberId: string) => {
+    const memberEntries = entries.filter(e => e.payee_id === memberId);
+    return memberEntries.reduce((sum, e) => {
       const hours = parseFloat(e.description.match(/(\d+\.?\d*)\s*hours?/i)?.[1] || '0');
       return sum + hours;
     }, 0);
@@ -162,7 +162,7 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
         <div className="min-w-[800px]">
           {/* Header Row */}
           <div className="grid grid-cols-8 border-b bg-muted/30">
-            <div className="p-2 text-xs font-medium border-r">Worker</div>
+            <div className="p-2 text-xs font-medium border-r">Team Member</div>
             {weekDays.map((day, i) => (
               <div key={i} className="p-2 text-center text-xs font-medium border-r last:border-r-0">
                 <div>{format(day, 'EEE')}</div>
@@ -171,14 +171,14 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
             ))}
           </div>
 
-          {/* Worker Rows */}
-          {workers.map(worker => (
-            <div key={worker.id} className="grid grid-cols-8 border-b last:border-b-0 hover:bg-muted/20">
+          {/* Team Member Rows */}
+          {teamMembers.map(member => (
+            <div key={member.id} className="grid grid-cols-8 border-b last:border-b-0 hover:bg-muted/20">
               <div className="p-2 text-sm border-r font-medium truncate">
-                {worker.name}
+                {member.name}
               </div>
               {weekDays.map((day, i) => {
-                const dayEntries = getEntriesForWorkerAndDay(worker.id, day);
+                const dayEntries = getEntriesForWorkerAndDay(member.id, day);
                 const totalHours = dayEntries.reduce((sum, e) => {
                   const hours = parseFloat(e.description.match(/(\d+\.?\d*)\s*hours?/i)?.[1] || '0');
                   return sum + hours;

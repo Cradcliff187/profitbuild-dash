@@ -23,7 +23,7 @@ interface Project {
   address?: string;
 }
 
-interface Worker {
+interface TeamMember {
   id: string;
   payee_name: string;
   hourly_rate: number;
@@ -31,10 +31,9 @@ interface Worker {
 
 interface TimeEntry {
   id: string;
-  worker: Worker;
+  teamMember: TeamMember;
   project: Project;
   hours: number;
-  amount: number;
   note?: string;
   receiptUrl?: string;
   startTime: Date;
@@ -42,7 +41,7 @@ interface TimeEntry {
 }
 
 interface ActiveTimer {
-  worker: Worker;
+  teamMember: TeamMember;
   project: Project;
   startTime: Date;
   note?: string;
@@ -54,12 +53,12 @@ export const MobileTimeTracker: React.FC = () => {
   const { user } = useAuth();
   const { isOnline } = useOnlineStatus();
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
-  const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
+  const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [todayEntries, setTodayEntries] = useState<TimeEntry[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [showProjectSelect, setShowProjectSelect] = useState(false);
   const [showWorkerSelect, setShowWorkerSelect] = useState(false);
   const [note, setNote] = useState('');
@@ -95,7 +94,7 @@ export const MobileTimeTracker: React.FC = () => {
           ...parsed,
           startTime: new Date(parsed.startTime)
         });
-        setSelectedWorker(parsed.worker);
+        setSelectedTeamMember(parsed.teamMember);
         setSelectedProject(parsed.project);
         setLocation(parsed.location);
       } catch (error) {
@@ -128,8 +127,8 @@ export const MobileTimeTracker: React.FC = () => {
       if (projectsError) throw projectsError;
       setProjects(projectsData || []);
 
-      // Load internal labor workers
-      const { data: workersData, error: workersError } = await supabase
+      // Load internal labor team members
+      const { data: teamMembersData, error: teamMembersError } = await supabase
         .from('payees')
         .select('id, payee_name, hourly_rate')
         .eq('is_internal', true)
@@ -137,13 +136,13 @@ export const MobileTimeTracker: React.FC = () => {
         .eq('is_active', true)
         .order('payee_name');
 
-      if (workersError) throw workersError;
-      setWorkers(workersData || []);
+      if (teamMembersError) throw teamMembersError;
+      setTeamMembers(teamMembersData || []);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
         title: 'Error Loading Data',
-        description: 'Failed to load projects and workers',
+        description: 'Failed to load projects and team members',
         variant: 'destructive'
       });
     } finally {
@@ -180,10 +179,9 @@ export const MobileTimeTracker: React.FC = () => {
         
         return {
           id: expense.id,
-          worker: expense.payees,
+          teamMember: expense.payees,
           project: expense.projects,
           hours,
-          amount: expense.amount,
           note: expense.description,
           receiptUrl: expense.attachment_url,
           startTime: new Date(expense.created_at),
@@ -238,10 +236,10 @@ export const MobileTimeTracker: React.FC = () => {
   };
 
   const handleClockIn = async () => {
-    if (!selectedWorker || !selectedProject) {
+    if (!selectedTeamMember || !selectedProject) {
       toast({
         title: 'Missing Information',
-        description: 'Please select worker and project first',
+        description: 'Please select team member and project first',
         variant: 'destructive'
       });
       return;
@@ -253,7 +251,7 @@ export const MobileTimeTracker: React.FC = () => {
       const loc = isOnline ? await captureLocation() : { lat: 0, lng: 0, address: 'Offline - no location' };
       
       const timerData = {
-        worker: selectedWorker,
+        teamMember: selectedTeamMember,
         project: selectedProject,
         startTime: new Date(),
         note: note || undefined,
@@ -274,7 +272,7 @@ export const MobileTimeTracker: React.FC = () => {
       
       toast({
         title: 'Clocked In',
-        description: `Timer started for ${selectedWorker.payee_name}${!isOnline ? ' (offline)' : ''}`,
+        description: `Timer started for ${selectedTeamMember.payee_name}${!isOnline ? ' (offline)' : ''}`,
       });
     } catch (error) {
       console.error('Error clocking in:', error);
@@ -327,16 +325,16 @@ export const MobileTimeTracker: React.FC = () => {
     try {
       const endTime = new Date();
       const hours = (endTime.getTime() - activeTimer.startTime.getTime()) / (1000 * 60 * 60);
-      const amount = hours * activeTimer.worker.hourly_rate;
+      const amount = hours * activeTimer.teamMember.hourly_rate;
 
       const expenseData = {
         project_id: activeTimer.project.id,
-        payee_id: activeTimer.worker.id,
+        payee_id: activeTimer.teamMember.id,
         category: 'labor_internal' as const,
         transaction_type: 'expense' as const,
         amount: amount,
         expense_date: activeTimer.startTime.toISOString().split('T')[0],
-        description: `${hours.toFixed(2)}hrs - ${activeTimer.worker.payee_name}${
+        description: `${hours.toFixed(2)}hrs - ${activeTimer.teamMember.payee_name}${
           activeTimer.note ? ` - ${activeTimer.note}` : ''
         }`,
         is_planned: false,
@@ -355,7 +353,7 @@ export const MobileTimeTracker: React.FC = () => {
 
         toast({
           title: 'Clocked Out',
-          description: `Saved ${hours.toFixed(2)} hours ($${amount.toFixed(2)})`,
+          description: `Saved ${hours.toFixed(2)} hours`,
         });
 
         await loadTodayEntries();
@@ -375,10 +373,9 @@ export const MobileTimeTracker: React.FC = () => {
         // Add to local today entries immediately (optimistic UI)
         const localEntry = {
           id: localId,
-          worker: activeTimer.worker,
+          teamMember: activeTimer.teamMember,
           project: activeTimer.project,
           hours,
-          amount,
           note: activeTimer.note,
           startTime: activeTimer.startTime,
           endTime: endTime
@@ -424,7 +421,6 @@ export const MobileTimeTracker: React.FC = () => {
   };
 
   const todayTotal = todayEntries.reduce((sum, entry) => sum + entry.hours, 0);
-  const todayAmount = todayEntries.reduce((sum, entry) => sum + entry.amount, 0);
 
   if (dataLoading) {
     return (
@@ -434,14 +430,14 @@ export const MobileTimeTracker: React.FC = () => {
     );
   }
 
-  if (workers.length === 0) {
+  if (teamMembers.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 p-4">
         <Alert variant="destructive" className="mt-8">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>No Workers Available</AlertTitle>
+          <AlertTitle>No Team Members Available</AlertTitle>
           <AlertDescription>
-            No internal labor workers found. Please add workers in the Payees section with "Internal" and "Provides Labor" enabled.
+            No internal labor team members found. Please add team members in the Payees section with "Internal" and "Provides Labor" enabled.
           </AlertDescription>
         </Alert>
       </div>
@@ -550,7 +546,7 @@ export const MobileTimeTracker: React.FC = () => {
               <div className="space-y-2 text-sm bg-white/10 rounded-lg p-3 backdrop-blur">
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4" />
-                  <span>{activeTimer.worker.payee_name}</span>
+                  <span>{activeTimer.teamMember.payee_name}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
@@ -566,40 +562,38 @@ export const MobileTimeTracker: React.FC = () => {
             </div>
           )}
 
-          {/* Worker Selection */}
+          {/* Team Member Selection */}
           <div className="bg-card rounded-xl shadow-sm p-4">
             <label className="block text-sm font-semibold text-foreground mb-2">
               <User className="w-4 h-4 inline mr-1" />
-              Worker
+              Team Member
             </label>
             <button
               onClick={() => setShowWorkerSelect(!showWorkerSelect)}
               disabled={activeTimer !== null}
               className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {selectedWorker ? (
+              {selectedTeamMember ? (
                 <div>
-                  <div className="font-semibold text-foreground">{selectedWorker.payee_name}</div>
-                  <div className="text-sm text-muted-foreground">${selectedWorker.hourly_rate}/hr</div>
+                  <div className="font-semibold text-foreground">{selectedTeamMember.payee_name}</div>
                 </div>
               ) : (
-                <div className="text-muted-foreground">Select worker...</div>
+                <div className="text-muted-foreground">Select team member...</div>
               )}
             </button>
             
             {showWorkerSelect && !activeTimer && (
               <div className="mt-2 border rounded-lg overflow-hidden max-h-64 overflow-y-auto">
-                {workers.map(worker => (
+                {teamMembers.map(member => (
                   <button
-                    key={worker.id}
+                    key={member.id}
                     onClick={() => {
-                      setSelectedWorker(worker);
+                      setSelectedTeamMember(member);
                       setShowWorkerSelect(false);
                     }}
                     className="w-full p-3 text-left hover:bg-muted border-b last:border-b-0 transition-all"
                   >
-                    <div className="font-semibold">{worker.payee_name}</div>
-                    <div className="text-sm text-muted-foreground">${worker.hourly_rate}/hr</div>
+                    <div className="font-semibold">{member.payee_name}</div>
                   </button>
                 ))}
               </div>
@@ -674,7 +668,7 @@ export const MobileTimeTracker: React.FC = () => {
             {!activeTimer ? (
               <button
                 onClick={handleClockIn}
-                disabled={!selectedWorker || !selectedProject || loading}
+                disabled={!selectedTeamMember || !selectedProject || loading}
                 className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-6 rounded-2xl font-bold text-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 flex items-center justify-center gap-2"
               >
                 {loading ? (
@@ -713,10 +707,6 @@ export const MobileTimeTracker: React.FC = () => {
                   <div className="text-2xl font-bold text-primary">{todayTotal.toFixed(1)} hrs</div>
                   <div className="text-sm text-muted-foreground">{todayEntries.length} entries</div>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-green-600">${todayAmount.toFixed(0)}</div>
-                  <div className="text-sm text-muted-foreground">Total labor</div>
-                </div>
               </div>
             </div>
           )}
@@ -730,11 +720,7 @@ export const MobileTimeTracker: React.FC = () => {
             <div className="flex justify-between items-center">
               <div>
                 <div className="text-3xl font-bold text-primary">{todayTotal.toFixed(1)} hrs</div>
-                <div className="text-sm text-muted-foreground">Total hours today</div>
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-green-600">${todayAmount.toFixed(0)}</div>
-                <div className="text-sm text-muted-foreground">Total amount</div>
+                <div className="text-sm text-muted-foreground">Total hours today • {todayEntries.length} entries</div>
               </div>
             </div>
           </div>
@@ -757,14 +743,13 @@ export const MobileTimeTracker: React.FC = () => {
               <div key={entry.id} className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary">
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex-1">
-                    <div className="font-semibold text-foreground">{entry.worker.payee_name}</div>
+                    <div className="font-semibold text-foreground">{entry.teamMember.payee_name}</div>
                     <div className="text-sm text-muted-foreground">
                       {entry.project.project_number} - {entry.project.client_name}
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-primary">{entry.hours.toFixed(2)} hrs</div>
-                    <div className="text-sm text-green-600">${entry.amount.toFixed(2)}</div>
                   </div>
                 </div>
                 

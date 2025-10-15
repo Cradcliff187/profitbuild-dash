@@ -235,7 +235,7 @@ export const ApprovalQueue = () => {
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {format(new Date(entry.expense_date), 'MMM d, yyyy')} •{' '}
-                    {getHours(entry.description)} hours • ${entry.amount.toFixed(2)}
+                    {getHours(entry.description)} hours
                   </div>
                   <div className="text-xs text-muted-foreground">{entry.project_name}</div>
                   {entry.rejection_reason && (
