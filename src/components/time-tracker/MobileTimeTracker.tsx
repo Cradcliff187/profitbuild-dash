@@ -553,9 +553,12 @@ export const MobileTimeTracker: React.FC = () => {
                 <div className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
-                    <span>{activeTimer.project.project_number} - {activeTimer.project.project_name}</span>
+                    <span>{activeTimer.project.project_number} - {activeTimer.project.client_name}</span>
                   </div>
-                  <span className="text-xs opacity-90 ml-6">{activeTimer.project.client_name}</span>
+                  <span className="text-xs opacity-90 ml-6">{activeTimer.project.project_name}</span>
+                  {activeTimer.project.address && (
+                    <span className="text-xs opacity-90 ml-6">{activeTimer.project.address}</span>
+                  )}
                 </div>
                 {activeTimer.note && (
                   <div className="flex items-start gap-2">
@@ -618,9 +621,10 @@ export const MobileTimeTracker: React.FC = () => {
             >
               {selectedProject ? (
                 <div>
-                  <div className="font-semibold text-foreground">{selectedProject.project_number}</div>
+                  <div className="font-semibold text-foreground">
+                    {selectedProject.project_number} - {selectedProject.client_name}
+                  </div>
                   <div className="text-sm text-muted-foreground">{selectedProject.project_name}</div>
-                  <div className="text-sm text-muted-foreground">{selectedProject.client_name}</div>
                   {selectedProject.address && (
                     <div className="text-xs text-muted-foreground">{selectedProject.address}</div>
                   )}
@@ -641,9 +645,10 @@ export const MobileTimeTracker: React.FC = () => {
                     }}
                     className="w-full p-3 text-left hover:bg-muted border-b last:border-b-0 transition-all"
                   >
-                    <div className="font-semibold">{project.project_number}</div>
+                    <div className="font-semibold">
+                      {project.project_number} - {project.client_name}
+                    </div>
                     <div className="text-sm text-muted-foreground">{project.project_name}</div>
-                    <div className="text-sm text-muted-foreground">{project.client_name}</div>
                     {project.address && (
                       <div className="text-xs text-muted-foreground">{project.address}</div>
                     )}
@@ -752,11 +757,16 @@ export const MobileTimeTracker: React.FC = () => {
                   <div className="flex-1">
                     <div className="font-semibold text-foreground">{entry.teamMember.payee_name}</div>
                     <div className="text-sm text-muted-foreground">
-                      {entry.project.project_number} - {entry.project.project_name}
+                      {entry.project.project_number} - {entry.project.client_name}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {entry.project.client_name}
+                      {entry.project.project_name}
                     </div>
+                    {entry.project.address && (
+                      <div className="text-xs text-muted-foreground">
+                        {entry.project.address}
+                      </div>
+                    )}
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-primary">{entry.hours.toFixed(2)} hrs</div>
