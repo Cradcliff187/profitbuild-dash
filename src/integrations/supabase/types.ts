@@ -386,17 +386,20 @@ export type Database = {
           attachment_url: string | null
           category: Database["public"]["Enums"]["expense_category"]
           created_at: string | null
+          created_offline: boolean | null
           description: string | null
           expense_date: string | null
           id: string
           invoice_number: string | null
           is_locked: boolean | null
           is_planned: boolean | null
+          local_id: string | null
           payee_id: string | null
           project_id: string
           quickbooks_transaction_id: string | null
           rejection_reason: string | null
           submitted_for_approval_at: string | null
+          synced_at: string | null
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string | null
           updated_by: string | null
@@ -411,17 +414,20 @@ export type Database = {
           attachment_url?: string | null
           category: Database["public"]["Enums"]["expense_category"]
           created_at?: string | null
+          created_offline?: boolean | null
           description?: string | null
           expense_date?: string | null
           id?: string
           invoice_number?: string | null
           is_locked?: boolean | null
           is_planned?: boolean | null
+          local_id?: string | null
           payee_id?: string | null
           project_id: string
           quickbooks_transaction_id?: string | null
           rejection_reason?: string | null
           submitted_for_approval_at?: string | null
+          synced_at?: string | null
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string | null
           updated_by?: string | null
@@ -436,17 +442,20 @@ export type Database = {
           attachment_url?: string | null
           category?: Database["public"]["Enums"]["expense_category"]
           created_at?: string | null
+          created_offline?: boolean | null
           description?: string | null
           expense_date?: string | null
           id?: string
           invoice_number?: string | null
           is_locked?: boolean | null
           is_planned?: boolean | null
+          local_id?: string | null
           payee_id?: string | null
           project_id?: string
           quickbooks_transaction_id?: string | null
           rejection_reason?: string | null
           submitted_for_approval_at?: string | null
+          synced_at?: string | null
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string | null
           updated_by?: string | null

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Wifi, WifiOff, Loader2, AlertCircle } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { getPendingCount, processQueue } from '@/utils/syncQueue';
+import { getPendingCount } from '@/utils/syncQueue';
+import { processQueue } from '@/utils/backgroundSync';
 
 export const SyncStatusBanner = () => {
   const { isOnline } = useOnlineStatus();

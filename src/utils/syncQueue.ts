@@ -105,3 +105,9 @@ export const getPendingCount = async (): Promise<number> => {
   const queue = await getQueue();
   return queue.filter(op => op.status === 'pending').length;
 };
+
+export const processQueue = async (): Promise<void> => {
+  // This function is implemented in backgroundSync.ts to avoid circular dependency
+  // Import and call from backgroundSync instead
+  console.warn('processQueue called from syncQueue - should be called from backgroundSync');
+};

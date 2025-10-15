@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { getQueue, markAsSynced, markAsFailed, updateOperationStatus } from './syncQueue';
+import { getQueue, markAsSynced, markAsFailed, updateOperationStatus, QueuedOperation } from './syncQueue';
 import { resolveConflict } from './conflictResolution';
 
 let isProcessing = false;
@@ -70,7 +70,7 @@ export const processQueue = async (): Promise<void> => {
   console.log('✅ Sync complete');
 };
 
-const syncClockOut = async (operation: any) => {
+const syncClockOut = async (operation: QueuedOperation) => {
   const { payload } = operation;
 
   // Check if already synced by local_id
@@ -79,7 +79,7 @@ const syncClockOut = async (operation: any) => {
       .from('expenses')
       .select('id')
       .eq('local_id', payload.local_id)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       console.log('⚠️ Entry already synced, skipping');
@@ -96,14 +96,14 @@ const syncClockOut = async (operation: any) => {
       synced_at: new Date().toISOString()
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
 
-  console.log('💾 Clock out synced:', data.id);
+  console.log('💾 Clock out synced:', data?.id);
 };
 
-const syncEditEntry = async (operation: any) => {
+const syncEditEntry = async (operation: QueuedOperation) => {
   const { payload } = operation;
 
   const { error } = await supabase
@@ -121,7 +121,7 @@ const syncEditEntry = async (operation: any) => {
   }
 };
 
-const syncDeleteEntry = async (operation: any) => {
+const syncDeleteEntry = async (operation: QueuedOperation) => {
   const { payload } = operation;
 
   const { error } = await supabase
