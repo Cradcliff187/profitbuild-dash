@@ -1281,6 +1281,30 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_project_financial_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          accepted_quote_count: number
+          actual_margin_percentage: number
+          actual_profit: number
+          change_order_costs: number
+          change_order_revenue: number
+          client_name: string
+          contingency_amount: number
+          cost_variance: number
+          expense_count: number
+          invoice_count: number
+          project_id: string
+          project_name: string
+          project_number: string
+          revenue_variance: number
+          status: Database["public"]["Enums"]["project_status"]
+          total_estimated: number
+          total_expenses: number
+          total_invoiced: number
+          total_quoted: number
+        }[]
+      }
       has_any_role: {
         Args: { _user_id: string }
         Returns: boolean

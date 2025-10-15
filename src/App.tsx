@@ -6,6 +6,7 @@ import ErrorBoundary from "@/components/ui/error-boundary";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { RoleProvider } from "@/contexts/RoleContext";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
@@ -28,6 +29,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const FieldPhotoCapture = lazy(() => import("./pages/FieldPhotoCapture"));
 const FieldVideoCapture = lazy(() => import("./pages/FieldVideoCapture"));
+const RoleManagement = lazy(() => import("./pages/RoleManagement"));
 
 const queryClient = new QueryClient();
 
@@ -40,7 +42,8 @@ const LazyRoute = ({ component: Component }: { component: React.ComponentType })
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
+      <RoleProvider>
+        <TooltipProvider>
         <Toaster />
         <Sonner />
         <InstallPrompt />
@@ -66,6 +69,7 @@ const App = () => (
                   <Route path="clients" element={<LazyRoute component={Clients} />} />
                   <Route path="profit-analysis" element={<LazyRoute component={ProfitAnalysis} />} />
                   <Route path="settings" element={<LazyRoute component={Settings} />} />
+                  <Route path="role-management" element={<LazyRoute component={RoleManagement} />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
@@ -73,6 +77,7 @@ const App = () => (
           </ErrorBoundary>
         </BrowserRouter>
       </TooltipProvider>
+      </RoleProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

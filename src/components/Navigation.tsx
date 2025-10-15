@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRoles } from "@/contexts/RoleContext";
 import { useState, useEffect } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -16,6 +17,7 @@ const Navigation = () => {
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { isAdmin, isManager, isFieldWorker, roles } = useRoles();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -52,24 +54,29 @@ const Navigation = () => {
     setIsInstallable(false);
   };
 
+  // Filter navigation based on roles
+  const hasFinancialAccess = roles.length === 0 || isAdmin || isManager;
+  const hasClientAccess = roles.length === 0 || isAdmin || isManager;
+  
   // Primary items (always visible on larger screens)
   const primaryItems = [
-    { to: "/", label: "Dashboard", icon: Building2 },
-    { to: "/projects", label: "Projects", icon: Building2 },
-    { to: "/time-tracker", label: "Time Tracker", icon: Clock },
-    { to: "/estimates", label: "Estimates", icon: Calculator },
-    { to: "/expenses", label: "Expenses", icon: Receipt },
-  ];
+    { to: "/", label: "Dashboard", icon: Building2, show: true },
+    { to: "/projects", label: "Projects", icon: Building2, show: true },
+    { to: "/time-tracker", label: "Time Tracker", icon: Clock, show: true },
+    { to: "/estimates", label: "Estimates", icon: Calculator, show: hasFinancialAccess },
+    { to: "/expenses", label: "Expenses", icon: Receipt, show: hasFinancialAccess },
+  ].filter(item => item.show);
 
   // Secondary items (grouped under "More" dropdown)
   const secondaryItems = [
-    { to: "/work-orders", label: "Work Orders", icon: Wrench },
-    { to: "/quotes", label: "Quotes", icon: FileText },
-    { to: "/payees", label: "Payees", icon: Users },
-    { to: "/clients", label: "Clients", icon: UserCheck },
-    { to: "/profit-analysis", label: "Profit Analysis", icon: TrendingUp },
-    { to: "/settings", label: "Settings", icon: Settings },
-  ];
+    { to: "/work-orders", label: "Work Orders", icon: Wrench, show: hasFinancialAccess },
+    { to: "/quotes", label: "Quotes", icon: FileText, show: hasFinancialAccess },
+    { to: "/payees", label: "Payees", icon: Users, show: hasClientAccess },
+    { to: "/clients", label: "Clients", icon: UserCheck, show: hasClientAccess },
+    { to: "/profit-analysis", label: "Profit Analysis", icon: TrendingUp, show: hasFinancialAccess },
+    { to: "/settings", label: "Settings", icon: Settings, show: true },
+    { to: "/role-management", label: "Role Management", icon: Settings, show: isAdmin },
+  ].filter(item => item.show);
 
   const allItems = [...primaryItems, ...secondaryItems];
 
