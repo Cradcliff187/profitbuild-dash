@@ -14,6 +14,16 @@ import { BulkActionsBar } from './BulkActionsBar';
 import { ApprovalQueue } from './ApprovalQueue';
 import { SyncStatusBanner } from './SyncStatusBanner';
 import { ReceiptsList } from './ReceiptsList';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { addToQueue } from '@/utils/syncQueue';
@@ -75,6 +85,7 @@ export const MobileTimeTracker: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [showReceiptPrompt, setShowReceiptPrompt] = useState(false);
   const [pendingReceiptExpenseId, setPendingReceiptExpenseId] = useState<string | null>(null);
 
   // Load projects and workers on mount
@@ -442,10 +453,10 @@ export const MobileTimeTracker: React.FC = () => {
     // Save time entry immediately
     const expenseId = await completeClockOut();
     
-    // Then offer receipt capture
+    // Then ask if user wants to add receipt
     if (expenseId && isOnline) {
       setPendingReceiptExpenseId(expenseId);
-      setShowReceiptModal(true);
+      setShowReceiptPrompt(true);
     }
   };
 
@@ -853,6 +864,32 @@ export const MobileTimeTracker: React.FC = () => {
           <ApprovalQueue />
         </div>
       )}
+
+      {/* Receipt Prompt Confirmation */}
+      <AlertDialog open={showReceiptPrompt} onOpenChange={setShowReceiptPrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add Receipt?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Would you like to add a receipt for this time entry?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowReceiptPrompt(false);
+              setPendingReceiptExpenseId(null);
+            }}>
+              Skip
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              setShowReceiptPrompt(false);
+              setShowReceiptModal(true);
+            }}>
+              Add Receipt
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Receipt Capture Modal */}
       <AddReceiptModal
