@@ -179,12 +179,22 @@ export const MobileTimeTracker: React.FC = () => {
         const hourlyRate = expense.payees?.hourly_rate || 75;
         const hours = expense.amount / hourlyRate;
         
+        // Clean up description to remove redundant info
+        const cleanNote = expense.description
+          .replace(/Internal Labor\s*-\s*/i, '') // Remove "Internal Labor" prefix
+          .replace(/\d+\.?\d*\s*h(?:ou)?rs?\s*-?\s*/i, '') // Remove hours
+          .replace(/Employee\s+\d+/i, '') // Remove "Employee 1", "Employee 2", etc.
+          .replace(/\s*-\s*\w{3}\s+\d{1,2},\s+\d{4}\s*-?\s*/i, '') // Remove date like "Oct 13, 2025"
+          .replace(/^\s*-\s*/, '') // Remove leading dash
+          .replace(/\s*-\s*$/, '') // Remove trailing dash
+          .trim();
+        
         return {
           id: expense.id,
           teamMember: expense.payees,
           project: expense.projects,
           hours,
-          note: expense.description,
+          note: cleanNote,
           receiptUrl: expense.attachment_url,
           startTime: new Date(expense.created_at),
           endTime: new Date(expense.created_at)
