@@ -1,5 +1,6 @@
 export function checkAudioRecordingSupport() {
   const issues: string[] = [];
+  const warnings: string[] = [];
   
   // Check MediaRecorder API
   if (!window.MediaRecorder) {
@@ -14,6 +15,19 @@ export function checkAudioRecordingSupport() {
   // Check secure context
   if (!window.isSecureContext && window.location.hostname !== 'localhost') {
     issues.push('Requires HTTPS connection');
+  }
+  
+  // Check if in iframe
+  if (window.self !== window.top) {
+    warnings.push('Running in embedded view - microphone may be blocked');
+  }
+  
+  // Check if iOS PWA
+  const isIOS = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                      (window.navigator as any).standalone === true;
+  if (isIOS && isStandalone) {
+    warnings.push('iOS PWA has limited microphone support - use Safari browser for best results');
   }
   
   // Check codec support
@@ -34,6 +48,18 @@ export function checkAudioRecordingSupport() {
   return {
     supported: issues.length === 0,
     issues,
-    recommendedBrowser: issues.length > 0 ? 'Chrome 89+ or Safari 14.5+' : null,
+    warnings,
+    recommendedAction: issues.length > 0 
+      ? 'Use Chrome 89+ or Safari 14.5+' 
+      : warnings.length > 0
+      ? 'Open in new tab or Safari browser'
+      : null,
+    environment: {
+      isIframe: window.self !== window.top,
+      isIOSPWA: isIOS && isStandalone,
+      isSecure: window.isSecureContext,
+      hasMediaRecorder: !!window.MediaRecorder,
+      hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia,
+    }
   };
 }
