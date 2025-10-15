@@ -403,6 +403,7 @@ export type Database = {
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string | null
           updated_by: string | null
+          user_id: string | null
         }
         Insert: {
           account_full_name?: string | null
@@ -431,6 +432,7 @@ export type Database = {
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string | null
           updated_by?: string | null
+          user_id?: string | null
         }
         Update: {
           account_full_name?: string | null
@@ -459,6 +461,7 @@ export type Database = {
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string | null
           updated_by?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -641,6 +644,45 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      project_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_media: {
         Row: {
@@ -1147,6 +1189,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       project_financial_summary: {
@@ -1183,6 +1249,10 @@ export type Database = {
         Args: { project_id_param: string }
         Returns: undefined
       }
+      can_access_project: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
       check_margin_thresholds: {
         Args: { project_id_param: string }
         Returns: string
@@ -1211,12 +1281,24 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      has_any_role: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       rollback_cost_migration_final: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
     }
     Enums: {
+      app_role: "admin" | "manager" | "field_worker"
       change_order_status: "pending" | "approved" | "rejected"
       estimate_status: "draft" | "sent" | "approved" | "rejected" | "expired"
       expense_category:
@@ -1369,6 +1451,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "manager", "field_worker"],
       change_order_status: ["pending", "approved", "rejected"],
       estimate_status: ["draft", "sent", "approved", "rejected", "expired"],
       expense_category: [
