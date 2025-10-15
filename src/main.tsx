@@ -13,21 +13,19 @@ startSyncService();
 // Register service worker
 if ('serviceWorker' in navigator) {
   const updateSW = registerSW({
+    immediate: true,
     onNeedRefresh() {
-      toast.info('🎉 New version available!', {
-        duration: Infinity,
-        dismissible: false,
-        action: {
-          label: 'Update Now',
-          onClick: () => {
-            toast.success('Updating app...');
-            updateSW(true);
-          },
-        },
-      });
+      // Auto-apply updates immediately without user prompt
+      updateSW(true);
     },
     onOfflineReady() {
       console.log('App ready to work offline');
+    },
+    onRegisteredSW(_, registration) {
+      // Check for updates every minute while app is open
+      if (registration) {
+        setInterval(() => registration.update(), 60 * 1000);
+      }
     },
   });
 }
