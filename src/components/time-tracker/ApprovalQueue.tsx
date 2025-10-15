@@ -19,6 +19,7 @@ interface TimeEntry {
   approval_status: string;
   submitted_for_approval_at?: string;
   rejection_reason?: string;
+  attachment_url?: string;
   payee_name?: string;
   project_name?: string;
   project_number?: string;
@@ -220,6 +221,11 @@ export const ApprovalQueue = () => {
                     <Badge variant="outline" className="text-xs">
                       {entry.project_number}
                     </Badge>
+                    {entry.attachment_url && (
+                      <Badge variant="secondary" className="text-xs">
+                        📎 Receipt
+                      </Badge>
+                    )}
                     <Badge
                       variant={
                         entry.approval_status === 'approved'
@@ -241,6 +247,16 @@ export const ApprovalQueue = () => {
                   {entry.rejection_reason && (
                     <div className="text-xs text-destructive mt-1">
                       Rejected: {entry.rejection_reason}
+                    </div>
+                  )}
+                  {entry.attachment_url && (
+                    <div className="mt-2 border rounded overflow-hidden">
+                      <img 
+                        src={entry.attachment_url} 
+                        alt="Receipt"
+                        className="w-full h-auto max-h-32 object-contain bg-slate-50 cursor-pointer"
+                        onClick={() => window.open(entry.attachment_url, '_blank')}
+                      />
                     </div>
                   )}
                 </div>

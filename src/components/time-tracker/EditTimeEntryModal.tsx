@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Clock, Trash2, Save } from 'lucide-react';
+import { Clock, Trash2, Save, Camera, Paperclip } from 'lucide-react';
+import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +43,8 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
   const [endTime, setEndTime] = useState('');
   const [hours, setHours] = useState('');
   const [note, setNote] = useState('');
+  const [receiptUrl, setReceiptUrl] = useState<string | undefined>();
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -89,6 +92,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
     setWorkerId(entry.payee_id);
     setProjectId(entry.project_id);
     setDate(entry.expense_date);
+    setReceiptUrl(entry.attachment_url);
 
     // Parse description to extract hours and times
     const hoursMatch = entry.description.match(/(\d+\.?\d*)\s*hours?/i);
@@ -145,6 +149,73 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
     }
   }, [startTime, endTime]);
 
+  const captureReceipt = async () => {
+    if (!entry) return;
+    
+    try {
+      setUploadingReceipt(true);
+      
+      const photo = await CapacitorCamera.getPhoto({
+        quality: 80,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera,
+      });
+
+      if (!photo.dataUrl) return;
+
+      const response = await fetch(photo.dataUrl);
+      const blob = await response.blob();
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const timestamp = Date.now();
+      const filename = `${timestamp}_receipt.jpg`;
+      const storagePath = `${user.id}/receipts/${entry.project_id}/${filename}`;
+
+      const { data, error } = await supabase.storage
+        .from('time-tracker-documents')
+        .upload(storagePath, blob, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = await supabase.storage
+        .from('time-tracker-documents')
+        .createSignedUrl(data.path, 31536000);
+
+      setReceiptUrl(urlData?.signedUrl);
+      toast.success('Receipt captured');
+    } catch (error) {
+      console.error('Receipt capture failed:', error);
+      toast.error('Failed to capture receipt');
+    } finally {
+      setUploadingReceipt(false);
+    }
+  };
+
+  const removeReceipt = async () => {
+    if (!confirm('Remove this receipt?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .update({ attachment_url: null })
+        .eq('id', entry!.id);
+
+      if (error) throw error;
+
+      setReceiptUrl(undefined);
+      toast.success('Receipt removed');
+    } catch (error) {
+      console.error('Error removing receipt:', error);
+      toast.error('Failed to remove receipt');
+    }
+  };
+
   const handleSave = async () => {
     if (!entry) return;
     
@@ -188,6 +259,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
           expense_date: date,
           amount,
           description,
+          attachment_url: receiptUrl,
           updated_by: user?.id,
         })
         .eq('id', entry.id);
@@ -339,6 +411,63 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
               placeholder="Optional notes..."
               rows={2}
             />
+          </div>
+
+          <div>
+            <Label>Receipt</Label>
+            {receiptUrl ? (
+              <div className="space-y-2">
+                <div className="border rounded-lg overflow-hidden">
+                  <img 
+                    src={receiptUrl} 
+                    alt="Receipt" 
+                    className="w-full h-auto max-h-48 object-contain bg-slate-50 cursor-pointer"
+                    onClick={() => window.open(receiptUrl, '_blank')}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="sm" 
+                    onClick={captureReceipt}
+                    disabled={uploadingReceipt || loading}
+                    className="flex-1"
+                  >
+                    <Camera className="w-4 h-4 mr-1" />
+                    Replace Receipt
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="sm" 
+                    onClick={removeReceipt}
+                    disabled={loading}
+                    className="flex-1"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button 
+                type="button"
+                variant="outline" 
+                onClick={captureReceipt}
+                disabled={uploadingReceipt || loading}
+                className="w-full"
+              >
+                {uploadingReceipt ? (
+                  <>Loading...</>
+                ) : (
+                  <>
+                    <Camera className="w-4 h-4 mr-1" />
+                    Add Receipt
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
 

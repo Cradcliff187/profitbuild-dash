@@ -38,6 +38,7 @@ interface TimeEntry {
   hours: number;
   note?: string;
   receiptUrl?: string;
+  attachment_url?: string;
   startTime: Date;
   endTime: Date;
 }
@@ -787,6 +788,20 @@ export const MobileTimeTracker: React.FC = () => {
                 {entry.note && (
                   <div className="bg-muted rounded p-2 text-sm text-muted-foreground mt-2">
                     {entry.note}
+                  </div>
+                )}
+
+                {entry.attachment_url && (
+                  <div className="mt-2 border rounded-lg overflow-hidden">
+                    <img 
+                      src={entry.attachment_url} 
+                      alt="Receipt"
+                      className="w-full h-auto max-h-64 object-contain bg-slate-50 cursor-pointer"
+                      onClick={() => window.open(entry.attachment_url, '_blank')}
+                    />
+                    <div className="text-xs text-center text-muted-foreground bg-muted p-1">
+                      📎 Receipt attached - Tap to view full size
+                    </div>
                   </div>
                 )}
               </div>
