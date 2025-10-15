@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Camera, Calendar, Clock, X } from 'lucide-react';
+import { Camera, Calendar, Clock, X, Plus } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import { AddReceiptModal } from './AddReceiptModal';
 
 interface ReceiptEntry {
   id: string;
@@ -25,6 +27,7 @@ export const ReceiptsGallery: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptEntry | null>(null);
   const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('week');
+  const [showAddReceiptModal, setShowAddReceiptModal] = useState(false);
 
   useEffect(() => {
     loadReceipts();
@@ -55,10 +58,10 @@ export const ReceiptsGallery: React.FC = () => {
           expense_date,
           description,
           amount,
-          payees!inner(id, payee_name, hourly_rate),
+          category,
+          payees(id, payee_name, hourly_rate),
           projects!inner(id, project_number, project_name, client_name)
         `)
-        .eq('category', 'labor_internal')
         .not('attachment_url', 'is', null)
         .order('expense_date', { ascending: false });
 
@@ -157,6 +160,11 @@ export const ReceiptsGallery: React.FC = () => {
                     alt="Receipt"
                     className="w-full h-full object-cover"
                   />
+                  {receipt.project.project_number === 'SYS-000' && (
+                    <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-medium">
+                      Unassigned
+                    </div>
+                  )}
                   <div className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-xs">
                     {receipt.hours.toFixed(1)}h
                   </div>
@@ -179,6 +187,27 @@ export const ReceiptsGallery: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Floating Action Button */}
+      <div className="fixed bottom-24 right-6 z-20">
+        <Button
+          onClick={() => setShowAddReceiptModal(true)}
+          size="lg"
+          className="h-14 w-14 rounded-full shadow-lg"
+        >
+          <Plus className="w-6 h-6" />
+        </Button>
+      </div>
+
+      {/* Add Receipt Modal */}
+      <AddReceiptModal
+        open={showAddReceiptModal}
+        onClose={() => setShowAddReceiptModal(false)}
+        onSuccess={() => {
+          loadReceipts();
+          setShowAddReceiptModal(false);
+        }}
+      />
 
       {/* Full-Screen Receipt Modal */}
       {selectedReceipt && (
