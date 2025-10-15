@@ -107,6 +107,17 @@ export function useAudioRecording() {
       setAudioData(null);
       setDuration(0);
 
+      // Comprehensive environment diagnostics
+      console.log('[AudioRecording] Environment check:', {
+        isSecureContext: window.isSecureContext,
+        hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia,
+        hasMediaRecorder: !!window.MediaRecorder,
+        userAgent: navigator.userAgent,
+        isStandalone: window.matchMedia('(display-mode: standalone)').matches,
+        isInIframe: window.self !== window.top,
+        platform: navigator.platform,
+      });
+
       console.log('[AudioRecording] Starting recording flow...');
 
       // Pre-flight permission check
@@ -199,6 +210,15 @@ export function useAudioRecording() {
 
     } catch (err) {
       console.error('Failed to start recording:', err);
+      
+      // Detailed error diagnostics
+      console.error('[AudioRecording] getUserMedia failed:', {
+        error: err,
+        errorName: err instanceof Error ? err.name : 'unknown',
+        errorMessage: err instanceof Error ? err.message : 'unknown',
+        isInIframe: window.self !== window.top,
+        timestamp: new Date().toISOString(),
+      });
       
       // Provide specific error messages based on failure mode
       if (err instanceof Error && err.message === 'MIC_TIMEOUT') {
