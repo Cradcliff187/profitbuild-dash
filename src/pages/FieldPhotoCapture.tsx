@@ -159,6 +159,16 @@ export default function FieldPhotoCapture() {
     toast.success('Caption saved - ready to upload');
   };
 
+  // Check if in iframe before opening voice modal
+  const handleVoiceCaptionClick = () => {
+    if (window.self !== window.top) {
+      toast.error('Microphone blocked in embedded view — open in new tab to use voice captions');
+      setShowCaptionModal(true); // Fallback to text modal
+    } else {
+      setShowVoiceCaptionModal(true);
+    }
+  };
+
   const handleVoiceCaptionReady = (caption: string) => {
     setPendingCaption(caption);
     setShowVoiceCaptionModal(false);
@@ -334,7 +344,7 @@ export default function FieldPhotoCapture() {
               
               {/* Primary Voice Caption CTA */}
               <Button 
-                onClick={() => setShowVoiceCaptionModal(true)} 
+                onClick={handleVoiceCaptionClick} 
                 variant="default" 
                 className="w-full text-base font-semibold"
                 size="xl"

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Mic, MicOff, Check, X, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, Check, X, Loader2, Sparkles, AlertCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAudioRecording } from '@/hooks/useAudioRecording';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { AICaptionEnhancer } from '@/components/AICaptionEnhancer';
@@ -42,6 +42,12 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
   const [editableCaption, setEditableCaption] = useState('');
   const [hasTranscribed, setHasTranscribed] = useState(false);
   const [showAIEnhancer, setShowAIEnhancer] = useState(false);
+  const [isInIframe, setIsInIframe] = useState(false);
+
+  // Check if running in iframe on mount
+  useEffect(() => {
+    setIsInIframe(window.self !== window.top);
+  }, []);
 
   // Show browser compatibility warning on modal open
   useEffect(() => {
@@ -114,6 +120,11 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
   }, [transcriptionError]);
 
   const handleStartRecording = async () => {
+    if (isInIframe) {
+      toast.error('Microphone blocked in embedded preview. Open in a new tab to use voice captions.');
+      return;
+    }
+    
     resetTranscription();
     setEditableCaption('');
     setHasTranscribed(false);
@@ -142,7 +153,12 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
     resetTranscription();
     setEditableCaption('');
     setHasTranscribed(false);
+    setShowAIEnhancer(false);
     onClose();
+  };
+
+  const handleOpenInNewTab = () => {
+    window.open(window.location.href, '_blank');
   };
 
   const formatDuration = (seconds: number) => {
@@ -165,32 +181,88 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Iframe warning */}
+          {isInIframe && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Microphone Blocked</AlertTitle>
+              <AlertDescription className="space-y-2">
+                <p className="text-sm">
+                  Microphone access is blocked in embedded preview. To use voice captions:
+                </p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={handleOpenInNewTab}>
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Open in New Tab
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleCancel}>
+                    Type Instead
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Recording Interface */}
           {!showTranscription && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
               {/* Show error alert if there's a recording error */}
               {recordingError && (
                 <Alert variant="destructive" className="mb-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-xs">
-                    <strong>Microphone Error:</strong> {recordingError}
-                    {recordingError.includes('denied') && (
-                      <>
-                        <br /><br />
-                        <strong>To fix:</strong>
-                        <ol className="list-decimal ml-4 mt-2 space-y-1">
-                          <li>Open browser settings (usually via address bar icon)</li>
-                          <li>Find "Site Settings" or "Permissions"</li>
-                          <li>Enable microphone for this site</li>
-                          <li>Reload the page and try again</li>
-                        </ol>
-                      </>
-                    )}
-                    {recordingError.includes('HTTPS') && (
-                      <>
-                        <br /><br />
-                        <strong>Solution:</strong> Microphone access requires a secure HTTPS connection.
-                      </>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Microphone Error</AlertTitle>
+                  <AlertDescription className="space-y-2">
+                    <p className="text-sm">{recordingError}</p>
+                    {recordingError.includes('embedded preview') || recordingError.includes('iframe') ? (
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={handleOpenInNewTab}>
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Open in New Tab
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={handleCancel}>
+                          Type Instead
+                        </Button>
+                      </div>
+                    ) : recordingError.includes('permission') || recordingError.includes('settings') || recordingError.includes('prompt did not appear') ? (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">
+                          <strong>iOS Safari:</strong> Settings → Safari → Microphone: On, then tap "aA" in address bar → Website Settings → Microphone: Allow
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          <strong>Android Chrome:</strong> Tap lock icon → Permissions → Microphone: Allow
+                        </p>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => {
+                              resetRecording();
+                              handleStartRecording();
+                            }}
+                          >
+                            Try Again
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={handleCancel}>
+                            Type Instead
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => {
+                            resetRecording();
+                            handleStartRecording();
+                          }}
+                        >
+                          Try Recording Again
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={handleCancel}>
+                          Type Instead
+                        </Button>
+                      </div>
                     )}
                   </AlertDescription>
                 </Alert>
@@ -201,7 +273,7 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
                 size="lg"
                 variant={isRecording ? 'destructive' : 'default'}
                 className="h-20 w-20 rounded-full"
-                disabled={isProcessingAudio || !browserSupport.supported}
+                disabled={isProcessingAudio || !browserSupport.supported || isInIframe}
               >
                 {isRecording ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
               </Button>

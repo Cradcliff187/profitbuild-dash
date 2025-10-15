@@ -68,6 +68,28 @@ async function checkMicrophonePermission(): Promise<{ granted: boolean; error?: 
   }
 }
 
+// Request microphone with timeout to prevent indefinite hanging
+async function requestMicrophoneStream(timeoutMs = 8000): Promise<MediaStream> {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error('MIC_TIMEOUT'));
+    }, timeoutMs);
+
+    navigator.mediaDevices.getUserMedia({ 
+      audio: true,
+      video: false
+    })
+      .then(stream => {
+        clearTimeout(timeoutId);
+        resolve(stream);
+      })
+      .catch(err => {
+        clearTimeout(timeoutId);
+        reject(err);
+      });
+  });
+}
+
 export function useAudioRecording() {
   const [state, setState] = useState<RecordingState>('idle');
   const [duration, setDuration] = useState(0);
@@ -94,10 +116,10 @@ export function useAudioRecording() {
       }
 
       console.log('[AudioRecording] Requesting microphone access...');
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: true,
-        video: false // Explicitly disable video to ensure audio-only
-      });
+      
+      // Use timeout wrapper to prevent indefinite hangs
+      const stream = await requestMicrophoneStream(8000);
+      
       console.log('[AudioRecording] Microphone access granted', {
         audioTracks: stream.getAudioTracks().length,
       });
@@ -177,7 +199,21 @@ export function useAudioRecording() {
 
     } catch (err) {
       console.error('Failed to start recording:', err);
-      setError('Failed to access microphone. Please check permissions.');
+      
+      // Provide specific error messages based on failure mode
+      if (err instanceof Error && err.message === 'MIC_TIMEOUT') {
+        // Check if running in iframe (editor preview)
+        if (window.self !== window.top) {
+          setError('Microphone blocked in embedded preview. Open in a new tab or install the app to use voice captions.');
+        } else {
+          setError('Microphone permission prompt did not appear. Enable microphone in browser/site settings, then retry.');
+        }
+      } else if (err instanceof Error && err.name === 'NotAllowedError') {
+        setError('Microphone access denied. Please allow microphone access in your browser settings.');
+      } else {
+        setError('Failed to access microphone. Please check permissions.');
+      }
+      
       setState('idle');
     }
   }, []);
