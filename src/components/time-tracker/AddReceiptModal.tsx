@@ -12,6 +12,8 @@ import { Camera as CameraIcon, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PayeeSelector } from '@/components/PayeeSelector';
 
+const UNASSIGNED_RECEIPTS_PROJECT_NUMBER = 'SYS-000';
+
 interface Project {
   id: string;
   project_number: string;
@@ -36,6 +38,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   const [amount, setAmount] = useState<string>('');
   const [uploading, setUploading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [systemProjectId, setSystemProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -52,7 +55,16 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
       if (error) throw error;
       
-      setProjects(data || []);
+      // Find the SYS-000 project ID for fallback
+      const sysProject = data?.find(p => p.project_number === UNASSIGNED_RECEIPTS_PROJECT_NUMBER);
+      if (sysProject) {
+        setSystemProjectId(sysProject.id);
+      }
+      
+      // Filter out system projects from dropdown
+      setProjects(data?.filter(p => 
+        !['SYS-000', '000-UNASSIGNED'].includes(p.project_number)
+      ) || []);
     } catch (error) {
       console.error('Failed to load projects:', error);
       toast.error('Failed to load projects');
@@ -126,7 +138,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
           image_url: urlData.signedUrl,
           amount: parseFloat(amount),
           payee_id: selectedPayeeId,
-          project_id: selectedProjectId || null,
+          project_id: selectedProjectId || systemProjectId,
           description: description || null,
           captured_at: new Date().toISOString(),
         })
@@ -212,7 +224,6 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
           {/* Payee (Required) */}
           <div className="space-y-2">
-            <Label>Payee *</Label>
             <PayeeSelector
               value={selectedPayeeId}
               onValueChange={setSelectedPayeeId}
