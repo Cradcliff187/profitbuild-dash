@@ -1,8 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, MoreHorizontal, Eye, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EntityTableTemplate } from "./EntityTableTemplate";
 import { PayeeDetailsModal } from "./PayeeDetailsModal";
 import { PayeeBulkActions } from "@/components/PayeeBulkActions";
@@ -350,6 +358,53 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
     }
   ];
 
+  const renderActions = (payee: Payee) => {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-input-compact w-input-compact p-0"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={() => handleViewPayee(payee)}>
+            <Eye className="h-3 w-3 mr-2" />
+            View Details
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem onClick={() => onEdit(payee)}>
+            <Edit2 className="h-3 w-3 mr-2" />
+            Edit Payee
+          </DropdownMenuItem>
+          
+          {payee.insurance_expires && isInsuranceExpiringSoon(payee.insurance_expires) && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-amber-600 focus:text-amber-600 cursor-default pointer-events-none">
+                <AlertTriangle className="h-3 w-3 mr-2" />
+                Insurance Expiring Soon
+              </DropdownMenuItem>
+            </>
+          )}
+          
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuItem 
+            onClick={() => handleDelete(payee.id)}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="h-3 w-3 mr-2" />
+            Deactivate Payee
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
   return (
     <div className="dense-spacing">
       <EntityTableTemplate
@@ -361,9 +416,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
         selectedItems={selectedPayees}
         onSelectItem={handleSelectPayee}
         onSelectAll={handleSelectAll}
-        onView={handleViewPayee}
-        onEdit={onEdit}
-        onDelete={handleDelete}
+        renderActions={renderActions}
         filters={
           <PayeeFilters
             searchTerm={searchTerm}

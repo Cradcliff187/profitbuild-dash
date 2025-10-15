@@ -3,7 +3,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Upload, MoreHorizontal, Eye, Edit2, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Client, ClientType, CLIENT_TYPES } from "@/types/client";
 import { useToast } from "@/hooks/use-toast";
 import { EntityTableTemplate } from "./EntityTableTemplate";
@@ -187,6 +194,43 @@ export const ClientsList = () => {
     }
   ];
 
+  const renderActions = (client: Client) => {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-input-compact w-input-compact p-0"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={() => handleViewClient(client)}>
+            <Eye className="h-3 w-3 mr-2" />
+            View Details
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem onClick={() => handleEditClient(client)}>
+            <Edit2 className="h-3 w-3 mr-2" />
+            Edit Client
+          </DropdownMenuItem>
+          
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuItem 
+            onClick={() => handleDeleteClient(client.id)}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="h-3 w-3 mr-2" />
+            {client.is_active ? 'Deactivate' : 'Delete'} Client
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
   return (
     <div className="dense-spacing">
       <div className="flex justify-between items-start">
@@ -222,9 +266,7 @@ export const ClientsList = () => {
         selectedItems={selectedClients}
         onSelectItem={handleSelectClient}
         onSelectAll={handleSelectAll}
-        onView={handleViewClient}
-        onEdit={handleEditClient}
-        onDelete={handleDeleteClient}
+        renderActions={renderActions}
         filters={
           <ClientFilters
             searchTerm={searchTerm}
