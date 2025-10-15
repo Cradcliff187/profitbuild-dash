@@ -31,6 +31,8 @@ const WorkOrdersList = () => {
           )
         `)
         .eq('project_type', 'work_order')
+        .neq('project_number', 'SYS-000')
+        .neq('project_number', '000-UNASSIGNED')
         .order('created_at', { ascending: false });
 
       if (error) {

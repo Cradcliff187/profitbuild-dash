@@ -65,7 +65,7 @@ const Dashboard = () => {
       
       // Fetch all data in parallel
       const [projectsRes, estimatesRes, quotesRes, expensesRes] = await Promise.all([
-        supabase.from('projects').select('*').order('created_at', { ascending: false }),
+        supabase.from('projects').select('*').neq('project_number', 'SYS-000').neq('project_number', '000-UNASSIGNED').order('created_at', { ascending: false }),
         supabase.from('estimates').select('*'),
         supabase.from('quotes').select('*'),
         supabase.from('expenses').select('*')

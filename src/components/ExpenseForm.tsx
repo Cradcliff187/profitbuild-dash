@@ -79,8 +79,6 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         const { data: projectsData, error: projectsError } = await supabase
           .from('projects')
           .select('*')
-          .neq('project_number', 'SYS-000')
-          .neq('project_number', '000-UNASSIGNED')
           .order('created_at', { ascending: false });
 
         const transformedProjects = (projectsData || []).map(project => ({
