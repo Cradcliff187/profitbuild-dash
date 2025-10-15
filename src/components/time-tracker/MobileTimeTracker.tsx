@@ -19,6 +19,7 @@ import { addToQueue } from '@/utils/syncQueue';
 interface Project {
   id: string;
   project_number: string;
+  project_name: string;
   client_name: string;
   address?: string;
 }
@@ -119,7 +120,7 @@ export const MobileTimeTracker: React.FC = () => {
       // Load active projects
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
-        .select('id, project_number, client_name, address')
+        .select('id, project_number, project_name, client_name, address')
         .in('status', ['in_progress', 'approved'])
         .neq('project_number', '000-UNASSIGNED')
         .order('project_number', { ascending: false })
@@ -165,7 +166,7 @@ export const MobileTimeTracker: React.FC = () => {
           attachment_url,
           created_at,
           payees!inner(id, payee_name, hourly_rate),
-          projects!inner(id, project_number, client_name, address)
+          projects!inner(id, project_number, project_name, client_name, address)
         `)
         .eq('category', 'labor_internal')
         .eq('expense_date', today)
@@ -549,9 +550,12 @@ export const MobileTimeTracker: React.FC = () => {
                   <User className="w-4 h-4" />
                   <span>{activeTimer.teamMember.payee_name}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  <span>{activeTimer.project.project_number} - {activeTimer.project.client_name}</span>
+                <div className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    <span>{activeTimer.project.project_number} - {activeTimer.project.project_name}</span>
+                  </div>
+                  <span className="text-xs opacity-90 ml-6">{activeTimer.project.client_name}</span>
                 </div>
                 {activeTimer.note && (
                   <div className="flex items-start gap-2">
@@ -615,6 +619,7 @@ export const MobileTimeTracker: React.FC = () => {
               {selectedProject ? (
                 <div>
                   <div className="font-semibold text-foreground">{selectedProject.project_number}</div>
+                  <div className="text-sm text-muted-foreground">{selectedProject.project_name}</div>
                   <div className="text-sm text-muted-foreground">{selectedProject.client_name}</div>
                   {selectedProject.address && (
                     <div className="text-xs text-muted-foreground">{selectedProject.address}</div>
@@ -637,6 +642,7 @@ export const MobileTimeTracker: React.FC = () => {
                     className="w-full p-3 text-left hover:bg-muted border-b last:border-b-0 transition-all"
                   >
                     <div className="font-semibold">{project.project_number}</div>
+                    <div className="text-sm text-muted-foreground">{project.project_name}</div>
                     <div className="text-sm text-muted-foreground">{project.client_name}</div>
                     {project.address && (
                       <div className="text-xs text-muted-foreground">{project.address}</div>
@@ -746,7 +752,10 @@ export const MobileTimeTracker: React.FC = () => {
                   <div className="flex-1">
                     <div className="font-semibold text-foreground">{entry.teamMember.payee_name}</div>
                     <div className="text-sm text-muted-foreground">
-                      {entry.project.project_number} - {entry.project.client_name}
+                      {entry.project.project_number} - {entry.project.project_name}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {entry.project.client_name}
                     </div>
                   </div>
                   <div className="text-right">
