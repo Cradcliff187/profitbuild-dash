@@ -12,11 +12,8 @@ import { ManualEntryModal } from './ManualEntryModal';
 import { BulkActionsBar } from './BulkActionsBar';
 import { ApprovalQueue } from './ApprovalQueue';
 import { SyncStatusBanner } from './SyncStatusBanner';
-import { TodayTableView } from './TodayTableView';
-import { QuickActionBar } from './QuickActionBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { addToQueue } from '@/utils/syncQueue';
 
 interface Project {
@@ -429,14 +426,6 @@ export const MobileTimeTracker: React.FC = () => {
   const todayTotal = todayEntries.reduce((sum, entry) => sum + entry.hours, 0);
   const todayAmount = todayEntries.reduce((sum, entry) => sum + entry.amount, 0);
 
-  // Keyboard shortcuts
-  useKeyboardShortcuts({
-    onClockIn: () => !activeTimer && selectedWorker && selectedProject && handleClockIn(),
-    onClockOut: () => activeTimer && handleClockOut(),
-    onManualEntry: () => setShowManualEntry(true),
-    onApprove: () => setView('approve'),
-  });
-
   if (dataLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
@@ -460,80 +449,80 @@ export const MobileTimeTracker: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 pb-20 md:pb-16">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 pb-20">
       {/* Sync Status Banner */}
       <SyncStatusBanner />
 
-      {/* Compact Header */}
-      <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-3 py-2 shadow-md">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-4 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div>
-              <h1 className="text-base font-semibold">Time Tracker</h1>
-              <p className="text-xs opacity-90">
+              <h1 className="text-xl font-bold">Time Tracker</h1>
+              <p className="text-sm opacity-90">
                 {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
               </p>
             </div>
             {!isOnline && (
-              <div className="bg-yellow-500 text-yellow-950 px-1.5 py-0.5 text-[10px] rounded font-medium">
+              <div className="bg-yellow-500 text-yellow-950 px-2 py-1 text-xs rounded font-medium">
                 OFFLINE
               </div>
             )}
           </div>
           <div className="text-right">
-            <div className="text-lg font-mono font-bold">
+            <div className="text-2xl font-mono font-bold">
               {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             </div>
-            <p className="text-[10px] opacity-90">Current Time</p>
+            <p className="text-xs opacity-90">Current Time</p>
           </div>
         </div>
       </div>
 
-      {/* Compact Tab Navigation */}
+      {/* Tab Navigation */}
       <div className="bg-card shadow-sm border-b sticky top-0 z-10">
         <div className="flex">
           <button
             onClick={() => setView('timer')}
-            className={`flex-1 py-2 text-center font-medium text-[11px] transition-all ${
+            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
               view === 'timer' 
                 ? 'text-primary border-b-2 border-primary bg-primary/5' 
                 : 'text-muted-foreground'
             }`}
           >
-            <Clock className="w-3.5 h-3.5 mx-auto mb-0.5" />
+            <Clock className="w-4 h-4 mx-auto mb-1" />
             Timer
           </button>
           <button
             onClick={() => setView('today')}
-            className={`flex-1 py-2 text-center font-medium text-[11px] transition-all ${
+            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
               view === 'today' 
                 ? 'text-primary border-b-2 border-primary bg-primary/5' 
                 : 'text-muted-foreground'
             }`}
           >
-            <Calendar className="w-3.5 h-3.5 mx-auto mb-0.5" />
+            <Calendar className="w-4 h-4 mx-auto mb-1" />
             Today
           </button>
           <button
             onClick={() => setView('week')}
-            className={`flex-1 py-2 text-center font-medium text-[11px] transition-all ${
+            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
               view === 'week' 
                 ? 'text-primary border-b-2 border-primary bg-primary/5' 
                 : 'text-muted-foreground'
             }`}
           >
-            <Calendar className="w-3.5 h-3.5 mx-auto mb-0.5" />
+            <Calendar className="w-4 h-4 mx-auto mb-1" />
             Week
           </button>
           <button
             onClick={() => setView('approve')}
-            className={`flex-1 py-2 text-center font-medium text-[11px] transition-all ${
+            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
               view === 'approve' 
                 ? 'text-primary border-b-2 border-primary bg-primary/5' 
                 : 'text-muted-foreground'
             }`}
           >
-            <Clock className="w-3.5 h-3.5 mx-auto mb-0.5" />
+            <Clock className="w-4 h-4 mx-auto mb-1" />
             Approve
           </button>
         </div>
@@ -541,198 +530,258 @@ export const MobileTimeTracker: React.FC = () => {
 
       {/* Timer View */}
       {view === 'timer' && (
-        <div className="p-3 space-y-2 md:grid md:grid-cols-[280px_1fr] md:gap-3 md:max-w-7xl md:mx-auto">
-          <div className="space-y-2 md:space-y-2">
-            {/* Active Timer Display - Compact */}
-            {activeTimer && (
-              <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-3 shadow-md">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                    <span className="font-semibold text-xs">CLOCKED IN</span>
-                  </div>
-                  {activeTimer.location && <MapPin className="w-3.5 h-3.5" />}
+        <div className="p-4 space-y-4">
+          {/* Active Timer Display */}
+          {activeTimer && (
+            <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl p-6 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                  <span className="font-semibold">CLOCKED IN</span>
                 </div>
-                
-                <div className="text-center py-3">
-                  <div className="text-3xl font-mono font-bold mb-1">{getElapsedTime()}</div>
-                  <p className="text-green-100 text-xs">Started at {formatTime(activeTimer.startTime)}</p>
-                </div>
-
-                <div className="space-y-1 text-xs bg-white/10 rounded p-2 backdrop-blur">
-                  <div className="flex items-center gap-1.5">
-                    <User className="w-3 h-3" />
-                    <span>{activeTimer.worker.payee_name}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3 h-3" />
-                    <span className="truncate">{activeTimer.project.project_number} - {activeTimer.project.client_name}</span>
-                  </div>
-                  {activeTimer.note && (
-                    <div className="flex items-start gap-1.5">
-                      <Edit2 className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                      <span className="flex-1 text-[11px]">{activeTimer.note}</span>
-                    </div>
-                  )}
-                </div>
+                {activeTimer.location && <MapPin className="w-5 h-5" />}
               </div>
-            )}
-
-            {/* Worker Selection - Compact */}
-            <div className="bg-card rounded border p-2">
-              <label className="block text-xs font-medium text-foreground mb-1.5">
-                <User className="w-3 h-3 inline mr-1" />
-                Worker
-              </label>
-              <button
-                onClick={() => setShowWorkerSelect(!showWorkerSelect)}
-                disabled={activeTimer !== null}
-                className="w-full p-2 text-left rounded border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                {selectedWorker ? (
-                  <div>
-                    <div className="font-medium text-xs">{selectedWorker.payee_name}</div>
-                    <div className="text-[10px] text-muted-foreground">${selectedWorker.hourly_rate}/hr</div>
-                  </div>
-                ) : (
-                  <div className="text-muted-foreground text-xs">Select worker...</div>
-                )}
-              </button>
               
-              {showWorkerSelect && !activeTimer && (
-                <div className="mt-1.5 border rounded overflow-hidden max-h-48 overflow-y-auto">
-                  {workers.map(worker => (
-                    <button
-                      key={worker.id}
-                      onClick={() => {
-                        setSelectedWorker(worker);
-                        setShowWorkerSelect(false);
-                      }}
-                      className="w-full p-2 text-left hover:bg-muted border-b last:border-b-0 transition-all"
-                    >
-                      <div className="font-medium text-xs">{worker.payee_name}</div>
-                      <div className="text-[10px] text-muted-foreground">${worker.hourly_rate}/hr</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Project Selection - Compact */}
-            <div className="bg-card rounded border p-2">
-              <label className="block text-xs font-medium text-foreground mb-1.5">
-                <MapPin className="w-3 h-3 inline mr-1" />
-                Project
-              </label>
-              <button
-                onClick={() => setShowProjectSelect(!showProjectSelect)}
-                disabled={activeTimer !== null}
-                className="w-full p-2 text-left rounded border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {selectedProject ? (
-                  <div>
-                    <div className="font-medium text-xs">{selectedProject.project_number}</div>
-                    <div className="text-[10px] text-muted-foreground truncate">{selectedProject.client_name}</div>
-                  </div>
-                ) : (
-                  <div className="text-muted-foreground text-xs">Select project...</div>
-                )}
-              </button>
-              
-              {showProjectSelect && !activeTimer && (
-                <div className="mt-1.5 border rounded overflow-hidden max-h-48 overflow-y-auto">
-                  {projects.map(project => (
-                    <button
-                      key={project.id}
-                      onClick={() => {
-                        setSelectedProject(project);
-                        setShowProjectSelect(false);
-                      }}
-                      className="w-full p-2 text-left hover:bg-muted border-b last:border-b-0 transition-all"
-                    >
-                      <div className="font-medium text-xs">{project.project_number}</div>
-                      <div className="text-[10px] text-muted-foreground truncate">{project.client_name}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Note Input - Compact */}
-            {!activeTimer && (
-              <div className="bg-card rounded border p-2">
-                <label className="block text-xs font-medium text-foreground mb-1.5">
-                  <Edit2 className="w-3 h-3 inline mr-1" />
-                  Note (optional)
-                </label>
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="What are you working on?"
-                  className="w-full p-2 border rounded text-xs focus:border-primary focus:outline-none resize-none bg-background"
-                  rows={2}
-                />
+              <div className="text-center py-6">
+                <div className="text-5xl font-mono font-bold mb-2">{getElapsedTime()}</div>
+                <p className="text-green-100">Started at {formatTime(activeTimer.startTime)}</p>
               </div>
-            )}
 
-            {/* Clock In/Out Button - Compact */}
-            <div className="pt-2">
-              {!activeTimer ? (
-                <button
-                  onClick={handleClockIn}
-                  disabled={!selectedWorker || !selectedProject || loading}
-                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 rounded-lg font-bold text-base shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Play className="w-5 h-5" />
-                      CLOCK IN
-                    </>
-                  )}
-                </button>
+              <div className="space-y-2 text-sm bg-white/10 rounded-lg p-3 backdrop-blur">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  <span>{activeTimer.worker.payee_name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  <span>{activeTimer.project.project_number} - {activeTimer.project.client_name}</span>
+                </div>
+                {activeTimer.note && (
+                  <div className="flex items-start gap-2">
+                    <Edit2 className="w-4 h-4 mt-0.5" />
+                    <span className="flex-1">{activeTimer.note}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Worker Selection */}
+          <div className="bg-card rounded-xl shadow-sm p-4">
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              <User className="w-4 h-4 inline mr-1" />
+              Worker
+            </label>
+            <button
+              onClick={() => setShowWorkerSelect(!showWorkerSelect)}
+              disabled={activeTimer !== null}
+              className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {selectedWorker ? (
+                <div>
+                  <div className="font-semibold text-foreground">{selectedWorker.payee_name}</div>
+                  <div className="text-sm text-muted-foreground">${selectedWorker.hourly_rate}/hr</div>
+                </div>
               ) : (
-                <button
-                  onClick={handleClockOut}
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white py-4 rounded-lg font-bold text-base shadow-md transition-all transform active:scale-95 flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Square className="w-5 h-5" />
-                      CLOCK OUT
-                    </>
-                  )}
-                </button>
+                <div className="text-muted-foreground">Select worker...</div>
               )}
-            </div>
-          </div>
-
-          {/* Right column - Today entries in table format */}
-          <div className="md:block hidden">
-            {todayEntries.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold">Today's Entries</h3>
-                <TodayTableView entries={todayEntries} onEdit={setEditingEntry} />
+            </button>
+            
+            {showWorkerSelect && !activeTimer && (
+              <div className="mt-2 border rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+                {workers.map(worker => (
+                  <button
+                    key={worker.id}
+                    onClick={() => {
+                      setSelectedWorker(worker);
+                      setShowWorkerSelect(false);
+                    }}
+                    className="w-full p-3 text-left hover:bg-muted border-b last:border-b-0 transition-all"
+                  >
+                    <div className="font-semibold">{worker.payee_name}</div>
+                    <div className="text-sm text-muted-foreground">${worker.hourly_rate}/hr</div>
+                  </button>
+                ))}
               </div>
             )}
           </div>
+
+          {/* Project Selection */}
+          <div className="bg-card rounded-xl shadow-sm p-4">
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              <MapPin className="w-4 h-4 inline mr-1" />
+              Project
+            </label>
+            <button
+              onClick={() => setShowProjectSelect(!showProjectSelect)}
+              disabled={activeTimer !== null}
+              className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {selectedProject ? (
+                <div>
+                  <div className="font-semibold text-foreground">{selectedProject.project_number}</div>
+                  <div className="text-sm text-muted-foreground">{selectedProject.client_name}</div>
+                  {selectedProject.address && (
+                    <div className="text-xs text-muted-foreground">{selectedProject.address}</div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-muted-foreground">Select project...</div>
+              )}
+            </button>
+            
+            {showProjectSelect && !activeTimer && (
+              <div className="mt-2 border rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+                {projects.map(project => (
+                  <button
+                    key={project.id}
+                    onClick={() => {
+                      setSelectedProject(project);
+                      setShowProjectSelect(false);
+                    }}
+                    className="w-full p-3 text-left hover:bg-muted border-b last:border-b-0 transition-all"
+                  >
+                    <div className="font-semibold">{project.project_number}</div>
+                    <div className="text-sm text-muted-foreground">{project.client_name}</div>
+                    {project.address && (
+                      <div className="text-xs text-muted-foreground">{project.address}</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Note Input */}
+          {!activeTimer && (
+            <div className="bg-card rounded-xl shadow-sm p-4">
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                <Edit2 className="w-4 h-4 inline mr-1" />
+                Note (optional)
+              </label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="What are you working on?"
+                className="w-full p-3 border-2 border-border rounded-lg focus:border-primary focus:outline-none resize-none bg-background"
+                rows={2}
+              />
+            </div>
+          )}
+
+          {/* Clock In/Out Button */}
+          <div className="pt-4">
+            {!activeTimer ? (
+              <button
+                onClick={handleClockIn}
+                disabled={!selectedWorker || !selectedProject || loading}
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-6 rounded-2xl font-bold text-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                ) : (
+                  <>
+                    <Play className="w-8 h-8" />
+                    CLOCK IN
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleClockOut}
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white py-6 rounded-2xl font-bold text-xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                ) : (
+                  <>
+                    <Square className="w-8 h-8" />
+                    CLOCK OUT
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Today Summary Card */}
+          {todayEntries.length > 0 && (
+            <div className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary">
+              <h3 className="font-semibold text-foreground mb-2">Today's Summary</h3>
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="text-2xl font-bold text-primary">{todayTotal.toFixed(1)} hrs</div>
+                  <div className="text-sm text-muted-foreground">{todayEntries.length} entries</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-green-600">${todayAmount.toFixed(0)}</div>
+                  <div className="text-sm text-muted-foreground">Total labor</div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Today View - Data-Dense Table */}
+      {/* Today View */}
       {view === 'today' && (
-        <div className="p-3 md:max-w-5xl md:mx-auto">
-          <TodayTableView entries={todayEntries} onEdit={setEditingEntry} />
+        <div className="p-4 space-y-3">
+          <div className="bg-card rounded-xl shadow-sm p-4 mb-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="text-3xl font-bold text-primary">{todayTotal.toFixed(1)} hrs</div>
+                <div className="text-sm text-muted-foreground">Total hours today</div>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-bold text-green-600">${todayAmount.toFixed(0)}</div>
+                <div className="text-sm text-muted-foreground">Total amount</div>
+              </div>
+            </div>
+          </div>
+
+          {todayEntries.length === 0 ? (
+            <div className="bg-card rounded-xl shadow-sm p-8 text-center">
+              <Clock className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground font-semibold mb-2">No time entries yet</p>
+              <p className="text-sm text-muted-foreground">Clock in to start tracking time</p>
+              <Button 
+                onClick={() => setView('timer')} 
+                className="mt-4"
+                variant="outline"
+              >
+                Go to Timer
+              </Button>
+            </div>
+          ) : (
+            todayEntries.map(entry => (
+              <div key={entry.id} className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <div className="font-semibold text-foreground">{entry.worker.payee_name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {entry.project.project_number} - {entry.project.client_name}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-primary">{entry.hours.toFixed(2)} hrs</div>
+                    <div className="text-sm text-green-600">${entry.amount.toFixed(2)}</div>
+                  </div>
+                </div>
+                
+                {entry.note && (
+                  <div className="bg-muted rounded p-2 text-sm text-muted-foreground mt-2">
+                    {entry.note}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       )}
 
       {/* Week View */}
       {view === 'week' && (
-        <div className="p-3 md:max-w-7xl md:mx-auto">
+        <div className="p-4">
           <WeekView
             onEditEntry={(entry) => setEditingEntry(entry)}
             onCreateEntry={() => setShowManualEntry(true)}
@@ -742,21 +791,10 @@ export const MobileTimeTracker: React.FC = () => {
 
       {/* Approve View */}
       {view === 'approve' && (
-        <div className="p-3 md:max-w-5xl md:mx-auto">
+        <div className="p-4">
           <ApprovalQueue />
         </div>
       )}
-
-      {/* Quick Action Bar (Desktop Only) */}
-      <QuickActionBar
-        onClockIn={handleClockIn}
-        onManualEntry={() => setShowManualEntry(true)}
-        onApprove={() => setView('approve')}
-        onClockOut={handleClockOut}
-        activeTimer={activeTimer}
-        elapsedTime={getElapsedTime()}
-        disabled={loading}
-      />
 
       {/* Receipt Capture Modal */}
       {showReceiptCapture && pendingReceiptExpenseId && (

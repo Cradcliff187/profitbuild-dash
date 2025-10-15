@@ -245,11 +245,11 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div>
-            <Label htmlFor="worker" className="text-xs font-medium">Worker</Label>
+            <Label htmlFor="worker">Worker</Label>
             <Select value={workerId} onValueChange={setWorkerId}>
-              <SelectTrigger id="worker" className="h-8 text-sm">
+              <SelectTrigger id="worker">
                 <SelectValue placeholder="Select worker" />
               </SelectTrigger>
               <SelectContent>
@@ -263,9 +263,9 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
           </div>
 
           <div>
-            <Label htmlFor="project" className="text-xs font-medium">Project</Label>
+            <Label htmlFor="project">Project</Label>
             <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger id="project" className="h-8 text-sm">
+              <SelectTrigger id="project">
                 <SelectValue placeholder="Select project" />
               </SelectTrigger>
               <SelectContent>
@@ -279,41 +279,38 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
           </div>
 
           <div>
-            <Label htmlFor="date" className="text-xs font-medium">Date</Label>
+            <Label htmlFor="date">Date</Label>
             <Input
               id="date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="h-8 text-sm"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label htmlFor="startTime" className="text-xs font-medium">Start Time</Label>
+              <Label htmlFor="startTime">Start Time</Label>
               <Input
                 id="startTime"
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="h-8 text-sm"
               />
             </div>
             <div>
-              <Label htmlFor="endTime" className="text-xs font-medium">End Time</Label>
+              <Label htmlFor="endTime">End Time</Label>
               <Input
                 id="endTime"
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="h-8 text-sm"
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="hours" className="text-xs font-medium">Hours</Label>
+            <Label htmlFor="hours">Hours</Label>
             <Input
               id="hours"
               type="number"
@@ -321,23 +318,21 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
               value={hours}
               onChange={(e) => setHours(e.target.value)}
               placeholder="8.0"
-              className="h-8 text-sm"
             />
           </div>
 
           <div>
-            <Label htmlFor="note" className="text-xs font-medium">Note</Label>
+            <Label htmlFor="note">Note</Label>
             <Textarea
               id="note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Optional notes..."
               rows={2}
-              className="text-sm"
             />
           </div>
 
-          <div className="p-1.5 bg-muted rounded text-xs">
+          <div className="p-2 bg-muted rounded text-sm">
             <div className="flex justify-between">
               <span>Hours:</span>
               <span className="font-medium">{hours || '0'}</span>

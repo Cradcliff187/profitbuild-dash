@@ -175,17 +175,17 @@ export const ApprovalQueue = () => {
   }
 
   return (
-    <div className="space-y-2">
-      {/* Compact Header */}
+    <div className="space-y-3">
+      {/* Header */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-          <h2 className="text-base font-semibold">Approval Queue</h2>
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Approval Queue</h2>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-28 h-7 text-xs">
-              <Filter className="w-3 h-3 mr-1" />
+            <SelectTrigger className="w-32">
+              <Filter className="w-4 h-4 mr-1" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -196,28 +196,28 @@ export const ApprovalQueue = () => {
             </SelectContent>
           </Select>
           {statusFilter === 'pending' && entries.length > 0 && (
-            <Button size="sm" onClick={handleBatchApprove} className="h-7 text-xs px-2">
-              <CheckCircle2 className="w-3 h-3 mr-1" />
+            <Button size="sm" onClick={handleBatchApprove}>
+              <CheckCircle2 className="w-4 h-4 mr-1" />
               Approve All
             </Button>
           )}
         </div>
       </div>
 
-      {/* Compact Entries List */}
-      <div className="space-y-1.5">
+      {/* Entries List */}
+      <div className="space-y-2">
         {entries.length === 0 ? (
-          <Card className="p-4 text-center text-muted-foreground text-sm">
+          <Card className="p-6 text-center text-muted-foreground">
             No {statusFilter !== 'all' ? statusFilter : ''} time entries
           </Card>
         ) : (
           entries.map(entry => (
-            <Card key={entry.id} className="p-2">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 space-y-0.5">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-sm font-medium">{entry.payee_name}</span>
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+            <Card key={entry.id} className="p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{entry.payee_name}</span>
+                    <Badge variant="outline" className="text-xs">
                       {entry.project_number}
                     </Badge>
                     <Badge
@@ -228,18 +228,18 @@ export const ApprovalQueue = () => {
                           ? 'destructive'
                           : 'secondary'
                       }
-                      className="text-[10px] px-1.5 py-0"
+                      className="text-xs"
                     >
                       {entry.approval_status}
                     </Badge>
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-sm text-muted-foreground">
                     {format(new Date(entry.expense_date), 'MMM d, yyyy')} •{' '}
                     {getHours(entry.description)} hours • ${entry.amount.toFixed(2)}
                   </div>
-                  <div className="text-[10px] text-muted-foreground truncate">{entry.project_name}</div>
+                  <div className="text-xs text-muted-foreground">{entry.project_name}</div>
                   {entry.rejection_reason && (
-                    <div className="text-[10px] text-destructive mt-0.5">
+                    <div className="text-xs text-destructive mt-1">
                       Rejected: {entry.rejection_reason}
                     </div>
                   )}
@@ -251,30 +251,28 @@ export const ApprovalQueue = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => handleApprove(entry.id)}
-                      className="h-7 w-7 p-0"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => setSelectedEntry(entry.id)}
-                      className="h-7 w-7 p-0"
                     >
-                      <XCircle className="w-3.5 h-3.5 text-red-600" />
+                      <XCircle className="w-4 h-4 text-red-600" />
                     </Button>
                   </div>
                 )}
               </div>
 
-              {/* Rejection Form - Compact */}
+              {/* Rejection Form */}
               {selectedEntry === entry.id && (
-                <div className="mt-2 pt-2 border-t space-y-1.5">
+                <div className="mt-3 pt-3 border-t space-y-2">
                   <Select
                     value={rejectionReason}
                     onValueChange={setRejectionReason}
                   >
-                    <SelectTrigger className="h-8 text-xs">
+                    <SelectTrigger>
                       <SelectValue placeholder="Select rejection reason" />
                     </SelectTrigger>
                     <SelectContent>
@@ -300,11 +298,10 @@ export const ApprovalQueue = () => {
                       value={rejectionReason}
                       onChange={(e) => setRejectionReason(e.target.value)}
                       rows={2}
-                      className="text-xs"
                     />
                   )}
 
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
@@ -312,7 +309,6 @@ export const ApprovalQueue = () => {
                         setSelectedEntry(null);
                         setRejectionReason('');
                       }}
-                      className="h-7 text-xs px-2"
                     >
                       Cancel
                     </Button>
@@ -320,7 +316,6 @@ export const ApprovalQueue = () => {
                       size="sm"
                       variant="destructive"
                       onClick={() => handleReject(entry.id)}
-                      className="h-7 text-xs px-2"
                     >
                       Confirm Rejection
                     </Button>
