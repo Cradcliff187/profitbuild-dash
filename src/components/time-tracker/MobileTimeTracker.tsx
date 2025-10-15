@@ -40,6 +40,7 @@ interface TeamMember {
   id: string;
   payee_name: string;
   hourly_rate: number;
+  email?: string;
 }
 
 interface TimeEntry {
@@ -164,7 +165,7 @@ export const MobileTimeTracker: React.FC = () => {
       // Load internal labor team members
       const { data: teamMembersData, error: teamMembersError } = await supabase
         .from('payees')
-        .select('id, payee_name, hourly_rate')
+        .select('id, payee_name, hourly_rate, email')
         .eq('is_internal', true)
         .eq('provides_labor', true)
         .eq('is_active', true)
@@ -172,6 +173,21 @@ export const MobileTimeTracker: React.FC = () => {
 
       if (teamMembersError) throw teamMembersError;
       setTeamMembers(teamMembersData || []);
+
+      // Auto-select current user if they're a team member
+      if (user?.email && teamMembersData && teamMembersData.length > 0) {
+        const currentUserPayee = teamMembersData.find(
+          member => member.email?.toLowerCase() === user.email?.toLowerCase()
+        );
+        
+        if (currentUserPayee && !selectedTeamMember) {
+          setSelectedTeamMember({
+            id: currentUserPayee.id,
+            payee_name: currentUserPayee.payee_name,
+            hourly_rate: currentUserPayee.hourly_rate
+          });
+        }
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
