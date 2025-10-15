@@ -159,7 +159,7 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
           description,
           category: 'labor_internal',
           transaction_type: 'expense',
-          approval_status: 'draft',
+          approval_status: 'pending',
           updated_by: user?.id,
         });
 

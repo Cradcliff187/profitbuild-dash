@@ -382,7 +382,8 @@ export const MobileTimeTracker: React.FC = () => {
           activeTimer.note ? ` - ${activeTimer.note}` : ''
         }`,
         is_planned: false,
-        created_offline: !isOnline
+        created_offline: !isOnline,
+        approval_status: 'pending'
       };
 
       if (isOnline) {
