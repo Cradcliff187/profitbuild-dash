@@ -33,6 +33,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   const [filterTransactionType, setFilterTransactionType] = useState<string>("all");
   const [filterProject, setFilterProject] = useState<string>("all");
   const [filterMatchStatus, setFilterMatchStatus] = useState<string>("all");
+  const [filterApprovalStatus, setFilterApprovalStatus] = useState<string>("all");
   const [selectedExpenses, setSelectedExpenses] = useState<string[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [expenseMatches, setExpenseMatches] = useState<Record<string, boolean>>({});
@@ -96,6 +97,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       const matchesCategory = filterCategory === "all" || expense.category === filterCategory;
       const matchesType = filterTransactionType === "all" || expense.transaction_type === filterTransactionType;
       const matchesProject = filterProject === "all" || expense.project_id === filterProject;
+      const matchesApprovalStatus = filterApprovalStatus === "all" || (expense.approval_status || 'draft') === filterApprovalStatus;
       
       let matchesMatchStatus = true;
       if (filterMatchStatus === "matched") {
@@ -106,9 +108,9 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         matchesMatchStatus = expense.project_id === "000-UNASSIGNED" || expense.project_name?.includes("Unassigned");
       }
 
-      return matchesSearch && matchesCategory && matchesType && matchesProject && matchesMatchStatus;
+      return matchesSearch && matchesCategory && matchesType && matchesProject && matchesMatchStatus && matchesApprovalStatus;
     });
-  }, [expenses, searchTerm, filterCategory, filterTransactionType, filterProject, filterMatchStatus, expenseMatches]);
+  }, [expenses, searchTerm, filterCategory, filterTransactionType, filterProject, filterMatchStatus, filterApprovalStatus, expenseMatches]);
 
   const handleDelete = async (expenseId: string) => {
     try {
@@ -136,8 +138,51 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     }
   };
 
+  const handleApprovalAction = async (expenseId: string, action: 'submit' | 'approve' | 'reject', rejectionReason?: string) => {
+    try {
+      let updateData: any = {};
+      
+      if (action === 'submit') {
+        updateData = { approval_status: 'pending' };
+      } else if (action === 'approve') {
+        const { data: { user } } = await supabase.auth.getUser();
+        updateData = { 
+          approval_status: 'approved',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        };
+      } else if (action === 'reject') {
+        updateData = { 
+          approval_status: 'rejected',
+          rejection_reason: rejectionReason
+        };
+      }
+
+      const { error } = await supabase
+        .from('expenses')
+        .update(updateData)
+        .eq('id', expenseId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Expense ${action === 'submit' ? 'submitted for approval' : action === 'approve' ? 'approved' : 'rejected'}.`,
+      });
+      
+      onRefresh();
+    } catch (error) {
+      console.error('Error updating approval status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update approval status.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const exportToCsv = () => {
-    const headers = ['Date', 'Project', 'Payee', 'Category', 'Transaction Type', 'Amount', 'Line Item Match'];
+    const headers = ['Date', 'Project', 'Payee', 'Category', 'Transaction Type', 'Amount', 'Approval Status', 'Line Item Match'];
     const csvContent = [
       headers.join(','),
       ...filteredExpenses.map(expense =>
@@ -148,6 +193,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           `"${EXPENSE_CATEGORY_DISPLAY[expense.category] || expense.category}"`,
           `"${TRANSACTION_TYPE_DISPLAY[expense.transaction_type] || expense.transaction_type}"`,
           expense.amount,
+          (expense.approval_status || 'draft').charAt(0).toUpperCase() + (expense.approval_status || 'draft').slice(1),
           expenseMatches[expense.id] ? 'Matched' : 'Unmatched'
         ].join(',')
       )
@@ -273,6 +319,20 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       )
     },
     {
+      key: 'approval_status',
+      label: 'Status',
+      sortable: true,
+      render: (expense: Expense) => {
+        const status = expense.approval_status || 'draft';
+        const variant = status === 'approved' ? 'default' : status === 'rejected' ? 'destructive' : status === 'pending' ? 'secondary' : 'outline';
+        return (
+          <Badge variant={variant} className="compact-badge">
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </Badge>
+        );
+      }
+    },
+    {
       key: 'line_item_match',
       label: 'Line Item Match',
       sortable: false,
@@ -349,6 +409,19 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
             <SelectItem value="matched">Matched</SelectItem>
             <SelectItem value="unmatched">Unmatched</SelectItem>
             <SelectItem value="unassigned">Unassigned</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filterApprovalStatus} onValueChange={setFilterApprovalStatus}>
+          <SelectTrigger className="w-32 h-input-compact text-label">
+            <SelectValue placeholder="Approval Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
           </SelectContent>
         </Select>
 

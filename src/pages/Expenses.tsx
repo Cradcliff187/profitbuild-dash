@@ -188,7 +188,7 @@ const Expenses = () => {
         />
       ) : (
         <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2">
               <BarChart3 className="h-4 w-4" />
               <span>Dashboard</span>
@@ -200,6 +200,10 @@ const Expenses = () => {
             <TabsTrigger value="tracker" className="flex items-center space-x-2">
               <Receipt className="h-4 w-4" />
               <span>Project Tracking</span>
+            </TabsTrigger>
+            <TabsTrigger value="matching" className="flex items-center space-x-2">
+              <Target className="h-4 w-4" />
+              <span>Match Expenses</span>
             </TabsTrigger>
           </TabsList>
 
@@ -218,6 +222,10 @@ const Expenses = () => {
 
           <TabsContent value="tracker">
             <ProjectExpenseTracker expenses={expenses} estimates={estimates} changeOrders={changeOrders} />
+          </TabsContent>
+
+          <TabsContent value="matching">
+            <GlobalExpenseMatching onClose={() => setViewMode('dashboard')} />
           </TabsContent>
         </Tabs>
       )}

@@ -69,7 +69,8 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('id, project_name, project_number')
-        .in('status', ['estimating', 'approved', 'in_progress'])
+        .in('status', ['approved', 'in_progress'])
+        .neq('project_number', '000-UNASSIGNED')
         .order('project_number', { ascending: false });
 
       if (projectsError) throw projectsError;

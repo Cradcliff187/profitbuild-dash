@@ -121,6 +121,7 @@ export const MobileTimeTracker: React.FC = () => {
         .from('projects')
         .select('id, project_number, client_name, address')
         .in('status', ['in_progress', 'approved'])
+        .neq('project_number', '000-UNASSIGNED')
         .order('project_number', { ascending: false })
         .limit(20);
 

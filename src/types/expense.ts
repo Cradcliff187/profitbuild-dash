@@ -45,6 +45,10 @@ export interface Expense {
   updated_at: Date;
   account_name?: string;
   account_full_name?: string;
+  approval_status?: string;
+  approved_by?: string;
+  approved_at?: string; // Changed to string for database compatibility
+  rejection_reason?: string;
   // Additional fields for display (populated from joins)
   payee_name?: string;
   project_name?: string;

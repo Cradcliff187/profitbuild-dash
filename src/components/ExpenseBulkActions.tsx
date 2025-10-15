@@ -181,6 +181,58 @@ export const ExpenseBulkActions = ({
     }
   };
 
+  const handleBulkApprovalAction = async (action: 'submit' | 'approve' | 'reject') => {
+    setIsLoading(true);
+    try {
+      let updateData: any = {};
+      
+      if (action === 'submit') {
+        updateData = { approval_status: 'pending' };
+      } else if (action === 'approve') {
+        const { data: { user } } = await supabase.auth.getUser();
+        updateData = { 
+          approval_status: 'approved',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        };
+      } else if (action === 'reject') {
+        const reason = prompt('Enter rejection reason for all selected expenses:');
+        if (!reason) {
+          setIsLoading(false);
+          return;
+        }
+        updateData = { 
+          approval_status: 'rejected',
+          rejection_reason: reason
+        };
+      }
+
+      const { error } = await supabase
+        .from("expenses")
+        .update(updateData)
+        .in("id", selectedExpenseIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${selectedExpenseIds.length} expenses ${action === 'submit' ? 'submitted for approval' : action === 'approve' ? 'approved' : 'rejected'}`,
+      });
+      
+      onSelectionChange(new Set());
+      onComplete();
+    } catch (error) {
+      console.error('Error updating approval status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update approval status",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <>
       <Card>
@@ -228,6 +280,33 @@ export const ExpenseBulkActions = ({
                 variant="outline"
               >
                 Update Type
+              </Button>
+
+              <Button
+                onClick={() => handleBulkApprovalAction('submit')}
+                disabled={isLoading}
+                size="sm"
+                variant="outline"
+              >
+                Submit for Approval
+              </Button>
+
+              <Button
+                onClick={() => handleBulkApprovalAction('approve')}
+                disabled={isLoading}
+                size="sm"
+                variant="default"
+              >
+                Approve
+              </Button>
+
+              <Button
+                onClick={() => handleBulkApprovalAction('reject')}
+                disabled={isLoading}
+                size="sm"
+                variant="destructive"
+              >
+                Reject
               </Button>
 
               <Button
