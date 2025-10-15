@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -20,14 +20,7 @@ const Index = () => {
   }, [user, loading, navigate]);
 
   // Show loading while determining auth state
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="flex items-center space-x-2">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        <span>Loading...</span>
-      </div>
-    </div>
-  );
+  return <LoadingSpinner variant="page" message="Loading..." />;
 };
 
 export default Index;

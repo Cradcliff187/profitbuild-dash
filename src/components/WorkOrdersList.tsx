@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from "@/types/project";
 import WorkOrderCard from "./WorkOrderCard";
-import { Loader2 } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface WorkOrderWithDetails extends Project {
   has_estimate: boolean;
@@ -74,11 +74,7 @@ const WorkOrdersList = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin" />
-      </div>
-    );
+    return <LoadingSpinner variant="spinner" message="Loading work orders..." />;
   }
 
   if (workOrders.length === 0) {

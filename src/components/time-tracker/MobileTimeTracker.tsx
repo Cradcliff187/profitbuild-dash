@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Geolocation } from '@capacitor/geolocation';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ReceiptCapture } from './ReceiptCapture';
 import { WeekView } from './WeekView';
 import { EditTimeEntryModal } from './EditTimeEntryModal';
@@ -436,8 +437,8 @@ export const MobileTimeTracker: React.FC = () => {
 
   if (dataLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100">
+        <LoadingSpinner variant="page" message="Loading time tracker..." />
       </div>
     );
   }

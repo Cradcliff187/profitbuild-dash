@@ -7,6 +7,7 @@ import { VideoLightbox } from './VideoLightbox';
 import { MediaReportBuilderModal } from './MediaReportBuilderModal';
 import { MediaCommentBadge } from './MediaCommentBadge';
 import { TimelineStoryView } from './TimelineStoryView';
+import { LoadingSpinner } from './ui/loading-spinner';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
@@ -242,11 +243,7 @@ export function ProjectMediaGallery({
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingSpinner variant="spinner" message="Loading media..." />;
   }
 
   if (allMedia.length === 0) {
@@ -561,9 +558,7 @@ export function ProjectMediaGallery({
         {/* Timeline Tab Content */}
         <TabsContent value="timeline" className="mt-3">
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
+            <LoadingSpinner variant="spinner" message="Loading timeline..." />
           ) : filteredAndSortedMedia.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Clock4 className="h-12 w-12 text-muted-foreground mb-3" />
