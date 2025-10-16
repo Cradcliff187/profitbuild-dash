@@ -25,6 +25,7 @@ interface TimeEntry {
   approval_status?: string;
   is_locked?: boolean;
   attachment_url?: string;
+  user_id?: string;
 }
 
 interface EditTimeEntryModalProps {
@@ -39,6 +40,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
   const [workers, setWorkers] = useState<Array<{ id: string; name: string; rate: number }>>([]);
   const [projects, setProjects] = useState<Array<{ id: string; name: string; number: string; address?: string }>>([]);
   const [loading, setLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>();
 
   // Form state
   const [workerId, setWorkerId] = useState('');
@@ -50,6 +52,14 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
   const [note, setNote] = useState('');
   const [receiptUrl, setReceiptUrl] = useState<string | undefined>();
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
+
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id);
+    };
+    getCurrentUser();
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -291,6 +301,13 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
       return;
     }
 
+    // Check if user owns this entry
+    const { data: { user } } = await supabase.auth.getUser();
+    if (entry.user_id && entry.user_id !== user?.id) {
+      toast.error("You can't delete another user's entry");
+      return;
+    }
+
     if (!confirm('Are you sure you want to delete this time entry?')) {
       return;
     }
@@ -298,12 +315,19 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
     try {
       setLoading(true);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('expenses')
         .delete()
-        .eq('id', entry.id);
+        .eq('id', entry.id)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+
+      if (!data) {
+        toast.error("You don't have permission to delete this entry");
+        return;
+      }
 
       toast.success('Time entry deleted');
       onSaved();
@@ -352,6 +376,17 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
       )}
 
       <div className={cn("space-y-3", isMobile && "space-y-6")}>
+        {/* Disable all editing if not owner (for field workers) */}
+        {entry?.user_id && entry.user_id !== currentUserId && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle className="text-sm">View Only</AlertTitle>
+            <AlertDescription className="text-xs">
+              You can only edit your own time entries.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {/* Team Member - Native select on mobile */}
         <div>
           <Label htmlFor="worker" className="text-sm font-medium">Team Member</Label>
@@ -555,38 +590,43 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
     </>
   );
 
-  const ActionButtons = () => (
-    <div className={cn(
-      "flex gap-2",
-      isMobile ? "flex-col" : "flex-row"
-    )}>
-      <Button 
-        variant="outline" 
-        onClick={() => onOpenChange(false)} 
-        disabled={loading}
-        className={cn(isMobile && "h-12 text-base order-last")}
-      >
-        Cancel
-      </Button>
-      <Button 
-        variant="destructive" 
-        onClick={handleDelete} 
-        disabled={loading || entry?.is_locked || entry?.approval_status === 'approved'}
-        className={cn(isMobile && "h-12 text-base")}
-      >
-        <Trash2 className="w-4 h-4 mr-1" />
-        Delete
-      </Button>
-      <Button 
-        onClick={handleSave} 
-        disabled={loading || entry?.is_locked || entry?.approval_status === 'approved'}
-        className={cn(isMobile && "h-12 text-base")}
-      >
-        <Save className="w-4 h-4 mr-1" />
-        Save
-      </Button>
-    </div>
-  );
+  const ActionButtons = () => {
+    const isNotOwner = entry?.user_id && entry.user_id !== currentUserId;
+    
+    return (
+      <div className={cn(
+        "flex gap-2",
+        isMobile ? "flex-col" : "flex-row"
+      )}>
+        <Button 
+          variant="outline" 
+          onClick={() => onOpenChange(false)} 
+          disabled={loading}
+          className={cn(isMobile && "h-12 text-base order-last")}
+        >
+          Cancel
+        </Button>
+        <Button 
+          variant="destructive" 
+          onClick={handleDelete} 
+          disabled={loading || entry?.is_locked || entry?.approval_status === 'approved' || isNotOwner}
+          className={cn(isMobile && "h-12 text-base")}
+          title={isNotOwner ? "You can only delete your own entries" : undefined}
+        >
+          <Trash2 className="w-4 h-4 mr-1" />
+          Delete
+        </Button>
+        <Button 
+          onClick={handleSave} 
+          disabled={loading || entry?.is_locked || entry?.approval_status === 'approved'}
+          className={cn(isMobile && "h-12 text-base")}
+        >
+          <Save className="w-4 h-4 mr-1" />
+          Save
+        </Button>
+      </div>
+    );
+  };
 
   return isMobile ? (
     <Sheet open={open} onOpenChange={onOpenChange}>

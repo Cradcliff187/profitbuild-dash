@@ -208,7 +208,17 @@ export const MobileTimeTracker: React.FC = () => {
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
       
-      const { data, error } = await supabase
+      // Get current user and check role
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user?.id || '');
+      
+      const isAdmin = roles?.some(r => r.role === 'admin');
+      const isManager = roles?.some(r => r.role === 'manager');
+      
+      let query = supabase
         .from('expenses')
         .select(`
           id,
@@ -217,17 +227,36 @@ export const MobileTimeTracker: React.FC = () => {
           description,
           attachment_url,
           created_at,
+          user_id,
           payees!inner(id, payee_name, hourly_rate),
           projects!inner(id, project_number, project_name, client_name, address)
         `)
         .eq('category', 'labor_internal')
-        .eq('expense_date', today)
-        .order('created_at', { ascending: false });
+        .eq('expense_date', today);
+      
+      // Field workers only see their own entries
+      if (!isAdmin && !isManager) {
+        query = query.eq('user_id', user?.id || '');
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
 
+      // Client-side filter to ensure entries match local timezone date
+      const filteredData = (data || []).filter((expense: any) => {
+        const localCreatedDate = format(new Date(expense.created_at), 'yyyy-MM-dd');
+        const matches = localCreatedDate === today && expense.expense_date === today;
+        
+        if (!matches) {
+          console.debug(`Dropping entry ${expense.id}: created=${localCreatedDate}, expense_date=${expense.expense_date}, today=${today}`);
+        }
+        
+        return matches;
+      });
+
       // Parse entries from expenses
-      const entries = data?.map((expense: any) => {
+      const entries = filteredData.map((expense: any) => {
         const hourlyRate = expense.payees?.hourly_rate || 75;
         const hours = expense.amount / hourlyRate;
         
@@ -270,6 +299,7 @@ export const MobileTimeTracker: React.FC = () => {
           hours,
           note: cleanNote,
           attachment_url: expense.attachment_url,
+          user_id: expense.user_id,
           startTime,
           endTime,
           startTimeString,
@@ -418,19 +448,23 @@ export const MobileTimeTracker: React.FC = () => {
       const startTimeStr = formatTime(activeTimer.startTime);
       const endTimeStr = formatTime(endTime);
       
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const expenseData = {
         project_id: activeTimer.project.id,
         payee_id: activeTimer.teamMember.id,
         category: 'labor_internal' as const,
         transaction_type: 'expense' as const,
         amount: amount,
-        expense_date: activeTimer.startTime.toISOString().split('T')[0],
+        expense_date: format(activeTimer.startTime, 'yyyy-MM-dd'), // Use local timezone
         description: `${hours.toFixed(2)}hrs - ${startTimeStr} - ${endTimeStr} - ${activeTimer.teamMember.payee_name}${
           activeTimer.note ? ` - ${activeTimer.note}` : ''
         }`,
         is_planned: false,
         created_offline: !isOnline,
-        approval_status: 'pending'
+        approval_status: 'pending',
+        user_id: user?.id
       };
 
       if (isOnline) {
