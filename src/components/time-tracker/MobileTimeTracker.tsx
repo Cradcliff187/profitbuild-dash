@@ -290,6 +290,7 @@ export const MobileTimeTracker: React.FC = () => {
           .replace(/\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M\s*-?\s*/i, '') // Remove time range
           .replace(/Employee\s+\d+/i, '') // Remove "Employee 1", "Employee 2", etc.
           .replace(/\s*-\s*\w{3}\s+\d{1,2},\s+\d{4}\s*-?\s*/i, '') // Remove date like "Oct 13, 2025"
+          .replace(/\s*-\s*[A-Za-z\s]+$/, '') // Remove team member name (anything after last dash)
           .replace(/^\s*-\s*/, '') // Remove leading dash
           .replace(/\s*-\s*$/, '') // Remove trailing dash
           .trim();
@@ -903,13 +904,13 @@ export const MobileTimeTracker: React.FC = () => {
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
                         {/* PRIMARY: Start/End Times - Prominent at top */}
-                        {entry.startTimeString && entry.endTimeString && entry.hours > 0 ? (
+                        {entry.startTimeString && entry.endTimeString ? (
                           <div className="text-sm font-medium text-foreground">
                             {entry.startTimeString} - {entry.endTimeString}
                           </div>
                         ) : (
                           <div className="text-sm font-medium text-muted-foreground">
-                            Manual Entry
+                            {format(entry.startTime, 'EEE, MMM d')} • Manual Entry
                           </div>
                         )}
                         
@@ -941,7 +942,7 @@ export const MobileTimeTracker: React.FC = () => {
                       </div>
                     </div>
                     
-                    {entry.note && (
+                    {entry.note && entry.note.length > 0 && (
                       <div className="bg-muted rounded p-2 text-sm text-muted-foreground mt-2">
                         {entry.note}
                       </div>
