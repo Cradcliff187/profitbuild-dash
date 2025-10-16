@@ -11,6 +11,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import type { Payee, PayeeType } from "@/types/payee";
 import { PayeeForm } from "./PayeeForm";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { PayeeSelectorMobile } from "./PayeeSelectorMobile";
 
 interface PayeeSelectorProps {
   value?: string;
@@ -43,9 +45,31 @@ export const PayeeSelector = ({
   defaultIsInternal,
   defaultProvidesLabor
 }: PayeeSelectorProps) => {
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [showPayeeForm, setShowPayeeForm] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+
+  // Use mobile-optimized drawer on small screens
+  if (isMobile) {
+    return (
+      <PayeeSelectorMobile
+        value={value}
+        onValueChange={onValueChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        required={required}
+        error={error}
+        label={label}
+        showLabel={showLabel}
+        filterInternal={filterInternal}
+        filterLabor={filterLabor}
+        defaultPayeeType={defaultPayeeType}
+        defaultIsInternal={defaultIsInternal}
+        defaultProvidesLabor={defaultProvidesLabor}
+      />
+    );
+  }
 
   useEffect(() => {
     if (!open) setSearchValue("");
