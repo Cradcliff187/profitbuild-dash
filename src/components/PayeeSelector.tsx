@@ -55,6 +55,29 @@ export const PayeeSelector = ({
     if (!open) setSearchValue("");
   }, [open]);
 
+  const { data: payees = [], refetch } = useQuery({
+    queryKey: ["payees", filterInternal, filterLabor],
+    queryFn: async () => {
+      let query = supabase
+        .from("payees")
+        .select("*")
+        .eq("is_active", true)
+        .order("company_name");
+
+      if (filterInternal !== undefined) {
+        query = query.eq("is_internal", filterInternal);
+      }
+
+      if (filterLabor !== undefined) {
+        query = query.eq("provides_labor", filterLabor);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as Payee[];
+    },
+  });
+
   // Prevent hydration mismatch while detecting screen size
   if (isMobile === undefined) {
     return null;
@@ -80,28 +103,6 @@ export const PayeeSelector = ({
       />
     );
   }
-
-  const { data: payees = [], refetch } = useQuery({
-    queryKey: ["payees", filterInternal, filterLabor],
-    queryFn: async () => {
-      let query = supabase
-        .from("payees")
-        .select("*")
-        .eq("is_active", true);
-      
-      if (filterInternal) {
-        query = query.eq("is_internal", true);
-      }
-      if (filterLabor) {
-        query = query.eq("provides_labor", true);
-      }
-      
-      const { data, error } = await query.order("payee_name");
-      
-      if (error) throw error;
-      return data as Payee[];
-    },
-  });
 
   // Helper function to format payee type display name
   const formatPayeeType = (payeeType?: PayeeType) => {
