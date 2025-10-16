@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, CheckCircle } from 'lucide-react';
+import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Geolocation } from '@capacitor/geolocation';
@@ -11,7 +11,6 @@ import { WeekView } from './WeekView';
 import { EditTimeEntryModal } from './EditTimeEntryModal';
 import { ManualEntryModal } from './ManualEntryModal';
 import { BulkActionsBar } from './BulkActionsBar';
-import { ApprovalQueue } from './ApprovalQueue';
 import { SyncStatusBanner } from './SyncStatusBanner';
 import { ReceiptsList } from './ReceiptsList';
 import {
@@ -80,7 +79,7 @@ export const MobileTimeTracker: React.FC = () => {
   const [showWorkerSelect, setShowWorkerSelect] = useState(false);
   const [note, setNote] = useState('');
   const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
-  const [view, setView] = useState<'timer' | 'entries' | 'receipts' | 'approve'>('timer');
+  const [view, setView] = useState<'timer' | 'entries' | 'receipts'>('timer');
   const [entriesDateRange, setEntriesDateRange] = useState<'today' | 'week'>('today');
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
@@ -573,20 +572,6 @@ export const MobileTimeTracker: React.FC = () => {
             <Camera className="w-4 h-4 mx-auto mb-1" />
             Receipts
           </button>
-          {/* Only show Approve tab for managers and admins */}
-          {(isAdmin || isManager) && (
-            <button
-              onClick={() => setView('approve')}
-              className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
-                view === 'approve' 
-                  ? 'text-primary border-b-2 border-primary bg-primary/5' 
-                  : 'text-muted-foreground'
-              }`}
-            >
-              <CheckCircle className="w-4 h-4 mx-auto mb-1" />
-              Approve
-            </button>
-          )}
         </div>
       </div>
 
@@ -879,13 +864,6 @@ export const MobileTimeTracker: React.FC = () => {
 
       {/* Receipts View */}
       {view === 'receipts' && <ReceiptsList />}
-
-      {/* Approve View */}
-      {view === 'approve' && (
-        <div className="p-4">
-          <ApprovalQueue />
-        </div>
-      )}
 
       {/* Receipt Prompt Confirmation */}
       <AlertDialog open={showReceiptPrompt} onOpenChange={setShowReceiptPrompt}>

@@ -82,7 +82,7 @@ export const BulkActionsBar = ({ selectedIds, onClearSelection, onRefresh }: Bul
           (entry.amount / parseFloat(hours)).toFixed(2),
           entry.amount.toFixed(2),
           note,
-          entry.approval_status || 'draft',
+          entry.approval_status || 'pending',
         ];
       });
 

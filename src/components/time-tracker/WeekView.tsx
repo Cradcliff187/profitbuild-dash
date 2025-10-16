@@ -203,7 +203,7 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
                       </div>
                       
                       {/* Status Badge */}
-                      {entry.approval_status && entry.approval_status !== 'draft' && (
+                      {entry.approval_status && (
                         <Badge 
                           variant={
                             entry.approval_status === 'approved' ? 'default' :

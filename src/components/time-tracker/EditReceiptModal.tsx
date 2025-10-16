@@ -244,6 +244,7 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
             <PayeeSelector
               value={selectedPayeeId}
               onValueChange={setSelectedPayeeId}
+              filterInternal={false}
               placeholder="Select payee..."
             />
           </div>
