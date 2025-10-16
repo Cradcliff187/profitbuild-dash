@@ -163,6 +163,7 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
           description,
           category: 'labor_internal',
           transaction_type: 'expense',
+          user_id: user?.id,
           updated_by: user?.id,
         });
 
