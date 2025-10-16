@@ -62,7 +62,7 @@ export const PayeeSelector = ({
         .from("payees")
         .select("*")
         .eq("is_active", true)
-        .order("company_name");
+        .order("payee_name");
 
       if (filterInternal !== undefined) {
         query = query.eq("is_internal", filterInternal);

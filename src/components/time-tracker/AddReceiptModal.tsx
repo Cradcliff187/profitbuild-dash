@@ -3,6 +3,7 @@ import { Camera } from '@capacitor/camera';
 import { CameraResultType, CameraSource } from '@capacitor/camera';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -11,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Camera as CameraIcon, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PayeeSelector } from '@/components/PayeeSelector';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const UNASSIGNED_RECEIPTS_PROJECT_NUMBER = 'SYS-000';
 
@@ -31,6 +33,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   onClose,
   onSuccess
 }) => {
+  const isMobile = useIsMobile();
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
   const [selectedPayeeId, setSelectedPayeeId] = useState<string | undefined>();
@@ -167,130 +170,164 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
     onClose();
   };
 
+  const ModalContent = (
+    <div className={isMobile ? "space-y-6" : "space-y-4"}>
+      {/* Camera Capture / Photo Preview */}
+      <div className="space-y-2">
+        {!capturedPhoto ? (
+          <Button
+            onClick={capturePhoto}
+            variant="outline"
+            className={isMobile ? "w-full h-60 border-2 border-dashed" : "w-full h-48 border-2 border-dashed"}
+          >
+            <div className="flex flex-col items-center gap-2">
+              <CameraIcon className={isMobile ? "w-16 h-16 text-muted-foreground" : "w-12 h-12 text-muted-foreground"} />
+              <span className={isMobile ? "text-base font-medium" : "text-sm font-medium"}>Take Photo</span>
+            </div>
+          </Button>
+        ) : (
+          <div className="relative">
+            <img
+              src={capturedPhoto}
+              alt="Captured receipt"
+              className={isMobile ? "w-full h-60 object-cover rounded-lg" : "w-full h-48 object-cover rounded-lg"}
+            />
+            <Button
+              onClick={() => setCapturedPhoto(null)}
+              variant="destructive"
+              size="icon"
+              className={isMobile ? "absolute top-2 right-2 h-12 w-12" : "absolute top-2 right-2"}
+            >
+              <X className={isMobile ? "w-6 h-6" : "w-4 h-4"} />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Amount (Required) */}
+      <div className="space-y-2">
+        <Label htmlFor="amount" className={isMobile ? "text-sm font-medium" : ""}>Amount *</Label>
+        <Input
+          id="amount"
+          type="number"
+          step="0.01"
+          min="0.01"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="0.00"
+          required
+          className={isMobile ? "h-12 text-base" : ""}
+        />
+      </div>
+
+      {/* Payee (Required) */}
+      <div className="space-y-2">
+        <PayeeSelector
+          value={selectedPayeeId}
+          onValueChange={setSelectedPayeeId}
+          filterInternal={false}
+          required
+        />
+      </div>
+
+      {/* Project Assignment (Optional) */}
+      <div className="space-y-2">
+        <Label htmlFor="project" className={isMobile ? "text-sm font-medium text-muted-foreground" : "text-sm text-muted-foreground"}>
+          Assign to Project (Optional)
+        </Label>
+        {isMobile ? (
+          <select
+            id="project"
+            value={selectedProjectId || ""}
+            onChange={(e) => setSelectedProjectId(e.target.value || undefined)}
+            className="w-full h-12 px-3 py-2 rounded-md border border-input bg-background text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">None</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.project_number} - {project.project_name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+            <SelectTrigger id="project">
+              <SelectValue placeholder="None" />
+            </SelectTrigger>
+            <SelectContent>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.project_number} - {project.project_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
+      {/* Description (Optional) */}
+      <div className="space-y-2">
+        <Label htmlFor="description" className={isMobile ? "text-sm font-medium text-muted-foreground" : "text-sm text-muted-foreground"}>
+          Notes (Optional)
+        </Label>
+        <Textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Add notes about this receipt..."
+          rows={isMobile ? 3 : 2}
+          className={isMobile ? "text-base" : ""}
+        />
+      </div>
+
+      {/* Action Buttons */}
+      <div className={isMobile ? "flex flex-col gap-3 pt-2" : "flex gap-2"}>
+        <Button
+          onClick={handleClose}
+          variant="outline"
+          className={isMobile ? "w-full h-12" : "flex-1"}
+          disabled={uploading}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSave}
+          className={isMobile ? "w-full h-12" : "flex-1"}
+          disabled={!capturedPhoto || !amount || !selectedPayeeId || uploading}
+        >
+          {uploading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            'Save Receipt'
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={handleClose}>
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto p-6">
+          <SheetHeader>
+            <SheetTitle>Add Receipt</SheetTitle>
+          </SheetHeader>
+          {ModalContent}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add Receipt</DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Camera Capture / Photo Preview */}
-          <div className="space-y-2">
-            {!capturedPhoto ? (
-              <Button
-                onClick={capturePhoto}
-                variant="outline"
-                className="w-full h-48 border-2 border-dashed"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <CameraIcon className="w-12 h-12 text-muted-foreground" />
-                  <span className="text-sm font-medium">Take Photo</span>
-                </div>
-              </Button>
-            ) : (
-              <div className="relative">
-                <img
-                  src={capturedPhoto}
-                  alt="Captured receipt"
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-                <Button
-                  onClick={() => setCapturedPhoto(null)}
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Amount (Required) */}
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount *</Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              required
-            />
-          </div>
-
-          {/* Payee (Required) */}
-          <div className="space-y-2">
-            <PayeeSelector
-              value={selectedPayeeId}
-              onValueChange={setSelectedPayeeId}
-              filterInternal={false}
-              required
-            />
-          </div>
-
-          {/* Project Assignment (Optional) */}
-          <div className="space-y-2">
-            <Label htmlFor="project" className="text-sm text-muted-foreground">
-              Assign to Project (Optional)
-            </Label>
-            <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-              <SelectTrigger id="project">
-                <SelectValue placeholder="None" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.project_number} - {project.project_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Description (Optional) */}
-          <div className="space-y-2">
-            <Label htmlFor="description" className="text-sm text-muted-foreground">
-              Notes (Optional)
-            </Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add notes about this receipt..."
-              rows={2}
-            />
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            <Button
-              onClick={handleClose}
-              variant="outline"
-              className="flex-1"
-              disabled={uploading}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              className="flex-1"
-              disabled={!capturedPhoto || !amount || !selectedPayeeId || uploading}
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Receipt'
-              )}
-            </Button>
-          </div>
-        </div>
+        {ModalContent}
       </DialogContent>
     </Dialog>
   );
