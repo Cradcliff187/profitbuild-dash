@@ -96,9 +96,19 @@ export const MobileTimeTracker: React.FC = () => {
 
   // Load projects and workers on mount
   useEffect(() => {
-    loadInitialData();
-    loadTodayEntries();
-  }, []);
+    if (user) {
+      loadInitialData();
+      loadTodayEntries();
+      
+      // Set up real-time subscription
+      const channel = setupRealtimeSubscription();
+      
+      // Cleanup on unmount
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user]);
 
   // Update current time every second
   useEffect(() => {
@@ -203,6 +213,29 @@ export const MobileTimeTracker: React.FC = () => {
     } finally {
       setDataLoading(false);
     }
+  };
+
+  // Set up real-time subscription for time entries
+  const setupRealtimeSubscription = () => {
+    const channel = supabase
+      .channel('time-entries-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'expenses',
+          filter: `category=eq.labor_internal`
+        },
+        (payload) => {
+          console.log('Real-time change detected:', payload);
+          // Reload today's entries when any change occurs
+          loadTodayEntries();
+        }
+      )
+      .subscribe();
+
+    return channel;
   };
 
   const loadTodayEntries = async () => {

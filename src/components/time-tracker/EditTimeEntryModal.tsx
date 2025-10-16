@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { useRoles } from '@/contexts/RoleContext';
 
 interface TimeEntry {
   id: string;
@@ -37,6 +38,7 @@ interface EditTimeEntryModalProps {
 
 export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditTimeEntryModalProps) => {
   const isMobile = useIsMobile();
+  const { isAdmin, isManager } = useRoles();
   const [workers, setWorkers] = useState<Array<{ id: string; name: string; rate: number }>>([]);
   const [projects, setProjects] = useState<Array<{ id: string; name: string; number: string; address?: string }>>([]);
   const [loading, setLoading] = useState(false);
@@ -235,6 +237,13 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
   const handleSave = async () => {
     if (!entry) return;
     
+    // Check ownership FIRST (unless admin/manager)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (entry.user_id && entry.user_id !== user?.id && !isAdmin && !isManager) {
+      toast.error("You can only edit your own time entries");
+      return;
+    }
+    
     if (entry.is_locked || entry.approval_status === 'approved') {
       toast.error('Cannot edit approved entries. Contact your manager.');
       return;
@@ -301,10 +310,10 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
       return;
     }
 
-    // Check if user owns this entry
+    // Check if user owns this entry (unless admin/manager)
     const { data: { user } } = await supabase.auth.getUser();
-    if (entry.user_id && entry.user_id !== user?.id) {
-      toast.error("You can't delete another user's entry");
+    if (entry.user_id && entry.user_id !== user?.id && !isAdmin && !isManager) {
+      toast.error("You can only delete your own entries");
       return;
     }
 
@@ -377,7 +386,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
 
       <div className={cn("space-y-3", isMobile && "space-y-6")}>
         {/* Disable all editing if not owner (for field workers) */}
-        {entry?.user_id && entry.user_id !== currentUserId && (
+        {entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager && (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle className="text-sm">View Only</AlertTitle>
@@ -395,6 +404,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
               id="worker"
               value={workerId}
               onChange={(e) => setWorkerId(e.target.value)}
+              disabled={entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager || entry?.approval_status === 'approved'}
               className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">Select team member</option>
@@ -403,7 +413,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
               ))}
             </select>
           ) : (
-            <Select value={workerId} onValueChange={setWorkerId}>
+            <Select value={workerId} onValueChange={setWorkerId} disabled={entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager || entry?.approval_status === 'approved'}>
               <SelectTrigger id="worker">
                 <SelectValue placeholder="Select team member" />
               </SelectTrigger>
@@ -426,6 +436,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
               id="project"
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
+              disabled={entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager || entry?.approval_status === 'approved'}
               className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">Select project</option>
@@ -436,7 +447,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
               ))}
             </select>
           ) : (
-            <Select value={projectId} onValueChange={setProjectId}>
+            <Select value={projectId} onValueChange={setProjectId} disabled={entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager || entry?.approval_status === 'approved'}>
               <SelectTrigger id="project">
                 <SelectValue placeholder="Select project" />
               </SelectTrigger>
@@ -465,6 +476,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
+            disabled={entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager || entry?.approval_status === 'approved'}
             className={cn(isMobile && "h-12 text-base")}
           />
         </div>
@@ -481,6 +493,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
+              disabled={entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager || entry?.approval_status === 'approved'}
               className={cn(isMobile && "h-12 text-base")}
             />
           </div>
@@ -491,6 +504,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
+              disabled={entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager || entry?.approval_status === 'approved'}
               className={cn(isMobile && "h-12 text-base")}
             />
           </div>
@@ -506,6 +520,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
             value={hours}
             onChange={(e) => setHours(e.target.value)}
             placeholder="8.0"
+            disabled={entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager || entry?.approval_status === 'approved'}
             className={cn(isMobile && "h-12 text-base")}
           />
         </div>
@@ -519,6 +534,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
             onChange={(e) => setNote(e.target.value)}
             placeholder="Optional notes..."
             rows={2}
+            disabled={entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager || entry?.approval_status === 'approved'}
             className={cn(isMobile && "text-base")}
           />
         </div>
@@ -548,7 +564,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
                   variant="outline" 
                   size={isMobile ? "default" : "sm"}
                   onClick={captureReceipt}
-                  disabled={uploadingReceipt || loading}
+                  disabled={uploadingReceipt || loading || (entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager) || entry?.approval_status === 'approved'}
                   className={cn("flex-1", isMobile && "h-12 text-base")}
                 >
                   <Camera className="w-4 h-4 mr-1" />
@@ -559,7 +575,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
                   variant="outline" 
                   size={isMobile ? "default" : "sm"}
                   onClick={removeReceipt}
-                  disabled={loading}
+                  disabled={loading || (entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager) || entry?.approval_status === 'approved'}
                   className={cn("flex-1", isMobile && "h-12 text-base")}
                 >
                   <Trash2 className="w-4 h-4 mr-1" />
@@ -572,7 +588,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
               type="button"
               variant="outline" 
               onClick={captureReceipt}
-              disabled={uploadingReceipt || loading}
+              disabled={uploadingReceipt || loading || (entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager) || entry?.approval_status === 'approved'}
               className={cn("w-full", isMobile && "h-12 text-base")}
             >
               {uploadingReceipt ? (
@@ -591,7 +607,8 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
   );
 
   const ActionButtons = () => {
-    const isNotOwner = entry?.user_id && entry.user_id !== currentUserId;
+    // Admins and managers can edit any entry
+    const isNotOwner = entry?.user_id && entry.user_id !== currentUserId && !isAdmin && !isManager;
     
     return (
       <div className={cn(
@@ -618,8 +635,9 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
         </Button>
         <Button 
           onClick={handleSave} 
-          disabled={loading || entry?.is_locked || entry?.approval_status === 'approved'}
+          disabled={loading || entry?.is_locked || entry?.approval_status === 'approved' || isNotOwner}
           className={cn(isMobile && "h-12 text-base")}
+          title={isNotOwner ? "You can only edit your own entries" : undefined}
         >
           <Save className="w-4 h-4 mr-1" />
           Save
