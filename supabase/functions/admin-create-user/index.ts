@@ -70,9 +70,19 @@ serve(async (req) => {
     }
 
     const requestData: CreateUserRequest = await req.json();
-    const { email, password, fullName, role, sendInviteEmail, mustChangePassword } = requestData;
+    const { email, password, fullName, role, mustChangePassword } = requestData;
 
-    console.log('Creating user:', { email, role, sendInviteEmail, mustChangePassword });
+    // Map 'method' from frontend to 'sendInviteEmail' boolean
+    const method = (requestData as any).method || requestData.sendInviteEmail;
+    const sendInviteEmail = method === 'invite_email' || method === true;
+
+    console.log('Creating user:', { 
+      email, 
+      role, 
+      sendInviteEmail,
+      willGeneratePassword: !sendInviteEmail,
+      mustChangePassword 
+    });
 
     // Generate temp password if not provided and not sending invite
     const finalPassword = password || (!sendInviteEmail ? `Temp${Math.random().toString(36).slice(2, 10)}!` : undefined);
@@ -160,8 +170,8 @@ serve(async (req) => {
       },
     };
 
-    // Only return password if we generated one and didn't send invite
-    if (!sendInviteEmail && finalPassword === password || (!sendInviteEmail && !password)) {
+    // Only return password if we didn't send an invite email
+    if (!sendInviteEmail && finalPassword) {
       response.temporaryPassword = finalPassword;
     }
 

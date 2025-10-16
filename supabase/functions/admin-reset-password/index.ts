@@ -130,22 +130,40 @@ const handler = async (req: Request): Promise<Response> => {
       };
 
     } else {
-      // Send password reset email
-      const { error: resetError } = await supabaseServiceRole.auth.admin.generateLink({
+      // Fetch user's email first
+      const { data: targetUser, error: userError } = await supabaseServiceRole.auth.admin.getUserById(targetUserId);
+
+      if (userError || !targetUser?.user?.email) {
+        console.error('Failed to fetch user email:', userError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch user email. User may not exist.' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`Sending password reset email to: ${targetUser.user.email}`);
+
+      // Send password reset email with correct email
+      const { data: linkData, error: resetError } = await supabaseServiceRole.auth.admin.generateLink({
         type: 'recovery',
-        email: '', // Will be fetched from user record
+        email: targetUser.user.email,
         options: {
-          redirectTo: `${req.headers.get('origin') || 'http://localhost:5173'}/auth`
+          redirectTo: `${req.headers.get('origin') || 'http://localhost:5173'}/change-password`
         }
       });
 
       if (resetError) {
         console.error('Password reset email error:', resetError);
         return new Response(
-          JSON.stringify({ error: `Failed to send reset email: ${resetError.message}` }),
+          JSON.stringify({ 
+            error: `Failed to send reset email: ${resetError.message}`,
+            details: 'Email provider may not be configured in Supabase settings'
+          }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
+      console.log('Password reset link generated:', linkData);
 
       // Set must_change_password flag
       const { error: profileError } = await supabaseServiceRole
@@ -159,7 +177,8 @@ const handler = async (req: Request): Promise<Response> => {
 
       responseData = {
         success: true,
-        message: 'Password reset email sent successfully'
+        message: 'Password reset email sent successfully',
+        emailSentTo: targetUser.user.email
       };
     }
 

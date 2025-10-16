@@ -23,6 +23,8 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
   const [role, setRole] = useState<AppRole>('field_worker');
   const [method, setMethod] = useState<'temporary_password' | 'invite_email'>('temporary_password');
   const [temporaryPassword, setTemporaryPassword] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailAddress, setEmailAddress] = useState('');
   const [copied, setCopied] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,11 +51,13 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
           description: 'User created successfully. Copy the temporary password before closing.',
         });
       } else {
+        // Email invite was sent
+        setEmailSent(true);
+        setEmailAddress(email);
         toast({
           title: 'User Created',
-          description: 'Invitation email sent successfully.',
+          description: `Invitation email sent to ${email}`,
         });
-        handleClose();
       }
 
       onUserCreated();
@@ -75,6 +79,8 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
     setRole('field_worker');
     setMethod('temporary_password');
     setTemporaryPassword('');
+    setEmailSent(false);
+    setEmailAddress('');
     setCopied(false);
     onOpenChange(false);
   };
@@ -115,6 +121,28 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 User must change this password on first login. Copy it now - it won't be shown again.
+              </p>
+            </div>
+            <Button onClick={handleClose} className="w-full h-8 text-xs">
+              Close
+            </Button>
+          </div>
+        ) : emailSent ? (
+          <div className="space-y-3">
+            <div className="bg-muted p-3 rounded-md">
+              <div className="flex items-center gap-2 mb-2">
+                <Check className="h-4 w-4 text-green-600" />
+                <Label className="text-xs font-medium">Invitation Email Sent</Label>
+              </div>
+              <p className="text-sm mb-2">
+                An invitation has been sent to:
+              </p>
+              <code className="block text-sm font-mono bg-background p-2 rounded border">
+                {emailAddress}
+              </code>
+              <p className="text-xs text-muted-foreground mt-2">
+                The user will receive an email with instructions to set up their account.
+                If they don't see it, ask them to check their spam folder.
               </p>
             </div>
             <Button onClick={handleClose} className="w-full h-8 text-xs">

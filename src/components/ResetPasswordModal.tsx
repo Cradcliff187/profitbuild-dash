@@ -19,6 +19,7 @@ export default function ResetPasswordModal({ open, onOpenChange, userId, userEma
   const [loading, setLoading] = useState(false);
   const [method, setMethod] = useState<'temporary_password' | 'email_reset'>('temporary_password');
   const [temporaryPassword, setTemporaryPassword] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,11 +44,11 @@ export default function ResetPasswordModal({ open, onOpenChange, userId, userEma
           description: 'Temporary password generated. Copy it before closing.',
         });
       } else {
+        setEmailSent(true);
         toast({
-          title: 'Password Reset',
-          description: 'Reset email sent successfully.',
+          title: 'Password Reset Email Sent',
+          description: `Reset link sent to ${userEmail}`,
         });
-        handleClose();
       }
     } catch (error: any) {
       console.error('Error resetting password:', error);
@@ -64,6 +65,7 @@ export default function ResetPasswordModal({ open, onOpenChange, userId, userEma
   const handleClose = () => {
     setMethod('temporary_password');
     setTemporaryPassword('');
+    setEmailSent(false);
     setCopied(false);
     onOpenChange(false);
   };
@@ -104,6 +106,28 @@ export default function ResetPasswordModal({ open, onOpenChange, userId, userEma
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 User must change this password on next login.
+              </p>
+            </div>
+            <Button onClick={handleClose} className="w-full h-8 text-xs">
+              Close
+            </Button>
+          </div>
+        ) : emailSent ? (
+          <div className="space-y-3">
+            <div className="bg-muted p-3 rounded-md">
+              <div className="flex items-center gap-2 mb-2">
+                <Check className="h-4 w-4 text-green-600" />
+                <Label className="text-xs font-medium">Password Reset Email Sent</Label>
+              </div>
+              <p className="text-sm mb-2">
+                A password reset link has been sent to:
+              </p>
+              <code className="block text-sm font-mono bg-background p-2 rounded border">
+                {userEmail}
+              </code>
+              <p className="text-xs text-muted-foreground mt-2">
+                The user will receive an email with a link to reset their password.
+                The link is valid for 24 hours.
               </p>
             </div>
             <Button onClick={handleClose} className="w-full h-8 text-xs">
