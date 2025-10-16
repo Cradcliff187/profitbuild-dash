@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Clock, Trash2, Save, Camera, Paperclip } from 'lucide-react';
+import { Clock, Trash2, Save, Camera, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -220,8 +221,8 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
   const handleSave = async () => {
     if (!entry) return;
     
-    if (entry.is_locked) {
-      toast.error('Cannot edit locked entries');
+    if (entry.is_locked || entry.approval_status === 'approved') {
+      toast.error('Cannot edit approved entries. Contact your manager.');
       return;
     }
 
@@ -281,8 +282,8 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
   const handleDelete = async () => {
     if (!entry) return;
     
-    if (entry.is_locked) {
-      toast.error('Cannot delete locked entries');
+    if (entry.is_locked || entry.approval_status === 'approved') {
+      toast.error('Cannot delete approved entries. Contact your manager.');
       return;
     }
 
@@ -320,6 +321,39 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
             Edit Time Entry
           </DialogTitle>
         </DialogHeader>
+
+        {/* Approval Status Warnings */}
+        {entry?.approval_status === 'approved' && (
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-800">Entry Approved</AlertTitle>
+            <AlertDescription className="text-green-700 text-xs">
+              This time entry has been approved by management. Only admins can make changes.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {entry?.approval_status === 'rejected' && (
+          <Alert variant="destructive">
+            <XCircle className="h-4 w-4" />
+            <AlertTitle>Entry Rejected</AlertTitle>
+            <AlertDescription className="text-xs">
+              {entry.description?.includes('Rejection:') 
+                ? entry.description.split('Rejection:')[1]?.trim() 
+                : 'No reason provided'}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {entry?.approval_status === 'pending' && (
+          <Alert className="border-blue-200 bg-blue-50">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <AlertTitle className="text-blue-800">Pending Approval</AlertTitle>
+            <AlertDescription className="text-blue-700 text-xs">
+              You can still edit this entry until a manager approves it.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="space-y-3">
           <div>
@@ -476,11 +510,18 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={loading || entry?.is_locked}>
+          <Button 
+            variant="destructive" 
+            onClick={handleDelete} 
+            disabled={loading || entry?.is_locked || entry?.approval_status === 'approved'}
+          >
             <Trash2 className="w-4 h-4 mr-1" />
             Delete
           </Button>
-          <Button onClick={handleSave} disabled={loading || entry?.is_locked}>
+          <Button 
+            onClick={handleSave} 
+            disabled={loading || entry?.is_locked || entry?.approval_status === 'approved'}
+          >
             <Save className="w-4 h-4 mr-1" />
             Save
           </Button>
