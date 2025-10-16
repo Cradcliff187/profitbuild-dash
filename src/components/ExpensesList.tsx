@@ -104,7 +104,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       const matchesCategory = filterCategory === "all" || expense.category === filterCategory;
       const matchesType = filterTransactionType === "all" || expense.transaction_type === filterTransactionType;
       const matchesProject = filterProject === "all" || expense.project_id === filterProject;
-      const matchesApprovalStatus = filterApprovalStatus === "all" || (expense.approval_status || 'draft') === filterApprovalStatus;
+      const matchesApprovalStatus = filterApprovalStatus === "all" || (expense.approval_status || 'pending') === filterApprovalStatus;
       
       let matchesMatchStatus = true;
       if (filterMatchStatus === "matched") {
@@ -200,7 +200,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           `"${EXPENSE_CATEGORY_DISPLAY[expense.category] || expense.category}"`,
           `"${TRANSACTION_TYPE_DISPLAY[expense.transaction_type] || expense.transaction_type}"`,
           expense.amount,
-          (expense.approval_status || 'draft').charAt(0).toUpperCase() + (expense.approval_status || 'draft').slice(1),
+          (expense.approval_status || 'pending').charAt(0).toUpperCase() + (expense.approval_status || 'pending').slice(1),
           expenseMatches[expense.id] ? 'Matched' : 'Unmatched'
         ].join(',')
       )
@@ -330,7 +330,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       label: 'Status',
       sortable: true,
       render: (expense: Expense) => {
-        const status = expense.approval_status || 'draft';
+        const status = expense.approval_status || 'pending';
         const variant = status === 'approved' ? 'default' : status === 'rejected' ? 'destructive' : status === 'pending' ? 'secondary' : 'outline';
         return (
           <Badge variant={variant} className="compact-badge">
@@ -352,7 +352,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   ];
 
   const renderActions = (expense: Expense) => {
-    const status = expense.approval_status || 'draft';
+    const status = expense.approval_status || 'pending';
     
     return (
       <DropdownMenu>
@@ -380,12 +380,6 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />
-
-          {status === 'draft' && (
-            <DropdownMenuItem onClick={() => handleApprovalAction(expense.id, 'submit')}>
-              Submit for Approval
-            </DropdownMenuItem>
-          )}
 
           {status === 'pending' && (
             <>
@@ -486,7 +480,6 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="approved">Approved</SelectItem>
             <SelectItem value="rejected">Rejected</SelectItem>
