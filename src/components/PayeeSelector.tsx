@@ -49,6 +49,16 @@ export const PayeeSelector = ({
   const [open, setOpen] = useState(false);
   const [showPayeeForm, setShowPayeeForm] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!open) setSearchValue("");
+  }, [open]);
+
+  // Prevent hydration mismatch while detecting screen size
+  if (isMobile === undefined) {
+    return null;
+  }
 
   // Use mobile-optimized drawer on small screens
   if (isMobile) {
@@ -70,11 +80,6 @@ export const PayeeSelector = ({
       />
     );
   }
-
-  useEffect(() => {
-    if (!open) setSearchValue("");
-  }, [open]);
-  const { toast } = useToast();
 
   const { data: payees = [], refetch } = useQuery({
     queryKey: ["payees", filterInternal, filterLabor],
