@@ -6,9 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { PayeeSelector } from '@/components/PayeeSelector';
 import { toast } from 'sonner';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface Project {
   id: string;
@@ -35,6 +38,7 @@ interface EditReceiptModalProps {
 }
 
 export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditReceiptModalProps) {
+  const isMobile = useIsMobile();
   const [capturedPhoto, setCapturedPhoto] = useState<string>('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [selectedPayeeId, setSelectedPayeeId] = useState<string>('');
@@ -188,111 +192,146 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
     onClose();
   };
 
-  return (
+  const ModalContent = () => (
+    <div className={cn("space-y-4", isMobile && "space-y-6")}>
+      {/* Photo Section */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">Receipt Photo</Label>
+        {capturedPhoto ? (
+          <div className="relative">
+            <img 
+              src={capturedPhoto} 
+              alt="Receipt" 
+              className={cn(
+                "w-full object-cover rounded-md",
+                isMobile ? "h-60" : "h-48"
+              )} 
+            />
+            <Button
+              variant="destructive"
+              size="icon"
+              className="absolute top-2 right-2"
+              onClick={() => {
+                setCapturedPhoto('');
+                setPhotoChanged(true);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="border-2 border-dashed rounded-md p-8 text-center">
+            <p className="text-sm text-muted-foreground">No photo</p>
+          </div>
+        )}
+        <Button 
+          onClick={capturePhoto} 
+          variant="outline" 
+          className={cn("w-full", isMobile && "h-12 text-base")}
+          type="button"
+        >
+          <Camera className="w-4 h-4 mr-2" />
+          Replace Photo
+        </Button>
+      </div>
+
+      {/* Amount */}
+      <div className="space-y-2">
+        <Label htmlFor="amount" className="text-sm font-medium">Amount *</Label>
+        <Input
+          id="amount"
+          type="number"
+          step="0.01"
+          placeholder="0.00"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className={cn(isMobile && "h-12 text-base")}
+        />
+      </div>
+
+      {/* Payee - now native on mobile! */}
+      <PayeeSelector
+        value={selectedPayeeId}
+        onValueChange={setSelectedPayeeId}
+        filterInternal={false}
+        placeholder="Select payee..."
+        showLabel={false}
+      />
+
+      {/* Project - native select */}
+      <div className="space-y-2">
+        <Label htmlFor="project" className="text-sm font-medium">Project (Optional)</Label>
+        <select
+          id="project"
+          className={cn(
+            "flex w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            isMobile && "h-12 text-base"
+          )}
+          value={selectedProjectId}
+          onChange={(e) => setSelectedProjectId(e.target.value)}
+        >
+          <option value="">Unassigned</option>
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.project_number} - {project.project_name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Description */}
+      <div className="space-y-2">
+        <Label htmlFor="description" className="text-sm font-medium">Notes</Label>
+        <Textarea
+          id="description"
+          placeholder="Optional notes..."
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+          className={cn(isMobile && "text-base")}
+        />
+      </div>
+
+      {/* Actions */}
+      <div className={cn(
+        "flex gap-2 pt-2",
+        isMobile && "flex-col"
+      )}>
+        <Button 
+          variant="outline" 
+          onClick={handleClose} 
+          className={cn("flex-1", isMobile && "h-12 text-base")}
+          disabled={isUploading}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSave}
+          className={cn("flex-1", isMobile && "h-12 text-base")}
+          disabled={!capturedPhoto || !amount || !selectedPayeeId || isUploading}
+        >
+          {isUploading ? 'Updating...' : 'Update Receipt'}
+        </Button>
+      </div>
+    </div>
+  );
+
+  return isMobile ? (
+    <Sheet open={open} onOpenChange={handleClose}>
+      <SheetContent side="bottom" className="h-[90vh] overflow-y-auto p-6">
+        <SheetHeader className="mb-6">
+          <SheetTitle className="text-lg">Edit Receipt</SheetTitle>
+        </SheetHeader>
+        <ModalContent />
+      </SheetContent>
+    </Sheet>
+  ) : (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Receipt</DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Photo Section */}
-          <div className="space-y-2">
-            <Label>Receipt Photo</Label>
-            {capturedPhoto ? (
-              <div className="relative">
-                <img src={capturedPhoto} alt="Receipt" className="w-full h-48 object-cover rounded-md" />
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                  onClick={() => {
-                    setCapturedPhoto('');
-                    setPhotoChanged(true);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="border-2 border-dashed rounded-md p-8 text-center">
-                <p className="text-sm text-muted-foreground mb-4">No photo</p>
-              </div>
-            )}
-            <Button onClick={capturePhoto} variant="outline" className="w-full" type="button">
-              <Camera className="w-4 h-4 mr-2" />
-              Replace Photo
-            </Button>
-          </div>
-
-          {/* Amount */}
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount *</Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-
-          {/* Payee */}
-          <div className="space-y-2">
-            <Label>Payee *</Label>
-            <PayeeSelector
-              value={selectedPayeeId}
-              onValueChange={setSelectedPayeeId}
-              filterInternal={false}
-              placeholder="Select payee..."
-            />
-          </div>
-
-          {/* Project */}
-          <div className="space-y-2">
-            <Label htmlFor="project">Project (Optional)</Label>
-            <select
-              id="project"
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-            >
-              <option value="">Unassigned</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.project_number} - {project.project_name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Notes</Label>
-            <Textarea
-              id="description"
-              placeholder="Optional notes..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2 pt-2">
-            <Button variant="outline" onClick={handleClose} className="flex-1" disabled={isUploading}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              className="flex-1"
-              disabled={!capturedPhoto || !amount || !selectedPayeeId || isUploading}
-            >
-              {isUploading ? 'Updating...' : 'Update Receipt'}
-            </Button>
-          </div>
-        </div>
+        <ModalContent />
       </DialogContent>
     </Dialog>
   );

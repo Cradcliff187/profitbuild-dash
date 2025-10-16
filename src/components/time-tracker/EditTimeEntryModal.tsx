@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Clock, Trash2, Save, Camera, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface TimeEntry {
   id: string;
@@ -32,6 +35,7 @@ interface EditTimeEntryModalProps {
 }
 
 export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditTimeEntryModalProps) => {
+  const isMobile = useIsMobile();
   const [workers, setWorkers] = useState<Array<{ id: string; name: string; rate: number }>>([]);
   const [projects, setProjects] = useState<Array<{ id: string; name: string; number: string; address?: string }>>([]);
   const [loading, setLoading] = useState(false);
@@ -312,52 +316,58 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            Edit Time Entry
-          </DialogTitle>
-        </DialogHeader>
+  const ModalContent = () => (
+    <>
+      {/* Approval Status Warnings */}
+      {entry?.approval_status === 'approved' && (
+        <Alert className="border-green-200 bg-green-50 mb-4">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-800 text-sm">Entry Approved</AlertTitle>
+          <AlertDescription className="text-green-700 text-xs">
+            This time entry has been approved. Only admins can make changes.
+          </AlertDescription>
+        </Alert>
+      )}
 
-        {/* Approval Status Warnings */}
-        {entry?.approval_status === 'approved' && (
-          <Alert className="border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertTitle className="text-green-800">Entry Approved</AlertTitle>
-            <AlertDescription className="text-green-700 text-xs">
-              This time entry has been approved by management. Only admins can make changes.
-            </AlertDescription>
-          </Alert>
-        )}
+      {entry?.approval_status === 'rejected' && (
+        <Alert variant="destructive" className="mb-4">
+          <XCircle className="h-4 w-4" />
+          <AlertTitle className="text-sm">Entry Rejected</AlertTitle>
+          <AlertDescription className="text-xs">
+            {entry.description?.includes('Rejection:') 
+              ? entry.description.split('Rejection:')[1]?.trim() 
+              : 'No reason provided'}
+          </AlertDescription>
+        </Alert>
+      )}
 
-        {entry?.approval_status === 'rejected' && (
-          <Alert variant="destructive">
-            <XCircle className="h-4 w-4" />
-            <AlertTitle>Entry Rejected</AlertTitle>
-            <AlertDescription className="text-xs">
-              {entry.description?.includes('Rejection:') 
-                ? entry.description.split('Rejection:')[1]?.trim() 
-                : 'No reason provided'}
-            </AlertDescription>
-          </Alert>
-        )}
+      {entry?.approval_status === 'pending' && (
+        <Alert className="border-blue-200 bg-blue-50 mb-4">
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-800 text-sm">Pending Approval</AlertTitle>
+          <AlertDescription className="text-blue-700 text-xs">
+            You can still edit this entry until a manager approves it.
+          </AlertDescription>
+        </Alert>
+      )}
 
-        {entry?.approval_status === 'pending' && (
-          <Alert className="border-blue-200 bg-blue-50">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
-            <AlertTitle className="text-blue-800">Pending Approval</AlertTitle>
-            <AlertDescription className="text-blue-700 text-xs">
-              You can still edit this entry until a manager approves it.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="space-y-3">
-          <div>
-            <Label htmlFor="worker">Team Member</Label>
+      <div className={cn("space-y-3", isMobile && "space-y-6")}>
+        {/* Team Member - Native select on mobile */}
+        <div>
+          <Label htmlFor="worker" className="text-sm font-medium">Team Member</Label>
+          {isMobile ? (
+            <select
+              id="worker"
+              value={workerId}
+              onChange={(e) => setWorkerId(e.target.value)}
+              className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="">Select team member</option>
+              {workers.map(worker => (
+                <option key={worker.id} value={worker.id}>{worker.name}</option>
+              ))}
+            </select>
+          ) : (
             <Select value={workerId} onValueChange={setWorkerId}>
               <SelectTrigger id="worker">
                 <SelectValue placeholder="Select team member" />
@@ -370,161 +380,241 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          )}
+        </div>
 
-          <div>
-            <Label htmlFor="project">Project</Label>
+        {/* Project - Native select on mobile */}
+        <div>
+          <Label htmlFor="project" className="text-sm font-medium">Project</Label>
+          {isMobile ? (
+            <select
+              id="project"
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="">Select project</option>
+              {projects.map(project => (
+                <option key={project.id} value={project.id}>
+                  {project.number} - {project.name}
+                </option>
+              ))}
+            </select>
+          ) : (
             <Select value={projectId} onValueChange={setProjectId}>
               <SelectTrigger id="project">
                 <SelectValue placeholder="Select project" />
               </SelectTrigger>
               <SelectContent>
-                  {projects.map(project => (
-                    <SelectItem key={project.id} value={project.id}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{project.number}</span>
-                        <span className="text-xs text-muted-foreground">{project.name}</span>
-                        {project.address && (
-                          <span className="text-xs text-muted-foreground">{project.address}</span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
+                {projects.map(project => (
+                  <SelectItem key={project.id} value={project.id}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{project.number}</span>
+                      <span className="text-xs text-muted-foreground">{project.name}</span>
+                      {project.address && (
+                        <span className="text-xs text-muted-foreground">{project.address}</span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-          </div>
+          )}
+        </div>
 
+        {/* Date */}
+        <div>
+          <Label htmlFor="date" className="text-sm font-medium">Date</Label>
+          <Input
+            id="date"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className={cn(isMobile && "h-12 text-base")}
+          />
+        </div>
+
+        {/* Times - Stack on mobile */}
+        <div className={cn(
+          "grid gap-2",
+          isMobile ? "grid-cols-1" : "grid-cols-2"
+        )}>
           <div>
-            <Label htmlFor="date">Date</Label>
+            <Label htmlFor="startTime" className="text-sm font-medium">Start Time</Label>
             <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
+              id="startTime"
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className={cn(isMobile && "h-12 text-base")}
             />
           </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label htmlFor="startTime">Start Time</Label>
-              <Input
-                id="startTime"
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="endTime">End Time</Label>
-              <Input
-                id="endTime"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-              />
-            </div>
-          </div>
-
           <div>
-            <Label htmlFor="hours">Hours</Label>
+            <Label htmlFor="endTime" className="text-sm font-medium">End Time</Label>
             <Input
-              id="hours"
-              type="number"
-              step="0.25"
-              value={hours}
-              onChange={(e) => setHours(e.target.value)}
-              placeholder="8.0"
+              id="endTime"
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className={cn(isMobile && "h-12 text-base")}
             />
-          </div>
-
-          <div>
-            <Label htmlFor="note">Note</Label>
-            <Textarea
-              id="note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Optional notes..."
-              rows={2}
-            />
-          </div>
-
-          <div>
-            <Label>Receipt</Label>
-            {receiptUrl ? (
-              <div className="space-y-2">
-                <div className="border rounded-lg overflow-hidden">
-                  <img 
-                    src={receiptUrl} 
-                    alt="Receipt" 
-                    className="w-full h-auto max-h-48 object-contain bg-slate-50 cursor-pointer"
-                    onClick={() => window.open(receiptUrl, '_blank')}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    type="button"
-                    variant="outline" 
-                    size="sm" 
-                    onClick={captureReceipt}
-                    disabled={uploadingReceipt || loading}
-                    className="flex-1"
-                  >
-                    <Camera className="w-4 h-4 mr-1" />
-                    Replace Receipt
-                  </Button>
-                  <Button 
-                    type="button"
-                    variant="outline" 
-                    size="sm" 
-                    onClick={removeReceipt}
-                    disabled={loading}
-                    className="flex-1"
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Remove
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Button 
-                type="button"
-                variant="outline" 
-                onClick={captureReceipt}
-                disabled={uploadingReceipt || loading}
-                className="w-full"
-              >
-                {uploadingReceipt ? (
-                  <>Loading...</>
-                ) : (
-                  <>
-                    <Camera className="w-4 h-4 mr-1" />
-                    Add Receipt
-                  </>
-                )}
-              </Button>
-            )}
           </div>
         </div>
 
+        {/* Hours */}
+        <div>
+          <Label htmlFor="hours" className="text-sm font-medium">Hours</Label>
+          <Input
+            id="hours"
+            type="number"
+            step="0.25"
+            value={hours}
+            onChange={(e) => setHours(e.target.value)}
+            placeholder="8.0"
+            className={cn(isMobile && "h-12 text-base")}
+          />
+        </div>
+
+        {/* Note */}
+        <div>
+          <Label htmlFor="note" className="text-sm font-medium">Note</Label>
+          <Textarea
+            id="note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Optional notes..."
+            rows={2}
+            className={cn(isMobile && "text-base")}
+          />
+        </div>
+
+        {/* Receipt */}
+        <div>
+          <Label className="text-sm font-medium">Receipt</Label>
+          {receiptUrl ? (
+            <div className="space-y-2">
+              <div className="border rounded-lg overflow-hidden">
+                <img 
+                  src={receiptUrl} 
+                  alt="Receipt" 
+                  className={cn(
+                    "w-full object-contain bg-slate-50 cursor-pointer",
+                    isMobile ? "h-60" : "h-48"
+                  )}
+                  onClick={() => window.open(receiptUrl, '_blank')}
+                />
+              </div>
+              <div className={cn(
+                "flex gap-2",
+                isMobile && "flex-col"
+              )}>
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  size={isMobile ? "default" : "sm"}
+                  onClick={captureReceipt}
+                  disabled={uploadingReceipt || loading}
+                  className={cn("flex-1", isMobile && "h-12 text-base")}
+                >
+                  <Camera className="w-4 h-4 mr-1" />
+                  Replace Receipt
+                </Button>
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  size={isMobile ? "default" : "sm"}
+                  onClick={removeReceipt}
+                  disabled={loading}
+                  className={cn("flex-1", isMobile && "h-12 text-base")}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Remove
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button 
+              type="button"
+              variant="outline" 
+              onClick={captureReceipt}
+              disabled={uploadingReceipt || loading}
+              className={cn("w-full", isMobile && "h-12 text-base")}
+            >
+              {uploadingReceipt ? (
+                <>Loading...</>
+              ) : (
+                <>
+                  <Camera className="w-4 h-4 mr-1" />
+                  Add Receipt
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+    </>
+  );
+
+  const ActionButtons = () => (
+    <div className={cn(
+      "flex gap-2",
+      isMobile ? "flex-col" : "flex-row"
+    )}>
+      <Button 
+        variant="outline" 
+        onClick={() => onOpenChange(false)} 
+        disabled={loading}
+        className={cn(isMobile && "h-12 text-base order-last")}
+      >
+        Cancel
+      </Button>
+      <Button 
+        variant="destructive" 
+        onClick={handleDelete} 
+        disabled={loading || entry?.is_locked || entry?.approval_status === 'approved'}
+        className={cn(isMobile && "h-12 text-base")}
+      >
+        <Trash2 className="w-4 h-4 mr-1" />
+        Delete
+      </Button>
+      <Button 
+        onClick={handleSave} 
+        disabled={loading || entry?.is_locked || entry?.approval_status === 'approved'}
+        className={cn(isMobile && "h-12 text-base")}
+      >
+        <Save className="w-4 h-4 mr-1" />
+        Save
+      </Button>
+    </div>
+  );
+
+  return isMobile ? (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="h-[90vh] overflow-y-auto p-6">
+        <SheetHeader className="mb-6">
+          <SheetTitle className="flex items-center gap-2 text-lg">
+            <Clock className="w-5 h-5" />
+            Edit Time Entry
+          </SheetTitle>
+        </SheetHeader>
+        <ModalContent />
+        <SheetFooter className="mt-6">
+          <ActionButtons />
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  ) : (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            Edit Time Entry
+          </DialogTitle>
+        </DialogHeader>
+        <ModalContent />
         <DialogFooter className="flex gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            Cancel
-          </Button>
-          <Button 
-            variant="destructive" 
-            onClick={handleDelete} 
-            disabled={loading || entry?.is_locked || entry?.approval_status === 'approved'}
-          >
-            <Trash2 className="w-4 h-4 mr-1" />
-            Delete
-          </Button>
-          <Button 
-            onClick={handleSave} 
-            disabled={loading || entry?.is_locked || entry?.approval_status === 'approved'}
-          >
-            <Save className="w-4 h-4 mr-1" />
-            Save
-          </Button>
+          <ActionButtons />
         </DialogFooter>
       </DialogContent>
     </Dialog>

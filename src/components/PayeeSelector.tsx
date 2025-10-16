@@ -12,7 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import type { Payee, PayeeType } from "@/types/payee";
 import { PayeeForm } from "./PayeeForm";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { PayeeSelectorMobile } from "./PayeeSelectorMobile";
 
 interface PayeeSelectorProps {
   value?: string;
@@ -83,27 +82,6 @@ export const PayeeSelector = ({
     return null;
   }
 
-  // Use mobile-optimized drawer on small screens
-  if (isMobile) {
-    return (
-      <PayeeSelectorMobile
-        value={value}
-        onValueChange={onValueChange}
-        onBlur={onBlur}
-        placeholder={placeholder}
-        required={required}
-        error={error}
-        label={label}
-        showLabel={showLabel}
-        filterInternal={filterInternal}
-        filterLabor={filterLabor}
-        defaultPayeeType={defaultPayeeType}
-        defaultIsInternal={defaultIsInternal}
-        defaultProvidesLabor={defaultProvidesLabor}
-      />
-    );
-  }
-
   // Helper function to format payee type display name
   const formatPayeeType = (payeeType?: PayeeType) => {
     if (!payeeType) return 'Other';
@@ -167,11 +145,87 @@ export const PayeeSelector = ({
 
   const handlePayeeCreated = async () => {
     setShowPayeeForm(false);
-    
-    // Refetch and get the updated data
     const { data: updatedPayees } = await refetch();
-    
-    // Auto-select the newly created payee (the most recently created one)
+    if (updatedPayees && updatedPayees.length > 0) {
+      const sortedPayees = [...updatedPayees].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      const newestPayee = sortedPayees[0];
+      onValueChange(newestPayee.id, newestPayee.payee_name, newestPayee);
+    }
+  };
+
+  // Mobile: Use native select
+  if (isMobile) {
+    return (
+      <div className="space-y-2">
+        {showLabel && (
+          <Label className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
+            {label}
+          </Label>
+        )}
+        
+        <select
+          value={value || ''}
+          onChange={(e) => {
+            const selectedPayee = payees.find(p => p.id === e.target.value);
+            if (selectedPayee) {
+              onValueChange(selectedPayee.id, selectedPayee.payee_name, selectedPayee);
+            } else {
+              onValueChange('', undefined, undefined);
+            }
+          }}
+          onBlur={onBlur}
+          className={cn(
+            "flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+            error && "border-destructive"
+          )}
+        >
+          <option value="">{placeholder}</option>
+          {groupPayeesByType(payees).map(([type, groupPayees]) => (
+            <optgroup key={type} label={formatPayeeType(type as PayeeType)}>
+              {groupPayees
+                .sort((a, b) => a.payee_name.localeCompare(b.payee_name))
+                .map((payee) => (
+                  <option key={payee.id} value={payee.id}>
+                    {formatPayeeDisplayName(payee)}
+                  </option>
+                ))
+              }
+            </optgroup>
+          ))}
+        </select>
+
+        <Button
+          variant="outline"
+          onClick={() => setShowPayeeForm(true)}
+          className="w-full h-12 text-base"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add New Payee
+        </Button>
+
+        {error && (
+          <p className="text-sm font-medium text-destructive">{error}</p>
+        )}
+
+        {showPayeeForm && (
+          <PayeeForm
+            onSuccess={handlePayeeCreated}
+            onCancel={() => setShowPayeeForm(false)}
+            defaultPayeeType={defaultPayeeType}
+            defaultIsInternal={defaultIsInternal}
+            defaultProvidesLabor={defaultProvidesLabor}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Desktop: Use popover with command
+  const handlePayeeCreatedDesktop = async () => {
+    setShowPayeeForm(false);
+    const { data: updatedPayees } = await refetch();
     if (updatedPayees && updatedPayees.length > 0) {
       const sortedPayees = [...updatedPayees].sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -311,7 +365,7 @@ export const PayeeSelector = ({
 
       {showPayeeForm && (
         <PayeeForm
-          onSuccess={handlePayeeCreated}
+          onSuccess={handlePayeeCreatedDesktop}
           onCancel={() => setShowPayeeForm(false)}
           defaultPayeeType={defaultPayeeType}
           defaultIsInternal={defaultIsInternal}
