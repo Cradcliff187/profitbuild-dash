@@ -270,15 +270,17 @@ export const MobileTimeTracker: React.FC = () => {
         let endTime = new Date(expense.created_at);
         
         if (timeMatch) {
+          // Use explicit times if found in description
           startTimeString = timeMatch[1];
           endTimeString = timeMatch[2];
-        } else if (hours > 0) {
-          // Only show calculated times if hours > 0
+        } else if (hours > 0.01) {
+          // Calculate times from created_at for entries with meaningful hours
+          // This handles old entries that don't have times saved in description
           endTime = new Date(startTime.getTime() + hours * 60 * 60 * 1000);
           startTimeString = formatTime(startTime);
           endTimeString = formatTime(endTime);
         } else {
-          // Don't show times for 0-hour entries
+          // For truly zero-hour entries, don't show calculated times
           startTimeString = undefined;
           endTimeString = undefined;
         }
@@ -290,7 +292,7 @@ export const MobileTimeTracker: React.FC = () => {
           .replace(/\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M\s*-?\s*/i, '') // Remove time range
           .replace(/Employee\s+\d+/i, '') // Remove "Employee 1", "Employee 2", etc.
           .replace(/\s*-\s*\w{3}\s+\d{1,2},\s+\d{4}\s*-?\s*/i, '') // Remove date like "Oct 13, 2025"
-          .replace(/\s*-\s*[A-Za-z\s]+$/, '') // Remove team member name (anything after last dash)
+          .replace(/\s*-\s*[A-Z][a-z]+\s+[A-Z][a-z]+\s*$/i, '') // Remove "FirstName LastName" at end
           .replace(/^\s*-\s*/, '') // Remove leading dash
           .replace(/\s*-\s*$/, '') // Remove trailing dash
           .trim();
@@ -942,7 +944,7 @@ export const MobileTimeTracker: React.FC = () => {
                       </div>
                     </div>
                     
-                    {entry.note && entry.note.length > 0 && (
+                    {entry.note && entry.note.trim().length > 0 && (
                       <div className="bg-muted rounded p-2 text-sm text-muted-foreground mt-2">
                         {entry.note}
                       </div>
