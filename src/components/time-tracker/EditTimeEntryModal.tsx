@@ -360,7 +360,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
               id="worker"
               value={workerId}
               onChange={(e) => setWorkerId(e.target.value)}
-              className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">Select team member</option>
               {workers.map(worker => (
@@ -391,7 +391,7 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
               id="project"
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
-              className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">Select project</option>
               {projects.map(project => (

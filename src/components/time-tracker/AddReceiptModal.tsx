@@ -243,7 +243,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
             id="project"
             value={selectedProjectId || ""}
             onChange={(e) => setSelectedProjectId(e.target.value || undefined)}
-            className="w-full h-12 px-3 py-2 rounded-md border border-input bg-background text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="">None</option>
             {projects.map((project) => (
