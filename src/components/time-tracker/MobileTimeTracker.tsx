@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 import { Geolocation } from '@capacitor/geolocation';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -205,7 +206,7 @@ export const MobileTimeTracker: React.FC = () => {
 
   const loadTodayEntries = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = format(new Date(), 'yyyy-MM-dd');
       
       const { data, error } = await supabase
         .from('expenses')
@@ -240,11 +241,15 @@ export const MobileTimeTracker: React.FC = () => {
         if (timeMatch) {
           startTimeString = timeMatch[1];
           endTimeString = timeMatch[2];
-        } else {
-          // Calculate from created_at and hours
+        } else if (hours > 0) {
+          // Only show calculated times if hours > 0
           endTime = new Date(startTime.getTime() + hours * 60 * 60 * 1000);
           startTimeString = formatTime(startTime);
           endTimeString = formatTime(endTime);
+        } else {
+          // Don't show times for 0-hour entries
+          startTimeString = undefined;
+          endTimeString = undefined;
         }
         
         // Clean up description to remove redundant info
@@ -865,7 +870,7 @@ export const MobileTimeTracker: React.FC = () => {
                           {entry.project.project_number} - {entry.project.client_name}
                         </div>
                         <div className="text-xs text-muted-foreground">{entry.project.project_name}</div>
-                        {entry.startTimeString && entry.endTimeString && (
+                        {entry.startTimeString && entry.endTimeString && entry.hours > 0 && (
                           <div className="text-xs text-muted-foreground mt-1 font-mono">
                             {entry.startTimeString} - {entry.endTimeString}
                           </div>
