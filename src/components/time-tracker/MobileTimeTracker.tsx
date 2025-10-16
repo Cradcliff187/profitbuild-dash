@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from '@/contexts/AuthContext';
+import { useRoles } from '@/contexts/RoleContext';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { addToQueue } from '@/utils/syncQueue';
 
@@ -66,6 +67,7 @@ interface ActiveTimer {
 export const MobileTimeTracker: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isAdmin, isManager } = useRoles();
   const { isOnline } = useOnlineStatus();
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
@@ -571,17 +573,20 @@ export const MobileTimeTracker: React.FC = () => {
             <Camera className="w-4 h-4 mx-auto mb-1" />
             Receipts
           </button>
-          <button
-            onClick={() => setView('approve')}
-            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
-              view === 'approve' 
-                ? 'text-primary border-b-2 border-primary bg-primary/5' 
-                : 'text-muted-foreground'
-            }`}
-          >
-            <CheckCircle className="w-4 h-4 mx-auto mb-1" />
-            Approve
-          </button>
+          {/* Only show Approve tab for managers and admins */}
+          {(isAdmin || isManager) && (
+            <button
+              onClick={() => setView('approve')}
+              className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
+                view === 'approve' 
+                  ? 'text-primary border-b-2 border-primary bg-primary/5' 
+                  : 'text-muted-foreground'
+              }`}
+            >
+              <CheckCircle className="w-4 h-4 mx-auto mb-1" />
+              Approve
+            </button>
+          )}
         </div>
       </div>
 

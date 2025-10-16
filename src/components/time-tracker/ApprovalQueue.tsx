@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CheckCircle2, XCircle, Clock, Filter } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Filter, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
+import { useRoles } from '@/contexts/RoleContext';
 import { toast } from 'sonner';
 
 interface TimeEntry {
@@ -26,6 +28,7 @@ interface TimeEntry {
 }
 
 export const ApprovalQueue = () => {
+  const { isAdmin, isManager } = useRoles();
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('pending');
@@ -75,6 +78,12 @@ export const ApprovalQueue = () => {
   };
 
   const handleApprove = async (entryId: string) => {
+    // Validate role permissions
+    if (!isAdmin && !isManager) {
+      toast.error('Only managers and administrators can approve time entries');
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -99,6 +108,12 @@ export const ApprovalQueue = () => {
   };
 
   const handleReject = async (entryId: string) => {
+    // Validate role permissions
+    if (!isAdmin && !isManager) {
+      toast.error('Only managers and administrators can reject time entries');
+      return;
+    }
+
     if (!rejectionReason.trim()) {
       toast.error('Please provide a rejection reason');
       return;
@@ -128,6 +143,12 @@ export const ApprovalQueue = () => {
   };
 
   const handleBatchApprove = async () => {
+    // Validate role permissions
+    if (!isAdmin && !isManager) {
+      toast.error('Only managers and administrators can approve time entries');
+      return;
+    }
+
     const pendingEntries = entries.filter(e => e.approval_status === 'pending');
     
     if (pendingEntries.length === 0) {
@@ -177,6 +198,16 @@ export const ApprovalQueue = () => {
 
   return (
     <div className="space-y-3">
+      {/* Permission Warning */}
+      {!isAdmin && !isManager && (
+        <Alert variant="destructive">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertDescription>
+            You don't have permission to approve or reject time entries. Only managers and administrators can perform these actions.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -261,12 +292,13 @@ export const ApprovalQueue = () => {
                   )}
                 </div>
 
-                {entry.approval_status === 'pending' && (
+                {entry.approval_status === 'pending' && (isAdmin || isManager) && (
                   <div className="flex gap-1">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleApprove(entry.id)}
+                      title="Approve time entry"
                     >
                       <CheckCircle2 className="w-4 h-4 text-green-600" />
                     </Button>
@@ -274,6 +306,7 @@ export const ApprovalQueue = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => setSelectedEntry(entry.id)}
+                      title="Reject time entry"
                     >
                       <XCircle className="w-4 h-4 text-red-600" />
                     </Button>
