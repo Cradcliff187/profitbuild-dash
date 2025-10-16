@@ -53,6 +53,8 @@ interface TimeEntry {
   attachment_url?: string;
   startTime: Date;
   endTime: Date;
+  startTimeString?: string;
+  endTimeString?: string;
 }
 
 interface ActiveTimer {
@@ -228,10 +230,28 @@ export const MobileTimeTracker: React.FC = () => {
         const hourlyRate = expense.payees?.hourly_rate || 75;
         const hours = expense.amount / hourlyRate;
         
+        // Parse times from description (format: "HH:MM AM/PM - HH:MM AM/PM")
+        const timeMatch = expense.description.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)/i);
+        let startTimeString: string | undefined;
+        let endTimeString: string | undefined;
+        let startTime = new Date(expense.created_at);
+        let endTime = new Date(expense.created_at);
+        
+        if (timeMatch) {
+          startTimeString = timeMatch[1];
+          endTimeString = timeMatch[2];
+        } else {
+          // Calculate from created_at and hours
+          endTime = new Date(startTime.getTime() + hours * 60 * 60 * 1000);
+          startTimeString = formatTime(startTime);
+          endTimeString = formatTime(endTime);
+        }
+        
         // Clean up description to remove redundant info
         const cleanNote = expense.description
           .replace(/Internal Labor\s*-\s*/i, '') // Remove "Internal Labor" prefix
           .replace(/\d+\.?\d*\s*h(?:ou)?rs?\s*-?\s*/i, '') // Remove hours
+          .replace(/\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M\s*-?\s*/i, '') // Remove time range
           .replace(/Employee\s+\d+/i, '') // Remove "Employee 1", "Employee 2", etc.
           .replace(/\s*-\s*\w{3}\s+\d{1,2},\s+\d{4}\s*-?\s*/i, '') // Remove date like "Oct 13, 2025"
           .replace(/^\s*-\s*/, '') // Remove leading dash
@@ -245,8 +265,10 @@ export const MobileTimeTracker: React.FC = () => {
           hours,
           note: cleanNote,
           attachment_url: expense.attachment_url,
-          startTime: new Date(expense.created_at),
-          endTime: new Date(expense.created_at)
+          startTime,
+          endTime,
+          startTimeString,
+          endTimeString
         };
       }) || [];
 
@@ -388,6 +410,9 @@ export const MobileTimeTracker: React.FC = () => {
       const hours = (endTime.getTime() - activeTimer.startTime.getTime()) / (1000 * 60 * 60);
       const amount = hours * activeTimer.teamMember.hourly_rate;
 
+      const startTimeStr = formatTime(activeTimer.startTime);
+      const endTimeStr = formatTime(endTime);
+      
       const expenseData = {
         project_id: activeTimer.project.id,
         payee_id: activeTimer.teamMember.id,
@@ -395,7 +420,7 @@ export const MobileTimeTracker: React.FC = () => {
         transaction_type: 'expense' as const,
         amount: amount,
         expense_date: activeTimer.startTime.toISOString().split('T')[0],
-        description: `${hours.toFixed(2)}hrs - ${activeTimer.teamMember.payee_name}${
+        description: `${hours.toFixed(2)}hrs - ${startTimeStr} - ${endTimeStr} - ${activeTimer.teamMember.payee_name}${
           activeTimer.note ? ` - ${activeTimer.note}` : ''
         }`,
         is_planned: false,
@@ -824,7 +849,14 @@ export const MobileTimeTracker: React.FC = () => {
                   <div 
                     key={entry.id} 
                     className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary cursor-pointer"
-                    onClick={() => setEditingEntry(entry)}
+                    onClick={async () => {
+                      const { data } = await supabase
+                        .from('expenses')
+                        .select('*')
+                        .eq('id', entry.id)
+                        .single();
+                      if (data) setEditingEntry(data);
+                    }}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
@@ -833,6 +865,11 @@ export const MobileTimeTracker: React.FC = () => {
                           {entry.project.project_number} - {entry.project.client_name}
                         </div>
                         <div className="text-xs text-muted-foreground">{entry.project.project_name}</div>
+                        {entry.startTimeString && entry.endTimeString && (
+                          <div className="text-xs text-muted-foreground mt-1 font-mono">
+                            {entry.startTimeString} - {entry.endTimeString}
+                          </div>
+                        )}
                       </div>
                       <div className="text-right">
                         <div className="font-bold text-primary">{entry.hours.toFixed(2)} hrs</div>
