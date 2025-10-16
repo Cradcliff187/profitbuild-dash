@@ -56,6 +56,7 @@ interface TimeEntry {
   endTime: Date;
   startTimeString?: string;
   endTimeString?: string;
+  approval_status?: string;
 }
 
 interface ActiveTimer {
@@ -228,6 +229,7 @@ export const MobileTimeTracker: React.FC = () => {
           attachment_url,
           created_at,
           user_id,
+          approval_status,
           payees!inner(id, payee_name, hourly_rate),
           projects!inner(id, project_number, project_name, client_name, address)
         `)
@@ -300,6 +302,7 @@ export const MobileTimeTracker: React.FC = () => {
           note: cleanNote,
           attachment_url: expense.attachment_url,
           user_id: expense.user_id,
+          approval_status: expense.approval_status,
           startTime,
           endTime,
           startTimeString,
@@ -899,19 +902,39 @@ export const MobileTimeTracker: React.FC = () => {
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
-                        <div className="font-semibold text-foreground">{entry.teamMember.payee_name}</div>
-                        <div className="text-sm text-muted-foreground">
+                        {/* PRIMARY: Start/End Times - Prominent at top */}
+                        {entry.startTimeString && entry.endTimeString && entry.hours > 0 ? (
+                          <div className="text-sm font-medium text-foreground">
+                            {entry.startTimeString} - {entry.endTimeString}
+                          </div>
+                        ) : (
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Manual Entry
+                          </div>
+                        )}
+                        
+                        {/* SECONDARY: Project Information */}
+                        <div className="text-sm text-muted-foreground mt-1">
                           {entry.project.project_number} - {entry.project.client_name}
                         </div>
-                        <div className="text-xs text-muted-foreground">{entry.project.project_name}</div>
-                        {entry.startTimeString && entry.endTimeString && entry.hours > 0 && (
-                          <div className="text-xs text-muted-foreground mt-1 font-mono">
-                            {entry.startTimeString} - {entry.endTimeString}
+                        <div className="text-xs text-muted-foreground">
+                          {entry.project.project_name}
+                        </div>
+                        
+                        {/* STATUS: Approval Badge if Pending */}
+                        {entry.approval_status === 'pending' && (
+                          <div className="inline-flex items-center gap-1 mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
+                            <Clock className="w-3 h-3" />
+                            Pending Approval
                           </div>
                         )}
                       </div>
+                      
+                      {/* EMPHASIS: Hours Worked */}
                       <div className="text-right">
-                        <div className="font-bold text-primary">{entry.hours.toFixed(2)} hrs</div>
+                        <div className="font-bold text-primary text-lg">
+                          {entry.hours.toFixed(2)} hrs
+                        </div>
                         {entry.attachment_url && (
                           <div className="text-xs text-muted-foreground mt-1">📎 Receipt</div>
                         )}
