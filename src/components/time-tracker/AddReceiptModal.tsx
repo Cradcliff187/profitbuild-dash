@@ -225,8 +225,10 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
         <PayeeSelector
           value={selectedPayeeId}
           onValueChange={setSelectedPayeeId}
-          filterInternal={true}
-          filterLabor={true}
+          filterInternal={false}
+          filterLabor={false}
+          label="Vendor / Supplier"
+          placeholder="Select a vendor or supplier"
           required
         />
       </div>
