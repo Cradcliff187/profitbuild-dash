@@ -1,20 +1,37 @@
 import { useEffect } from 'react';
-import { useNavigate, Outlet } from 'react-router-dom';
+import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRoles } from '@/contexts/RoleContext';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import Navigation from './Navigation';
 
 export default function ProtectedLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { isFieldWorker, loading: rolesLoading } = useRoles();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       navigate('/auth');
     }
-  }, [user, loading, navigate]);
+  }, [user, authLoading, navigate]);
 
-  if (loading) {
+  // Redirect field workers from dashboard/projects to time tracker
+  useEffect(() => {
+    if (!authLoading && !rolesLoading && user && isFieldWorker) {
+      // Redirect if they're on the dashboard or root
+      if (location.pathname === '/' || location.pathname === '/dashboard') {
+        navigate('/time-tracker', { replace: true });
+      }
+      // Block access to projects page
+      if (location.pathname.startsWith('/projects')) {
+        navigate('/time-tracker', { replace: true });
+      }
+    }
+  }, [user, authLoading, rolesLoading, isFieldWorker, location.pathname, navigate]);
+
+  if (authLoading || rolesLoading) {
     return <LoadingSpinner variant="page" message="Loading..." />;
   }
 

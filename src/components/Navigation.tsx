@@ -60,8 +60,8 @@ const Navigation = () => {
   
   // Primary items (always visible on larger screens)
   const primaryItems = [
-    { to: "/", label: "Dashboard", icon: Building2, show: true },
-    { to: "/projects", label: "Projects", icon: Building2, show: true },
+    { to: "/", label: "Dashboard", icon: Building2, show: hasFinancialAccess },
+    { to: "/projects", label: "Projects", icon: Building2, show: hasFinancialAccess },
     { to: "/time-tracker", label: "Time Tracker", icon: Clock, show: true },
     { to: "/estimates", label: "Estimates", icon: Calculator, show: hasFinancialAccess },
     { to: "/expenses", label: "Expenses", icon: Receipt, show: hasFinancialAccess },
