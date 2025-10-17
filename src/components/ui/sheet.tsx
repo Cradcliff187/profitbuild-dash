@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Sheet = SheetPrimitive.Root;
 
@@ -52,18 +53,46 @@ interface SheetContentProps
     VariantProps<typeof sheetVariants> {}
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
-  ({ side = "right", className, children, ...props }, ref) => (
-    <SheetPortal>
-      <SheetOverlay />
-      <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
-        {children}
-        <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-secondary hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
-      </SheetPrimitive.Content>
-    </SheetPortal>
-  ),
+  ({ side = "right", className, children, ...props }, ref) => {
+    const isMobile = useIsMobile();
+    
+    return (
+      <SheetPortal>
+        <SheetOverlay />
+        <SheetPrimitive.Content 
+          ref={ref} 
+          className={cn(sheetVariants({ side }), "no-horizontal-scroll pointer-events-auto", className)}
+          onPointerDownOutside={(e) => {
+            if (isMobile) e.preventDefault();
+            props.onPointerDownOutside?.(e);
+          }}
+          onInteractOutside={(e) => {
+            if (isMobile) e.preventDefault();
+            props.onInteractOutside?.(e);
+          }}
+          onFocusOutside={(e) => {
+            if (isMobile) e.preventDefault();
+            props.onFocusOutside?.(e);
+          }}
+          onOpenAutoFocus={(e) => {
+            if (isMobile) e.preventDefault();
+            props.onOpenAutoFocus?.(e);
+          }}
+          onCloseAutoFocus={(e) => {
+            if (isMobile) e.preventDefault();
+            props.onCloseAutoFocus?.(e);
+          }}
+          {...props}
+        >
+          {children}
+          <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-secondary hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </SheetPrimitive.Close>
+        </SheetPrimitive.Content>
+      </SheetPortal>
+    );
+  },
 );
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 
