@@ -57,6 +57,26 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
     const isMobile = useIsMobile();
     const hasOpenedRef = React.useRef(false);
     
+    // Helper to check if target is a native input that needs OS-level UI
+    const isNativeFormControl = (element: EventTarget | null): boolean => {
+      if (!(element instanceof HTMLElement)) return false;
+      
+      const tagName = element.tagName.toLowerCase();
+      const inputType = element.getAttribute('type')?.toLowerCase();
+      
+      // Native controls that create OS-level overlays on mobile
+      return (
+        tagName === 'select' ||
+        (tagName === 'input' && (
+          inputType === 'date' ||
+          inputType === 'time' ||
+          inputType === 'datetime-local' ||
+          inputType === 'month' ||
+          inputType === 'week'
+        ))
+      );
+    };
+    
     return (
       <SheetPortal>
         <SheetOverlay />
@@ -64,14 +84,26 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
           ref={ref} 
           className={cn(sheetVariants({ side }), "no-horizontal-scroll pointer-events-auto", className)}
           onPointerDownOutside={(e) => {
+            // Allow native form controls to work
+            if (isMobile && isNativeFormControl(e.target)) {
+              return; // Don't prevent - let native UI open
+            }
             if (isMobile) e.preventDefault();
             props.onPointerDownOutside?.(e);
           }}
           onInteractOutside={(e) => {
+            // Allow native form controls to interact
+            if (isMobile && isNativeFormControl(e.target)) {
+              return; // Don't prevent - let native UI open
+            }
             if (isMobile) e.preventDefault();
             props.onInteractOutside?.(e);
           }}
           onFocusOutside={(e) => {
+            // Allow native form controls to gain focus
+            if (isMobile && isNativeFormControl(e.target)) {
+              return; // Don't prevent - let native UI maintain focus
+            }
             // Allow focus outside for native inputs after modal has opened
             if (isMobile && !hasOpenedRef.current) {
               e.preventDefault();
