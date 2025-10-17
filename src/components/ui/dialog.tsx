@@ -12,7 +12,8 @@ const isRadixSelectInteraction = (target: EventTarget | null): boolean => {
     target.closest('[data-radix-select-trigger]') ||  // Button being clicked
     target.closest('[data-radix-select-content]') ||  // Dropdown portal (once open)
     target.closest('[role="combobox"]') ||            // ARIA role on trigger
-    target.closest('[role="listbox"]')                // ARIA role on content
+    target.closest('[role="listbox"]') ||             // ARIA role on content
+    target.closest('[data-radix-popper-content-wrapper]') // Radix popper wrapper
   );
 };
 
@@ -57,6 +58,7 @@ const DialogContent = React.forwardRef<
         onPointerDownOutside={(e) => {
           // Allow Select components to work
           if (isRadixSelectInteraction(e.target)) {
+            e.stopPropagation(); // Stop event from bubbling
             return; // Don't prevent default, let Select handle it
           }
           props.onPointerDownOutside?.(e);
@@ -65,6 +67,7 @@ const DialogContent = React.forwardRef<
           // Allow Select components to work
           if (isRadixSelectInteraction(e.target)) {
             e.preventDefault(); // Prevent modal from closing
+            e.stopPropagation(); // Stop event from bubbling
             return;
           }
           props.onInteractOutside?.(e);
@@ -73,6 +76,7 @@ const DialogContent = React.forwardRef<
           // Allow Select components to work
           if (isRadixSelectInteraction(e.target)) {
             e.preventDefault(); // Prevent modal from closing
+            e.stopPropagation(); // Stop event from bubbling
             return;
           }
           props.onFocusOutside?.(e);
