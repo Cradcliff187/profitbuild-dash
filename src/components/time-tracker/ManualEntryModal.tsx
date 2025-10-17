@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Clock, Plus, FileText } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,13 +18,23 @@ interface ManualEntryModalProps {
   onSaved: () => void;
 }
 
+interface Worker {
+  id: string;
+  name: string;
+  rate: number;
+}
+
+interface Project {
+  id: string;
+  name: string;
+  number: string;
+}
+
 export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryModalProps) => {
   const isMobile = useIsMobile();
-  const [workers, setWorkers] = useState<Array<{ id: string; name: string; rate: number }>>([]);
-  const [projects, setProjects] = useState<Array<{ id: string; name: string; number: string; address?: string }>>([]);
-  const [loading, setLoading] = useState(false);
-
-  // Form state
+  
+  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [workerId, setWorkerId] = useState('');
   const [projectId, setProjectId] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -33,97 +42,70 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
   const [endTime, setEndTime] = useState('17:00');
   const [hours, setHours] = useState('8');
   const [note, setNote] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
-      loadDropdownData();
+      loadData();
       resetForm();
     }
   }, [open]);
 
-  const loadDropdownData = async () => {
-    try {
-      // Load workers
-      const { data: workersData, error: workersError } = await supabase
+  useEffect(() => {
+    if (startTime && endTime) {
+      const start = new Date(`2000-01-01T${startTime}`);
+      const end = new Date(`2000-01-01T${endTime}`);
+      if (end > start) {
+        const calculatedHours = ((end.getTime() - start.getTime()) / (1000 * 60 * 60)).toFixed(2);
+        setHours(calculatedHours);
+      }
+    }
+  }, [startTime, endTime]);
+
+  const loadData = async () => {
+    const [workersRes, projectsRes] = await Promise.all([
+      supabase
         .from('payees')
         .select('id, payee_name, hourly_rate')
         .eq('is_internal', true)
         .eq('provides_labor', true)
-        .eq('is_active', true);
-
-      if (workersError) throw workersError;
-      setWorkers(workersData.map(w => ({ id: w.id, name: w.payee_name, rate: w.hourly_rate || 75 })));
-
-      // Load projects
-      const { data: projectsData, error: projectsError } = await supabase
+        .eq('is_active', true)
+        .order('payee_name'),
+      supabase
         .from('projects')
-        .select('id, project_name, project_number, address')
+        .select('id, project_name, project_number')
         .in('status', ['approved', 'in_progress'])
         .neq('project_number', '000-UNASSIGNED')
         .neq('project_number', 'SYS-000')
-        .order('project_number', { ascending: false });
-
-      if (projectsError) throw projectsError;
-      setProjects(projectsData.map(p => ({ 
+        .order('project_number', { ascending: false })
+    ]);
+    
+    if (workersRes.data) {
+      setWorkers(workersRes.data.map(w => ({ 
+        id: w.id, 
+        name: w.payee_name, 
+        rate: w.hourly_rate || 75 
+      })));
+    }
+    
+    if (projectsRes.data) {
+      setProjects(projectsRes.data.map(p => ({ 
         id: p.id, 
         name: p.project_name, 
-        number: p.project_number,
-        address: p.address 
+        number: p.project_number 
       })));
-    } catch (error) {
-      console.error('Error loading dropdown data:', error);
     }
   };
 
   const resetForm = () => {
+    setWorkerId('');
+    setProjectId('');
     setDate(format(new Date(), 'yyyy-MM-dd'));
     setStartTime('08:00');
     setEndTime('17:00');
     setHours('8');
     setNote('');
   };
-
-  const applyTemplate = (template: 'full' | 'half' | 'overtime') => {
-    switch (template) {
-      case 'full':
-        setStartTime('08:00');
-        setEndTime('17:00');
-        setHours('8');
-        break;
-      case 'half':
-        setStartTime('08:00');
-        setEndTime('12:00');
-        setHours('4');
-        break;
-      case 'overtime':
-        setStartTime('07:00');
-        setEndTime('18:00');
-        setHours('10');
-        break;
-    }
-  };
-
-  const calculateHours = () => {
-    if (!startTime || !endTime) return;
-
-    const start = new Date(`2000-01-01T${startTime}`);
-    const end = new Date(`2000-01-01T${endTime}`);
-    
-    if (end <= start) {
-      toast.error('End time must be after start time');
-      return;
-    }
-
-    const diffMs = end.getTime() - start.getTime();
-    const calculatedHours = (diffMs / (1000 * 60 * 60)).toFixed(2);
-    setHours(calculatedHours);
-  };
-
-  useEffect(() => {
-    if (startTime && endTime) {
-      calculateHours();
-    }
-  }, [startTime, endTime]);
 
   const handleSave = async () => {
     if (!workerId || !projectId || !date || !hours) {
@@ -137,48 +119,33 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
-
       const worker = workers.find(w => w.id === workerId);
       const amount = hoursNum * (worker?.rate || 75);
-
-      // Build timestamps from date + time inputs
-      let startDateTime: Date | null = null;
-      let endDateTime: Date | null = null;
+      const startDateTime = new Date(`${date}T${startTime}`);
+      const endDateTime = new Date(`${date}T${endTime}`);
+      const description = `${hoursNum} hours${note ? ` - ${note}` : ''}`;
       
-      if (startTime && endTime) {
-        startDateTime = new Date(`${date}T${startTime}`);
-        endDateTime = new Date(`${date}T${endTime}`);
-      }
-
-      // Build description without times (times now in database columns)
-      let description = `${hoursNum} hours`;
-      if (note) {
-        description += ` - ${note}`;
-      }
-
       const { data: { user } } = await supabase.auth.getUser();
 
-      const { error } = await supabase
-        .from('expenses')
-        .insert({
-          payee_id: workerId,
-          project_id: projectId,
-          expense_date: date,
-          amount,
-          description,
-          category: 'labor_internal',
-          transaction_type: 'expense',
-          user_id: user?.id,
-          updated_by: user?.id,
-          start_time: startDateTime?.toISOString() || null,
-          end_time: endDateTime?.toISOString() || null,
-        });
+      const { error } = await supabase.from('expenses').insert({
+        payee_id: workerId,
+        project_id: projectId,
+        expense_date: date,
+        amount,
+        description,
+        category: 'labor_internal',
+        transaction_type: 'expense',
+        user_id: user?.id,
+        updated_by: user?.id,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+      });
 
       if (error) throw error;
-
-      toast.success('Time entry created successfully');
+      
+      toast.success('Time entry created');
       onSaved();
       onOpenChange(false);
     } catch (error) {
@@ -189,73 +156,83 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
     }
   };
 
-  const ModalContent = () => (
-    <div className={cn("space-y-4", isMobile && "space-y-6")}>
-      {/* Quick Templates - Stack on mobile */}
-      <div className={cn(
-        "flex gap-2",
-        isMobile && "flex-col"
-      )}>
-        <Button
-          type="button"
-          size={isMobile ? "default" : "sm"}
-          variant="outline"
-          onClick={() => applyTemplate('full')}
-          className={cn("flex-1", isMobile && "h-12 text-base")}
+  const FormContent = () => (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <Button 
+          type="button" 
+          variant="outline" 
+          size="sm"
+          onClick={() => { 
+            setStartTime('08:00'); 
+            setEndTime('17:00'); 
+            setHours('8'); 
+          }}
         >
           Full Day (8h)
         </Button>
-        <Button
-          type="button"
-          size={isMobile ? "default" : "sm"}
-          variant="outline"
-          onClick={() => applyTemplate('half')}
-          className={cn("flex-1", isMobile && "h-12 text-base")}
+        <Button 
+          type="button" 
+          variant="outline" 
+          size="sm"
+          onClick={() => { 
+            setStartTime('08:00'); 
+            setEndTime('12:00'); 
+            setHours('4'); 
+          }}
         >
           Half Day (4h)
         </Button>
-        <Button
-          type="button"
-          size={isMobile ? "default" : "sm"}
-          variant="outline"
-          onClick={() => applyTemplate('overtime')}
-          className={cn("flex-1", isMobile && "h-12 text-base")}
+        <Button 
+          type="button" 
+          variant="outline" 
+          size="sm"
+          onClick={() => { 
+            setStartTime('07:00'); 
+            setEndTime('17:00'); 
+            setHours('10'); 
+          }}
         >
-          OT (10h)
+          Overtime (10h)
         </Button>
       </div>
 
-      {/* Team Member */}
       <div>
-        <Label htmlFor="worker" className="text-sm font-medium">Team Member *</Label>
+        <Label htmlFor="worker">Team Member *</Label>
         <Select value={workerId} onValueChange={setWorkerId}>
-          <SelectTrigger id="worker" className={cn(isMobile ? "h-12 text-base" : "h-10")}>
+          <SelectTrigger 
+            id="worker"
+            className={cn(isMobile && "h-12")}
+            style={{ fontSize: isMobile ? '16px' : undefined }}
+          >
             <SelectValue placeholder="Select team member" />
           </SelectTrigger>
           <SelectContent className="max-h-[300px]">
-            {workers.map(worker => (
-              <SelectItem key={worker.id} value={worker.id}>{worker.name}</SelectItem>
+            {workers.map(w => (
+              <SelectItem key={w.id} value={w.id}>
+                {w.name} - ${w.rate}/hr
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Project */}
       <div>
-        <Label htmlFor="project" className="text-sm font-medium">Project *</Label>
+        <Label htmlFor="project">Project *</Label>
         <Select value={projectId} onValueChange={setProjectId}>
-          <SelectTrigger id="project" className={cn(isMobile ? "h-12 text-base" : "h-10")}>
+          <SelectTrigger 
+            id="project"
+            className={cn(isMobile && "h-12")}
+            style={{ fontSize: isMobile ? '16px' : undefined }}
+          >
             <SelectValue placeholder="Select project" />
           </SelectTrigger>
           <SelectContent className="max-h-[300px]">
-            {projects.map(project => (
-              <SelectItem key={project.id} value={project.id}>
-                <div className="flex flex-col">
-                  <span className="font-medium">{project.number}</span>
-                  <span className="text-xs text-muted-foreground">{project.name}</span>
-                  {project.address && (
-                    <span className="text-xs text-muted-foreground">{project.address}</span>
-                  )}
+            {projects.map(p => (
+              <SelectItem key={p.id} value={p.id}>
+                <div className="flex flex-col text-left">
+                  <span className="font-medium">{p.number}</span>
+                  <span className="text-xs text-muted-foreground">{p.name}</span>
                 </div>
               </SelectItem>
             ))}
@@ -263,95 +240,89 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
         </Select>
       </div>
 
-      {/* Date */}
       <div>
-        <Label htmlFor="date" className="text-sm font-medium">Date *</Label>
+        <Label htmlFor="date">Date *</Label>
         <Input
           id="date"
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className={cn(isMobile && "h-12 text-base")}
+          className={cn(isMobile && "h-12")}
+          style={{ fontSize: isMobile ? '16px' : undefined }}
         />
       </div>
 
-      {/* Times - Stack on mobile */}
-      <div className={cn(
-        "grid gap-2",
-        isMobile ? "grid-cols-1" : "grid-cols-2"
-      )}>
+      <div className="grid grid-cols-2 gap-2">
         <div>
-          <Label htmlFor="startTime" className="text-sm font-medium">Start Time</Label>
+          <Label htmlFor="startTime">Start Time</Label>
           <Input
             id="startTime"
             type="time"
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
-            className={cn(isMobile && "h-12 text-base")}
+            className={cn(isMobile && "h-12")}
+            style={{ fontSize: isMobile ? '16px' : undefined }}
           />
         </div>
         <div>
-          <Label htmlFor="endTime" className="text-sm font-medium">End Time</Label>
+          <Label htmlFor="endTime">End Time</Label>
           <Input
             id="endTime"
             type="time"
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
-            className={cn(isMobile && "h-12 text-base")}
+            className={cn(isMobile && "h-12")}
+            style={{ fontSize: isMobile ? '16px' : undefined }}
           />
         </div>
       </div>
 
-      {/* Hours */}
       <div>
-        <Label htmlFor="hours" className="text-sm font-medium">Hours *</Label>
+        <Label htmlFor="hours">Hours *</Label>
         <Input
           id="hours"
           type="number"
           step="0.25"
+          min="0"
+          max="24"
           value={hours}
           onChange={(e) => setHours(e.target.value)}
-          placeholder="8.0"
-          className={cn(isMobile && "h-12 text-base")}
+          className={cn(isMobile && "h-12")}
+          style={{ fontSize: isMobile ? '16px' : undefined }}
         />
       </div>
 
-      {/* Note */}
       <div>
-        <Label htmlFor="note" className="text-sm font-medium">Note</Label>
+        <Label htmlFor="note">Note</Label>
         <Textarea
           id="note"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Optional notes..."
           rows={2}
-          className={cn(isMobile && "text-base")}
+          placeholder="Optional notes about this time entry"
+          style={{ fontSize: isMobile ? '16px' : undefined }}
         />
       </div>
-    </div>
-  );
 
-  const ActionButtons = () => (
-    <div className={cn(
-      "flex gap-2",
-      isMobile && "flex-col"
-    )}>
-      <Button 
-        variant="outline" 
-        onClick={() => onOpenChange(false)} 
-        disabled={loading}
-        className={cn("flex-1", isMobile && "h-12 text-base")}
-      >
-        Cancel
-      </Button>
-      <Button 
-        onClick={handleSave} 
-        disabled={loading}
-        className={cn("flex-1", isMobile && "h-12 text-base")}
-      >
-        <FileText className="w-4 h-4 mr-1" />
-        Create Entry
-      </Button>
+      <div className="flex gap-2 pt-2">
+        <Button 
+          type="button"
+          variant="outline" 
+          onClick={() => onOpenChange(false)} 
+          disabled={loading} 
+          className="flex-1"
+        >
+          Cancel
+        </Button>
+        <Button 
+          type="button"
+          onClick={handleSave} 
+          disabled={loading} 
+          className="flex-1"
+        >
+          {loading ? 'Creating...' : 'Create Entry'}
+        </Button>
+      </div>
     </div>
   );
 
@@ -359,35 +330,21 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
         side="bottom" 
-        className="h-[90dvh] overflow-y-auto p-6 no-horizontal-scroll"
+        className="min-h-[80vh] max-h-[90vh] overflow-y-auto p-6"
       >
-        <SheetHeader className="mb-6">
-          <SheetTitle className="flex items-center gap-2 text-lg">
-            <Plus className="w-5 h-5" />
-            Add Time Entry
-          </SheetTitle>
+        <SheetHeader className="mb-4">
+          <SheetTitle>Add Time Entry</SheetTitle>
         </SheetHeader>
-        <ModalContent />
-        <SheetFooter className="mt-6">
-          <ActionButtons />
-        </SheetFooter>
+        <FormContent />
       </SheetContent>
     </Sheet>
   ) : (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
-        className="max-w-md no-horizontal-scroll"
-      >
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add Time Entry
-          </DialogTitle>
+          <DialogTitle>Add Time Entry</DialogTitle>
         </DialogHeader>
-        <ModalContent />
-        <DialogFooter>
-          <ActionButtons />
-        </DialogFooter>
+        <FormContent />
       </DialogContent>
     </Dialog>
   );
