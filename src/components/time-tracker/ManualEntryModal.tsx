@@ -143,10 +143,17 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
       const worker = workers.find(w => w.id === workerId);
       const amount = hoursNum * (worker?.rate || 75);
 
-      let description = `${hoursNum} hours`;
+      // Build timestamps from date + time inputs
+      let startDateTime: Date | null = null;
+      let endDateTime: Date | null = null;
+      
       if (startTime && endTime) {
-        description += ` (${format(new Date(`2000-01-01T${startTime}`), 'h:mm a')} - ${format(new Date(`2000-01-01T${endTime}`), 'h:mm a')})`;
+        startDateTime = new Date(`${date}T${startTime}`);
+        endDateTime = new Date(`${date}T${endTime}`);
       }
+
+      // Build description without times (times now in database columns)
+      let description = `${hoursNum} hours`;
       if (note) {
         description += ` - ${note}`;
       }
@@ -165,6 +172,8 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
           transaction_type: 'expense',
           user_id: user?.id,
           updated_by: user?.id,
+          start_time: startDateTime?.toISOString() || null,
+          end_time: endDateTime?.toISOString() || null,
         });
 
       if (error) throw error;

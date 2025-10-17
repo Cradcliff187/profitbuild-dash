@@ -263,6 +263,8 @@ export const MobileTimeTracker: React.FC = () => {
           created_at,
           user_id,
           approval_status,
+          start_time,
+          end_time,
           payees!inner(id, payee_name, hourly_rate),
           projects!inner(id, project_number, project_name, client_name, address)
         `)
@@ -295,27 +297,37 @@ export const MobileTimeTracker: React.FC = () => {
         const hourlyRate = expense.payees?.hourly_rate || 75;
         const hours = expense.amount / hourlyRate;
         
-        // Parse times from description (format: "HH:MM AM/PM - HH:MM AM/PM")
-        const timeMatch = expense.description.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)/i);
+        // Prioritize database columns, fallback to description parsing
         let startTimeString: string | undefined;
         let endTimeString: string | undefined;
-        let startTime = new Date(expense.created_at);
-        let endTime = new Date(expense.created_at);
+        let startTime: Date;
+        let endTime: Date;
         
-        if (timeMatch) {
-          // Use explicit times if found in description
-          startTimeString = timeMatch[1];
-          endTimeString = timeMatch[2];
-        } else if (hours > 0.01) {
-          // Calculate times from created_at for entries with meaningful hours
-          // This handles old entries that don't have times saved in description
-          endTime = new Date(startTime.getTime() + hours * 60 * 60 * 1000);
+        if (expense.start_time && expense.end_time) {
+          // Use database timestamps (new entries)
+          startTime = new Date(expense.start_time);
+          endTime = new Date(expense.end_time);
           startTimeString = formatTime(startTime);
           endTimeString = formatTime(endTime);
         } else {
-          // For truly zero-hour entries, don't show calculated times
-          startTimeString = undefined;
-          endTimeString = undefined;
+          // Fallback: Parse times from description (old entries)
+          const timeMatch = expense.description.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)/i);
+          startTime = new Date(expense.created_at);
+          
+          if (timeMatch) {
+            startTimeString = timeMatch[1];
+            endTimeString = timeMatch[2];
+            endTime = startTime; // Placeholder, actual time in string
+          } else if (hours > 0.01) {
+            // Calculate times from created_at for old entries
+            endTime = new Date(startTime.getTime() + hours * 60 * 60 * 1000);
+            startTimeString = formatTime(startTime);
+            endTimeString = formatTime(endTime);
+          } else {
+            endTime = startTime;
+            startTimeString = undefined;
+            endTimeString = undefined;
+          }
         }
         
         // Clean up description to remove redundant info
@@ -484,9 +496,6 @@ export const MobileTimeTracker: React.FC = () => {
       const hours = (endTime.getTime() - activeTimer.startTime.getTime()) / (1000 * 60 * 60);
       const amount = hours * activeTimer.teamMember.hourly_rate;
 
-      const startTimeStr = formatTime(activeTimer.startTime);
-      const endTimeStr = formatTime(endTime);
-      
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -496,14 +505,17 @@ export const MobileTimeTracker: React.FC = () => {
         category: 'labor_internal' as const,
         transaction_type: 'expense' as const,
         amount: amount,
-        expense_date: format(activeTimer.startTime, 'yyyy-MM-dd'), // Use local timezone
-        description: `${hours.toFixed(2)}hrs - ${startTimeStr} - ${endTimeStr} - ${activeTimer.teamMember.payee_name}${
+        expense_date: format(activeTimer.startTime, 'yyyy-MM-dd'),
+        description: `${hours.toFixed(2)}hrs - ${activeTimer.teamMember.payee_name}${
           activeTimer.note ? ` - ${activeTimer.note}` : ''
         }`,
         is_planned: false,
         created_offline: !isOnline,
         approval_status: 'pending',
-        user_id: user?.id
+        user_id: user?.id,
+        updated_by: user?.id,
+        start_time: activeTimer.startTime.toISOString(),
+        end_time: endTime.toISOString()
       };
 
       if (isOnline) {

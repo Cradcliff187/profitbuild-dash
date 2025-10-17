@@ -27,6 +27,8 @@ interface TimeEntry {
   is_locked?: boolean;
   attachment_url?: string;
   user_id?: string;
+  start_time?: string;
+  end_time?: string;
 }
 
 interface EditTimeEntryModalProps {
@@ -112,19 +114,30 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
     setDate(entry.expense_date);
     setReceiptUrl(entry.attachment_url);
 
-    // Parse description to extract hours and times
+    // Parse description to extract hours
     const hoursMatch = entry.description.match(/(\d+\.?\d*)\s*hours?/i);
     if (hoursMatch) {
       setHours(hoursMatch[1]);
     }
 
-    const timeMatch = entry.description.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)/i);
-    if (timeMatch) {
-      setStartTime(convertTo24Hour(timeMatch[1]));
-      setEndTime(convertTo24Hour(timeMatch[2]));
+    // Prioritize database columns for times, fallback to description parsing
+    if (entry.start_time && entry.end_time) {
+      // Use database timestamps (new entries)
+      const startDate = new Date(entry.start_time);
+      const endDate = new Date(entry.end_time);
+      setStartTime(format(startDate, 'HH:mm'));
+      setEndTime(format(endDate, 'HH:mm'));
+    } else {
+      // Fallback: Parse from description (old entries)
+      const timeMatch = entry.description.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)/i);
+      if (timeMatch) {
+        setStartTime(convertTo24Hour(timeMatch[1]));
+        setEndTime(convertTo24Hour(timeMatch[2]));
+      }
     }
 
-    const noteMatch = entry.description.match(/(?:hours?)\s*-\s*(.+)$/i);
+    // Extract note (after hours, excluding times)
+    const noteMatch = entry.description.match(/hours?\s*(?:\([^)]+\))?\s*-\s*(.+)$/i);
     if (noteMatch) {
       setNote(noteMatch[1]);
     }
@@ -266,10 +279,17 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
       const worker = workers.find(w => w.id === workerId);
       const amount = hoursNum * (worker?.rate || 75);
 
-      let description = `${hoursNum} hours`;
+      // Build timestamps from date + time inputs
+      let startDateTime: Date | null = null;
+      let endDateTime: Date | null = null;
+      
       if (startTime && endTime) {
-        description += ` (${format(new Date(`2000-01-01T${startTime}`), 'h:mm a')} - ${format(new Date(`2000-01-01T${endTime}`), 'h:mm a')})`;
+        startDateTime = new Date(`${date}T${startTime}`);
+        endDateTime = new Date(`${date}T${endTime}`);
       }
+
+      // Build description without times (times now in database columns)
+      let description = `${hoursNum} hours`;
       if (note) {
         description += ` - ${note}`;
       }
@@ -286,6 +306,8 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
           description,
           attachment_url: receiptUrl,
           updated_by: user?.id,
+          start_time: startDateTime?.toISOString() || null,
+          end_time: endDateTime?.toISOString() || null,
         })
         .eq('id', entry.id);
 
