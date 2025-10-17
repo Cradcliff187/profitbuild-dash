@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { PayeeSelector } from '@/components/PayeeSelector';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { NativeSelect } from '@/components/ui/native-select';
 import { toast } from 'sonner';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -262,19 +262,19 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
       {/* Project */}
       <div className="space-y-2">
         <Label htmlFor="project" className="text-sm font-medium">Project (Optional)</Label>
-        <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-          <SelectTrigger className={cn("w-full", isMobile ? "h-12 text-base" : "h-10")}>
-            <SelectValue placeholder="Unassigned" />
-          </SelectTrigger>
-          <SelectContent className="max-h-[300px]">
-            <SelectItem value="">Unassigned</SelectItem>
-            {projects.map((project) => (
-              <SelectItem key={project.id} value={project.id}>
-                {project.project_number} - {project.project_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <NativeSelect
+          id="project"
+          value={selectedProjectId || "unassigned"}
+          onValueChange={(value) => setSelectedProjectId(value === "unassigned" ? "" : value)}
+          className={cn("w-full", isMobile ? "h-12 text-base" : "h-10")}
+        >
+          <option value="unassigned">Unassigned</option>
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.project_number} - {project.project_name}
+            </option>
+          ))}
+        </NativeSelect>
       </div>
 
       {/* Description */}

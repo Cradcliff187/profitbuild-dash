@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { NativeSelect } from '@/components/ui/native-select';
 import { Camera as CameraIcon, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PayeeSelector } from '@/components/PayeeSelector';
@@ -239,18 +239,19 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
         <Label htmlFor="project" className={isMobile ? "text-sm font-medium text-muted-foreground" : "text-sm text-muted-foreground"}>
           Assign to Project (Optional)
         </Label>
-        <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-          <SelectTrigger id="project" className={cn(isMobile ? "h-12 text-base" : "h-10")}>
-            <SelectValue placeholder="None" />
-          </SelectTrigger>
-          <SelectContent className="max-h-[300px]">
-            {projects.map((project) => (
-              <SelectItem key={project.id} value={project.id}>
-                {project.project_number} - {project.project_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <NativeSelect
+          id="project"
+          value={selectedProjectId || "unassigned"}
+          onValueChange={(value) => setSelectedProjectId(value === "unassigned" ? undefined : value)}
+          className={cn(isMobile ? "h-12 text-base" : "h-10")}
+        >
+          <option value="unassigned">Unassigned</option>
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.project_number} - {project.project_name}
+            </option>
+          ))}
+        </NativeSelect>
       </div>
 
       {/* Description (Optional) */}

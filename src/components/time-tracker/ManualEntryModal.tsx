@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { NativeSelect } from '@/components/ui/native-select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -199,45 +199,36 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
 
       <div>
         <Label htmlFor="worker">Team Member *</Label>
-        <Select value={workerId} onValueChange={setWorkerId}>
-          <SelectTrigger 
-            id="worker"
-            className={cn(isMobile && "h-12")}
-            style={{ fontSize: isMobile ? '16px' : undefined }}
-          >
-            <SelectValue placeholder="Select team member" />
-          </SelectTrigger>
-          <SelectContent className="max-h-[300px]">
-            {workers.map(w => (
-              <SelectItem key={w.id} value={w.id}>
-                {w.name} - ${w.rate}/hr
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <NativeSelect
+          id="worker"
+          value={workerId || ""}
+          onValueChange={setWorkerId}
+          className={cn(isMobile && "h-12 text-base")}
+        >
+          <option value="" disabled>Select team member</option>
+          {workers.map(w => (
+            <option key={w.id} value={w.id}>
+              {w.name} - ${w.rate}/hr
+            </option>
+          ))}
+        </NativeSelect>
       </div>
 
       <div>
         <Label htmlFor="project">Project *</Label>
-        <Select value={projectId} onValueChange={setProjectId}>
-          <SelectTrigger 
-            id="project"
-            className={cn(isMobile && "h-12")}
-            style={{ fontSize: isMobile ? '16px' : undefined }}
-          >
-            <SelectValue placeholder="Select project" />
-          </SelectTrigger>
-          <SelectContent className="max-h-[300px]">
-            {projects.map(p => (
-              <SelectItem key={p.id} value={p.id}>
-                <div className="flex flex-col text-left">
-                  <span className="font-medium">{p.number}</span>
-                  <span className="text-xs text-muted-foreground">{p.name}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <NativeSelect
+          id="project"
+          value={projectId || ""}
+          onValueChange={setProjectId}
+          className={cn(isMobile && "h-12 text-base")}
+        >
+          <option value="" disabled>Select project</option>
+          {projects.map(p => (
+            <option key={p.id} value={p.id}>
+              {p.number} - {p.name}
+            </option>
+          ))}
+        </NativeSelect>
       </div>
 
       <div>

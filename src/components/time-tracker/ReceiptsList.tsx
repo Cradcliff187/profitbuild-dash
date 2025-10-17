@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { NativeSelect } from '@/components/ui/native-select';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
@@ -221,17 +221,16 @@ export const ReceiptsList = () => {
             className="pl-8 h-9 text-sm"
           />
         </div>
-        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortType)}>
-          <SelectTrigger className="w-32 h-9 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="date-desc">Newest</SelectItem>
-            <SelectItem value="date-asc">Oldest</SelectItem>
-            <SelectItem value="amount-desc">Highest $</SelectItem>
-            <SelectItem value="amount-asc">Lowest $</SelectItem>
-          </SelectContent>
-        </Select>
+        <NativeSelect
+          value={sortBy}
+          onValueChange={(v) => setSortBy(v as SortType)}
+          className="w-32 h-9 text-sm"
+        >
+          <option value="date-desc">Newest</option>
+          <option value="date-asc">Oldest</option>
+          <option value="amount-desc">Highest $</option>
+          <option value="amount-asc">Lowest $</option>
+        </NativeSelect>
       </div>
 
       {/* Quick Filters */}

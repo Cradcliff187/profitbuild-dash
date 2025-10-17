@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/native-select";
 import { TimeEntryFilters } from "@/types/timeEntry";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
@@ -112,60 +112,51 @@ export const TimeEntryFiltersComponent = ({ filters, onFiltersChange }: TimeEntr
 
         <div className="space-y-1">
           <Label htmlFor="status" className="text-xs">Status</Label>
-          <Select
+          <NativeSelect
+            id="status"
             value={filters.status}
             onValueChange={(value: any) => onFiltersChange({ ...filters, status: value })}
+            className="h-8 text-xs"
           >
-            <SelectTrigger id="status" className="h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </NativeSelect>
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="worker" className="text-xs">Worker</Label>
-          <Select
+          <NativeSelect
+            id="worker"
             value={filters.workerId || 'all'}
             onValueChange={(value) => onFiltersChange({ ...filters, workerId: value === 'all' ? null : value })}
+            className="h-8 text-xs"
           >
-            <SelectTrigger id="worker" className="h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Workers</SelectItem>
-              {workers.map(worker => (
-                <SelectItem key={worker.id} value={worker.id}>
-                  {worker.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <option value="all">All Workers</option>
+            {workers.map(worker => (
+              <option key={worker.id} value={worker.id}>
+                {worker.name}
+              </option>
+            ))}
+          </NativeSelect>
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="project" className="text-xs">Project</Label>
-          <Select
+          <NativeSelect
+            id="project"
             value={filters.projectId || 'all'}
             onValueChange={(value) => onFiltersChange({ ...filters, projectId: value === 'all' ? null : value })}
+            className="h-8 text-xs"
           >
-            <SelectTrigger id="project" className="h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Projects</SelectItem>
-              {projects.map(project => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.number} - {project.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <option value="all">All Projects</option>
+            {projects.map(project => (
+              <option key={project.id} value={project.id}>
+                {project.number} - {project.name}
+              </option>
+            ))}
+          </NativeSelect>
         </div>
       </div>
     </div>
