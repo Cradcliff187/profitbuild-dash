@@ -845,7 +845,7 @@ export const MobileTimeTracker: React.FC = () => {
           )}
 
           {/* Clock In/Out Button */}
-          <div className="pt-4">
+          <div className="pt-4 space-y-3">
             {!activeTimer ? (
               <button
                 onClick={handleClockIn}
@@ -877,6 +877,15 @@ export const MobileTimeTracker: React.FC = () => {
                 )}
               </button>
             )}
+            
+            {/* Manual Entry Button */}
+            <button
+              onClick={() => setShowManualEntry(true)}
+              className="w-full bg-card border-2 border-dashed border-primary/50 hover:border-primary hover:bg-primary/5 text-primary py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
+            >
+              <Edit2 className="w-5 h-5" />
+              Forgot to clock in? Add Time Manually
+            </button>
           </div>
 
           {/* Today Summary Card */}
@@ -925,7 +934,7 @@ export const MobileTimeTracker: React.FC = () => {
 
           {/* Content based on selected range */}
           {entriesDateRange === 'today' ? (
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-3 relative pb-24">
               <div className="bg-card rounded-xl shadow-sm p-4">
                 <div className="text-3xl font-bold text-primary">{todayTotal.toFixed(1)} hrs</div>
                 <div className="text-sm text-muted-foreground">Total today • {todayEntries.length} entries</div>
@@ -1002,6 +1011,15 @@ export const MobileTimeTracker: React.FC = () => {
                   </div>
                 ))
               )}
+              
+              {/* Floating Add Button - Only on Today tab */}
+              <button
+                onClick={() => setShowManualEntry(true)}
+                className="fixed bottom-6 right-6 bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 z-20"
+                aria-label="Add time entry manually"
+              >
+                <Edit2 className="w-6 h-6" />
+              </button>
             </div>
           ) : (
             <div className="p-4">
