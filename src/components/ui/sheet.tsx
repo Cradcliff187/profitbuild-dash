@@ -55,6 +55,7 @@ interface SheetContentProps
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
   ({ side = "right", className, children, ...props }, ref) => {
     const isMobile = useIsMobile();
+    const hasOpenedRef = React.useRef(false);
     
     return (
       <SheetPortal>
@@ -71,15 +72,25 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
             props.onInteractOutside?.(e);
           }}
           onFocusOutside={(e) => {
-            if (isMobile) e.preventDefault();
+            // Allow focus outside for native inputs after modal has opened
+            if (isMobile && !hasOpenedRef.current) {
+              e.preventDefault();
+            }
             props.onFocusOutside?.(e);
           }}
           onOpenAutoFocus={(e) => {
-            if (isMobile) e.preventDefault();
+            // Only prevent on first open
+            if (isMobile && !hasOpenedRef.current) {
+              e.preventDefault();
+              hasOpenedRef.current = true;
+            }
             props.onOpenAutoFocus?.(e);
           }}
           onCloseAutoFocus={(e) => {
-            if (isMobile) e.preventDefault();
+            if (isMobile) {
+              e.preventDefault();
+              hasOpenedRef.current = false; // Reset for next open
+            }
             props.onCloseAutoFocus?.(e);
           }}
           {...props}
