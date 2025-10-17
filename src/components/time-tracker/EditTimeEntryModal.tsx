@@ -118,6 +118,16 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
   };
 
   const populateForm = (entry: TimeEntry) => {
+    console.log('🔍 EditTimeEntryModal - Entry received:', {
+      id: entry.id,
+      payee_id: entry.payee_id,
+      project_id: entry.project_id,
+      start_time: entry.start_time,
+      end_time: entry.end_time,
+      description: entry.description,
+      expense_date: entry.expense_date
+    });
+
     // Set IDs with proper null coalescing
     setWorkerId(entry.payee_id || entry.teamMember?.id || '');
     setProjectId(entry.project_id || entry.project?.id || '');
@@ -133,26 +143,28 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
     // FIXED: Properly check for non-null database timestamps
     if (entry.start_time !== null && entry.start_time !== undefined && 
         entry.end_time !== null && entry.end_time !== undefined) {
+      console.log('✅ Using database timestamps');
       try {
         const startDate = new Date(entry.start_time);
         const endDate = new Date(entry.end_time);
         
         // Validate the dates are actually valid
         if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
-          setStartTime(format(startDate, 'HH:mm'));
-          setEndTime(format(endDate, 'HH:mm'));
+          const formattedStart = format(startDate, 'HH:mm');
+          const formattedEnd = format(endDate, 'HH:mm');
+          console.log('⏰ Formatted times:', { start: formattedStart, end: formattedEnd });
+          setStartTime(formattedStart);
+          setEndTime(formattedEnd);
         } else {
-          console.warn('Invalid date timestamps in entry:', entry.start_time, entry.end_time);
-          // Fall through to description parsing
+          console.warn('⚠️ Invalid date timestamps in entry:', entry.start_time, entry.end_time);
           parseTimesFromDescription(entry.description);
         }
       } catch (error) {
-        console.error('Error parsing timestamps:', error);
-        // Fall through to description parsing
+        console.error('❌ Error parsing timestamps:', error);
         parseTimesFromDescription(entry.description);
       }
     } else {
-      // Fallback: Parse from description (old entries or entries without timestamps)
+      console.log('⚠️ No database timestamps, parsing from description');
       parseTimesFromDescription(entry.description);
     }
 
@@ -179,14 +191,19 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
   };
 
   const parseTimesFromDescription = (description: string) => {
-    if (!description) return;
+    if (!description) {
+      console.log('📝 No description to parse');
+      return;
+    }
+    
+    console.log('📝 Parsing times from description:', description);
     
     // Try multiple common time formats
     const patterns = [
-      /(\d{1,2}:\d{2}\s*[AP]M)\s*[-–—]\s*(\d{1,2}:\d{2}\s*[AP]M)/i,  // 12-hour with AM/PM
-      /(\d{1,2}:\d{2})\s*[-–—]\s*(\d{1,2}:\d{2})/,                     // 24-hour format
-      /Start:\s*(\d{1,2}:\d{2}\s*[AP]M).*?End:\s*(\d{1,2}:\d{2}\s*[AP]M)/i,  // "Start: XX End: XX"
-      /from\s+(\d{1,2}:\d{2}\s*[AP]M)\s+to\s+(\d{1,2}:\d{2}\s*[AP]M)/i,      // "from XX to XX"
+      /(\d{1,2}:\d{2}\s*[AP]M)\s*[-–—]\s*(\d{1,2}:\d{2}\s*[AP]M)/i,
+      /(\d{1,2}:\d{2})\s*[-–—]\s*(\d{1,2}:\d{2})/,
+      /Start:\s*(\d{1,2}:\d{2}\s*[AP]M).*?End:\s*(\d{1,2}:\d{2}\s*[AP]M)/i,
+      /from\s+(\d{1,2}:\d{2}\s*[AP]M)\s+to\s+(\d{1,2}:\d{2}\s*[AP]M)/i,
     ];
     
     for (const pattern of patterns) {
@@ -195,17 +212,17 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
         const startStr = match[1];
         const endStr = match[2];
         
-        // Convert to 24-hour if needed
         const start = startStr.match(/[AP]M/i) ? convertTo24Hour(startStr) : startStr;
         const end = endStr.match(/[AP]M/i) ? convertTo24Hour(endStr) : endStr;
         
+        console.log('✅ Parsed times from description:', { start, end });
         setStartTime(start);
         setEndTime(end);
         return;
       }
     }
     
-    console.log('No time pattern matched in description:', description);
+    console.log('❌ No time pattern matched in description');
   };
 
   const calculateHours = () => {
