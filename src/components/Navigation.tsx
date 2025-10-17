@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock } from "lucide-react";
+import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -70,6 +70,7 @@ const Navigation = () => {
   // Secondary items (grouped under "More" dropdown)
   const secondaryItems = [
     { to: "/work-orders", label: "Work Orders", icon: Wrench, show: hasFinancialAccess },
+    { to: "/time-entries", label: "Time Management", icon: ClipboardCheck, show: isAdmin || isManager },
     { to: "/quotes", label: "Quotes", icon: FileText, show: hasFinancialAccess },
     { to: "/payees", label: "Payees", icon: Users, show: hasClientAccess },
     { to: "/clients", label: "Clients", icon: UserCheck, show: hasClientAccess },
