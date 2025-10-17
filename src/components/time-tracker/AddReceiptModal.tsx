@@ -314,7 +314,13 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   if (isMobile) {
     return (
       <Sheet open={open} onOpenChange={handleClose}>
-        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto p-6">
+        <SheetContent 
+          side="bottom" 
+          className="h-[90vh] overflow-y-auto p-6 no-horizontal-scroll"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          onFocusOutside={(e) => e.preventDefault()}
+        >
           <SheetHeader>
             <SheetTitle>Add Receipt</SheetTitle>
           </SheetHeader>
@@ -326,7 +332,12 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent 
+        className="max-w-md no-horizontal-scroll"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onFocusOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Add Receipt</DialogTitle>
         </DialogHeader>
