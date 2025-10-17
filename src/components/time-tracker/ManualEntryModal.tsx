@@ -390,9 +390,6 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
       <SheetContent 
         side="bottom" 
         className="h-[90vh] overflow-y-auto p-6 no-horizontal-scroll"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
-        onFocusOutside={(e) => e.preventDefault()}
       >
         <SheetHeader className="mb-6">
           <SheetTitle className="flex items-center gap-2 text-lg">
@@ -410,9 +407,6 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="max-w-md no-horizontal-scroll"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
-        onFocusOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

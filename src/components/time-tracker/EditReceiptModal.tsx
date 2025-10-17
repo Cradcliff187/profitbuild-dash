@@ -321,9 +321,6 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
       <SheetContent 
         side="bottom" 
         className="h-[90vh] overflow-y-auto p-6 no-horizontal-scroll"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
-        onFocusOutside={(e) => e.preventDefault()}
       >
         <SheetHeader className="mb-6">
           <SheetTitle className="text-lg">Edit Receipt</SheetTitle>
@@ -335,9 +332,6 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent 
         className="sm:max-w-md no-horizontal-scroll"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
-        onFocusOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle>Edit Receipt</DialogTitle>
