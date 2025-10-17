@@ -18,17 +18,17 @@ import { useRoles } from '@/contexts/RoleContext';
 
 interface TimeEntry {
   id: string;
-  payee_id?: string;
-  project_id?: string;
+  payee_id?: string | null;
+  project_id?: string | null;
   expense_date: string;
   amount: number;
   description: string;
-  approval_status?: string;
+  approval_status?: string | null;
   is_locked?: boolean;
   attachment_url?: string;
   user_id?: string;
-  start_time?: string;
-  end_time?: string;
+  start_time?: string | null;
+  end_time?: string | null;
   teamMember?: {
     id: string;
     payee_name: string;
@@ -118,37 +118,48 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
   };
 
   const populateForm = (entry: TimeEntry) => {
-    setWorkerId(entry.payee_id || entry.teamMember?.id);
-    setProjectId(entry.project_id || entry.project?.id);
+    // Set IDs with proper null coalescing
+    setWorkerId(entry.payee_id || entry.teamMember?.id || '');
+    setProjectId(entry.project_id || entry.project?.id || '');
     setDate(entry.expense_date);
     setReceiptUrl(entry.attachment_url);
 
-    // Parse description to extract hours
-    const hoursMatch = entry.description.match(/(\d+\.?\d*)\s*hours?/i);
+    // Parse hours from description as fallback
+    const hoursMatch = entry.description.match(/(\d+\.?\d*)\s*h(?:ou)?rs?/i);
     if (hoursMatch) {
       setHours(hoursMatch[1]);
     }
 
-    // Prioritize database columns for times, fallback to description parsing
-    if (entry.start_time && entry.end_time) {
-      // Use database timestamps (new entries)
-      const startDate = new Date(entry.start_time);
-      const endDate = new Date(entry.end_time);
-      setStartTime(format(startDate, 'HH:mm'));
-      setEndTime(format(endDate, 'HH:mm'));
-    } else {
-      // Fallback: Parse from description (old entries)
-      const timeMatch = entry.description.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)/i);
-      if (timeMatch) {
-        setStartTime(convertTo24Hour(timeMatch[1]));
-        setEndTime(convertTo24Hour(timeMatch[2]));
+    // FIXED: Properly check for non-null database timestamps
+    if (entry.start_time !== null && entry.start_time !== undefined && 
+        entry.end_time !== null && entry.end_time !== undefined) {
+      try {
+        const startDate = new Date(entry.start_time);
+        const endDate = new Date(entry.end_time);
+        
+        // Validate the dates are actually valid
+        if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+          setStartTime(format(startDate, 'HH:mm'));
+          setEndTime(format(endDate, 'HH:mm'));
+        } else {
+          console.warn('Invalid date timestamps in entry:', entry.start_time, entry.end_time);
+          // Fall through to description parsing
+          parseTimesFromDescription(entry.description);
+        }
+      } catch (error) {
+        console.error('Error parsing timestamps:', error);
+        // Fall through to description parsing
+        parseTimesFromDescription(entry.description);
       }
+    } else {
+      // Fallback: Parse from description (old entries or entries without timestamps)
+      parseTimesFromDescription(entry.description);
     }
 
-    // Extract note (after hours, excluding times)
-    const noteMatch = entry.description.match(/hours?\s*(?:\([^)]+\))?\s*-\s*(.+)$/i);
-    if (noteMatch) {
-      setNote(noteMatch[1]);
+    // Extract note (everything after "hours" and optional time info)
+    const noteMatch = entry.description.match(/hours?\s*(?:\([^)]+\))?\s*(?:-\s*)?(.+)$/i);
+    if (noteMatch && noteMatch[1]) {
+      setNote(noteMatch[1].trim());
     }
   };
 
@@ -165,6 +176,36 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
     }
     
     return `${hours.padStart(2, '0')}:${minutes}`;
+  };
+
+  const parseTimesFromDescription = (description: string) => {
+    if (!description) return;
+    
+    // Try multiple common time formats
+    const patterns = [
+      /(\d{1,2}:\d{2}\s*[AP]M)\s*[-–—]\s*(\d{1,2}:\d{2}\s*[AP]M)/i,  // 12-hour with AM/PM
+      /(\d{1,2}:\d{2})\s*[-–—]\s*(\d{1,2}:\d{2})/,                     // 24-hour format
+      /Start:\s*(\d{1,2}:\d{2}\s*[AP]M).*?End:\s*(\d{1,2}:\d{2}\s*[AP]M)/i,  // "Start: XX End: XX"
+      /from\s+(\d{1,2}:\d{2}\s*[AP]M)\s+to\s+(\d{1,2}:\d{2}\s*[AP]M)/i,      // "from XX to XX"
+    ];
+    
+    for (const pattern of patterns) {
+      const match = description.match(pattern);
+      if (match) {
+        const startStr = match[1];
+        const endStr = match[2];
+        
+        // Convert to 24-hour if needed
+        const start = startStr.match(/[AP]M/i) ? convertTo24Hour(startStr) : startStr;
+        const end = endStr.match(/[AP]M/i) ? convertTo24Hour(endStr) : endStr;
+        
+        setStartTime(start);
+        setEndTime(end);
+        return;
+      }
+    }
+    
+    console.log('No time pattern matched in description:', description);
   };
 
   const calculateHours = () => {
