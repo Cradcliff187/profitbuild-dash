@@ -5,6 +5,17 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+// Helper to detect clicks on Radix Select components (trigger or portal)
+const isRadixSelectInteraction = (target: EventTarget | null): boolean => {
+  if (!(target instanceof Element)) return false;
+  return !!(
+    target.closest('[data-radix-select-trigger]') ||  // Button being clicked
+    target.closest('[data-radix-select-content]') ||  // Dropdown portal (once open)
+    target.closest('[role="combobox"]') ||            // ARIA role on trigger
+    target.closest('[role="listbox"]')                // ARIA role on content
+  );
+};
+
 const Dialog = DialogPrimitive.Root;
 
 const DialogTrigger = DialogPrimitive.Trigger;
@@ -44,12 +55,26 @@ const DialogContent = React.forwardRef<
           className,
         )}
         onPointerDownOutside={(e) => {
+          // Allow Select components to work
+          if (isRadixSelectInteraction(e.target)) {
+            return; // Don't prevent default, let Select handle it
+          }
           props.onPointerDownOutside?.(e);
         }}
         onInteractOutside={(e) => {
+          // Allow Select components to work
+          if (isRadixSelectInteraction(e.target)) {
+            e.preventDefault(); // Prevent modal from closing
+            return;
+          }
           props.onInteractOutside?.(e);
         }}
         onFocusOutside={(e) => {
+          // Allow Select components to work
+          if (isRadixSelectInteraction(e.target)) {
+            e.preventDefault(); // Prevent modal from closing
+            return;
+          }
           props.onFocusOutside?.(e);
         }}
         onOpenAutoFocus={(e) => {
