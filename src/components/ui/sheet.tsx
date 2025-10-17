@@ -63,15 +63,12 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
           ref={ref} 
           className={cn(sheetVariants({ side }), "no-horizontal-scroll pointer-events-auto", className)}
           onPointerDownOutside={(e) => {
-            if (!isMobile) e.preventDefault();
             props.onPointerDownOutside?.(e);
           }}
           onInteractOutside={(e) => {
-            if (!isMobile) e.preventDefault();
             props.onInteractOutside?.(e);
           }}
           onFocusOutside={(e) => {
-            if (!isMobile) e.preventDefault();
             props.onFocusOutside?.(e);
           }}
           onOpenAutoFocus={(e) => {

@@ -44,15 +44,12 @@ const DialogContent = React.forwardRef<
           className,
         )}
         onPointerDownOutside={(e) => {
-          if (!isMobile) e.preventDefault();
           props.onPointerDownOutside?.(e);
         }}
         onInteractOutside={(e) => {
-          if (!isMobile) e.preventDefault();
           props.onInteractOutside?.(e);
         }}
         onFocusOutside={(e) => {
-          if (!isMobile) e.preventDefault();
           props.onFocusOutside?.(e);
         }}
         onOpenAutoFocus={(e) => {
