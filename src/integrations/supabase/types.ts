@@ -415,6 +415,7 @@ export type Database = {
           created_at: string | null
           created_offline: boolean | null
           description: string | null
+          end_time: string | null
           expense_date: string | null
           id: string
           invoice_number: string | null
@@ -426,6 +427,7 @@ export type Database = {
           quickbooks_transaction_id: string | null
           receipt_id: string | null
           rejection_reason: string | null
+          start_time: string | null
           submitted_for_approval_at: string | null
           synced_at: string | null
           transaction_type: Database["public"]["Enums"]["transaction_type"]
@@ -445,6 +447,7 @@ export type Database = {
           created_at?: string | null
           created_offline?: boolean | null
           description?: string | null
+          end_time?: string | null
           expense_date?: string | null
           id?: string
           invoice_number?: string | null
@@ -456,6 +459,7 @@ export type Database = {
           quickbooks_transaction_id?: string | null
           receipt_id?: string | null
           rejection_reason?: string | null
+          start_time?: string | null
           submitted_for_approval_at?: string | null
           synced_at?: string | null
           transaction_type: Database["public"]["Enums"]["transaction_type"]
@@ -475,6 +479,7 @@ export type Database = {
           created_at?: string | null
           created_offline?: boolean | null
           description?: string | null
+          end_time?: string | null
           expense_date?: string | null
           id?: string
           invoice_number?: string | null
@@ -486,6 +491,7 @@ export type Database = {
           quickbooks_transaction_id?: string | null
           receipt_id?: string | null
           rejection_reason?: string | null
+          start_time?: string | null
           submitted_for_approval_at?: string | null
           synced_at?: string | null
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
