@@ -17,8 +17,9 @@ export interface TimeEntryListItem {
   hourly_rate: number;
   note: string;
   attachment_url?: string;
-  payee_id: string;
-  project_id: string;
+  payee_id: string | null;
+  project_id: string | null;
+  is_locked?: boolean;
 }
 
 export interface TimeEntryFilters {

@@ -34,6 +34,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           payee_id,
           project_id,
           attachment_url,
+          is_locked,
           payees!inner(payee_name, hourly_rate),
           projects!inner(project_number, project_name, client_name)
         `, { count: 'exact' })
@@ -92,6 +93,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           attachment_url: entry.attachment_url,
           payee_id: entry.payee_id,
           project_id: entry.project_id,
+          is_locked: entry.is_locked,
         };
       });
 
