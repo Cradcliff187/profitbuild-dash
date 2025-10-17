@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ClipboardCheck, Download, Edit, CheckCircle, XCircle, Clock } from "lucide-react";
+import { ClipboardCheck, Download, Edit, CheckCircle, XCircle, Clock, MoreHorizontal, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,9 +18,12 @@ import { format } from "date-fns";
 import { usePagination } from "@/hooks/usePagination";
 import { CompletePagination } from "@/components/ui/complete-pagination";
 import { useAuth } from "@/contexts/AuthContext";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
 
 const TimeEntries = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<TimeEntryFilters>({
     dateFrom: null,
     dateTo: null,
@@ -146,27 +149,27 @@ const TimeEntries = () => {
 
   const getStatusBadge = (status: string | null) => {
     if (!status || status === 'pending') {
-      return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">Pending</Badge>;
+      return <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">Pending</Badge>;
     }
     if (status === 'approved') {
-      return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">Approved</Badge>;
+      return <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-300">Approved</Badge>;
     }
     if (status === 'rejected') {
-      return <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">Rejected</Badge>;
+      return <Badge variant="outline" className="text-xs bg-red-100 text-red-800 border-red-300">Rejected</Badge>;
     }
     return null;
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-4">
+    <div className="container mx-auto py-2 space-y-2">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ClipboardCheck className="h-6 w-6" />
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <Clock className="h-5 w-5" />
             Time Entry Management
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Review and approve time entries</p>
+          <p className="text-xs text-muted-foreground mt-1">Review and approve time entries</p>
         </div>
         <Button 
           variant="outline" 
@@ -180,52 +183,52 @@ const TimeEntries = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <Card>
-          <CardHeader className="p-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4 text-yellow-600" />
-              Pending Approval
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <p className="text-2xl font-bold">{statistics.pendingCount}</p>
+          <CardContent className="p-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Pending Approval</p>
+                <p className="text-lg font-bold">{statistics.pendingCount}</p>
+              </div>
+              <Clock className="h-6 w-6 text-yellow-500" />
+            </div>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardHeader className="p-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              Approved This Week
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <p className="text-2xl font-bold">{statistics.approvedThisWeekHours.toFixed(1)}h</p>
+          <CardContent className="p-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Approved This Week</p>
+                <p className="text-lg font-bold">{statistics.approvedThisWeekHours.toFixed(1)}h</p>
+              </div>
+              <CheckCircle className="h-6 w-6 text-green-500" />
+            </div>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardHeader className="p-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <XCircle className="h-4 w-4 text-red-600" />
-              Rejected
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <p className="text-2xl font-bold">{statistics.rejectedCount}</p>
+          <CardContent className="p-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Rejected</p>
+                <p className="text-lg font-bold">{statistics.rejectedCount}</p>
+              </div>
+              <XCircle className="h-6 w-6 text-red-500" />
+            </div>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardHeader className="p-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-600" />
-              Total This Month
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <p className="text-2xl font-bold">{statistics.totalThisMonthHours.toFixed(1)}h</p>
+          <CardContent className="p-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Total This Month</p>
+                <p className="text-lg font-bold">{statistics.totalThisMonthHours.toFixed(1)}h</p>
+              </div>
+              <Clock className="h-6 w-6 text-blue-500" />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -280,61 +283,76 @@ const TimeEntries = () => {
                   </TableRow>
                 ) : (
                   entries.map(entry => (
-                    <TableRow key={entry.id} className="hover:bg-muted/50">
-                      <TableCell>
+                    <TableRow key={entry.id}>
+                      <TableCell className="w-12">
                         <Checkbox
                           checked={selectedIds.includes(entry.id)}
                           onCheckedChange={(checked) => handleSelectOne(entry.id, checked as boolean)}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{entry.worker_name}</TableCell>
+                      <TableCell>
+                        <div className="text-xs font-medium">{entry.worker_name}</div>
+                      </TableCell>
                       <TableCell>
                         <div className="text-xs">
                           <div className="font-medium">{entry.project_number}</div>
                           <div className="text-muted-foreground">{entry.project_name}</div>
+                          <div className="text-muted-foreground">{entry.client_name}</div>
                         </div>
                       </TableCell>
-                      <TableCell>{format(new Date(entry.expense_date), 'MMM dd')}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs">{format(new Date(entry.expense_date), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell className="font-mono text-xs">
                         {entry.start_time ? format(new Date(entry.start_time), 'HH:mm') : '-'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="font-mono text-xs">
                         {entry.end_time ? format(new Date(entry.end_time), 'HH:mm') : '-'}
                       </TableCell>
-                      <TableCell className="text-right font-mono">{entry.hours.toFixed(2)}</TableCell>
-                      <TableCell className="text-right font-mono">${entry.amount.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-xs text-right">{entry.hours.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-xs text-right">${entry.amount.toFixed(2)}</TableCell>
                       <TableCell>{getStatusBadge(entry.approval_status)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-1 justify-end">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingEntry(entry)}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          {(!entry.approval_status || entry.approval_status === 'pending') && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleApprove([entry.id])}
-                              >
-                                <CheckCircle className="h-3 w-3 text-green-600" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setSelectedIds([entry.id]);
-                                  setRejectDialogOpen(true);
-                                }}
-                              >
-                                <XCircle className="h-3 w-3 text-red-600" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => setEditingEntry(entry)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Time Entry
+                            </DropdownMenuItem>
+                            {(!entry.approval_status || entry.approval_status === 'pending') && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleApprove([entry.id])}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                  Approve
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedIds([entry.id]);
+                                    setRejectDialogOpen(true);
+                                  }}
+                                >
+                                  <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                                  Reject
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => navigate(`/projects/${entry.project_id}`)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Project
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
