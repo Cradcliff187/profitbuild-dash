@@ -18,8 +18,8 @@ import { useRoles } from '@/contexts/RoleContext';
 
 interface TimeEntry {
   id: string;
-  payee_id: string;
-  project_id: string;
+  payee_id?: string;
+  project_id?: string;
   expense_date: string;
   amount: number;
   description: string;
@@ -29,6 +29,15 @@ interface TimeEntry {
   user_id?: string;
   start_time?: string;
   end_time?: string;
+  teamMember?: {
+    id: string;
+    payee_name: string;
+  };
+  project?: {
+    id: string;
+    project_name: string;
+    project_number: string;
+  };
 }
 
 interface EditTimeEntryModalProps {
@@ -109,8 +118,8 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
   };
 
   const populateForm = (entry: TimeEntry) => {
-    setWorkerId(entry.payee_id);
-    setProjectId(entry.project_id);
+    setWorkerId(entry.payee_id || entry.teamMember?.id);
+    setProjectId(entry.project_id || entry.project?.id);
     setDate(entry.expense_date);
     setReceiptUrl(entry.attachment_url);
 
