@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { PayeeSelector } from '@/components/PayeeSelector';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -258,25 +259,22 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
         showLabel={false}
       />
 
-      {/* Project - native select */}
+      {/* Project */}
       <div className="space-y-2">
         <Label htmlFor="project" className="text-sm font-medium">Project (Optional)</Label>
-        <select
-          id="project"
-          className={cn(
-            "flex w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            isMobile && "h-12 text-base"
-          )}
-          value={selectedProjectId}
-          onChange={(e) => setSelectedProjectId(e.target.value)}
-        >
-          <option value="">Unassigned</option>
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.project_number} - {project.project_name}
-            </option>
-          ))}
-        </select>
+        <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+          <SelectTrigger className={cn("w-full", isMobile ? "h-12 text-base" : "h-10")}>
+            <SelectValue placeholder="Unassigned" />
+          </SelectTrigger>
+          <SelectContent className="max-h-[300px]">
+            <SelectItem value="">Unassigned</SelectItem>
+            {projects.map((project) => (
+              <SelectItem key={project.id} value={project.id}>
+                {project.project_number} - {project.project_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Description */}
@@ -320,7 +318,7 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
     <Sheet open={open} onOpenChange={handleClose}>
       <SheetContent 
         side="bottom" 
-        className="h-[90vh] overflow-y-auto p-6 no-horizontal-scroll"
+        className="h-[90dvh] overflow-y-auto p-6 no-horizontal-scroll"
       >
         <SheetHeader className="mb-6">
           <SheetTitle className="text-lg">Edit Receipt</SheetTitle>

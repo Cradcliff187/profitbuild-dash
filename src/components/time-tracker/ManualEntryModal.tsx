@@ -225,72 +225,42 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
         </Button>
       </div>
 
-      {/* Team Member - Native select on mobile */}
+      {/* Team Member */}
       <div>
         <Label htmlFor="worker" className="text-sm font-medium">Team Member *</Label>
-        {isMobile ? (
-          <select
-            id="worker"
-            value={workerId}
-            onChange={(e) => setWorkerId(e.target.value)}
-            className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="">Select team member</option>
+        <Select value={workerId} onValueChange={setWorkerId}>
+          <SelectTrigger id="worker" className={cn(isMobile ? "h-12 text-base" : "h-10")}>
+            <SelectValue placeholder="Select team member" />
+          </SelectTrigger>
+          <SelectContent className="max-h-[300px]">
             {workers.map(worker => (
-              <option key={worker.id} value={worker.id}>{worker.name}</option>
+              <SelectItem key={worker.id} value={worker.id}>{worker.name}</SelectItem>
             ))}
-          </select>
-        ) : (
-          <Select value={workerId} onValueChange={setWorkerId}>
-            <SelectTrigger id="worker">
-              <SelectValue placeholder="Select team member" />
-            </SelectTrigger>
-            <SelectContent>
-              {workers.map(worker => (
-                <SelectItem key={worker.id} value={worker.id}>{worker.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Project - Native select on mobile */}
+      {/* Project */}
       <div>
         <Label htmlFor="project" className="text-sm font-medium">Project *</Label>
-        {isMobile ? (
-          <select
-            id="project"
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="">Select project</option>
+        <Select value={projectId} onValueChange={setProjectId}>
+          <SelectTrigger id="project" className={cn(isMobile ? "h-12 text-base" : "h-10")}>
+            <SelectValue placeholder="Select project" />
+          </SelectTrigger>
+          <SelectContent className="max-h-[300px]">
             {projects.map(project => (
-              <option key={project.id} value={project.id}>
-                {project.number} - {project.name}
-              </option>
+              <SelectItem key={project.id} value={project.id}>
+                <div className="flex flex-col">
+                  <span className="font-medium">{project.number}</span>
+                  <span className="text-xs text-muted-foreground">{project.name}</span>
+                  {project.address && (
+                    <span className="text-xs text-muted-foreground">{project.address}</span>
+                  )}
+                </div>
+              </SelectItem>
             ))}
-          </select>
-        ) : (
-          <Select value={projectId} onValueChange={setProjectId}>
-            <SelectTrigger id="project">
-              <SelectValue placeholder="Select project" />
-            </SelectTrigger>
-            <SelectContent>
-              {projects.map(project => (
-                <SelectItem key={project.id} value={project.id}>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{project.number}</span>
-                    <span className="text-xs text-muted-foreground">{project.name}</span>
-                    {project.address && (
-                      <span className="text-xs text-muted-foreground">{project.address}</span>
-                    )}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Date */}
@@ -389,7 +359,7 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
         side="bottom" 
-        className="h-[90vh] overflow-y-auto p-6 no-horizontal-scroll"
+        className="h-[90dvh] overflow-y-auto p-6 no-horizontal-scroll"
       >
         <SheetHeader className="mb-6">
           <SheetTitle className="flex items-center gap-2 text-lg">

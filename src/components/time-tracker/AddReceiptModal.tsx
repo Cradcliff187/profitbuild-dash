@@ -13,6 +13,7 @@ import { Camera as CameraIcon, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PayeeSelector } from '@/components/PayeeSelector';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 const UNASSIGNED_RECEIPTS_PROJECT_NUMBER = 'SYS-000';
 
@@ -238,34 +239,18 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
         <Label htmlFor="project" className={isMobile ? "text-sm font-medium text-muted-foreground" : "text-sm text-muted-foreground"}>
           Assign to Project (Optional)
         </Label>
-        {isMobile ? (
-          <select
-            id="project"
-            value={selectedProjectId || ""}
-            onChange={(e) => setSelectedProjectId(e.target.value || undefined)}
-            className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <option value="">None</option>
+        <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+          <SelectTrigger id="project" className={cn(isMobile ? "h-12 text-base" : "h-10")}>
+            <SelectValue placeholder="None" />
+          </SelectTrigger>
+          <SelectContent className="max-h-[300px]">
             {projects.map((project) => (
-              <option key={project.id} value={project.id}>
+              <SelectItem key={project.id} value={project.id}>
                 {project.project_number} - {project.project_name}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-        ) : (
-          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-            <SelectTrigger id="project">
-              <SelectValue placeholder="None" />
-            </SelectTrigger>
-            <SelectContent>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.project_number} - {project.project_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Description (Optional) */}
@@ -316,7 +301,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
       <Sheet open={open} onOpenChange={handleClose}>
         <SheetContent 
           side="bottom" 
-          className="h-[90vh] overflow-y-auto p-6 no-horizontal-scroll"
+          className="h-[90dvh] overflow-y-auto p-6 no-horizontal-scroll"
         >
           <SheetHeader>
             <SheetTitle>Add Receipt</SheetTitle>

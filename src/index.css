@@ -460,3 +460,44 @@ All colors MUST be HSL.
     font-weight: 500;
   }
 }
+
+/* =================================
+   IOS SAFARI VIEWPORT STABILIZATION
+   ================================= */
+
+/* Prevent iOS Safari from zooming on input focus */
+@supports (-webkit-touch-callout: none) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Prevent iOS zoom on native select dropdowns */
+  select {
+    font-size: 16px !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  
+  /* Stabilize viewport on focus */
+  input:focus,
+  select:focus,
+  textarea:focus {
+    font-size: 16px !important;
+  }
+}
+
+/* Prevent viewport shifting in modals */
+@media (max-width: 767px) {
+  /* Ensure all form controls are ≥16px on mobile */
+  input, select, textarea {
+    font-size: max(16px, 1rem) !important;
+  }
+  
+  /* Disable iOS rubber-band scrolling in modals */
+  .no-horizontal-scroll {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
