@@ -20,6 +20,7 @@ import { CompletePagination } from "@/components/ui/complete-pagination";
 import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
+import { ColumnSelector } from "@/components/ui/column-selector";
 
 const TimeEntries = () => {
   const { user } = useAuth();
@@ -35,6 +36,32 @@ const TimeEntries = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any>(null);
+
+  // Column visibility state with localStorage persistence
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem('time-entries-visible-columns');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    // Default visible columns
+    return [
+      'worker',
+      'project',
+      'date',
+      'start',
+      'end',
+      'hours',
+      'amount',
+      'status',
+      'submitted_at',
+      'actions'
+    ];
+  });
+
+  // Save visibility to localStorage
+  useEffect(() => {
+    localStorage.setItem('time-entries-visible-columns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
 
   const pagination = usePagination({
     totalItems: 0,
@@ -160,6 +187,21 @@ const TimeEntries = () => {
     return null;
   };
 
+  // Define column metadata for selector
+  const columnDefinitions = [
+    { key: 'worker', label: 'Worker', required: true },
+    { key: 'project', label: 'Project', required: true },
+    { key: 'address', label: 'Project Address', required: false },
+    { key: 'date', label: 'Date', required: true },
+    { key: 'start', label: 'Start Time', required: false },
+    { key: 'end', label: 'End Time', required: false },
+    { key: 'hours', label: 'Hours', required: false },
+    { key: 'amount', label: 'Amount', required: false },
+    { key: 'status', label: 'Status', required: false },
+    { key: 'submitted_at', label: 'Submitted At', required: false },
+    { key: 'actions', label: 'Actions', required: true },
+  ];
+
   return (
     <div className="container mx-auto py-2 space-y-2">
       {/* Header */}
@@ -171,15 +213,22 @@ const TimeEntries = () => {
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Review and approve time entries</p>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => exportTimeEntriesToCSV(entries)}
-          disabled={entries.length === 0}
-        >
-          <Download className="h-4 w-4 mr-1" />
-          Export CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <ColumnSelector
+            columns={columnDefinitions}
+            visibleColumns={visibleColumns}
+            onVisibilityChange={setVisibleColumns}
+          />
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => exportTimeEntriesToCSV(entries)}
+            disabled={entries.length === 0}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Export CSV
+          </Button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -257,27 +306,29 @@ const TimeEntries = () => {
                       onCheckedChange={handleSelectAll}
                     />
                   </TableHead>
-                  <TableHead>Worker</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Start</TableHead>
-                  <TableHead>End</TableHead>
-                  <TableHead className="text-right">Hours</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  {visibleColumns.includes('worker') && <TableHead>Worker</TableHead>}
+                  {visibleColumns.includes('project') && <TableHead>Project</TableHead>}
+                  {visibleColumns.includes('address') && <TableHead>Address</TableHead>}
+                  {visibleColumns.includes('date') && <TableHead>Date</TableHead>}
+                  {visibleColumns.includes('start') && <TableHead>Start</TableHead>}
+                  {visibleColumns.includes('end') && <TableHead>End</TableHead>}
+                  {visibleColumns.includes('hours') && <TableHead className="text-right">Hours</TableHead>}
+                  {visibleColumns.includes('amount') && <TableHead className="text-right">Amount</TableHead>}
+                  {visibleColumns.includes('status') && <TableHead>Status</TableHead>}
+                  {visibleColumns.includes('submitted_at') && <TableHead>Submitted At</TableHead>}
+                  {visibleColumns.includes('actions') && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8">
+                    <TableCell colSpan={visibleColumns.length + 1} className="text-center py-8">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : entries.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={visibleColumns.length + 1} className="text-center py-8 text-muted-foreground">
                       No time entries found
                     </TableCell>
                   </TableRow>
@@ -290,70 +341,98 @@ const TimeEntries = () => {
                           onCheckedChange={(checked) => handleSelectOne(entry.id, checked as boolean)}
                         />
                       </TableCell>
-                      <TableCell>
-                        <div className="text-xs font-medium">{entry.worker_name}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-xs">
-                          <div className="font-medium">{entry.project_number}</div>
-                          <div className="text-muted-foreground">{entry.project_name}</div>
-                          <div className="text-muted-foreground">{entry.client_name}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs">{format(new Date(entry.expense_date), 'MMM dd, yyyy')}</TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {entry.start_time ? format(new Date(entry.start_time), 'HH:mm') : '-'}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {entry.end_time ? format(new Date(entry.end_time), 'HH:mm') : '-'}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-right">{entry.hours.toFixed(2)}</TableCell>
-                      <TableCell className="font-mono text-xs text-right">${entry.amount.toFixed(2)}</TableCell>
-                      <TableCell>{getStatusBadge(entry.approval_status)}</TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => setEditingEntry(entry)}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit Time Entry
-                            </DropdownMenuItem>
-                            {(!entry.approval_status || entry.approval_status === 'pending') && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleApprove([entry.id])}
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                                  Approve
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedIds([entry.id]);
-                                    setRejectDialogOpen(true);
-                                  }}
-                                >
-                                  <XCircle className="h-4 w-4 mr-2 text-red-600" />
-                                  Reject
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => navigate(`/projects/${entry.project_id}`)}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Project
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                      {visibleColumns.includes('worker') && (
+                        <TableCell>
+                          <div className="text-xs font-medium">{entry.worker_name}</div>
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes('project') && (
+                        <TableCell>
+                          <div className="text-xs">
+                            <div className="font-medium">{entry.project_number}</div>
+                            <div className="text-muted-foreground">{entry.project_name}</div>
+                            <div className="text-muted-foreground">{entry.client_name}</div>
+                          </div>
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes('address') && (
+                        <TableCell>
+                          <div className="text-xs text-muted-foreground">
+                            {entry.project_address || '-'}
+                          </div>
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes('date') && (
+                        <TableCell className="text-xs">{format(new Date(entry.expense_date), 'MMM dd, yyyy')}</TableCell>
+                      )}
+                      {visibleColumns.includes('start') && (
+                        <TableCell className="font-mono text-xs">
+                          {entry.start_time ? format(new Date(entry.start_time), 'HH:mm') : '-'}
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes('end') && (
+                        <TableCell className="font-mono text-xs">
+                          {entry.end_time ? format(new Date(entry.end_time), 'HH:mm') : '-'}
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes('hours') && (
+                        <TableCell className="font-mono text-xs text-right">{entry.hours.toFixed(2)}</TableCell>
+                      )}
+                      {visibleColumns.includes('amount') && (
+                        <TableCell className="font-mono text-xs text-right">${entry.amount.toFixed(2)}</TableCell>
+                      )}
+                      {visibleColumns.includes('status') && (
+                        <TableCell>{getStatusBadge(entry.approval_status)}</TableCell>
+                      )}
+                      {visibleColumns.includes('submitted_at') && (
+                        <TableCell className="text-xs">{format(new Date(entry.created_at), 'MMM dd, yyyy HH:mm')}</TableCell>
+                      )}
+                      {visibleColumns.includes('actions') && (
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => setEditingEntry(entry)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit Time Entry
+                              </DropdownMenuItem>
+                              {(!entry.approval_status || entry.approval_status === 'pending') && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleApprove([entry.id])}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                    Approve
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedIds([entry.id]);
+                                      setRejectDialogOpen(true);
+                                    }}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                                    Reject
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => navigate(`/projects/${entry.project_id}`)}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Project
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}

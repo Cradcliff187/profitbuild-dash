@@ -36,7 +36,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           attachment_url,
           is_locked,
           payees!inner(payee_name, hourly_rate),
-          projects!inner(project_number, project_name, client_name)
+          projects!inner(project_number, project_name, client_name, address)
         `, { count: 'exact' })
         .eq('category', 'labor_internal')
         .order('expense_date', { ascending: false })
@@ -87,6 +87,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           project_number: entry.projects?.project_number || '',
           project_name: entry.projects?.project_name || '',
           client_name: entry.projects?.client_name || '',
+          project_address: entry.projects?.address || null,
           hours,
           hourly_rate: hourlyRate,
           note: entry.description,

@@ -13,6 +13,7 @@ export interface TimeEntryListItem {
   project_number: string;
   project_name: string;
   client_name: string;
+  project_address: string | null;
   hours: number;
   hourly_rate: number;
   note: string;

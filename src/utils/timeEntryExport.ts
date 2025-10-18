@@ -3,7 +3,7 @@ import { TimeEntryListItem } from "@/types/timeEntry";
 
 export const exportTimeEntriesToCSV = (entries: TimeEntryListItem[]) => {
   const headers = [
-    'Date', 'Worker', 'Project Number', 'Project Name', 'Client',
+    'Date', 'Worker', 'Project Number', 'Project Name', 'Client', 'Project Address',
     'Start Time', 'End Time', 'Hours', 'Rate', 'Amount',
     'Status', 'Notes', 'Submitted At'
   ];
@@ -20,6 +20,7 @@ export const exportTimeEntriesToCSV = (entries: TimeEntryListItem[]) => {
       entry.project_number,
       entry.project_name,
       entry.client_name,
+      entry.project_address || '',
       startTime,
       endTime,
       entry.hours.toFixed(2),
