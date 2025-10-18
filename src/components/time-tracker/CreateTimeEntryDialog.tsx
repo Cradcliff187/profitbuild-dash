@@ -21,7 +21,6 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('17:00');
   const [hours, setHours] = useState('8');
-  const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -37,7 +36,6 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
     setStartTime('08:00');
     setEndTime('17:00');
     setHours('8');
-    setNote('');
   };
 
   const handleSave = async () => {
@@ -64,7 +62,6 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
       const amount = hoursNum * rate;
       const startDateTime = new Date(`${date}T${startTime}`);
       const endDateTime = new Date(`${date}T${endTime}`);
-      const description = `${hoursNum} hours${note ? ` - ${note}` : ''}`;
       
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -73,7 +70,7 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
         project_id: projectId,
         expense_date: date,
         amount,
-        description,
+        description: '',
         category: 'labor_internal',
         transaction_type: 'expense',
         user_id: user?.id,
@@ -115,8 +112,6 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
         setEndTime={setEndTime}
         hours={hours}
         setHours={setHours}
-        note={note}
-        setNote={setNote}
         disabled={loading}
         isMobile={isMobile}
       />

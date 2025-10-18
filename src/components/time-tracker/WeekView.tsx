@@ -16,7 +16,6 @@ interface TimeEntry {
   approval_status?: string;
   attachment_url?: string;
   hours: number;
-  note: string;
   payee: {
     payee_name: string;
   };
@@ -69,8 +68,7 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
         ...entry,
         payee: entry.payees,
         project: entry.projects,
-        hours: entry.amount / (entry.payees?.hourly_rate || 75), // Calculate from amount and rate
-        note: entry.description || '' // Use description directly
+        hours: entry.amount / (entry.payees?.hourly_rate || 75) // Calculate from amount and rate
       }));
 
       setEntries(formattedEntries);
@@ -212,13 +210,6 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
                     </div>
                   </div>
                   
-                  {/* Note */}
-                  {entry.note && (
-                    <div className="bg-muted rounded p-2 text-sm text-muted-foreground mt-2">
-                      {entry.note}
-                    </div>
-                  )}
-
                   {/* Receipt Image */}
                   {entry.attachment_url && (
                     <div className="mt-2 border rounded-lg overflow-hidden">

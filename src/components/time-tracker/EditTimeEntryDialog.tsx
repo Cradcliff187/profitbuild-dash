@@ -85,9 +85,6 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
     
     // Hours are calculated from start_time/end_time or amount/hourly_rate
     setHours('8'); // Default fallback
-    
-    // Use description directly as note
-    setNote(entry.description || '');
   };
 
   const handleSave = async () => {
@@ -318,8 +315,6 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
           setEndTime={setEndTime}
           hours={hours}
           setHours={setHours}
-          note={note}
-          setNote={setNote}
           receiptUrl={receiptUrl}
           onCaptureReceipt={canEdit ? captureReceipt : undefined}
           onRemoveReceipt={canEdit ? removeReceipt : undefined}

@@ -70,10 +70,9 @@ export const BulkActionsBar = ({ selectedIds, onClearSelection, onRefresh }: Bul
       if (error) throw error;
 
       // Create CSV content
-      const headers = ['Date', 'Worker', 'Project', 'Hours', 'Rate', 'Amount', 'Note', 'Status'];
+      const headers = ['Date', 'Worker', 'Project', 'Hours', 'Rate', 'Amount', 'Status'];
       const rows = data.map(entry => {
-        const hours = entry.description.match(/(\d+\.?\d*)\s*hours?/i)?.[1] || '0';
-        const note = entry.description.match(/(?:hours?)\s*-\s*(.+)$/i)?.[1] || '';
+        const hours = (entry.amount / 75).toFixed(2); // Estimate hours from amount
         return [
           entry.expense_date,
           entry.payees?.payee_name || '',
@@ -81,7 +80,6 @@ export const BulkActionsBar = ({ selectedIds, onClearSelection, onRefresh }: Bul
           hours,
           (entry.amount / parseFloat(hours)).toFixed(2),
           entry.amount.toFixed(2),
-          note,
           entry.approval_status || 'pending',
         ];
       });

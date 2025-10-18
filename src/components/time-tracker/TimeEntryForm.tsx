@@ -35,8 +35,6 @@ interface TimeEntryFormProps {
   setEndTime: (time: string) => void;
   hours: string;
   setHours: (hours: string) => void;
-  note: string;
-  setNote: (note: string) => void;
   receiptUrl?: string;
   onCaptureReceipt?: () => void;
   onRemoveReceipt?: () => void;
@@ -58,8 +56,6 @@ export const TimeEntryForm = ({
   setEndTime,
   hours,
   setHours,
-  note,
-  setNote,
   receiptUrl,
   onCaptureReceipt,
   onRemoveReceipt,
@@ -299,19 +295,6 @@ export const TimeEntryForm = ({
           onChange={(e) => setHours(e.target.value)}
           disabled={disabled}
           className={cn(isMobile && "h-10")}
-          style={{ fontSize: isMobile ? '16px' : undefined }}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="note">Note</Label>
-        <Textarea
-          id="note"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={1}
-          disabled={disabled}
-          placeholder="Optional notes about this time entry"
           style={{ fontSize: isMobile ? '16px' : undefined }}
         />
       </div>

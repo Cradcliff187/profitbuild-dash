@@ -48,7 +48,6 @@ interface TimeEntry {
   teamMember: TeamMember;
   project: Project;
   hours: number;
-  note?: string;
   receiptUrl?: string;
   attachment_url?: string;
   startTime: Date;
@@ -62,7 +61,6 @@ interface ActiveTimer {
   teamMember: TeamMember;
   project: Project;
   startTime: Date;
-  note?: string;
   location?: { lat: number; lng: number; address: string };
 }
 
@@ -80,7 +78,6 @@ export const MobileTimeTracker: React.FC = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [showProjectSelect, setShowProjectSelect] = useState(false);
   const [showWorkerSelect, setShowWorkerSelect] = useState(false);
-  const [note, setNote] = useState('');
   const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [view, setView] = useState<'timer' | 'entries' | 'receipts'>('timer');
   const [entriesDateRange, setEntriesDateRange] = useState<'today' | 'week'>('today');
@@ -424,12 +421,10 @@ export const MobileTimeTracker: React.FC = () => {
         teamMember: selectedTeamMember,
         project: selectedProject,
         startTime: new Date(),
-        note: note || undefined,
         location: loc || undefined
       };
       
       setActiveTimer(timerData);
-      setNote('');
       
       // Queue for sync if offline
       if (!isOnline) {
@@ -507,7 +502,7 @@ export const MobileTimeTracker: React.FC = () => {
         transaction_type: 'expense' as const,
         amount: amount,
         expense_date: format(activeTimer.startTime, 'yyyy-MM-dd'),
-        description: activeTimer.note || '',
+        description: '',
         is_planned: false,
         created_offline: !isOnline,
         approval_status: 'pending',
@@ -552,7 +547,6 @@ export const MobileTimeTracker: React.FC = () => {
           teamMember: activeTimer.teamMember,
           project: activeTimer.project,
           hours,
-          note: activeTimer.note,
           startTime: activeTimer.startTime,
           endTime: endTime
         };
@@ -723,12 +717,6 @@ export const MobileTimeTracker: React.FC = () => {
                     <span className="text-xs opacity-90 ml-6">{activeTimer.project.address}</span>
                   )}
                 </div>
-                {activeTimer.note && (
-                  <div className="flex items-start gap-2">
-                    <Edit2 className="w-4 h-4 mt-0.5" />
-                    <span className="flex-1">{activeTimer.note}</span>
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -820,23 +808,6 @@ export const MobileTimeTracker: React.FC = () => {
               </div>
             )}
           </div>
-
-          {/* Note Input */}
-          {!activeTimer && (
-            <div className="bg-card rounded-xl shadow-sm p-4">
-              <label className="block text-sm font-semibold text-foreground mb-2">
-                <Edit2 className="w-4 h-4 inline mr-1" />
-                Note (optional)
-              </label>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="What are you working on?"
-                className="w-full p-3 border-2 border-border rounded-lg focus:border-primary focus:outline-none resize-none bg-background"
-                rows={2}
-              />
-            </div>
-          )}
 
           {/* Clock In/Out Button */}
           <div className="pt-4 space-y-3">
@@ -996,12 +967,6 @@ export const MobileTimeTracker: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    
-                    {entry.note && entry.note.trim().length > 0 && (
-                      <div className="bg-muted rounded p-2 text-sm text-muted-foreground mt-2">
-                        {entry.note}
-                      </div>
-                    )}
                   </div>
                 ))
               )}
