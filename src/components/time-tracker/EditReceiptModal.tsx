@@ -1,9 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { TimeEntryDialog } from './TimeEntryDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,23 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { NativeSelect } from '@/components/ui/native-select';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Camera } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-
-const formSchema = z.object({
-  amount: z.number().positive('Amount must be greater than 0'),
-  payee_id: z.string().min(1, 'Payee is required'),
-  project_id: z.string().optional(),
-  description: z.string().optional(),
-});
-
-type FormData = z.infer<typeof formSchema>;
+import { Camera } from 'lucide-react';
 
 interface Project {
   id: string;
-  project_number: string;
   project_name: string;
-  client_name: string;
+  project_number: string;
 }
 
 interface Payee {
@@ -52,111 +39,188 @@ interface EditReceiptModalProps {
   receipt: ReceiptData | null;
 }
 
-export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditReceiptModalProps) {
+export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditReceiptModalProps) => {
   const isMobile = useIsMobile();
   
-  const [capturedPhoto, setCapturedPhoto] = useState<string>('');
+  // Form state
+  const [amount, setAmount] = useState('0.00');
+  const [payeeId, setPayeeId] = useState('');
+  const [projectId, setProjectId] = useState('');
+  const [description, setDescription] = useState('');
+  const [capturedPhoto, setCapturedPhoto] = useState('');
   const [photoChanged, setPhotoChanged] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  
+  // Data state
   const [projects, setProjects] = useState<Project[]>([]);
   const [payees, setPayees] = useState<Payee[]>([]);
-  const [systemProjectId, setSystemProjectId] = useState<string>('');
+  const [systemProjectId, setSystemProjectId] = useState('');
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      amount: receipt?.amount ?? 0,
-      payee_id: receipt?.payee_id ?? '',
-      project_id: receipt?.project_id ?? '',
-      description: receipt?.description ?? '',
-    },
-  });
-
-  const watchedPayeeId = watch('payee_id');
-
+  // Load projects and payees
   useEffect(() => {
-    if (open && receipt) {
+    if (open) {
       loadProjects();
       loadPayees();
-      setCapturedPhoto(receipt?.image_url ?? '');
-      setPhotoChanged(false);
-      reset({
-        amount: receipt?.amount ?? 0,
-        payee_id: receipt?.payee_id ?? '',
-        project_id: receipt?.project_id ?? '',
-        description: receipt?.description ?? '',
-      });
     }
-  }, [open, receipt, reset]);
+  }, [open]);
+
+  // Populate form when receipt changes
+  useEffect(() => {
+    if (open && receipt) {
+      setAmount(receipt.amount?.toString() || '0.00');
+      setPayeeId(receipt.payee_id || '');
+      setProjectId(receipt.project_id || '');
+      setDescription(receipt.description || '');
+      setCapturedPhoto('');
+      setPhotoChanged(false);
+      
+      // Load signed URL for existing photo
+      if (receipt.image_url) {
+        loadSignedUrl(receipt.image_url);
+      }
+    }
+  }, [open, receipt]);
 
   const loadProjects = async () => {
-    const { data, error } = await supabase
-      .from('projects')
-      .select('id, project_number, project_name, client_name')
-      .order('project_number', { ascending: false });
+    try {
+      // Find system project for fallback
+      const { data: systemProjects } = await supabase
+        .from('projects')
+        .select('id')
+        .in('project_number', ['SYS-000', '000-UNASSIGNED'])
+        .limit(1)
+        .single();
+      
+      if (systemProjects) {
+        setSystemProjectId(systemProjects.id);
+      }
 
-    if (error) {
+      // Load active projects
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, project_name, project_number')
+        .in('status', ['approved', 'in_progress'])
+        .not('project_number', 'in', '("000-UNASSIGNED","SYS-000")')
+        .order('project_name');
+
+      if (error) throw error;
+      setProjects(data || []);
+    } catch (error) {
       console.error('Error loading projects:', error);
-      return;
+      toast.error('Failed to load projects');
     }
-
-    const systemProject = data?.find(
-      p => p.project_number === 'SYS-000' || p.project_number === '000-UNASSIGNED'
-    );
-    if (systemProject) {
-      setSystemProjectId(systemProject.id);
-    }
-
-    const filteredProjects = data?.filter(
-      p => p.project_number !== 'SYS-000' && p.project_number !== '000-UNASSIGNED'
-    ) || [];
-    
-    setProjects(filteredProjects);
   };
 
   const loadPayees = async () => {
-    const { data, error } = await supabase
-      .from('payees')
-      .select('id, payee_name, payee_type')
-      .eq('is_active', true)
-      .order('payee_name');
+    try {
+      const { data, error } = await supabase
+        .from('payees')
+        .select('id, payee_name, payee_type')
+        .eq('is_active', true)
+        .order('payee_name');
 
-    if (error) {
+      if (error) throw error;
+      setPayees(data || []);
+    } catch (error) {
       console.error('Error loading payees:', error);
-      return;
+      toast.error('Failed to load payees');
     }
-
-    setPayees(data || []);
   };
 
-  const capturePhoto = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment';
-    
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setCapturedPhoto(reader.result as string);
-          setPhotoChanged(true);
-        };
-        reader.readAsDataURL(file);
+  const loadSignedUrl = async (imageUrl: string) => {
+    try {
+      const path = imageUrl.split('/').slice(-2).join('/');
+      const { data, error } = await supabase.storage
+        .from('time-tracker-documents')
+        .createSignedUrl(path, 3600);
+
+      if (error) throw error;
+      if (data?.signedUrl) {
+        setCapturedPhoto(data.signedUrl);
       }
-    };
-    
-    input.click();
+    } catch (error) {
+      console.error('Error loading signed URL:', error);
+    }
   };
 
-  const onSubmit = async (data: FormData) => {
-    if (data.amount <= 0) {
-      toast.error('Amount must be greater than 0');
+  const capturePhoto = async () => {
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.capture = 'environment';
+
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
+        // Resize and compress image
+        const img = new Image();
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+          img.src = event.target?.result as string;
+        };
+
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+
+          const maxWidth = 1920;
+          const maxHeight = 1920;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = (width * maxHeight) / height;
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            async (blob) => {
+              if (!blob) return;
+              const dataUrl = URL.createObjectURL(blob);
+              setCapturedPhoto(dataUrl);
+              setPhotoChanged(true);
+            },
+            'image/jpeg',
+            0.8
+          );
+        };
+
+        reader.readAsDataURL(file);
+      };
+
+      input.click();
+    } catch (error) {
+      console.error('Error capturing photo:', error);
+      toast.error('Failed to capture photo');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!receipt) return;
+
+    // Validation
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error('Please enter a valid amount');
       return;
     }
 
-    if (!data.payee_id) {
+    if (!payeeId) {
       toast.error('Please select a payee');
       return;
     }
@@ -164,54 +228,50 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
     setIsUploading(true);
 
     try {
-      let imageUrl = receipt?.image_url ?? '';
+      let finalImageUrl = receipt.image_url;
 
+      // Upload new photo if changed
       if (photoChanged && capturedPhoto) {
-        const base64Data = capturedPhoto.split(',')[1];
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'image/jpeg' });
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
 
-        const fileName = `${Date.now()}_receipt.jpg`;
-        const { data: user } = await supabase.auth.getUser();
-        if (!user.user) throw new Error('Not authenticated');
-
-        const filePath = `${user.user.id}/${fileName}`;
+        const blob = await fetch(capturedPhoto).then(r => r.blob());
+        const fileName = `receipt_${Date.now()}.jpg`;
+        const filePath = `${user.id}/receipts/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('time-tracker-documents')
           .upload(filePath, blob, {
             contentType: 'image/jpeg',
-            upsert: false,
+            upsert: false
           });
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = await supabase.storage
+        // Create signed URL
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from('time-tracker-documents')
-          .createSignedUrl(filePath, 31536000);
+          .createSignedUrl(filePath, 31536000); // 1 year
 
-        if (urlData?.signedUrl) {
-          imageUrl = urlData.signedUrl;
-        }
+        if (signedUrlError) throw signedUrlError;
+        finalImageUrl = signedUrlData.signedUrl;
       }
 
-      const projectId = data.project_id || systemProjectId;
+      // Use system project if no project selected
+      const finalProjectId = projectId || systemProjectId;
 
+      // Update receipt
       const { error: updateError } = await supabase
         .from('receipts')
         .update({
-          image_url: imageUrl,
-          amount: data.amount,
-          payee_id: data.payee_id,
-          project_id: projectId,
-          description: data.description || null,
+          image_url: finalImageUrl,
+          amount: parsedAmount,
+          payee_id: payeeId,
+          project_id: finalProjectId,
+          description: description || null,
+          updated_at: new Date().toISOString()
         })
-        .eq('id', receipt?.id ?? '');
+        .eq('id', receipt.id);
 
       if (updateError) throw updateError;
 
@@ -227,9 +287,13 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
   };
 
   const handleClose = () => {
-    reset();
+    setAmount('0.00');
+    setPayeeId('');
+    setProjectId('');
+    setDescription('');
     setCapturedPhoto('');
     setPhotoChanged(false);
+    setIsUploading(false);
     onClose();
   };
 
@@ -242,38 +306,50 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
 
   const payeeTypeLabels: Record<string, string> = {
     subcontractor: 'Subcontractors',
-    material_supplier: 'Material Suppliers',
-    equipment_rental: 'Equipment Rental',
-    internal_labor: 'Internal Labor',
-    management: 'Management',
-    permit_authority: 'Permit Authority',
-    other: 'Other',
+    supplier: 'Suppliers',
+    vendor: 'Vendors',
+    internal: 'Internal',
+    other: 'Other'
   };
 
-  const ModalContent = () => {
-    if (!receipt) {
-      return <div className="p-4 text-center text-muted-foreground">Loading receipt...</div>;
-    }
-
+  if (!receipt) {
     return (
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Photo Section */}
+      <TimeEntryDialog
+        open={open}
+        onOpenChange={(newOpen) => { if (!newOpen) handleClose(); }}
+        title="Edit Receipt"
+      >
+        <div className="py-4 text-center text-muted-foreground">Loading receipt...</div>
+      </TimeEntryDialog>
+    );
+  }
+
+  return (
+    <TimeEntryDialog
+      open={open}
+      onOpenChange={(newOpen) => { if (!newOpen) handleClose(); }}
+      title="Edit Receipt"
+      description="Update receipt details"
+    >
+      <div className="space-y-4">
+        {/* Receipt Photo */}
         <div className="space-y-2">
           <Label>Receipt Photo</Label>
           {capturedPhoto && (
-            <div className="relative w-full h-48 rounded-md overflow-hidden bg-muted">
-              <img
-                src={capturedPhoto}
-                alt="Receipt"
-                className="w-full h-full object-contain"
+            <div className="relative rounded-lg overflow-hidden border">
+              <img 
+                src={capturedPhoto} 
+                alt="Receipt" 
+                className="w-full h-auto"
               />
             </div>
           )}
           <Button
             type="button"
             variant="outline"
-            onClick={capturePhoto}
             className="w-full"
+            onClick={capturePhoto}
+            disabled={isUploading}
           >
             <Camera className="w-4 h-4 mr-2" />
             Replace Photo
@@ -282,44 +358,40 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
 
         {/* Amount */}
         <div className="space-y-2">
-          <Label htmlFor="amount">Amount *</Label>
+          <Label htmlFor="amount">Amount</Label>
           <Input
             id="amount"
             type="number"
             step="0.01"
-            placeholder="0.00"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
             className={cn(isMobile && "h-10")}
             style={{ fontSize: isMobile ? '16px' : undefined }}
-            {...register('amount', { valueAsNumber: true })}
+            disabled={isUploading}
           />
-          {errors.amount && (
-            <p className="text-sm text-destructive">{errors.amount.message}</p>
-          )}
         </div>
 
         {/* Payee */}
         <div className="space-y-2">
-          <Label htmlFor="payee">Payee *</Label>
+          <Label htmlFor="payee">Payee</Label>
           <NativeSelect
             id="payee"
-            value={watchedPayeeId || ""}
-            onValueChange={(value) => setValue('payee_id', value)}
+            value={payeeId}
+            onValueChange={setPayeeId}
             className={cn(isMobile && "h-10 text-base")}
+            disabled={isUploading}
           >
             <option value="" disabled>Select a payee...</option>
             {Object.entries(groupedPayees).map(([type, payeesInGroup]) => (
               <optgroup key={type} label={payeeTypeLabels[type] || type}>
-                {payeesInGroup.map((payee) => (
-                  <option key={payee.id} value={payee.id}>
-                    {payee.payee_name}
+                {payeesInGroup.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.payee_name}
                   </option>
                 ))}
               </optgroup>
             ))}
           </NativeSelect>
-          {errors.payee_id && (
-            <p className="text-sm text-destructive">{errors.payee_id.message}</p>
-          )}
         </div>
 
         {/* Project */}
@@ -327,8 +399,10 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
           <Label htmlFor="project">Project</Label>
           <NativeSelect
             id="project"
-            {...register('project_id')}
+            value={projectId}
+            onValueChange={setProjectId}
             className={cn(isMobile && "h-10 text-base")}
+            disabled={isUploading}
           >
             <option value="">Select a project...</option>
             {projects.map((project) => (
@@ -341,17 +415,20 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
 
         {/* Description */}
         <div className="space-y-2">
-          <Label htmlFor="description">Notes</Label>
+          <Label htmlFor="description">Description (Optional)</Label>
           <Textarea
             id="description"
-            placeholder="Add notes..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className={cn(isMobile && "text-base")}
+            style={{ fontSize: isMobile ? '16px' : undefined }}
+            disabled={isUploading}
             rows={3}
-            {...register('description')}
           />
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-2 pt-4">
           <Button
             type="button"
             variant="outline"
@@ -362,29 +439,15 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
             Cancel
           </Button>
           <Button
-            type="submit"
+            type="button"
+            onClick={handleSave}
             disabled={isUploading}
             className="flex-1"
           >
             {isUploading ? 'Updating...' : 'Update Receipt'}
           </Button>
         </div>
-      </form>
-    );
-  };
-
-  return (
-    <TimeEntryDialog
-      open={open}
-      onOpenChange={(newOpen) => {
-        if (!newOpen) {
-          handleClose();
-        }
-      }}
-      title="Edit Receipt"
-      description="Update receipt details"
-    >
-      <ModalContent />
+      </div>
     </TimeEntryDialog>
   );
-}
+};
