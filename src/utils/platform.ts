@@ -36,3 +36,24 @@ export function isIOSPWA(): boolean {
                       window.navigator.standalone === true;
   return isStandalone;
 }
+
+export function isIOSSafari(): boolean {
+  const ua = navigator.userAgent.toLowerCase();
+  const isIOS = /ipad|iphone|ipod/.test(ua);
+  const isSafari = /safari/.test(ua) && !/chrome|crios|fxios/.test(ua);
+  return isIOS && isSafari;
+}
+
+export function isAndroidChrome(): boolean {
+  const ua = navigator.userAgent.toLowerCase();
+  return /android/.test(ua) && /chrome/.test(ua) && !/edge|edg/.test(ua);
+}
+
+export function canUseInstallPrompt(): boolean {
+  return !isIOSDevice() && 'BeforeInstallPromptEvent' in window;
+}
+
+export function isPWAInstalled(): boolean {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         window.navigator.standalone === true;
+}

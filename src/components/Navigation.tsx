@@ -7,6 +7,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/contexts/RoleContext";
 import { useState, useEffect } from "react";
+import { isIOSDevice, isPWAInstalled } from "@/utils/platform";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -21,14 +22,22 @@ const Navigation = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [showIOSInstall, setShowIOSInstall] = useState(false);
 
   useEffect(() => {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    if (isStandalone) {
+    // Check if already installed
+    if (isPWAInstalled()) {
       setIsInstalled(true);
       return;
     }
 
+    // For iOS devices, show install link if not installed
+    if (isIOSDevice()) {
+      setShowIOSInstall(true);
+      return;
+    }
+
+    // For non-iOS, use the beforeinstallprompt event
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -161,17 +170,28 @@ const Navigation = () => {
                 <NavItem key={to} to={to} label={label} icon={Icon} />
               ))}
               
-              {/* Install Button (Desktop only, when installable) */}
-              {!isInstalled && isInstallable && (
-                <Button 
-                  onClick={handleInstall} 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs"
-                >
-                  <Download className="h-3 w-3 mr-1.5" />
-                  Install
-                </Button>
+              {/* Install Button/Link */}
+              {!isInstalled && (
+                <>
+                  {showIOSInstall ? (
+                    <NavLink to="/install">
+                      <Button variant="outline" size="sm" className="text-xs">
+                        <Download className="h-3 w-3 mr-1.5" />
+                        Install
+                      </Button>
+                    </NavLink>
+                  ) : isInstallable ? (
+                    <Button 
+                      onClick={handleInstall} 
+                      variant="outline" 
+                      size="sm"
+                      className="text-xs"
+                    >
+                      <Download className="h-3 w-3 mr-1.5" />
+                      Install
+                    </Button>
+                  ) : null}
+                </>
               )}
 
               {/* More Dropdown */}

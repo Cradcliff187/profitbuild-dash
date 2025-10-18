@@ -18,6 +18,7 @@ import Projects from "./pages/Projects";
 import NotFound from "./pages/NotFound";
 
 // Lazy load heavy pages
+const Install = lazy(() => import("./pages/Install"));
 const WorkOrders = lazy(() => import("./pages/WorkOrders"));
 const TimeTracker = lazy(() => import("./pages/TimeTracker"));
 const TimeEntries = lazy(() => import("./pages/TimeEntries"));
@@ -55,6 +56,7 @@ const App = () => (
             <div className="min-h-screen bg-background mobile-container">
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/install" element={<LazyRoute component={Install} />} />
                 <Route path="/change-password" element={<ChangePassword />} />
                 <Route path="/" element={<ProtectedLayout />}>
                   <Route index element={<Dashboard />} />
