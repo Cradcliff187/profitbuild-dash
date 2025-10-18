@@ -10,7 +10,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { PayeeSelector } from '@/components/PayeeSelector';
 import { NativeSelect } from '@/components/ui/native-select';
 import { toast } from 'sonner';
-import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -89,17 +88,24 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
 
   const capturePhoto = async () => {
     try {
-      const image = await CapacitorCamera.getPhoto({
-        quality: 90,
-        allowEditing: true,
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Camera,
-      });
-
-      if (image.dataUrl) {
-        setCapturedPhoto(image.dataUrl);
-        setPhotoChanged(true);
-      }
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.capture = 'environment';
+      
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setCapturedPhoto(reader.result as string);
+            setPhotoChanged(true);
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      
+      input.click();
     } catch (error) {
       console.error('Error capturing photo:', error);
       toast.error('Failed to capture photo');

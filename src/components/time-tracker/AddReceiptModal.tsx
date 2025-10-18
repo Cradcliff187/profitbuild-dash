@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Camera } from '@capacitor/camera';
-import { CameraResultType, CameraSource } from '@capacitor/camera';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -77,14 +75,23 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
   const capturePhoto = async () => {
     try {
-      const photo = await Camera.getPhoto({
-        quality: 80,
-        allowEditing: true,
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Camera,
-      });
-
-      setCapturedPhoto(photo.dataUrl || null);
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.capture = 'environment';
+      
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setCapturedPhoto(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      
+      input.click();
     } catch (error) {
       console.error('Error capturing photo:', error);
       toast.error('Failed to capture photo');

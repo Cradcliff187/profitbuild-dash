@@ -371,19 +371,16 @@ export const MobileTimeTracker: React.FC = () => {
 
   const captureLocation = async () => {
     try {
-      const permission = await Geolocation.checkPermissions();
-      
-      if (permission.location !== 'granted') {
-        const request = await Geolocation.requestPermissions();
-        if (request.location !== 'granted') {
-          return null;
-        }
+      if (!navigator.geolocation) {
+        return null;
       }
       
-      const position = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
       });
       
       const loc = {

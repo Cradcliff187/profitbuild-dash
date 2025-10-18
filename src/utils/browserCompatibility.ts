@@ -27,7 +27,7 @@ export function checkAudioRecordingSupport() {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
                       (window.navigator as any).standalone === true;
   if (isIOS && isStandalone) {
-    warnings.push('iOS PWA has limited microphone support - use Safari browser for best results');
+    warnings.push('iOS PWA has limited microphone support - open in Safari browser for best results');
   }
   
   // Check codec support

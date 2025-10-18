@@ -1,7 +1,5 @@
-import { Capacitor } from '@capacitor/core';
-
 /**
- * Platform detection utilities for cross-platform functionality
+ * Platform detection utilities for PWA (Progressive Web App)
  */
 
 declare global {
@@ -11,15 +9,15 @@ declare global {
 }
 
 export function isNativePlatform(): boolean {
-  return Capacitor.isNativePlatform();
+  return false; // PWA-only app, always web-based
 }
 
 export function isWebPlatform(): boolean {
-  return !Capacitor.isNativePlatform();
+  return true; // Always true for PWA
 }
 
 export function getPlatformName(): string {
-  return Capacitor.getPlatform(); // 'web', 'ios', 'android'
+  return 'web'; // Always 'web' for PWA
 }
 
 export function isIOSDevice(): boolean {

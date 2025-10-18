@@ -1,96 +1,35 @@
-import { useState, useRef } from 'react';
-import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { isWebPlatform } from '@/utils/platform';
 
-interface CameraPermissions {
-  camera: boolean;
-  photos: boolean;
+interface Photo {
+  dataUrl?: string;
+  webPath?: string;
+  format: string;
+  saved: boolean;
 }
 
 interface UseCameraCaptureResult {
-  capturePhoto: (source?: CameraSource) => Promise<Photo | null>;
+  capturePhoto: () => Promise<Photo | null>;
   isCapturing: boolean;
-  permissionsGranted: CameraPermissions | null;
-  requestPermissions: () => Promise<boolean>;
 }
 
 /**
- * Hook for capturing photos with Capacitor Camera API
+ * Hook for capturing photos using browser's camera API
+ * Works on all modern mobile browsers (iOS Safari, Android Chrome)
  */
 export function useCameraCapture(): UseCameraCaptureResult {
   const [isCapturing, setIsCapturing] = useState(false);
-  const [permissionsGranted, setPermissionsGranted] = useState<CameraPermissions | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const requestPermissions = async (): Promise<boolean> => {
-    try {
-      const permissions = await Camera.requestPermissions({
-        permissions: ['camera', 'photos'],
-      });
-
-      const granted = {
-        camera: permissions.camera === 'granted',
-        photos: permissions.photos === 'granted',
-      };
-
-      setPermissionsGranted(granted);
-
-      if (!granted.camera || !granted.photos) {
-        toast.error('Camera permissions required', {
-          description: 'Please enable camera and photo permissions in settings',
-        });
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error requesting camera permissions:', error);
-      toast.error('Failed to request permissions');
-      return false;
-    }
-  };
-
-  const capturePhoto = async (
-    source: CameraSource = CameraSource.Camera
-  ): Promise<Photo | null> => {
+  const capturePhoto = async (): Promise<Photo | null> => {
     setIsCapturing(true);
-
+    
     try {
-      // Try Capacitor Camera API first (native platforms)
-      if (!isWebPlatform()) {
-        try {
-          if (!permissionsGranted) {
-            const granted = await requestPermissions();
-            if (!granted) {
-              return null;
-            }
-          }
-
-          const photo = await Camera.getPhoto({
-            resultType: CameraResultType.Uri,
-            source,
-            quality: 90,
-            allowEditing: false,
-            saveToGallery: source === CameraSource.Camera,
-            correctOrientation: true,
-          });
-
-          return photo;
-        } catch (capacitorError) {
-          console.warn('Capacitor Camera failed, trying web fallback:', capacitorError);
-        }
-      }
-
-      // Web fallback using file input (iOS/Chrome compatible)
       return new Promise((resolve) => {
-        // Create new file input each time for iOS compatibility
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
+        input.capture = 'environment'; // Request rear camera
         input.style.display = 'none';
-        
-        // Don't set capture attribute for iOS - let browser decide
         
         const handleFileSelect = (event: Event) => {
           const target = event.target as HTMLInputElement;
@@ -102,6 +41,7 @@ export function useCameraCapture(): UseCameraCaptureResult {
               const webPath = reader.result as string;
               const photo: Photo = {
                 webPath,
+                dataUrl: webPath,
                 format: file.type.split('/')[1] || 'jpeg',
                 saved: false,
               };
@@ -116,7 +56,6 @@ export function useCameraCapture(): UseCameraCaptureResult {
             resolve(null);
           }
           
-          // Clean up
           input.remove();
         };
 
@@ -132,18 +71,13 @@ export function useCameraCapture(): UseCameraCaptureResult {
         input.addEventListener('change', handleFileSelect);
         input.addEventListener('cancel', handleCancel);
         
-        // CRITICAL: Append to body before clicking (iOS requirement)
         document.body.appendChild(input);
         input.click();
       });
     } catch (error) {
       const err = error as Error;
-      if (err.message !== 'User cancelled photos app') {
-        console.error('Error capturing photo:', error);
-        toast.error('Failed to capture photo', {
-          description: err.message,
-        });
-      }
+      console.error('Error capturing photo:', error);
+      toast.error('Failed to capture photo');
       return null;
     } finally {
       setIsCapturing(false);
@@ -153,7 +87,5 @@ export function useCameraCapture(): UseCameraCaptureResult {
   return {
     capturePhoto,
     isCapturing,
-    permissionsGranted,
-    requestPermissions,
   };
 }

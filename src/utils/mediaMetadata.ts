@@ -90,7 +90,7 @@ function sanitizeFilename(filename: string): string {
 /**
  * Extract EXIF metadata from image file
  * Note: This is a placeholder. In production, you would use a library like exifr
- * For now, returns null values - actual EXIF extraction should be done on native side
+ * For PWA apps, EXIF extraction is limited in browsers
  */
 export async function extractExifMetadata(file: File): Promise<{
   latitude: number | null;
@@ -101,8 +101,7 @@ export async function extractExifMetadata(file: File): Promise<{
 }> {
   // This is a placeholder implementation
   // In a real app, you would use a library like 'exifr' to extract EXIF data
-  // However, for Capacitor apps, it's better to extract EXIF on the native side
-  // using the Camera plugin metadata
+  // For PWA apps, EXIF data extraction has limitations in browsers
   
   return {
     latitude: null,
@@ -114,15 +113,14 @@ export async function extractExifMetadata(file: File): Promise<{
 }
 
 /**
- * Get device information
- * Note: This should be called from Capacitor Device API in actual implementation
+ * Get device information for PWA environment
  */
 export function getDeviceInfo(): {
   model: string | null;
   platform: string | null;
   osVersion: string | null;
 } {
-  // Placeholder - should use Capacitor Device API
+  // PWA environment - limited device info available
   return {
     model: null,
     platform: typeof window !== 'undefined' ? 'web' : null,

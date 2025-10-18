@@ -13,7 +13,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useRoles } from '@/contexts/RoleContext';
-import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { cn } from '@/lib/utils';
 
 interface TimeEntry {
@@ -236,15 +235,30 @@ export const EditTimeEntryModal = ({ entry, open, onOpenChange, onSaved }: EditT
 
   const captureReceipt = async () => {
     try {
-      const photo = await CapacitorCamera.getPhoto({
-        quality: 80,
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Camera,
+      const dataUrl = await new Promise<string | null>((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.capture = 'environment';
+        
+        input.onchange = async (e) => {
+          const file = (e.target as HTMLInputElement).files?.[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          } else {
+            resolve(null);
+          }
+        };
+        
+        input.oncancel = () => resolve(null);
+        input.click();
       });
 
-      if (!photo.dataUrl) return;
+      if (!dataUrl) return;
 
-      const base64Data = photo.dataUrl.split(',')[1];
+      const base64Data = dataUrl.split(',')[1];
       const byteCharacters = atob(base64Data);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {

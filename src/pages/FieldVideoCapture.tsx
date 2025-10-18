@@ -73,8 +73,8 @@ export default function FieldVideoCapture() {
       // Auto-transcribe video directly (OpenAI Whisper supports video formats)
       setIsAutoTranscribing(true);
       try {
-        console.log('🎬 Fetching video from path:', video.webPath || video.path);
-        const response = await fetch(video.webPath || video.path || '');
+        console.log('🎬 Fetching video from path:', video.webPath);
+        const response = await fetch(video.webPath || '');
         console.log('✅ Fetch response:', response.ok, response.status);
         
         if (response.ok) {

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { Camera as CameraIcon, X, Loader2 } from 'lucide-react';
-import { Camera } from '@capacitor/camera';
-import { CameraResultType, CameraSource } from '@capacitor/camera';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -28,24 +26,35 @@ export const ReceiptCapture: React.FC<ReceiptCaptureProps> = ({
 
     setUploading(true);
     try {
-      // Capture photo
-      const photo = await Camera.getPhoto({
-        quality: 80,
-        allowEditing: false,
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Camera,
-        promptLabelHeader: 'Receipt',
-        promptLabelPhoto: 'From Photos',
-        promptLabelPicture: 'Take Photo'
+      // Capture photo using web file input
+      const dataUrl = await new Promise<string | null>((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.capture = 'environment';
+        
+        input.onchange = async (e) => {
+          const file = (e.target as HTMLInputElement).files?.[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          } else {
+            resolve(null);
+          }
+        };
+        
+        input.oncancel = () => resolve(null);
+        input.click();
       });
 
-      if (!photo.dataUrl) {
+      if (!dataUrl) {
         onSkip();
         return;
       }
 
       // Convert to blob
-      const response = await fetch(photo.dataUrl);
+      const response = await fetch(dataUrl);
       const blob = await response.blob();
 
       // Generate storage path

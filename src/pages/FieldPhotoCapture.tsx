@@ -54,7 +54,7 @@ export default function FieldPhotoCapture() {
         willShowToast: DEBUG_ALWAYS_SHOW_PROMPT || (captureCount + 1) <= 3,
       });
       
-      setCapturedPhotoUri(photo.webPath || photo.path);
+      setCapturedPhotoUri(photo.webPath || '');
       const newCaptureCount = captureCount + 1;
       setCaptureCount(newCaptureCount);
       
