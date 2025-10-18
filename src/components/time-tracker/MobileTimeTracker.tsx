@@ -3,7 +3,6 @@ import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircl
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { Geolocation } from '@capacitor/geolocation';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
