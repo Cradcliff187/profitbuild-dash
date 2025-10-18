@@ -51,7 +51,7 @@ interface EditReceiptModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  receipt: ReceiptData;
+  receipt: ReceiptData | null;
 }
 
 export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditReceiptModalProps) {
@@ -68,26 +68,30 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
   const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amount: receipt.amount,
-      payee_id: receipt.payee_id || '',
-      project_id: receipt.project_id || '',
-      description: receipt.description || '',
+      amount: receipt?.amount ?? 0,
+      payee_id: receipt?.payee_id ?? '',
+      project_id: receipt?.project_id ?? '',
+      description: receipt?.description ?? '',
     },
   });
+
+  if (!receipt) {
+    return null;
+  }
 
   const watchedPayeeId = watch('payee_id');
 
   useEffect(() => {
-    if (open) {
+    if (open && receipt) {
       loadProjects();
       loadPayees();
-      setCapturedPhoto(receipt.image_url);
+      setCapturedPhoto(receipt?.image_url ?? '');
       setPhotoChanged(false);
       reset({
-        amount: receipt.amount,
-        payee_id: receipt.payee_id || '',
-        project_id: receipt.project_id || '',
-        description: receipt.description || '',
+        amount: receipt?.amount ?? 0,
+        payee_id: receipt?.payee_id ?? '',
+        project_id: receipt?.project_id ?? '',
+        description: receipt?.description ?? '',
       });
     }
   }, [open, receipt, reset]);
@@ -167,7 +171,7 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
     setIsUploading(true);
 
     try {
-      let imageUrl = receipt.image_url;
+      let imageUrl = receipt?.image_url ?? '';
 
       if (photoChanged && capturedPhoto) {
         const base64Data = capturedPhoto.split(',')[1];
@@ -214,7 +218,7 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
           project_id: projectId,
           description: data.description || null,
         })
-        .eq('id', receipt.id);
+        .eq('id', receipt?.id ?? '');
 
       if (updateError) throw updateError;
 
