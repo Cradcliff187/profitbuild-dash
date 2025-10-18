@@ -4,17 +4,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { TimeEntryDialog } from './TimeEntryDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { NativeSelect } from '@/components/ui/native-select';
-import { PayeeSelector } from '@/components/PayeeSelector';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Camera } from 'lucide-react';
-import { useSelectInteractionGuard } from './hooks/useSelectInteractionGuard';
+import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
   amount: z.number().positive('Amount must be greater than 0'),
@@ -56,7 +54,6 @@ interface EditReceiptModalProps {
 
 export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditReceiptModalProps) {
   const isMobile = useIsMobile();
-  const { isInteracting, startInteraction, endInteraction } = useSelectInteractionGuard();
   
   const [capturedPhoto, setCapturedPhoto] = useState<string>('');
   const [photoChanged, setPhotoChanged] = useState(false);
@@ -236,12 +233,6 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
     onClose();
   };
 
-  const handleModalChange = (newOpen: boolean) => {
-    if (!newOpen && !isInteracting) {
-      handleClose();
-    }
-  };
-
   const groupedPayees = payees.reduce((acc, payee) => {
     const type = payee.payee_type || 'other';
     if (!acc[type]) acc[type] = [];
@@ -297,6 +288,8 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
             type="number"
             step="0.01"
             placeholder="0.00"
+            className={cn(isMobile && "h-10")}
+            style={{ fontSize: isMobile ? '16px' : undefined }}
             {...register('amount', { valueAsNumber: true })}
           />
           {errors.amount && (
@@ -304,41 +297,26 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
           )}
         </div>
 
-        {/* Payee - Mobile native select, Desktop PayeeSelector */}
+        {/* Payee */}
         <div className="space-y-2">
           <Label htmlFor="payee">Payee *</Label>
-          {isMobile ? (
-            <div
-              onTouchStart={startInteraction}
-              onTouchEnd={endInteraction}
-              onFocus={startInteraction}
-              onBlur={endInteraction}
-            >
-              <select
-                id="payee"
-                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                value={watchedPayeeId}
-                onChange={(e) => setValue('payee_id', e.target.value)}
-              >
-                <option value="">Select a payee...</option>
-                {Object.entries(groupedPayees).map(([type, payeesInGroup]) => (
-                  <optgroup key={type} label={payeeTypeLabels[type] || type}>
-                    {payeesInGroup.map((payee) => (
-                      <option key={payee.id} value={payee.id}>
-                        {payee.payee_name}
-                      </option>
-                    ))}
-                  </optgroup>
+          <NativeSelect
+            id="payee"
+            value={watchedPayeeId || ""}
+            onValueChange={(value) => setValue('payee_id', value)}
+            className={cn(isMobile && "h-10 text-base")}
+          >
+            <option value="" disabled>Select a payee...</option>
+            {Object.entries(groupedPayees).map(([type, payeesInGroup]) => (
+              <optgroup key={type} label={payeeTypeLabels[type] || type}>
+                {payeesInGroup.map((payee) => (
+                  <option key={payee.id} value={payee.id}>
+                    {payee.payee_name}
+                  </option>
                 ))}
-              </select>
-            </div>
-          ) : (
-            <PayeeSelector
-              value={watchedPayeeId}
-              onValueChange={(value) => setValue('payee_id', value)}
-              filterInternal={false}
-            />
-          )}
+              </optgroup>
+            ))}
+          </NativeSelect>
           {errors.payee_id && (
             <p className="text-sm text-destructive">{errors.payee_id.message}</p>
           )}
@@ -347,24 +325,18 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
         {/* Project */}
         <div className="space-y-2">
           <Label htmlFor="project">Project</Label>
-          <div
-            onTouchStart={startInteraction}
-            onTouchEnd={endInteraction}
-            onFocus={startInteraction}
-            onBlur={endInteraction}
+          <NativeSelect
+            id="project"
+            {...register('project_id')}
+            className={cn(isMobile && "h-10 text-base")}
           >
-            <NativeSelect
-              id="project"
-              {...register('project_id')}
-            >
-              <option value="">Select a project...</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.project_number} - {project.project_name}
-                </option>
-              ))}
-            </NativeSelect>
-          </div>
+            <option value="">Select a project...</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.project_number} - {project.project_name}
+              </option>
+            ))}
+          </NativeSelect>
         </div>
 
         {/* Description */}
@@ -401,28 +373,18 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
     );
   };
 
-  return isMobile ? (
-    <Sheet open={open} onOpenChange={handleModalChange}>
-      <SheetContent
-        side="bottom"
-        className="h-[90dvh] overflow-y-auto p-6"
-      >
-        <SheetHeader>
-          <SheetTitle>Edit Receipt</SheetTitle>
-        </SheetHeader>
-        <div className="mt-6">
-          <ModalContent />
-        </div>
-      </SheetContent>
-    </Sheet>
-  ) : (
-    <Dialog open={open} onOpenChange={handleModalChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit Receipt</DialogTitle>
-        </DialogHeader>
-        <ModalContent />
-      </DialogContent>
-    </Dialog>
+  return (
+    <TimeEntryDialog
+      open={open}
+      onOpenChange={(newOpen) => {
+        if (!newOpen) {
+          handleClose();
+        }
+      }}
+      title="Edit Receipt"
+      description="Update receipt details"
+    >
+      <ModalContent />
+    </TimeEntryDialog>
   );
 }
