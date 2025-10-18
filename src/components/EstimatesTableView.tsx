@@ -317,7 +317,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     },
     {
       key: 'contingency',
-      label: 'Contingency',
+      label: 'Contingency %',
       align: 'right',
       width: '100px',
       render: (estimate) => {
@@ -327,6 +327,36 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         return (
           <div className="text-xs text-foreground/70">
             {estimate.contingency_percent}%
+          </div>
+        );
+      },
+    },
+    {
+      key: 'contingency_amount',
+      label: 'Contingency $',
+      align: 'right',
+      width: '110px',
+      render: (estimate) => {
+        if (!estimate.contingency_amount || estimate.contingency_amount === 0) {
+          return <span className="text-xs text-muted-foreground">-</span>;
+        }
+        return (
+          <div className="text-sm font-mono tabular-nums text-foreground/80">
+            {formatCurrency(estimate.contingency_amount, { showCents: false })}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'total_with_contingency',
+      label: 'Total w/ Cont.',
+      align: 'right',
+      width: '130px',
+      render: (estimate) => {
+        const totalWithContingency = estimate.total_amount + (estimate.contingency_amount || 0);
+        return (
+          <div className="text-sm font-semibold font-mono tabular-nums">
+            {formatCurrency(totalWithContingency, { showCents: false })}
           </div>
         );
       },
