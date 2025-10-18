@@ -42,7 +42,6 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('17:00');
   const [hours, setHours] = useState('8');
-  const [note, setNote] = useState('');
   const [receiptUrl, setReceiptUrl] = useState<string | undefined>();
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
@@ -113,7 +112,7 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
       const amount = hoursNum * rate;
       const startDateTime = new Date(`${date}T${startTime}`);
       const endDateTime = new Date(`${date}T${endTime}`);
-      const description = `${hoursNum} hours${note ? ` - ${note}` : ''}`;
+      const description = '';
       
       const { data: { user } } = await supabase.auth.getUser();
 
