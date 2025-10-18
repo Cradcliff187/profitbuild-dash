@@ -1,22 +1,41 @@
-import { useState, useEffect } from 'react';
-import { Camera, Upload, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { PayeeSelector } from '@/components/PayeeSelector';
 import { NativeSelect } from '@/components/ui/native-select';
-import { toast } from 'sonner';
+import { PayeeSelector } from '@/components/PayeeSelector';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
+import { Camera } from 'lucide-react';
+import { useSelectInteractionGuard } from './hooks/useSelectInteractionGuard';
+
+const formSchema = z.object({
+  amount: z.number().positive('Amount must be greater than 0'),
+  payee_id: z.string().min(1, 'Payee is required'),
+  project_id: z.string().optional(),
+  description: z.string().optional(),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 interface Project {
   id: string;
   project_number: string;
   project_name: string;
+  client_name: string;
+}
+
+interface Payee {
+  id: string;
+  payee_name: string;
+  payee_type: string;
 }
 
 interface ReceiptData {
@@ -25,9 +44,7 @@ interface ReceiptData {
   amount: number;
   payee_id: string | null;
   project_id: string | null;
-  project_number?: string;
   description: string | null;
-  captured_at: string;
 }
 
 interface EditReceiptModalProps {
@@ -39,37 +56,46 @@ interface EditReceiptModalProps {
 
 export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditReceiptModalProps) {
   const isMobile = useIsMobile();
+  const { isInteracting, startInteraction, endInteraction } = useSelectInteractionGuard();
+  
   const [capturedPhoto, setCapturedPhoto] = useState<string>('');
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [selectedPayeeId, setSelectedPayeeId] = useState<string>('');
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
+  const [photoChanged, setPhotoChanged] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [payees, setPayees] = useState<Payee[]>([]);
   const [systemProjectId, setSystemProjectId] = useState<string>('');
-  const [photoChanged, setPhotoChanged] = useState(false);
+
+  const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      amount: receipt.amount,
+      payee_id: receipt.payee_id || '',
+      project_id: receipt.project_id || '',
+      description: receipt.description || '',
+    },
+  });
+
+  const watchedPayeeId = watch('payee_id');
 
   useEffect(() => {
     if (open) {
       loadProjects();
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (open && receipt) {
+      loadPayees();
       setCapturedPhoto(receipt.image_url);
-      setAmount(receipt.amount.toString());
-      setSelectedPayeeId(receipt.payee_id || '');
-      setSelectedProjectId(receipt.project_id || '');
-      setDescription(receipt.description || '');
       setPhotoChanged(false);
+      reset({
+        amount: receipt.amount,
+        payee_id: receipt.payee_id || '',
+        project_id: receipt.project_id || '',
+        description: receipt.description || '',
+      });
     }
-  }, [open, receipt]);
+  }, [open, receipt, reset]);
 
   const loadProjects = async () => {
     const { data, error } = await supabase
       .from('projects')
-      .select('id, project_number, project_name')
+      .select('id, project_number, project_name, client_name')
       .order('project_number', { ascending: false });
 
     if (error) {
@@ -77,54 +103,64 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
       return;
     }
 
-    const systemProject = data.find(p => p.project_number === 'SYS-000');
+    const systemProject = data?.find(
+      p => p.project_number === 'SYS-000' || p.project_number === '000-UNASSIGNED'
+    );
     if (systemProject) {
       setSystemProjectId(systemProject.id);
     }
 
-    const filteredProjects = data.filter(p => !['SYS-000', '000-UNASSIGNED'].includes(p.project_number));
+    const filteredProjects = data?.filter(
+      p => p.project_number !== 'SYS-000' && p.project_number !== '000-UNASSIGNED'
+    ) || [];
+    
     setProjects(filteredProjects);
   };
 
-  const capturePhoto = async () => {
-    try {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.capture = 'environment';
-      
-      input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setCapturedPhoto(reader.result as string);
-            setPhotoChanged(true);
-          };
-          reader.readAsDataURL(file);
-        }
-      };
-      
-      input.click();
-    } catch (error) {
-      console.error('Error capturing photo:', error);
-      toast.error('Failed to capture photo');
+  const loadPayees = async () => {
+    const { data, error } = await supabase
+      .from('payees')
+      .select('id, payee_name, payee_type')
+      .eq('is_active', true)
+      .order('payee_name');
+
+    if (error) {
+      console.error('Error loading payees:', error);
+      return;
     }
+
+    setPayees(data || []);
   };
 
-  const handleSave = async () => {
-    if (!capturedPhoto) {
-      toast.error('Photo is required');
+  const capturePhoto = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setCapturedPhoto(reader.result as string);
+          setPhotoChanged(true);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    
+    input.click();
+  };
+
+  const onSubmit = async (data: FormData) => {
+    if (data.amount <= 0) {
+      toast.error('Amount must be greater than 0');
       return;
     }
 
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error('Valid amount is required');
-      return;
-    }
-
-    if (!selectedPayeeId) {
-      toast.error('Payee is required');
+    if (!data.payee_id) {
+      toast.error('Please select a payee');
       return;
     }
 
@@ -133,8 +169,7 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
     try {
       let imageUrl = receipt.image_url;
 
-      // Only upload new image if photo was changed
-      if (photoChanged && capturedPhoto.startsWith('data:')) {
+      if (photoChanged && capturedPhoto) {
         const base64Data = capturedPhoto.split(',')[1];
         const byteCharacters = atob(base64Data);
         const byteNumbers = new Array(byteCharacters.length);
@@ -144,36 +179,40 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: 'image/jpeg' });
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Not authenticated');
+        const fileName = `${Date.now()}_receipt.jpg`;
+        const { data: user } = await supabase.auth.getUser();
+        if (!user.user) throw new Error('Not authenticated');
 
-        const fileName = `${user.id}/${Date.now()}.jpg`;
+        const filePath = `${user.user.id}/${fileName}`;
+
         const { error: uploadError } = await supabase.storage
           .from('time-tracker-documents')
-          .upload(fileName, blob, {
+          .upload(filePath, blob, {
             contentType: 'image/jpeg',
             upsert: false,
           });
 
         if (uploadError) throw uploadError;
 
-        const { data: signedUrlData } = await supabase.storage
+        const { data: urlData } = await supabase.storage
           .from('time-tracker-documents')
-          .createSignedUrl(fileName, 31536000);
+          .createSignedUrl(filePath, 31536000);
 
-        if (signedUrlData?.signedUrl) {
-          imageUrl = signedUrlData.signedUrl;
+        if (urlData?.signedUrl) {
+          imageUrl = urlData.signedUrl;
         }
       }
+
+      const projectId = data.project_id || systemProjectId;
 
       const { error: updateError } = await supabase
         .from('receipts')
         .update({
           image_url: imageUrl,
-          amount: parseFloat(amount),
-          payee_id: selectedPayeeId,
-          project_id: selectedProjectId || systemProjectId,
-          description: description || null,
+          amount: data.amount,
+          payee_id: data.payee_id,
+          project_id: projectId,
+          description: data.description || null,
         })
         .eq('id', receipt.id);
 
@@ -181,6 +220,7 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
 
       toast.success('Receipt updated successfully');
       onSuccess();
+      handleClose();
     } catch (error) {
       console.error('Error updating receipt:', error);
       toast.error('Failed to update receipt');
@@ -190,52 +230,54 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
   };
 
   const handleClose = () => {
+    reset();
     setCapturedPhoto('');
-    setSelectedProjectId('');
-    setSelectedPayeeId('');
-    setDescription('');
-    setAmount('');
     setPhotoChanged(false);
     onClose();
   };
 
+  const handleModalChange = (newOpen: boolean) => {
+    if (!newOpen && !isInteracting) {
+      handleClose();
+    }
+  };
+
+  const groupedPayees = payees.reduce((acc, payee) => {
+    const type = payee.payee_type || 'other';
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(payee);
+    return acc;
+  }, {} as Record<string, Payee[]>);
+
+  const payeeTypeLabels: Record<string, string> = {
+    subcontractor: 'Subcontractors',
+    material_supplier: 'Material Suppliers',
+    equipment_rental: 'Equipment Rental',
+    internal_labor: 'Internal Labor',
+    management: 'Management',
+    permit_authority: 'Permit Authority',
+    other: 'Other',
+  };
+
   const ModalContent = () => (
-    <div className={cn("space-y-4", isMobile && "space-y-6")}>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* Photo Section */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Receipt Photo</Label>
-        {capturedPhoto ? (
-          <div className="relative">
-            <img 
-              src={capturedPhoto} 
-              alt="Receipt" 
-              className={cn(
-                "w-full object-cover rounded-md",
-                isMobile ? "h-60" : "h-48"
-              )} 
+        <Label>Receipt Photo</Label>
+        {capturedPhoto && (
+          <div className="relative w-full h-48 rounded-md overflow-hidden bg-muted">
+            <img
+              src={capturedPhoto}
+              alt="Receipt"
+              className="w-full h-full object-contain"
             />
-            <Button
-              variant="destructive"
-              size="icon"
-              className="absolute top-2 right-2"
-              onClick={() => {
-                setCapturedPhoto('');
-                setPhotoChanged(true);
-              }}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <div className="border-2 border-dashed rounded-md p-8 text-center">
-            <p className="text-sm text-muted-foreground">No photo</p>
           </div>
         )}
-        <Button 
-          onClick={capturePhoto} 
-          variant="outline" 
-          className={cn("w-full", isMobile && "h-12 text-base")}
+        <Button
           type="button"
+          variant="outline"
+          onClick={capturePhoto}
+          className="w-full"
         >
           <Camera className="w-4 h-4 mr-2" />
           Replace Photo
@@ -244,99 +286,132 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
 
       {/* Amount */}
       <div className="space-y-2">
-        <Label htmlFor="amount" className="text-sm font-medium">Amount *</Label>
+        <Label htmlFor="amount">Amount *</Label>
         <Input
           id="amount"
           type="number"
           step="0.01"
           placeholder="0.00"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className={cn(isMobile && "h-12 text-base")}
+          {...register('amount', { valueAsNumber: true })}
         />
+        {errors.amount && (
+          <p className="text-sm text-destructive">{errors.amount.message}</p>
+        )}
       </div>
 
-      {/* Payee - now native on mobile! */}
-      <PayeeSelector
-        value={selectedPayeeId}
-        onValueChange={setSelectedPayeeId}
-        filterInternal={false}
-        placeholder="Select payee..."
-        showLabel={false}
-      />
+      {/* Payee - Mobile native select, Desktop PayeeSelector */}
+      <div className="space-y-2">
+        <Label htmlFor="payee">Payee *</Label>
+        {isMobile ? (
+          <div
+            onTouchStart={startInteraction}
+            onTouchEnd={endInteraction}
+            onFocus={startInteraction}
+            onBlur={endInteraction}
+          >
+            <select
+              id="payee"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              value={watchedPayeeId}
+              onChange={(e) => setValue('payee_id', e.target.value)}
+            >
+              <option value="">Select a payee...</option>
+              {Object.entries(groupedPayees).map(([type, payeesInGroup]) => (
+                <optgroup key={type} label={payeeTypeLabels[type] || type}>
+                  {payeesInGroup.map((payee) => (
+                    <option key={payee.id} value={payee.id}>
+                      {payee.payee_name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <PayeeSelector
+            value={watchedPayeeId}
+            onValueChange={(value) => setValue('payee_id', value)}
+            filterInternal={false}
+          />
+        )}
+        {errors.payee_id && (
+          <p className="text-sm text-destructive">{errors.payee_id.message}</p>
+        )}
+      </div>
 
       {/* Project */}
       <div className="space-y-2">
-        <Label htmlFor="project" className="text-sm font-medium">Project (Optional)</Label>
-        <NativeSelect
-          id="project"
-          value={selectedProjectId || "unassigned"}
-          onValueChange={(value) => setSelectedProjectId(value === "unassigned" ? "" : value)}
-          className={cn("w-full", isMobile ? "h-12 text-base" : "h-10")}
+        <Label htmlFor="project">Project</Label>
+        <div
+          onTouchStart={startInteraction}
+          onTouchEnd={endInteraction}
+          onFocus={startInteraction}
+          onBlur={endInteraction}
         >
-          <option value="unassigned">Unassigned</option>
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.project_number} - {project.project_name}
-            </option>
-          ))}
-        </NativeSelect>
+          <NativeSelect
+            id="project"
+            {...register('project_id')}
+          >
+            <option value="">Select a project...</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.project_number} - {project.project_name}
+              </option>
+            ))}
+          </NativeSelect>
+        </div>
       </div>
 
       {/* Description */}
       <div className="space-y-2">
-        <Label htmlFor="description" className="text-sm font-medium">Notes</Label>
+        <Label htmlFor="description">Notes</Label>
         <Textarea
           id="description"
-          placeholder="Optional notes..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Add notes..."
           rows={3}
-          className={cn(isMobile && "text-base")}
+          {...register('description')}
         />
       </div>
 
       {/* Actions */}
-      <div className={cn(
-        "flex gap-2 pt-2",
-        isMobile && "flex-col"
-      )}>
-        <Button 
-          variant="outline" 
-          onClick={handleClose} 
-          className={cn("flex-1", isMobile && "h-12 text-base")}
+      <div className="flex gap-3 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleClose}
           disabled={isUploading}
+          className="flex-1"
         >
           Cancel
         </Button>
         <Button
-          onClick={handleSave}
-          className={cn("flex-1", isMobile && "h-12 text-base")}
-          disabled={!capturedPhoto || !amount || !selectedPayeeId || isUploading}
+          type="submit"
+          disabled={isUploading}
+          className="flex-1"
         >
           {isUploading ? 'Updating...' : 'Update Receipt'}
         </Button>
       </div>
-    </div>
+    </form>
   );
 
   return isMobile ? (
-    <Sheet open={open} onOpenChange={(newOpen) => { if (!newOpen) handleClose(); }}>
-      <SheetContent 
-        side="bottom" 
-        className="h-[90dvh] overflow-y-auto p-6 no-horizontal-scroll"
+    <Sheet open={open} onOpenChange={handleModalChange}>
+      <SheetContent
+        side="bottom"
+        className="h-[90dvh] overflow-y-auto p-6"
       >
-        <SheetHeader className="mb-6">
-          <SheetTitle className="text-lg">Edit Receipt</SheetTitle>
+        <SheetHeader>
+          <SheetTitle>Edit Receipt</SheetTitle>
         </SheetHeader>
-        <ModalContent />
+        <div className="mt-6">
+          <ModalContent />
+        </div>
       </SheetContent>
     </Sheet>
   ) : (
-    <Dialog open={open} onOpenChange={(newOpen) => { if (!newOpen) handleClose(); }}>
-      <DialogContent 
-        className="sm:max-w-md no-horizontal-scroll"
-      >
+    <Dialog open={open} onOpenChange={handleModalChange}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Receipt</DialogTitle>
         </DialogHeader>
