@@ -120,7 +120,7 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
         disabled={loading}
         isMobile={isMobile}
       />
-      <div className="flex gap-2 pt-4">
+      <div className="flex gap-2 pt-3">
         <Button 
           type="button"
           variant="outline" 

@@ -264,7 +264,7 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
       title="Edit Time Entry"
       description="Update time entry details"
     >
-      <div className="space-y-3">
+      <div className="space-y-2">
         {entry?.approval_status === 'approved' && (
           <Alert className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
             <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -328,7 +328,7 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
           isMobile={isMobile}
         />
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2 pt-3">
           {canDelete && (
             <Button 
               type="button"

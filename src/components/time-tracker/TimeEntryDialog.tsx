@@ -24,9 +24,9 @@ export const TimeEntryDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className={cn(
-          "max-h-[95vh] overflow-y-auto",
+          "max-h-[92vh] overflow-y-auto",
           isMobile 
-            ? "fixed bottom-0 left-0 right-0 top-auto translate-x-0 translate-y-0 rounded-t-2xl pb-safe max-w-full w-full p-4 sm:p-6" 
+            ? "fixed bottom-0 left-0 right-0 top-auto translate-x-0 translate-y-0 rounded-t-2xl pb-safe max-w-full w-full p-3 sm:p-6" 
             : "max-w-lg"
         )}
         onPointerDownOutside={(e) => {

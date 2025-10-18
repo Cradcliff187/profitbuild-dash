@@ -165,8 +165,8 @@ export const TimeEntryForm = ({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex gap-2">
+    <div className="space-y-2">
+      <div className="flex gap-1.5">
         <Button 
           type="button" 
           variant="outline" 
@@ -177,8 +177,9 @@ export const TimeEntryForm = ({
             setHours('8'); 
           }}
           disabled={disabled}
+          className="flex-1"
         >
-          Full Day (8h)
+          8h
         </Button>
         <Button 
           type="button" 
@@ -190,8 +191,9 @@ export const TimeEntryForm = ({
             setHours('4'); 
           }}
           disabled={disabled}
+          className="flex-1"
         >
-          Half Day (4h)
+          4h
         </Button>
         <Button 
           type="button" 
@@ -203,8 +205,9 @@ export const TimeEntryForm = ({
             setHours('10'); 
           }}
           disabled={disabled}
+          className="flex-1"
         >
-          Overtime (10h)
+          10h
         </Button>
       </div>
 
@@ -215,7 +218,7 @@ export const TimeEntryForm = ({
           value={workerId || ""}
           onValueChange={setWorkerId}
           disabled={disabled}
-          className={cn(isMobile && "h-12 text-base")}
+          className={cn(isMobile && "h-10 text-base")}
         >
           <option value="" disabled>Select team member</option>
           {workers.map(w => (
@@ -233,7 +236,7 @@ export const TimeEntryForm = ({
           value={projectId || ""}
           onValueChange={setProjectId}
           disabled={disabled}
-          className={cn(isMobile && "h-12 text-base")}
+          className={cn(isMobile && "h-10 text-base")}
         >
           <option value="" disabled>Select project</option>
           {projects.map(p => (
@@ -252,7 +255,7 @@ export const TimeEntryForm = ({
           value={date}
           onChange={(e) => setDate(e.target.value)}
           disabled={disabled}
-          className={cn(isMobile && "h-12")}
+          className={cn(isMobile && "h-10")}
           style={{ fontSize: isMobile ? '16px' : undefined }}
         />
       </div>
@@ -266,7 +269,7 @@ export const TimeEntryForm = ({
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
             disabled={disabled}
-            className={cn(isMobile && "h-12")}
+            className={cn(isMobile && "h-10")}
             style={{ fontSize: isMobile ? '16px' : undefined }}
           />
         </div>
@@ -278,7 +281,7 @@ export const TimeEntryForm = ({
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
             disabled={disabled}
-            className={cn(isMobile && "h-12")}
+            className={cn(isMobile && "h-10")}
             style={{ fontSize: isMobile ? '16px' : undefined }}
           />
         </div>
@@ -295,7 +298,7 @@ export const TimeEntryForm = ({
           value={hours}
           onChange={(e) => setHours(e.target.value)}
           disabled={disabled}
-          className={cn(isMobile && "h-12")}
+          className={cn(isMobile && "h-10")}
           style={{ fontSize: isMobile ? '16px' : undefined }}
         />
       </div>
@@ -306,7 +309,7 @@ export const TimeEntryForm = ({
           id="note"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          rows={2}
+          rows={1}
           disabled={disabled}
           placeholder="Optional notes about this time entry"
           style={{ fontSize: isMobile ? '16px' : undefined }}
