@@ -18,6 +18,31 @@ const isRadixSelectInteraction = (target: EventTarget | null): boolean => {
   );
 };
 
+// Helper to detect clicks on native HTML pickers (select, date inputs, etc.)
+const isNativePickerInteraction = (target: EventTarget | null): boolean => {
+  if (!(target instanceof Element)) return false;
+  const element = target as Element;
+  
+  // Check if it's a select element or inside one
+  const isSelect = element.tagName === 'SELECT' || !!element.closest('select');
+  
+  // Check if it's a picker-type input (date, time, etc.)
+  const isPickerInput = (el: Element): boolean => {
+    if (el.tagName !== 'INPUT') return false;
+    const type = (el as HTMLInputElement).type;
+    return ['date', 'time', 'datetime-local', 'month', 'week', 'color'].includes(type);
+  };
+  
+  const isPicker = isPickerInput(element) || !!element.closest('input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"], input[type="week"], input[type="color"]');
+  
+  return isSelect || isPicker;
+};
+
+// Combined helper to detect any dropdown-like interaction
+const isDropdownLikeInteraction = (target: EventTarget | null): boolean => {
+  return isRadixSelectInteraction(target) || isNativePickerInteraction(target);
+};
+
 const Sheet = SheetPrimitive.Root;
 
 const SheetTrigger = SheetPrimitive.Trigger;
@@ -75,27 +100,27 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
           ref={ref} 
           className={cn(sheetVariants({ side }), "no-horizontal-scroll pointer-events-auto", className)}
           onPointerDownOutside={(e) => {
-            // Allow Select components to work
-            if (isRadixSelectInteraction(e.target)) {
-              e.stopPropagation(); // Stop event from bubbling
-              return; // Don't prevent default, let Select handle it
+            // Allow dropdowns and pickers to work
+            if (isDropdownLikeInteraction(e.target)) {
+              e.stopPropagation();
+              return;
             }
             props.onPointerDownOutside?.(e);
           }}
           onInteractOutside={(e) => {
-            // Allow Select components to work
-            if (isRadixSelectInteraction(e.target)) {
-              e.preventDefault(); // Prevent modal from closing
-              e.stopPropagation(); // Stop event from bubbling
+            // Allow dropdowns and pickers to work
+            if (isDropdownLikeInteraction(e.target)) {
+              e.preventDefault();
+              e.stopPropagation();
               return;
             }
             props.onInteractOutside?.(e);
           }}
           onFocusOutside={(e) => {
-            // Allow Select components to work
-            if (isRadixSelectInteraction(e.target)) {
-              e.preventDefault(); // Prevent modal from closing
-              e.stopPropagation(); // Stop event from bubbling
+            // Allow dropdowns and pickers to work
+            if (isDropdownLikeInteraction(e.target)) {
+              e.preventDefault();
+              e.stopPropagation();
               return;
             }
             props.onFocusOutside?.(e);
