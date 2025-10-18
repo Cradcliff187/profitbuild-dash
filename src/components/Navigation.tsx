@@ -180,29 +180,6 @@ const Navigation = () => {
                 <NavItem key={to} to={to} label={label} icon={Icon} />
               ))}
               
-              {/* Install Button/Link */}
-              {!isInstalled && (
-                <>
-                  {showIOSInstall ? (
-                    <NavLink to="/install">
-                      <Button variant="outline" size="sm" className="text-xs">
-                        <Download className="h-3 w-3 mr-1.5" />
-                        Install
-                      </Button>
-                    </NavLink>
-                  ) : isInstallable ? (
-                    <Button 
-                      onClick={handleInstall} 
-                      variant="outline" 
-                      size="sm"
-                      className="text-xs"
-                    >
-                      <Download className="h-3 w-3 mr-1.5" />
-                      Install
-                    </Button>
-                  ) : null}
-                </>
-              )}
 
               {/* More Dropdown */}
               <DropdownMenu>

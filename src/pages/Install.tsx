@@ -235,48 +235,25 @@ const Install = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Download className="h-5 w-5" />
-                Install on Desktop
+                <Smartphone className="h-5 w-5" />
+                Mobile Only Feature
               </CardTitle>
               <CardDescription>
-                Add the app for quick access from your desktop
+                App installation is only available on mobile devices
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-bold text-primary">
-                    1
-                  </div>
-                  <div>
-                    <p className="font-medium mb-1">Look for the install icon</p>
-                    <p className="text-sm text-muted-foreground">
-                      Check your browser's address bar for an install icon or button
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-bold text-primary">
-                    2
-                  </div>
-                  <div>
-                    <p className="font-medium mb-1">Click "Install"</p>
-                    <p className="text-sm text-muted-foreground">
-                      Follow your browser's prompts to install the app
-                    </p>
-                  </div>
-                </div>
-              </div>
-
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                To install the Construction Profit Tracker app, please visit this page on your mobile device (iPhone, iPad, or Android phone/tablet).
+              </p>
+              <p className="text-sm text-muted-foreground">
+                On mobile devices, you'll be able to add the app to your home screen for quick access, offline support, and an app-like experience.
+              </p>
               <div className="bg-muted/50 p-4 rounded-lg border">
-                <p className="text-sm font-medium mb-1">✨ Benefits:</p>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Launch from your desktop or taskbar</li>
-                  <li>• Works offline</li>
-                  <li>• Automatic updates</li>
-                  <li>• Native app experience</li>
-                </ul>
+                <p className="text-sm font-medium mb-2">Desktop users:</p>
+                <p className="text-sm text-muted-foreground">
+                  You can continue using the app directly in your browser. Simply bookmark this page for quick access.
+                </p>
               </div>
             </CardContent>
           </Card>
