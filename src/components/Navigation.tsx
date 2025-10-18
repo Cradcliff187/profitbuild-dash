@@ -142,6 +142,16 @@ const Navigation = () => {
                   />
                 ))}
                 
+                {/* Install Link for Mobile */}
+                {!isInstalled && showIOSInstall && (
+                  <NavItem 
+                    to="/install" 
+                    label="Install App" 
+                    icon={Download} 
+                    onClick={() => setMobileMenuOpen(false)}
+                  />
+                )}
+                
                 {/* Mobile User Section */}
                 <div className="border-t border-border pt-4 mt-4">
                   <div className="px-4 py-2 text-sm text-muted-foreground">
