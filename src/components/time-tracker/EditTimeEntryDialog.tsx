@@ -83,11 +83,11 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
       setEndTime('17:00');
     }
     
-    const hoursMatch = entry.description.match(/(\d+\.?\d*)\s*h(?:ou)?rs?/i);
-    setHours(hoursMatch ? hoursMatch[1] : '8');
+    // Hours are calculated from start_time/end_time or amount/hourly_rate
+    setHours('8'); // Default fallback
     
-    const noteMatch = entry.description.match(/hours?\s*-\s*(.+)$/i);
-    setNote(noteMatch ? noteMatch[1].trim() : '');
+    // Use description directly as note
+    setNote(entry.description || '');
   };
 
   const handleSave = async () => {

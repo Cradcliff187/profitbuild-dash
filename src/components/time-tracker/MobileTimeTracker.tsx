@@ -507,9 +507,7 @@ export const MobileTimeTracker: React.FC = () => {
         transaction_type: 'expense' as const,
         amount: amount,
         expense_date: format(activeTimer.startTime, 'yyyy-MM-dd'),
-        description: `${hours.toFixed(2)}hrs - ${activeTimer.teamMember.payee_name}${
-          activeTimer.note ? ` - ${activeTimer.note}` : ''
-        }`,
+        description: activeTimer.note || '',
         is_planned: false,
         created_offline: !isOnline,
         approval_status: 'pending',

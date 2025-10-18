@@ -54,7 +54,7 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
         .from('expenses')
         .select(`
           *,
-          payees!expenses_payee_id_fkey(payee_name),
+          payees!expenses_payee_id_fkey(payee_name, hourly_rate),
           projects!expenses_project_id_fkey(project_number, project_name, client_name, address)
         `)
         .eq('category', 'labor_internal')
@@ -69,15 +69,8 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
         ...entry,
         payee: entry.payees,
         project: entry.projects,
-        hours: parseFloat(entry.description.match(/(\d+\.?\d*)\s*h(?:ou)?rs?/i)?.[1] || '0'),
-        note: entry.description
-          .replace(/Internal Labor\s*-\s*/i, '') // Remove "Internal Labor" prefix
-          .replace(/\d+\.?\d*\s*h(?:ou)?rs?\s*-?\s*/i, '') // Remove hours
-          .replace(/Employee\s+\d+/i, '') // Remove "Employee 1", "Employee 2", etc.
-          .replace(/\s*-\s*\w{3}\s+\d{1,2},\s+\d{4}\s*-?\s*/i, '') // Remove date like "Oct 13, 2025"
-          .replace(/^\s*-\s*/, '') // Remove leading dash
-          .replace(/\s*-\s*$/, '') // Remove trailing dash
-          .trim()
+        hours: entry.amount / (entry.payees?.hourly_rate || 75), // Calculate from amount and rate
+        note: entry.description || '' // Use description directly
       }));
 
       setEntries(formattedEntries);
