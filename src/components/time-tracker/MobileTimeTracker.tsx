@@ -8,8 +8,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { AddReceiptModal } from './AddReceiptModal';
 import { WeekView } from './WeekView';
-import { EditTimeEntryModal } from './EditTimeEntryModal';
-import { ManualEntryModal } from './ManualEntryModal';
+import { EditTimeEntryDialog } from './EditTimeEntryDialog';
+import { CreateTimeEntryDialog } from './CreateTimeEntryDialog';
 import { BulkActionsBar } from './BulkActionsBar';
 import { SyncStatusBanner } from './SyncStatusBanner';
 import { ReceiptsList } from './ReceiptsList';
@@ -1069,8 +1069,8 @@ export const MobileTimeTracker: React.FC = () => {
         }}
       />
 
-      {/* Edit Time Entry Modal */}
-      <EditTimeEntryModal
+      {/* Edit Time Entry Dialog */}
+      <EditTimeEntryDialog
         entry={editingEntry}
         open={!!editingEntry}
         onOpenChange={(open) => !open && setEditingEntry(null)}
@@ -1080,8 +1080,8 @@ export const MobileTimeTracker: React.FC = () => {
         }}
       />
 
-      {/* Manual Entry Modal */}
-      <ManualEntryModal
+      {/* Create Time Entry Dialog */}
+      <CreateTimeEntryDialog
         open={showManualEntry}
         onOpenChange={setShowManualEntry}
         onSaved={() => {

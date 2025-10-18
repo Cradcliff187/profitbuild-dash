@@ -100,12 +100,7 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
           ref={ref} 
           className={cn(sheetVariants({ side }), "no-horizontal-scroll pointer-events-auto", className)}
           onPointerDownOutside={(e) => {
-            // On mobile, prevent sheet from closing on any outside click (user must use Cancel/Close button)
-            if (isMobile) {
-              e.preventDefault();
-              return;
-            }
-            // Desktop: Allow dropdowns and pickers to work
+            // Allow dropdowns and pickers to work
             if (isDropdownLikeInteraction(e.target)) {
               e.stopPropagation();
               return;
@@ -113,13 +108,7 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
             props.onPointerDownOutside?.(e);
           }}
           onInteractOutside={(e) => {
-            // On mobile, prevent sheet from closing on any outside interaction (user must use Cancel/Close button)
-            if (isMobile) {
-              e.preventDefault();
-              e.stopPropagation();
-              return;
-            }
-            // Desktop: Allow dropdowns and pickers to work
+            // Allow dropdowns and pickers to work
             if (isDropdownLikeInteraction(e.target)) {
               e.preventDefault();
               e.stopPropagation();
@@ -128,13 +117,7 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
             props.onInteractOutside?.(e);
           }}
           onFocusOutside={(e) => {
-            // On mobile, prevent sheet from closing on focus changes (user must use Cancel/Close button)
-            if (isMobile) {
-              e.preventDefault();
-              e.stopPropagation();
-              return;
-            }
-            // Desktop: Allow dropdowns and pickers to work
+            // Allow dropdowns and pickers to work
             if (isDropdownLikeInteraction(e.target)) {
               e.preventDefault();
               e.stopPropagation();

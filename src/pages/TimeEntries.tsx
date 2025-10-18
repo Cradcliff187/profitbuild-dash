@@ -10,7 +10,7 @@ import { TimeEntryFilters } from "@/types/timeEntry";
 import { TimeEntryFiltersComponent } from "@/components/TimeEntryFilters";
 import { TimeEntryBulkActions } from "@/components/TimeEntryBulkActions";
 import { RejectTimeEntryDialog } from "@/components/RejectTimeEntryDialog";
-import { EditTimeEntryModal } from "@/components/time-tracker/EditTimeEntryModal";
+import { EditTimeEntryDialog } from "@/components/time-tracker/EditTimeEntryDialog";
 import { exportTimeEntriesToCSV } from "@/utils/timeEntryExport";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -399,7 +399,7 @@ const TimeEntries = () => {
       />
 
       {editingEntry && (
-        <EditTimeEntryModal
+        <EditTimeEntryDialog
           entry={editingEntry}
           open={!!editingEntry}
           onOpenChange={(open) => !open && setEditingEntry(null)}

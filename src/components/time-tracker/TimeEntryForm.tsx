@@ -1,27 +1,19 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { NativeSelect } from '@/components/ui/native-select';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-
-interface ManualEntryModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
-}
 
 interface Worker {
   id: string;
   name: string;
   rate: number;
+  email?: string;
 }
 
 interface Project {
@@ -30,26 +22,90 @@ interface Project {
   number: string;
 }
 
-export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryModalProps) => {
-  const isMobile = useIsMobile();
-  
+interface TimeEntryFormProps {
+  workerId: string;
+  setWorkerId: (id: string) => void;
+  projectId: string;
+  setProjectId: (id: string) => void;
+  date: string;
+  setDate: (date: string) => void;
+  startTime: string;
+  setStartTime: (time: string) => void;
+  endTime: string;
+  setEndTime: (time: string) => void;
+  hours: string;
+  setHours: (hours: string) => void;
+  note: string;
+  setNote: (note: string) => void;
+  receiptUrl?: string;
+  onCaptureReceipt?: () => void;
+  onRemoveReceipt?: () => void;
+  disabled?: boolean;
+  showReceipt?: boolean;
+  isMobile?: boolean;
+}
+
+export const TimeEntryForm = ({
+  workerId,
+  setWorkerId,
+  projectId,
+  setProjectId,
+  date,
+  setDate,
+  startTime,
+  setStartTime,
+  endTime,
+  setEndTime,
+  hours,
+  setHours,
+  note,
+  setNote,
+  receiptUrl,
+  onCaptureReceipt,
+  onRemoveReceipt,
+  disabled = false,
+  showReceipt = false,
+  isMobile = false,
+}: TimeEntryFormProps) => {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [workerId, setWorkerId] = useState('');
-  const [projectId, setProjectId] = useState('');
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [startTime, setStartTime] = useState('08:00');
-  const [endTime, setEndTime] = useState('17:00');
-  const [hours, setHours] = useState('8');
-  const [note, setNote] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [signedReceiptUrl, setSignedReceiptUrl] = useState<string>('');
 
   useEffect(() => {
-    if (open) {
-      loadData();
-      resetForm();
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (receiptUrl) {
+      loadSignedUrl();
+    } else {
+      setSignedReceiptUrl('');
     }
-  }, [open]);
+  }, [receiptUrl]);
+
+  const loadSignedUrl = async () => {
+    if (!receiptUrl) return;
+    
+    // If it's already a full URL (old data), use it directly
+    if (receiptUrl.startsWith('http')) {
+      setSignedReceiptUrl(receiptUrl);
+      return;
+    }
+
+    // Otherwise, generate a signed URL for the private bucket
+    try {
+      const { data, error } = await supabase.storage
+        .from('time-tracker-documents')
+        .createSignedUrl(receiptUrl, 3600); // 1 hour expiry
+
+      if (error) throw error;
+      if (data?.signedUrl) {
+        setSignedReceiptUrl(data.signedUrl);
+      }
+    } catch (error) {
+      console.error('Error loading receipt:', error);
+    }
+  };
 
   useEffect(() => {
     if (startTime && endTime) {
@@ -63,10 +119,10 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
   }, [startTime, endTime]);
 
   const loadData = async () => {
-    const [workersRes, projectsRes] = await Promise.all([
+    const [workersRes, projectsRes, userRes] = await Promise.all([
       supabase
         .from('payees')
-        .select('id, payee_name, hourly_rate')
+        .select('id, payee_name, hourly_rate, email')
         .eq('is_internal', true)
         .eq('provides_labor', true)
         .eq('is_active', true)
@@ -77,15 +133,26 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
         .in('status', ['approved', 'in_progress'])
         .neq('project_number', '000-UNASSIGNED')
         .neq('project_number', 'SYS-000')
-        .order('project_number', { ascending: false })
+        .order('project_number', { ascending: false }),
+      supabase.auth.getUser(),
     ]);
     
     if (workersRes.data) {
-      setWorkers(workersRes.data.map(w => ({ 
+      const mappedWorkers = workersRes.data.map(w => ({ 
         id: w.id, 
         name: w.payee_name, 
-        rate: w.hourly_rate || 75 
-      })));
+        rate: w.hourly_rate || 75,
+        email: w.email,
+      }));
+      setWorkers(mappedWorkers);
+
+      // Auto-select current user if they're a worker
+      if (userRes.data?.user?.email && !workerId) {
+        const matchedWorker = mappedWorkers.find(w => w.email === userRes.data.user.email);
+        if (matchedWorker) {
+          setWorkerId(matchedWorker.id);
+        }
+      }
     }
     
     if (projectsRes.data) {
@@ -97,67 +164,8 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
     }
   };
 
-  const resetForm = () => {
-    setWorkerId('');
-    setProjectId('');
-    setDate(format(new Date(), 'yyyy-MM-dd'));
-    setStartTime('08:00');
-    setEndTime('17:00');
-    setHours('8');
-    setNote('');
-  };
-
-  const handleSave = async () => {
-    if (!workerId || !projectId || !date || !hours) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    const hoursNum = parseFloat(hours);
-    if (hoursNum <= 0 || hoursNum > 24) {
-      toast.error('Hours must be between 0 and 24');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const worker = workers.find(w => w.id === workerId);
-      const amount = hoursNum * (worker?.rate || 75);
-      const startDateTime = new Date(`${date}T${startTime}`);
-      const endDateTime = new Date(`${date}T${endTime}`);
-      const description = `${hoursNum} hours${note ? ` - ${note}` : ''}`;
-      
-      const { data: { user } } = await supabase.auth.getUser();
-
-      const { error } = await supabase.from('expenses').insert({
-        payee_id: workerId,
-        project_id: projectId,
-        expense_date: date,
-        amount,
-        description,
-        category: 'labor_internal',
-        transaction_type: 'expense',
-        user_id: user?.id,
-        updated_by: user?.id,
-        start_time: startDateTime.toISOString(),
-        end_time: endDateTime.toISOString(),
-      });
-
-      if (error) throw error;
-      
-      toast.success('Time entry created');
-      onSaved();
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error creating time entry:', error);
-      toast.error('Failed to create time entry');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const FormContent = () => (
-    <div className="space-y-4">
+  return (
+    <div className="space-y-3">
       <div className="flex gap-2">
         <Button 
           type="button" 
@@ -168,6 +176,7 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
             setEndTime('17:00'); 
             setHours('8'); 
           }}
+          disabled={disabled}
         >
           Full Day (8h)
         </Button>
@@ -180,6 +189,7 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
             setEndTime('12:00'); 
             setHours('4'); 
           }}
+          disabled={disabled}
         >
           Half Day (4h)
         </Button>
@@ -192,6 +202,7 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
             setEndTime('17:00'); 
             setHours('10'); 
           }}
+          disabled={disabled}
         >
           Overtime (10h)
         </Button>
@@ -203,6 +214,7 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
           id="worker"
           value={workerId || ""}
           onValueChange={setWorkerId}
+          disabled={disabled}
           className={cn(isMobile && "h-12 text-base")}
         >
           <option value="" disabled>Select team member</option>
@@ -220,6 +232,7 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
           id="project"
           value={projectId || ""}
           onValueChange={setProjectId}
+          disabled={disabled}
           className={cn(isMobile && "h-12 text-base")}
         >
           <option value="" disabled>Select project</option>
@@ -238,6 +251,7 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
+          disabled={disabled}
           className={cn(isMobile && "h-12")}
           style={{ fontSize: isMobile ? '16px' : undefined }}
         />
@@ -251,6 +265,7 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
             type="time"
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
+            disabled={disabled}
             className={cn(isMobile && "h-12")}
             style={{ fontSize: isMobile ? '16px' : undefined }}
           />
@@ -262,6 +277,7 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
             type="time"
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
+            disabled={disabled}
             className={cn(isMobile && "h-12")}
             style={{ fontSize: isMobile ? '16px' : undefined }}
           />
@@ -274,10 +290,11 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
           id="hours"
           type="number"
           step="0.25"
-          min="0"
+          min="0.25"
           max="24"
           value={hours}
           onChange={(e) => setHours(e.target.value)}
+          disabled={disabled}
           className={cn(isMobile && "h-12")}
           style={{ fontSize: isMobile ? '16px' : undefined }}
         />
@@ -290,53 +307,46 @@ export const ManualEntryModal = ({ open, onOpenChange, onSaved }: ManualEntryMod
           value={note}
           onChange={(e) => setNote(e.target.value)}
           rows={2}
+          disabled={disabled}
           placeholder="Optional notes about this time entry"
           style={{ fontSize: isMobile ? '16px' : undefined }}
         />
       </div>
 
-      <div className="flex gap-2 pt-2">
-        <Button 
-          type="button"
-          variant="outline" 
-          onClick={() => onOpenChange(false)} 
-          disabled={loading} 
-          className="flex-1"
-        >
-          Cancel
-        </Button>
-        <Button 
-          type="button"
-          onClick={handleSave} 
-          disabled={loading} 
-          className="flex-1"
-        >
-          {loading ? 'Creating...' : 'Create Entry'}
-        </Button>
-      </div>
+      {showReceipt && (
+        <div>
+          <Label>Receipt</Label>
+          {receiptUrl ? (
+            <div className="flex items-center gap-2 mt-1">
+              {signedReceiptUrl && (
+                <img src={signedReceiptUrl} alt="Receipt" className="h-20 w-20 object-cover rounded border" />
+              )}
+              {onRemoveReceipt && (
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  size="sm" 
+                  onClick={onRemoveReceipt}
+                  disabled={disabled}
+                >
+                  Remove
+                </Button>
+              )}
+            </div>
+          ) : onCaptureReceipt ? (
+            <Button 
+              type="button"
+              variant="outline" 
+              onClick={onCaptureReceipt}
+              disabled={disabled}
+              className="mt-1"
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              Capture Receipt
+            </Button>
+          ) : null}
+        </div>
+      )}
     </div>
-  );
-
-  return isMobile ? (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent 
-        side="bottom" 
-        className="min-h-[80vh] max-h-[90vh] overflow-y-auto p-6"
-      >
-        <SheetHeader className="mb-4">
-          <SheetTitle>Add Time Entry</SheetTitle>
-        </SheetHeader>
-        <FormContent />
-      </SheetContent>
-    </Sheet>
-  ) : (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Add Time Entry</DialogTitle>
-        </DialogHeader>
-        <FormContent />
-      </DialogContent>
-    </Dialog>
   );
 };
