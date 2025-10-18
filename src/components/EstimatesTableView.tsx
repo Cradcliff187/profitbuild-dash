@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Plus, FileText, AlertTriangle } from "lucide-react";
+import { ColumnSelector } from "@/components/ui/column-selector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -27,6 +28,33 @@ interface EstimatesTableViewProps {
 
 export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesTableViewProps) => {
   const [localEstimates, setLocalEstimates] = useState(estimates);
+  
+  // Column visibility state with localStorage persistence
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem('estimates-visible-columns');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    // Default visible columns
+    return [
+      'estimate_number',
+      'version_number',
+      'status',
+      'date_created',
+      'total_amount',
+      'total_cost',
+      'gross_profit',
+      'gross_margin_percent',
+      'markup_percent',
+      'budget_status',
+      'actions'
+    ];
+  });
+
+  // Save visibility to localStorage
+  useEffect(() => {
+    localStorage.setItem('estimates-visible-columns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
 
   // Update local state when estimates prop changes
   React.useEffect(() => {
@@ -105,7 +133,27 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     })
   );
 
-  const columns: FinancialTableColumn<EstimateWithQuotes>[] = [
+  // Define column metadata for selector
+  const columnDefinitions = [
+    { key: 'estimate_number', label: 'Estimate #', required: true },
+    { key: 'version_number', label: 'Version', required: false },
+    { key: 'status', label: 'Status', required: true },
+    { key: 'date_created', label: 'Created', required: false },
+    { key: 'total_amount', label: 'Price', required: true },
+    { key: 'total_cost', label: 'Cost', required: false },
+    { key: 'gross_profit', label: 'Profit', required: false },
+    { key: 'gross_margin_percent', label: 'Margin %', required: false },
+    { key: 'markup_percent', label: 'Markup %', required: false },
+    { key: 'markup_amount', label: 'Markup $', required: false },
+    { key: 'budget_status', label: 'Budget Status', required: false },
+    { key: 'variance', label: 'Quote Variance', required: false },
+    { key: 'contingency', label: 'Contingency %', required: false },
+    { key: 'contingency_amount', label: 'Contingency $', required: false },
+    { key: 'total_with_contingency', label: 'Total w/ Cont.', required: false },
+    { key: 'actions', label: 'Actions', required: true },
+  ];
+
+  const allColumns: FinancialTableColumn<EstimateWithQuotes>[] = [
     {
       key: 'estimate_number',
       label: 'Estimate #',
@@ -377,16 +425,31 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     },
   ];
 
+  // Filter columns based on visibility
+  const columns = allColumns.filter(col => visibleColumns.includes(col.key));
+
   if (localEstimates.length === 0) {
     return (
-      <div className="text-center py-12">
-        <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-        <h3 className="text-lg font-semibold mb-2">No Estimates Yet</h3>
-        <p className="text-muted-foreground mb-6">Create your first estimate to get started.</p>
-        <Button onClick={onCreateNew}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create First Estimate
-        </Button>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            0 estimates
+          </div>
+          <ColumnSelector
+            columns={columnDefinitions}
+            visibleColumns={visibleColumns}
+            onVisibilityChange={setVisibleColumns}
+          />
+        </div>
+        <div className="text-center py-12">
+          <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <h3 className="text-lg font-semibold mb-2">No Estimates Yet</h3>
+          <p className="text-muted-foreground mb-6">Create your first estimate to get started.</p>
+          <Button onClick={onCreateNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create First Estimate
+          </Button>
+        </div>
       </div>
     );
   }
@@ -395,6 +458,17 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          {localEstimates.length} {localEstimates.length === 1 ? 'estimate' : 'estimates'}
+        </div>
+        <ColumnSelector
+          columns={columnDefinitions}
+          visibleColumns={visibleColumns}
+          onVisibilityChange={setVisibleColumns}
+        />
+      </div>
+      
       <EstimatesTable
         data={groupedData}
         columns={columns}
