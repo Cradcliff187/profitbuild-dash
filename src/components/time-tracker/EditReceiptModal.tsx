@@ -321,7 +321,7 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
   );
 
   return isMobile ? (
-    <Sheet open={open} onOpenChange={handleClose}>
+    <Sheet open={open} onOpenChange={(newOpen) => { if (!newOpen) handleClose(); }}>
       <SheetContent 
         side="bottom" 
         className="h-[90dvh] overflow-y-auto p-6 no-horizontal-scroll"
@@ -333,7 +333,7 @@ export function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditRece
       </SheetContent>
     </Sheet>
   ) : (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={(newOpen) => { if (!newOpen) handleClose(); }}>
       <DialogContent 
         className="sm:max-w-md no-horizontal-scroll"
       >
