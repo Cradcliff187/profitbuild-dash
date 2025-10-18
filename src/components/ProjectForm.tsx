@@ -284,7 +284,7 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
               tooltip="Descriptive name for this project"
             />
             
-            <div className="space-y-2">
+            <div className="space-y-1">
                <RequiredLabel>Client</RequiredLabel>
                <ClientSelector
                  value={selectedClientId}
