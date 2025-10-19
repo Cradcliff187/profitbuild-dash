@@ -22,6 +22,21 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useNavigate } from "react-router-dom";
 import { ColumnSelector } from "@/components/ui/column-selector";
 
+// Define column metadata for selector (must be outside component for state initialization)
+const columnDefinitions = [
+  { key: 'worker', label: 'Worker', required: true },
+  { key: 'project', label: 'Project', required: true },
+  { key: 'address', label: 'Project Address', required: false },
+  { key: 'date', label: 'Date', required: true },
+  { key: 'start', label: 'Start Time', required: false },
+  { key: 'end', label: 'End Time', required: false },
+  { key: 'hours', label: 'Hours', required: false },
+  { key: 'amount', label: 'Amount', required: false },
+  { key: 'status', label: 'Status', required: false },
+  { key: 'submitted_at', label: 'Submitted At', required: false },
+  { key: 'actions', label: 'Actions', required: true },
+];
+
 const TimeEntries = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -211,21 +226,6 @@ const TimeEntries = () => {
     }
     return null;
   };
-
-  // Define column metadata for selector
-  const columnDefinitions = [
-    { key: 'worker', label: 'Worker', required: true },
-    { key: 'project', label: 'Project', required: true },
-    { key: 'address', label: 'Project Address', required: false },
-    { key: 'date', label: 'Date', required: true },
-    { key: 'start', label: 'Start Time', required: false },
-    { key: 'end', label: 'End Time', required: false },
-    { key: 'hours', label: 'Hours', required: false },
-    { key: 'amount', label: 'Amount', required: false },
-    { key: 'status', label: 'Status', required: false },
-    { key: 'submitted_at', label: 'Submitted At', required: false },
-    { key: 'actions', label: 'Actions', required: true },
-  ];
 
   return (
     <div className="container mx-auto py-2 space-y-2">
