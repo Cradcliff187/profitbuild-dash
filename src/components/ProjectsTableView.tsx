@@ -229,11 +229,42 @@ export const ProjectsTableView = ({
     switch (status) {
       case 'estimating':
       case 'quoted':
-      case 'approved':
+      case 'approved': {
+        // If start date is in the future - show countdown to start
+        if (start > today) {
+          const daysUntilStart = differenceInDays(start, today);
+          return {
+            display: `Starts in ${daysUntilStart} ${daysUntilStart === 1 ? 'day' : 'days'}`,
+            status: 'planned' as const
+          };
+        }
+        
+        // If start date is today or past - show days remaining to completion
+        const daysRemaining = differenceInDays(end, today);
+        
+        // If past due date
+        if (daysRemaining < 0) {
+          const overdueDays = Math.abs(daysRemaining);
+          return {
+            display: `${overdueDays} ${overdueDays === 1 ? 'day' : 'days'} overdue`,
+            status: 'overdue' as const
+          };
+        }
+        
+        // If within last 20% of schedule - show warning
+        if (daysRemaining <= Math.ceil(totalDays * 0.2)) {
+          return {
+            display: `${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} remaining`,
+            status: 'warning' as const
+          };
+        }
+        
+        // Normal - show days remaining
         return {
-          display: `${totalDays} days planned`,
-          status: 'planned' as const
+          display: `${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} remaining`,
+          status: 'on-track' as const
         };
+      }
       case 'in_progress':
         const daysSinceStart = differenceInDays(today, start) + 1;
         const daysRemaining = differenceInDays(end, today);
@@ -490,7 +521,15 @@ export const ProjectsTableView = ({
             case 'estimating':
             case 'quoted':
             case 'approved':
-              return `${baseText}. Planned duration from start to target completion date.`;
+              if (durationData.status === 'overdue') {
+                return `${baseText}. Approved project is past its target completion date and should be moved to in-progress or reviewed.`;
+              } else if (durationData.status === 'warning') {
+                return `${baseText}. Approved project is nearing its start/completion date.`;
+              } else if (durationData.display.includes('Starts in')) {
+                return `${baseText}. Project is scheduled to begin soon.`;
+              } else {
+                return `${baseText}. Time remaining until target completion date.`;
+              }
             case 'in_progress':
               if (durationData.status === 'overdue') {
                 return `${baseText}. Project is past the original due date.`;
