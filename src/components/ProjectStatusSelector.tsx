@@ -107,19 +107,6 @@ export const ProjectStatusSelector = ({
     return null;
   };
 
-  const getWorkflowGuidance = () => {
-    if (!hasApprovedEstimate && estimateStatus) {
-      const estimateLabel = estimateStatus === 'draft' ? 'draft' : 
-                           estimateStatus === 'sent' ? 'sent to client' : estimateStatus;
-      
-      return (
-        <div className="text-xs text-muted-foreground mt-1">
-          Estimate is {estimateLabel} • Approve estimate first for accurate financials
-        </div>
-      );
-    }
-    return null;
-  };
 
   const handleStatusSelect = (newStatus: ProjectStatus) => {
     if (newStatus === currentStatus) return;
@@ -242,8 +229,6 @@ export const ProjectStatusSelector = ({
             </TooltipContent>
           </Tooltip>
         </div>
-        
-        {getWorkflowGuidance()}
       </div>
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
