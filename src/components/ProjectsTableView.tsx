@@ -550,7 +550,6 @@ export const ProjectsTableView = ({
                   <div className="font-medium text-sm font-mono tabular-nums text-muted-foreground">
                     {formatCurrency(latestEstimate.total_amount)}
                   </div>
-                  <div className="text-xs text-blue-600">Pending approval</div>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
