@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Settings2 } from "lucide-react";
+import { Settings2, GripVertical } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -9,6 +10,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 interface ColumnDefinition {
   key: string;
@@ -20,12 +22,16 @@ interface ColumnSelectorProps {
   columns: ColumnDefinition[];
   visibleColumns: string[];
   onVisibilityChange: (visibleColumns: string[]) => void;
+  columnOrder?: string[];
+  onColumnOrderChange?: (newOrder: string[]) => void;
 }
 
 export function ColumnSelector({
   columns,
   visibleColumns,
   onVisibilityChange,
+  columnOrder = columns.map(c => c.key),
+  onColumnOrderChange,
 }: ColumnSelectorProps) {
   const [open, setOpen] = useState(false);
 
@@ -52,6 +58,21 @@ export function ColumnSelector({
     const requiredColumns = columns.filter(c => c.required).map(c => c.key);
     onVisibilityChange(requiredColumns);
   };
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination || !onColumnOrderChange) return;
+    
+    const items = Array.from(columnOrder);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    
+    onColumnOrderChange(items);
+  };
+
+  // Order columns based on columnOrder array
+  const orderedColumns = columnOrder
+    .map(key => columns.find(c => c.key === key))
+    .filter((col): col is ColumnDefinition => col !== undefined);
 
   const visibleCount = visibleColumns.length;
   const totalCount = columns.length;
@@ -87,38 +108,68 @@ export function ColumnSelector({
           </div>
         </div>
         <Separator className="mb-2" />
-        <div className="space-y-1 max-h-[400px] overflow-y-auto">
-          {columns.map((column) => {
-            const isVisible = visibleColumns.includes(column.key);
-            const isRequired = column.required;
-            
-            return (
-              <div
-                key={column.key}
-                className="flex items-center space-x-2 px-1 py-1.5 hover:bg-muted/50 rounded"
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="columns">
+            {(provided) => (
+              <div 
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="space-y-1 max-h-[400px] overflow-y-auto"
               >
-                <Checkbox
-                  id={`column-${column.key}`}
-                  checked={isVisible}
-                  disabled={isRequired}
-                  onCheckedChange={() => handleToggle(column.key)}
-                  className="h-3 w-3"
-                />
-                <Label
-                  htmlFor={`column-${column.key}`}
-                  className={`text-xs flex-1 cursor-pointer ${
-                    isRequired ? 'text-muted-foreground' : ''
-                  }`}
-                >
-                  {column.label}
-                  {isRequired && (
-                    <span className="ml-1 text-[10px]">(required)</span>
-                  )}
-                </Label>
+                {orderedColumns.map((column, index) => {
+                  const isVisible = visibleColumns.includes(column.key);
+                  const isRequired = column.required;
+                  
+                  return (
+                    <Draggable 
+                      key={column.key} 
+                      draggableId={column.key} 
+                      index={index}
+                      isDragDisabled={!onColumnOrderChange}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className={cn(
+                            "flex items-center space-x-2 px-1 py-1.5 rounded",
+                            snapshot.isDragging ? "bg-muted shadow-lg z-50" : "hover:bg-muted/50"
+                          )}
+                        >
+                          {onColumnOrderChange && (
+                            <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing">
+                              <GripVertical className="h-3 w-3 text-muted-foreground" />
+                            </div>
+                          )}
+                          <Checkbox
+                            id={`column-${column.key}`}
+                            checked={isVisible}
+                            disabled={isRequired}
+                            onCheckedChange={() => handleToggle(column.key)}
+                            className="h-3 w-3"
+                          />
+                          <Label
+                            htmlFor={`column-${column.key}`}
+                            className={cn(
+                              "text-xs flex-1 cursor-pointer",
+                              isRequired && "text-muted-foreground"
+                            )}
+                          >
+                            {column.label}
+                            {isRequired && (
+                              <span className="ml-1 text-[10px]">(required)</span>
+                            )}
+                          </Label>
+                        </div>
+                      )}
+                    </Draggable>
+                  );
+                })}
+                {provided.placeholder}
               </div>
-            );
-          })}
-        </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       </PopoverContent>
     </Popover>
   );

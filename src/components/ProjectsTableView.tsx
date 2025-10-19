@@ -81,10 +81,48 @@ export const ProjectsTableView = ({
     ];
   });
 
+  // Column order state with localStorage persistence
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem('projects-column-order');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    // Default order - all columns in definition order
+    return [
+      'project_number',
+      'status',
+      'start_date',
+      'end_date',
+      'duration',
+      'contracted_amount',
+      'originalContract',
+      'changeOrders',
+      'originalEstimatedCosts',
+      'originalEstimatedMargin',
+      'adjusted_est_costs',
+      'adjusted_margin_dollars',
+      'costToDate',
+      'revenue',
+      'revenueToCost',
+      'marginDollars',
+      'marginPercent',
+      'lineItemCount',
+      'contingencyUsed',
+      'contingencyRemaining',
+      'type',
+      'actions'
+    ];
+  });
+
   // Save visibility to localStorage
   useEffect(() => {
     localStorage.setItem('projects-visible-columns', JSON.stringify(visibleColumns));
   }, [visibleColumns]);
+
+  // Save order to localStorage
+  useEffect(() => {
+    localStorage.setItem('projects-column-order', JSON.stringify(columnOrder));
+  }, [columnOrder]);
 
   const handleViewDetails = (project: Project) => {
     window.location.href = `/projects/${project.id}`;
@@ -1037,8 +1075,12 @@ export const ProjectsTableView = ({
     defaultExpanded: true,
   }));
 
-  // Filter columns based on visibility
-  const columns = allColumns.filter(col => visibleColumns.includes(col.key));
+  // Filter columns based on visibility AND sort by custom order
+  const columns = columnOrder
+    .map(key => allColumns.find(col => col.key === key))
+    .filter((col): col is FinancialTableColumn<ProjectWithFinancials> => 
+      col !== undefined && visibleColumns.includes(col.key)
+    );
 
   const ProjectsTable = FinancialTableTemplate<ProjectWithFinancials>;
 
@@ -1053,6 +1095,8 @@ export const ProjectsTableView = ({
             columns={columnDefinitions}
             visibleColumns={visibleColumns}
             onVisibilityChange={setVisibleColumns}
+            columnOrder={columnOrder}
+            onColumnOrderChange={setColumnOrder}
           />
         </div>
         

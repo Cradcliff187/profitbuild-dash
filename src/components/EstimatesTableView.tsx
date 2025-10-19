@@ -53,10 +53,43 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     ];
   });
 
+  // Column order state with localStorage persistence
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem('estimates-column-order');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    // Default order - all columns in definition order
+    return [
+      'estimate_number',
+      'line_items',
+      'version_number',
+      'status',
+      'date_created',
+      'total_amount',
+      'total_cost',
+      'gross_profit',
+      'gross_margin_percent',
+      'markup_percent',
+      'markup_amount',
+      'budget_status',
+      'variance',
+      'contingency',
+      'contingency_amount',
+      'total_with_contingency',
+      'actions'
+    ];
+  });
+
   // Save visibility to localStorage
   useEffect(() => {
     localStorage.setItem('estimates-visible-columns', JSON.stringify(visibleColumns));
   }, [visibleColumns]);
+
+  // Save order to localStorage
+  useEffect(() => {
+    localStorage.setItem('estimates-column-order', JSON.stringify(columnOrder));
+  }, [columnOrder]);
 
   // Update local state when estimates prop changes
   React.useEffect(() => {
@@ -434,8 +467,12 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     },
   ];
 
-  // Filter columns based on visibility
-  const columns = allColumns.filter(col => visibleColumns.includes(col.key));
+  // Filter columns based on visibility AND sort by custom order
+  const columns = columnOrder
+    .map(key => allColumns.find(col => col.key === key))
+    .filter((col): col is FinancialTableColumn<EstimateWithQuotes> => 
+      col !== undefined && visibleColumns.includes(col.key)
+    );
 
   if (localEstimates.length === 0) {
     return (
@@ -448,6 +485,8 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
             columns={columnDefinitions}
             visibleColumns={visibleColumns}
             onVisibilityChange={setVisibleColumns}
+            columnOrder={columnOrder}
+            onColumnOrderChange={setColumnOrder}
           />
         </div>
         <div className="text-center py-12">
@@ -475,6 +514,8 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
           columns={columnDefinitions}
           visibleColumns={visibleColumns}
           onVisibilityChange={setVisibleColumns}
+          columnOrder={columnOrder}
+          onColumnOrderChange={setColumnOrder}
         />
       </div>
       
