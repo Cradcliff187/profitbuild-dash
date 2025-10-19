@@ -168,6 +168,23 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     const selectedEstimateItems = selectedEstimate!.lineItems.filter(item => 
       selectedLineItemIds.includes(item.id)
     );
+
+    // Validate: prevent internal labor categories from being quoted
+    const internalItems = selectedEstimateItems.filter(item => 
+      item.category === LineItemCategory.LABOR || 
+      item.category === LineItemCategory.MANAGEMENT
+    );
+
+    if (internalItems.length > 0) {
+      const internalNames = internalItems.map(item => item.description).join(', ');
+      toast({
+        title: "Cannot Quote Internal Labor",
+        description: `The following items are internal labor/management and cannot have external vendor quotes: ${internalNames}. Please change their category to Subcontractors first.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     const quoteLineItems = selectedEstimateItems.map(createQuoteLineItemFromEstimate);
     setLineItems(quoteLineItems);
     setShowLineItemSelection(false);
@@ -522,32 +539,55 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
               </div>
               
               <div className="space-y-3">
-                {selectedEstimate.lineItems.map((item) => (
-                  <div key={item.id} className="flex items-center space-x-3 p-3 border rounded-lg">
-                    <Checkbox
-                      checked={selectedLineItemIds.includes(item.id)}
-                      onCheckedChange={() => toggleLineItemSelection(item.id)}
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{item.description}</div>
-                          <div className="text-sm text-muted-foreground">
-                            <span className="inline-flex items-center gap-1">
-                              <Badge variant="outline" className="text-xs">
-                                {CATEGORY_DISPLAY_MAP[item.category]}
-                              </Badge>
-                              {item.quantity} {item.unit || 'units'} × {formatCurrency(item.pricePerUnit)}
-                            </span>
+                {selectedEstimate.lineItems.map((item) => {
+                  const isInternalCategory = item.category === LineItemCategory.LABOR || 
+                                            item.category === LineItemCategory.MANAGEMENT;
+                  
+                  return (
+                    <div 
+                      key={item.id} 
+                      className={cn(
+                        "flex items-center space-x-3 p-3 border rounded-lg",
+                        isInternalCategory && "opacity-50 bg-muted/30"
+                      )}
+                    >
+                      <Checkbox
+                        checked={selectedLineItemIds.includes(item.id)}
+                        onCheckedChange={() => toggleLineItemSelection(item.id)}
+                        disabled={isInternalCategory}
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium">{item.description}</div>
+                            <div className="text-sm text-muted-foreground">
+                              <span className="inline-flex items-center gap-1">
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn(
+                                    "text-xs",
+                                    isInternalCategory && "border-amber-500 text-amber-700 bg-amber-50"
+                                  )}
+                                >
+                                  {CATEGORY_DISPLAY_MAP[item.category]}
+                                </Badge>
+                                {item.quantity} {item.unit || 'units'} × {formatCurrency(item.pricePerUnit)}
+                              </span>
+                              {isInternalCategory && (
+                                <span className="block text-xs text-amber-700 mt-1">
+                                  Cannot quote internal labor - use time entries instead
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">{formatCurrency(item.total)}</div>
+                          <div className="text-right">
+                            <div className="font-medium">{formatCurrency(item.total)}</div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="flex justify-between pt-4">
