@@ -30,13 +30,37 @@ interface EstimatesTableViewProps {
 export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesTableViewProps) => {
   const [localEstimates, setLocalEstimates] = useState(estimates);
   
+  // Define column metadata for selector
+  const columnDefinitions = [
+    { key: 'estimate_number', label: 'Estimate #', required: true },
+    { key: 'line_items', label: 'Line Items', required: false },
+    { key: 'version_number', label: 'Version', required: false },
+    { key: 'status', label: 'Status', required: true },
+    { key: 'date_created', label: 'Created', required: false },
+    { key: 'total_amount', label: 'Price', required: true },
+    { key: 'total_cost', label: 'Cost', required: false },
+    { key: 'gross_profit', label: 'Profit', required: false },
+    { key: 'gross_margin_percent', label: 'Margin %', required: false },
+    { key: 'markup_percent', label: 'Markup %', required: false },
+    { key: 'markup_amount', label: 'Markup $', required: false },
+    { key: 'budget_status', label: 'Budget Status', required: false },
+    { key: 'variance', label: 'Quote Variance', required: false },
+    { key: 'contingency', label: 'Contingency %', required: false },
+    { key: 'contingency_amount', label: 'Contingency $', required: false },
+    { key: 'total_with_contingency', label: 'Total w/ Cont.', required: false },
+    { key: 'actions', label: 'Actions', required: true },
+  ];
+
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem('estimates-visible-columns');
     if (saved) {
-      return JSON.parse(saved);
+      const savedVisible = JSON.parse(saved);
+      // Filter out invalid column keys
+      return savedVisible.filter((key: string) => 
+        columnDefinitions.some(col => col.key === key)
+      );
     }
-    // Default visible columns
     return [
       'estimate_number',
       'line_items',
@@ -57,28 +81,20 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
   const [columnOrder, setColumnOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('estimates-column-order');
     if (saved) {
-      return JSON.parse(saved);
+      const savedOrder = JSON.parse(saved);
+      // Filter out any invalid column keys that no longer exist
+      const validOrder = savedOrder.filter((key: string) => 
+        columnDefinitions.some(col => col.key === key)
+      );
+      // Add any new columns that aren't in saved order
+      const newColumns = columnDefinitions
+        .map(col => col.key)
+        .filter(key => !validOrder.includes(key));
+      
+      return [...validOrder, ...newColumns];
     }
-    // Default order - all columns in definition order
-    return [
-      'estimate_number',
-      'line_items',
-      'version_number',
-      'status',
-      'date_created',
-      'total_amount',
-      'total_cost',
-      'gross_profit',
-      'gross_margin_percent',
-      'markup_percent',
-      'markup_amount',
-      'budget_status',
-      'variance',
-      'contingency',
-      'contingency_amount',
-      'total_with_contingency',
-      'actions'
-    ];
+    // Default: use order from columnDefinitions
+    return columnDefinitions.map(col => col.key);
   });
 
   // Save visibility to localStorage
@@ -167,27 +183,6 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       defaultExpanded: true,
     })
   );
-
-  // Define column metadata for selector
-  const columnDefinitions = [
-    { key: 'estimate_number', label: 'Estimate #', required: true },
-    { key: 'line_items', label: 'Line Items', required: false },
-    { key: 'version_number', label: 'Version', required: false },
-    { key: 'status', label: 'Status', required: true },
-    { key: 'date_created', label: 'Created', required: false },
-    { key: 'total_amount', label: 'Price', required: true },
-    { key: 'total_cost', label: 'Cost', required: false },
-    { key: 'gross_profit', label: 'Profit', required: false },
-    { key: 'gross_margin_percent', label: 'Margin %', required: false },
-    { key: 'markup_percent', label: 'Markup %', required: false },
-    { key: 'markup_amount', label: 'Markup $', required: false },
-    { key: 'budget_status', label: 'Budget Status', required: false },
-    { key: 'variance', label: 'Quote Variance', required: false },
-    { key: 'contingency', label: 'Contingency %', required: false },
-    { key: 'contingency_amount', label: 'Contingency $', required: false },
-    { key: 'total_with_contingency', label: 'Total w/ Cont.', required: false },
-    { key: 'actions', label: 'Actions', required: true },
-  ];
 
   const allColumns: FinancialTableColumn<EstimateWithQuotes>[] = [
     {

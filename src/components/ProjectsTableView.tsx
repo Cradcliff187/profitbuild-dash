@@ -59,11 +59,37 @@ export const ProjectsTableView = ({
 
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
 
+  // Define column metadata for selector
+  const columnDefinitions = [
+    { key: 'project_number', label: 'Project #', required: true },
+    { key: 'status', label: 'Status', required: true },
+    { key: 'start_date', label: 'Start Date', required: false },
+    { key: 'end_date', label: 'Target/End Date', required: false },
+    { key: 'duration', label: 'Schedule', required: false },
+    { key: 'contracted_amount', label: 'Contract Value', required: false },
+    { key: 'originalContract', label: 'Original Contract', required: false },
+    { key: 'changeOrders', label: 'Change Orders', required: false },
+    { key: 'originalEstimatedCosts', label: 'Original Est. Costs', required: false },
+    { key: 'originalEstimatedMargin', label: 'Original Est. Margin ($)', required: false },
+    { key: 'adjusted_est_costs', label: 'Adjusted Est. Costs', required: false },
+    { key: 'cost_variance', label: 'Cost Variance', required: false },
+    { key: 'projected_margin', label: 'Projected Margin ($)', required: false },
+    { key: 'margin_percentage', label: 'Projected Margin %', required: false },
+    { key: 'actual_expenses', label: 'Actual Expenses', required: false },
+    { key: 'line_items', label: 'Line Items', required: false },
+    { key: 'contingency_remaining', label: 'Contingency', required: false },
+    { key: 'actions', label: 'Actions', required: true },
+  ];
+
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem('projects-visible-columns');
     if (saved) {
-      return JSON.parse(saved);
+      const savedVisible = JSON.parse(saved);
+      // Filter out invalid column keys
+      return savedVisible.filter((key: string) => 
+        columnDefinitions.some(col => col.key === key)
+      );
     }
     // Default visible columns
     return [
@@ -74,9 +100,9 @@ export const ProjectsTableView = ({
       'duration',
       'contracted_amount',
       'changeOrders',
-      'revenueToCost',
-      'marginPercent',
-      'marginDollars',
+      'originalEstimatedMargin',
+      'projected_margin',
+      'margin_percentage',
       'actions'
     ];
   });
@@ -85,33 +111,20 @@ export const ProjectsTableView = ({
   const [columnOrder, setColumnOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('projects-column-order');
     if (saved) {
-      return JSON.parse(saved);
+      const savedOrder = JSON.parse(saved);
+      // Filter out any invalid column keys that no longer exist
+      const validOrder = savedOrder.filter((key: string) => 
+        columnDefinitions.some(col => col.key === key)
+      );
+      // Add any new columns that aren't in saved order
+      const newColumns = columnDefinitions
+        .map(col => col.key)
+        .filter(key => !validOrder.includes(key));
+      
+      return [...validOrder, ...newColumns];
     }
-    // Default order - all columns in definition order
-    return [
-      'project_number',
-      'status',
-      'start_date',
-      'end_date',
-      'duration',
-      'contracted_amount',
-      'originalContract',
-      'changeOrders',
-      'originalEstimatedCosts',
-      'originalEstimatedMargin',
-      'adjusted_est_costs',
-      'adjusted_margin_dollars',
-      'costToDate',
-      'revenue',
-      'revenueToCost',
-      'marginDollars',
-      'marginPercent',
-      'lineItemCount',
-      'contingencyUsed',
-      'contingencyRemaining',
-      'type',
-      'actions'
-    ];
+    // Default: use order from columnDefinitions
+    return columnDefinitions.map(col => col.key);
   });
 
   // Save visibility to localStorage
@@ -372,28 +385,6 @@ export const ProjectsTableView = ({
   const hasEstimates = (projectId: string) => {
     return estimates.some(e => e.project_id === projectId);
   };
-
-  // Define column metadata for selector
-  const columnDefinitions = [
-    { key: 'project_number', label: 'Project #', required: true },
-    { key: 'status', label: 'Status', required: true },
-    { key: 'start_date', label: 'Start Date', required: false },
-    { key: 'end_date', label: 'Target/End Date', required: false },
-    { key: 'duration', label: 'Schedule', required: false },
-    { key: 'contracted_amount', label: 'Contract Value', required: false },
-    { key: 'originalContract', label: 'Original Contract', required: false },
-    { key: 'changeOrders', label: 'Change Orders', required: false },
-    { key: 'originalEstimatedCosts', label: 'Original Est. Costs', required: false },
-    { key: 'originalEstimatedMargin', label: 'Original Est. Margin ($)', required: false },
-    { key: 'adjusted_est_costs', label: 'Adjusted Est. Costs', required: false },
-    { key: 'cost_variance', label: 'Cost Variance', required: false },
-    { key: 'projected_margin', label: 'Projected Margin ($)', required: false },
-    { key: 'margin_percentage', label: 'Projected Margin %', required: false },
-    { key: 'actual_expenses', label: 'Actual Expenses', required: false },
-    { key: 'line_items', label: 'Line Items', required: false },
-    { key: 'contingency_remaining', label: 'Contingency', required: false },
-    { key: 'actions', label: 'Actions', required: true },
-  ];
 
   const allColumns: FinancialTableColumn<ProjectWithFinancials>[] = [
     {
