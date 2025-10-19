@@ -58,10 +58,35 @@ const TimeEntries = () => {
     ];
   });
 
+  // Column order state with localStorage persistence
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem('time-entries-column-order');
+    if (saved) {
+      const savedOrder = JSON.parse(saved);
+      // Filter out any invalid column keys
+      const validOrder = savedOrder.filter((key: string) => 
+        columnDefinitions.some(col => col.key === key)
+      );
+      // Add any new columns that aren't in saved order
+      const newColumns = columnDefinitions
+        .map(col => col.key)
+        .filter(key => !validOrder.includes(key));
+      
+      return [...validOrder, ...newColumns];
+    }
+    // Default: use order from columnDefinitions
+    return columnDefinitions.map(col => col.key);
+  });
+
   // Save visibility to localStorage
   useEffect(() => {
     localStorage.setItem('time-entries-visible-columns', JSON.stringify(visibleColumns));
   }, [visibleColumns]);
+
+  // Save column order to localStorage
+  useEffect(() => {
+    localStorage.setItem('time-entries-column-order', JSON.stringify(columnOrder));
+  }, [columnOrder]);
 
   const pagination = usePagination({
     totalItems: 0,
@@ -218,6 +243,8 @@ const TimeEntries = () => {
             columns={columnDefinitions}
             visibleColumns={visibleColumns}
             onVisibilityChange={setVisibleColumns}
+            columnOrder={columnOrder}
+            onColumnOrderChange={setColumnOrder}
           />
           <Button 
             variant="outline" 
@@ -306,17 +333,36 @@ const TimeEntries = () => {
                       onCheckedChange={handleSelectAll}
                     />
                   </TableHead>
-                  {visibleColumns.includes('worker') && <TableHead>Worker</TableHead>}
-                  {visibleColumns.includes('project') && <TableHead>Project</TableHead>}
-                  {visibleColumns.includes('address') && <TableHead>Address</TableHead>}
-                  {visibleColumns.includes('date') && <TableHead>Date</TableHead>}
-                  {visibleColumns.includes('start') && <TableHead>Start</TableHead>}
-                  {visibleColumns.includes('end') && <TableHead>End</TableHead>}
-                  {visibleColumns.includes('hours') && <TableHead className="text-right">Hours</TableHead>}
-                  {visibleColumns.includes('amount') && <TableHead className="text-right">Amount</TableHead>}
-                  {visibleColumns.includes('status') && <TableHead>Status</TableHead>}
-                  {visibleColumns.includes('submitted_at') && <TableHead>Submitted At</TableHead>}
-                  {visibleColumns.includes('actions') && <TableHead className="text-right">Actions</TableHead>}
+                  {columnOrder.map(colKey => {
+                    if (!visibleColumns.includes(colKey)) return null;
+                    
+                    switch (colKey) {
+                      case 'worker':
+                        return <TableHead key={colKey}>Worker</TableHead>;
+                      case 'project':
+                        return <TableHead key={colKey}>Project</TableHead>;
+                      case 'address':
+                        return <TableHead key={colKey}>Address</TableHead>;
+                      case 'date':
+                        return <TableHead key={colKey}>Date</TableHead>;
+                      case 'start':
+                        return <TableHead key={colKey}>Start</TableHead>;
+                      case 'end':
+                        return <TableHead key={colKey}>End</TableHead>;
+                      case 'hours':
+                        return <TableHead key={colKey} className="text-right">Hours</TableHead>;
+                      case 'amount':
+                        return <TableHead key={colKey} className="text-right">Amount</TableHead>;
+                      case 'status':
+                        return <TableHead key={colKey}>Status</TableHead>;
+                      case 'submitted_at':
+                        return <TableHead key={colKey}>Submitted At</TableHead>;
+                      case 'actions':
+                        return <TableHead key={colKey} className="text-right">Actions</TableHead>;
+                      default:
+                        return null;
+                    }
+                  })}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -341,98 +387,127 @@ const TimeEntries = () => {
                           onCheckedChange={(checked) => handleSelectOne(entry.id, checked as boolean)}
                         />
                       </TableCell>
-                      {visibleColumns.includes('worker') && (
-                        <TableCell>
-                          <div className="text-xs font-medium">{entry.worker_name}</div>
-                        </TableCell>
-                      )}
-                      {visibleColumns.includes('project') && (
-                        <TableCell>
-                          <div className="text-xs">
-                            <div className="font-medium">{entry.project_number}</div>
-                            <div className="text-muted-foreground">{entry.project_name}</div>
-                            <div className="text-muted-foreground">{entry.client_name}</div>
-                          </div>
-                        </TableCell>
-                      )}
-                      {visibleColumns.includes('address') && (
-                        <TableCell>
-                          <div className="text-xs text-muted-foreground">
-                            {entry.project_address || '-'}
-                          </div>
-                        </TableCell>
-                      )}
-                      {visibleColumns.includes('date') && (
-                        <TableCell className="text-xs">{format(new Date(entry.expense_date), 'MMM dd, yyyy')}</TableCell>
-                      )}
-                      {visibleColumns.includes('start') && (
-                        <TableCell className="font-mono text-xs">
-                          {entry.start_time ? format(new Date(entry.start_time), 'HH:mm') : '-'}
-                        </TableCell>
-                      )}
-                      {visibleColumns.includes('end') && (
-                        <TableCell className="font-mono text-xs">
-                          {entry.end_time ? format(new Date(entry.end_time), 'HH:mm') : '-'}
-                        </TableCell>
-                      )}
-                      {visibleColumns.includes('hours') && (
-                        <TableCell className="font-mono text-xs text-right">{entry.hours.toFixed(2)}</TableCell>
-                      )}
-                      {visibleColumns.includes('amount') && (
-                        <TableCell className="font-mono text-xs text-right">${entry.amount.toFixed(2)}</TableCell>
-                      )}
-                      {visibleColumns.includes('status') && (
-                        <TableCell>{getStatusBadge(entry.approval_status)}</TableCell>
-                      )}
-                      {visibleColumns.includes('submitted_at') && (
-                        <TableCell className="text-xs">{format(new Date(entry.created_at), 'MMM dd, yyyy HH:mm')}</TableCell>
-                      )}
-                      {visibleColumns.includes('actions') && (
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => setEditingEntry(entry)}
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit Time Entry
-                              </DropdownMenuItem>
-                              {(!entry.approval_status || entry.approval_status === 'pending') && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={() => handleApprove([entry.id])}
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                                    Approve
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedIds([entry.id]);
-                                      setRejectDialogOpen(true);
-                                    }}
-                                  >
-                                    <XCircle className="h-4 w-4 mr-2 text-red-600" />
-                                    Reject
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => navigate(`/projects/${entry.project_id}`)}
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Project
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      )}
+                      {columnOrder.map(colKey => {
+                        if (!visibleColumns.includes(colKey)) return null;
+                        
+                        switch (colKey) {
+                          case 'worker':
+                            return (
+                              <TableCell key={colKey}>
+                                <div className="text-xs font-medium">{entry.worker_name}</div>
+                              </TableCell>
+                            );
+                          case 'project':
+                            return (
+                              <TableCell key={colKey}>
+                                <div className="text-xs">
+                                  <div className="font-medium">{entry.project_number}</div>
+                                  <div className="text-muted-foreground">{entry.project_name}</div>
+                                  <div className="text-muted-foreground">{entry.client_name}</div>
+                                </div>
+                              </TableCell>
+                            );
+                          case 'address':
+                            return (
+                              <TableCell key={colKey}>
+                                <div className="text-xs text-muted-foreground">
+                                  {entry.project_address || '-'}
+                                </div>
+                              </TableCell>
+                            );
+                          case 'date':
+                            return (
+                              <TableCell key={colKey} className="text-xs">
+                                {format(new Date(entry.expense_date), 'MMM dd, yyyy')}
+                              </TableCell>
+                            );
+                          case 'start':
+                            return (
+                              <TableCell key={colKey} className="font-mono text-xs">
+                                {entry.start_time ? format(new Date(entry.start_time), 'HH:mm') : '-'}
+                              </TableCell>
+                            );
+                          case 'end':
+                            return (
+                              <TableCell key={colKey} className="font-mono text-xs">
+                                {entry.end_time ? format(new Date(entry.end_time), 'HH:mm') : '-'}
+                              </TableCell>
+                            );
+                          case 'hours':
+                            return (
+                              <TableCell key={colKey} className="font-mono text-xs text-right">
+                                {entry.hours.toFixed(2)}
+                              </TableCell>
+                            );
+                          case 'amount':
+                            return (
+                              <TableCell key={colKey} className="font-mono text-xs text-right">
+                                ${entry.amount.toFixed(2)}
+                              </TableCell>
+                            );
+                          case 'status':
+                            return (
+                              <TableCell key={colKey}>
+                                {getStatusBadge(entry.approval_status)}
+                              </TableCell>
+                            );
+                          case 'submitted_at':
+                            return (
+                              <TableCell key={colKey} className="text-xs">
+                                {format(new Date(entry.created_at), 'MMM dd, yyyy HH:mm')}
+                              </TableCell>
+                            );
+                          case 'actions':
+                            return (
+                              <TableCell key={colKey}>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={() => setEditingEntry(entry)}
+                                    >
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      Edit Time Entry
+                                    </DropdownMenuItem>
+                                    {(!entry.approval_status || entry.approval_status === 'pending') && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() => handleApprove([entry.id])}
+                                        >
+                                          <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                          Approve
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedIds([entry.id]);
+                                            setRejectDialogOpen(true);
+                                          }}
+                                        >
+                                          <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                                          Reject
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => navigate(`/projects/${entry.project_id}`)}
+                                    >
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      View Project
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            );
+                          default:
+                            return null;
+                        }
+                      })}
                     </TableRow>
                   ))
                 )}
