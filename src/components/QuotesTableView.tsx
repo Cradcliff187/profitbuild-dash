@@ -141,7 +141,7 @@ export const QuotesTableView = ({
     
     if (quote.total < estimate.total_amount) return 'under-budget';
     if (quote.total > estimate.total_amount) return 'over-budget';
-    return 'awaiting-quotes';
+    return 'on-budget';
   };
 
   // Add estimate data to quotes

@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, AlertTriangle, Clock } from "lucide-react";
 
-export type BudgetComparisonStatus = 'under-budget' | 'over-budget' | 'awaiting-quotes';
+export type BudgetComparisonStatus = 'under-budget' | 'over-budget' | 'on-budget' | 'awaiting-quotes';
 
 interface BudgetComparisonBadgeProps {
   status: BudgetComparisonStatus;
@@ -23,6 +23,13 @@ export const BudgetComparisonBadge = ({ status }: BudgetComparisonBadgeProps) =>
           variant: 'destructive' as const,
           className: 'border-red-300 text-red-700',
           icon: AlertTriangle
+        };
+      case 'on-budget':
+        return {
+          text: 'On Budget',
+          variant: 'default' as const,
+          className: 'border-blue-500 text-blue-700 bg-blue-50',
+          icon: CheckCircle
         };
       case 'awaiting-quotes':
         return {
