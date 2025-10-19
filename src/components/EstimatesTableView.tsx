@@ -3,6 +3,7 @@ import { Plus, FileText, AlertTriangle } from "lucide-react";
 import { ColumnSelector } from "@/components/ui/column-selector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { Estimate, EstimateStatus } from "@/types/estimate";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
@@ -38,6 +39,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     // Default visible columns
     return [
       'estimate_number',
+      'line_items',
       'version_number',
       'status',
       'date_created',
@@ -136,6 +138,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
   // Define column metadata for selector
   const columnDefinitions = [
     { key: 'estimate_number', label: 'Estimate #', required: true },
+    { key: 'line_items', label: 'Line Items', required: false },
     { key: 'version_number', label: 'Version', required: false },
     { key: 'status', label: 'Status', required: true },
     { key: 'date_created', label: 'Created', required: false },
@@ -158,28 +161,34 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       key: 'estimate_number',
       label: 'Estimate #',
       align: 'left',
-      width: '160px',
+      width: '140px',
+      render: (estimate) => (
+        <div className="font-mono text-xs text-foreground/80">
+          {estimate.estimate_number}
+        </div>
+      ),
+    },
+    {
+      key: 'line_items',
+      label: 'Line Items',
+      align: 'center',
+      width: '90px',
       render: (estimate) => {
-        const hasLineItems = estimate.lineItems && estimate.lineItems.length > 0;
-        const lineItemCount = estimate.lineItems?.length || 0;
-        const hasAmount = estimate.total_amount > 0;
-        const hasDataIssue = !hasLineItems && hasAmount;
+        const count = estimate.lineItems?.length || 0;
         
         return (
-          <div className="space-y-1">
-            <div className="font-mono text-xs text-foreground/80">
-              {estimate.estimate_number}
-            </div>
-            <Badge 
-              variant="outline" 
-              className={cn(
-                "text-[10px] px-1 py-0 h-4 leading-none",
-                hasDataIssue ? "border-amber-300 text-amber-700" : "border-muted text-muted-foreground"
-              )}
-            >
-              {lineItemCount}
-            </Badge>
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-medium">
+                  {count}
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Total line items in this estimate</p>
+            </TooltipContent>
+          </Tooltip>
         );
       },
     },
