@@ -25,7 +25,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Get authorization header
+    // Get authorization header and decode JWT to extract user ID
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
       return new Response(
@@ -34,24 +34,21 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Create Supabase client with user's token
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Extract JWT token and decode it (verify_jwt=true ensures it's valid)
+    const token = authHeader.replace('Bearer ', '');
+    const [, payloadBase64] = token.split('.');
+    const payload = JSON.parse(atob(payloadBase64));
+    const userId = payload.sub;
 
-    // Get requesting user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error('Auth error:', authError);
+    if (!userId) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Invalid token: missing user ID' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Verify admin role using server-side function
+    // Create service role client for admin operations
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceRole = createClient(
       supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -59,7 +56,7 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     const { data: isAdminData, error: roleError } = await supabaseServiceRole.rpc('has_role', {
-      _user_id: user.id,
+      _user_id: userId,
       _role: 'admin'
     });
 
@@ -186,7 +183,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { error: logError } = await supabaseServiceRole
       .from('admin_actions')
       .insert({
-        admin_user_id: user.id,
+        admin_user_id: userId,
         target_user_id: targetUserId,
         action_type: 'reset_password',
         action_details: {
@@ -200,7 +197,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Don't fail the request if logging fails
     }
 
-    console.log(`Password reset successful for user ${targetUserId} by admin ${user.id}`);
+    console.log(`Password reset successful for user ${targetUserId} by admin ${userId}`);
 
     return new Response(
       JSON.stringify(responseData),
