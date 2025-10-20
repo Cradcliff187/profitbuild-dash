@@ -8,7 +8,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any; mfaRequired?: boolean }>;
   signOut: () => Promise<void>;
 }
 
@@ -103,7 +103,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (error) {
-        // Track failed login attempt
+        // Check if this is an MFA-required error (not a credential failure)
+        const isMfaRequired = error.message?.toLowerCase().includes('mfa') || 
+                             error.message?.toLowerCase().includes('two-factor') ||
+                             error.message?.toLowerCase().includes('aal2') ||
+                             error.message?.includes('factor');
+        
+        if (isMfaRequired) {
+          // Don't count MFA challenges as failed login attempts
+          return { error: null, mfaRequired: true };
+        }
+        
+        // Track failed login attempt for actual credential errors
         const failedAttempts = (profile?.failed_login_attempts || 0) + 1;
         
         if (failedAttempts >= 5) {
@@ -128,6 +139,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         
         return { error };
+      }
+
+      // Check if session requires MFA (AAL level check)
+      if (data?.session) {
+        const aal = (data.session as any).aal;
+        if (aal === 'aal1') {
+          // Session exists but needs MFA upgrade
+          return { error: null, mfaRequired: true };
+        }
       }
 
       // Reset failed login attempts on successful login
