@@ -13,8 +13,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, AlertCircle, Lock, Search, X } from 'lucide-react';
 import CreateUserModal from '@/components/CreateUserModal';
 import ResetPasswordModal from '@/components/ResetPasswordModal';
+import EditProfileModal from '@/components/EditProfileModal';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreVertical } from 'lucide-react';
+import { MoreVertical, UserCog } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -37,6 +38,7 @@ export default function RoleManagement() {
   const [loading, setLoading] = useState(true);
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
@@ -122,6 +124,11 @@ export default function RoleManagement() {
   const openResetPassword = (user: UserWithRoles) => {
     setSelectedUser(user);
     setResetPasswordOpen(true);
+  };
+
+  const openEditProfile = (user: UserWithRoles) => {
+    setSelectedUser(user);
+    setEditProfileOpen(true);
   };
 
   const addRole = async (userId: string, role: AppRole) => {
@@ -457,6 +464,11 @@ export default function RoleManagement() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => openEditProfile(user)} className="text-xs">
+                          <UserCog className="h-3 w-3 mr-2" />
+                          Edit Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => openResetPassword(user)} className="text-xs">
                           <KeyRound className="h-3 w-3 mr-2" />
                           Reset Password
@@ -479,12 +491,20 @@ export default function RoleManagement() {
       />
 
       {selectedUser && (
-        <ResetPasswordModal
-          open={resetPasswordOpen}
-          onOpenChange={setResetPasswordOpen}
-          userId={selectedUser.id}
-          userEmail={selectedUser.email}
-        />
+        <>
+          <ResetPasswordModal
+            open={resetPasswordOpen}
+            onOpenChange={setResetPasswordOpen}
+            userId={selectedUser.id}
+            userEmail={selectedUser.email}
+          />
+          <EditProfileModal
+            open={editProfileOpen}
+            onOpenChange={setEditProfileOpen}
+            user={selectedUser}
+            onSuccess={loadUsers}
+          />
+        </>
       )}
     </div>
   );

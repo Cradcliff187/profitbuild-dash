@@ -29,6 +29,18 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!emailRegex.test(email.trim())) {
+      toast({
+        title: 'Invalid Email',
+        description: 'Please enter a valid email address with a proper domain (e.g., user@example.com)',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setLoading(true);
     setTemporaryPassword('');
 

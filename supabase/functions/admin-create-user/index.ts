@@ -72,6 +72,15 @@ serve(async (req) => {
     const requestData: CreateUserRequest = await req.json();
     const { email, password, fullName, role, mustChangePassword } = requestData;
 
+    // Validate email format server-side
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!emailRegex.test(email)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid email format. Email must include a valid domain (e.g., user@example.com)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Map 'method' from frontend to 'sendInviteEmail' boolean
     const method = (requestData as any).method || requestData.sendInviteEmail;
     const sendInviteEmail = method === 'invite_email' || method === true;
