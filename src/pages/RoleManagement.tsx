@@ -10,10 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, AlertCircle, Lock, Search, X } from 'lucide-react';
+import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, AlertCircle, Lock, Search, X, Trash2 } from 'lucide-react';
 import CreateUserModal from '@/components/CreateUserModal';
 import ResetPasswordModal from '@/components/ResetPasswordModal';
 import EditProfileModal from '@/components/EditProfileModal';
+import { DeleteUserDialog } from '@/components/DeleteUserDialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreVertical, UserCog } from 'lucide-react';
 
@@ -39,6 +40,7 @@ export default function RoleManagement() {
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [deleteUserOpen, setDeleteUserOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
@@ -129,6 +131,11 @@ export default function RoleManagement() {
   const openEditProfile = (user: UserWithRoles) => {
     setSelectedUser(user);
     setEditProfileOpen(true);
+  };
+
+  const openDeleteUser = (user: UserWithRoles) => {
+    setSelectedUser(user);
+    setDeleteUserOpen(true);
   };
 
   const addRole = async (userId: string, role: AppRole) => {
@@ -473,6 +480,14 @@ export default function RoleManagement() {
                           <KeyRound className="h-3 w-3 mr-2" />
                           Reset Password
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => openDeleteUser(user)} 
+                          className="text-xs text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-3 w-3 mr-2" />
+                          Delete User
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -501,6 +516,12 @@ export default function RoleManagement() {
           <EditProfileModal
             open={editProfileOpen}
             onOpenChange={setEditProfileOpen}
+            user={selectedUser}
+            onSuccess={loadUsers}
+          />
+          <DeleteUserDialog
+            open={deleteUserOpen}
+            onOpenChange={setDeleteUserOpen}
             user={selectedUser}
             onSuccess={loadUsers}
           />
