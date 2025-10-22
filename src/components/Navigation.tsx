@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck } from "lucide-react";
+import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -72,6 +72,7 @@ const Navigation = () => {
     { to: "/", label: "Dashboard", icon: Building2, show: hasFinancialAccess },
     { to: "/projects", label: "Projects", icon: Building2, show: hasFinancialAccess },
     { to: "/time-tracker", label: "Time Tracker", icon: Clock, show: true },
+    { to: "/field-media", label: "Field Media", icon: Camera, show: isFieldWorker },
     { to: "/estimates", label: "Estimates", icon: Calculator, show: hasFinancialAccess },
     { to: "/expenses", label: "Expenses", icon: Receipt, show: hasFinancialAccess },
   ].filter(item => item.show);
