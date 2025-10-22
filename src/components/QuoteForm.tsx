@@ -315,6 +315,12 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       return;
     }
 
+    // Optimistic update: Show saving state
+    toast({
+      title: "Saving Quote",
+      description: "Processing quote details...",
+    });
+
     if (lineItems.every(item => !item.description.trim())) {
       toast({
         title: "Missing Line Items",

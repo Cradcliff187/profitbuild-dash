@@ -89,7 +89,12 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
       return;
     }
 
+    // Optimistic update: Show saving state immediately
     setIsLoading(true);
+    toast({
+      title: "Creating Project",
+      description: "Setting up your new project...",
+    });
     
     try {
       // Use RLS to automatically set company_id  

@@ -334,6 +334,12 @@ useEffect(() => {
 
     setIsLoading(true);
     
+    // Optimistic update: Show saving state
+    toast({
+      title: initialEstimate ? "Updating Estimate" : "Creating Estimate",
+      description: "Processing estimate details...",
+    });
+    
     // Get project data to pass project number to estimate generation
     const { data: projectData, error: projectError } = await supabase
       .from('projects')

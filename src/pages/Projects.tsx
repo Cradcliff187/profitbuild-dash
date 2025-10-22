@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Building2, Table, Grid, Plus, ArrowUpAZ, ArrowDownZA } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ProjectForm } from "@/components/ProjectForm";
@@ -523,11 +524,41 @@ const Projects = () => {
       {viewMode === 'list' && (
         <>
           {isLoading ? (
-            <LoadingSpinner 
-              variant="page" 
-              message="Loading projects..." 
-              className="min-h-[400px]" 
-            />
+            <div className="space-y-3">
+              {/* Header Skeleton */}
+              <div className="flex justify-between items-center">
+                <div className="space-y-1">
+                  <div className="h-7 w-32 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-48 bg-muted animate-pulse rounded" />
+                </div>
+                <div className="flex gap-2">
+                  <div className="h-9 w-20 bg-muted animate-pulse rounded" />
+                  <div className="h-9 w-28 bg-muted animate-pulse rounded" />
+                </div>
+              </div>
+
+              {/* Filters Skeleton */}
+              <Card className="compact-card">
+                <CardContent className="p-compact">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div className="h-10 bg-muted animate-pulse rounded" />
+                    <div className="h-10 bg-muted animate-pulse rounded" />
+                    <div className="h-10 bg-muted animate-pulse rounded" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Table Skeleton */}
+              <Card className="compact-card">
+                <CardContent className="p-compact">
+                  <div className="space-y-1">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                      <div key={i} className="h-9 w-full bg-muted animate-pulse rounded" />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           ) : (
             <div className="space-y-3">
               {/* Project Filters */}
