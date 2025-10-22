@@ -24,8 +24,8 @@ export default function ProtectedLayout() {
       if (location.pathname === '/' || location.pathname === '/dashboard') {
         navigate('/time-tracker', { replace: true });
       }
-      // Block access to projects page but allow field-media
-      if (location.pathname.startsWith('/projects') && !location.pathname.startsWith('/field-media')) {
+      // Block access to projects page (field workers use /field-media instead)
+      if (location.pathname.startsWith('/projects')) {
         navigate('/time-tracker', { replace: true });
       }
     }

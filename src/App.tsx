@@ -65,10 +65,13 @@ const App = () => (
                   <Route path="work-orders" element={<LazyRoute component={WorkOrders} />} />
                   <Route path="time-tracker" element={<LazyRoute component={TimeTracker} />} />
                   <Route path="time-entries" element={<LazyRoute component={TimeEntries} />} />
+                  {/* Admin/Manager Project Routes - use :id parameter for consistency with existing routes */}
                   <Route path="projects" element={<Projects />} />
                   <Route path="projects/:id/*" element={<LazyRoute component={ProjectDetail} />} />
                   <Route path="projects/:id/capture" element={<LazyRoute component={FieldPhotoCapture} />} />
                   <Route path="projects/:id/capture-video" element={<LazyRoute component={FieldVideoCapture} />} />
+                  
+                  {/* Field Worker Media Routes - use :projectId parameter for semantic clarity */}
                   <Route path="field-media" element={<LazyRoute component={FieldMedia} />} />
                   <Route path="field-media/:projectId" element={<LazyRoute component={FieldMedia} />} />
                   <Route path="field-media/:projectId/capture" element={<LazyRoute component={FieldPhotoCapture} />} />
