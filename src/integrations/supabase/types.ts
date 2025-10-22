@@ -1393,12 +1393,9 @@ export type Database = {
         Args: { project_id_param: string; project_number_param: string }
         Returns: string
       }
-      get_next_project_number: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_next_project_number: { Args: never; Returns: string }
       get_project_financial_summary: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           accepted_quote_count: number
           actual_margin_percentage: number
@@ -1421,10 +1418,7 @@ export type Database = {
           total_quoted: number
         }[]
       }
-      has_any_role: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      has_any_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1432,10 +1426,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      rollback_cost_migration_final: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      rollback_cost_migration_final: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "manager" | "field_worker"
