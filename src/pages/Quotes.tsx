@@ -9,9 +9,12 @@ import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Quotes = () => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'compare'>('list');
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [filteredQuotes, setFilteredQuotes] = useState<Quote[]>([]);
@@ -542,6 +545,20 @@ const Quotes = () => {
 
   return (
     <div className="space-y-3">
+      {!isMobile && view === 'list' && (
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Quotes</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      )}
+      
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

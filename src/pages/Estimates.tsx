@@ -13,10 +13,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Estimate } from "@/types/estimate";
 import { Plus, BarChart3, Download } from "lucide-react";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view';
 
 const EstimatesPage = () => {
+  const isMobile = useIsMobile();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [filteredEstimates, setFilteredEstimates] = useState<Estimate[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -394,6 +397,20 @@ const EstimatesPage = () => {
 
   return (
     <div className="space-y-4">
+      {!isMobile && viewMode === 'list' && (
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Estimates</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      )}
+      
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-xl font-bold">Estimates</h1>

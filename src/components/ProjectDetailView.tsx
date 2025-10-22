@@ -19,6 +19,8 @@ import { ProjectEditForm } from "@/components/ProjectEditForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Project } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
@@ -36,6 +38,7 @@ export const ProjectDetailView = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const [project, setProject] = useState<ProjectWithFinancials | null>(null);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
@@ -260,15 +263,31 @@ export const ProjectDetailView = () => {
           <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background px-3">
             <SidebarTrigger />
             <Separator orientation="vertical" className="h-6" />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/projects')}
-              className="h-8"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Projects
-            </Button>
+            
+            {!isMobile ? (
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink href="/projects">Projects</BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{project.project_number}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/projects')}
+                className="h-8"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Projects
+              </Button>
+            )}
+            
             <div className="flex-1 min-w-0">
               <h1 className="text-sm font-semibold truncate">{project.project_name}</h1>
               <p className="text-xs text-muted-foreground truncate">
