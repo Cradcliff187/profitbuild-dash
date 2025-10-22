@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export default function FieldMedia() {
-  const { projectId: routeProjectId } = useParams();
+  const { id: routeProjectId } = useParams();
   const navigate = useNavigate();
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(routeProjectId);
 
