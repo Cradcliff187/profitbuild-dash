@@ -104,18 +104,18 @@ export default function FieldMedia() {
               <div className="fixed bottom-20 right-4 flex flex-col gap-2 z-40">
                 <Button
                   size="lg"
-                  className="rounded-full h-14 w-14 shadow-lg"
+                  className="rounded-full h-12 w-12 shadow-lg"
                   onClick={() => navigate(`/field-media/${selectedProjectId}/capture`)}
                 >
-                  <Camera className="h-6 w-6" />
+                  <Camera className="h-5 w-5" />
                 </Button>
                 <Button
                   size="lg"
                   variant="secondary"
-                  className="rounded-full h-14 w-14 shadow-lg"
+                  className="rounded-full h-12 w-12 shadow-lg"
                   onClick={() => navigate(`/field-media/${selectedProjectId}/capture-video`)}
                 >
-                  <Video className="h-6 w-6" />
+                  <Video className="h-5 w-5" />
                 </Button>
               </div>
             </>
