@@ -33,6 +33,7 @@ const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const FieldPhotoCapture = lazy(() => import("./pages/FieldPhotoCapture"));
 const FieldVideoCapture = lazy(() => import("./pages/FieldVideoCapture"));
 const RoleManagement = lazy(() => import("./pages/RoleManagement"));
+const FieldMedia = lazy(() => import("./pages/FieldMedia"));
 
 const queryClient = new QueryClient();
 
@@ -68,8 +69,9 @@ const App = () => (
                   <Route path="projects/:id/*" element={<LazyRoute component={ProjectDetail} />} />
                   <Route path="projects/:id/capture" element={<LazyRoute component={FieldPhotoCapture} />} />
                   <Route path="projects/:id/capture-video" element={<LazyRoute component={FieldVideoCapture} />} />
+                  <Route path="field-media" element={<LazyRoute component={FieldMedia} />} />
+                  <Route path="field-media/:projectId" element={<LazyRoute component={FieldMedia} />} />
                   <Route path="estimates" element={<LazyRoute component={Estimates} />} />
-                  <Route path="quotes" element={<LazyRoute component={Quotes} />} />
                   <Route path="expenses" element={<LazyRoute component={Expenses} />} />
                   <Route path="payees" element={<LazyRoute component={Payees} />} />
                   <Route path="clients" element={<LazyRoute component={Clients} />} />
