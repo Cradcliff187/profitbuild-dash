@@ -103,18 +103,22 @@ const Navigation = () => {
           }`
         }
       >
-      <Icon className="h-4 w-4" />
-      <span>{label}</span>
-    </NavLink>
+        {({ isActive }) => (
+          <>
+            <Icon className="h-4 w-4" aria-hidden="true" />
+            <span>{label}</span>
+          </>
+        )}
+      </NavLink>
   );
 
   return (
-    <nav className="bg-card border-b border-border shadow-sm">
+    <nav className="bg-card border-b border-border shadow-sm" aria-label="Main navigation">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-12">
           {/* Logo */}
           <div className="flex items-center space-x-2">
-            <Building2 className="h-8 w-8 text-primary" />
+            <Building2 className="h-8 w-8 text-primary" aria-hidden="true" />
             <h1 className="text-xl font-bold text-foreground hidden sm:block">
               Construction Profit Tracker
             </h1>

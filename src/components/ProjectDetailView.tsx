@@ -190,10 +190,25 @@ export const ProjectDetailView = () => {
 
     } catch (error) {
       console.error('Error loading project data:', error);
+      
+      const isNetworkError = error instanceof TypeError && 
+                             error.message.includes('fetch');
+      
       toast({
-        title: "Error",
-        description: "Failed to load project data.",
-        variant: "destructive"
+        title: isNetworkError ? "Connection Error" : "Error Loading Data",
+        description: isNetworkError 
+          ? "Please check your internet connection and try again."
+          : "Failed to load project data. If this persists, contact support.",
+        variant: "destructive",
+        action: (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => loadProjectData()}
+          >
+            Retry
+          </Button>
+        )
       });
     } finally {
       setIsLoading(false);

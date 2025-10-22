@@ -153,10 +153,25 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
 
     } catch (error) {
       console.error('Error creating project:', error);
+      
+      const isNetworkError = error instanceof TypeError && 
+                             error.message.includes('fetch');
+      
       toast({
-        title: "Error",
-        description: "Failed to create project. Please try again.",
-        variant: "destructive"
+        title: isNetworkError ? "Connection Error" : "Error Saving Project",
+        description: isNetworkError 
+          ? "Please check your internet connection and try again."
+          : "Failed to save project. If this persists, contact support.",
+        variant: "destructive",
+        action: (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handleSave()}
+          >
+            Retry
+          </Button>
+        )
       });
     } finally {
       setIsLoading(false);

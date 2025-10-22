@@ -168,17 +168,19 @@ export const ProjectsList = ({
 
   if (projects.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-12">
-          <div className="text-center text-muted-foreground">
-            <Building2 className="h-16 w-16 mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-semibold mb-2">No Projects Yet</h3>
-            <p className="mb-4">Create your first project to get started.</p>
-            <Button onClick={onCreateNew}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Project
-            </Button>
+      <Card className="compact-card">
+        <CardContent className="p-6 text-center">
+          <div className="text-muted-foreground mb-4">
+            <Building2 className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p className="text-sm font-medium">No projects found</p>
+            <p className="text-xs mt-1">
+              Create your first project to start tracking construction work
+            </p>
           </div>
+          <Button onClick={onCreateNew} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Create First Project
+          </Button>
         </CardContent>
       </Card>
     );
@@ -204,8 +206,8 @@ export const ProjectsList = ({
                 </div>
                 <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-input-compact w-input-compact p-0">
+                  <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-input-compact w-input-compact p-0" aria-label="Project options">
                         <MoreHorizontal className="h-3 w-3" />
                       </Button>
                     </DropdownMenuTrigger>

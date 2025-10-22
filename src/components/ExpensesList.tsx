@@ -361,6 +361,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
             variant="ghost"
             size="sm"
             className="h-input-compact w-8 p-0"
+            aria-label="Actions menu"
           >
             <MoreHorizontal className="h-4 w-4" />
           </Button>

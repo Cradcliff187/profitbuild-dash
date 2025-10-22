@@ -53,7 +53,7 @@ export const QuoteStatusBadge = ({ status }: QuoteStatusBadgeProps) => {
   const Icon = config.icon;
 
   return (
-    <Badge variant="outline" className={`text-[10px] flex items-center gap-0.5 px-1.5 py-0 h-4 leading-none ${config.className}`}>
+    <Badge variant="outline" className={`compact-badge flex items-center gap-0.5 ${config.className}`}>
       <Icon className="h-2 w-2" />
       {config.text}
     </Badge>

@@ -106,10 +106,25 @@ useEffect(() => {
       setAvailableProjects(formattedProjects);
     } catch (error) {
       console.error('Error loading available projects:', error);
+      
+      const isNetworkError = error instanceof TypeError && 
+                             error.message.includes('fetch');
+      
       toast({
-        title: "Error",
-        description: "Failed to load available projects",
-        variant: "destructive"
+        title: isNetworkError ? "Connection Error" : "Error Loading Projects",
+        description: isNetworkError 
+          ? "Please check your internet connection and try again."
+          : "Failed to load projects. If this persists, contact support.",
+        variant: "destructive",
+        action: (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => loadAvailableProjects()}
+          >
+            Retry
+          </Button>
+        )
       });
     } finally {
       setProjectsLoading(false);

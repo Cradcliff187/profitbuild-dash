@@ -200,13 +200,17 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
 
   if (estimates.length === 0) {
     return (
-      <Card>
-        <CardContent className="text-center py-12">
-          <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-          <h3 className="text-lg font-semibold mb-2">No Estimates Yet</h3>
-          <p className="text-muted-foreground mb-6">Create your first estimate to get started.</p>
-          <Button onClick={onCreateNew}>
-            <Plus className="h-4 w-4 mr-2" />
+      <Card className="compact-card">
+        <CardContent className="p-6 text-center">
+          <div className="text-muted-foreground mb-4">
+            <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p className="text-sm font-medium">No estimates found</p>
+            <p className="text-xs mt-1">
+              Create your first estimate to get started tracking project budgets
+            </p>
+          </div>
+          <Button onClick={onCreateNew} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
             Create First Estimate
           </Button>
         </CardContent>
