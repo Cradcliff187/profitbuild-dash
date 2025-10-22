@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Camera, MapPin, Clock, X, Check, Eye, MessageSquare, RefreshCw, Smartphone, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
+import { useSmartNavigation } from '@/hooks/useSmartNavigation';
 import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { VoiceCaptionModal } from '@/components/VoiceCaptionModal';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
@@ -19,7 +20,7 @@ const DEBUG_ALWAYS_SHOW_PROMPT = false;
 
 export default function FieldPhotoCapture() {
   const { id: projectId } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { navigateToProjectMedia, navigateToProjectDetail } = useSmartNavigation();
   const { capturePhoto, isCapturing } = useCameraCapture();
   const { getLocation, coordinates, isLoading: isLoadingLocation } = useGeolocation();
   const { upload, isUploading, progress } = useProjectMediaUpload(projectId!);
@@ -149,7 +150,7 @@ export default function FieldPhotoCapture() {
 
   const handleUploadAndReview = async () => {
     await handleUploadAndContinue();
-    navigate(`/projects/${projectId}/media`);
+    navigateToProjectMedia(projectId!);
   };
 
   const handleSaveCaption = (caption: string) => {
@@ -233,7 +234,7 @@ export default function FieldPhotoCapture() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate(`/projects/${projectId}`)}
+          onClick={() => navigateToProjectDetail(projectId!)}
           className="h-8"
         >
           <X className="h-4 w-4" />

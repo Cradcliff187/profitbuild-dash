@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { ArrowLeft, Video, Mic, MapPin, Clock, Check, RotateCcw, Smartphone } from 'lucide-react';
+import { useSmartNavigation } from '@/hooks/useSmartNavigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -18,7 +19,7 @@ import { showCaptionPrompt, CAPTION_PROMPTS } from '@/components/CaptionPromptTo
 
 export default function FieldVideoCapture() {
   const { id: projectId } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { navigateToProjectMedia, navigateToProjectDetail } = useSmartNavigation();
   
   const { startRecording, isRecording } = useVideoCapture();
   const { getLocation, coordinates, isLoading: isLoadingLocation } = useGeolocation();
@@ -262,7 +263,7 @@ export default function FieldVideoCapture() {
         duration,
       });
 
-      navigate(`/projects/${projectId}/media`);
+      navigateToProjectMedia(projectId!);
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('Failed to upload video');
@@ -297,7 +298,7 @@ export default function FieldVideoCapture() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/projects/${projectId}`)}
+              onClick={() => navigateToProjectDetail(projectId!)}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
