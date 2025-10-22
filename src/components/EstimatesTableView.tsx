@@ -16,6 +16,7 @@ import {
   getMarginPerformanceStatus, 
   getMarkupPerformanceStatus 
 } from "@/utils/estimateFinancials";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type EstimateWithQuotes = Estimate & { quotes?: Array<{ id: string; total_amount: number; status: string }> };
 
@@ -28,6 +29,7 @@ interface EstimatesTableViewProps {
 }
 
 export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesTableViewProps) => {
+  const isMobile = useIsMobile();
   const [localEstimates, setLocalEstimates] = useState(estimates);
   
   // Define column metadata for selector
@@ -189,9 +191,9 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       key: 'estimate_number',
       label: 'Estimate #',
       align: 'left',
-      width: '140px',
+      width: isMobile ? '140px' : '120px',
       render: (estimate) => (
-        <div className="font-mono text-xs text-foreground/80">
+        <div className={cn("font-mono text-foreground/80", isMobile ? "text-xs" : "text-[11px]")}>
           {estimate.estimate_number}
         </div>
       ),
@@ -275,9 +277,9 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       key: 'total_amount',
       label: 'Price',
       align: 'right',
-      width: '120px',
+      width: isMobile ? '120px' : '100px',
       render: (estimate) => (
-        <div className="font-semibold text-sm font-mono tabular-nums">
+        <div className={cn("font-semibold font-mono tabular-nums", isMobile ? "text-sm" : "text-xs")}>
           {formatCurrency(estimate.total_amount, { showCents: false })}
         </div>
       ),

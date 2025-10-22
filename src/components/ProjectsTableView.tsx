@@ -4,6 +4,7 @@ import { ProjectStatusSelector } from "@/components/ProjectStatusSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,6 +53,7 @@ export const ProjectsTableView = ({
   onCreateNew,
   isLoading = false 
 }: ProjectsTableViewProps) => {
+  const isMobile = useIsMobile();
   const [deleteConfirm, setDeleteConfirm] = useState<{open: boolean; project: Project | null}>({
     open: false,
     project: null
@@ -394,7 +396,7 @@ export const ProjectsTableView = ({
       render: (project) => (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="font-mono text-xs text-foreground/80 cursor-help whitespace-nowrap">
+            <div className={cn("font-mono text-foreground/80 cursor-help whitespace-nowrap", isMobile ? "text-xs" : "text-[11px]")}>
               {project.project_number}
             </div>
           </TooltipTrigger>

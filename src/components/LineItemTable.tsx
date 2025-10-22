@@ -9,7 +9,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { formatQuantityWithUnit } from '@/utils/units';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LineItemTableProps {
   lineItems: LineItem[];
@@ -175,6 +176,7 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
   onEditDetails,
   onDuplicateLineItem,
 }) => {
+  const isMobile = useIsMobile();
   const calculateMarkupPercent = (lineItem: LineItem): number => {
     const { costPerUnit, pricePerUnit } = lineItem;
     if (costPerUnit <= 0) return 0;
@@ -240,21 +242,21 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
         <div className="border rounded-md">
           <Table>
             <TableHeader>
-              <TableRow className="h-table-header">
-                <TableHead className="w-[90px] p-2 text-xs font-medium">Cat</TableHead>
-                <TableHead className="min-w-[200px] p-2 text-xs font-medium">Description</TableHead>
-                <TableHead className="w-[80px] p-2 text-xs font-medium text-right">Qty</TableHead>
-                <TableHead className="w-[70px] p-2 text-xs font-medium">Unit</TableHead>
-                <TableHead className="w-[90px] p-2 text-xs font-medium text-right">Cost/Unit</TableHead>
-                <TableHead className="w-[70px] p-2 text-xs font-medium text-right">Markup%</TableHead>
-                <TableHead className="w-[90px] p-2 text-xs font-medium text-right">Markup $</TableHead>
-                <TableHead className="w-[100px] p-2 text-xs font-medium text-right">Total</TableHead>
-                <TableHead className="w-[40px] p-2"></TableHead>
+              <TableRow className={cn("h-table-header", isMobile ? "bg-muted/30" : "sticky top-0 bg-background z-10")}>
+                <TableHead className={cn("p-2 font-medium", isMobile ? "w-[90px] text-xs" : "w-[80px] text-[11px]")}>Cat</TableHead>
+                <TableHead className={cn("p-2 font-medium", isMobile ? "min-w-[200px] text-xs" : "min-w-[180px] text-[11px]")}>Description</TableHead>
+                <TableHead className={cn("p-2 font-medium text-right", isMobile ? "w-[80px] text-xs" : "w-[70px] text-[11px]")}>Qty</TableHead>
+                <TableHead className={cn("p-2 font-medium", isMobile ? "w-[70px] text-xs" : "w-[60px] text-[11px]")}>Unit</TableHead>
+                <TableHead className={cn("p-2 font-medium text-right", isMobile ? "w-[90px] text-xs" : "w-[80px] text-[11px]")}>Cost/Unit</TableHead>
+                <TableHead className={cn("p-2 font-medium text-right", isMobile ? "w-[70px] text-xs" : "w-[65px] text-[11px]")}>Markup%</TableHead>
+                <TableHead className={cn("p-2 font-medium text-right", isMobile ? "w-[90px] text-xs" : "w-[80px] text-[11px]")}>Markup $</TableHead>
+                <TableHead className={cn("p-2 font-medium text-right", isMobile ? "w-[100px] text-xs" : "w-[90px] text-[11px]")}>Total</TableHead>
+                <TableHead className={cn("p-2", isMobile ? "w-[40px]" : "w-[35px]")}></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {lineItems.map((lineItem) => (
-                <TableRow key={lineItem.id} className="h-[36px] hover:bg-muted/20">
+                <TableRow key={lineItem.id} className={cn("hover:bg-muted/20", isMobile ? "h-[36px]" : "h-[32px]")}>
                   <TableCell className="p-2">
                     <div className="flex items-center gap-1">
                       <div className={`w-1.5 h-1.5 rounded-full ${getCategoryColor(lineItem.category)}`} />

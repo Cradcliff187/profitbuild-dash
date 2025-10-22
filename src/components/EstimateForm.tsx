@@ -22,6 +22,7 @@ import { LineItemTable } from "@/components/LineItemTable";
 import { LineItemDetailModal } from "@/components/LineItemDetailModal";
 import { EstimateStatusActions } from "@/components/EstimateStatusActions";
 import { getRecommendedUnitCodes } from "@/utils/units";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 
 
@@ -34,7 +35,7 @@ interface EstimateFormProps {
 
 export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, onCancel }: EstimateFormProps) => {
   const { toast } = useToast();
-  
+  const isMobile = useIsMobile();
   
   // Form state
   const [projectId, setProjectId] = useState(preselectedProjectId || initialEstimate?.project_id || "");
