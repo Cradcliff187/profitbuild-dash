@@ -2,7 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+/* React-PDF layer styles (must be imported before other CSS) */
+@import 'react-pdf/dist/Page/TextLayer.css';
+@import 'react-pdf/dist/Page/AnnotationLayer.css';
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here.
 All colors MUST be HSL.
 */
 
@@ -485,12 +489,7 @@ textarea:focus-visible {
 
 /* =================================
    PDF.js CANVAS RENDERING & TEXT/ANNOTATION LAYERS
-   (Includes react-pdf CSS imports to fix console warnings)
    ================================= */
-
-/* Import react-pdf required CSS for text and annotation layers */
-@import 'react-pdf/dist/Page/TextLayer.css';
-@import 'react-pdf/dist/Page/AnnotationLayer.css';
 
 .react-pdf__Page {
   margin: 0 auto;
