@@ -104,10 +104,10 @@ export async function uploadProjectMedia(
       };
     }
 
-    // Get signed URL for the uploaded file
+    // Get signed URL for the uploaded file (7 days expiry)
     const { data: signedUrlData } = await supabase.storage
       .from('project-media')
-      .createSignedUrl(uploadData.path, 3600); // 1 hour expiry
+      .createSignedUrl(uploadData.path, 604800); // 7 days expiry
 
     // Generate thumbnail for videos in background (don't await)
     if (fileType === 'video') {
@@ -241,19 +241,19 @@ export async function getProjectMediaList(
       };
     }
 
-    // Generate signed URLs for all media
+    // Generate signed URLs for all media (7 days expiry)
     const mediaWithUrls = await Promise.all(
       (data || []).map(async (media) => {
         const { data: signedUrlData } = await supabase.storage
           .from('project-media')
-          .createSignedUrl(media.file_url, 3600);
+          .createSignedUrl(media.file_url, 604800);
 
         // Get signed URL for thumbnail if it exists
         let thumbnailUrl = media.thumbnail_url;
         if (thumbnailUrl && media.file_type === 'video') {
           const { data: thumbSignedUrl } = await supabase.storage
             .from('project-media-thumbnails')
-            .createSignedUrl(`thumbnails/${media.id}.jpg`, 3600);
+            .createSignedUrl(`thumbnails/${media.id}.jpg`, 604800);
           thumbnailUrl = thumbSignedUrl?.signedUrl || thumbnailUrl;
         }
 
@@ -303,10 +303,10 @@ export async function updateMediaMetadata(
       };
     }
 
-    // Get signed URL
+    // Get signed URL (7 days expiry)
     const { data: signedUrlData } = await supabase.storage
       .from('project-media')
-      .createSignedUrl(data.file_url, 3600);
+      .createSignedUrl(data.file_url, 604800);
 
     return {
       data: {
@@ -320,5 +320,52 @@ export async function updateMediaMetadata(
       data: null,
       error: error as Error,
     };
+  }
+}
+
+/**
+ * Refresh signed URL for a single media item
+ * Used when images fail to load due to expired URLs
+ */
+export async function refreshMediaSignedUrl(
+  mediaId: string
+): Promise<{ signedUrl: string | null; thumbnailUrl: string | null; error: Error | null }> {
+  try {
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) {
+      return { signedUrl: null, thumbnailUrl: null, error: new Error('Not authenticated') };
+    }
+
+    // Fetch the media item to get file paths
+    const { data: media, error: fetchError } = await supabase
+      .from('project_media')
+      .select('file_url, thumbnail_url, file_type, id')
+      .eq('id', mediaId)
+      .single();
+
+    if (fetchError || !media) {
+      return { signedUrl: null, thumbnailUrl: null, error: fetchError || new Error('Media not found') };
+    }
+
+    // Generate new signed URLs (7 days)
+    const { data: signedUrlData } = await supabase.storage
+      .from('project-media')
+      .createSignedUrl(media.file_url, 604800);
+
+    let thumbnailUrl = null;
+    if (media.thumbnail_url && media.file_type === 'video') {
+      const { data: thumbnailUrlData } = await supabase.storage
+        .from('project-media-thumbnails')
+        .createSignedUrl(`thumbnails/${media.id}.jpg`, 604800);
+      thumbnailUrl = thumbnailUrlData?.signedUrl || null;
+    }
+
+    return {
+      signedUrl: signedUrlData?.signedUrl || null,
+      thumbnailUrl,
+      error: null
+    };
+  } catch (error) {
+    return { signedUrl: null, thumbnailUrl: null, error: error as Error };
   }
 }

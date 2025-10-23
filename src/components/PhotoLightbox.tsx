@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { QuickCaptionModal } from './QuickCaptionModal';
 import { MediaCommentsList } from './MediaCommentsList';
 import { MediaCommentForm } from './MediaCommentForm';
+import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 
 interface PhotoLightboxProps {
   photo: ProjectMedia;
@@ -53,6 +54,27 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
     setCurrentPhoto(photo);
   }, [photo]);
 
+  const { handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeGesture({
+    onSwipeLeft: () => hasNext && onNavigate(allPhotos[currentIndex + 1]),
+    onSwipeRight: () => hasPrevious && onNavigate(allPhotos[currentIndex - 1]),
+    minSwipeDistance: 50
+  });
+
+  useEffect(() => {
+    const container = document.getElementById('lightbox-container');
+    if (!container) return;
+
+    container.addEventListener('touchstart', handleTouchStart);
+    container.addEventListener('touchmove', handleTouchMove);
+    container.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+
   const handleDelete = async () => {
     setIsDeleting(true);
     const result = await deleteProjectMedia(currentPhoto.id);
@@ -84,7 +106,7 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
 
   return (
     <>
-      <div className="fixed inset-0 bg-background z-50 flex flex-col overscroll-contain">
+      <div id="lightbox-container" className="fixed inset-0 bg-background z-50 flex flex-col overscroll-contain">
         {/* Header */}
         <div className="flex-shrink-0 flex items-center justify-between p-3 border-b border-border bg-card">
           <Button variant="ghost" size="sm" onClick={onClose} className="h-8">

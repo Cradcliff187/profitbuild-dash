@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
-import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Download, Trash2, Grid3x3, List, SortAsc, CheckSquare, Square, FileImage, FileVideo, FileText, Clock4, X } from 'lucide-react';
+import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Download, Trash2, Grid3x3, List, SortAsc, CheckSquare, Square, FileImage, FileVideo, FileText, Clock4, X, CloudUpload } from 'lucide-react';
 import { useProjectMedia } from '@/hooks/useProjectMedia';
 import { PhotoLightbox } from './PhotoLightbox';
 import { VideoLightbox } from './VideoLightbox';
@@ -18,8 +18,10 @@ import { Alert, AlertDescription } from './ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './ui/tooltip';
 import { toast } from 'sonner';
-import { deleteProjectMedia } from '@/utils/projectMedia';
+import { deleteProjectMedia, refreshMediaSignedUrl } from '@/utils/projectMedia';
 import { formatFileSize, formatDuration } from '@/utils/videoUtils';
+import { getPendingCount } from '@/utils/syncQueue';
+import { useQuery } from '@tanstack/react-query';
 import type { ProjectMedia } from '@/types/project';
 
 type ViewMode = 'grid' | 'list';
@@ -53,6 +55,15 @@ export function ProjectMediaGallery({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showTip, setShowTip] = useState(() => {
     return !localStorage.getItem('media-report-tip-dismissed');
+  });
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const [refreshingImages, setRefreshingImages] = useState<Set<string>>(new Set());
+
+  // Check for pending media uploads in queue
+  const { data: queueCount } = useQuery({
+    queryKey: ['media-queue-count'],
+    queryFn: getPendingCount,
+    refetchInterval: 5000 // Check every 5 seconds
   });
 
   // Filter media by tab
@@ -246,6 +257,38 @@ export function ProjectMediaGallery({
     toast.success('Download complete');
   };
 
+  const handleImageError = async (mediaId: string) => {
+    // Prevent infinite retry loops
+    if (failedImages.has(mediaId)) return;
+    
+    setFailedImages(prev => new Set(prev).add(mediaId));
+    setRefreshingImages(prev => new Set(prev).add(mediaId));
+
+    try {
+      const { signedUrl, thumbnailUrl, error } = await refreshMediaSignedUrl(mediaId);
+      
+      if (error || !signedUrl) {
+        toast.error('Failed to reload image');
+        return;
+      }
+
+      // Trigger a refetch to update all media items with new signed URLs
+      refetch();
+      
+      setFailedImages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(mediaId);
+        return newSet;
+      });
+    } finally {
+      setRefreshingImages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(mediaId);
+        return newSet;
+      });
+    }
+  };
+
   if (isLoading) {
     return <LoadingSpinner variant="spinner" message="Loading media..." />;
   }
@@ -313,6 +356,22 @@ export function ProjectMediaGallery({
               </div>
             </div>
           </Card>
+
+          {/* Queue Status Banner */}
+          {queueCount && queueCount > 0 && (
+            <Alert className="border-primary/50 bg-primary/5">
+              <CloudUpload className="h-4 w-4" />
+              <AlertDescription className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm font-medium">
+                  {queueCount} media {queueCount === 1 ? 'item' : 'items'} pending upload
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Will upload automatically when connection is restored
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* First-Time User Guidance */}
           {showTip && allMedia.length > 0 && (

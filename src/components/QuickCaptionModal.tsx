@@ -6,6 +6,7 @@ import { Sparkles } from 'lucide-react';
 import { AICaptionEnhancer } from '@/components/AICaptionEnhancer';
 import { toast } from 'sonner';
 import type { ProjectMedia } from '@/types/project';
+import { dismissCaptionPrompts } from '@/utils/userPreferences';
 
 interface QuickCaptionModalProps {
   photo: ProjectMedia;
@@ -72,28 +73,42 @@ export function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaption
               </div>
             </div>
 
-            <DialogFooter className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={onClose} className="h-8">
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowAIEnhancer(true)}
-                disabled={!caption.trim()}
-                className="h-8"
+            <DialogFooter className="flex-col gap-2">
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={onClose} className="h-8">
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowAIEnhancer(true)}
+                  disabled={!caption.trim()}
+                  className="h-8"
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Enhance with AI
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={!caption.trim()}
+                  className="h-8"
+                >
+                  Save Caption
+                </Button>
+              </div>
+              <button
+                onClick={async () => {
+                  await dismissCaptionPrompts();
+                  toast.info('Caption prompts disabled', {
+                    description: 'Re-enable in Settings if needed'
+                  });
+                  onClose();
+                }}
+                className="text-xs text-muted-foreground hover:underline mt-1"
               >
-                <Sparkles className="h-3 w-3 mr-1" />
-                Enhance with AI
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={!caption.trim()}
-                className="h-8"
-              >
-                Save Caption
-              </Button>
+                Don't show caption prompts again
+              </button>
             </DialogFooter>
           </>
         ) : (

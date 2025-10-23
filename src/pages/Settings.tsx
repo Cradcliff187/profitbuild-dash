@@ -8,12 +8,16 @@ import { Separator } from "@/components/ui/separator";
 import { Settings as SettingsIcon, User, Bell, Shield, Database } from "lucide-react";
 import { AccountMappingsManager } from "@/components/AccountMappingsManager";
 import { getBudgetAlertThreshold, setBudgetAlertThreshold } from "@/utils/budgetUtils";
+import { getCaptionPreferences, setCaptionPreferences } from "@/utils/userPreferences";
+import { toast } from "sonner";
 
 const Settings = () => {
   const [budgetThreshold, setBudgetThresholdState] = useState<number>(10);
+  const [captionPromptsEnabled, setCaptionPromptsEnabled] = useState<boolean>(true);
 
   useEffect(() => {
     setBudgetThresholdState(getBudgetAlertThreshold());
+    getCaptionPreferences().then(prefs => setCaptionPromptsEnabled(prefs.showCaptionPrompts));
   }, []);
 
   const handleThresholdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,6 +100,24 @@ const Settings = () => {
                 <p className="text-sm text-muted-foreground">Alert when expenses approach budget limits</p>
               </div>
               <Switch defaultChecked />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Caption Prompts</Label>
+                <p className="text-sm text-muted-foreground">Show prompts to add captions when capturing media</p>
+              </div>
+              <Switch
+                checked={captionPromptsEnabled}
+                onCheckedChange={async (checked) => {
+                  await setCaptionPreferences({
+                    showCaptionPrompts: checked,
+                    dismissedAt: checked ? null : Date.now()
+                  });
+                  setCaptionPromptsEnabled(checked);
+                  toast.success(checked ? 'Caption prompts enabled' : 'Caption prompts disabled');
+                }}
+              />
             </div>
           </CardContent>
         </Card>

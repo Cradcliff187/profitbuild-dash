@@ -13,6 +13,7 @@ import { deleteProjectMedia, updateMediaMetadata } from '@/utils/projectMedia';
 import { formatFileSize } from '@/utils/videoUtils';
 import { toast } from 'sonner';
 import type { ProjectMedia } from '@/types/project';
+import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 
 interface VideoLightboxProps {
   video: ProjectMedia;
@@ -113,8 +114,29 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
     link.click();
   };
 
+  const { handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeGesture({
+    onSwipeLeft: handleNext,
+    onSwipeRight: handlePrevious,
+    minSwipeDistance: 50
+  });
+
+  useEffect(() => {
+    const container = document.getElementById('video-lightbox-container');
+    if (!container) return;
+
+    container.addEventListener('touchstart', handleTouchStart);
+    container.addEventListener('touchmove', handleTouchMove);
+    container.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col overscroll-contain">
+    <div id="video-lightbox-container" className="fixed inset-0 z-50 bg-black/95 flex flex-col overscroll-contain">
       {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between p-4 bg-black/50 backdrop-blur">
         <div className="flex items-center gap-3">

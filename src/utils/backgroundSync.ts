@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
-import { getQueue, markAsSynced, markAsFailed, updateOperationStatus, QueuedOperation } from './syncQueue';
+import { getQueue, markAsSynced, markAsFailed, updateOperationStatus, QueuedOperation, base64ToFile } from './syncQueue';
 import { resolveConflict } from './conflictResolution';
+import { uploadProjectMedia } from './projectMedia';
 
 let isProcessing = false;
 
@@ -48,6 +49,9 @@ export const processQueue = async (): Promise<void> => {
           break;
         case 'delete_entry':
           await syncDeleteEntry(operation);
+          break;
+        case 'media_upload':
+          await syncMediaUpload(operation);
           break;
         default:
           console.warn('Unknown operation type:', operation.type);
@@ -130,6 +134,42 @@ const syncDeleteEntry = async (operation: QueuedOperation) => {
     .eq('id', payload.id);
 
   if (error && error.code !== 'PGRST116') {
+    throw error;
+  }
+};
+
+const syncMediaUpload = async (operation: QueuedOperation) => {
+  const { payload } = operation;
+  
+  try {
+    // Convert base64 back to File
+    const file = await base64ToFile(
+      payload.fileData,
+      payload.fileName,
+      payload.fileType
+    );
+    
+    // Use existing projectMedia upload utility
+    const { data, error } = await uploadProjectMedia({
+      file,
+      projectId: payload.projectId,
+      caption: payload.caption,
+      description: payload.description,
+      latitude: payload.latitude,
+      longitude: payload.longitude,
+      locationName: payload.locationName,
+      altitude: payload.altitude,
+      deviceModel: payload.deviceModel,
+      takenAt: payload.takenAt,
+      uploadSource: payload.uploadSource,
+      duration: payload.duration,
+    });
+    
+    if (error) throw error;
+    
+    console.log('📸 Media synced:', data?.id);
+  } catch (error) {
+    console.error('Failed to sync media:', error);
     throw error;
   }
 };

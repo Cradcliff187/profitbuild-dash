@@ -14,6 +14,7 @@ import { isWebPlatform, isIOSPWA } from '@/utils/platform';
 import { toast } from 'sonner';
 import { showCaptionPrompt, CAPTION_PROMPTS } from '@/components/CaptionPromptToast';
 import type { ProjectMedia } from '@/types/project';
+import { getCaptionPreferences } from '@/utils/userPreferences';
 
 // Debug mode: set to true to always show caption prompts (helpful for testing)
 const DEBUG_ALWAYS_SHOW_PROMPT = false;
@@ -64,7 +65,13 @@ export default function FieldPhotoCapture() {
         toast.success(`Photo captured with GPS accuracy ±${freshCoords.accuracy.toFixed(0)}m`);
         
         // Smart caption prompt (3-second delay so GPS toast shows first)
-        setTimeout(() => {
+        setTimeout(async () => {
+          // Check user preferences
+          const prefs = await getCaptionPreferences();
+          if (!prefs.showCaptionPrompts && !DEBUG_ALWAYS_SHOW_PROMPT) {
+            return; // User has disabled prompts
+          }
+
           // Only show on first 3 captures (unless debugging)
           if (DEBUG_ALWAYS_SHOW_PROMPT || newCaptureCount <= 3) {
             const message = newCaptureCount === 1 

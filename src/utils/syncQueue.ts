@@ -2,7 +2,7 @@ import localforage from 'localforage';
 
 export interface QueuedOperation {
   id: string;
-  type: 'clock_in' | 'clock_out' | 'edit_entry' | 'delete_entry';
+  type: 'clock_in' | 'clock_out' | 'edit_entry' | 'delete_entry' | 'media_upload';
   timestamp: number;
   payload: any;
   retryCount: number;
@@ -110,4 +110,61 @@ export const processQueue = async (): Promise<void> => {
   // This function is implemented in backgroundSync.ts to avoid circular dependency
   // Import and call from backgroundSync instead
   console.warn('processQueue called from syncQueue - should be called from backgroundSync');
+};
+
+// Helper functions for file conversion
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+  });
+};
+
+export const base64ToFile = async (
+  base64: string,
+  fileName: string,
+  mimeType: string
+): Promise<File> => {
+  const response = await fetch(base64);
+  const blob = await response.blob();
+  return new File([blob], fileName, { type: mimeType });
+};
+
+export const addMediaToQueue = async (
+  file: File,
+  metadata: {
+    projectId: string;
+    caption?: string;
+    description?: string;
+    latitude?: number;
+    longitude?: number;
+    locationName?: string;
+    altitude?: number;
+    deviceModel?: string;
+    takenAt?: string;
+    uploadSource?: 'camera' | 'gallery' | 'web';
+    duration?: number;
+  }
+): Promise<string> => {
+  // Convert File to base64 for storage in IndexedDB
+  const base64 = await fileToBase64(file);
+  
+  const operation: Omit<QueuedOperation, 'id' | 'retryCount' | 'status'> = {
+    type: 'media_upload',
+    timestamp: Date.now(),
+    payload: {
+      fileData: base64,
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      ...metadata
+    }
+  };
+  
+  await addToQueue(operation);
+  const queue = await getQueue();
+  const queuedOp = queue.find(op => op.timestamp === operation.timestamp && op.type === 'media_upload');
+  return queuedOp?.id || crypto.randomUUID();
 };
