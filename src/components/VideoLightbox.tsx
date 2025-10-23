@@ -138,10 +138,10 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
 
         <div className="flex items-center gap-2">
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={handleDownload}
-            className="gap-1.5"
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20 gap-1.5"
           >
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Download</span>
@@ -300,19 +300,14 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
             <AlertDialogDescription className="space-y-2">
               {currentVideo.caption && (
                 <p className="font-medium text-foreground">
-                  "{currentVideo.caption}"
+                  {currentVideo.caption}
                 </p>
               )}
-              <p className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded inline-block">
-                ⚠️ This action cannot be undone
-              </p>
-              <p>
-                This video will be permanently removed from the project and cannot be recovered.
-              </p>
+              <p>This video will be permanently removed from the project and cannot be recovered.</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}

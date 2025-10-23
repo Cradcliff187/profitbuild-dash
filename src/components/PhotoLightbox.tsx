@@ -93,7 +93,7 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
           <div className="text-sm text-muted-foreground">
             {currentIndex + 1} of {allPhotos.length}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <Button
               variant="outline"
               size="sm"
@@ -202,19 +202,14 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
             <AlertDialogDescription className="space-y-2">
               {currentPhoto.caption && (
                 <p className="font-medium text-foreground">
-                  "{currentPhoto.caption}"
+                  {currentPhoto.caption}
                 </p>
               )}
-              <p className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded inline-block">
-                ⚠️ This action cannot be undone
-              </p>
-              <p>
-                This photo will be permanently removed from the project and cannot be recovered.
-              </p>
+              <p>This photo will be permanently removed from the project and cannot be recovered.</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
