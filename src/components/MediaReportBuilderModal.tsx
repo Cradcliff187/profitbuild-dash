@@ -134,6 +134,7 @@ export function MediaReportBuilderModal({
         // Store blob and open preview modal
         setPreviewBlob(result.blob);
         setShowPreviewModal(true);
+        onOpenChange(false); // Close builder modal before showing preview
         toast.success('Preview ready');
       } else {
         // Auto-download
@@ -416,23 +417,21 @@ export function MediaReportBuilderModal({
       </DialogContent>
     </Dialog>
 
-    <PdfPreviewModal
-      open={showPreviewModal}
-      onOpenChange={(open) => {
-        setShowPreviewModal(open);
-        if (!open) {
-          setPreviewBlob(null);
-          onComplete();
-          onOpenChange(false);
-        }
-      }}
-      pdfBlob={previewBlob}
-      fileName={generatePDFFileName({
-        projectName,
-        projectNumber,
-        itemCount: selectedMedia.length,
-      })}
-    />
+        <PdfPreviewModal
+          open={showPreviewModal}
+          onOpenChange={(open) => {
+            setShowPreviewModal(open);
+            if (!open) {
+              setPreviewBlob(null);
+            }
+          }}
+          pdfBlob={previewBlob}
+          fileName={generatePDFFileName({
+            projectName,
+            projectNumber,
+            itemCount: selectedMedia.length,
+          })}
+        />
     </>
   );
 }
