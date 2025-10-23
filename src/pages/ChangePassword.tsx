@@ -13,7 +13,6 @@ import { Lock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const changePasswordSchema = z.object({
-  currentPassword: z.string().min(6, 'Current password required'),
   newPassword: z.string().min(8, 'New password must be at least 8 characters'),
   confirmPassword: z.string(),
 }).refine((data) => data.newPassword === data.confirmPassword, {
@@ -31,7 +30,6 @@ export default function ChangePassword() {
   const form = useForm<ChangePasswordFormData>({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: {
-      currentPassword: '',
       newPassword: '',
       confirmPassword: '',
     },
@@ -86,26 +84,11 @@ export default function ChangePassword() {
             Change Your Password
           </CardTitle>
           <CardDescription>
-            You must change your password before continuing
+            Please set a new permanent password
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-6">
-            <div>
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                placeholder="Enter your current password"
-                {...form.register('currentPassword')}
-              />
-              {form.formState.errors.currentPassword && (
-                <p className="text-sm text-destructive mt-1">
-                  {form.formState.errors.currentPassword.message}
-                </p>
-              )}
-            </div>
-
             <div>
               <Label htmlFor="newPassword">New Password</Label>
               <Input

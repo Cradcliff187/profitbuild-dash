@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRoles } from '@/contexts/RoleContext';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import Navigation from './Navigation';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function ProtectedLayout() {
   const { user, loading: authLoading } = useAuth();
@@ -16,6 +17,25 @@ export default function ProtectedLayout() {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
+
+  // Check if user must change password
+  useEffect(() => {
+    const checkPasswordChange = async () => {
+      if (!authLoading && user && location.pathname !== '/change-password') {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('must_change_password')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.must_change_password) {
+          navigate('/change-password', { replace: true });
+        }
+      }
+    };
+
+    checkPasswordChange();
+  }, [user, authLoading, location.pathname, navigate]);
 
   // Redirect field workers from dashboard/projects to time tracker
   useEffect(() => {

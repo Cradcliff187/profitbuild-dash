@@ -76,10 +76,21 @@ Deno.serve(async (req) => {
       userId = data.user.id;
 
       // Set must_change_password flag
-      await supabaseAdmin
+      const { error: profileError } = await supabaseAdmin
         .from('profiles')
         .update({ must_change_password: true })
         .eq('id', userId);
+
+      console.log('Must change password flag set for user:', userId);
+
+      // Verify it was set
+      const { data: verifyProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('must_change_password')
+        .eq('id', userId)
+        .single();
+
+      console.log('Verified must_change_password:', verifyProfile?.must_change_password);
 
       console.log('User created with temp password:', userId);
 
