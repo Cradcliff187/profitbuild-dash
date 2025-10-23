@@ -62,11 +62,32 @@ export function PdfPreviewModal({
         
         <div className="flex-1 overflow-hidden">
           {objectUrl ? (
-            <iframe
-              src={objectUrl}
-              className="w-full h-full border-0"
-              title="PDF Preview"
-            />
+            <object
+              data={objectUrl}
+              type="application/pdf"
+              className="w-full h-full"
+              aria-label="PDF Preview"
+            >
+              <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
+                <FileText className="h-12 w-12 text-muted-foreground" />
+                <p className="text-sm font-medium">Unable to display PDF preview</p>
+                <p className="text-xs text-muted-foreground text-center max-w-md">
+                  Your browser doesn't support inline PDF viewing. Please download the file to view it.
+                </p>
+                <Button
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = objectUrl;
+                    a.download = fileName;
+                    a.click();
+                    toast.success('PDF downloaded');
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
+                </Button>
+              </div>
+            </object>
           ) : (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
