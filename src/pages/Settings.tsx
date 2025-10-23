@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,16 +10,93 @@ import { Settings as SettingsIcon, User, Bell, Shield, Database } from "lucide-r
 import { AccountMappingsManager } from "@/components/AccountMappingsManager";
 import { getBudgetAlertThreshold, setBudgetAlertThreshold } from "@/utils/budgetUtils";
 import { getCaptionPreferences, setCaptionPreferences } from "@/utils/userPreferences";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Settings = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  // Profile state
+  const [loading, setLoading] = useState(true);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [originalFirstName, setOriginalFirstName] = useState("");
+  const [originalLastName, setOriginalLastName] = useState("");
+  
+  // Preferences state
   const [budgetThreshold, setBudgetThresholdState] = useState<number>(10);
   const [captionPromptsEnabled, setCaptionPromptsEnabled] = useState<boolean>(true);
 
+  // Track if profile has changes
+  const hasProfileChanges = firstName !== originalFirstName || lastName !== originalLastName;
+
   useEffect(() => {
+    fetchProfileData();
     setBudgetThresholdState(getBudgetAlertThreshold());
     getCaptionPreferences().then(prefs => setCaptionPromptsEnabled(prefs.showCaptionPrompts));
-  }, []);
+  }, [user]);
+
+  const fetchProfileData = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      // Split full_name into firstName and lastName
+      const nameParts = (data?.full_name || '').split(' ');
+      const first = nameParts[0] || '';
+      const last = nameParts.slice(1).join(' ') || '';
+      
+      setFirstName(first);
+      setLastName(last);
+      setOriginalFirstName(first);
+      setOriginalLastName(last);
+      setEmail(data?.email || user.email || '');
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      toast.error('Failed to load profile data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: fullName })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setOriginalFirstName(firstName);
+      setOriginalLastName(lastName);
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    }
+  };
+
+  const handleCancel = () => {
+    setFirstName(originalFirstName);
+    setLastName(originalLastName);
+    toast.info('Changes discarded');
+  };
 
   const handleThresholdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
@@ -51,20 +129,35 @@ const Settings = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" placeholder="Enter first name" />
+                <Input 
+                  id="firstName" 
+                  placeholder="Enter first name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  disabled={loading}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" placeholder="Enter last name" />
+                <Input 
+                  id="lastName" 
+                  placeholder="Enter last name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  disabled={loading}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="Enter email address" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company">Company</Label>
-              <Input id="company" placeholder="Enter company name" />
+              <Input 
+                id="email" 
+                type="email" 
+                value={email}
+                disabled
+                className="bg-muted cursor-not-allowed"
+              />
+              <p className="text-xs text-muted-foreground">Email cannot be changed</p>
             </div>
           </CardContent>
         </Card>
@@ -78,30 +171,6 @@ const Settings = () => {
             <CardDescription>Configure your notification preferences</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Email Notifications</Label>
-                <p className="text-sm text-muted-foreground">Receive email updates about your projects</p>
-              </div>
-              <Switch />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Project Alerts</Label>
-                <p className="text-sm text-muted-foreground">Get notified about project milestones</p>
-              </div>
-              <Switch />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Budget Warnings</Label>
-                <p className="text-sm text-muted-foreground">Alert when expenses approach budget limits</p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-            <Separator />
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Caption Prompts</Label>
@@ -131,23 +200,6 @@ const Settings = () => {
             <CardDescription>Manage data imports and synchronization</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Auto-sync QuickBooks</Label>
-                <p className="text-sm text-muted-foreground">Automatically import transactions from QuickBooks</p>
-              </div>
-              <Switch />
-            </div>
-            <Separator />
-            <div className="space-y-2">
-              <Label>Default Project Category</Label>
-              <Input placeholder="e.g., Construction, Renovation" />
-            </div>
-            <div className="space-y-2">
-              <Label>Default Currency</Label>
-              <Input placeholder="USD" defaultValue="USD" />
-            </div>
-            <Separator />
             <div className="space-y-2">
               <Label htmlFor="budgetThreshold">Budget Alert Threshold (%)</Label>
               <Input 
@@ -177,27 +229,31 @@ const Settings = () => {
             </CardTitle>
             <CardDescription>Manage your account security settings</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Button variant="outline" className="w-full">
+          <CardContent>
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => navigate('/change-password')}
+            >
               Change Password
             </Button>
-            <Button variant="outline" className="w-full">
-              Enable Two-Factor Authentication
-            </Button>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Session Timeout</Label>
-                <p className="text-sm text-muted-foreground">Automatically log out after inactivity</p>
-              </div>
-              <Switch defaultChecked />
-            </div>
           </CardContent>
         </Card>
 
         <div className="flex justify-end space-x-2">
-          <Button variant="outline">Cancel</Button>
-          <Button>Save Changes</Button>
+          <Button 
+            variant="outline"
+            onClick={handleCancel}
+            disabled={!hasProfileChanges || loading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSaveProfile}
+            disabled={!hasProfileChanges || loading}
+          >
+            Save Changes
+          </Button>
         </div>
       </div>
     </div>
