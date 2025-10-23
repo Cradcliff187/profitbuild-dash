@@ -8,3 +8,9 @@ verify_jwt = true
 
 [functions.admin-delete-user]
 verify_jwt = true
+
+[functions.admin-create-user]
+verify_jwt = true
+
+[functions.admin-reset-password]
+verify_jwt = true
