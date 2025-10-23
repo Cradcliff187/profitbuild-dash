@@ -14,6 +14,7 @@ import { Checkbox } from './ui/checkbox';
 import { toast } from 'sonner';
 import { generateMediaReportPDF } from '@/utils/mediaReportPdfGenerator';
 import { generatePDFFileName, estimatePDFSize } from '@/utils/pdfHelpers';
+import { PdfPreviewModal } from './PdfPreviewModal';
 import type { ProjectMedia } from '@/types/project';
 
 interface MediaComment {
@@ -54,6 +55,8 @@ export function MediaReportBuilderModal({
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [aggregateComments, setAggregateComments] = useState(false);
   const [storyFormat, setStoryFormat] = useState(false);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const photoCount = selectedMedia.filter(m => m.file_type === 'image').length;
   const videoCount = selectedMedia.filter(m => m.file_type === 'video').length;
@@ -124,25 +127,26 @@ export function MediaReportBuilderModal({
         itemCount: selectedMedia.length,
       });
 
-      const url = URL.createObjectURL(result.blob);
-
       if (preview) {
-        // Open in new tab for preview
-        window.open(url, '_blank');
-        toast.success('Preview opened in new tab');
+        // Store blob and open preview modal
+        setPreviewBlob(result.blob);
+        setShowPreviewModal(true);
+        toast.success('Preview ready');
       } else {
         // Auto-download
+        const url = URL.createObjectURL(result.blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        URL.revokeObjectURL(url);
         
         toast.success(`PDF generated: ${fileName}`);
+        onComplete();
+        onOpenChange(false);
       }
-
-      URL.revokeObjectURL(url);
 
       // Show warning if any items failed
       if (result.stats.failed > 0) {
@@ -153,9 +157,6 @@ export function MediaReportBuilderModal({
           }
         );
       }
-
-      onComplete();
-      onOpenChange(false);
     } catch (error) {
       console.error('PDF generation failed:', error);
       toast.error('Failed to generate PDF. Please try again.');
@@ -166,6 +167,7 @@ export function MediaReportBuilderModal({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
@@ -386,5 +388,24 @@ export function MediaReportBuilderModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <PdfPreviewModal
+      open={showPreviewModal}
+      onOpenChange={(open) => {
+        setShowPreviewModal(open);
+        if (!open) {
+          setPreviewBlob(null);
+          onComplete();
+          onOpenChange(false);
+        }
+      }}
+      pdfBlob={previewBlob}
+      fileName={generatePDFFileName({
+        projectName,
+        projectNumber,
+        itemCount: selectedMedia.length,
+      })}
+    />
+    </>
   );
 }
