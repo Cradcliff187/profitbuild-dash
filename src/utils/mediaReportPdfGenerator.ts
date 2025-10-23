@@ -708,8 +708,6 @@ export async function generateMediaReportPDF(options: MediaReportOptions): Promi
   doc.text(`Generated: ${format(new Date(), 'MMM d, yyyy h:mm a')}`, MARGIN, y);
   y += 10;
   doc.text(`Total Media: ${mediaItems.length} items (${photoCount} photos, ${videoCount} videos)`, MARGIN, y);
-  y += 10;
-  doc.text(`Total Size: ${formatFileSize(totalSize)}`, MARGIN, y);
 
   // === MEDIA PAGES ===
   for (let i = 0; i < mediaItems.length; i++) {
@@ -808,18 +806,7 @@ export async function generateMediaReportPDF(options: MediaReportOptions): Promi
         metaY += 6;
       }
 
-      // File details
-      const fileDetails = [];
-      if (media.file_name) {
-        fileDetails.push(media.file_name);
-      }
-      if (media.file_size) {
-        fileDetails.push(formatFileSize(media.file_size));
-      }
-      if (fileDetails.length > 0) {
-        doc.text(`File: ${fileDetails.join(' - ')}`, MARGIN, metaY);
-        metaY += 6;
-      }
+      // File details removed - not needed in reports
 
       // Render comments for this media (if not aggregating)
       if (!aggregateComments && comments.has(media.id)) {
