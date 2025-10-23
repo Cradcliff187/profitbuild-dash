@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
-import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Download, Trash2, Grid3x3, List, SortAsc, CheckSquare, Square, FileImage, FileVideo, FileText, Clock4, X, CloudUpload } from 'lucide-react';
+import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Download, Trash2, Grid3x3, List, SortAsc, CheckSquare, Square, FileImage, FileVideo, FileText, Clock4, X, CloudUpload, MoreVertical, Check } from 'lucide-react';
 import { useProjectMedia } from '@/hooks/useProjectMedia';
 import { PhotoLightbox } from './PhotoLightbox';
 import { VideoLightbox } from './VideoLightbox';
@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription } from './ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './ui/tooltip';
 import { toast } from 'sonner';
 import { deleteProjectMedia, refreshMediaSignedUrl } from '@/utils/projectMedia';
@@ -479,7 +480,7 @@ export function ProjectMediaGallery({
                           setShowReportModal(true);
                         }
                       }}
-                      className="h-8"
+                      className="h-8 px-3"
                     >
                       <FileText className="h-4 w-4 mr-1" />
                       <span className="hidden sm:inline">Generate Report</span>
@@ -501,32 +502,96 @@ export function ProjectMediaGallery({
                   </TooltipContent>
                 </Tooltip>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
-                      <SelectTrigger className="w-[140px] h-8">
-                        <SortAsc className="h-4 w-4 mr-1" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="date-desc">Newest First</SelectItem>
-                        <SelectItem value="date-asc">Oldest First</SelectItem>
-                        {activeTab !== 'photos' && (
-                          <>
-                            <SelectItem value="duration-desc">Longest First</SelectItem>
-                            <SelectItem value="duration-asc">Shortest First</SelectItem>
-                          </>
-                        )}
-                        <SelectItem value="caption">By Caption</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Sort media items</p>
-                  </TooltipContent>
-                </Tooltip>
+                {/* Mobile Overflow Menu - Only on small screens */}
+                <div className="sm:hidden">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 px-2">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>View Options</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      
+                      {/* Sort Options */}
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <SortAsc className="h-4 w-4 mr-2" />
+                          Sort
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem onClick={() => setSortBy('date-desc')}>
+                            Newest First
+                            {sortBy === 'date-desc' && <Check className="h-4 w-4 ml-auto" />}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setSortBy('date-asc')}>
+                            Oldest First
+                            {sortBy === 'date-asc' && <Check className="h-4 w-4 ml-auto" />}
+                          </DropdownMenuItem>
+                          {activeTab !== 'photos' && (
+                            <>
+                              <DropdownMenuItem onClick={() => setSortBy('duration-desc')}>
+                                Longest First
+                                {sortBy === 'duration-desc' && <Check className="h-4 w-4 ml-auto" />}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setSortBy('duration-asc')}>
+                                Shortest First
+                                {sortBy === 'duration-asc' && <Check className="h-4 w-4 ml-auto" />}
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          <DropdownMenuItem onClick={() => setSortBy('caption')}>
+                            By Caption
+                            {sortBy === 'caption' && <Check className="h-4 w-4 ml-auto" />}
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      
+                      {/* View Mode Toggle */}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setViewMode('grid')}>
+                        <Grid3x3 className="h-4 w-4 mr-2" />
+                        Grid View
+                        {viewMode === 'grid' && <Check className="h-4 w-4 ml-auto" />}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setViewMode('list')}>
+                        <List className="h-4 w-4 mr-2" />
+                        List View
+                        {viewMode === 'list' && <Check className="h-4 w-4 ml-auto" />}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
 
-                <div className="flex items-center gap-1 border rounded-md">
+                <div className="hidden sm:block">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
+                        <SelectTrigger className="w-[140px] h-8">
+                          <SortAsc className="h-4 w-4 mr-1" />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="date-desc">Newest First</SelectItem>
+                          <SelectItem value="date-asc">Oldest First</SelectItem>
+                          {activeTab !== 'photos' && (
+                            <>
+                              <SelectItem value="duration-desc">Longest First</SelectItem>
+                              <SelectItem value="duration-asc">Shortest First</SelectItem>
+                            </>
+                          )}
+                          <SelectItem value="caption">By Caption</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Sort media items</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+
+                <div className="hidden sm:flex items-center gap-1 border rounded-md">
                   <Button
                     variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                     size="sm"
