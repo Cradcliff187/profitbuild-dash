@@ -6,6 +6,20 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+const formatTime = (dateString: string | null | undefined): string | null => {
+  if (!dateString) return null;
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  } catch {
+    return null;
+  }
+};
+
 interface TimeEntry {
   id: string;
   payee_id: string;
@@ -16,6 +30,8 @@ interface TimeEntry {
   approval_status?: string;
   attachment_url?: string;
   hours: number;
+  start_time?: string;
+  end_time?: string;
   payee: {
     payee_name: string;
   };
@@ -173,8 +189,15 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
                         {entry.payee.payee_name}
                       </div>
                       
+                      {/* Start/End Times */}
+                      {entry.start_time && entry.end_time && (
+                        <div className="text-sm text-foreground/80 mt-0.5">
+                          {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
+                        </div>
+                      )}
+                      
                       {/* Project Info */}
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-muted-foreground mt-1">
                         {entry.project.project_number} - {entry.project.client_name}
                       </div>
                       <div className="text-xs text-muted-foreground">
