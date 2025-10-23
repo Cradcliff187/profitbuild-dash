@@ -108,7 +108,7 @@ export function PdfPreviewModal({
         className={cn(
           "flex flex-col p-0",
           isMobile 
-            ? "fixed inset-0 h-screen w-screen max-w-none rounded-none" 
+            ? "!fixed !inset-0 !left-0 !top-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !h-screen !w-screen !max-w-none !rounded-none !m-0" 
             : "max-w-4xl h-[90vh]"
         )}
       >
@@ -183,10 +183,14 @@ export function PdfPreviewModal({
                     title={`${fileName} preview`} 
                     className="absolute inset-0 w-full h-full border-0" 
                     onLoad={() => {
+                      console.log('[PdfPreview] Embed loaded successfully');
                       setContentLoaded(true);
                       if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
                     }}
-                    onError={() => setLoadError(true)}
+                    onError={(e) => {
+                      console.error('[PdfPreview] Embed failed to load', e);
+                      setLoadError(true);
+                    }}
                   />
                 ) : (
                   <iframe 
@@ -194,8 +198,13 @@ export function PdfPreviewModal({
                     title={`${fileName} preview`} 
                     className="absolute inset-0 w-full h-full border-0" 
                     onLoad={() => {
+                      console.log('[PdfPreview] Iframe loaded successfully');
                       setContentLoaded(true);
                       if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+                    }}
+                    onError={(e) => {
+                      console.error('[PdfPreview] Iframe failed to load', e);
+                      setLoadError(true);
                     }}
                   /> 
                 )}

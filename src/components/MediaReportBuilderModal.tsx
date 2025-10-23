@@ -180,15 +180,6 @@ export function MediaReportBuilderModal({
             ? "fixed bottom-0 left-0 right-0 top-auto translate-x-0 translate-y-0 rounded-t-2xl pb-safe max-w-full w-full p-3 max-h-[85vh]" 
             : "max-w-2xl max-h-[85vh] p-6"
         )}
-        onPointerDownOutside={(e) => {
-          if (isMobile) e.preventDefault();
-        }}
-        onInteractOutside={(e) => {
-          if (isMobile) e.preventDefault();
-        }}
-        onOpenAutoFocus={(e) => {
-          if (isMobile) e.preventDefault();
-        }}
       >
         <DialogHeader>
           <DialogTitle className={cn("flex items-center gap-2", isMobile && "text-base")}>
