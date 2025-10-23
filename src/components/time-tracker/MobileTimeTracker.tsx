@@ -89,12 +89,34 @@ export const MobileTimeTracker: React.FC = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showReceiptPrompt, setShowReceiptPrompt] = useState(false);
   const [pendingReceiptExpenseId, setPendingReceiptExpenseId] = useState<string | null>(null);
+  const [showDuplicateTimerAlert, setShowDuplicateTimerAlert] = useState(false);
+  const [existingTimerInfo, setExistingTimerInfo] = useState<any>(null);
+  const [activeTimerPayeeIds, setActiveTimerPayeeIds] = useState<Set<string>>(new Set());
+
+  // Load active timers to show who's currently clocked in
+  const loadActiveTimers = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('payee_id')
+        .eq('category', 'labor_internal')
+        .is('end_time', null);
+
+      if (error) throw error;
+
+      const activePayeeIds = new Set(data?.map(e => e.payee_id) || []);
+      setActiveTimerPayeeIds(activePayeeIds);
+    } catch (error) {
+      console.error('Error loading active timers:', error);
+    }
+  }, []);
 
   // Load projects and workers on mount
   useEffect(() => {
     if (user) {
       loadInitialData();
       loadTodayEntries();
+      loadActiveTimers();
       
       // Set up real-time subscription
       const channel = setupRealtimeSubscription();
@@ -227,6 +249,7 @@ export const MobileTimeTracker: React.FC = () => {
           console.log('Real-time change detected:', payload);
           // Reload today's entries when any change occurs
           loadTodayEntries();
+          loadActiveTimers();
         }
       )
       .subscribe();
@@ -360,6 +383,7 @@ export const MobileTimeTracker: React.FC = () => {
       }) || [];
 
       setTodayEntries(entries);
+      await loadActiveTimers();
     } catch (error) {
       console.error('Error loading today entries:', error);
     }
@@ -402,6 +426,35 @@ export const MobileTimeTracker: React.FC = () => {
     return `${hours}:${minutes}:${seconds}`;
   };
 
+  const checkForDuplicateTimer = async (): Promise<boolean> => {
+    if (!selectedTeamMember || !isOnline) return false;
+
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*, projects(project_name, project_number)')
+        .eq('payee_id', selectedTeamMember.id)
+        .eq('category', 'labor_internal')
+        .is('end_time', null)
+        .order('start_time', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setExistingTimerInfo(data);
+        setShowDuplicateTimerAlert(true);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error checking for duplicate timer:', error);
+      return false;
+    }
+  };
+
   const handleClockIn = async () => {
     if (!selectedTeamMember || !selectedProject) {
       toast({
@@ -411,6 +464,18 @@ export const MobileTimeTracker: React.FC = () => {
       });
       return;
     }
+
+    // Check for duplicate active timer
+    const hasDuplicate = await checkForDuplicateTimer();
+    if (hasDuplicate) {
+      return; // Alert dialog will handle next steps
+    }
+
+    await proceedWithClockIn();
+  };
+
+  const proceedWithClockIn = async () => {
+    if (!selectedTeamMember || !selectedProject) return;
 
     setLoading(true);
     try {
@@ -439,6 +504,9 @@ export const MobileTimeTracker: React.FC = () => {
         title: 'Clocked In',
         description: `Timer started for ${selectedTeamMember.payee_name}${!isOnline ? ' (offline)' : ''}`,
       });
+
+      // Refresh active timers list
+      await loadActiveTimers();
     } catch (error) {
       console.error('Error clocking in:', error);
       toast({
@@ -528,6 +596,7 @@ export const MobileTimeTracker: React.FC = () => {
         });
 
         await loadTodayEntries();
+        await loadActiveTimers();
         setActiveTimer(null);
         setLocation(null);
 
@@ -733,8 +802,14 @@ export const MobileTimeTracker: React.FC = () => {
               className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {selectedTeamMember ? (
-                <div>
+                <div className="flex items-center justify-between">
                   <div className="font-semibold text-foreground">{selectedTeamMember.payee_name}</div>
+                  {activeTimerPayeeIds.has(selectedTeamMember.id) && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                      Active
+                    </span>
+                  )}
                 </div>
               ) : (
                 <div className="text-muted-foreground">Select team member...</div>
@@ -752,7 +827,15 @@ export const MobileTimeTracker: React.FC = () => {
                     }}
                     className="w-full p-3 text-left hover:bg-muted border-b last:border-b-0 transition-all"
                   >
-                    <div className="font-semibold">{member.payee_name}</div>
+                    <div className="flex items-center justify-between">
+                      <div className="font-semibold">{member.payee_name}</div>
+                      {activeTimerPayeeIds.has(member.id) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">
+                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                          Active
+                        </span>
+                      )}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -1059,6 +1142,62 @@ export const MobileTimeTracker: React.FC = () => {
         onClearSelection={() => setSelectedEntries([])}
         onRefresh={loadTodayEntries}
       />
+
+      {/* Duplicate Timer Alert */}
+      <AlertDialog open={showDuplicateTimerAlert} onOpenChange={setShowDuplicateTimerAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Active Timer Detected
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                <span className="font-medium text-foreground">{selectedTeamMember?.payee_name}</span> already has an active timer running
+                {existingTimerInfo?.projects && (
+                  <> on project <span className="font-medium text-foreground">{existingTimerInfo.projects.project_name}</span></>
+                )}.
+              </p>
+              {existingTimerInfo?.start_time && (
+                <p className="text-xs text-muted-foreground">
+                  Started: {format(new Date(existingTimerInfo.start_time), 'h:mm a')}
+                </p>
+              )}
+              <p className="text-sm">
+                Starting a new timer will leave the existing timer running. You should clock out of the existing timer first.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setExistingTimerInfo(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                setShowDuplicateTimerAlert(false);
+                setView('entries');
+                setEntriesDateRange('today');
+                setExistingTimerInfo(null);
+              }}
+              className="bg-primary"
+            >
+              View Active Timer
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={async () => {
+                setShowDuplicateTimerAlert(false);
+                await proceedWithClockIn();
+                setExistingTimerInfo(null);
+              }}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              Start Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
