@@ -84,9 +84,9 @@ export function PdfPreviewModal({
           </div>
         </DialogHeader>
         
-        <div className="flex-1 overflow-auto bg-muted/20">
+        <div className="flex-1 overflow-auto overflow-x-hidden bg-muted/20">
           {objectUrl ? (
-            <div className="flex flex-col items-center py-4">
+            <div className="flex flex-col items-center py-2 px-2">
               <Document
                 file={objectUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
@@ -106,18 +106,20 @@ export function PdfPreviewModal({
                   </div>
                 }
               >
-                <Page
-                  pageNumber={pageNumber}
-                  width={isMobile ? window.innerWidth - 16 : undefined}
-                  renderTextLayer={true}
-                  renderAnnotationLayer={true}
-                  className="shadow-lg"
-                  loading={
-                    <div className="flex items-center justify-center h-96">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  }
-                />
+                <div className="w-full max-w-full overflow-hidden flex justify-center">
+                  <Page
+                    pageNumber={pageNumber}
+                    width={isMobile ? Math.min(window.innerWidth - 32, 600) : undefined}
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                    className="shadow-lg"
+                    loading={
+                      <div className="flex items-center justify-center h-96">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    }
+                  />
+                </div>
               </Document>
               
               {numPages > 1 && (
