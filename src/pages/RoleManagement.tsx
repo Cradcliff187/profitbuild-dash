@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRoles, AppRole } from '@/contexts/RoleContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,35 +54,8 @@ export default function RoleManagement() {
     }
   }, [isAdmin, rolesLoading, navigate, toast]);
 
-  useEffect(() => {
-    if (isAdmin) {
-      loadUsers();
-    }
-  }, [isAdmin]);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'k') {
-          e.preventDefault();
-          document.getElementById('user-search')?.focus();
-        } else if (e.key === 'n') {
-          e.preventDefault();
-          setCreateUserOpen(true);
-        }
-      }
-      if (e.key === 'Escape') {
-        setSearchQuery('');
-        setSelectedUserIds(new Set());
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
     try {
       // Get all profiles
       const { data: profiles, error: profilesError } = await supabase
@@ -118,7 +91,13 @@ export default function RoleManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadUsers();
+    }
+  }, [isAdmin, loadUsers]);
 
   const openResetPassword = (user: UserWithRoles) => {
     setSelectedUser(user);
