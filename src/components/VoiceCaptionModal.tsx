@@ -136,11 +136,6 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
       return;
     }
     
-    if (isInIframe) {
-      toast.error('Microphone blocked in embedded preview. Open in a new tab to use voice captions.');
-      return;
-    }
-    
     resetTranscription();
     setEditableCaption('');
     setProcessingStage(null);
@@ -215,28 +210,6 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Iframe warning */}
-          {isInIframe && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Microphone Blocked</AlertTitle>
-              <AlertDescription className="space-y-2">
-                <p className="text-sm">
-                  Microphone access is blocked in embedded preview. To use voice captions:
-                </p>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={handleOpenInNewTab}>
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    Open in New Tab
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={handleCancel}>
-                    Type Instead
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
           {/* iOS PWA Warning - shown proactively */}
           {isInIOSPWA && !isInIframe && (
             <Alert className="mb-4 border-yellow-500/50 bg-yellow-500/10">
@@ -374,7 +347,7 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
                 size="lg"
                 variant={isRecording ? 'destructive' : 'default'}
                 className="h-20 w-20 rounded-full"
-                disabled={isRequesting || isProcessingAudio || !browserSupport.supported || isInIframe}
+                disabled={isRequesting || isProcessingAudio || !browserSupport.supported}
               >
                 {isRequesting ? (
                   <Loader2 className="h-8 w-8 animate-spin" />
