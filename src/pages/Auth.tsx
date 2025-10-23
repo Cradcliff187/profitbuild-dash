@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-import { Building2, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import logoStacked from '@/assets/branding/logo-stacked.svg';
 
 const authSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -53,13 +54,17 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Building2 className="h-12 w-12 text-primary" />
+          <div className="flex justify-center mb-6">
+            <img 
+              src={logoStacked} 
+              alt="Radcliff Construction Group" 
+              className="h-24 w-auto"
+            />
           </div>
-          <CardTitle className="text-2xl font-bold">
+          <CardTitle className="text-2xl font-bold" style={{ color: '#1b2b43' }}>
             Construction Profit Tracker
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="mt-2">
             Sign in to your account
           </CardDescription>
         </CardHeader>

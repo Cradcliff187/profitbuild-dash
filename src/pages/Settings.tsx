@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Settings as SettingsIcon, User, Bell, Shield, Database } from "lucide-react";
 import { AccountMappingsManager } from "@/components/AccountMappingsManager";
+import { CompanyBrandingSettings } from "@/components/CompanyBrandingSettings";
 import { getBudgetAlertThreshold, setBudgetAlertThreshold } from "@/utils/budgetUtils";
 import { getCaptionPreferences, setCaptionPreferences } from "@/utils/userPreferences";
 import { useAuth } from "@/contexts/AuthContext";
@@ -220,6 +221,8 @@ const Settings = () => {
         </Card>
 
         <AccountMappingsManager />
+
+        <CompanyBrandingSettings />
 
         <Card>
           <CardHeader>

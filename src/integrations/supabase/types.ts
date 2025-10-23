@@ -170,6 +170,66 @@ export type Database = {
         }
         Relationships: []
       }
+      company_branding_settings: {
+        Row: {
+          accent_color: string | null
+          company_abbreviation: string | null
+          company_address: string | null
+          company_legal_name: string | null
+          company_license: string | null
+          company_name: string | null
+          company_phone: string | null
+          created_at: string | null
+          id: string
+          light_bg_color: string | null
+          logo_full_url: string | null
+          logo_icon_url: string | null
+          logo_report_header_url: string | null
+          logo_stacked_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          company_abbreviation?: string | null
+          company_address?: string | null
+          company_legal_name?: string | null
+          company_license?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          created_at?: string | null
+          id?: string
+          light_bg_color?: string | null
+          logo_full_url?: string | null
+          logo_icon_url?: string | null
+          logo_report_header_url?: string | null
+          logo_stacked_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          company_abbreviation?: string | null
+          company_address?: string | null
+          company_legal_name?: string | null
+          company_license?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          created_at?: string | null
+          id?: string
+          light_bg_color?: string | null
+          logo_full_url?: string | null
+          logo_icon_url?: string | null
+          logo_report_header_url?: string | null
+          logo_stacked_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       estimate_line_items: {
         Row: {
           category: Database["public"]["Enums"]["expense_category"]

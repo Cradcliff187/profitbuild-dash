@@ -1,5 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck, Camera } from "lucide-react";
+import logoFull from '@/assets/branding/logo-full-horizontal.svg';
+import logoIcon from '@/assets/branding/logo-icon-only.svg';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -117,14 +119,20 @@ const Navigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-12">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <Building2 className="h-8 w-8 text-primary" aria-hidden="true" />
-            <h1 className="text-xl font-bold text-foreground hidden sm:block">
-              Construction Profit Tracker
-            </h1>
-            <h1 className="text-xl font-bold text-foreground sm:hidden">
-              CPT
-            </h1>
+          <div className="flex items-center">
+            {/* Desktop: Full horizontal logo */}
+            <img 
+              src={logoFull} 
+              alt="Radcliff Construction Group" 
+              className="hidden md:block h-12 w-auto"
+            />
+            
+            {/* Mobile: Icon only */}
+            <img 
+              src={logoIcon} 
+              alt="RCG" 
+              className="md:hidden h-12 w-12"
+            />
           </div>
           
           {/* Mobile Navigation */}
