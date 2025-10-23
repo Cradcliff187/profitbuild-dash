@@ -3,7 +3,7 @@ import { convertToWav, validateAudioBlob, blobToBase64 } from '@/utils/audioConv
 
 const MAX_RECORDING_DURATION = 120; // 2 minutes
 
-type RecordingState = 'idle' | 'recording' | 'processing';
+type RecordingState = 'idle' | 'requesting' | 'recording' | 'processing';
 
 // Detect best supported AUDIO-ONLY format (never video)
 function getSupportedAudioType(): string {
@@ -69,7 +69,8 @@ async function checkMicrophonePermission(): Promise<{ granted: boolean; error?: 
 }
 
 // Request microphone with timeout to prevent indefinite hanging
-async function requestMicrophoneStream(timeoutMs = 8000): Promise<MediaStream> {
+// iOS needs shorter timeout due to PWA restrictions
+async function requestMicrophoneStream(timeoutMs: number): Promise<MediaStream> {
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
       reject(new Error('MIC_TIMEOUT'));
@@ -103,9 +104,15 @@ export function useAudioRecording() {
 
   const startRecording = useCallback(async () => {
     try {
+      // Set requesting state IMMEDIATELY for instant UI feedback
+      setState('requesting');
       setError(null);
       setAudioData(null);
       setDuration(0);
+
+      // Detect iOS for platform-specific timeout
+      const isIOS = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
+      const timeoutMs = isIOS ? 5000 : 8000; // Shorter timeout for iOS
 
       // Comprehensive environment diagnostics
       console.log('[AudioRecording] Environment check:', {
@@ -116,6 +123,8 @@ export function useAudioRecording() {
         isStandalone: window.matchMedia('(display-mode: standalone)').matches,
         isInIframe: window.self !== window.top,
         platform: navigator.platform,
+        isIOS,
+        timeoutMs,
       });
 
       console.log('[AudioRecording] Starting recording flow...');
@@ -128,8 +137,8 @@ export function useAudioRecording() {
 
       console.log('[AudioRecording] Requesting microphone access...');
       
-      // Use timeout wrapper to prevent indefinite hangs
-      const stream = await requestMicrophoneStream(8000);
+      // Use platform-specific timeout wrapper to prevent indefinite hangs
+      const stream = await requestMicrophoneStream(timeoutMs);
       
       console.log('[AudioRecording] Microphone access granted', {
         audioTracks: stream.getAudioTracks().length,
@@ -274,5 +283,6 @@ export function useAudioRecording() {
     reset,
     isRecording: state === 'recording',
     isProcessing: state === 'processing',
+    isRequesting: state === 'requesting',
   };
 }

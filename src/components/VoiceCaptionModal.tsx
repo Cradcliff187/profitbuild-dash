@@ -25,6 +25,7 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
     stopRecording,
     isRecording,
     isProcessing,
+    isRequesting,
     audioData,
     audioFormat,
     duration,
@@ -123,6 +124,11 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
   }, [transcriptionError]);
 
   const handleStartRecording = async () => {
+    // Prevent double-clicks during requesting/recording/processing
+    if (isRequesting || isRecording || isProcessing) {
+      return;
+    }
+    
     if (isInIframe) {
       toast.error('Microphone blocked in embedded preview. Open in a new tab to use voice captions.');
       return;
@@ -132,9 +138,7 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
     setEditableCaption('');
     setHasTranscribed(false);
     
-    // Show immediate feedback
-    toast.info('Requesting microphone access...', { duration: 2000 });
-    
+    // No toast needed - UI will show immediate feedback via button state
     await startRecording();
   };
 
@@ -343,10 +347,27 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
                 size="lg"
                 variant={isRecording ? 'destructive' : 'default'}
                 className="h-20 w-20 rounded-full"
-                disabled={isProcessingAudio || !browserSupport.supported || isInIframe}
+                disabled={isRequesting || isProcessingAudio || !browserSupport.supported || isInIframe}
               >
-                {isRecording ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
+                {isRequesting ? (
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                ) : isRecording ? (
+                  <MicOff className="h-8 w-8" />
+                ) : (
+                  <Mic className="h-8 w-8" />
+                )}
               </Button>
+
+              {isRequesting && (
+                <div className="text-center space-y-1">
+                  <div className="text-sm font-medium text-muted-foreground">
+                    Requesting microphone access...
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Please allow when prompted
+                  </div>
+                </div>
+              )}
 
               {isRecording && (
                 <div className="text-center space-y-1">
@@ -363,7 +384,7 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
                 </div>
               )}
 
-              {!isRecording && (
+              {!isRecording && !isRequesting && (
                 <p className="text-sm text-muted-foreground text-center max-w-xs">
                   Tap the microphone to start recording your caption
                 </p>

@@ -25,6 +25,7 @@ export function MediaCommentForm({ mediaId }: MediaCommentFormProps) {
     duration,
     isRecording,
     isProcessing,
+    isRequesting,
     error: recordingError,
     reset: resetRecording
   } = useAudioRecording();
@@ -127,7 +128,16 @@ export function MediaCommentForm({ mediaId }: MediaCommentFormProps) {
         />
         
         <div className="flex flex-col gap-1">
-          {!isRecording ? (
+          {isRequesting ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled
+              className="h-8 w-8 p-0"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </Button>
+          ) : !isRecording ? (
             <Button
               size="sm"
               variant="outline"
@@ -149,6 +159,14 @@ export function MediaCommentForm({ mediaId }: MediaCommentFormProps) {
           )}
         </div>
       </div>
+
+      {/* Requesting Status */}
+      {isRequesting && (
+        <div className="text-xs text-muted-foreground flex items-center gap-2">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Requesting microphone access...
+        </div>
+      )}
 
       {/* Recording Status */}
       {isRecording && (
