@@ -28,12 +28,19 @@ export function PdfPreviewModal({
   const [objectUrl, setObjectUrl] = useState<string>('');
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
+  const [iframeLoaded, setIframeLoaded] = useState<boolean>(false);
 
   useEffect(() => {
     if (pdfBlob) {
       const url = URL.createObjectURL(pdfBlob);
       setObjectUrl(url);
-      return () => URL.revokeObjectURL(url);
+      setIframeLoaded(false);
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } else {
+      setObjectUrl('');
+      setIframeLoaded(false);
     }
   }, [pdfBlob]);
 
@@ -97,14 +104,20 @@ export function PdfPreviewModal({
           </div> 
         </DialogHeader>
         
-        <div className="flex-1 overflow-auto overflow-x-hidden bg-muted/20"> 
+        <div className="flex-1 overflow-hidden bg-muted/20 flex flex-col"> 
           {objectUrl ? ( 
             isMobile ? ( 
-              <div className="w-full h-full"> 
+              <div className="w-full h-full min-h-[500px] relative"> 
+                {!iframeLoaded && (
+                  <div className="absolute inset-0 flex items-center justify-center z-10">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                )}
                 <iframe 
                   src={objectUrl} 
                   title={`${fileName} preview`} 
-                  className="w-full h-full" 
+                  className="absolute inset-0 w-full h-full border-0" 
+                  onLoad={() => setIframeLoaded(true)}
                 /> 
               </div> 
             ) : ( 
