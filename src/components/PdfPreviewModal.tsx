@@ -55,9 +55,7 @@ export function PdfPreviewModal({
       // Start fallback timer for mobile
       if (isMobile) {
         fallbackTimerRef.current = setTimeout(() => {
-          if (!contentLoaded && !loadError) {
-            setShowFallback(true);
-          }
+          setShowFallback(true);
         }, 2000);
       }
       
@@ -66,6 +64,7 @@ export function PdfPreviewModal({
         if (fallbackTimerRef.current) {
           clearTimeout(fallbackTimerRef.current);
         }
+        setDataUrl('');
       };
     } else {
       setObjectUrl('');
@@ -74,7 +73,7 @@ export function PdfPreviewModal({
       setLoadError(false);
       setShowFallback(false);
     }
-  }, [pdfBlob, isMobile, contentLoaded, loadError]);
+  }, [pdfBlob, isMobile]);
 
   const handleDownload = () => {
     if (!objectUrl) return;
@@ -156,7 +155,7 @@ export function PdfPreviewModal({
                 )}
                 
                 {/* Fallback UI */}
-                {showFallback && (
+                {showFallback && !contentLoaded && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 z-20 bg-background">
                     <AlertCircle className="h-12 w-12 text-muted-foreground" />
                     <div className="text-center space-y-2">
