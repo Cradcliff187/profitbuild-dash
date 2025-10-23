@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, AlertCircle, Lock, Search, X, Trash2 } from 'lucide-react';
+import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, Search, X, Trash2 } from 'lucide-react';
 import CreateUserModal from '@/components/CreateUserModal';
 import ResetPasswordModal from '@/components/ResetPasswordModal';
 import EditProfileModal from '@/components/EditProfileModal';
@@ -22,9 +22,6 @@ interface Profile {
   id: string;
   email: string;
   full_name: string;
-  must_change_password: boolean | null;
-  failed_login_attempts: number | null;
-  account_locked_until: string | null;
 }
 
 interface UserWithRoles extends Profile {
@@ -90,7 +87,7 @@ export default function RoleManagement() {
       // Get all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, email, full_name, must_change_password, failed_login_attempts, account_locked_until')
+        .select('id, email, full_name')
         .order('email');
 
       if (profilesError) throw profilesError;
@@ -393,10 +390,7 @@ export default function RoleManagement() {
             </div>
           ) : (
             <div className="border-t">
-              {filteredUsers.map(user => {
-              const isLocked = user.account_locked_until && new Date(user.account_locked_until) > new Date();
-              
-              return (
+              {filteredUsers.map(user => (
                 <div
                   key={user.id}
                   className={`flex items-center justify-between px-3 py-2 border-b last:border-b-0 hover:bg-muted/50 transition-all ${
@@ -413,18 +407,6 @@ export default function RoleManagement() {
                   <div className="flex-1 min-w-0 mr-3">
                     <div className="flex items-center gap-2 mb-0.5">
                       <p className="text-sm font-medium truncate">{user.full_name || 'No name'}</p>
-                      {user.must_change_password && (
-                        <Badge variant="outline" className="h-5 px-1.5 text-[10px] gap-1">
-                          <AlertCircle className="h-2.5 w-2.5" />
-                          Must Reset
-                        </Badge>
-                      )}
-                      {isLocked && (
-                        <Badge variant="destructive" className="h-5 px-1.5 text-[10px] gap-1">
-                          <Lock className="h-2.5 w-2.5" />
-                          Locked
-                        </Badge>
-                      )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate mb-1">{user.email}</p>
                     <div className="flex flex-wrap gap-1">
@@ -492,8 +474,7 @@ export default function RoleManagement() {
                     </DropdownMenu>
                   </div>
                 </div>
-              );
-            })}
+              ))}
             </div>
           )}
         </CardContent>
