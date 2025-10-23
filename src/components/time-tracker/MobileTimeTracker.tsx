@@ -631,11 +631,17 @@ export const MobileTimeTracker: React.FC = () => {
 
         return localId;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error clocking out:', error);
+      const errorMessage = error?.message || '';
+      const isRlsError = errorMessage.toLowerCase().includes('row-level security') || 
+                         errorMessage.toLowerCase().includes('policy');
+      
       toast({
         title: 'Clock Out Failed',
-        description: 'Failed to save time entry',
+        description: isRlsError
+          ? 'Your account is missing permission to save time entries. Please contact an administrator.'
+          : 'Failed to save time entry. Please try again.',
         variant: 'destructive'
       });
       return null;
