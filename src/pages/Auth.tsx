@@ -40,7 +40,12 @@ export default function Auth() {
 
   const onSubmit = async (data: AuthFormData) => {
     setIsSubmitting(true);
-    await signIn(data.email, data.password);
+    const result = await signIn(data.email, data.password);
+    
+    if (result.mustChangePassword) {
+      navigate('/change-password');
+    }
+    
     setIsSubmitting(false);
   };
 

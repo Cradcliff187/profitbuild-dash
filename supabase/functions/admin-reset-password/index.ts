@@ -8,8 +8,9 @@ const corsHeaders = {
 
 interface ResetPasswordRequest {
   targetUserId: string;
-  method: 'temporary_password' | 'email_reset';
+  method: 'temporary_password' | 'email_reset' | 'permanent_password';
   temporaryPassword?: string;
+  permanentPassword?: string;
 }
 
 interface ResetPasswordResponse {
@@ -69,7 +70,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Parse request body
-    const { targetUserId, method, temporaryPassword }: ResetPasswordRequest = await req.json();
+    const { targetUserId, method, temporaryPassword, permanentPassword }: ResetPasswordRequest = await req.json();
 
     if (!targetUserId || !method) {
       return new Response(
@@ -79,23 +80,38 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Validate method
-    if (method !== 'temporary_password' && method !== 'email_reset') {
+    if (method !== 'temporary_password' && method !== 'email_reset' && method !== 'permanent_password') {
       return new Response(
-        JSON.stringify({ error: 'Invalid method. Use "temporary_password" or "email_reset"' }),
+        JSON.stringify({ error: 'Invalid method. Use "temporary_password", "email_reset", or "permanent_password"' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     let responseData: ResetPasswordResponse;
 
-    if (method === 'temporary_password') {
-      // Generate temporary password if not provided
-      const tempPassword = temporaryPassword || generateTemporaryPassword();
+    if (method === 'temporary_password' || method === 'permanent_password') {
+      // Generate temporary password or use provided permanent password
+      let newPassword: string;
+      let mustChangePasswordFlag = false;
+
+      if (method === 'permanent_password') {
+        if (!permanentPassword || permanentPassword.length < 8) {
+          return new Response(
+            JSON.stringify({ error: 'Permanent password must be at least 8 characters' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        newPassword = permanentPassword;
+        mustChangePasswordFlag = false; // No need to change
+      } else {
+        newPassword = temporaryPassword || generateTemporaryPassword();
+        mustChangePasswordFlag = true; // Force change on next login
+      }
 
       // Update user password using admin client
       const { error: updateError } = await supabaseServiceRole.auth.admin.updateUserById(
         targetUserId,
-        { password: tempPassword }
+        { password: newPassword }
       );
 
       if (updateError) {
@@ -110,8 +126,7 @@ const handler = async (req: Request): Promise<Response> => {
       const { error: profileError } = await supabaseServiceRole
         .from('profiles')
         .update({ 
-          must_change_password: true,
-          password_changed_at: new Date().toISOString()
+          must_change_password: mustChangePasswordFlag
         })
         .eq('id', targetUserId);
 
@@ -122,8 +137,10 @@ const handler = async (req: Request): Promise<Response> => {
 
       responseData = {
         success: true,
-        message: 'Password reset successfully with temporary password',
-        temporaryPassword: tempPassword
+        message: method === 'permanent_password' 
+          ? 'Password set successfully'
+          : 'Password reset successfully with temporary password',
+        temporaryPassword: newPassword
       };
 
     } else {

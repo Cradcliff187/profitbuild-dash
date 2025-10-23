@@ -13,6 +13,8 @@ interface CreateUserRequest {
   role?: 'admin' | 'manager' | 'field_worker';
   sendInviteEmail?: boolean;
   mustChangePassword?: boolean;
+  method?: 'temporary_password' | 'invite_email' | 'permanent_password';
+  permanentPassword?: string;
 }
 
 serve(async (req) => {
@@ -70,7 +72,7 @@ serve(async (req) => {
     }
 
     const requestData: CreateUserRequest = await req.json();
-    const { email, password, fullName, role, mustChangePassword } = requestData;
+    const { email, fullName, role, permanentPassword } = requestData;
 
     // Validate email format server-side
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -81,33 +83,48 @@ serve(async (req) => {
       );
     }
 
-    // Map 'method' from frontend to 'sendInviteEmail' boolean
-    const method = (requestData as any).method || requestData.sendInviteEmail;
-    const sendInviteEmail = method === 'invite_email' || method === true;
-
+    // Map 'method' from frontend
+    const method = (requestData as any).method || 'temporary_password';
+    
     console.log('Creating user:', { 
       email, 
       role, 
-      sendInviteEmail,
-      willGeneratePassword: !sendInviteEmail,
-      mustChangePassword 
+      method
     });
 
-    // Generate temp password if not provided and not sending invite
-    const finalPassword = password || (!sendInviteEmail ? `Temp${Math.random().toString(36).slice(2, 10)}!` : undefined);
+    // Determine password and must_change_password flag based on method
+    let finalPassword: string;
+    let mustChangePasswordFlag = false;
+
+    if (method === 'permanent_password') {
+      // Admin sets permanent password directly
+      if (!permanentPassword || permanentPassword.length < 8) {
+        return new Response(
+          JSON.stringify({ error: 'Permanent password must be at least 8 characters' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      finalPassword = permanentPassword;
+      mustChangePasswordFlag = false; // No need to change
+    } else if (method === 'invite_email') {
+      // Email invitation - Supabase sends email with setup link
+      finalPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`; // Fallback
+      mustChangePasswordFlag = false; // User sets via email link
+    } else {
+      // Generate temp password
+      finalPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
+      mustChangePasswordFlag = true; // Force change on first login
+    }
 
     // Create user via admin API
     const createUserData: any = {
       email,
-      email_confirm: !sendInviteEmail,
+      password: finalPassword,
+      email_confirm: method !== 'invite_email',
       user_metadata: {
         full_name: fullName || email,
       },
     };
-
-    if (!sendInviteEmail && finalPassword) {
-      createUserData.password = finalPassword;
-    }
 
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser(createUserData);
 
@@ -119,18 +136,15 @@ serve(async (req) => {
     console.log('User created successfully:', newUser.user.id);
 
     // Update profile with must_change_password flag
-    if (mustChangePassword !== false) {
-      const { error: profileError } = await supabaseAdmin
-        .from('profiles')
-        .update({ 
-          must_change_password: true,
-          password_changed_at: null
-        })
-        .eq('id', newUser.user.id);
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .update({ 
+        must_change_password: mustChangePasswordFlag
+      })
+      .eq('id', newUser.user.id);
 
-      if (profileError) {
-        console.error('Error updating profile:', profileError);
-      }
+    if (profileError) {
+      console.error('Error updating profile:', profileError);
     }
 
     // Assign role if provided
@@ -160,8 +174,8 @@ serve(async (req) => {
         action_details: {
           email,
           role,
-          sendInviteEmail,
-          mustChangePassword: mustChangePassword !== false,
+          method,
+          mustChangePassword: mustChangePasswordFlag,
         },
       });
 
@@ -179,8 +193,8 @@ serve(async (req) => {
       },
     };
 
-    // Only return password if we didn't send an invite email
-    if (!sendInviteEmail && finalPassword) {
+    // Return password if it was generated (temp or permanent)
+    if (method === 'temporary_password' || method === 'permanent_password') {
       response.temporaryPassword = finalPassword;
     }
 

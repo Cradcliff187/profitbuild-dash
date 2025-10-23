@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +18,8 @@ interface ResetPasswordModalProps {
 export default function ResetPasswordModal({ open, onOpenChange, userId, userEmail }: ResetPasswordModalProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [method, setMethod] = useState<'temporary_password' | 'email_reset'>('temporary_password');
+  const [method, setMethod] = useState<'temporary_password' | 'email_reset' | 'permanent_password'>('temporary_password');
+  const [permanentPassword, setPermanentPassword] = useState('');
   const [temporaryPassword, setTemporaryPassword] = useState('');
   const [emailSent, setEmailSent] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -31,7 +33,8 @@ export default function ResetPasswordModal({ open, onOpenChange, userId, userEma
       const { data, error } = await supabase.functions.invoke('admin-reset-password', {
         body: {
           targetUserId: userId,
-          method
+          method,
+          ...(method === 'permanent_password' && { permanentPassword })
         }
       });
 
@@ -64,6 +67,7 @@ export default function ResetPasswordModal({ open, onOpenChange, userId, userEma
 
   const handleClose = () => {
     setMethod('temporary_password');
+    setPermanentPassword('');
     setTemporaryPassword('');
     setEmailSent(false);
     setCopied(false);
@@ -148,14 +152,36 @@ export default function ResetPasswordModal({ open, onOpenChange, userId, userEma
                 <SelectContent>
                   <SelectItem value="temporary_password">Temporary Password</SelectItem>
                   <SelectItem value="email_reset">Email Reset Link</SelectItem>
+                  <SelectItem value="permanent_password">Set Permanent Password</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 {method === 'temporary_password' 
                   ? 'Generate a temporary password to share with the user'
-                  : 'Send a password reset link to the user\'s email'}
+                  : method === 'email_reset'
+                  ? 'Send a password reset link to the user\'s email'
+                  : 'Set a new permanent password for the user'}
               </p>
             </div>
+
+            {method === 'permanent_password' && (
+              <div className="space-y-1.5">
+                <Label htmlFor="permanentPassword" className="text-xs">New Permanent Password</Label>
+                <Input
+                  id="permanentPassword"
+                  type="text"
+                  value={permanentPassword}
+                  onChange={(e) => setPermanentPassword(e.target.value)}
+                  placeholder="Enter permanent password (min 8 chars)"
+                  required
+                  disabled={loading}
+                  className="h-8 text-sm"
+                />
+                <p className="text-xs text-amber-600 dark:text-amber-500">
+                  ⚠️ Warning: You will know this user's password. For better security, use "Email Reset Link" instead.
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-2 pt-2">
               <Button

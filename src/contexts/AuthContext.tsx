@@ -8,7 +8,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any; mustChangePassword?: boolean }>;
   signOut: () => Promise<void>;
 }
 
@@ -89,6 +89,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) {
         toast.error(error.message);
         return { error };
+      }
+
+      // Check if user must change password
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('must_change_password')
+          .eq('id', userData.user.id)
+          .single();
+
+        if (profile?.must_change_password) {
+          return { error: null, mustChangePassword: true };
+        }
       }
 
       toast.success('Welcome back!');

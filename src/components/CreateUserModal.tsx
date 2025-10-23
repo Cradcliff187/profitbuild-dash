@@ -21,7 +21,8 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<AppRole>('field_worker');
-  const [method, setMethod] = useState<'temporary_password' | 'invite_email'>('temporary_password');
+  const [method, setMethod] = useState<'temporary_password' | 'invite_email' | 'permanent_password'>('temporary_password');
+  const [permanentPassword, setPermanentPassword] = useState('');
   const [temporaryPassword, setTemporaryPassword] = useState('');
   const [emailSent, setEmailSent] = useState(false);
   const [emailAddress, setEmailAddress] = useState('');
@@ -50,7 +51,8 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
           email: email.trim(),
           fullName: fullName.trim() || email.trim(),
           method,
-          role
+          role,
+          ...(method === 'permanent_password' && { permanentPassword })
         }
       });
 
@@ -90,6 +92,7 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
     setFullName('');
     setRole('field_worker');
     setMethod('temporary_password');
+    setPermanentPassword('');
     setTemporaryPassword('');
     setEmailSent(false);
     setEmailAddress('');
@@ -213,9 +216,29 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
                 <SelectContent>
                   <SelectItem value="temporary_password">Temporary Password</SelectItem>
                   <SelectItem value="invite_email">Invite Email</SelectItem>
+                  <SelectItem value="permanent_password">Set Permanent Password</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {method === 'permanent_password' && (
+              <div className="space-y-1.5">
+                <Label htmlFor="permanentPassword" className="text-xs">Permanent Password</Label>
+                <Input
+                  id="permanentPassword"
+                  type="text"
+                  value={permanentPassword}
+                  onChange={(e) => setPermanentPassword(e.target.value)}
+                  placeholder="Enter permanent password (min 8 chars)"
+                  required
+                  disabled={loading}
+                  className="h-8 text-sm"
+                />
+                <p className="text-xs text-amber-600 dark:text-amber-500">
+                  ⚠️ Warning: You will know this user's password. For better security, use "Invite Email" instead.
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-2 pt-2">
               <Button
