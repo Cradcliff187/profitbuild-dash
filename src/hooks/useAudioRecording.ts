@@ -97,10 +97,14 @@ export function useAudioRecording() {
   const [audioData, setAudioData] = useState<string | null>(null);
   const [audioFormat, setAudioFormat] = useState<string>('audio/wav');
   const [error, setError] = useState<string | null>(null);
+  const [audioLevel, setAudioLevel] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   const startRecording = useCallback(async () => {
     try {
@@ -201,6 +205,52 @@ export function useAudioRecording() {
       mediaRecorderRef.current = mediaRecorder;
       setState('recording');
 
+      // Set up Web Audio API for real-time audio level visualization
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.8;
+        source.connect(analyser);
+        
+        audioContextRef.current = audioContext;
+        analyserRef.current = analyser;
+        
+        // Start audio level monitoring
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const updateLevel = () => {
+          if (!analyserRef.current || state === 'idle') return;
+          
+          analyser.getByteFrequencyData(dataArray);
+          
+          // Calculate average across 5 frequency bands for smooth visualization
+          const bands = 5;
+          const bandSize = Math.floor(dataArray.length / bands);
+          let sum = 0;
+          
+          for (let i = 0; i < bands; i++) {
+            const start = i * bandSize;
+            const end = start + bandSize;
+            const bandAverage = dataArray.slice(start, end).reduce((a, b) => a + b, 0) / bandSize;
+            sum += bandAverage;
+          }
+          
+          const averageLevel = sum / bands;
+          const normalizedLevel = Math.min(100, (averageLevel / 255) * 150); // Boost for visibility
+          
+          setAudioLevel(normalizedLevel);
+          animationFrameRef.current = requestAnimationFrame(updateLevel);
+        };
+        
+        updateLevel();
+        console.log('[AudioRecording] Audio visualizer started');
+      } catch (err) {
+        console.warn('[AudioRecording] Audio visualizer setup failed (non-critical):', err);
+        // Non-critical - recording continues without visualization
+      }
+
       // Start duration timer with max duration check
       timerRef.current = window.setInterval(() => {
         setDuration(prev => {
@@ -257,6 +307,24 @@ export function useAudioRecording() {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      
+      // Clean up audio visualization
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      
+      if (analyserRef.current) {
+        analyserRef.current.disconnect();
+        analyserRef.current = null;
+      }
+      
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      
+      setAudioLevel(0);
     }
   }, []);
 
@@ -266,9 +334,26 @@ export function useAudioRecording() {
     setAudioData(null);
     setAudioFormat('audio/wav');
     setError(null);
+    setAudioLevel(0);
+    
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
+    }
+    
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
+    if (analyserRef.current) {
+      analyserRef.current.disconnect();
+      analyserRef.current = null;
+    }
+    
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
     }
   }, []);
 
@@ -277,6 +362,7 @@ export function useAudioRecording() {
     duration,
     audioData,
     audioFormat,
+    audioLevel,
     error,
     startRecording,
     stopRecording,

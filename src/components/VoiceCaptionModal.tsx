@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAudioRecording } from '@/hooks/useAudioRecording';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { AICaptionEnhancer } from '@/components/AICaptionEnhancer';
+import { AudioVisualizer } from '@/components/ui/audio-visualizer';
 import { checkAudioRecordingSupport } from '@/utils/browserCompatibility';
 import { isIOSPWA } from '@/utils/platform';
 import { toast } from 'sonner';
@@ -28,6 +29,7 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
     isRequesting,
     audioData,
     audioFormat,
+    audioLevel,
     duration,
     error: recordingError,
     reset: resetRecording,
@@ -370,7 +372,8 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
               )}
 
               {isRecording && (
-                <div className="text-center space-y-1">
+                <div className="text-center space-y-2">
+                  <AudioVisualizer level={audioLevel} className="w-24 mx-auto" />
                   <div className="text-2xl font-mono font-bold text-foreground">
                     {formatDuration(duration)}
                   </div>

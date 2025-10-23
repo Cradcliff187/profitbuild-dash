@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAudioRecording } from '@/hooks/useAudioRecording';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
+import { AudioVisualizer } from '@/components/ui/audio-visualizer';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -22,6 +23,7 @@ export function MediaCommentForm({ mediaId }: MediaCommentFormProps) {
     stopRecording,
     audioData,
     audioFormat,
+    audioLevel,
     duration,
     isRecording,
     isProcessing,
@@ -173,6 +175,7 @@ export function MediaCommentForm({ mediaId }: MediaCommentFormProps) {
         <div className="text-xs text-muted-foreground flex items-center gap-2">
           <div className="h-2 w-2 bg-destructive rounded-full animate-pulse" />
           Recording: {formatDuration(duration)}
+          <AudioVisualizer level={audioLevel} compact className="w-10" />
         </div>
       )}
 
