@@ -205,6 +205,15 @@ export function ProjectMediaGallery({
     setIsDeleting(true);
     const itemIds = Array.from(selectedItems);
     
+    // Optimistic update - remove from UI immediately
+    queryClient.setQueryData(
+      ['project-media', projectId],
+      (oldData: ProjectMedia[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.filter(item => !itemIds.includes(item.id));
+      }
+    );
+    
     try {
       const results = await Promise.allSettled(
         itemIds.map(id => deleteProjectMedia(id))
@@ -215,11 +224,12 @@ export function ProjectMediaGallery({
 
       if (successful > 0) {
         toast.success(`Deleted ${successful} item${successful !== 1 ? 's' : ''}`);
-        refetch();
       }
       
       if (failed > 0) {
         toast.error(`Failed to delete ${failed} item${failed !== 1 ? 's' : ''}`);
+        // Rollback - refetch if delete failed
+        refetch();
       }
 
       clearSelection();
@@ -227,6 +237,8 @@ export function ProjectMediaGallery({
     } catch (error) {
       toast.error('Failed to delete items');
       console.error('Batch delete error:', error);
+      // Rollback - refetch on error
+      refetch();
     } finally {
       setIsDeleting(false);
     }
