@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 
 // Lazy load heavy pages
 const Install = lazy(() => import("./pages/Install"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const WorkOrders = lazy(() => import("./pages/WorkOrders"));
 const TimeTracker = lazy(() => import("./pages/TimeTracker"));
 const TimeEntries = lazy(() => import("./pages/TimeEntries"));
@@ -58,6 +59,7 @@ const App = () => (
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/change-password" element={<ChangePassword />} />
+                <Route path="/reset-password" element={<LazyRoute component={ResetPassword} />} />
                 <Route path="/install" element={<LazyRoute component={Install} />} />
                 <Route path="/" element={<ProtectedLayout />}>
                   <Route index element={<Dashboard />} />
