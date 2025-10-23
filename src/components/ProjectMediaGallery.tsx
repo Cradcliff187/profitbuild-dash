@@ -552,15 +552,15 @@ export function ProjectMediaGallery({
           {selectedItems.size > 0 && (
             <TooltipProvider>
               <Card className="p-2 bg-primary/10 border-primary/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="default" className="font-semibold">{selectedItems.size} selected</Badge>
-                    <span className="text-xs text-muted-foreground hidden sm:inline">
+                <div className="flex items-center flex-wrap gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="default" className="font-semibold h-6 text-xs">{selectedItems.size} selected</Badge>
+                    <span className="text-xs text-muted-foreground hidden md:inline">
                       Ready to generate report
                     </span>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" onClick={clearSelection} className="h-7 px-2">
+                        <Button variant="ghost" size="sm" onClick={clearSelection} className="h-6 px-2 text-xs">
                           Clear
                         </Button>
                       </TooltipTrigger>
@@ -571,8 +571,9 @@ export function ProjectMediaGallery({
                     {selectedItems.size < filteredAndSortedMedia.length && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="sm" onClick={selectAll} className="h-7 px-2">
-                            Select All ({filteredAndSortedMedia.length})
+                          <Button variant="ghost" size="sm" onClick={selectAll} className="h-6 px-2 text-xs">
+                            <span className="hidden sm:inline">Select All ({filteredAndSortedMedia.length})</span>
+                            <span className="sm:hidden">All ({filteredAndSortedMedia.length})</span>
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -582,17 +583,17 @@ export function ProjectMediaGallery({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 ml-auto flex-shrink-0">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setShowReportModal(true)}
-                          className="h-7 px-2"
+                          className="h-6 px-2"
                         >
-                          <FileText className="h-4 w-4 mr-1" />
-                          Report
+                          <FileText className="h-4 w-4 sm:mr-1" />
+                          <span className="hidden sm:inline">Report</span>
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -605,10 +606,10 @@ export function ProjectMediaGallery({
                           variant="ghost"
                           size="sm"
                           onClick={handleBatchDownload}
-                          className="h-7 px-2"
+                          className="h-6 px-2"
                         >
-                          <Download className="h-4 w-4 mr-1" />
-                          Download
+                          <Download className="h-4 w-4 sm:mr-1" />
+                          <span className="hidden sm:inline">Download</span>
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -621,10 +622,10 @@ export function ProjectMediaGallery({
                           variant="ghost"
                           size="sm"
                           onClick={() => setShowDeleteDialog(true)}
-                          className="h-7 px-2 text-destructive hover:text-destructive"
+                          className="h-6 px-2 text-destructive hover:text-destructive"
                         >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
+                          <Trash2 className="h-4 w-4 sm:mr-1" />
+                          <span className="hidden sm:inline">Delete</span>
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
