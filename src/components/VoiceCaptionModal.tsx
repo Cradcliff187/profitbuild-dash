@@ -105,7 +105,7 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
       setProcessingStage(null);
       transcriptionAttemptedRef.current = false;
     }
-  }, [open, resetRecording, resetTranscription]);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Show error toasts
   useEffect(() => {
