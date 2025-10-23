@@ -146,6 +146,14 @@ export default function FieldPhotoCapture() {
         altitude: coordinates?.altitude,
       });
 
+      // Show success toast with caption info
+      const wordCount = pendingCaption ? pendingCaption.split(/\s+/).filter(w => w.length > 0).length : 0;
+      toast.success(
+        pendingCaption 
+          ? `Photo uploaded with caption (${wordCount} word${wordCount !== 1 ? 's' : ''})` 
+          : 'Photo uploaded without caption'
+      );
+
       // Reset for next photo
       setCapturedPhotoUri(null);
       setPendingCaption('');
@@ -347,12 +355,20 @@ export default function FieldPhotoCapture() {
 
           {/* Action Controls */}
           <div className="flex-shrink-0 p-4 bg-card border-t border-border space-y-2">
-            {pendingCaption && (
-              <div className="p-2 bg-muted rounded border mb-2">
-                <p className="text-xs text-muted-foreground">Caption:</p>
-                <p className="text-sm font-medium">{pendingCaption}</p>
-              </div>
-            )}
+            {/* Caption Preview - Always Visible */}
+            <div className="p-3 bg-muted/50 rounded-lg border mb-2">
+              <p className="text-xs text-muted-foreground font-medium mb-1.5">Caption Preview:</p>
+              {pendingCaption ? (
+                <>
+                  <p className="text-sm mb-1">{pendingCaption}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {pendingCaption.split(/\s+/).filter(w => w.length > 0).length} words
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">No caption added yet</p>
+              )}
+            </div>
             
             <div className="space-y-2">
               {/* Show tip badge when prompt is suppressed */}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Mic, MicOff, Check, X, Loader2, Sparkles, AlertCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -44,10 +44,11 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
   } = useAudioTranscription();
 
   const [editableCaption, setEditableCaption] = useState('');
-  const [hasTranscribed, setHasTranscribed] = useState(false);
   const [showAIEnhancer, setShowAIEnhancer] = useState(false);
   const [isInIframe, setIsInIframe] = useState(false);
   const [isInIOSPWA, setIsInIOSPWA] = useState(false);
+  const [processingStage, setProcessingStage] = useState<'processing' | 'transcribing' | 'complete' | null>(null);
+  const transcriptionAttemptedRef = useRef(false);
 
   // Check if running in iframe or iOS PWA on mount
   useEffect(() => {
@@ -65,31 +66,34 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
     }
   }, [open, browserSupport]);
 
-  // Auto-transcribe when audio is ready (with timeout protection)
+  // Auto-transcribe when audio is ready
   useEffect(() => {
-    if (audioData && audioFormat && !hasTranscribed) {
-      setHasTranscribed(true);
+    if (audioData && audioFormat && !transcriptionAttemptedRef.current && !isTranscribing) {
+      console.log('[VoiceCaptionModal] Auto-transcribing audio...');
+      transcriptionAttemptedRef.current = true;
+      setProcessingStage('processing');
       
-      // Set up 30-second timeout
-      const timeoutId = setTimeout(() => {
-        toast.error('Transcription timeout', {
-          description: 'Taking too long. Please try recording again.',
-        });
-      }, 30000);
-      
-      transcribe(audioData, audioFormat)
-        .then((text) => {
-          clearTimeout(timeoutId);
-          if (text) {
-            setEditableCaption(text);
-          }
-        })
-        .catch((error) => {
-          clearTimeout(timeoutId);
-          console.error('Transcription failed:', error);
-        });
+      // Add slight delay to show processing stage
+      setTimeout(() => {
+        setProcessingStage('transcribing');
+        transcribe(audioData, audioFormat)
+          .then((text) => {
+            if (text) {
+              setEditableCaption(text);
+              setProcessingStage('complete');
+              console.log('[VoiceCaptionModal] Transcription complete');
+              setTimeout(() => setProcessingStage(null), 1500);
+            } else {
+              setProcessingStage(null);
+            }
+          })
+          .catch((error) => {
+            setProcessingStage(null);
+            console.error('[VoiceCaptionModal] Transcription failed:', error);
+          });
+      }, 300);
     }
-  }, [audioData, audioFormat, transcribe, hasTranscribed]);
+  }, [audioData, audioFormat, transcribe, isTranscribing]);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -97,8 +101,9 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
       resetRecording();
       resetTranscription();
       setEditableCaption('');
-      setHasTranscribed(false);
       setShowAIEnhancer(false);
+      setProcessingStage(null);
+      transcriptionAttemptedRef.current = false;
     }
   }, [open, resetRecording, resetTranscription]);
 
@@ -113,17 +118,17 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
     if (transcriptionError) {
       toast.error('Transcription failed', {
         description: transcriptionError,
-        action: {
+        action: audioData ? {
+          label: 'Retry',
+          onClick: handleRetryTranscription,
+        } : {
           label: 'Try Again',
-          onClick: () => {
-            setHasTranscribed(false);
-            handleStartRecording();
-          },
+          onClick: handleStartRecording,
         },
         duration: 8000,
       });
     }
-  }, [transcriptionError]);
+  }, [transcriptionError, audioData]);
 
   const handleStartRecording = async () => {
     // Prevent double-clicks during requesting/recording/processing
@@ -138,10 +143,29 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
     
     resetTranscription();
     setEditableCaption('');
-    setHasTranscribed(false);
+    setProcessingStage(null);
+    transcriptionAttemptedRef.current = false;
     
     // No toast needed - UI will show immediate feedback via button state
     await startRecording();
+  };
+
+  const handleRetryTranscription = async () => {
+    if (!audioData || !audioFormat) return;
+    
+    console.log('[VoiceCaptionModal] Retrying transcription...');
+    transcriptionAttemptedRef.current = false;
+    setProcessingStage('transcribing');
+    resetTranscription();
+    
+    const text = await transcribe(audioData, audioFormat);
+    if (text) {
+      setEditableCaption(text);
+      setProcessingStage('complete');
+      setTimeout(() => setProcessingStage(null), 1500);
+    } else {
+      setProcessingStage(null);
+    }
   };
 
   const handleStopRecording = () => {
@@ -161,8 +185,9 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
     resetRecording();
     resetTranscription();
     setEditableCaption('');
-    setHasTranscribed(false);
     setShowAIEnhancer(false);
+    setProcessingStage(null);
+    transcriptionAttemptedRef.current = false;
     onClose();
   };
 
@@ -395,13 +420,26 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
             </div>
           )}
 
-          {/* Processing State */}
+          {/* Processing State with Progress Stages */}
           {isProcessingAudio && (
             <div className="flex flex-col items-center justify-center py-8 space-y-3">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">
-                {isProcessing ? 'Processing audio...' : 'Transcribing...'}
-              </p>
+              {processingStage === 'complete' ? (
+                <>
+                  <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center">
+                    <Check className="h-6 w-6 text-white" />
+                  </div>
+                  <p className="text-sm text-green-600 font-medium">Transcription complete!</p>
+                </>
+              ) : (
+                <>
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">
+                    {processingStage === 'processing' ? 'Processing audio...' : 
+                     processingStage === 'transcribing' ? 'Transcribing... Please wait' :
+                     isProcessing ? 'Processing audio...' : 'Transcribing...'}
+                  </p>
+                </>
+              )}
             </div>
           )}
 
@@ -416,26 +454,33 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
                       <AlertDescription className="text-xs">
                         <strong>Transcription failed:</strong> {transcriptionError}
                         <br />
-                        <Button
-                          onClick={() => {
-                            setHasTranscribed(false);
-                            handleStartRecording();
-                          }}
-                          variant="outline"
-                          size="sm"
-                          className="mt-2"
-                        >
-                          <Mic className="h-3 w-3 mr-1" />
-                          Try Recording Again
-                        </Button>
-                        <Button
-                          onClick={() => setEditableCaption('')}
-                          variant="outline"
-                          size="sm"
-                          className="mt-2 ml-2"
-                        >
-                          Type Instead
-                        </Button>
+                        <div className="flex gap-2 mt-2">
+                          {audioData && (
+                            <Button
+                              onClick={handleRetryTranscription}
+                              variant="outline"
+                              size="sm"
+                            >
+                              <Loader2 className="h-3 w-3 mr-1" />
+                              Retry Transcription
+                            </Button>
+                          )}
+                          <Button
+                            onClick={handleStartRecording}
+                            variant="outline"
+                            size="sm"
+                          >
+                            <Mic className="h-3 w-3 mr-1" />
+                            Record Again
+                          </Button>
+                          <Button
+                            onClick={() => setEditableCaption('')}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Type Instead
+                          </Button>
+                        </div>
                       </AlertDescription>
                     </Alert>
                   )}
