@@ -175,29 +175,22 @@ export default function FieldPhotoCapture() {
     toast.success('Caption saved - ready to upload');
   };
 
-  // Check if in iframe before opening voice modal
+  // Open voice modal with non-blocking warnings
   const handleVoiceCaptionClick = () => {
+    // Show info toast if in iframe (non-blocking)
     if (window.self !== window.top) {
-      toast.error('Microphone unavailable', {
-        description: 'Open in new tab for voice captions, or use text instead',
+      toast.info('Embedded preview: microphone may be limited', {
+        description: 'If recording fails, open in a new tab.',
         duration: 5000,
         action: {
-          label: 'Type Caption',
-          onClick: () => setShowCaptionModal(true),
+          label: 'Open in New Tab',
+          onClick: () => window.open(window.location.href, '_blank'),
         },
       });
-    } else if (isIOSPWA()) {
-      toast.warning('Limited iOS PWA support', {
-        description: 'Voice captions work best in Safari browser',
-        duration: 6000,
-        action: {
-          label: 'Try Anyway',
-          onClick: () => setShowVoiceCaptionModal(true),
-        },
-      });
-    } else {
-      setShowVoiceCaptionModal(true);
     }
+    
+    // Always open the modal - let it handle actual errors
+    setShowVoiceCaptionModal(true);
   };
 
   const handleVoiceCaptionReady = (caption: string) => {
