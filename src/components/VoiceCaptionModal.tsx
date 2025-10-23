@@ -1,12 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
-import { Mic, MicOff, Check, X, Loader2, Sparkles, AlertCircle, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Mic, MicOff, Check, X, Loader2, AlertCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAudioRecording } from '@/hooks/useAudioRecording';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
-import { AICaptionEnhancer } from '@/components/AICaptionEnhancer';
 import { AudioVisualizer } from '@/components/ui/audio-visualizer';
 import { checkAudioRecordingSupport } from '@/utils/browserCompatibility';
 import { isIOSPWA } from '@/utils/platform';
@@ -44,7 +43,6 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
   } = useAudioTranscription();
 
   const [editableCaption, setEditableCaption] = useState('');
-  const [showAIEnhancer, setShowAIEnhancer] = useState(false);
   const [isInIframe, setIsInIframe] = useState(false);
   const [isInIOSPWA, setIsInIOSPWA] = useState(false);
   const [processingStage, setProcessingStage] = useState<'processing' | 'transcribing' | 'complete' | null>(null);
@@ -101,7 +99,6 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
       resetRecording();
       resetTranscription();
       setEditableCaption('');
-      setShowAIEnhancer(false);
       setProcessingStage(null);
       transcriptionAttemptedRef.current = false;
     }
@@ -180,7 +177,6 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
     resetRecording();
     resetTranscription();
     setEditableCaption('');
-    setShowAIEnhancer(false);
     setProcessingStage(null);
     transcriptionAttemptedRef.current = false;
     onClose();
@@ -418,9 +414,7 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
 
           {/* Transcription Preview */}
           {showTranscription && !isProcessingAudio && (
-            <>
-              {!showAIEnhancer ? (
-                <div className="space-y-3">
+            <div className="space-y-3">
                   {transcriptionError && (
                     <Alert variant="destructive">
                       <AlertCircle className="h-4 w-4" />
@@ -481,16 +475,6 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
                       Re-record
                     </Button>
                     <Button
-                      onClick={() => setShowAIEnhancer(true)}
-                      variant="outline"
-                      className="flex-1"
-                      size="sm"
-                      disabled={!editableCaption.trim()}
-                    >
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Enhance with AI
-                    </Button>
-                    <Button
                       onClick={handleUseCaption}
                       variant="default"
                       className="flex-1"
@@ -502,18 +486,6 @@ export function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: V
                     </Button>
                   </div>
                 </div>
-              ) : (
-                <AICaptionEnhancer
-                  imageUrl={imageUrl || ''}
-                  originalCaption={editableCaption}
-                  onAccept={(enhanced) => {
-                    setEditableCaption(enhanced);
-                    setShowAIEnhancer(false);
-                  }}
-                  onCancel={() => setShowAIEnhancer(false)}
-                />
-              )}
-            </>
           )}
 
           {/* Cancel Button */}
