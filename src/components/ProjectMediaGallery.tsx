@@ -360,7 +360,7 @@ export function ProjectMediaGallery({
         {/* Gallery Tab Content */}
         <TabsContent value={activeTab === 'timeline' ? 'all' : activeTab} className="space-y-3 mt-3" hidden={activeTab === 'timeline'}>
           {/* Statistics Card */}
-          <Card className="p-3">
+          <Card className="hidden md:block p-3">
             <div className="grid grid-cols-4 gap-3 text-center">
               <div>
                 <div className="text-lg font-semibold">{stats.totalCount}</div>
