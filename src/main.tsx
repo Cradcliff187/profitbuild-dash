@@ -4,6 +4,8 @@ import "./index.css";
 import { registerSW } from 'virtual:pwa-register';
 import { toast } from 'sonner';
 import { startSyncService } from '@/utils/backgroundSync';
+import 'react-pdf/dist/Page/TextLayer.css';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
 
 createRoot(document.getElementById("root")!).render(<App />);
 
