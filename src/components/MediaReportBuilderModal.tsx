@@ -16,6 +16,8 @@ import { generateMediaReportPDF } from '@/utils/mediaReportPdfGenerator';
 import { generatePDFFileName, estimatePDFSize } from '@/utils/pdfHelpers';
 import { PdfPreviewModal } from './PdfPreviewModal';
 import type { ProjectMedia } from '@/types/project';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface MediaComment {
   id: string;
@@ -50,6 +52,7 @@ export function MediaReportBuilderModal({
   selectedMedia,
   onComplete,
 }: MediaReportBuilderModalProps) {
+  const isMobile = useIsMobile();
   const [reportTitle, setReportTitle] = useState('Project Media Report');
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
@@ -169,43 +172,59 @@ export function MediaReportBuilderModal({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent 
+        className={cn(
+          "flex flex-col overflow-hidden",
+          isMobile 
+            ? "fixed bottom-0 left-0 right-0 top-auto translate-x-0 translate-y-0 rounded-t-2xl pb-safe max-w-full w-full p-3 max-h-[85vh]" 
+            : "max-w-2xl max-h-[85vh] p-6"
+        )}
+        onPointerDownOutside={(e) => {
+          if (isMobile) e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          if (isMobile) e.preventDefault();
+        }}
+        onOpenAutoFocus={(e) => {
+          if (isMobile) e.preventDefault();
+        }}
+      >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+          <DialogTitle className={cn("flex items-center gap-2", isMobile && "text-base")}>
+            <FileText className={cn(isMobile ? "h-4 w-4" : "h-5 w-5")} />
             Generate Media Report
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className={cn(isMobile && "text-xs")}>
             Create a professional PDF report with selected photos and videos
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 space-y-4 overflow-hidden">
+        <div className={cn("flex-1 overflow-hidden", isMobile ? "space-y-2" : "space-y-4")}>
           {/* Preview Section */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Selected Media</Label>
-            <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
+          <div className={cn(isMobile ? "space-y-1.5" : "space-y-2")}>
+            <Label className={cn("font-medium", isMobile ? "text-xs" : "text-sm")}>Selected Media</Label>
+            <div className={cn("flex items-center gap-4 bg-muted rounded-lg", isMobile ? "p-2" : "p-3")}>
               <div className="flex items-center gap-2">
-                <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">{photoCount}</span>
-                <span className="text-xs text-muted-foreground">photos</span>
+                <ImageIcon className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "text-muted-foreground")} />
+                <span className={cn("font-medium", isMobile ? "text-xs" : "text-sm")}>{photoCount}</span>
+                <span className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>photos</span>
               </div>
               <div className="flex items-center gap-2">
-                <VideoIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">{videoCount}</span>
-                <span className="text-xs text-muted-foreground">videos</span>
+                <VideoIcon className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "text-muted-foreground")} />
+                <span className={cn("font-medium", isMobile ? "text-xs" : "text-sm")}>{videoCount}</span>
+                <span className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>videos</span>
               </div>
-              <Badge variant="secondary" className="ml-auto">
+              <Badge variant="secondary" className={cn("ml-auto", isMobile && "text-[10px] px-1.5 py-0.5")}>
                 {selectedMedia.length} total • {estimatePDFSize(selectedMedia.length)}
               </Badge>
             </div>
 
             {/* Thumbnail Preview */}
-            <ScrollArea className="h-24 w-full rounded-lg border">
-              <div className="flex gap-2 p-2">
+            <ScrollArea className={cn("w-full rounded-lg border", isMobile ? "h-16" : "h-24")}>
+              <div className={cn("flex p-2", isMobile ? "gap-1.5" : "gap-2")}>
                 {selectedMedia.slice(0, 30).map((item) => (
                   <div key={item.id} className="relative flex-shrink-0">
-                    <div className="h-16 w-16 rounded overflow-hidden bg-muted">
+                    <div className={cn("rounded overflow-hidden bg-muted", isMobile ? "h-12 w-12" : "h-16 w-16")}>
                       {item.file_type === 'image' ? (
                         <img
                           src={item.file_url}
@@ -225,14 +244,14 @@ export function MediaReportBuilderModal({
                       )}
                     </div>
                     {item.file_type === 'video' && (
-                      <Badge className="absolute bottom-0 right-0 text-xs h-4 px-1 bg-black/80 text-white border-0">
-                        <VideoIcon className="h-2 w-2" />
+                      <Badge className={cn("absolute bottom-0 right-0 bg-black/80 text-white border-0", isMobile ? "text-[8px] h-3 px-0.5" : "text-xs h-4 px-1")}>
+                        <VideoIcon className={cn(isMobile ? "h-1.5 w-1.5" : "h-2 w-2")} />
                       </Badge>
                     )}
                   </div>
                 ))}
                 {selectedMedia.length > 30 && (
-                  <div className="h-16 w-16 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                  <div className={cn("rounded bg-muted flex items-center justify-center text-muted-foreground", isMobile ? "h-12 w-12 text-[10px]" : "h-16 w-16 text-xs")}>
                     +{selectedMedia.length - 30}
                   </div>
                 )}
@@ -252,16 +271,16 @@ export function MediaReportBuilderModal({
           )}
 
           {/* Configuration Section */}
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="report-title" className="text-sm">Report Title</Label>
+          <div className={cn(isMobile ? "space-y-2" : "space-y-3")}>
+            <div className={cn(isMobile ? "space-y-1" : "space-y-2")}>
+              <Label htmlFor="report-title" className={cn(isMobile ? "text-xs" : "text-sm")}>Report Title</Label>
               <Input
                 id="report-title"
                 value={reportTitle}
                 onChange={(e) => setReportTitle(e.target.value)}
                 placeholder="Project Media Report"
                 disabled={isGenerating}
-                className="h-9"
+                className={cn(isMobile ? "h-8 text-sm" : "h-9")}
               />
             </div>
 
@@ -272,16 +291,17 @@ export function MediaReportBuilderModal({
                 checked={storyFormat}
                 onCheckedChange={(checked) => setStoryFormat(checked as boolean)}
                 disabled={isGenerating}
+                className={cn(isMobile && "h-4 w-4")}
               />
               <Label
                 htmlFor="story-format"
-                className="text-sm font-normal cursor-pointer"
+                className={cn("font-normal cursor-pointer", isMobile ? "text-xs" : "text-sm")}
               >
                 Generate as Story Report (narrative timeline)
               </Label>
             </div>
             {storyFormat && (
-              <div className="text-xs text-muted-foreground pl-6 -mt-1">
+              <div className={cn("text-muted-foreground pl-6 -mt-1", isMobile ? "text-[10px]" : "text-xs")}>
                 Compact layout with time grouping, continuous flow, and narrative captions
               </div>
             )}
@@ -293,22 +313,23 @@ export function MediaReportBuilderModal({
                 checked={aggregateComments}
                 onCheckedChange={(checked) => setAggregateComments(checked as boolean)}
                 disabled={isGenerating || storyFormat}
+                className={cn(isMobile && "h-4 w-4")}
               />
               <Label
                 htmlFor="aggregate-comments"
-                className="text-sm font-normal cursor-pointer"
+                className={cn("font-normal cursor-pointer", isMobile ? "text-xs" : "text-sm")}
               >
                 Aggregate all comments at end of report
               </Label>
             </div>
             {storyFormat && (
-              <div className="text-xs text-muted-foreground pl-6 -mt-1">
+              <div className={cn("text-muted-foreground pl-6 -mt-1", isMobile ? "text-[10px]" : "text-xs")}>
                 (Comments are inline in story format)
               </div>
             )}
 
             {/* Project Info Preview */}
-            <div className="p-3 bg-muted/50 rounded-lg space-y-1 text-xs">
+            <div className={cn("bg-muted/50 rounded-lg space-y-1", isMobile ? "p-2 text-[10px]" : "p-3 text-xs")}>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Project:</span>
                 <span className="font-medium">{projectName}</span>
@@ -336,8 +357,8 @@ export function MediaReportBuilderModal({
 
           {/* Progress Indicator */}
           {isGenerating && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
+            <div className={cn(isMobile ? "space-y-1.5" : "space-y-2")}>
+              <div className={cn("flex items-center justify-between", isMobile ? "text-xs" : "text-sm")}>
                 <span className="text-muted-foreground">Generating PDF...</span>
                 <span className="font-medium">
                   {progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0}%
@@ -345,20 +366,22 @@ export function MediaReportBuilderModal({
               </div>
               <Progress 
                 value={progress.total > 0 ? (progress.current / progress.total) * 100 : 0} 
-                className="h-2" 
+                className={cn(isMobile ? "h-1.5" : "h-2")} 
               />
-              <p className="text-xs text-muted-foreground text-center">
+              <p className={cn("text-muted-foreground text-center", isMobile ? "text-[10px]" : "text-xs")}>
                 Processing {progress.current} of {progress.total} items...
               </p>
             </div>
           )}
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className={cn("gap-2", isMobile && "flex-col")}>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isGenerating}
+            size={isMobile ? "sm" : "default"}
+            className={cn(isMobile && "w-full order-3")}
           >
             Cancel
           </Button>
@@ -366,12 +389,16 @@ export function MediaReportBuilderModal({
             variant="outline"
             onClick={() => handleGeneratePDF(true)}
             disabled={isGenerating || selectedMedia.length === 0}
+            size={isMobile ? "sm" : "default"}
+            className={cn(isMobile && "w-full order-2")}
           >
             Preview
           </Button>
           <Button
             onClick={() => handleGeneratePDF(false)}
             disabled={isGenerating || selectedMedia.length === 0}
+            size={isMobile ? "sm" : "default"}
+            className={cn(isMobile && "w-full order-1")}
           >
             {isGenerating ? (
               <>

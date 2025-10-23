@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -21,6 +23,7 @@ export function PdfPreviewModal({
   pdfBlob,
   fileName,
 }: PdfPreviewModalProps) {
+  const isMobile = useIsMobile();
   const [objectUrl, setObjectUrl] = useState<string>('');
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
@@ -55,8 +58,15 @@ export function PdfPreviewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
-        <DialogHeader className="px-4 pt-4 pb-2 border-b">
+      <DialogContent 
+        className={cn(
+          "flex flex-col p-0",
+          isMobile 
+            ? "fixed inset-0 h-screen w-screen max-w-none rounded-none" 
+            : "max-w-4xl h-[90vh]"
+        )}
+      >
+        <DialogHeader className={cn("border-b", isMobile ? "px-3 pt-3 pb-2" : "px-4 pt-4 pb-2")}>
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="flex items-center gap-2 text-sm">
               <FileText className="h-4 w-4" />
@@ -98,6 +108,7 @@ export function PdfPreviewModal({
               >
                 <Page
                   pageNumber={pageNumber}
+                  width={isMobile ? window.innerWidth - 16 : undefined}
                   renderTextLayer={true}
                   renderAnnotationLayer={true}
                   className="shadow-lg"
@@ -110,25 +121,27 @@ export function PdfPreviewModal({
               </Document>
               
               {numPages > 1 && (
-                <div className="flex items-center gap-4 mt-4">
+                <div className={cn("flex items-center gap-3 mt-4", isMobile && "gap-2")}>
                   <Button
                     variant="outline"
-                    size="sm"
+                    size={isMobile ? "default" : "sm"}
                     onClick={goToPrevPage}
                     disabled={pageNumber <= 1}
+                    className={cn(isMobile && "h-12 w-12 p-0")}
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-5 w-5" />
                   </Button>
-                  <span className="text-xs text-muted-foreground">
+                  <span className={cn("text-muted-foreground", isMobile ? "text-sm" : "text-xs")}>
                     Page {pageNumber} of {numPages}
                   </span>
                   <Button
                     variant="outline"
-                    size="sm"
+                    size={isMobile ? "default" : "sm"}
                     onClick={goToNextPage}
                     disabled={pageNumber >= numPages}
+                    className={cn(isMobile && "h-12 w-12 p-0")}
                   >
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-5 w-5" />
                   </Button>
                 </div>
               )}
@@ -140,8 +153,13 @@ export function PdfPreviewModal({
           )}
         </div>
 
-        <DialogFooter className="px-4 py-3 border-t">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+        <DialogFooter className={cn("border-t", isMobile ? "px-3 py-3 pb-safe" : "px-4 py-3")}>
+          <Button 
+            variant="outline" 
+            size={isMobile ? "default" : "sm"}
+            onClick={() => onOpenChange(false)}
+            className={cn(isMobile && "w-full")}
+          >
             Close Preview
           </Button>
         </DialogFooter>
