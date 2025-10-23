@@ -26,7 +26,6 @@ export function FieldProjectSelector({ selectedProjectId, onProjectSelect }: Fie
       const { data, error } = await supabase
         .from('projects')
         .select('id, project_number, project_name, client_name, status')
-        .in('status', ['estimating', 'in_progress'])
         .neq('project_number', 'SYS-000')
         .neq('project_number', '000-UNASSIGNED')
         .order('project_number', { ascending: false });
@@ -56,8 +55,8 @@ export function FieldProjectSelector({ selectedProjectId, onProjectSelect }: Fie
   if (!projects || projects.length === 0) {
     return (
       <div className="p-4 text-center">
-        <p className="text-sm text-muted-foreground">No active projects available</p>
-        <p className="text-xs text-muted-foreground mt-1">All projects must be in 'estimating' or 'in progress' status</p>
+        <p className="text-sm text-muted-foreground">No projects available</p>
+        <p className="text-xs text-muted-foreground mt-1">Create a project to start capturing media</p>
       </div>
     );
   }
