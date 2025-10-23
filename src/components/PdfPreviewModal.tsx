@@ -218,8 +218,14 @@ export function PdfPreviewModal({
             ) : (
               <div className="flex flex-col items-center py-2 px-2"> 
                 <Document 
-                  file={objectUrl} 
-                  onLoadSuccess={onDocumentLoadSuccess} 
+                  file={isDev && dataUrl ? dataUrl : objectUrl} 
+                  onLoadSuccess={(pdf) => {
+                    console.log('[PdfPreview] Document loaded successfully', pdf.numPages, 'pages');
+                    onDocumentLoadSuccess(pdf);
+                  }}
+                  onLoadError={(error) => {
+                    console.error('[PdfPreview] Document failed to load', error);
+                  }}
                   loading={ 
                     <div className="flex items-center justify-center h-96"> 
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> 
