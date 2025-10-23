@@ -30,27 +30,66 @@ export default function ResetPasswordModal({ open, onOpenChange, userId, userEma
     setTemporaryPassword('');
 
     try {
-      const { data, error } = await supabase.functions.invoke('admin-reset-password', {
-        body: {
-          targetUserId: userId,
-          method,
-          ...(method === 'permanent_password' && { permanentPassword })
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.temporaryPassword) {
-        setTemporaryPassword(data.temporaryPassword);
+      if (method === 'email_reset') {
+        // Use Supabase's built-in password reset - automatically sends email!
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+          userEmail,
+          {
+            redirectTo: `${window.location.origin}/change-password`
+          }
+        );
+        
+        if (resetError) throw resetError;
+        
+        setEmailSent(true);
+        toast({
+          title: 'Password Reset Email Sent',
+          description: `Reset link sent to ${userEmail}`,
+        });
+      } else if (method === 'temporary_password') {
+        // Generate temporary password
+        const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
+        
+        const { error: updateError } = await supabase.auth.admin.updateUserById(
+          userId,
+          { password: tempPassword }
+        );
+        
+        if (updateError) throw updateError;
+        
+        // Set must_change_password flag
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ must_change_password: true })
+          .eq('id', userId);
+        
+        if (profileError) throw profileError;
+        
+        setTemporaryPassword(tempPassword);
         toast({
           title: 'Password Reset',
           description: 'Temporary password generated. Copy it before closing.',
         });
       } else {
-        setEmailSent(true);
+        // Permanent password
+        const { error: updateError } = await supabase.auth.admin.updateUserById(
+          userId,
+          { password: permanentPassword }
+        );
+        
+        if (updateError) throw updateError;
+        
+        // Clear must_change_password flag
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ must_change_password: false })
+          .eq('id', userId);
+        
+        if (profileError) throw profileError;
+        
         toast({
-          title: 'Password Reset Email Sent',
-          description: `Reset link sent to ${userEmail}`,
+          title: 'Password Updated',
+          description: 'Password updated successfully',
         });
       }
     } catch (error: any) {

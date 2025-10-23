@@ -46,33 +46,82 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
     setTemporaryPassword('');
 
     try {
-      const { data, error } = await supabase.functions.invoke('admin-create-user', {
-        body: {
-          email: email.trim(),
-          fullName: fullName.trim() || email.trim(),
-          method,
-          role,
-          ...(method === 'permanent_password' && { permanentPassword })
-        }
-      });
+      let userId: string;
 
-      if (error) throw error;
-
-      if (data.temporaryPassword) {
-        setTemporaryPassword(data.temporaryPassword);
-        toast({
-          title: 'User Created',
-          description: 'User created successfully. Copy the temporary password before closing.',
-        });
-      } else {
-        // Email invite was sent
+      if (method === 'invite_email') {
+        // Use Supabase's built-in invite - automatically sends email!
+        const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
+          email.trim(),
+          {
+            data: { full_name: fullName.trim() || email.trim() },
+            redirectTo: `${window.location.origin}/change-password`
+          }
+        );
+        
+        if (inviteError) throw inviteError;
+        if (!inviteData.user) throw new Error('Failed to create user');
+        
+        userId = inviteData.user.id;
         setEmailSent(true);
-        setEmailAddress(email);
-        toast({
-          title: 'User Created',
-          description: `Invitation email sent to ${email}`,
+        setEmailAddress(email.trim());
+      } else if (method === 'temporary_password') {
+        // Generate temporary password
+        const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
+        
+        const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+          email: email.trim(),
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { full_name: fullName.trim() || email.trim() }
         });
+        
+        if (userError) throw userError;
+        if (!userData.user) throw new Error('Failed to create user');
+        
+        userId = userData.user.id;
+        
+        // Set must_change_password flag
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ must_change_password: true })
+          .eq('id', userId);
+        
+        if (profileError) throw profileError;
+        
+        setTemporaryPassword(tempPassword);
+      } else {
+        // Permanent password
+        const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+          email: email.trim(),
+          password: permanentPassword,
+          email_confirm: true,
+          user_metadata: { full_name: fullName.trim() || email.trim() }
+        });
+        
+        if (userError) throw userError;
+        if (!userData.user) throw new Error('Failed to create user');
+        
+        userId = userData.user.id;
       }
+
+      // Assign role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role: role
+        });
+      
+      if (roleError) throw roleError;
+
+      toast({
+        title: 'User Created',
+        description: method === 'invite_email' 
+          ? `Invitation email sent to ${email.trim()}`
+          : method === 'temporary_password'
+          ? 'User created successfully. Copy the temporary password before closing.'
+          : 'User created with permanent password',
+      });
 
       onUserCreated();
     } catch (error: any) {
