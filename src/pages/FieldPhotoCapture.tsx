@@ -163,10 +163,6 @@ export default function FieldPhotoCapture() {
     }
   };
 
-  const handleUploadAndReview = async () => {
-    await handleUploadAndContinue();
-    navigateToProjectMedia(projectId!);
-  };
 
   const handleSaveCaption = (caption: string) => {
     setPendingCaption(caption);
@@ -250,7 +246,14 @@ export default function FieldPhotoCapture() {
         <div className="text-sm font-medium text-foreground">
           Project #{projectId?.slice(0, 8)}
         </div>
-        <div className="w-8" />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigateToProjectMedia(projectId!)}
+          className="h-8"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Platform Warning for Web */}
@@ -403,20 +406,10 @@ export default function FieldPhotoCapture() {
               onClick={handleUploadAndContinue}
               disabled={isUploading}
               className="w-full"
-              size="lg"
+              size="xl"
             >
               <Check className="h-4 w-4 mr-2" />
               Upload & Continue
-            </Button>
-            <Button
-              onClick={handleUploadAndReview}
-              disabled={isUploading}
-              variant="outline"
-              className="w-full"
-              size="lg"
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Upload & Review
             </Button>
             <Button
               onClick={() => setCapturedPhotoUri(null)}
