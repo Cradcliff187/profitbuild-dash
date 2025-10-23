@@ -34,6 +34,7 @@ export function PdfPreviewModal({
   const [loadError, setLoadError] = useState<boolean>(false);
   const [showFallback, setShowFallback] = useState<boolean>(false);
   const fallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isDev = import.meta.env.DEV;
 
   useEffect(() => {
     if (pdfBlob) {
@@ -43,8 +44,8 @@ export function PdfPreviewModal({
       setLoadError(false);
       setShowFallback(false);
       
-      // For iOS devices, create a data URL as fallback
-      if (isMobile && isIOSDevice()) {
+      // For iOS devices or dev mode, create a data URL as fallback
+      if ((isMobile && isIOSDevice()) || isDev) {
         const reader = new FileReader();
         reader.onload = () => {
           setDataUrl(reader.result as string);
@@ -115,7 +116,12 @@ export function PdfPreviewModal({
         <DialogHeader className={cn("border-b", isMobile ? "px-3 pt-3 pb-2" : "px-4 pt-4 pb-2")}> 
           <DialogTitle className="flex items-center gap-2 text-sm"> 
             <FileText className="h-4 w-4" /> 
-            <span className="truncate">{fileName}</span> 
+            <span className="truncate">{fileName}</span>
+            {isDev && (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                (Dev Mode)
+              </span>
+            )}
           </DialogTitle>
           <DialogDescription className="sr-only">
             {isMobile ? "Mobile full-screen preview of the generated PDF report" : "Desktop preview with page navigation"}
@@ -194,7 +200,7 @@ export function PdfPreviewModal({
                   />
                 ) : (
                   <iframe 
-                    src={objectUrl} 
+                    src={isDev && dataUrl ? dataUrl : objectUrl} 
                     title={`${fileName} preview`} 
                     className="absolute inset-0 w-full h-full border-0" 
                     onLoad={() => {
