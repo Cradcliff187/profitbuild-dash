@@ -26,6 +26,8 @@ export interface MediaReportOptions {
   aggregateComments?: boolean;
   storyFormat?: boolean;
   includeThumbnails?: boolean;
+  photoSize?: 'standard' | 'large' | 'full';
+  layoutType?: 'single' | 'grid_2x2' | 'story';
   onProgress?: (current: number, total: number) => void;
 }
 
@@ -44,7 +46,7 @@ const PAGE_WIDTH = 210; // A4 width in mm
 const PAGE_HEIGHT = 297; // A4 height in mm
 const MARGIN = 20;
 const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
-const IMAGE_MAX_HEIGHT = 180; // Leave room for metadata
+const IMAGE_MAX_HEIGHT = 120; // Reduced for more efficient reports (4.7 inches)
 const STORY_IMAGE_MAX_HEIGHT = 120; // Smaller images for story format
 
 // Location and Time Constants
@@ -632,8 +634,18 @@ export async function generateMediaReportPDF(options: MediaReportOptions): Promi
     comments = new Map(),
     aggregateComments = false,
     storyFormat = false,
+    photoSize = 'standard',
+    layoutType = 'single',
     onProgress,
   } = options;
+  
+  // Determine image height based on photo size
+  const IMAGE_SIZE_MAP = {
+    standard: 100, // 4×6 equivalent
+    large: 125,    // 5×7 equivalent
+    full: 200,     // 8×10 equivalent (full page)
+  };
+  const dynamicImageHeight = IMAGE_SIZE_MAP[photoSize];
   
   // Use story format generator if requested
   if (storyFormat) {
@@ -724,7 +736,7 @@ export async function generateMediaReportPDF(options: MediaReportOptions): Promi
         imgDims.width,
         imgDims.height,
         CONTENT_WIDTH,
-        IMAGE_MAX_HEIGHT
+        dynamicImageHeight
       );
 
       doc.addImage(base64Image, 'JPEG', dims.x, dims.y, dims.width, dims.height);

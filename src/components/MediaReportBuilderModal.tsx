@@ -11,6 +11,7 @@ import { Progress } from './ui/progress';
 import { ScrollArea } from './ui/scroll-area';
 import { Alert, AlertDescription } from './ui/alert';
 import { Checkbox } from './ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { toast } from 'sonner';
 import { generateMediaReportPDF } from '@/utils/mediaReportPdfGenerator';
 import { generatePDFFileName, estimatePDFSize } from '@/utils/pdfHelpers';
@@ -58,6 +59,8 @@ export function MediaReportBuilderModal({
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [aggregateComments, setAggregateComments] = useState(false);
   const [storyFormat, setStoryFormat] = useState(false);
+  const [photoSize, setPhotoSize] = useState<'standard' | 'large' | 'full'>('standard');
+  const [layoutType, setLayoutType] = useState<'single' | 'grid_2x2' | 'story'>('single');
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
@@ -119,6 +122,8 @@ export function MediaReportBuilderModal({
         comments: commentsByMedia,
         aggregateComments,
         storyFormat,
+        photoSize,
+        layoutType,
         onProgress: (current, total) => {
           setProgress({ current, total });
         },
@@ -317,6 +322,38 @@ export function MediaReportBuilderModal({
             {storyFormat && (
               <div className={cn("text-muted-foreground pl-6 -mt-1", isMobile ? "text-[10px]" : "text-xs")}>
                 (Comments are inline in story format)
+              </div>
+            )}
+
+            {/* Photo Size Control */}
+            <div className={cn(isMobile ? "space-y-1" : "space-y-2")}>
+              <Label htmlFor="photo-size" className={cn(isMobile ? "text-xs" : "text-sm")}>Photo Size</Label>
+              <Select value={photoSize} onValueChange={(value) => setPhotoSize(value as 'standard' | 'large' | 'full')} disabled={isGenerating}>
+                <SelectTrigger id="photo-size" className={cn(isMobile ? "h-8 text-sm" : "h-9")}>
+                  <SelectValue placeholder="Select size" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard (4×6) - Recommended</SelectItem>
+                  <SelectItem value="large">Large (5×7)</SelectItem>
+                  <SelectItem value="full">Full Page (8×10)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Layout Type Control - Desktop Only */}
+            {!isMobile && (
+              <div className="space-y-2">
+                <Label htmlFor="layout-type" className="text-sm">Layout Style</Label>
+                <Select value={layoutType} onValueChange={(value) => setLayoutType(value as 'single' | 'grid_2x2' | 'story')} disabled={isGenerating}>
+                  <SelectTrigger id="layout-type" className="h-9">
+                    <SelectValue placeholder="Select layout" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single">One Photo Per Page</SelectItem>
+                    <SelectItem value="grid_2x2">Grid (2×2) - Coming Soon</SelectItem>
+                    <SelectItem value="story">Timeline Story</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
