@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
-import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Download, Trash2, Grid3x3, List, SortAsc, CheckSquare, Square, FileImage, FileVideo, FileText, Clock4 } from 'lucide-react';
+import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Download, Trash2, Grid3x3, List, SortAsc, CheckSquare, Square, FileImage, FileVideo, FileText, Clock4, X } from 'lucide-react';
 import { useProjectMedia } from '@/hooks/useProjectMedia';
 import { PhotoLightbox } from './PhotoLightbox';
 import { VideoLightbox } from './VideoLightbox';
@@ -14,6 +14,7 @@ import { Badge } from './ui/badge';
 import { Card } from './ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Alert, AlertDescription } from './ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './ui/tooltip';
 import { toast } from 'sonner';
@@ -50,6 +51,9 @@ export function ProjectMediaGallery({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showTip, setShowTip] = useState(() => {
+    return !localStorage.getItem('media-report-tip-dismissed');
+  });
 
   // Filter media by tab
   const tabFilteredMedia = useMemo(() => {
@@ -248,11 +252,15 @@ export function ProjectMediaGallery({
 
   if (allMedia.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="flex flex-col items-center justify-center py-12 text-center px-4">
         <ImageIcon className="h-12 w-12 text-muted-foreground mb-3" />
-        <p className="text-sm text-muted-foreground">No media yet</p>
+        <p className="text-sm font-medium text-muted-foreground">No media yet</p>
         <p className="text-xs text-muted-foreground mt-1">
           Use the camera buttons to capture photos and videos
+        </p>
+        <p className="text-xs text-muted-foreground mt-3 max-w-md">
+          Once you have media, you can generate professional PDF reports with 
+          captions, GPS locations, and timestamps
         </p>
       </div>
     );
@@ -306,6 +314,33 @@ export function ProjectMediaGallery({
             </div>
           </Card>
 
+          {/* First-Time User Guidance */}
+          {showTip && allMedia.length > 0 && (
+            <Alert className="border-primary/50 bg-primary/5">
+              <FileText className="h-4 w-4" />
+              <AlertDescription className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Generate Professional Reports</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select photos/videos using the checkboxes, then click "Generate Report" 
+                    to create a PDF with captions, GPS data, and timestamps.
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => {
+                    setShowTip(false);
+                    localStorage.setItem('media-report-tip-dismissed', 'true');
+                  }}
+                  className="shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Controls Bar */}
           <TooltipProvider>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -320,6 +355,67 @@ export function ProjectMediaGallery({
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Quick Select All Button */}
+                {selectedItems.size === 0 && filteredAndSortedMedia.length > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={selectAll}
+                        className="h-8"
+                      >
+                        <CheckSquare className="h-4 w-4 mr-1" />
+                        <span className="hidden sm:inline">Select All</span>
+                        <span className="sm:hidden">All</span>
+                        <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
+                          {filteredAndSortedMedia.length}
+                        </Badge>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Select all visible media (Ctrl+A)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+
+                {/* Generate Report Button - Always Visible */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => {
+                        if (selectedItems.size === 0) {
+                          toast.info("Select media items to include in your report", {
+                            description: "Click the checkboxes on photos/videos, or use 'Select All'"
+                          });
+                        } else {
+                          setShowReportModal(true);
+                        }
+                      }}
+                      className="h-8"
+                    >
+                      <FileText className="h-4 w-4 mr-1" />
+                      <span className="hidden sm:inline">Generate Report</span>
+                      <span className="sm:hidden">Report</span>
+                      {selectedItems.size > 0 && (
+                        <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
+                          {selectedItems.size}
+                        </Badge>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Create PDF report from selected media</p>
+                    {selectedItems.size === 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Select items first (Ctrl+A for all)
+                      </p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
@@ -370,10 +466,13 @@ export function ProjectMediaGallery({
           {/* Batch Selection Bar */}
           {selectedItems.size > 0 && (
             <TooltipProvider>
-              <Card className="p-2 bg-accent">
+              <Card className="p-2 bg-primary/10 border-primary/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary">{selectedItems.size} selected</Badge>
+                    <Badge variant="default" className="font-semibold">{selectedItems.size} selected</Badge>
+                    <span className="text-xs text-muted-foreground hidden sm:inline">
+                      Ready to generate report
+                    </span>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="ghost" size="sm" onClick={clearSelection} className="h-7 px-2">
@@ -473,18 +572,19 @@ export function ProjectMediaGallery({
                           onClick={() => setSelectedMedia(item)}
                           className={`relative ${viewMode === 'grid' ? 'aspect-square' : 'aspect-video'} w-full rounded-lg overflow-hidden bg-muted hover:ring-2 hover:ring-primary transition-all group cursor-pointer`}
                         >
-                          {/* Selection Checkbox */}
+                          {/* Selection Checkbox - Larger touch target on mobile */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleSelection(item.id);
                             }}
-                            className="absolute top-2 left-2 z-10"
+                            className="absolute top-2 left-2 z-10 p-2 sm:p-1 rounded-md bg-background/90 backdrop-blur-sm hover:bg-background transition-colors"
+                            aria-label={selectedItems.has(item.id) ? "Deselect item" : "Select item"}
                           >
                             {selectedItems.has(item.id) ? (
-                              <CheckSquare className="h-5 w-5 text-primary bg-white rounded" />
+                              <CheckSquare className="h-5 w-5 sm:h-4 sm:w-4 text-primary" />
                             ) : (
-                              <Square className="h-5 w-5 text-white/80 hover:text-white transition-colors" />
+                              <Square className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground" />
                             )}
                           </button>
 
