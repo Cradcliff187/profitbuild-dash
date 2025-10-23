@@ -9,6 +9,7 @@ import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 export default function FieldMedia() {
   const { id: routeProjectId } = useParams();
@@ -92,13 +93,15 @@ export default function FieldMedia() {
               </Card>
 
               {/* Media Gallery */}
-              <ProjectMediaGallery
-                projectId={project.id}
-                projectName={project.project_name}
-                projectNumber={project.project_number}
-                clientName={project.client_name}
-                address={project.address}
-              />
+              <ErrorBoundary>
+                <ProjectMediaGallery
+                  projectId={project.id}
+                  projectName={project.project_name}
+                  projectNumber={project.project_number}
+                  clientName={project.client_name}
+                  address={project.address}
+                />
+              </ErrorBoundary>
 
               {/* Floating Capture Buttons */}
               <div className="fixed bottom-20 right-4 flex flex-col gap-2 z-40">

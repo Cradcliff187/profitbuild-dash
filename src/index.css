@@ -484,8 +484,14 @@ textarea:focus-visible {
 }
 
 /* =================================
-   PDF.js CANVAS RENDERING
+   PDF.js CANVAS RENDERING & TEXT/ANNOTATION LAYERS
+   (Includes react-pdf CSS imports to fix console warnings)
    ================================= */
+
+/* Import react-pdf required CSS for text and annotation layers */
+@import 'react-pdf/dist/Page/TextLayer.css';
+@import 'react-pdf/dist/Page/AnnotationLayer.css';
+
 .react-pdf__Page {
   margin: 0 auto;
   display: flex;
@@ -508,6 +514,8 @@ textarea:focus-visible {
   opacity: 0.2;
   line-height: 1;
   border-radius: 0.5rem;
+  color: transparent;
+  user-select: text;
 }
 
 .react-pdf__Page__textContent span {
@@ -530,6 +538,7 @@ textarea:focus-visible {
   bottom: 0;
   overflow: hidden;
   border-radius: 0.5rem;
+  pointer-events: auto;
 }
 
 .react-pdf__Page__annotations .linkAnnotation > a {
@@ -539,6 +548,7 @@ textarea:focus-visible {
   left: 0;
   width: 100%;
   height: 100%;
+  pointer-events: auto;
 }
 
 .react-pdf__Page__annotations .linkAnnotation > a:hover {

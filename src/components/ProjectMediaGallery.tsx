@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 import { deleteProjectMedia, refreshMediaSignedUrl } from '@/utils/projectMedia';
 import { formatFileSize, formatDuration } from '@/utils/videoUtils';
 import { getPendingCount } from '@/utils/syncQueue';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ProjectMedia } from '@/types/project';
 
 type ViewMode = 'grid' | 'list';
@@ -43,6 +43,7 @@ export function ProjectMediaGallery({
   clientName, 
   address 
 }: ProjectMediaGalleryProps) {
+  const queryClient = useQueryClient();
   const { media: allMedia, isLoading, refetch } = useProjectMedia(projectId);
   const [activeTab, setActiveTab] = useState<MediaTab>('all');
   const [selectedMedia, setSelectedMedia] = useState<ProjectMedia | null>(null);
@@ -268,18 +269,31 @@ export function ProjectMediaGallery({
       const { signedUrl, thumbnailUrl, error } = await refreshMediaSignedUrl(mediaId);
       
       if (error || !signedUrl) {
-        toast.error('Failed to reload image');
+        toast.error('Failed to reload image. Try refreshing the page.');
         return;
       }
 
-      // Trigger a refetch to update all media items with new signed URLs
-      refetch();
+      // Update only this specific media item in the cache
+      queryClient.setQueryData(
+        ['project-media', projectId],
+        (oldData: ProjectMedia[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.map(item =>
+            item.id === mediaId
+              ? { ...item, file_url: signedUrl, thumbnail_url: thumbnailUrl || item.thumbnail_url }
+              : item
+          );
+        }
+      );
       
       setFailedImages(prev => {
         const newSet = new Set(prev);
         newSet.delete(mediaId);
         return newSet;
       });
+    } catch (error) {
+      console.error('Failed to refresh media URL:', error);
+      toast.error('Image loading failed. Please refresh the page.');
     } finally {
       setRefreshingImages(prev => {
         const newSet = new Set(prev);
@@ -661,17 +675,56 @@ export function ProjectMediaGallery({
 
                           {/* Thumbnail/Image */}
                           {item.file_type === 'image' ? (
-                            <img
-                              src={item.file_url}
-                              alt={item.caption || 'Field photo'}
-                              className="w-full h-full object-cover"
-                            />
+                            <div className="relative w-full h-full">
+                              <img
+                                src={item.file_url}
+                                alt={item.caption || 'Field photo'}
+                                className="w-full h-full object-cover"
+                                onError={() => handleImageError(item.id)}
+                              />
+                              
+                              {refreshingImages.has(item.id) && (
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                                </div>
+                              )}
+                              
+                              {failedImages.has(item.id) && (
+                                <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2 p-2">
+                                  <ImageIcon className="h-8 w-8 text-white/70" />
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setFailedImages(prev => {
+                                        const newSet = new Set(prev);
+                                        newSet.delete(item.id);
+                                        return newSet;
+                                      });
+                                      handleImageError(item.id);
+                                    }}
+                                  >
+                                    Retry
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
                           ) : item.thumbnail_url ? (
-                            <img 
-                              src={item.thumbnail_url} 
-                              alt={item.caption || 'Video thumbnail'} 
-                              className="w-full h-full object-cover"
-                            />
+                            <div className="relative w-full h-full">
+                              <img 
+                                src={item.thumbnail_url} 
+                                alt={item.caption || 'Video thumbnail'} 
+                                className="w-full h-full object-cover"
+                                onError={() => handleImageError(item.id)}
+                              />
+                              
+                              {refreshingImages.has(item.id) && (
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                                </div>
+                              )}
+                            </div>
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
                               <VideoIcon className="h-8 w-8 text-primary/40" />
