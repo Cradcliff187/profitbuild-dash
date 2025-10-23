@@ -138,20 +138,22 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
 
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
             onClick={handleDownload}
-            className="text-white hover:bg-white/10"
+            className="gap-1.5"
           >
             <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Download</span>
           </Button>
           <Button
-            variant="ghost"
+            variant="destructive"
             size="sm"
             onClick={() => setShowDeleteDialog(true)}
-            className="text-white hover:bg-white/10"
+            className="gap-1.5"
           >
             <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Delete</span>
           </Button>
         </div>
       </div>
@@ -291,9 +293,22 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Video?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this video. This action cannot be undone.
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Delete Video?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              {currentVideo.caption && (
+                <p className="font-medium text-foreground">
+                  "{currentVideo.caption}"
+                </p>
+              )}
+              <p className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded inline-block">
+                ⚠️ This action cannot be undone
+              </p>
+              <p>
+                This video will be permanently removed from the project and cannot be recovered.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -301,9 +316,9 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? 'Deleting...' : 'Delete Permanently'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

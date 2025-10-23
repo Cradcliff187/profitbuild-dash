@@ -93,22 +93,24 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
           <div className="text-sm text-muted-foreground">
             {currentIndex + 1} of {allPhotos.length}
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => setShowCaptionModal(true)}
-              className="h-8"
+              className="h-8 gap-1.5"
             >
               <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Caption</span>
             </Button>
             <Button
-              variant="ghost"
+              variant="destructive"
               size="sm"
               onClick={() => setShowDeleteDialog(true)}
-              className="h-8 text-destructive hover:text-destructive"
+              className="h-8 gap-1.5"
             >
               <Trash2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Delete</span>
             </Button>
           </div>
         </div>
@@ -193,9 +195,22 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Photo?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This photo will be permanently deleted from the project.
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Delete Photo?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              {currentPhoto.caption && (
+                <p className="font-medium text-foreground">
+                  "{currentPhoto.caption}"
+                </p>
+              )}
+              <p className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded inline-block">
+                ⚠️ This action cannot be undone
+              </p>
+              <p>
+                This photo will be permanently removed from the project and cannot be recovered.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -205,7 +220,7 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? 'Deleting...' : 'Delete Permanently'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
