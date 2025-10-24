@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.admin-reset-password]
 verify_jwt = true
+
+[functions.send-auth-email]
+verify_jwt = false

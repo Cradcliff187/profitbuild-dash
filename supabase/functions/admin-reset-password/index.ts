@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
       const userResponse = await supabaseAdmin.auth.admin.getUserById(userId);
       const userEmail = userResponse.data.user?.email || '';
       
-      console.log('📧 Starting email reset process:', {
+      console.log('📧 Starting email reset process via Resend:', {
         userId,
         email: userEmail,
         timestamp: new Date().toISOString()
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       
       console.log('🔗 Using redirect URL:', redirectTo);
       
-      // Generate password reset link and send email
+      // Generate password reset link (token only, no email sent by Supabase)
       const { data, error } = await supabaseAdmin.auth.admin.generateLink({
         type: 'recovery',
         email: userEmail,
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       });
 
       if (error) {
-        console.error('❌ Error generating reset link:', {
+        console.error('❌ Error generating reset token:', {
           error: error.message,
           code: error.status,
           email: userEmail
@@ -73,19 +73,41 @@ Deno.serve(async (req) => {
         throw error;
       }
 
-      console.log('✅ Reset link generated successfully:', {
+      // Extract token_hash from the generated link
+      const actionLink = data.properties?.action_link || '';
+      const tokenHash = new URL(actionLink).searchParams.get('token_hash');
+
+      if (!tokenHash) {
+        console.error('❌ Failed to extract token_hash from link');
+        throw new Error('Failed to generate reset token');
+      }
+
+      console.log('✅ Reset token generated successfully:', {
         email: userEmail,
-        linkCreated: !!data.properties?.action_link,
-        redirectTo,
-        expiresIn: '24 hours'
+        hasToken: !!tokenHash,
+        redirectTo
       });
-      
-      console.log('📨 Email queued by Supabase Auth service');
-      console.log('⚠️ If email not received, check:');
-      console.log('   1. Supabase Dashboard > Authentication > Email Templates');
-      console.log('   2. User\'s spam/junk folder');
-      console.log('   3. Supabase Dashboard > Authentication > Providers > Email (enabled?)');
-      console.log('   4. Consider using Custom SMTP for reliable delivery');
+
+      // Send email via Resend edge function
+      console.log('📨 Sending email via Resend...');
+      const emailResponse = await supabaseAdmin.functions.invoke('send-auth-email', {
+        body: {
+          type: 'password-reset',
+          email: userEmail,
+          tokenHash: tokenHash,
+          redirectUrl: redirectTo
+        }
+      });
+
+      if (emailResponse.error) {
+        console.error('❌ Error sending email via Resend:', emailResponse.error);
+        throw new Error(`Failed to send email: ${emailResponse.error.message}`);
+      }
+
+      console.log('✅ Password reset email sent successfully via Resend:', {
+        email: userEmail,
+        emailId: emailResponse.data?.emailId
+      });
 
     } else if (method === 'temporary') {
       // Generate temporary password
