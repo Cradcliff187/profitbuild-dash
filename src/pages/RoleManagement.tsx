@@ -265,7 +265,7 @@ export default function RoleManagement() {
             <Button onClick={() => setCreateUserOpen(true)} size="sm" className="h-8 text-xs">
               <UserPlus className="h-3 w-3 mr-1.5" />
               Create User
-              <kbd className="ml-2 pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+              <kbd className="ml-2 pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex text-muted-foreground">
                 <span className="text-[10px]">⌘</span>N
               </kbd>
             </Button>
