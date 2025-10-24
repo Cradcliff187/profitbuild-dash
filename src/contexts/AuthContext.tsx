@@ -115,13 +115,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = async () => {
     try {
+      // Check if we have a valid session before attempting to sign out
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession) {
+        // No active session - silently clear local state and redirect
+        setSession(null);
+        setUser(null);
+        return;
+      }
+
       const { error } = await supabase.auth.signOut();
       if (error) {
+        // Handle "Session not found" errors gracefully
+        if (error.message.includes('Session not found') || error.message.includes('session_not_found')) {
+          // Session already invalidated - just clear local state
+          setSession(null);
+          setUser(null);
+          return;
+        }
         toast.error(error.message);
       } else {
         toast.success('Signed out successfully');
       }
     } catch (error: any) {
+      // Handle any unexpected errors gracefully
+      if (error?.message?.includes('Session not found') || error?.message?.includes('session_not_found')) {
+        setSession(null);
+        setUser(null);
+        return;
+      }
       toast.error('An unexpected error occurred');
     }
   };

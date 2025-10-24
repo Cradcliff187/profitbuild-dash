@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico'],
+      includeAssets: ['icon-192.png', 'icon-512.png', 'icon-180.png', 'favicon.ico'],
       manifest: {
         name: 'ProfitBuild - Construction Profit Tracker',
         short_name: 'ProfitBuild',
@@ -58,19 +58,19 @@ export default defineConfig(({ mode }) => ({
         scope: '/',
         icons: [
           {
-            src: 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png',
+            src: '/icon-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png',
+            src: '/icon-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png',
+            src: '/icon-180.png',
             sizes: '180x180',
             type: 'image/png'
           }
