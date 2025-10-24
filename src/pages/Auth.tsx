@@ -77,8 +77,8 @@ export default function Auth() {
             <img 
               src={logoStacked} 
               alt={companyName} 
-              className="h-32 md:h-40 w-auto transition-opacity hover:opacity-90"
-              style={{ maxWidth: '240px' }}
+              className="h-40 md:h-48 w-auto transition-opacity hover:opacity-90"
+              style={{ maxWidth: '320px' }}
               onError={(e) => {
                 console.error('❌ Failed to load stacked logo from:', logoStacked);
                 setLogoError(true);

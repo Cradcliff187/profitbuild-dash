@@ -137,17 +137,17 @@ const Navigation = () => {
   );
 
   return (
-    <nav className="bg-card border-b border-border shadow-sm sticky top-0 z-50 backdrop-blur-sm bg-card/95" aria-label="Main navigation">
+    <nav className="bg-card border-b-2 border-primary/20 shadow-sm sticky top-0 z-50 backdrop-blur-sm bg-card/95" aria-label="Main navigation">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 md:h-20">
+        <div className="flex items-center justify-between h-16 md:h-24">
           {/* Logo */}
           <div className="flex items-center py-2">
             {/* Desktop: Full horizontal logo */}
             <img 
               src={logoFull} 
               alt="Radcliff Construction Group" 
-              className="hidden md:block h-16 w-auto transition-opacity hover:opacity-90"
-              style={{ maxWidth: '280px' }}
+              className="hidden md:block h-20 w-auto transition-all duration-200 hover:opacity-90 hover:scale-105"
+              style={{ maxWidth: '350px' }}
               onError={(e) => {
                 console.error('❌ Failed to load full logo from:', logoFull);
                 setLogoError(true);
@@ -160,8 +160,8 @@ const Navigation = () => {
             <img 
               src={logoFull} 
               alt="Radcliff Construction Group" 
-              className="hidden sm:block md:hidden h-12 w-auto transition-opacity hover:opacity-90"
-              style={{ maxWidth: '220px' }}
+              className="hidden sm:block md:hidden h-16 w-auto transition-all duration-200 hover:opacity-90 hover:scale-105"
+              style={{ maxWidth: '280px' }}
               onError={(e) => {
                 console.error('❌ Failed to load tablet logo from:', logoFull);
                 e.currentTarget.src = logoFullDefault;
@@ -174,14 +174,14 @@ const Navigation = () => {
               <img 
                 src={logoIcon} 
                 alt={companyAbbr} 
-                className="h-10 w-10"
+                className="h-12 w-12 transition-all duration-200 hover:opacity-90 hover:scale-105"
                 onError={(e) => {
                   console.error('❌ Failed to load icon logo from:', logoIcon);
                   e.currentTarget.src = logoIconDefault;
                 }}
                 onLoad={() => console.log('✅ Successfully loaded icon logo')}
               />
-              <span className="text-sm font-bold" style={{ color: primaryColor }}>{companyAbbr}</span>
+              <span className="text-base font-bold tracking-wide" style={{ color: primaryColor }}>{companyAbbr}</span>
             </div>
           </div>
           
