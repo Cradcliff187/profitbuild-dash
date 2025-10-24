@@ -57,8 +57,8 @@ export function ProjectSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarContent>
+    <Sidebar collapsible="icon" className="h-screen flex flex-col overflow-hidden">
+      <SidebarContent className="flex-1 overflow-auto">
         <SidebarGroup>
           <SidebarGroupLabel className={collapsed ? "text-xs" : ""}>
             {collapsed ? "Nav" : "Navigation"}
