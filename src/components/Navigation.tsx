@@ -1,7 +1,8 @@
 import { NavLink } from "react-router-dom";
 import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck, Camera } from "lucide-react";
-import logoFull from '@/assets/branding/logo-full-horizontal.svg';
-import logoIcon from '@/assets/branding/logo-icon-only.svg';
+import logoFullDefault from '@/assets/branding/logo-full-horizontal.svg';
+import logoIconDefault from '@/assets/branding/logo-icon-only.svg';
+import { getCompanyBranding } from '@/utils/companyBranding';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -25,6 +26,26 @@ const Navigation = () => {
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [showIOSInstall, setShowIOSInstall] = useState(false);
+  
+  // Dynamic Branding State
+  const [logoFull, setLogoFull] = useState(logoFullDefault);
+  const [logoIcon, setLogoIcon] = useState(logoIconDefault);
+  const [companyAbbr, setCompanyAbbr] = useState('RCG');
+  const [primaryColor, setPrimaryColor] = useState('#1b2b43');
+
+  useEffect(() => {
+    // Load company branding
+    const loadBranding = async () => {
+      const branding = await getCompanyBranding();
+      if (branding) {
+        if (branding.logo_full_url) setLogoFull(branding.logo_full_url);
+        if (branding.logo_icon_url) setLogoIcon(branding.logo_icon_url);
+        if (branding.company_abbreviation) setCompanyAbbr(branding.company_abbreviation);
+        if (branding.primary_color) setPrimaryColor(branding.primary_color);
+      }
+    };
+    loadBranding();
+  }, []);
 
   useEffect(() => {
     // Check if already installed
@@ -115,24 +136,36 @@ const Navigation = () => {
   );
 
   return (
-    <nav className="bg-card border-b border-border shadow-sm" aria-label="Main navigation">
+    <nav className="bg-card border-b border-border shadow-sm sticky top-0 z-50 backdrop-blur-sm bg-card/95" aria-label="Main navigation">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-12">
+        <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex items-center py-2">
             {/* Desktop: Full horizontal logo */}
             <img 
               src={logoFull} 
               alt="Radcliff Construction Group" 
-              className="hidden md:block h-12 w-auto"
+              className="hidden md:block h-16 w-auto transition-opacity hover:opacity-90"
+              style={{ maxWidth: '280px' }}
             />
             
-            {/* Mobile: Icon only */}
+            {/* Tablet: Medium full logo */}
             <img 
-              src={logoIcon} 
-              alt="RCG" 
-              className="md:hidden h-12 w-12"
+              src={logoFull} 
+              alt="Radcliff Construction Group" 
+              className="hidden sm:block md:hidden h-12 w-auto transition-opacity hover:opacity-90"
+              style={{ maxWidth: '220px' }}
             />
+            
+            {/* Mobile: Icon + brand text */}
+            <div className="flex items-center space-x-2 sm:hidden">
+              <img 
+                src={logoIcon} 
+                alt={companyAbbr} 
+                className="h-10 w-10"
+              />
+              <span className="text-sm font-bold" style={{ color: primaryColor }}>{companyAbbr}</span>
+            </div>
           </div>
           
           {/* Mobile Navigation */}

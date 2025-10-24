@@ -91,35 +91,40 @@ export function CompanyBrandingSettings() {
         {/* Logo Preview Section */}
         <div className="space-y-2">
           <Label className="text-xs font-medium">Current Logos</Label>
-          <div className="flex space-x-4 p-3 bg-muted rounded-md">
+          <div className="flex flex-wrap gap-6 p-4 bg-muted rounded-md">
             {branding?.logo_full_url && (
               <div className="text-center">
                 <img 
                   src={branding.logo_full_url} 
-                  alt="Full Logo" 
-                  className="h-12 mb-1"
+                  alt="Full Horizontal Logo" 
+                  className="h-20 mb-2"
+                  style={{ maxWidth: '240px' }}
                 />
-                <p className="text-[10px] text-muted-foreground">Full Logo</p>
+                <p className="text-xs text-muted-foreground font-medium">Full Horizontal</p>
+                <p className="text-[10px] text-muted-foreground">200×48px</p>
               </div>
             )}
             {branding?.logo_icon_url && (
               <div className="text-center">
                 <img 
                   src={branding.logo_icon_url} 
-                  alt="Icon" 
-                  className="h-12 w-12 mb-1"
+                  alt="Icon Only" 
+                  className="h-20 w-20 mb-2"
                 />
-                <p className="text-[10px] text-muted-foreground">Icon</p>
+                <p className="text-xs text-muted-foreground font-medium">Icon Only</p>
+                <p className="text-[10px] text-muted-foreground">48×48px</p>
               </div>
             )}
             {branding?.logo_stacked_url && (
               <div className="text-center">
                 <img 
                   src={branding.logo_stacked_url} 
-                  alt="Stacked" 
-                  className="h-12 mb-1"
+                  alt="Stacked Logo" 
+                  className="h-20 mb-2"
+                  style={{ maxWidth: '200px' }}
                 />
-                <p className="text-[10px] text-muted-foreground">Stacked</p>
+                <p className="text-xs text-muted-foreground font-medium">Stacked</p>
+                <p className="text-[10px] text-muted-foreground">200×80px</p>
               </div>
             )}
           </div>

@@ -9,9 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { getCompanyBranding } from '@/utils/companyBranding';
 import { Loader2 } from 'lucide-react';
-import logoStacked from '@/assets/branding/logo-stacked.svg';
+import logoStackedDefault from '@/assets/branding/logo-stacked.svg';
 
 const authSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -24,6 +24,11 @@ export default function Auth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, signIn } = useAuth();
   const navigate = useNavigate();
+  
+  // Dynamic Branding State
+  const [logoStacked, setLogoStacked] = useState(logoStackedDefault);
+  const [companyName, setCompanyName] = useState('Construction Profit Tracker');
+  const [primaryColor, setPrimaryColor] = useState('#1b2b43');
 
   const form = useForm<AuthFormData>({
     resolver: zodResolver(authSchema),
@@ -32,6 +37,19 @@ export default function Auth() {
       password: '',
     },
   });
+
+  useEffect(() => {
+    // Load company branding
+    const loadBranding = async () => {
+      const branding = await getCompanyBranding();
+      if (branding) {
+        if (branding.logo_stacked_url) setLogoStacked(branding.logo_stacked_url);
+        if (branding.company_name) setCompanyName(branding.company_name);
+        if (branding.primary_color) setPrimaryColor(branding.primary_color);
+      }
+    };
+    loadBranding();
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -54,15 +72,16 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-8">
             <img 
               src={logoStacked} 
-              alt="Radcliff Construction Group" 
-              className="h-24 w-auto"
+              alt={companyName} 
+              className="h-32 md:h-40 w-auto transition-opacity hover:opacity-90"
+              style={{ maxWidth: '240px' }}
             />
           </div>
-          <CardTitle className="text-2xl font-bold" style={{ color: '#1b2b43' }}>
-            Construction Profit Tracker
+          <CardTitle className="text-2xl font-bold" style={{ color: primaryColor }}>
+            {companyName}
           </CardTitle>
           <CardDescription className="mt-2">
             Sign in to your account
