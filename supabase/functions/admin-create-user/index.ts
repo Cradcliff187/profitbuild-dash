@@ -115,7 +115,26 @@ Deno.serve(async (req) => {
       }
 
       userId = data.user.id;
+
+      // Clear must_change_password flag for permanent passwords
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .update({ must_change_password: false })
+        .eq('id', userId);
+
+      if (profileError) {
+        console.error('Error clearing must_change_password flag:', profileError);
+      }
+
+      // Verify it was cleared
+      const { data: verifyProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('must_change_password')
+        .eq('id', userId)
+        .single();
+
       console.log('User created with permanent password:', userId);
+      console.log('Verified must_change_password:', verifyProfile?.must_change_password);
     }
 
     // Assign role
