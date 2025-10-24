@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal, Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -189,24 +190,52 @@ export const QuotesTableView = ({
     setDeleteDialogOpen(false);
   };
 
+  const handleDuplicate = (quote: Quote) => {
+    const duplicatedQuote: Quote = {
+      ...quote,
+      id: '',
+      quoteNumber: `${quote.quoteNumber}-COPY`,
+      status: QuoteStatus.PENDING,
+      accepted_date: undefined,
+      createdAt: new Date(),
+    };
+    onEdit(duplicatedQuote);
+  };
+
   const columns: FinancialTableColumn<QuoteWithEstimate>[] = [
     {
       key: 'quote_number',
       label: 'Quote #',
       align: 'left',
-      width: '160px',
+      width: '120px',
       render: (quote) => (
-        <div className="space-y-1">
-          <div className="font-mono text-xs text-foreground/80">
-            {quote.quoteNumber}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Badge variant="outline" className="text-xs px-1.5 py-0.5 border-purple-200 text-purple-700 bg-purple-50">
-              {quote.lineItems?.length || 0} item{(quote.lineItems?.length || 0) !== 1 ? 's' : ''}
-            </Badge>
-          </div>
+        <div className="font-mono text-xs text-foreground/80">
+          {quote.quoteNumber}
         </div>
       ),
+    },
+    {
+      key: 'line_items',
+      label: 'Line Items',
+      align: 'center',
+      width: '90px',
+      render: (quote) => {
+        const count = quote.lineItems?.length || 0;
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-medium">
+                  {count}
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Total line items in this quote</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'payee',
@@ -375,7 +404,7 @@ export const QuotesTableView = ({
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(quote)}>
+            <DropdownMenuItem onClick={() => handleDuplicate(quote)}>
               <Copy className="h-4 w-4 mr-2" />
               Duplicate
             </DropdownMenuItem>
@@ -384,7 +413,7 @@ export const QuotesTableView = ({
               disabled={!quote.estimate}
             >
               <Eye className="h-4 w-4 mr-2" />
-              Compare
+              View vs Estimate
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
