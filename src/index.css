@@ -8,47 +8,48 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Construction-themed professional color palette */
-    --background: 0 0% 98%;
-    --foreground: 210 15% 15%;
+    /* Radcliff Construction Brand Colors */
+    --background: 210 20% 97%;           /* #f4f7f9 - Light gray background */
+    --foreground: 0 0% 17%;              /* #2b2b2b - Dark gray text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 210 15% 15%;
+    --card: 0 0% 100%;                   /* White cards */
+    --card-foreground: 0 0% 17%;         /* #2b2b2b */
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 15% 15%;
+    --popover-foreground: 0 0% 17%;
 
-    /* Professional blue as primary */
-    --primary: 213 94% 28%;
-    --primary-foreground: 0 0% 98%;
+    /* PRIMARY = Orange (construction accent) */
+    --primary: 25 76% 46%;               /* #cf791d - Radcliff Orange */
+    --primary-foreground: 0 0% 98%;      /* White text on orange */
     
-    /* Construction orange accent */
-    --construction: 25 95% 53%;
+    /* CONSTRUCTION = Same orange for consistency */
+    --construction: 25 76% 46%;          /* #cf791d */
     --construction-foreground: 0 0% 98%;
 
-    --secondary: 210 20% 92%;
-    --secondary-foreground: 210 15% 25%;
+    /* SECONDARY = Navy Blue (professional) */
+    --secondary: 215 37% 20%;            /* #1b2b43 - Navy */
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 210 15% 95%;
-    --muted-foreground: 210 10% 45%;
+    --muted: 210 17% 95%;                /* Light gray */
+    --muted-foreground: 0 0% 35%;        /* #585858 - Medium gray */
 
-    --accent: 25 95% 53%;
+    --accent: 25 76% 46%;                /* Orange accent */
     --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 84% 60%;            /* Keep red */
     --destructive-foreground: 0 0% 98%;
 
     /* Success for completed projects */
-    --success: 142 76% 36%;
+    --success: 142 76% 36%;              /* Keep green */
     --success-foreground: 0 0% 98%;
 
     /* Warning for in-progress */
-    --warning: 43 96% 56%;
-    --warning-foreground: 210 15% 15%;
+    --warning: 43 96% 56%;               /* Keep yellow */
+    --warning-foreground: 0 0% 17%;
 
-    --border: 210 15% 75%;
-    --input: 210 15% 75%;
-    --ring: 213 94% 28%;
+    --border: 210 15% 85%;               /* Light border */
+    --input: 210 15% 85%;                /* Light input border */
+    --ring: 25 76% 46%;                  /* Orange focus ring */
 
     --radius: 0.75rem;
 

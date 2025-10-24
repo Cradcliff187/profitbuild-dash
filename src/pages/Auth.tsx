@@ -71,36 +71,36 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-4xl mx-auto space-y-2">
+      <div className="w-full max-w-md mx-auto space-y-6">
         {/* Hero Logo Section */}
-        <div className="text-center">
-          <div className="flex justify-center -mb-8 sm:-mb-10 md:-mb-16">
-            <img 
-              src={logoStacked} 
-              alt={companyName} 
-              className="block w-full max-w-md md:max-w-lg lg:max-w-xl h-auto transition-opacity hover:opacity-90"
-              style={{ objectFit: 'contain' }}
-              onError={(e) => {
-                console.error('❌ Failed to load stacked logo from:', logoStacked);
-                setLogoError(true);
-                e.currentTarget.src = logoStackedDefault;
-              }}
-              onLoad={() => console.log('✅ Successfully loaded stacked logo')}
-            />
-          </div>
-          {logoError && (
-            <h1 className="text-2xl font-bold leading-none tracking-tight" style={{ color: primaryColor }}>
-              {companyName}
-            </h1>
-          )}
-          <p className="text-muted-foreground mt-1">
-            Sign in to your account
-          </p>
+        <div className="flex justify-center">
+          <img 
+            src={logoStacked} 
+            alt={companyName} 
+            className="block w-auto h-32 sm:h-36 transition-opacity hover:opacity-90"
+            style={{ maxWidth: '250px', objectFit: 'contain' }}
+            onError={(e) => {
+              console.error('❌ Failed to load stacked logo from:', logoStacked);
+              setLogoError(true);
+              e.currentTarget.src = logoStackedDefault;
+            }}
+            onLoad={() => console.log('✅ Successfully loaded stacked logo')}
+          />
         </div>
+        
+        {logoError && (
+          <h1 className="text-2xl font-bold text-center" style={{ color: primaryColor }}>
+            {companyName}
+          </h1>
+        )}
+        
+        <p className="text-sm text-muted-foreground text-center">
+          Sign in to your account
+        </p>
 
         {/* Form Card */}
-        <Card className="w-full max-w-md mx-auto">
-          <CardContent className="pt-6">
+        <Card className="w-full max-w-md mx-auto shadow-lg">
+          <CardContent className="p-6 space-y-4">
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <Label htmlFor="email">Email</Label>
@@ -132,7 +132,15 @@ export default function Auth() {
                 )}
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                className="w-full h-11 text-base font-medium"
+                style={{ 
+                  backgroundColor: '#1b2b43',
+                  color: '#ffffff'
+                }}
+                disabled={isSubmitting}
+              >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign In
               </Button>
