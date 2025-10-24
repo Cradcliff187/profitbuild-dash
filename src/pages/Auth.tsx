@@ -71,14 +71,14 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-4xl mx-auto space-y-3">
+      <div className="w-full max-w-4xl mx-auto space-y-2">
         {/* Hero Logo Section */}
         <div className="text-center">
-          <div className="flex justify-center mb-0">
+          <div className="flex justify-center -mb-8 sm:-mb-10 md:-mb-16">
             <img 
               src={logoStacked} 
               alt={companyName} 
-              className="h-[28rem] md:h-[36rem] w-auto transition-opacity hover:opacity-90"
+              className="block h-[28rem] md:h-[36rem] w-auto transition-opacity hover:opacity-90"
               style={{ maxWidth: '800px' }}
               onError={(e) => {
                 console.error('❌ Failed to load stacked logo from:', logoStacked);
@@ -88,10 +88,10 @@ export default function Auth() {
               onLoad={() => console.log('✅ Successfully loaded stacked logo')}
             />
           </div>
-          <h1 className="text-2xl font-bold -mt-4" style={{ color: primaryColor }}>
+          <h1 className="text-2xl font-bold leading-none tracking-tight" style={{ color: primaryColor }}>
             {companyName}
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground mt-1">
             Sign in to your account
           </p>
         </div>
