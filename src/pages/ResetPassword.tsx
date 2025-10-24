@@ -17,18 +17,44 @@ const ResetPassword = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if we have a recovery token in the URL hash
-    const hash = window.location.hash;
-    if (hash && hash.includes('access_token')) {
-      setHasToken(true);
-    } else {
-      toast({
-        title: 'Invalid Link',
-        description: 'This password reset link is invalid or has expired.',
-        variant: 'destructive',
+    let attempts = 0;
+    const maxAttempts = 3;
+    let retryTimeout: NodeJS.Timeout;
+    
+    const checkToken = () => {
+      const hash = window.location.hash;
+      console.log(`🔍 Token check attempt ${attempts + 1}/${maxAttempts}:`, {
+        hash: hash ? `${hash.substring(0, 30)}...` : 'none',
+        fullUrl: window.location.href
       });
-      navigate('/auth');
-    }
+      
+      if (hash && hash.includes('access_token')) {
+        console.log('✅ Valid reset token found');
+        setHasToken(true);
+      } else {
+        attempts++;
+        if (attempts < maxAttempts) {
+          console.log(`⏳ Token not found, retrying in 500ms (${attempts}/${maxAttempts})...`);
+          retryTimeout = setTimeout(checkToken, 500);
+        } else {
+          console.error('❌ No reset token found after 3 attempts');
+          console.error('URL hash:', window.location.hash);
+          toast({
+            title: 'Invalid Link',
+            description: 'This password reset link is invalid or has expired. Please request a new reset link.',
+            variant: 'destructive',
+          });
+          navigate('/auth');
+        }
+      }
+    };
+    
+    checkToken();
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
   }, [navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {

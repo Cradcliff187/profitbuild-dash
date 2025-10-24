@@ -119,6 +119,9 @@ export default function ResetPasswordModal({ open, onOpenChange, userId, userEma
               <p className="text-xs text-muted-foreground mt-2">
                 User must change this password on next login.
               </p>
+              <p className="text-xs text-green-600 dark:text-green-500 mt-1 font-medium">
+                ✅ No email needed! Share this password directly with the user.
+              </p>
               <p className="text-xs text-amber-600 dark:text-amber-500 mt-2 font-medium">
                 ⚠️ If this account has Two-Factor Authentication enabled, the user will still need to enter their 6-digit code after using the temporary password.
               </p>
@@ -165,10 +168,10 @@ export default function ResetPasswordModal({ open, onOpenChange, userId, userEma
               </Select>
               <p className="text-xs text-muted-foreground">
                 {method === 'temporary_password' 
-                  ? 'Generate a temporary password to share with the user'
+                  ? '✅ Recommended: Instant password generation. Share it with user via phone/text/Slack. No email needed.'
                   : method === 'email_reset'
-                  ? 'Send a password reset link to the user\'s email'
-                  : 'Set a new permanent password for the user'}
+                  ? '⚠️ Requires email delivery. User will receive a link to reset their password. May take a few minutes or end up in spam.'
+                  : '⚠️ Not recommended: You will know the user\'s password. Use "Email Reset Link" for better security.'}
               </p>
             </div>
 

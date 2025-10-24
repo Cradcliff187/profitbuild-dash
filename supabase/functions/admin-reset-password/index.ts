@@ -36,21 +36,56 @@ Deno.serve(async (req) => {
     let tempPassword: string | null = null;
 
     if (method === 'email') {
+      // Fetch user email first
+      const userResponse = await supabaseAdmin.auth.admin.getUserById(userId);
+      const userEmail = userResponse.data.user?.email || '';
+      
+      console.log('📧 Starting email reset process:', {
+        userId,
+        email: userEmail,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Determine redirect URL based on environment
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+      const isPreview = supabaseUrl.includes('lovableproject');
+      const redirectTo = isPreview
+        ? 'https://8ad59cd4-cdfa-472d-b4a1-52ac194e00f2.lovableproject.com/reset-password'
+        : 'https://rcgwork.com/reset-password';
+      
+      console.log('🔗 Using redirect URL:', redirectTo);
+      
       // Generate password reset link and send email
       const { data, error } = await supabaseAdmin.auth.admin.generateLink({
         type: 'recovery',
-        email: (await supabaseAdmin.auth.admin.getUserById(userId)).data.user?.email || '',
+        email: userEmail,
         options: {
-          redirectTo: 'https://rcgwork.com/reset-password',
+          redirectTo,
         },
       });
 
       if (error) {
-        console.error('Error generating reset link:', error);
+        console.error('❌ Error generating reset link:', {
+          error: error.message,
+          code: error.status,
+          email: userEmail
+        });
         throw error;
       }
 
-      console.log('Password reset email sent successfully');
+      console.log('✅ Reset link generated successfully:', {
+        email: userEmail,
+        linkCreated: !!data.properties?.action_link,
+        redirectTo,
+        expiresIn: '24 hours'
+      });
+      
+      console.log('📨 Email queued by Supabase Auth service');
+      console.log('⚠️ If email not received, check:');
+      console.log('   1. Supabase Dashboard > Authentication > Email Templates');
+      console.log('   2. User\'s spam/junk folder');
+      console.log('   3. Supabase Dashboard > Authentication > Providers > Email (enabled?)');
+      console.log('   4. Consider using Custom SMTP for reliable delivery');
 
     } else if (method === 'temporary') {
       // Generate temporary password
