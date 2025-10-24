@@ -71,9 +71,10 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-8">
+      <div className="w-full max-w-4xl mx-auto space-y-8">
+        {/* Hero Logo Section */}
+        <div className="text-center">
+          <div className="flex justify-center mb-4">
             <img 
               src={logoStacked} 
               alt={companyName} 
@@ -87,52 +88,56 @@ export default function Auth() {
               onLoad={() => console.log('✅ Successfully loaded stacked logo')}
             />
           </div>
-          <CardTitle className="text-2xl font-bold" style={{ color: primaryColor }}>
+          <h1 className="text-2xl font-bold" style={{ color: primaryColor }}>
             {companyName}
-          </CardTitle>
-          <CardDescription className="mt-2">
+          </h1>
+          <p className="text-muted-foreground mt-2">
             Sign in to your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-6">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                {...form.register('email')}
-              />
-              {form.formState.errors.email && (
-                <p className="text-sm text-destructive mt-1">
-                  {form.formState.errors.email.message}
-                </p>
-              )}
-            </div>
+          </p>
+        </div>
 
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                {...form.register('password')}
-              />
-              {form.formState.errors.password && (
-                <p className="text-sm text-destructive mt-1">
-                  {form.formState.errors.password.message}
-                </p>
-              )}
-            </div>
+        {/* Form Card */}
+        <Card className="w-full max-w-md mx-auto">
+          <CardContent className="pt-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  {...form.register('email')}
+                />
+                {form.formState.errors.email && (
+                  <p className="text-sm text-destructive mt-1">
+                    {form.formState.errors.email.message}
+                  </p>
+                )}
+              </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sign In
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  {...form.register('password')}
+                />
+                {form.formState.errors.password && (
+                  <p className="text-sm text-destructive mt-1">
+                    {form.formState.errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sign In
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
