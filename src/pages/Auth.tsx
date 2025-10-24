@@ -71,10 +71,10 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-4xl mx-auto space-y-8">
+      <div className="w-full max-w-4xl mx-auto space-y-3">
         {/* Hero Logo Section */}
         <div className="text-center">
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-0">
             <img 
               src={logoStacked} 
               alt={companyName} 
@@ -88,7 +88,7 @@ export default function Auth() {
               onLoad={() => console.log('✅ Successfully loaded stacked logo')}
             />
           </div>
-          <h1 className="text-2xl font-bold" style={{ color: primaryColor }}>
+          <h1 className="text-2xl font-bold -mt-4" style={{ color: primaryColor }}>
             {companyName}
           </h1>
           <p className="text-muted-foreground mt-2">
