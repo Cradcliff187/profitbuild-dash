@@ -218,7 +218,7 @@ export const ReceiptsList = () => {
             placeholder="Search receipts..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 h-9 text-sm"
+            className="pl-9 h-9 text-sm"
           />
         </div>
         <NativeSelect

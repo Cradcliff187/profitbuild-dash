@@ -227,12 +227,12 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
           {/* Search */}
           <div className="mb-6">
             <div className="relative max-w-md">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search change orders..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-9"
               />
             </div>
           </div>
