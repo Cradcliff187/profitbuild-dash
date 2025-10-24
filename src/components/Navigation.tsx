@@ -139,7 +139,7 @@ const Navigation = () => {
   return (
     <nav className="bg-card border-b-2 border-primary/20 shadow-sm sticky top-0 z-50 backdrop-blur-sm bg-card/95" aria-label="Main navigation">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-20 md:h-24">
+        <div className="flex items-center justify-between h-24 md:h-28">
           {/* Logo */}
           <div className="flex items-center py-2">
             {/* Desktop: Full horizontal logo */}
@@ -174,7 +174,7 @@ const Navigation = () => {
               <img 
                 src={logoIcon} 
                 alt={companyAbbr} 
-                className="h-16 w-16 transition-all duration-200 hover:opacity-90 hover:scale-105"
+                className="h-20 w-20 transition-all duration-200 hover:opacity-90 hover:scale-105"
                 onError={(e) => {
                   console.error('❌ Failed to load icon logo from:', logoIcon);
                   e.currentTarget.src = logoIconDefault;
