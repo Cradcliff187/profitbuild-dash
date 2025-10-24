@@ -275,7 +275,7 @@ export const ProjectDetailView = () => {
         
         <SidebarInset className="flex-1 flex flex-col no-horizontal-scroll overflow-hidden">
           {/* Compact Header */}
-          <header className="sticky top-0 z-0 flex h-14 shrink-0 items-center gap-3 border-b bg-background px-3">
+          <header className="sticky top-0 flex h-14 shrink-0 items-center gap-3 border-b bg-background px-3">
             <SidebarTrigger />
             <Separator orientation="vertical" className="h-6" />
             
