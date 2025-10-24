@@ -79,6 +79,7 @@ const App = () => (
                   <Route path="field-media/:id/capture" element={<LazyRoute component={FieldPhotoCapture} />} />
                   <Route path="field-media/:id/capture-video" element={<LazyRoute component={FieldVideoCapture} />} />
                   <Route path="estimates" element={<LazyRoute component={Estimates} />} />
+                  <Route path="quotes" element={<LazyRoute component={Quotes} />} />
                   <Route path="expenses" element={<LazyRoute component={Expenses} />} />
                   <Route path="payees" element={<LazyRoute component={Payees} />} />
                   <Route path="clients" element={<LazyRoute component={Clients} />} />
