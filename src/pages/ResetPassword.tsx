@@ -22,30 +22,49 @@ const ResetPassword = () => {
     let retryTimeout: NodeJS.Timeout;
     
     const checkToken = () => {
+      // Check both URL hash and search params for tokens
       const hash = window.location.hash;
+      const searchParams = new URLSearchParams(window.location.search);
+      
       console.log(`🔍 Token check attempt ${attempts + 1}/${maxAttempts}:`, {
         hash: hash ? `${hash.substring(0, 30)}...` : 'none',
+        search: searchParams.toString(),
         fullUrl: window.location.href
       });
       
+      // Check for access_token in hash (from /auth/confirm redirect)
       if (hash && hash.includes('access_token')) {
-        console.log('✅ Valid reset token found');
-        setHasToken(true);
-      } else {
-        attempts++;
-        if (attempts < maxAttempts) {
-          console.log(`⏳ Token not found, retrying in 500ms (${attempts}/${maxAttempts})...`);
-          retryTimeout = setTimeout(checkToken, 500);
-        } else {
-          console.error('❌ No reset token found after 3 attempts');
-          console.error('URL hash:', window.location.hash);
-          toast({
-            title: 'Invalid Link',
-            description: 'This password reset link is invalid or has expired. Please request a new reset link.',
-            variant: 'destructive',
-          });
-          navigate('/auth');
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const type = hashParams.get('type');
+        
+        if (accessToken && (type === 'recovery' || type === 'magiclink')) {
+          console.log('✅ Valid recovery token found in hash');
+          setHasToken(true);
+          return;
         }
+      }
+      
+      // Check for token_hash in search params (direct link before redirect)
+      if (searchParams.has('token_hash') && searchParams.get('type') === 'recovery') {
+        console.log('✅ Valid token_hash found in search params');
+        setHasToken(true);
+        return;
+      }
+      
+      // Retry if no token found yet
+      attempts++;
+      if (attempts < maxAttempts) {
+        console.log(`⏳ Token not found, retrying in 500ms (${attempts}/${maxAttempts})...`);
+        retryTimeout = setTimeout(checkToken, 500);
+      } else {
+        console.error('❌ No reset token found after 3 attempts');
+        toast({
+          title: 'Invalid Link',
+          description: 'This password reset link is invalid or has expired. Please request a new reset link.',
+          variant: 'destructive',
+        });
+        navigate('/auth');
       }
     };
     

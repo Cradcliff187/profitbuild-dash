@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
 
       const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         password: tempPassword,
+        email_confirm: true,
       });
 
       if (error) {
@@ -112,6 +113,7 @@ Deno.serve(async (req) => {
       // Set permanent password
       const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         password: password!,
+        email_confirm: true,
       });
 
       if (error) {
