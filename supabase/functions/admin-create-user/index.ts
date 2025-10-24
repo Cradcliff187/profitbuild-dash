@@ -31,9 +31,13 @@ Deno.serve(async (req) => {
       }
     );
 
+    // Detect the environment from the request origin
+    const origin = req.headers.get('origin') || req.headers.get('referer') || '';
+    const baseUrl = origin || 'https://rcgwork.com';
+
     const { email, fullName, role, method, password } = await req.json() as CreateUserRequest;
 
-    console.log('Creating user:', { email, fullName, role, method });
+    console.log('Creating user:', { email, fullName, role, method, baseUrl });
 
     let userId: string;
     let tempPassword: string | null = null;
@@ -44,7 +48,7 @@ Deno.serve(async (req) => {
         data: {
           full_name: fullName,
         },
-        redirectTo: 'https://rcgwork.com/reset-password',
+        redirectTo: `${baseUrl}/reset-password`,
       });
 
       if (error) {
