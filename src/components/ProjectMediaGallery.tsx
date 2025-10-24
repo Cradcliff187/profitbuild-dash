@@ -565,30 +565,30 @@ export function ProjectMediaGallery({
                 </div>
 
                 <div className="hidden sm:block">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
+                  <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
                         <SelectTrigger className="w-[140px] h-8">
                           <SortAsc className="h-4 w-4 mr-1" />
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="date-desc">Newest First</SelectItem>
-                          <SelectItem value="date-asc">Oldest First</SelectItem>
-                          {activeTab !== 'photos' && (
-                            <>
-                              <SelectItem value="duration-desc">Longest First</SelectItem>
-                              <SelectItem value="duration-asc">Shortest First</SelectItem>
-                            </>
-                          )}
-                          <SelectItem value="caption">By Caption</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Sort media items</p>
-                    </TooltipContent>
-                  </Tooltip>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Sort media items</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <SelectContent>
+                      <SelectItem value="date-desc">Newest First</SelectItem>
+                      <SelectItem value="date-asc">Oldest First</SelectItem>
+                      {activeTab !== 'photos' && (
+                        <>
+                          <SelectItem value="duration-desc">Longest First</SelectItem>
+                          <SelectItem value="duration-asc">Shortest First</SelectItem>
+                        </>
+                      )}
+                      <SelectItem value="caption">By Caption</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="hidden sm:flex items-center gap-1 border rounded-md">
