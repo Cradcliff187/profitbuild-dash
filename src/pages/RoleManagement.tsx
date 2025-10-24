@@ -64,11 +64,9 @@ export default function RoleManagement() {
   const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
-      // Get all user auth status (profiles + auth data)
+      // Get all user auth status using secure RPC function
       const { data: profiles, error: profilesError } = await supabase
-        .from('user_auth_status')
-        .select('id, email, full_name, must_change_password, last_sign_in_at, confirmed_at, has_password')
-        .order('email');
+        .rpc('get_user_auth_status');
 
       if (profilesError) throw profilesError;
 

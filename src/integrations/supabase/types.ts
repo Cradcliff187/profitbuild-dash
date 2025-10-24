@@ -568,13 +568,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "expenses_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "user_auth_status"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "expenses_payee_id_fkey"
             columns: ["payee_id"]
             isOneToOne: false
@@ -607,13 +600,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expenses_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
         ]
@@ -656,13 +642,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "media_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
         ]
@@ -1427,18 +1406,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_auth_status: {
-        Row: {
-          confirmed_at: string | null
-          email: string | null
-          full_name: string | null
-          has_password: boolean | null
-          id: string | null
-          last_sign_in_at: string | null
-          must_change_password: boolean | null
-        }
-        Relationships: []
-      }
     }
     Functions: {
       calculate_contingency_remaining: {
@@ -1500,6 +1467,18 @@ export type Database = {
           total_expenses: number
           total_invoiced: number
           total_quoted: number
+        }[]
+      }
+      get_user_auth_status: {
+        Args: never
+        Returns: {
+          confirmed_at: string
+          email: string
+          full_name: string
+          has_password: boolean
+          id: string
+          last_sign_in_at: string
+          must_change_password: boolean
         }[]
       }
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
