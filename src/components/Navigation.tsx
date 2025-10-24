@@ -32,6 +32,7 @@ const Navigation = () => {
   const [logoIcon, setLogoIcon] = useState(logoIconDefault);
   const [companyAbbr, setCompanyAbbr] = useState('RCG');
   const [primaryColor, setPrimaryColor] = useState('#1b2b43');
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     // Load company branding
@@ -147,6 +148,12 @@ const Navigation = () => {
               alt="Radcliff Construction Group" 
               className="hidden md:block h-16 w-auto transition-opacity hover:opacity-90"
               style={{ maxWidth: '280px' }}
+              onError={(e) => {
+                console.error('❌ Failed to load full logo from:', logoFull);
+                setLogoError(true);
+                e.currentTarget.src = logoFullDefault;
+              }}
+              onLoad={() => console.log('✅ Successfully loaded desktop logo')}
             />
             
             {/* Tablet: Medium full logo */}
@@ -155,6 +162,11 @@ const Navigation = () => {
               alt="Radcliff Construction Group" 
               className="hidden sm:block md:hidden h-12 w-auto transition-opacity hover:opacity-90"
               style={{ maxWidth: '220px' }}
+              onError={(e) => {
+                console.error('❌ Failed to load tablet logo from:', logoFull);
+                e.currentTarget.src = logoFullDefault;
+              }}
+              onLoad={() => console.log('✅ Successfully loaded tablet logo')}
             />
             
             {/* Mobile: Icon + brand text */}
@@ -163,6 +175,11 @@ const Navigation = () => {
                 src={logoIcon} 
                 alt={companyAbbr} 
                 className="h-10 w-10"
+                onError={(e) => {
+                  console.error('❌ Failed to load icon logo from:', logoIcon);
+                  e.currentTarget.src = logoIconDefault;
+                }}
+                onLoad={() => console.log('✅ Successfully loaded icon logo')}
               />
               <span className="text-sm font-bold" style={{ color: primaryColor }}>{companyAbbr}</span>
             </div>

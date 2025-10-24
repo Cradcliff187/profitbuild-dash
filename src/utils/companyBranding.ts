@@ -21,17 +21,33 @@ export interface CompanyBranding {
 }
 
 export async function getCompanyBranding(): Promise<CompanyBranding | null> {
-  const { data, error } = await supabase
-    .from('company_branding_settings')
-    .select('*')
-    .single();
-  
-  if (error) {
-    console.error('Error fetching company branding:', error);
+  try {
+    const { data, error } = await supabase
+      .from('company_branding_settings')
+      .select('*')
+      .single();
+    
+    if (error) {
+      console.error('Error fetching company branding:', error);
+      return null;
+    }
+    
+    // Log logo URLs for debugging
+    if (data?.logo_full_url) {
+      console.log('✅ Full logo URL:', data.logo_full_url);
+    }
+    if (data?.logo_icon_url) {
+      console.log('✅ Icon logo URL:', data.logo_icon_url);
+    }
+    if (data?.logo_stacked_url) {
+      console.log('✅ Stacked logo URL:', data.logo_stacked_url);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Exception fetching company branding:', error);
     return null;
   }
-  
-  return data;
 }
 
 export async function updateCompanyBranding(

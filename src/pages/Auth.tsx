@@ -29,6 +29,7 @@ export default function Auth() {
   const [logoStacked, setLogoStacked] = useState(logoStackedDefault);
   const [companyName, setCompanyName] = useState('Construction Profit Tracker');
   const [primaryColor, setPrimaryColor] = useState('#1b2b43');
+  const [logoError, setLogoError] = useState(false);
 
   const form = useForm<AuthFormData>({
     resolver: zodResolver(authSchema),
@@ -78,6 +79,12 @@ export default function Auth() {
               alt={companyName} 
               className="h-32 md:h-40 w-auto transition-opacity hover:opacity-90"
               style={{ maxWidth: '240px' }}
+              onError={(e) => {
+                console.error('❌ Failed to load stacked logo from:', logoStacked);
+                setLogoError(true);
+                e.currentTarget.src = logoStackedDefault;
+              }}
+              onLoad={() => console.log('✅ Successfully loaded stacked logo')}
             />
           </div>
           <CardTitle className="text-2xl font-bold" style={{ color: primaryColor }}>
