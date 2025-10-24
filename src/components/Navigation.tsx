@@ -139,7 +139,7 @@ const Navigation = () => {
   return (
     <nav className="bg-card border-b-2 border-primary/20 shadow-sm sticky top-0 z-50 backdrop-blur-sm bg-card/95" aria-label="Main navigation">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 md:h-24">
+        <div className="flex items-center justify-between h-20 md:h-24">
           {/* Logo */}
           <div className="flex items-center py-2">
             {/* Desktop: Full horizontal logo */}
@@ -170,18 +170,18 @@ const Navigation = () => {
             />
             
             {/* Mobile: Icon + brand text */}
-            <div className="flex items-center space-x-2 sm:hidden">
+            <div className="flex items-center space-x-3 sm:hidden py-2">
               <img 
                 src={logoIcon} 
                 alt={companyAbbr} 
-                className="h-12 w-12 transition-all duration-200 hover:opacity-90 hover:scale-105"
+                className="h-16 w-16 transition-all duration-200 hover:opacity-90 hover:scale-105"
                 onError={(e) => {
                   console.error('❌ Failed to load icon logo from:', logoIcon);
                   e.currentTarget.src = logoIconDefault;
                 }}
                 onLoad={() => console.log('✅ Successfully loaded icon logo')}
               />
-              <span className="text-base font-bold tracking-wide" style={{ color: primaryColor }}>{companyAbbr}</span>
+              <span className="text-xl font-extrabold tracking-wide" style={{ color: primaryColor }}>{companyAbbr}</span>
             </div>
           </div>
           
