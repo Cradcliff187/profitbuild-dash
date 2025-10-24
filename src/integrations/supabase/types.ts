@@ -568,6 +568,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "expenses_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_auth_status"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "expenses_payee_id_fkey"
             columns: ["payee_id"]
             isOneToOne: false
@@ -600,6 +607,13 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
         ]
@@ -642,6 +656,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_auth_status"
             referencedColumns: ["id"]
           },
         ]
@@ -1403,6 +1424,18 @@ export type Database = {
           total_expenses: number | null
           total_invoiced: number | null
           total_quoted: number | null
+        }
+        Relationships: []
+      }
+      user_auth_status: {
+        Row: {
+          confirmed_at: string | null
+          email: string | null
+          full_name: string | null
+          has_password: boolean | null
+          id: string | null
+          last_sign_in_at: string | null
+          must_change_password: boolean | null
         }
         Relationships: []
       }
