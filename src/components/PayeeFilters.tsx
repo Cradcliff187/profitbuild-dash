@@ -50,15 +50,11 @@ export const PayeeFilters = ({
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search payees..."
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <Input
+          placeholder="Search payees..."
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
 
         {/* Type Filter */}
         <Select value={selectedType} onValueChange={onTypeChange}>
