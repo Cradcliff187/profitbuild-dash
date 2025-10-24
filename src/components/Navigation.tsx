@@ -137,17 +137,17 @@ const Navigation = () => {
   );
 
   return (
-    <nav className="bg-card border-b-2 border-primary/20 shadow-sm sticky top-0 z-50 backdrop-blur-sm bg-card/95" aria-label="Main navigation">
+    <nav className="bg-card border-b-2 border-primary/20 shadow-sm sticky top-0 z-20 backdrop-blur-sm bg-card/95" aria-label="Main navigation">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-28 md:h-32">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center py-2">
             {/* Desktop: Full horizontal logo */}
             <img 
               src={logoFull} 
               alt="Radcliff Construction Group" 
-              className="hidden md:block h-28 w-auto transition-all duration-200 hover:opacity-90 hover:scale-105"
-              style={{ maxWidth: '500px' }}
+              className="hidden md:block h-12 w-auto transition-all duration-200 hover:opacity-90 hover:scale-105"
+              style={{ maxWidth: '200px' }}
               onError={(e) => {
                 console.error('❌ Failed to load full logo from:', logoFull);
                 setLogoError(true);
@@ -160,8 +160,8 @@ const Navigation = () => {
             <img 
               src={logoFull} 
               alt="Radcliff Construction Group" 
-              className="hidden sm:block md:hidden h-24 w-auto transition-all duration-200 hover:opacity-90 hover:scale-105"
-              style={{ maxWidth: '400px' }}
+              className="hidden sm:block md:hidden h-10 w-auto transition-all duration-200 hover:opacity-90 hover:scale-105"
+              style={{ maxWidth: '180px' }}
               onError={(e) => {
                 console.error('❌ Failed to load tablet logo from:', logoFull);
                 e.currentTarget.src = logoFullDefault;
@@ -174,7 +174,7 @@ const Navigation = () => {
               <img 
                 src={logoIcon} 
                 alt={companyAbbr} 
-                className="h-24 w-24 transition-all duration-200 hover:opacity-90 hover:scale-105"
+                className="h-12 w-12 transition-all duration-200 hover:opacity-90 hover:scale-105"
                 onError={(e) => {
                   console.error('❌ Failed to load icon logo from:', logoIcon);
                   e.currentTarget.src = logoIconDefault;
