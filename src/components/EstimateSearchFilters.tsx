@@ -102,12 +102,11 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
         {/* Quick Search - Full Width */}
         <div className="relative md:col-span-4">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search estimates, projects, clients..."
             value={filters.searchText}
             onChange={(e) => updateFilters({ searchText: e.target.value })}
-            className="pl-9 h-9"
+            className="pl-3 h-9"
           />
         </div>
 
