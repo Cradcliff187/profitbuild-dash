@@ -265,14 +265,11 @@ export default function RoleManagement() {
             <Button onClick={() => setCreateUserOpen(true)} size="sm" className="h-8 text-xs">
               <UserPlus className="h-3 w-3 mr-1.5" />
               Create User
-              <kbd className="ml-2 pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex text-muted-foreground">
-                <span className="text-[10px]">⌘</span>N
-              </kbd>
             </Button>
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          Manage user accounts, roles and permissions • Press <kbd className="px-1 py-0.5 text-[10px] border rounded">⌘K</kbd> to search
+          Manage user accounts, roles and permissions
         </p>
       </div>
 
