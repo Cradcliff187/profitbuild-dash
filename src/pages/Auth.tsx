@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getCompanyBranding } from '@/utils/companyBranding';
 import { Loader2 } from 'lucide-react';
-import logoStackedDefault from '@/assets/branding/logo-stacked.svg';
+const logoStackedDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Stacked%20Icon+Logo%20Transparent%202000x2000.png';
 
 const authSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -78,8 +78,8 @@ export default function Auth() {
             <img 
               src={logoStacked} 
               alt={companyName} 
-              className="block h-[28rem] md:h-[36rem] w-auto transition-opacity hover:opacity-90"
-              style={{ maxWidth: '800px' }}
+              className="block w-full max-w-md md:max-w-lg lg:max-w-xl h-auto transition-opacity hover:opacity-90"
+              style={{ objectFit: 'contain' }}
               onError={(e) => {
                 console.error('❌ Failed to load stacked logo from:', logoStacked);
                 setLogoError(true);
@@ -88,9 +88,11 @@ export default function Auth() {
               onLoad={() => console.log('✅ Successfully loaded stacked logo')}
             />
           </div>
-          <h1 className="text-2xl font-bold leading-none tracking-tight" style={{ color: primaryColor }}>
-            {companyName}
-          </h1>
+          {logoError && (
+            <h1 className="text-2xl font-bold leading-none tracking-tight" style={{ color: primaryColor }}>
+              {companyName}
+            </h1>
+          )}
           <p className="text-muted-foreground mt-1">
             Sign in to your account
           </p>

@@ -25,7 +25,7 @@ export async function getCompanyBranding(): Promise<CompanyBranding | null> {
     const { data, error } = await supabase
       .from('company_branding_settings')
       .select('*')
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error('Error fetching company branding:', error);
