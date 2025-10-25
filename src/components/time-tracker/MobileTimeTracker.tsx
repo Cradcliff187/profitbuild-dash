@@ -95,6 +95,7 @@ export const MobileTimeTracker: React.FC = () => {
   const [existingTimerInfo, setExistingTimerInfo] = useState<any>(null);
   const [activeTimerPayeeIds, setActiveTimerPayeeIds] = useState<Set<string>>(new Set());
   const [logoIcon, setLogoIcon] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Load active timers to show who's currently clocked in
   const loadActiveTimers = useCallback(async () => {
@@ -604,6 +605,11 @@ export const MobileTimeTracker: React.FC = () => {
 
         if (error) throw error;
 
+        // Show success card
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+
+        // Keep toast for accessibility
         toast({
           title: 'Clocked Out',
           description: `Saved ${hours.toFixed(2)} hours`,
@@ -635,6 +641,11 @@ export const MobileTimeTracker: React.FC = () => {
         };
         setTodayEntries(prev => [localEntry, ...prev]);
 
+        // Show success card
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+
+        // Keep toast for accessibility
         toast({
           title: 'Clocked Out (Offline)',
           description: `Saved ${hours.toFixed(2)} hours - will sync when online`,
@@ -702,6 +713,23 @@ export const MobileTimeTracker: React.FC = () => {
       </div>
     );
   }
+
+  // Clock out success feedback overlay
+  {showSuccess && (
+    <div className="fixed top-20 left-4 right-4 z-50 animate-in slide-in-from-top">
+      <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-4 shadow-2xl">
+        <div className="flex items-center gap-3">
+          <Check className="w-8 h-8 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-lg">Successfully Clocked Out!</p>
+            <p className="text-sm text-green-100">
+              {todayTotal.toFixed(2)} hours worked
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 pb-20">
