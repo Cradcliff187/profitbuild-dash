@@ -46,6 +46,8 @@ Deno.serve(async (req) => {
     const companyLegalName = branding?.company_legal_name || 'Radcliff Construction Group, LLC';
     const primaryColor = branding?.primary_color || '#cf791d';
     const secondaryColor = branding?.secondary_color || '#1b2b43';
+    const accentColor = branding?.accent_color || '#cf791d';
+    const lightBgColor = branding?.light_bg_color || '#f4f7f9';
 
     const resend = new Resend(resendApiKey);
     const { type, email, resetUrl, userName, userRole, tempPassword, inviteMethod } = await req.json() as AuthEmailRequest;
