@@ -471,16 +471,11 @@ Deno.serve(async (req) => {
                   <!-- Main content container -->
                   <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 40px rgba(27, 43, 67, 0.12); overflow: hidden;">
                     
-                    <!-- Branded Header with Orange Gradient -->
+                    <!-- Branded Header with Navy Gradient -->
                     <tr>
-                      <td style="background: linear-gradient(135deg, ${primaryColor} 0%, #e08a2a 100%); padding: 40px 48px; text-align: center; position: relative;">
-                        <img src="${logoUrl}" alt="${companyName}" style="max-width: 260px; height: auto; display: block; margin: 0 auto; filter: brightness(0) invert(1);" />
+                      <td style="background: linear-gradient(135deg, ${secondaryColor} 0%, #243550 100%); padding: 40px 48px; text-align: center; border-bottom: 4px solid ${primaryColor};">
+                        <img src="${logoUrl}" alt="${companyName}" style="max-width: 260px; height: auto; display: block; margin: 0 auto;" />
                       </td>
-                    </tr>
-                    
-                    <!-- Decorative Border -->
-                    <tr>
-                      <td style="background: linear-gradient(90deg, ${secondaryColor} 0%, ${primaryColor} 50%, ${secondaryColor} 100%); height: 4px;"></td>
                     </tr>
                     
                     <!-- Hero Section -->
@@ -490,7 +485,7 @@ Deno.serve(async (req) => {
                         <!-- Welcome Icon -->
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="80" style="margin: 0 auto 24px;">
                           <tr>
-                            <td style="width: 80px; height: 80px; background: linear-gradient(135deg, ${primaryColor}20 0%, ${primaryColor}10 100%); border-radius: 50%; text-align: center; vertical-align: middle; border: 3px solid ${primaryColor}30;">
+                            <td style="width: 80px; height: 80px; background-color: rgba(207, 121, 29, 0.15); border-radius: 50%; text-align: center; vertical-align: middle;">
                               <svg width="40" height="40" viewBox="0 0 40 40" style="display: inline-block; vertical-align: middle;">
                                 <path d="M20 2L7 10v10c0 8.15 5.63 15.78 13 17.67C27.37 35.78 33 28.15 33 20V10L20 2zm0 4.5l10 6.25V20c0 6.5-4.5 12.6-10 14.25C14.5 32.6 10 26.5 10 20v-7.25l10-6.25zM17 22l-3-3-1.5 1.5L17 25l9-9-1.5-1.5L17 22z" fill="${primaryColor}"/>
                               </svg>
@@ -498,10 +493,10 @@ Deno.serve(async (req) => {
                           </tr>
                         </table>
                         
-                        <h1 style="margin: 0 0 16px; color: ${secondaryColor}; font-size: 36px; font-weight: 700; line-height: 1.2; letter-spacing: -0.5px;">
+                        <h1 style="margin: 0 0 16px; color: ${secondaryColor}; font-size: 32px; font-weight: 700; line-height: 1.2; letter-spacing: -0.5px;">
                           Welcome to ${companyName}!
                         </h1>
-                        <p style="margin: 0; color: #4a5568; font-size: 18px; line-height: 1.6; max-width: 480px; margin: 0 auto;">
+                        <p style="margin: 0; color: #4a5568; font-size: 17px; line-height: 1.6; max-width: 440px; margin: 0 auto;">
                           Hi <strong style="color: ${secondaryColor};">${userName || email}</strong>, your account has been created and you're ready to get started.
                         </p>
                       </td>
@@ -564,14 +559,14 @@ Deno.serve(async (req) => {
                           <tr>
                             <td align="center">
                               <!--[if mso]>
-                              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${loginUrl}" style="height:56px;v-text-anchor:middle;width:260px;" arcsize="14%" strokecolor="${primaryColor}" fillcolor="${primaryColor}">
+                              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${loginUrl}" style="height:56px;v-text-anchor:middle;width:240px;" arcsize="14%" strokecolor="${primaryColor}" fillcolor="${primaryColor}">
                                 <w:anchorlock/>
-                                <center style="color:#ffffff;font-family:sans-serif;font-size:17px;font-weight:700;">Access Your Account</center>
+                                <center style="color:#ffffff;font-family:sans-serif;font-size:16px;font-weight:600;">Access Your Account</center>
                               </v:roundrect>
                               <![endif]-->
                               <!--[if !mso]><!-->
-                              <a href="${loginUrl}" target="_blank" style="display: inline-block; min-width: 260px; padding: 18px 48px; background: linear-gradient(135deg, ${primaryColor} 0%, #e08a2a 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 17px; text-align: center; box-shadow: 0 6px 20px rgba(207, 121, 29, 0.4); transition: all 0.2s ease; letter-spacing: 0.3px;">
-                                Access Your Account →
+                              <a href="${loginUrl}" target="_blank" style="display: inline-block; min-width: 240px; padding: 18px 48px; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 14px rgba(207, 121, 29, 0.35); transition: all 0.2s ease;">
+                                Access Your Account
                               </a>
                               <!--<![endif]-->
                             </td>
