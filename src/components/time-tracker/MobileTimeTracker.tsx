@@ -1037,19 +1037,19 @@ export const MobileTimeTracker: React.FC = () => {
                 <div className="text-sm text-muted-foreground">Total today • {todayEntries.length} entries</div>
               </div>
               
-            {todayEntries.length === 0 ? (
-              <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl shadow-sm p-8 text-center border-2 border-dashed border-primary/20">
-                <Clock className="w-20 h-20 mx-auto text-primary mb-4" />
-                <p className="text-foreground font-bold text-lg mb-2">Ready to Clock In?</p>
-                <p className="text-muted-foreground text-sm mb-4">
-                  Select your name and project to start tracking time
-                </p>
-                <Button onClick={() => setView('timer')} className="mt-2">
-                  <Play className="w-4 h-4 mr-2" />
-                  Start Timer
-                </Button>
-              </div>
-            ) : (
+              {todayEntries.length === 0 ? (
+                <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl shadow-sm p-8 text-center border-2 border-dashed border-primary/20">
+                  <Clock className="w-20 h-20 mx-auto text-primary mb-4" />
+                  <p className="text-foreground font-bold text-lg mb-2">Ready to Clock In?</p>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Select your name and project to start tracking time
+                  </p>
+                  <Button onClick={() => setView('timer')} className="mt-2">
+                    <Play className="w-4 h-4 mr-2" />
+                    Start Timer
+                  </Button>
+                </div>
+              ) : (
                 todayEntries.map(entry => (
                   <div 
                     key={entry.id} 
