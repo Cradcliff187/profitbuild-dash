@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { getCompanyBranding } from '@/utils/companyBranding';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -92,6 +93,7 @@ export const MobileTimeTracker: React.FC = () => {
   const [showDuplicateTimerAlert, setShowDuplicateTimerAlert] = useState(false);
   const [existingTimerInfo, setExistingTimerInfo] = useState<any>(null);
   const [activeTimerPayeeIds, setActiveTimerPayeeIds] = useState<Set<string>>(new Set());
+  const [logoIcon, setLogoIcon] = useState<string | null>(null);
 
   // Load active timers to show who's currently clocked in
   const loadActiveTimers = useCallback(async () => {
@@ -109,6 +111,17 @@ export const MobileTimeTracker: React.FC = () => {
     } catch (error) {
       console.error('Error loading active timers:', error);
     }
+  }, []);
+
+  // Load company branding for logo
+  useEffect(() => {
+    const loadBranding = async () => {
+      const branding = await getCompanyBranding();
+      if (branding?.logo_icon_url) {
+        setLogoIcon(branding.logo_icon_url);
+      }
+    };
+    loadBranding();
   }, []);
 
   // Load projects and workers on mount
@@ -698,6 +711,13 @@ export const MobileTimeTracker: React.FC = () => {
       <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-4 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
+            {logoIcon && (
+              <img 
+                src={logoIcon} 
+                alt="Company Logo" 
+                className="h-10 w-10 rounded-lg object-cover"
+              />
+            )}
             <div>
               <h1 className="text-xl font-bold">Time Tracker</h1>
               <p className="text-sm opacity-90">

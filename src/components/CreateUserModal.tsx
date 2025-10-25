@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,19 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
   const [permanentPassword, setPermanentPassword] = useState('');
   const [temporaryPassword, setTemporaryPassword] = useState('');
   const [copied, setCopied] = useState(false);
+
+  // Reset form state when modal closes
+  useEffect(() => {
+    if (!open) {
+      setEmail('');
+      setFullName('');
+      setRole('field_worker');
+      setMethod('temporary_password');
+      setPermanentPassword('');
+      setTemporaryPassword('');
+      setCopied(false);
+    }
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,13 +97,6 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
   };
 
   const handleClose = () => {
-    setEmail('');
-    setFullName('');
-    setRole('field_worker');
-    setMethod('temporary_password');
-    setPermanentPassword('');
-    setTemporaryPassword('');
-    setCopied(false);
     onOpenChange(false);
   };
 
@@ -101,7 +107,7 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-lg">Create New User</DialogTitle>
