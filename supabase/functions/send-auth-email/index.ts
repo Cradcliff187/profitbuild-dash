@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
     }
 
     const emailResponse = await resend.emails.send({
-      from: 'RCG Work <onboarding@resend.dev>',
+      from: 'RCG Work <noreply@rcgwork.com>',
       to: [email],
       subject,
       html,
