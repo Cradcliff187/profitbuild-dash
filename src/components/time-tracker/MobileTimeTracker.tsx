@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check } from 'lucide-react';
+import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { getCompanyBranding } from '@/utils/companyBranding';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { checkTimeOverlap, validateTimeEntryHours, checkStaleTimer } from '@/utils/timeEntryValidation';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -44,6 +45,8 @@ interface TeamMember {
   payee_name: string;
   hourly_rate: number;
   email?: string;
+  is_internal?: boolean;
+  provides_labor?: boolean;
 }
 
 interface TimeEntry {
@@ -97,13 +100,14 @@ export const MobileTimeTracker: React.FC = () => {
   const [activeTimerPayeeIds, setActiveTimerPayeeIds] = useState<Set<string>>(new Set());
   const [logoIcon] = useState<string>("https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/all%20white%20logo%20only.png");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showStaleTimerWarning, setShowStaleTimerWarning] = useState(false);
 
   // Load active timers to show who's currently clocked in
   const loadActiveTimers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('expenses')
-        .select('payee_id')
+        .select('payee_id, id, start_time, project_id, payees(id, payee_name, hourly_rate, is_internal, provides_labor), projects(id, project_name, project_number)')
         .eq('category', 'labor_internal')
         .is('end_time', null);
 
@@ -111,10 +115,62 @@ export const MobileTimeTracker: React.FC = () => {
 
       const activePayeeIds = new Set(data?.map(e => e.payee_id) || []);
       setActiveTimerPayeeIds(activePayeeIds);
+
+      // Check for stale timers
+      if (data && data.length > 0) {
+        const timer = data[0];
+        
+        if (timer.start_time) {
+          const staleCheck = checkStaleTimer(new Date(timer.start_time));
+          if (staleCheck.isStale) {
+            setShowStaleTimerWarning(true);
+            toast({
+              title: staleCheck.shouldAutoClose ? 'Timer Auto-Closing' : 'Long Running Timer',
+              description: staleCheck.message,
+              variant: 'destructive',
+              duration: 10000
+            });
+            
+            // Auto-close if over 24 hours
+            if (staleCheck.shouldAutoClose && timer.payees && timer.projects) {
+              console.log('Auto-closing stale timer...');
+              
+              // Set as active timer first
+              setActiveTimer({
+                teamMember: { 
+                  id: timer.payee_id, 
+                  payee_name: timer.payees.payee_name || 'Unknown Worker',
+                  hourly_rate: timer.payees.hourly_rate || 75,
+                  is_internal: timer.payees.is_internal,
+                  provides_labor: timer.payees.provides_labor
+                },
+                project: {
+                  id: timer.project_id,
+                  project_name: timer.projects.project_name || 'Unknown Project',
+                  project_number: timer.projects.project_number || 'UNKNOWN',
+                  client_name: ''
+                },
+                startTime: new Date(timer.start_time),
+                location: undefined
+              });
+              
+              // Call completeClockOut with no params
+              await completeClockOut();
+              
+              toast({
+                title: 'Timer Auto-Closed',
+                description: 'Your timer was running for over 24 hours and has been automatically closed.',
+                variant: 'destructive'
+              });
+              return;
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('Error loading active timers:', error);
     }
-  }, []);
+  }, [toast]);
 
 
   // Load projects and workers on mount
@@ -564,6 +620,40 @@ export const MobileTimeTracker: React.FC = () => {
     try {
       const endTime = new Date();
       const hours = (endTime.getTime() - activeTimer.startTime.getTime()) / (1000 * 60 * 60);
+
+      // Validate hours are reasonable
+      const hoursValidation = validateTimeEntryHours(activeTimer.startTime, endTime);
+      if (!hoursValidation.valid) {
+        toast({
+          title: 'Invalid Time Entry',
+          description: hoursValidation.message,
+          variant: 'destructive'
+        });
+        setLoading(false);
+        return null;
+      }
+
+      // Check for overlaps when online
+      if (isOnline) {
+        const overlapCheck = await checkTimeOverlap(
+          activeTimer.teamMember.id,
+          format(activeTimer.startTime, 'yyyy-MM-dd'),
+          activeTimer.startTime,
+          endTime,
+          undefined
+        );
+
+        if (overlapCheck.hasOverlap) {
+          const proceed = window.confirm(
+            `⚠️ Overlap Warning\n\n${overlapCheck.message}\n\nThis entry overlaps with existing time entries. Continue anyway?`
+          );
+          if (!proceed) {
+            setLoading(false);
+            return null;
+          }
+        }
+      }
+
       const amount = hours * activeTimer.teamMember.hourly_rate;
 
       // Get current user
@@ -797,6 +887,27 @@ export const MobileTimeTracker: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Stale Timer Warning Banner */}
+      {showStaleTimerWarning && activeTimer && (
+        <Alert variant="destructive" className="m-4 mb-0">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Long Running Timer</AlertTitle>
+          <AlertDescription className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <span>
+              Timer has been running for {getElapsedTime()}. Please clock out.
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleClockOut()}
+              className="w-full sm:w-auto"
+            >
+              Clock Out Now
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Timer View */}
       {view === 'timer' && (
@@ -1240,32 +1351,21 @@ export const MobileTimeTracker: React.FC = () => {
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
             <AlertDialogCancel onClick={() => {
+              setShowDuplicateTimerAlert(false);
               setExistingTimerInfo(null);
             }}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={async () => {
+              onClick={() => {
                 setShowDuplicateTimerAlert(false);
                 setView('entries');
-                setEntriesDateRange('today');
                 setExistingTimerInfo(null);
               }}
-              className="bg-primary"
             >
               View Active Timer
-            </AlertDialogAction>
-            <AlertDialogAction
-              onClick={async () => {
-                setShowDuplicateTimerAlert(false);
-                await proceedWithClockIn();
-                setExistingTimerInfo(null);
-              }}
-              className="bg-amber-500 hover:bg-amber-600"
-            >
-              Start Anyway
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

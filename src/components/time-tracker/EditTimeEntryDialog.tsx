@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useRoles } from '@/contexts/RoleContext';
+import { checkTimeOverlap, validateTimeEntryHours } from '@/utils/timeEntryValidation';
 
 interface TimeEntry {
   id: string;
@@ -102,6 +103,38 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
 
     setLoading(true);
     try {
+      if (startTime && endTime) {
+        const startDateTime = new Date(`${date}T${startTime}`);
+        const endDateTime = new Date(`${date}T${endTime}`);
+        
+        // Validate reasonable hours
+        const hoursValidation = validateTimeEntryHours(startDateTime, endDateTime);
+        if (!hoursValidation.valid) {
+          toast.error(hoursValidation.message);
+          setLoading(false);
+          return;
+        }
+        
+        // Check for overlaps (exclude current entry)
+        const overlapCheck = await checkTimeOverlap(
+          workerId,
+          date,
+          startDateTime,
+          endDateTime,
+          entry.id
+        );
+        
+        if (overlapCheck.hasOverlap) {
+          const proceed = window.confirm(
+            `⚠️ ${overlapCheck.message}\n\nContinue saving?`
+          );
+          if (!proceed) {
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
       const { data: workerData } = await supabase
         .from('payees')
         .select('hourly_rate')
