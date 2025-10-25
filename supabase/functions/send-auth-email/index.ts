@@ -8,8 +8,7 @@ const corsHeaders = {
 interface AuthEmailRequest {
   type: 'password-reset' | 'welcome';
   email: string;
-  tokenHash?: string;
-  redirectUrl?: string;
+  resetUrl?: string;
   userName?: string;
 }
 
@@ -28,20 +27,18 @@ Deno.serve(async (req) => {
     }
 
     const resend = new Resend(resendApiKey);
-    const { type, email, tokenHash, redirectUrl, userName } = await req.json() as AuthEmailRequest;
+    const { type, email, resetUrl, userName } = await req.json() as AuthEmailRequest;
 
-    console.log('📧 Sending auth email:', { type, email, hasToken: !!tokenHash });
+    console.log('📧 Sending auth email:', { type, email, hasResetUrl: !!resetUrl });
 
     let subject = '';
     let html = '';
 
     if (type === 'password-reset') {
-      if (!tokenHash || !redirectUrl) {
-        throw new Error('tokenHash and redirectUrl required for password reset');
+      if (!resetUrl) {
+        throw new Error('resetUrl is required for password reset emails');
       }
 
-      const resetLink = `${redirectUrl}?token_hash=${tokenHash}&type=recovery`;
-      
       subject = 'Reset Your Password - RCG Work';
       html = `
         <!DOCTYPE html>
@@ -74,7 +71,7 @@ Deno.serve(async (req) => {
                         <table role="presentation" style="width: 100%; border-collapse: collapse;">
                           <tr>
                             <td align="center" style="padding: 20px 0;">
-                              <a href="${resetLink}" 
+                              <a href="${resetUrl}" 
                                  style="display: inline-block; padding: 14px 32px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
                                 Reset Password
                               </a>
@@ -84,7 +81,7 @@ Deno.serve(async (req) => {
                         
                         <p style="margin: 20px 0 0; color: #6b7280; font-size: 14px; line-height: 1.5;">
                           Or copy and paste this link into your browser:<br>
-                          <a href="${resetLink}" style="color: #2563eb; word-break: break-all;">${resetLink}</a>
+                          <a href="${resetUrl}" style="color: #2563eb; word-break: break-all;">${resetUrl}</a>
                         </p>
                         
                         <!-- Security Notice -->

@@ -73,18 +73,20 @@ Deno.serve(async (req) => {
         throw error;
       }
 
-      // Extract token_hash from the generated link
-      const actionLink = data.properties?.action_link || '';
-      const tokenHash = new URL(actionLink).searchParams.get('token_hash');
+      // Use the complete action_link provided by Supabase
+      const resetLink = data.properties?.action_link;
 
-      if (!tokenHash) {
-        console.error('❌ Failed to extract token_hash from link');
-        throw new Error('Failed to generate reset token');
+      if (!resetLink) {
+        console.error('❌ Failed to get action_link from response:', {
+          dataKeys: Object.keys(data),
+          propertiesKeys: data.properties ? Object.keys(data.properties) : 'no properties'
+        });
+        throw new Error('Failed to generate reset link');
       }
 
-      console.log('✅ Reset token generated successfully:', {
+      console.log('✅ Reset link generated successfully:', {
         email: userEmail,
-        hasToken: !!tokenHash,
+        hasLink: !!resetLink,
         redirectTo
       });
 
@@ -94,8 +96,7 @@ Deno.serve(async (req) => {
         body: {
           type: 'password-reset',
           email: userEmail,
-          tokenHash: tokenHash,
-          redirectUrl: redirectTo
+          resetUrl: resetLink
         }
       });
 
