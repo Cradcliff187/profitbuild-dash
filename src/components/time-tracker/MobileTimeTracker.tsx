@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { AddReceiptModal } from './AddReceiptModal';
 import { WeekView } from './WeekView';
 import { EditTimeEntryDialog } from './EditTimeEntryDialog';
@@ -694,8 +695,8 @@ export const MobileTimeTracker: React.FC = () => {
 
   if (dataLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100">
-        <LoadingSpinner variant="page" message="Loading time tracker..." />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
+        <BrandedLoader message="Loading time tracker..." />
       </div>
     );
   }
