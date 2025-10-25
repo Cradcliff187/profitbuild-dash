@@ -168,6 +168,10 @@ export const MobileTimeTracker: React.FC = () => {
                 variant: 'destructive'
               });
               
+              // Cleanup: Hide stale warning banner and refresh entries
+              setShowStaleTimerWarning(false);
+              await loadTodayEntries();
+              
               hasAutoClosedTimer = true;
               break; // Exit loop after auto-closing
               
