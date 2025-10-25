@@ -224,7 +224,8 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0.00"
           required
-          className={isMobile ? "h-12 text-base" : ""}
+          className={isMobile ? "h-12" : ""}
+          style={{ fontSize: isMobile ? '16px' : undefined }}
         />
       </div>
 

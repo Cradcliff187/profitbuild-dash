@@ -103,6 +103,16 @@ export const MobileTimeTracker: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showStaleTimerWarning, setShowStaleTimerWarning] = useState(false);
 
+  // Prevent body scroll when custom dropdowns are open
+  useEffect(() => {
+    if (showWorkerSelect || showProjectSelect) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [showWorkerSelect, showProjectSelect]);
+
   // Load active timers to show who's currently clocked in
   const loadActiveTimers = useCallback(async () => {
     try {
@@ -500,15 +510,54 @@ export const MobileTimeTracker: React.FC = () => {
   const captureLocation = async () => {
     try {
       if (!navigator.geolocation) {
+        toast({
+          title: 'Location not available',
+          description: 'GPS is not supported on this device',
+          variant: 'destructive'
+        });
         return null;
       }
       
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        });
+        navigator.geolocation.getCurrentPosition(
+          resolve,
+          (error) => {
+            // Handle specific error codes with user-friendly messages
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                toast({
+                  title: 'Location Permission Denied',
+                  description: 'Enable location services in your device settings to track work sites',
+                  variant: 'destructive'
+                });
+                break;
+              case error.POSITION_UNAVAILABLE:
+                toast({
+                  title: 'Location Unavailable',
+                  description: 'Unable to determine your position. GPS may be unavailable.'
+                });
+                break;
+              case error.TIMEOUT:
+                toast({
+                  title: 'Location Timeout',
+                  description: 'Location request took too long. Please try again.'
+                });
+                break;
+              default:
+                toast({
+                  title: 'Failed to get location',
+                  description: 'An unknown error occurred while accessing GPS',
+                  variant: 'destructive'
+                });
+            }
+            reject(error);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
       });
       
       const loc = {
@@ -1020,7 +1069,7 @@ export const MobileTimeTracker: React.FC = () => {
             <button
               onClick={() => setShowWorkerSelect(!showWorkerSelect)}
               disabled={activeTimer !== null}
-              className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
             >
               {selectedTeamMember ? (
                 <div className="flex items-center justify-between">
@@ -1047,7 +1096,7 @@ export const MobileTimeTracker: React.FC = () => {
                       setShowWorkerSelect(false);
                     }}
                     className={cn(
-                      "w-full p-3 text-left border-b last:border-b-0 transition-all",
+                      "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
                       selectedTeamMember?.id === member.id
                         ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
                         : "hover:bg-muted"
@@ -1082,7 +1131,7 @@ export const MobileTimeTracker: React.FC = () => {
             <button
               onClick={() => setShowProjectSelect(!showProjectSelect)}
               disabled={activeTimer !== null}
-              className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
             >
               {selectedProject ? (
                 <div>
@@ -1091,7 +1140,7 @@ export const MobileTimeTracker: React.FC = () => {
                   </div>
                   <div className="text-sm text-muted-foreground">{selectedProject.project_name}</div>
                   {selectedProject.address && (
-                    <div className="text-xs text-muted-foreground">{selectedProject.address}</div>
+                    <div className="text-sm text-muted-foreground">{selectedProject.address}</div>
                   )}
                 </div>
               ) : (
@@ -1109,7 +1158,7 @@ export const MobileTimeTracker: React.FC = () => {
                       setShowProjectSelect(false);
                     }}
                     className={cn(
-                      "w-full p-3 text-left border-b last:border-b-0 transition-all",
+                      "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
                       selectedProject?.id === project.id
                         ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
                         : "hover:bg-muted"
@@ -1122,7 +1171,7 @@ export const MobileTimeTracker: React.FC = () => {
                         </div>
                         <div className="text-sm text-muted-foreground truncate">{project.project_name}</div>
                         {project.address && (
-                          <div className="text-xs text-muted-foreground truncate">{project.address}</div>
+                          <div className="text-sm text-muted-foreground truncate">{project.address}</div>
                         )}
                       </div>
                       {selectedProject?.id === project.id && (
