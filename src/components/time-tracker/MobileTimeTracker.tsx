@@ -47,6 +47,7 @@ interface TeamMember {
   email?: string;
   is_internal?: boolean;
   provides_labor?: boolean;
+  user_id?: string;
 }
 
 interface TimeEntry {
@@ -107,7 +108,7 @@ export const MobileTimeTracker: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('expenses')
-        .select('payee_id, id, start_time, project_id, payees(id, payee_name, hourly_rate, is_internal, provides_labor), projects(id, project_name, project_number)')
+        .select('payee_id, id, start_time, project_id, payees(id, payee_name, hourly_rate, is_internal, provides_labor, user_id), projects(id, project_name, project_number)')
         .eq('category', 'labor_internal')
         .is('end_time', null);
 
@@ -116,45 +117,49 @@ export const MobileTimeTracker: React.FC = () => {
       const activePayeeIds = new Set(data?.map(e => e.payee_id) || []);
       setActiveTimerPayeeIds(activePayeeIds);
 
-      // Check for stale timers
+      // Check ALL active timers for staleness
       if (data && data.length > 0) {
-        const timer = data[0];
+        let hasAutoClosedTimer = false;
         
-        if (timer.start_time) {
+        for (const timer of data) {
+          if (!timer.start_time) continue;
+          
           const staleCheck = checkStaleTimer(new Date(timer.start_time));
+          
           if (staleCheck.isStale) {
-            setShowStaleTimerWarning(true);
-            toast({
-              title: staleCheck.shouldAutoClose ? 'Timer Auto-Closing' : 'Long Running Timer',
-              description: staleCheck.message,
-              variant: 'destructive',
-              duration: 10000
-            });
+            // Determine ownership
+            const isOwnTimer = timer.payees?.user_id === user?.id;
             
-            // Auto-close if over 24 hours
-            if (staleCheck.shouldAutoClose && timer.payees && timer.projects) {
-              console.log('Auto-closing stale timer...');
+            if (staleCheck.shouldAutoClose && isOwnTimer) {
+              // Only auto-close YOUR OWN timer
+              console.log('Auto-closing YOUR stale timer:', {
+                payee_name: timer.payees?.payee_name,
+                hours: staleCheck.hoursElapsed.toFixed(1)
+              });
               
-              // Set as active timer first
+              setShowStaleTimerWarning(true);
+              
+              // Set as active timer
               setActiveTimer({
                 teamMember: { 
                   id: timer.payee_id, 
-                  payee_name: timer.payees.payee_name || 'Unknown Worker',
-                  hourly_rate: timer.payees.hourly_rate || 75,
-                  is_internal: timer.payees.is_internal,
-                  provides_labor: timer.payees.provides_labor
+                  payee_name: timer.payees?.payee_name || 'Unknown Worker',
+                  hourly_rate: timer.payees?.hourly_rate || 75,
+                  is_internal: timer.payees?.is_internal || false,
+                  provides_labor: timer.payees?.provides_labor || false,
+                  user_id: timer.payees?.user_id
                 },
                 project: {
                   id: timer.project_id,
-                  project_name: timer.projects.project_name || 'Unknown Project',
-                  project_number: timer.projects.project_number || 'UNKNOWN',
+                  project_name: timer.projects?.project_name || 'Unknown Project',
+                  project_number: timer.projects?.project_number || 'UNKNOWN',
                   client_name: ''
                 },
                 startTime: new Date(timer.start_time),
                 location: undefined
               });
               
-              // Call completeClockOut with no params
+              // Auto-close
               await completeClockOut();
               
               toast({
@@ -162,9 +167,46 @@ export const MobileTimeTracker: React.FC = () => {
                 description: 'Your timer was running for over 24 hours and has been automatically closed.',
                 variant: 'destructive'
               });
-              return;
+              
+              hasAutoClosedTimer = true;
+              break; // Exit loop after auto-closing
+              
+            } else if (staleCheck.shouldAutoClose && !isOwnTimer) {
+              // Someone else's timer needs attention
+              console.warn('Stale timer detected for another user:', {
+                payee_name: timer.payees?.payee_name,
+                hours: staleCheck.hoursElapsed.toFixed(1),
+                timer_id: timer.id
+              });
+              
+              // Show notification to admin/manager
+              if (isAdmin || isManager) {
+                toast({
+                  title: 'Stale Timer Alert',
+                  description: `${timer.payees?.payee_name} has a timer running for ${staleCheck.hoursElapsed.toFixed(1)} hours. Please review.`,
+                  variant: 'destructive',
+                  duration: 15000
+                });
+              }
+              
+            } else if (staleCheck.isStale && isOwnTimer) {
+              // Show warning for YOUR stale (but not auto-close) timer
+              setShowStaleTimerWarning(true);
+              toast({
+                title: 'Long Running Timer',
+                description: staleCheck.message,
+                variant: 'destructive',
+                duration: 10000
+              });
             }
           }
+        }
+        
+        // If we auto-closed, refresh and exit
+        if (hasAutoClosedTimer) {
+          setShowStaleTimerWarning(false);
+          await loadTodayEntries();
+          return;
         }
       }
     } catch (error) {
@@ -658,6 +700,24 @@ export const MobileTimeTracker: React.FC = () => {
 
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
+
+      // SAFETY CHECK: Verify this is the user's own timer
+      if (activeTimer.teamMember.user_id && activeTimer.teamMember.user_id !== user?.id) {
+        console.error('Timer ownership mismatch:', {
+          timer_owner: activeTimer.teamMember.user_id,
+          current_user: user?.id,
+          payee_name: activeTimer.teamMember.payee_name
+        });
+        
+        toast({
+          title: 'Cannot Close Timer',
+          description: 'This timer belongs to another user. Only the timer owner can clock out.',
+          variant: 'destructive'
+        });
+        
+        setLoading(false);
+        return null;
+      }
       
       const expenseData = {
         project_id: activeTimer.project.id,
