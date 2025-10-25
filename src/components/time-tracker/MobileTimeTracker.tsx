@@ -95,7 +95,7 @@ export const MobileTimeTracker: React.FC = () => {
   const [showDuplicateTimerAlert, setShowDuplicateTimerAlert] = useState(false);
   const [existingTimerInfo, setExistingTimerInfo] = useState<any>(null);
   const [activeTimerPayeeIds, setActiveTimerPayeeIds] = useState<Set<string>>(new Set());
-  const [logoIcon, setLogoIcon] = useState<string | null>(null);
+  const [logoIcon] = useState<string>("https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Stacked%20Icon+Logo%20Transparent%202000x2000.png");
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Load active timers to show who's currently clocked in
@@ -116,16 +116,6 @@ export const MobileTimeTracker: React.FC = () => {
     }
   }, []);
 
-  // Load company branding for logo
-  useEffect(() => {
-    const loadBranding = async () => {
-      const branding = await getCompanyBranding();
-      if (branding?.logo_icon_url) {
-        setLogoIcon(branding.logo_icon_url);
-      }
-    };
-    loadBranding();
-  }, []);
 
   // Load projects and workers on mount
   useEffect(() => {
