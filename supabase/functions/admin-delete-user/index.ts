@@ -67,6 +67,29 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check for financial records - prevent hard delete if they exist
+    const { count: expenseCount } = await supabaseClient
+      .from('expenses')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    const { count: receiptCount } = await supabaseClient
+      .from('receipts')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if ((expenseCount || 0) > 0 || (receiptCount || 0) > 0) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Cannot delete user with financial records. Please deactivate instead.',
+          hasFinancialRecords: true,
+          expenseCount: expenseCount || 0,
+          receiptCount: receiptCount || 0
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Check if this is the last admin
     const { data: adminCount } = await supabaseClient
       .from('user_roles')

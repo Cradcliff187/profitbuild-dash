@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, ShieldBan } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { AppRole } from '@/contexts/RoleContext';
 
@@ -24,6 +24,77 @@ interface DeleteUserDialogProps {
 export function DeleteUserDialog({ open, onOpenChange, user, onSuccess }: DeleteUserDialogProps) {
   const [confirmEmail, setConfirmEmail] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [hasFinancialRecords, setHasFinancialRecords] = useState(false);
+  const [expenseCount, setExpenseCount] = useState(0);
+  const [receiptCount, setReceiptCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Check for financial records when user changes
+  useEffect(() => {
+    const checkFinancialRecords = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        const [expensesResult, receiptsResult] = await Promise.all([
+          supabase
+            .from('expenses')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id),
+          supabase
+            .from('receipts')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+        ]);
+
+        const expenses = expensesResult.count || 0;
+        const receipts = receiptsResult.count || 0;
+        
+        setExpenseCount(expenses);
+        setReceiptCount(receipts);
+        setHasFinancialRecords(expenses > 0 || receipts > 0);
+      } catch (error) {
+        console.error('Error checking financial records:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (open) {
+      checkFinancialRecords();
+    }
+  }, [user, open]);
+
+  const handleDeactivate = async () => {
+    if (!user || confirmEmail !== user.email) {
+      toast.error('Email confirmation does not match');
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-disable-user', {
+        body: { userId: user.id }
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success('User deactivated successfully');
+      onOpenChange(false);
+      setConfirmEmail('');
+      onSuccess();
+    } catch (error) {
+      console.error('Error deactivating user:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to deactivate user');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!user || confirmEmail !== user.email) {
@@ -74,86 +145,125 @@ export function DeleteUserDialog({ open, onOpenChange, user, onSuccess }: Delete
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle className="h-5 w-5" />
-            Delete User Account
+            {hasFinancialRecords ? (
+              <>
+                <ShieldBan className="h-5 w-5" />
+                Deactivate User Account
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-5 w-5" />
+                Delete User Account
+              </>
+            )}
           </AlertDialogTitle>
           <AlertDialogDescription className="space-y-4 pt-4">
-            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
-              <p className="text-sm font-medium text-destructive mb-2">
-                ⚠️ This action cannot be undone!
-              </p>
-              <p className="text-xs text-muted-foreground">
-                This will permanently delete the user account and all associated data.
-              </p>
-            </div>
-
-            <div className="space-y-2 text-sm">
-              <div>
-                <span className="font-medium">User:</span> {user.full_name}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-              <div>
-                <span className="font-medium">Email:</span> {user.email}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">Roles:</span>
-                <div className="flex gap-1 flex-wrap">
-                  {user.roles.map(role => (
-                    <Badge key={role} variant="secondary" className="text-xs">
-                      {role}
-                    </Badge>
-                  ))}
+            ) : (
+              <>
+                <div className={`rounded-lg border p-3 ${
+                  hasFinancialRecords 
+                    ? 'bg-yellow-500/10 border-yellow-500/20' 
+                    : 'bg-destructive/10 border-destructive/20'
+                }`}>
+                  <p className={`text-sm font-medium mb-2 ${
+                    hasFinancialRecords ? 'text-yellow-700 dark:text-yellow-500' : 'text-destructive'
+                  }`}>
+                    {hasFinancialRecords ? '🔒 User Has Financial Records' : '⚠️ This action cannot be undone!'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {hasFinancialRecords 
+                      ? `This user has ${expenseCount} expense record(s) and ${receiptCount} receipt(s). Their account will be deactivated to preserve financial data. They will not be able to log in.`
+                      : 'This will permanently delete the user account and all associated data.'
+                    }
+                  </p>
                 </div>
-              </div>
-            </div>
 
-            <div className="space-y-2 text-xs text-muted-foreground border-t pt-3">
-              <p className="font-medium text-foreground">The following will be permanently deleted:</p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>User authentication and login access</li>
-                <li>Profile information</li>
-                <li>All role assignments</li>
-                <li>Time entries and expense records</li>
-                <li>Project assignments</li>
-                <li>All related audit logs</li>
-              </ul>
-            </div>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="font-medium">User:</span> {user.full_name}
+                  </div>
+                  <div>
+                    <span className="font-medium">Email:</span> {user.email}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Roles:</span>
+                    <div className="flex gap-1 flex-wrap">
+                      {user.roles.map(role => (
+                        <Badge key={role} variant="secondary" className="text-xs">
+                          {role}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
 
-            <div className="space-y-2 pt-2">
-              <Label htmlFor="confirm-email" className="text-sm font-medium">
-                Type the user's email to confirm deletion:
-              </Label>
-              <Input
-                id="confirm-email"
-                type="email"
-                placeholder={user.email}
-                value={confirmEmail}
-                onChange={(e) => setConfirmEmail(e.target.value)}
-                disabled={isDeleting}
-                className="font-mono text-sm"
-              />
-            </div>
+                <div className="space-y-2 text-xs text-muted-foreground border-t pt-3">
+                  <p className="font-medium text-foreground">
+                    {hasFinancialRecords ? 'What will happen:' : 'The following will be permanently deleted:'}
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    {hasFinancialRecords ? (
+                      <>
+                        <li>User login access will be disabled</li>
+                        <li>Profile marked as inactive</li>
+                        <li>Financial records will be preserved</li>
+                        <li>Time entries and expenses remain visible</li>
+                        <li>Can be reactivated by admin if needed</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>User authentication and login access</li>
+                        <li>Profile information</li>
+                        <li>All role assignments</li>
+                        <li>Project assignments</li>
+                        <li>All related audit logs</li>
+                      </>
+                    )}
+                  </ul>
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  <Label htmlFor="confirm-email" className="text-sm font-medium">
+                    Type the user's email to confirm:
+                  </Label>
+                  <Input
+                    id="confirm-email"
+                    type="email"
+                    placeholder={user.email}
+                    value={confirmEmail}
+                    onChange={(e) => setConfirmEmail(e.target.value)}
+                    disabled={isDeleting}
+                    className="font-mono text-sm"
+                  />
+                </div>
+              </>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <Button
             variant="outline"
             onClick={() => handleOpenChange(false)}
-            disabled={isDeleting}
+            disabled={isDeleting || isLoading}
           >
             Cancel
           </Button>
           <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={!emailMatches || isDeleting}
+            variant={hasFinancialRecords ? 'default' : 'destructive'}
+            onClick={hasFinancialRecords ? handleDeactivate : handleDelete}
+            disabled={!emailMatches || isDeleting || isLoading}
           >
             {isDeleting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Deleting...
+                {hasFinancialRecords ? 'Deactivating...' : 'Deleting...'}
               </>
             ) : (
-              'Permanently Delete User'
+              hasFinancialRecords ? 'Deactivate User' : 'Permanently Delete User'
             )}
           </Button>
         </AlertDialogFooter>

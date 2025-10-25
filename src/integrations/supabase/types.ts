@@ -727,29 +727,46 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          deactivated_at: string | null
+          deactivated_by: string | null
           email: string | null
           full_name: string | null
           id: string
+          is_active: boolean
           must_change_password: boolean | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
           email?: string | null
           full_name?: string | null
           id: string
+          is_active?: boolean
           must_change_password?: boolean | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          is_active?: boolean
           must_change_password?: boolean | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_deactivated_by_fkey"
+            columns: ["deactivated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_assignments: {
         Row: {

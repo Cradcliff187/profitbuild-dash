@@ -33,6 +33,8 @@ interface UserWithRoles extends Profile {
   last_sign_in_at?: string | null;
   confirmed_at?: string | null;
   has_password?: boolean;
+  is_active?: boolean;
+  deactivated_at?: string | null;
 }
 
 export default function RoleManagement() {
@@ -49,6 +51,7 @@ export default function RoleManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [bulkRoleOpen, setBulkRoleOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('active');
 
   useEffect(() => {
     if (!rolesLoading && !isAdmin) {
@@ -254,11 +257,18 @@ export default function RoleManagement() {
     }
   };
 
-  // Filter users based on search
-  const filteredUsers = users.filter(user => 
-    user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter users based on search and active status
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (activeFilter === 'active') {
+      return matchesSearch && user.is_active !== false;
+    } else if (activeFilter === 'inactive') {
+      return matchesSearch && user.is_active === false;
+    }
+    return matchesSearch;
+  });
 
   const renderSkeletonLoader = () => (
     <Card>
@@ -338,6 +348,17 @@ export default function RoleManagement() {
             </Button>
           )}
         </div>
+        
+        <Select value={activeFilter} onValueChange={(v) => setActiveFilter(v as typeof activeFilter)}>
+          <SelectTrigger className="h-8 w-[110px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active" className="text-xs">Active Only</SelectItem>
+            <SelectItem value="inactive" className="text-xs">Inactive Only</SelectItem>
+            <SelectItem value="all" className="text-xs">All Users</SelectItem>
+          </SelectContent>
+        </Select>
         
         {selectedUserIds.size > 0 && (
           <div className="flex items-center gap-2 animate-fade-in">
@@ -427,8 +448,9 @@ export default function RoleManagement() {
                 <TableBody>
                   {filteredUsers.map((user) => {
                     const passwordStatus = getPasswordStatus(user);
+                    const isInactive = user.is_active === false;
                     return (
-                      <TableRow key={user.id}>
+                      <TableRow key={user.id} className={isInactive ? 'opacity-60 bg-muted/20' : ''}>
                         {/* Checkbox Column */}
                         <TableCell>
                           <Checkbox
@@ -440,7 +462,14 @@ export default function RoleManagement() {
                         {/* User Column */}
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="font-medium text-sm">{user.full_name || 'No name'}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm">{user.full_name || 'No name'}</span>
+                              {isInactive && (
+                                <Badge variant="outline" className="h-4 px-1 text-[10px] border-orange-500 text-orange-700 dark:text-orange-500">
+                                  Inactive
+                                </Badge>
+                              )}
+                            </div>
                             <span className="text-xs text-muted-foreground">{user.email}</span>
                           </div>
                         </TableCell>
