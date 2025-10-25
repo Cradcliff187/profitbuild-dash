@@ -924,7 +924,7 @@ export const MobileTimeTracker: React.FC = () => {
               <button
                 onClick={handleClockIn}
                 disabled={!selectedTeamMember || !selectedProject || loading}
-                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-6 rounded-2xl font-bold text-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-green-500 via-green-600 to-teal-500 hover:from-green-600 hover:via-green-700 hover:to-teal-600 text-white py-6 rounded-2xl font-bold text-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <Loader2 className="w-8 h-8 animate-spin" />
