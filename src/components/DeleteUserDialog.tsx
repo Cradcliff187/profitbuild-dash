@@ -3,6 +3,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFoo
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, AlertTriangle, ShieldBan } from 'lucide-react';
@@ -28,6 +29,7 @@ export function DeleteUserDialog({ open, onOpenChange, user, onSuccess }: Delete
   const [expenseCount, setExpenseCount] = useState(0);
   const [receiptCount, setReceiptCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [forceDelete, setForceDelete] = useState(false);
 
   // Check for financial records when user changes
   useEffect(() => {
@@ -96,7 +98,7 @@ export function DeleteUserDialog({ open, onOpenChange, user, onSuccess }: Delete
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (force = false) => {
     if (!user || confirmEmail !== user.email) {
       toast.error('Email confirmation does not match');
       return;
@@ -106,7 +108,7 @@ export function DeleteUserDialog({ open, onOpenChange, user, onSuccess }: Delete
 
     try {
       const { data, error } = await supabase.functions.invoke('admin-delete-user', {
-        body: { userId: user.id }
+        body: { userId: user.id, forceDelete: force }
       });
 
       if (error) throw error;
@@ -118,6 +120,7 @@ export function DeleteUserDialog({ open, onOpenChange, user, onSuccess }: Delete
       toast.success('User deleted successfully');
       onOpenChange(false);
       setConfirmEmail('');
+      setForceDelete(false);
       onSuccess();
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -132,6 +135,7 @@ export function DeleteUserDialog({ open, onOpenChange, user, onSuccess }: Delete
       onOpenChange(newOpen);
       if (!newOpen) {
         setConfirmEmail('');
+        setForceDelete(false);
       }
     }
   };
@@ -226,6 +230,30 @@ export function DeleteUserDialog({ open, onOpenChange, user, onSuccess }: Delete
                   </ul>
                 </div>
 
+                {hasFinancialRecords && (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id="force-delete"
+                        checked={forceDelete}
+                        onCheckedChange={(checked) => setForceDelete(checked === true)}
+                        disabled={isDeleting}
+                      />
+                      <div className="space-y-1 flex-1">
+                        <Label
+                          htmlFor="force-delete"
+                          className="text-sm font-medium text-destructive cursor-pointer leading-none"
+                        >
+                          ⚠️ Force permanent deletion
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          This will permanently delete the user AND all their financial records ({expenseCount} expenses, {receiptCount} receipts). This action cannot be undone and may affect financial reporting.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2 pt-2">
                   <Label htmlFor="confirm-email" className="text-sm font-medium">
                     Type the user's email to confirm:
@@ -253,17 +281,23 @@ export function DeleteUserDialog({ open, onOpenChange, user, onSuccess }: Delete
             Cancel
           </Button>
           <Button
-            variant={hasFinancialRecords ? 'default' : 'destructive'}
-            onClick={hasFinancialRecords ? handleDeactivate : handleDelete}
+            variant={hasFinancialRecords && !forceDelete ? 'default' : 'destructive'}
+            onClick={() => {
+              if (hasFinancialRecords && !forceDelete) {
+                handleDeactivate();
+              } else {
+                handleDelete(forceDelete);
+              }
+            }}
             disabled={!emailMatches || isDeleting || isLoading}
           >
             {isDeleting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {hasFinancialRecords ? 'Deactivating...' : 'Deleting...'}
+                {hasFinancialRecords && !forceDelete ? 'Deactivating...' : 'Deleting...'}
               </>
             ) : (
-              hasFinancialRecords ? 'Deactivate User' : 'Permanently Delete User'
+              hasFinancialRecords && !forceDelete ? 'Deactivate User' : 'Permanently Delete User'
             )}
           </Button>
         </AlertDialogFooter>

@@ -7,6 +7,7 @@ const corsHeaders = {
 
 interface DeleteUserRequest {
   userId: string;
+  forceDelete?: boolean;
 }
 
 Deno.serve(async (req) => {
@@ -50,7 +51,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { userId }: DeleteUserRequest = await req.json();
+    const { userId, forceDelete = false }: DeleteUserRequest = await req.json();
 
     if (!userId) {
       return new Response(
@@ -79,15 +80,51 @@ Deno.serve(async (req) => {
       .eq('user_id', userId);
 
     if ((expenseCount || 0) > 0 || (receiptCount || 0) > 0) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Cannot delete user with financial records. Please deactivate instead.',
-          hasFinancialRecords: true,
-          expenseCount: expenseCount || 0,
-          receiptCount: receiptCount || 0
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (!forceDelete) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Cannot delete user with financial records. Please deactivate instead.',
+            hasFinancialRecords: true,
+            expenseCount: expenseCount || 0,
+            receiptCount: receiptCount || 0
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Force delete: manually delete financial records first
+      console.log(`⚠️ Force deleting user ${userId} with ${expenseCount} expenses and ${receiptCount} receipts`);
+      
+      // Create service role client for deletion
+      const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+      
+      // Delete expenses
+      if ((expenseCount || 0) > 0) {
+        const { error: expenseDeleteError } = await serviceClient
+          .from('expenses')
+          .delete()
+          .eq('user_id', userId);
+        
+        if (expenseDeleteError) {
+          console.error('Error deleting expenses:', expenseDeleteError);
+        } else {
+          console.log(`Deleted ${expenseCount} expense records`);
+        }
+      }
+      
+      // Delete receipts
+      if ((receiptCount || 0) > 0) {
+        const { error: receiptDeleteError } = await serviceClient
+          .from('receipts')
+          .delete()
+          .eq('user_id', userId);
+        
+        if (receiptDeleteError) {
+          console.error('Error deleting receipts:', receiptDeleteError);
+        } else {
+          console.log(`Deleted ${receiptCount} receipt records`);
+        }
+      }
     }
 
     // Check if this is the last admin
@@ -142,6 +179,9 @@ Deno.serve(async (req) => {
           deleted_email: profile?.email,
           deleted_name: profile?.full_name,
           deleted_at: new Date().toISOString(),
+          force_delete: forceDelete,
+          expense_count: expenseCount || 0,
+          receipt_count: receiptCount || 0,
         }
       });
 
