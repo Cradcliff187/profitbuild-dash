@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera } from 'lucide-react';
+import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { getCompanyBranding } from '@/utils/companyBranding';
 import { useToast } from '@/hooks/use-toast';
@@ -851,16 +852,26 @@ export const MobileTimeTracker: React.FC = () => {
                       setSelectedTeamMember(member);
                       setShowWorkerSelect(false);
                     }}
-                    className="w-full p-3 text-left hover:bg-muted border-b last:border-b-0 transition-all"
+                    className={cn(
+                      "w-full p-3 text-left border-b last:border-b-0 transition-all",
+                      selectedTeamMember?.id === member.id
+                        ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
+                        : "hover:bg-muted"
+                    )}
                   >
                     <div className="flex items-center justify-between">
                       <div className="font-semibold">{member.payee_name}</div>
-                      {activeTimerPayeeIds.has(member.id) && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">
-                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                          Active
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {activeTimerPayeeIds.has(member.id) && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">
+                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                            Active
+                          </span>
+                        )}
+                        {selectedTeamMember?.id === member.id && (
+                          <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                        )}
+                      </div>
                     </div>
                   </button>
                 ))}
@@ -903,15 +914,27 @@ export const MobileTimeTracker: React.FC = () => {
                       setSelectedProject(project);
                       setShowProjectSelect(false);
                     }}
-                    className="w-full p-3 text-left hover:bg-muted border-b last:border-b-0 transition-all"
-                  >
-                    <div className="font-semibold">
-                      {project.project_number} - {project.client_name}
-                    </div>
-                    <div className="text-sm text-muted-foreground">{project.project_name}</div>
-                    {project.address && (
-                      <div className="text-xs text-muted-foreground">{project.address}</div>
+                    className={cn(
+                      "w-full p-3 text-left border-b last:border-b-0 transition-all",
+                      selectedProject?.id === project.id
+                        ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
+                        : "hover:bg-muted"
                     )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold truncate">
+                          {project.project_number} - {project.client_name}
+                        </div>
+                        <div className="text-sm text-muted-foreground truncate">{project.project_name}</div>
+                        {project.address && (
+                          <div className="text-xs text-muted-foreground truncate">{project.address}</div>
+                        )}
+                      </div>
+                      {selectedProject?.id === project.id && (
+                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                      )}
+                    </div>
                   </button>
                 ))}
               </div>
