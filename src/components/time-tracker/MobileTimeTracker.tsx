@@ -95,7 +95,7 @@ export const MobileTimeTracker: React.FC = () => {
   const [showDuplicateTimerAlert, setShowDuplicateTimerAlert] = useState(false);
   const [existingTimerInfo, setExistingTimerInfo] = useState<any>(null);
   const [activeTimerPayeeIds, setActiveTimerPayeeIds] = useState<Set<string>>(new Set());
-  const [logoIcon] = useState<string>("https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Stacked%20Icon+Logo%20Transparent%202000x2000.png");
+  const [logoIcon] = useState<string>("https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/all%20white%20logo%20only.png");
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Load active timers to show who's currently clocked in
