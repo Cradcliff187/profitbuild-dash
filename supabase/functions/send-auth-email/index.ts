@@ -13,7 +13,7 @@ interface AuthEmailRequest {
   userName?: string;
   userRole?: string;
   tempPassword?: string;
-  inviteMethod?: 'invite' | 'temporary' | 'permanent';
+  inviteMethod?: 'temporary' | 'permanent';
 }
 
 Deno.serve(async (req) => {
@@ -261,34 +261,7 @@ Deno.serve(async (req) => {
       
       // Determine credential section based on invite method
       let credentialsSection = '';
-      if (inviteMethod === 'invite') {
-        credentialsSection = `
-          <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #fef3e7; border-left: 4px solid ${accentColor}; border-radius: 8px; margin: 32px 0;">
-            <tr>
-              <td style="padding: 24px;">
-                <p style="font-weight: 600; color: #744210; margin: 0 0 12px; font-size: 16px;">
-                  🔑 Set Your Password
-                </p>
-                <p style="color: #744210; margin: 0 0 20px; font-size: 14px; line-height: 1.6;">
-                  Click the button below to set your password and access your account.
-                </p>
-                <table role="presentation" style="border-collapse: collapse;">
-                  <tr>
-                    <td style="background: ${accentColor}; border-radius: 6px; padding: 14px 32px;">
-                      <a href="${resetUrl}" style="color: #ffffff; text-decoration: none; font-weight: 600; font-size: 15px; display: inline-block;">
-                        Set Your Password →
-                      </a>
-                    </td>
-                  </tr>
-                </table>
-                <p style="color: #744210; margin: 16px 0 0; font-size: 13px;">
-                  This link will expire in 24 hours for security purposes.
-                </p>
-              </td>
-            </tr>
-          </table>
-        `;
-      } else if (inviteMethod === 'temporary') {
+      if (inviteMethod === 'temporary') {
         credentialsSection = `
           <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #fef3e7; border-left: 4px solid ${accentColor}; border-radius: 8px; margin: 32px 0;">
             <tr>

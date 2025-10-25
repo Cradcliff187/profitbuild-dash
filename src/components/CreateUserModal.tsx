@@ -21,11 +21,9 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<AppRole>('field_worker');
-  const [method, setMethod] = useState<'temporary_password' | 'invite_email' | 'permanent_password'>('temporary_password');
+  const [method, setMethod] = useState<'temporary_password' | 'permanent_password'>('temporary_password');
   const [permanentPassword, setPermanentPassword] = useState('');
   const [temporaryPassword, setTemporaryPassword] = useState('');
-  const [emailSent, setEmailSent] = useState(false);
-  const [emailAddress, setEmailAddress] = useState('');
   const [copied, setCopied] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,7 +50,7 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
           email: email.trim(),
           fullName: fullName.trim() || email.trim(),
           role,
-          method: method === 'invite_email' ? 'invite' : method === 'temporary_password' ? 'temporary' : 'permanent',
+          method: method === 'temporary_password' ? 'temporary' : 'permanent',
           password: method === 'permanent_password' ? permanentPassword : undefined,
         },
       });
@@ -61,20 +59,15 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
       if (!data.success) throw new Error(data.error);
 
       // Handle response based on method
-      if (method === 'invite_email') {
-        setEmailSent(true);
-        setEmailAddress(email.trim());
-      } else if (method === 'temporary_password') {
+      if (method === 'temporary_password') {
         setTemporaryPassword(data.tempPassword);
       }
 
       toast({
         title: 'User Created',
-        description: method === 'invite_email' 
-          ? `Invitation email sent to ${email.trim()}`
-          : method === 'temporary_password'
+        description: method === 'temporary_password'
           ? 'User created successfully. Copy the temporary password before closing.'
-          : 'User created with permanent password',
+          : 'User created with permanent password and is ready to log in.',
       });
 
       onUserCreated();
@@ -97,8 +90,6 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
     setMethod('temporary_password');
     setPermanentPassword('');
     setTemporaryPassword('');
-    setEmailSent(false);
-    setEmailAddress('');
     setCopied(false);
     onOpenChange(false);
   };
@@ -139,28 +130,6 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 User must change this password on first login. Copy it now - it won't be shown again.
-              </p>
-            </div>
-            <Button onClick={handleClose} className="w-full h-8 text-xs">
-              Close
-            </Button>
-          </div>
-        ) : emailSent ? (
-          <div className="space-y-3">
-            <div className="bg-muted p-3 rounded-md">
-              <div className="flex items-center gap-2 mb-2">
-                <Check className="h-4 w-4 text-green-600" />
-                <Label className="text-xs font-medium">Invitation Email Sent</Label>
-              </div>
-              <p className="text-sm mb-2">
-                An invitation has been sent to:
-              </p>
-              <code className="block text-sm font-mono bg-background p-2 rounded border">
-                {emailAddress}
-              </code>
-              <p className="text-xs text-muted-foreground mt-2">
-                The user will receive an email with instructions to set up their account.
-                If they don't see it, ask them to check their spam folder.
               </p>
             </div>
             <Button onClick={handleClose} className="w-full h-8 text-xs">
@@ -217,11 +186,17 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="temporary_password">Temporary Password</SelectItem>
-                  <SelectItem value="invite_email">Invite Email</SelectItem>
-                  <SelectItem value="permanent_password">Set Permanent Password</SelectItem>
+                  <SelectItem value="temporary_password">
+                    Temporary Password (Recommended for Invitations)
+                  </SelectItem>
+                  <SelectItem value="permanent_password">
+                    Set Permanent Password
+                  </SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                💡 Use temporary password to invite users - they'll receive an email with login credentials and will be required to change their password on first login.
+              </p>
             </div>
 
             {method === 'permanent_password' && (
@@ -237,8 +212,8 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
                   disabled={loading}
                   className="h-8 text-sm"
                 />
-                <p className="text-xs text-amber-600 dark:text-amber-500">
-                  ⚠️ Warning: You will know this user's password. For better security, use "Invite Email" instead.
+                <p className="text-xs text-muted-foreground">
+                  ⚠️ Note: You'll know this password. Use temporary password method for better security.
                 </p>
               </div>
             )}

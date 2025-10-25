@@ -9,7 +9,7 @@ interface CreateUserRequest {
   email: string;
   fullName: string;
   role: string;
-  method: 'invite' | 'temporary' | 'permanent';
+  method: 'temporary' | 'permanent';
   password?: string;
 }
 
@@ -42,60 +42,7 @@ Deno.serve(async (req) => {
     let userId: string;
     let tempPassword: string | null = null;
 
-    if (method === 'invite') {
-      // Create user without sending Supabase's default email
-      const { data, error } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        email_confirm: true,
-        user_metadata: {
-          full_name: fullName,
-        },
-      });
-
-      if (error) {
-        console.error('Error creating user for invite:', error);
-        throw error;
-      }
-
-      userId = data.user.id;
-      console.log('User created for invite:', userId);
-
-      // Generate password reset link for the invitation
-      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'recovery',
-        email: email,
-        options: {
-          redirectTo: `${baseUrl}/reset-password`,
-        },
-      });
-
-      if (linkError) {
-        console.error('Error generating invite link:', linkError);
-        throw linkError;
-      }
-
-      console.log('Generated password reset link for invitation');
-
-      // Send branded invitation email with password reset link
-      const { error: emailError } = await supabaseAdmin.functions.invoke('send-auth-email', {
-        body: {
-          type: 'user-invitation',
-          email: email,
-          userName: fullName,
-          userRole: role,
-          resetUrl: linkData.properties.action_link,
-          inviteMethod: 'invite',
-        },
-      });
-
-      if (emailError) {
-        console.error('Error sending invitation email:', emailError);
-        // Don't throw - user is created, just log the email error
-      } else {
-        console.log('Branded invitation email sent successfully');
-      }
-
-    } else if (method === 'temporary') {
+    if (method === 'temporary') {
       // Generate temporary password
       tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase();
 
