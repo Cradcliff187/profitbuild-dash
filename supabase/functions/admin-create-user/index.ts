@@ -43,21 +43,57 @@ Deno.serve(async (req) => {
     let tempPassword: string | null = null;
 
     if (method === 'invite') {
-      // Send invitation email
-      const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-        data: {
+      // Create user without sending Supabase's default email
+      const { data, error } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        email_confirm: true,
+        user_metadata: {
           full_name: fullName,
         },
-        redirectTo: `${baseUrl}/reset-password`,
       });
 
       if (error) {
-        console.error('Error inviting user:', error);
+        console.error('Error creating user for invite:', error);
         throw error;
       }
 
       userId = data.user.id;
-      console.log('User invited successfully:', userId);
+      console.log('User created for invite:', userId);
+
+      // Generate password reset link for the invitation
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'recovery',
+        email: email,
+        options: {
+          redirectTo: `${baseUrl}/reset-password`,
+        },
+      });
+
+      if (linkError) {
+        console.error('Error generating invite link:', linkError);
+        throw linkError;
+      }
+
+      console.log('Generated password reset link for invitation');
+
+      // Send branded invitation email with password reset link
+      const { error: emailError } = await supabaseAdmin.functions.invoke('send-auth-email', {
+        body: {
+          type: 'user-invitation',
+          email: email,
+          userName: fullName,
+          userRole: role,
+          resetUrl: linkData.properties.action_link,
+          inviteMethod: 'invite',
+        },
+      });
+
+      if (emailError) {
+        console.error('Error sending invitation email:', emailError);
+        // Don't throw - user is created, just log the email error
+      } else {
+        console.log('Branded invitation email sent successfully');
+      }
 
     } else if (method === 'temporary') {
       // Generate temporary password
@@ -98,6 +134,25 @@ Deno.serve(async (req) => {
 
       console.log('User created with temp password:', userId);
 
+      // Send branded invitation email with temporary password
+      const { error: emailError } = await supabaseAdmin.functions.invoke('send-auth-email', {
+        body: {
+          type: 'user-invitation',
+          email: email,
+          userName: fullName,
+          userRole: role,
+          tempPassword: tempPassword,
+          inviteMethod: 'temporary',
+        },
+      });
+
+      if (emailError) {
+        console.error('Error sending temporary password email:', emailError);
+        // Don't throw - user is created, just log the email error
+      } else {
+        console.log('Branded temporary password email sent successfully');
+      }
+
     } else {
       // Create user with permanent password
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
@@ -135,6 +190,24 @@ Deno.serve(async (req) => {
 
       console.log('User created with permanent password:', userId);
       console.log('Verified must_change_password:', verifyProfile?.must_change_password);
+
+      // Send branded invitation email confirming account creation
+      const { error: emailError } = await supabaseAdmin.functions.invoke('send-auth-email', {
+        body: {
+          type: 'user-invitation',
+          email: email,
+          userName: fullName,
+          userRole: role,
+          inviteMethod: 'permanent',
+        },
+      });
+
+      if (emailError) {
+        console.error('Error sending permanent password confirmation email:', emailError);
+        // Don't throw - user is created, just log the email error
+      } else {
+        console.log('Branded account confirmation email sent successfully');
+      }
     }
 
     // Assign role
