@@ -750,7 +750,7 @@ export const MobileTimeTracker: React.FC = () => {
                 : 'text-muted-foreground'
             }`}
           >
-            <Clock className="w-4 h-4 mx-auto mb-1" />
+            <Clock className="w-5 h-5 mx-auto mb-1" />
             Timer
           </button>
           <button
@@ -761,7 +761,7 @@ export const MobileTimeTracker: React.FC = () => {
                 : 'text-muted-foreground'
             }`}
           >
-            <Calendar className="w-4 h-4 mx-auto mb-1" />
+            <Calendar className="w-5 h-5 mx-auto mb-1" />
             Entries
           </button>
           <button
@@ -772,7 +772,7 @@ export const MobileTimeTracker: React.FC = () => {
                 : 'text-muted-foreground'
             }`}
           >
-            <Camera className="w-4 h-4 mx-auto mb-1" />
+            <Camera className="w-5 h-5 mx-auto mb-1" />
             Receipts
           </button>
         </div>
@@ -786,7 +786,7 @@ export const MobileTimeTracker: React.FC = () => {
             <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                  <div className="w-4 h-4 bg-white rounded-full animate-pulse"></div>
                   <span className="font-semibold">CLOCKED IN</span>
                 </div>
                 {activeTimer.location && <MapPin className="w-5 h-5" />}
