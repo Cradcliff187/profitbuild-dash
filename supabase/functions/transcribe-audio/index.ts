@@ -41,9 +41,9 @@ async function transcribeWithWhisper(audioBase64: string, format: string, apiKey
   } 
   // Video formats (Whisper extracts audio track automatically)
   else if (normalizedFormat.includes('video/quicktime') || normalizedFormat.includes('quicktime')) {
-    normalizedFormat = 'video/quicktime';
-    ext = 'mov';
-    console.log('🎥 QuickTime video detected (iOS) - Whisper will extract audio');
+    normalizedFormat = 'audio/mp4';
+    ext = 'm4a';
+    console.log('🎥 QuickTime video detected (iOS) - Converting to M4A for Whisper');
   } else if (normalizedFormat.includes('video/webm')) {
     normalizedFormat = 'video/webm';
     ext = 'webm';

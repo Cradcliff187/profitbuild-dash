@@ -109,7 +109,7 @@ export default function FieldVideoCapture() {
           
           if (transcribedText) {
             setVideoCaption(transcribedText);
-            toast.success(`Caption auto-generated from ${isIOS ? 'audio' : 'video'}`);
+            toast.success('Caption auto-generated from video');
             
             // Suggest review after 2 seconds (only for first 2 captures)
             setTimeout(() => {
@@ -181,8 +181,8 @@ export default function FieldVideoCapture() {
       }
       
       const blob = await response.blob();
-      const file = new File([blob], `${isIOS ? 'audio' : 'video'}-${Date.now()}.${capturedVideo.format}`, {
-        type: `${isIOS ? 'audio' : 'video'}/${capturedVideo.format}`,
+      const file = new File([blob], `video-${Date.now()}.${capturedVideo.format}`, {
+        type: blob.type || `video/${capturedVideo.format}`,
       });
 
       // Check file size (warn if > 100MB, approaching 150MB limit)
@@ -215,7 +215,7 @@ export default function FieldVideoCapture() {
       // Reset and stay on capture screen
       setCapturedVideo(null);
       setVideoCaption('');
-      toast.success(`${isIOS ? 'Audio' : 'Video'} uploaded - ready for next capture`);
+      toast.success('Video uploaded - ready for next capture');
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('Failed to upload video');
@@ -233,8 +233,8 @@ export default function FieldVideoCapture() {
       }
       
       const blob = await response.blob();
-      const file = new File([blob], `${isIOS ? 'audio' : 'video'}-${Date.now()}.${capturedVideo.format}`, {
-        type: `${isIOS ? 'audio' : 'video'}/${capturedVideo.format}`,
+      const file = new File([blob], `video-${Date.now()}.${capturedVideo.format}`, {
+        type: blob.type || `video/${capturedVideo.format}`,
       });
 
       // Check file size
@@ -303,7 +303,7 @@ export default function FieldVideoCapture() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="flex-1">
-              <h1 className="text-lg font-semibold">{isIOS ? 'Field Audio Capture' : 'Field Video Capture'}</h1>
+              <h1 className="text-lg font-semibold">Field Video Capture</h1>
             </div>
             {isLoadingLocation && (
               <Badge variant="outline" className="text-xs">
@@ -345,13 +345,13 @@ export default function FieldVideoCapture() {
           <div className="w-full max-w-md space-y-4">
             <Card className="p-8 text-center space-y-4">
               <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                {isIOS ? <Mic className="h-8 w-8 text-primary" /> : <Video className="h-8 w-8 text-primary" />}
+                <Video className="h-8 w-8 text-primary" />
               </div>
               
               <div>
-                <h2 className="text-xl font-semibold mb-2">{isIOS ? 'Record Audio' : 'Record Video'}</h2>
+                <h2 className="text-xl font-semibold mb-2">Record Video</h2>
                 <p className="text-sm text-muted-foreground">
-                  {isIOS ? 'Capture audio for accurate transcription' : 'Capture up to 2 minutes of video footage'}
+                  Capture up to 2 minutes of video footage
                 </p>
               </div>
 
@@ -380,7 +380,7 @@ export default function FieldVideoCapture() {
                 disabled={isRecording}
                 className="w-full"
               >
-                {isIOS ? <Mic className="h-5 w-5 mr-2" /> : <Video className="h-5 w-5 mr-2" />}
+                <Video className="h-5 w-5 mr-2" />
                 {isRecording ? 'Opening Camera...' : 'Start Recording'}
               </Button>
             </Card>
@@ -389,25 +389,14 @@ export default function FieldVideoCapture() {
           /* Preview View */
           <div className="w-full max-w-2xl space-y-4">
             <Card className="overflow-hidden">
-              {isIOS ? (
-                <audio
-                  controls
-                  autoPlay
-                  className="w-full bg-black p-4"
-                  src={capturedVideo.webPath || capturedVideo.path || ''}
-                >
-                  Your browser does not support audio playback.
-                </audio>
-              ) : (
-                <video
-                  controls
-                  autoPlay
-                  className="w-full aspect-video bg-black"
-                  src={capturedVideo.webPath || capturedVideo.path || ''}
-                >
-                  Your browser does not support video playback.
-                </video>
-              )}
+              <video
+                controls
+                autoPlay
+                className="w-full aspect-video bg-black"
+                src={capturedVideo.webPath || capturedVideo.path || ''}
+              >
+                Your browser does not support video playback.
+              </video>
             </Card>
 
             {/* Metadata */}
