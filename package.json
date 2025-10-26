@@ -18,6 +18,8 @@
     "@capacitor/filesystem": "^7.1.4",
     "@capacitor/geolocation": "^7.1.5",
     "@capacitor/ios": "^7.4.3",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",

@@ -14,6 +14,7 @@ import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { formatFileSize, getVideoDuration } from '@/utils/videoUtils';
 import { isWebPlatform, isIOSDevice } from '@/utils/platform';
+import { convertMovToM4a } from '@/utils/movToM4a';
 import { toast } from 'sonner';
 import { showCaptionPrompt, CAPTION_PROMPTS } from '@/components/CaptionPromptToast';
 
@@ -79,11 +80,31 @@ export default function FieldVideoCapture() {
         console.log('✅ Fetch response:', response.ok, response.status);
         
         if (response.ok) {
-          const blob = await response.blob();
+          let blob = await response.blob();
           console.log('✅ Video blob created:', {
             size: `${(blob.size / 1024 / 1024).toFixed(2)} MB`,
             type: blob.type
           });
+          
+          // Convert iOS MOV to M4A for Whisper compatibility
+          let mimeType = blob.type || `video/${video.format}`;
+          if (blob.type.includes('video/quicktime')) {
+            toast.info('Converting video for transcription...', { duration: 3000 });
+            try {
+              const converted = await convertMovToM4a(blob);
+              blob = converted.blob;
+              mimeType = converted.mime;
+              console.log('✅ MOV converted to M4A');
+            } catch (conversionError) {
+              console.error('❌ Conversion failed:', conversionError);
+              toast.error('Video conversion failed', {
+                description: 'You can still add a manual or voice caption',
+                duration: 5000
+              });
+              setIsAutoTranscribing(false);
+              return;
+            }
+          }
           
           // Convert blob to base64
           const videoBase64 = await new Promise<string>((resolve, reject) => {
@@ -101,8 +122,7 @@ export default function FieldVideoCapture() {
             estimatedSizeMB: `${(videoBase64.length * 0.75 / 1024 / 1024).toFixed(2)} MB`
           });
           
-          // Send video directly to transcription with proper MIME type
-          const mimeType = blob.type || `video/${video.format}`;
+          // Send to transcription with proper MIME type
           console.log('🤖 Transcribing with MIME type:', mimeType);
           const transcribedText = await transcribe(videoBase64, mimeType);
           console.log('✅ Transcription result:', transcribedText?.slice(0, 50));
