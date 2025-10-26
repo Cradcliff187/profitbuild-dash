@@ -9,6 +9,7 @@ interface ReportRequest {
   projectId: string;
   mediaIds: string[];
   reportTitle?: string;
+  format?: 'detailed' | 'story';
 }
 
 interface MediaComment {
@@ -48,8 +49,8 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse request
-    const { projectId, mediaIds, reportTitle } = await req.json() as ReportRequest;
-    console.log(`📋 Request: Project ${projectId}, ${mediaIds.length} media items`);
+    const { projectId, mediaIds, reportTitle, format = 'detailed' } = await req.json() as ReportRequest;
+    console.log(`📋 Request: Project ${projectId}, ${mediaIds.length} media items, format: ${format}`);
 
     // Fetch company branding (same as send-auth-email pattern)
     console.log('🎨 Fetching company branding...');
@@ -175,6 +176,7 @@ Deno.serve(async (req) => {
       reportTitle: reportTitle || `${project.project_name} - Media Report`,
       mediaItems: mediaWithUrls,
       comments: commentsByMedia,
+      format: format,
     });
     console.log('✅ HTML generated');
     
@@ -208,6 +210,285 @@ Deno.serve(async (req) => {
   }
 });
 
+// Helper function: Generate detailed format (existing one-photo-per-page layout)
+function generateDetailedFormat(options: any): string {
+  return options.mediaItems.map((media: any, index: number) => {
+    const comments = options.comments.get(media.id) || [];
+    const takenDate = media.taken_at || media.created_at;
+    
+    return `
+      <div class="media-item">
+        <div class="media-image-container">
+          <div class="photo-number">Photo ${index + 1} of ${options.mediaItems.length}</div>
+          <img 
+            src="${media.file_url}" 
+            alt="${media.caption || 'Project Media'}" 
+            class="media-image"
+          >
+        </div>
+        
+        <div class="media-metadata">
+          ${(media.caption && media.caption.trim()) ? `<div class="caption">${escapeHtml(media.caption.trim())}</div>` : '<div class="caption" style="color: #a0aec0; font-style: italic;">No caption provided</div>'}
+          
+          <div class="metadata-grid">
+            <div class="metadata-row">
+              <div class="metadata-item">
+                <strong>Date & Time</strong>
+                ${new Date(takenDate).toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </div>
+              <div class="metadata-item">
+                <strong>Media Type</strong>
+                ${media.file_type === 'video' ? 'Video' : 'Photo'}
+              </div>
+            </div>
+            
+            ${media.latitude && media.longitude ? `
+              <div class="metadata-row">
+                <div class="metadata-item">
+                  <strong>GPS Coordinates</strong>
+                  ${media.latitude.toFixed(6)}°, ${media.longitude.toFixed(6)}°
+                </div>
+                ${media.location_name ? `
+                  <div class="metadata-item">
+                    <strong>Location</strong>
+                    ${escapeHtml(media.location_name)}
+                  </div>
+                ` : '<div class="metadata-item"></div>'}
+              </div>
+            ` : media.location_name ? `
+              <div class="metadata-row">
+                <div class="metadata-item">
+                  <strong>Location</strong>
+                  ${escapeHtml(media.location_name)}
+                </div>
+                <div class="metadata-item"></div>
+              </div>
+            ` : ''}
+            
+            ${media.description ? `
+              <div class="metadata-item full-width">
+                <div>
+                  <strong>Description</strong>
+                  ${escapeHtml(media.description)}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+          
+          ${comments.length > 0 ? `
+            <div class="comments-section">
+              <div class="comments-title">
+                💬 Comments (${comments.length})
+              </div>
+              ${comments.map((comment: any) => `
+                <div class="comment">
+                  <span class="comment-author">${comment.profiles?.full_name || 'User'}:</span>
+                  ${escapeHtml(comment.comment_text)}
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Helper function: Generate story format (compact timeline layout)
+function generateStoryFormat(options: any): string {
+  const { branding, mediaItems, comments } = options;
+  
+  // Group photos by date
+  const photosByDate = new Map<string, any[]>();
+  mediaItems.forEach((media: any) => {
+    const dateKey = new Date(media.taken_at || media.created_at).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    if (!photosByDate.has(dateKey)) {
+      photosByDate.set(dateKey, []);
+    }
+    photosByDate.get(dateKey)!.push(media);
+  });
+  
+  return `
+    ${Array.from(photosByDate.entries()).map(([date, photos]) => `
+      <div class="story-date-group">
+        <div class="story-date-header">${date}</div>
+        
+        ${photos.map((media: any) => {
+          const mediaComments = comments.get(media.id) || [];
+          const timestamp = new Date(media.taken_at || media.created_at);
+          const globalIndex = mediaItems.findIndex((m: any) => m.id === media.id);
+          
+          return `
+            <div class="story-item">
+              <div class="story-thumbnail">
+                <img src="${media.file_url}" alt="${escapeHtml(media.caption || 'Photo')}">
+              </div>
+              
+              <div class="story-content">
+                <div class="story-number">PHOTO ${globalIndex + 1}</div>
+                
+                ${media.caption ? `
+                  <div class="story-caption">${escapeHtml(media.caption)}</div>
+                ` : '<div class="story-caption" style="color: #94a3b8; font-style: italic;">No caption</div>'}
+                
+                <div class="story-meta">
+                  <div class="story-meta-item">
+                    <strong>Time:</strong> ${timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  ${media.location_name ? `
+                    <div class="story-meta-item">
+                      <strong>Location:</strong> ${escapeHtml(media.location_name)}
+                    </div>
+                  ` : ''}
+                  ${media.latitude && media.longitude ? `
+                    <div class="story-meta-item">
+                      <strong>GPS:</strong> ${media.latitude.toFixed(4)}°, ${media.longitude.toFixed(4)}°
+                    </div>
+                  ` : ''}
+                </div>
+                
+                ${media.description ? `
+                  <div style="font-size: 12px; color: #64748b; margin-top: 6px;">
+                    ${escapeHtml(media.description)}
+                  </div>
+                ` : ''}
+                
+                ${mediaComments.length > 0 ? `
+                  <div class="story-comments">
+                    ${mediaComments.map((comment: any) => `
+                      <div class="story-comment">
+                        <span class="story-comment-author">${comment.profiles?.full_name || 'User'}:</span>
+                        ${escapeHtml(comment.comment_text)}
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `).join('')}
+  `;
+}
+
+// Helper function: Get story format CSS styles
+function getStoryFormatStyles(branding: any): string {
+  return `
+    .story-section {
+      padding: 30px;
+    }
+    
+    .story-date-group {
+      margin-bottom: 40px;
+      page-break-inside: avoid;
+    }
+    
+    .story-date-header {
+      font-size: 20px;
+      font-weight: bold;
+      color: ${branding.secondaryColor};
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid ${branding.primaryColor};
+    }
+    
+    .story-item {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 30px;
+      padding: 15px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      page-break-inside: avoid;
+    }
+    
+    .story-thumbnail {
+      flex-shrink: 0;
+      width: 180px;
+      height: 135px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #f7fafc;
+    }
+    
+    .story-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .story-content {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .story-number {
+      display: inline-block;
+      background: ${branding.primaryColor};
+      color: white;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+    
+    .story-caption {
+      font-size: 15px;
+      font-weight: 600;
+      color: ${branding.secondaryColor};
+      margin-bottom: 8px;
+    }
+    
+    .story-meta {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+    
+    .story-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .story-comments {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+    }
+    
+    .story-comment {
+      font-size: 12px;
+      color: #475569;
+      margin: 5px 0;
+      padding-left: 12px;
+      border-left: 2px solid ${branding.accentColor};
+    }
+    
+    .story-comment-author {
+      font-weight: 600;
+      color: ${branding.secondaryColor};
+    }
+  `;
+}
+
 // HTML generation function (inline for now)
 function generateReportHTML(options: {
   branding: any;
@@ -218,6 +499,7 @@ function generateReportHTML(options: {
   reportTitle: string;
   mediaItems: any[];
   comments: Map<string, any[]>;
+  format?: 'detailed' | 'story';
 }): string {
   const { branding } = options;
   
@@ -467,6 +749,8 @@ function generateReportHTML(options: {
               box-shadow: none;
             }
           }
+          
+          ${options.format === 'story' ? getStoryFormatStyles(branding) : ''}
         </style>
       </head>
       <body>
@@ -513,93 +797,8 @@ function generateReportHTML(options: {
           </div>
           
           <!-- Media Items -->
-          <div class="media-section">
-            ${options.mediaItems.map((media: any, index: number) => {
-              const comments = options.comments.get(media.id) || [];
-              const takenDate = media.taken_at || media.created_at;
-              
-              return `
-                <div class="media-item">
-                  <div class="media-image-container">
-                    <div class="photo-number">Photo ${index + 1} of ${options.mediaItems.length}</div>
-                    <img 
-                      src="${media.file_url}" 
-                      alt="${media.caption || 'Project Media'}" 
-                      class="media-image"
-                    >
-                  </div>
-                  
-                  <div class="media-metadata">
-                    ${(media.caption && media.caption.trim()) ? `<div class="caption">${escapeHtml(media.caption.trim())}</div>` : '<div class="caption" style="color: #a0aec0; font-style: italic;">No caption provided</div>'}
-                    
-                    <div class="metadata-grid">
-                      <div class="metadata-row">
-                        <div class="metadata-item">
-                          <strong>Date & Time</strong>
-                          ${new Date(takenDate).toLocaleString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </div>
-                        <div class="metadata-item">
-                          <strong>Media Type</strong>
-                          ${media.file_type === 'video' ? 'Video' : 'Photo'}
-                        </div>
-                      </div>
-                      
-                      ${media.latitude && media.longitude ? `
-                        <div class="metadata-row">
-                          <div class="metadata-item">
-                            <strong>GPS Coordinates</strong>
-                            ${media.latitude.toFixed(6)}°, ${media.longitude.toFixed(6)}°
-                          </div>
-                          ${media.location_name ? `
-                            <div class="metadata-item">
-                              <strong>Location</strong>
-                              ${escapeHtml(media.location_name)}
-                            </div>
-                          ` : '<div class="metadata-item"></div>'}
-                        </div>
-                      ` : media.location_name ? `
-                        <div class="metadata-row">
-                          <div class="metadata-item">
-                            <strong>Location</strong>
-                            ${escapeHtml(media.location_name)}
-                          </div>
-                          <div class="metadata-item"></div>
-                        </div>
-                      ` : ''}
-                      
-                      ${media.description ? `
-                        <div class="metadata-item full-width">
-                          <div>
-                            <strong>Description</strong>
-                            ${escapeHtml(media.description)}
-                          </div>
-                        </div>
-                      ` : ''}
-                    </div>
-                    
-                    ${comments.length > 0 ? `
-                      <div class="comments-section">
-                        <div class="comments-title">
-                          💬 Comments (${comments.length})
-                        </div>
-                        ${comments.map((comment: any) => `
-                          <div class="comment">
-                            <span class="comment-author">${comment.profiles?.full_name || 'User'}:</span>
-                            ${escapeHtml(comment.comment_text)}
-                          </div>
-                        `).join('')}
-                      </div>
-                    ` : ''}
-                  </div>
-                </div>
-              `;
-            }).join('')}
+          <div class="${options.format === 'story' ? 'story-section' : 'media-section'}">
+            ${options.format === 'story' ? generateStoryFormat(options) : generateDetailedFormat(options)}
           </div>
           
           <!-- Footer -->

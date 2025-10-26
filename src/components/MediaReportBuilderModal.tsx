@@ -56,6 +56,7 @@ export function MediaReportBuilderModal({
 }: MediaReportBuilderModalProps) {
   const isMobile = useIsMobile();
   const [reportTitle, setReportTitle] = useState('Project Media Report');
+  const [reportFormat, setReportFormat] = useState<'detailed' | 'story'>('detailed');
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [aggregateComments, setAggregateComments] = useState(false);
@@ -89,6 +90,7 @@ export function MediaReportBuilderModal({
           projectId,
           mediaIds,
           reportTitle: reportTitle || `${projectName} - Media Report`,
+          format: reportFormat,
         },
       });
 
@@ -375,6 +377,39 @@ export function MediaReportBuilderModal({
                 disabled={isGenerating}
                 className={cn(isMobile ? "h-8 text-sm" : "h-9")}
               />
+            </div>
+
+            {/* Report Format Selector */}
+            <div className={cn(isMobile ? "space-y-1" : "space-y-2")}>
+              <Label htmlFor="report-format" className={cn(isMobile ? "text-xs" : "text-sm")}>Report Format</Label>
+              <Select 
+                value={reportFormat} 
+                onValueChange={(value) => setReportFormat(value as 'detailed' | 'story')}
+                disabled={isGenerating}
+              >
+                <SelectTrigger id="report-format" className={cn(isMobile ? "h-8 text-sm" : "h-9")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="detailed">
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">Detailed (Client Deliverable)</span>
+                      <span className="text-xs text-muted-foreground">One photo per page, full metadata</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="story">
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">Story Timeline (Internal Review)</span>
+                      <span className="text-xs text-muted-foreground">4-6 photos per page, compact layout</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
+                {reportFormat === 'detailed' 
+                  ? '📄 Professional format with full-page photos and complete metadata. Best for client presentations and formal documentation.'
+                  : '📋 Compact timeline format showing multiple photos per page with inline comments. Best for daily reviews and field coordination.'}
+              </p>
             </div>
 
             {/* Story Format Option */}
