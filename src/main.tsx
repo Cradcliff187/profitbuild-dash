@@ -21,11 +21,26 @@ if ('serviceWorker' in navigator) {
   const updateSW = registerSW({
     immediate: true,
     onNeedRefresh() {
-      // Auto-apply updates immediately without user prompt
-      updateSW(true);
+      // Show update notification to user
+      toast('Update Available', {
+        description: 'A new version of ProfitBuild is ready',
+        action: {
+          label: 'Reload Now',
+          onClick: () => {
+            updateSW(true);
+            window.location.reload();
+          }
+        },
+        duration: Infinity, // Don't auto-dismiss
+        dismissible: true, // Allow user to dismiss and continue working
+      });
     },
     onOfflineReady() {
       console.log('App ready to work offline');
+      toast('App Ready', {
+        description: 'ProfitBuild is ready to work offline',
+        duration: 3000,
+      });
     },
     onRegisteredSW(_, registration) {
       // Check for updates every minute while app is open

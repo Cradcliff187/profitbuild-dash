@@ -10,6 +10,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Camera } from 'lucide-react';
+import { isIOSPWA } from '@/utils/platform';
 
 interface Project {
   id: string;
@@ -144,6 +145,14 @@ export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditRece
   };
 
   const capturePhoto = async () => {
+    // Add iOS PWA guidance
+    if (isIOSPWA()) {
+      toast.info("iOS Camera Tip", {
+        description: "Your camera will open, or select 'Take Photo or Video' from the menu if you see the photo library",
+        duration: 5000,
+      });
+    }
+    
     try {
       const input = document.createElement('input');
       input.type = 'file';

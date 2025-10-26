@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { isIOSPWA } from '@/utils/platform';
 
 interface ReceiptCaptureProps {
   projectId: string;
@@ -25,6 +26,16 @@ export const ReceiptCapture: React.FC<ReceiptCaptureProps> = ({
     if (!user) return;
 
     setUploading(true);
+    
+    // Add iOS PWA guidance
+    if (isIOSPWA()) {
+      toast({
+        title: "iOS Camera Tip",
+        description: "Your camera will open, or select 'Take Photo or Video' from the menu if you see the photo library",
+        duration: 5000,
+      });
+    }
+    
     try {
       // Capture photo using web file input
       const dataUrl = await new Promise<string | null>((resolve) => {

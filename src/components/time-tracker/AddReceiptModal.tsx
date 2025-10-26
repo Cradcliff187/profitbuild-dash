@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { PayeeSelector } from '@/components/PayeeSelector';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { isIOSPWA } from '@/utils/platform';
 
 const UNASSIGNED_RECEIPTS_PROJECT_NUMBER = 'SYS-000';
 
@@ -74,6 +75,14 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   };
 
   const capturePhoto = async () => {
+    // Add iOS PWA guidance
+    if (isIOSPWA()) {
+      toast.info("iOS Camera Tip", {
+        description: "Your camera will open, or select 'Take Photo or Video' from the menu if you see the photo library",
+        duration: 5000,
+      });
+    }
+    
     try {
       const input = document.createElement('input');
       input.type = 'file';

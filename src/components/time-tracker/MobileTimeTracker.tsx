@@ -229,6 +229,25 @@ export const MobileTimeTracker: React.FC = () => {
   }, [toast]);
 
 
+  // Refresh timer when app returns to foreground (iOS background handling)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // App just came back to foreground
+        setCurrentTime(new Date());
+        
+        // If there's an active timer, reload from database to ensure accuracy
+        if (activeTimer) {
+          loadActiveTimers();
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [activeTimer, loadActiveTimers]);
+
+
   // Load projects and workers on mount
   useEffect(() => {
     if (user) {
