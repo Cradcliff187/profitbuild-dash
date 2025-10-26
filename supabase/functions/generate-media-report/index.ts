@@ -10,6 +10,7 @@ interface ReportRequest {
   mediaIds: string[];
   reportTitle?: string;
   format?: 'detailed' | 'story';
+  summary?: string;
 }
 
 interface MediaComment {
@@ -49,8 +50,8 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse request
-    const { projectId, mediaIds, reportTitle, format = 'detailed' } = await req.json() as ReportRequest;
-    console.log(`📋 Request: Project ${projectId}, ${mediaIds.length} media items, format: ${format}`);
+    const { projectId, mediaIds, reportTitle, format = 'detailed', summary } = await req.json() as ReportRequest;
+    console.log(`📋 Request: Project ${projectId}, ${mediaIds.length} media items, format: ${format}, hasSummary: ${!!summary}`);
 
     // Fetch company branding (same as send-auth-email pattern)
     console.log('🎨 Fetching company branding...');
@@ -177,6 +178,7 @@ Deno.serve(async (req) => {
       mediaItems: mediaWithUrls,
       comments: commentsByMedia,
       format: format,
+      summary: summary,
     });
     console.log('✅ HTML generated');
     
@@ -500,6 +502,7 @@ function generateReportHTML(options: {
   mediaItems: any[];
   comments: Map<string, any[]>;
   format?: 'detailed' | 'story';
+  summary?: string;
 }): string {
   const { branding } = options;
   
@@ -579,6 +582,37 @@ function generateReportHTML(options: {
             font-weight: 600;
             margin-bottom: 20px;
             display: block;
+          }
+          
+          .report-summary {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(to right, ${branding.lightBgColor}, #ffffff);
+            border-left: 4px solid ${branding.primaryColor};
+            border-radius: 8px;
+            page-break-inside: avoid;
+          }
+          
+          .report-summary-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: ${branding.secondaryColor};
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+          
+          .report-summary-title::before {
+            content: "📝";
+            font-size: 20px;
+          }
+          
+          .report-summary-text {
+            font-size: 14px;
+            line-height: 1.6;
+            color: ${branding.secondaryColor};
+            white-space: pre-wrap;
           }
           
           .detail-row {
@@ -794,6 +828,13 @@ function generateReportHTML(options: {
                 <strong>Total Media Items:</strong> ${options.mediaItems.length}
               </div>
             </div>
+            
+            ${options.summary ? `
+              <div class="report-summary">
+                <div class="report-summary-title">REPORT SUMMARY</div>
+                <div class="report-summary-text">${escapeHtml(options.summary)}</div>
+              </div>
+            ` : ''}
           </div>
           
           <!-- Media Items -->

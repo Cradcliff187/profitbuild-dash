@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { FileText, Loader2, Image as ImageIcon, Video as VideoIcon, AlertTriangle } from 'lucide-react';
+import { FileText, Loader2, Image as ImageIcon, Video as VideoIcon, AlertTriangle, Mic, MessageSquare, Pencil, Trash2 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { generateMediaReportPDF } from '@/utils/mediaReportPdfGenerator';
 import { generatePDFFileName, estimatePDFSize } from '@/utils/pdfHelpers';
 import { PdfPreviewModal } from './PdfPreviewModal';
+import { VoiceCaptionModal } from './VoiceCaptionModal';
 import type { ProjectMedia } from '@/types/project';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -58,6 +59,18 @@ export function MediaReportBuilderModal({
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [reportSummary, setReportSummary] = useState('');
+  const [showVoiceSummaryModal, setShowVoiceSummaryModal] = useState(false);
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
+
+  // Reset state on modal close
+  useEffect(() => {
+    if (!open) {
+      setReportSummary('');
+      setShowVoiceSummaryModal(false);
+      setIsSummaryExpanded(false);
+    }
+  }, [open]);
 
   const photoCount = selectedMedia.filter(m => m.file_type === 'image').length;
   const videoCount = selectedMedia.filter(m => m.file_type === 'video').length;
@@ -84,6 +97,7 @@ export function MediaReportBuilderModal({
           mediaIds,
           reportTitle: reportTitle || `${projectName} - Media Report`,
           format: 'story', // Always use story timeline format
+          summary: reportSummary.trim() || undefined,
         },
       });
 
@@ -375,6 +389,80 @@ export function MediaReportBuilderModal({
               </p>
             </div>
 
+            {/* Report Summary Section - Collapsible */}
+            <div className={cn("border rounded-lg", isMobile ? "p-2" : "p-3")}>
+              <button
+                type="button"
+                onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
+                className="flex items-center justify-between w-full text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <MessageSquare className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "text-muted-foreground")} />
+                  <span className={cn("font-medium", isMobile ? "text-xs" : "text-sm")}>
+                    Report Summary (Optional) {reportSummary && '✓'}
+                  </span>
+                </div>
+                <span className={cn("text-muted-foreground", isMobile ? "text-xs" : "text-sm")}>
+                  {isSummaryExpanded ? '▼' : '▶'}
+                </span>
+              </button>
+
+              {isSummaryExpanded && (
+                <div className={cn("space-y-2", isMobile ? "mt-2" : "mt-3")}>
+                  <p className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
+                    📝 Add a quick voice summary to appear at the top of your report (30-90 seconds recommended)
+                  </p>
+
+                  {!reportSummary ? (
+                    <Button
+                      type="button"
+                      onClick={() => setShowVoiceSummaryModal(true)}
+                      variant="outline"
+                      size={isMobile ? "sm" : "default"}
+                      className="w-full"
+                      disabled={isGenerating}
+                    >
+                      <Mic className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
+                      Add Voice Summary
+                    </Button>
+                  ) : (
+                    <div className={cn("space-y-2")}>
+                      <div className={cn("bg-muted/50 rounded-lg border", isMobile ? "p-2" : "p-3")}>
+                        <p className={cn("text-foreground whitespace-pre-wrap", isMobile ? "text-xs" : "text-sm")}>
+                          {reportSummary}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          onClick={() => setShowVoiceSummaryModal(true)}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                        >
+                          <Pencil className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => setReportSummary('')}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
+                      <p className={cn("text-muted-foreground text-right", isMobile ? "text-[10px]" : "text-xs")}>
+                        {reportSummary.length} characters
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Project Info Preview */}
             <div className={cn("bg-muted/50 rounded-lg space-y-1", isMobile ? "p-2 text-[10px]" : "p-3 text-xs")}>
               <div className="flex justify-between">
@@ -482,7 +570,19 @@ export function MediaReportBuilderModal({
       </DialogContent>
     </Dialog>
 
-        <PdfPreviewModal
+    {/* Voice Summary Modal */}
+    <VoiceCaptionModal
+      open={showVoiceSummaryModal}
+      onClose={() => setShowVoiceSummaryModal(false)}
+      onCaptionReady={(summary) => {
+        setReportSummary(summary);
+        setShowVoiceSummaryModal(false);
+        toast.success('Summary added successfully');
+      }}
+      imageUrl={undefined}
+    />
+
+    <PdfPreviewModal
           open={showPreviewModal}
           onOpenChange={(open) => {
             setShowPreviewModal(open);
