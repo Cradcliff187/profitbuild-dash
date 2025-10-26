@@ -17,12 +17,11 @@ async function transcribeWithWhisper(audioBase64: string, format: string, apiKey
   console.log('Transcribing with OpenAI Whisper...');
   console.log('Original format received:', format);
   
-  // Validate that we only accept audio formats (Whisper needs proper audio encoding)
-  // Video formats like quicktime are NOT properly transcoded and will fail
+  // Accept both audio and video formats (Whisper extracts audio automatically)
   let normalizedFormat = format.toLowerCase();
   let ext = 'mp3';
-  
-  // Only accept audio formats
+
+  // Audio formats
   if (normalizedFormat.includes('wav')) {
     normalizedFormat = 'audio/wav';
     ext = 'wav';
@@ -39,13 +38,26 @@ async function transcribeWithWhisper(audioBase64: string, format: string, apiKey
     normalizedFormat = 'audio/mpeg';
     ext = 'mp3';
     console.log('🎤 MP3 audio detected');
+  } 
+  // Video formats (Whisper extracts audio track automatically)
+  else if (normalizedFormat.includes('video/quicktime') || normalizedFormat.includes('quicktime')) {
+    normalizedFormat = 'video/quicktime';
+    ext = 'mov';
+    console.log('🎥 QuickTime video detected (iOS) - Whisper will extract audio');
+  } else if (normalizedFormat.includes('video/webm')) {
+    normalizedFormat = 'video/webm';
+    ext = 'webm';
+    console.log('🎥 WebM video detected (Android) - Whisper will extract audio');
+  } else if (normalizedFormat.includes('video/mp4') || normalizedFormat.includes('mp4')) {
+    normalizedFormat = 'video/mp4';
+    ext = 'mp4';
+    console.log('🎥 MP4 video detected - Whisper will extract audio');
   } else {
-    // Reject video formats and unknown formats
-    console.error('❌ Invalid format received:', format);
-    throw new Error(`INVALID_FORMAT: Only audio formats are supported. Received: ${format}. Please record audio only, not video.`);
+    console.error('❌ Unsupported format received:', format);
+    throw new Error(`INVALID_FORMAT: Unsupported media format. Received: ${format}. Supported: WAV, M4A, WebM, MP3, MOV, MP4`);
   }
-  
-  console.log('Validated audio format for Whisper:', normalizedFormat);
+
+  console.log('Validated format for Whisper:', normalizedFormat);
   
   // Convert base64 to Uint8Array in chunks to prevent memory issues
   const processBase64Chunks = (base64String: string, chunkSize = 32768) => {
