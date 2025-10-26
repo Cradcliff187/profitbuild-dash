@@ -22,6 +22,17 @@ interface MediaComment {
   };
 }
 
+// HTML entity escaping helper to prevent garbled text
+function escapeHtml(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -346,16 +357,34 @@ function generateReportHTML(options: {
           }
           
           .metadata-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            display: table;
+            width: 100%;
             margin-top: 15px;
+            border-spacing: 0;
+          }
+          
+          .metadata-row {
+            display: table-row;
           }
           
           .metadata-item {
+            display: table-cell;
+            width: 50%;
             font-size: 13px;
             color: #4a5568;
-            padding: 8px 0;
+            padding: 8px 12px;
+            vertical-align: top;
+          }
+          
+          .metadata-item.full-width {
+            display: table-row;
+            width: 100%;
+          }
+          
+          .metadata-item.full-width > div {
+            display: table-cell;
+            width: 100%;
+            padding: 8px 12px;
           }
           
           .metadata-item strong {
@@ -485,43 +514,55 @@ function generateReportHTML(options: {
                   </div>
                   
                   <div class="media-metadata">
-                    ${media.caption ? `<div class="caption">${media.caption}</div>` : ''}
+                    ${(media.caption && media.caption.trim()) ? `<div class="caption">${escapeHtml(media.caption.trim())}</div>` : '<div class="caption" style="color: #a0aec0; font-style: italic;">No caption provided</div>'}
                     
                     <div class="metadata-grid">
-                      <div class="metadata-item">
-                        <strong>Date & Time</strong>
-                        ${new Date(takenDate).toLocaleString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </div>
-                      
-                      <div class="metadata-item">
-                        <strong>Media Type</strong>
-                        ${media.file_type === 'video' ? '🎥 Video' : '📷 Photo'}
+                      <div class="metadata-row">
+                        <div class="metadata-item">
+                          <strong>Date & Time</strong>
+                          ${new Date(takenDate).toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                        <div class="metadata-item">
+                          <strong>Media Type</strong>
+                          ${media.file_type === 'video' ? 'Video' : 'Photo'}
+                        </div>
                       </div>
                       
                       ${media.latitude && media.longitude ? `
-                        <div class="metadata-item">
-                          <strong>GPS Coordinates</strong>
-                          ${media.latitude.toFixed(6)}°, ${media.longitude.toFixed(6)}°
+                        <div class="metadata-row">
+                          <div class="metadata-item">
+                            <strong>GPS Coordinates</strong>
+                            ${media.latitude.toFixed(6)}°, ${media.longitude.toFixed(6)}°
+                          </div>
+                          ${media.location_name ? `
+                            <div class="metadata-item">
+                              <strong>Location</strong>
+                              ${escapeHtml(media.location_name)}
+                            </div>
+                          ` : '<div class="metadata-item"></div>'}
                         </div>
-                      ` : ''}
-                      
-                      ${media.location_name ? `
-                        <div class="metadata-item">
-                          <strong>Location</strong>
-                          ${media.location_name}
+                      ` : media.location_name ? `
+                        <div class="metadata-row">
+                          <div class="metadata-item">
+                            <strong>Location</strong>
+                            ${escapeHtml(media.location_name)}
+                          </div>
+                          <div class="metadata-item"></div>
                         </div>
                       ` : ''}
                       
                       ${media.description ? `
-                        <div class="metadata-item" style="grid-column: 1 / -1;">
-                          <strong>Description</strong>
-                          ${media.description}
+                        <div class="metadata-item full-width">
+                          <div>
+                            <strong>Description</strong>
+                            ${escapeHtml(media.description)}
+                          </div>
                         </div>
                       ` : ''}
                     </div>
@@ -534,7 +575,7 @@ function generateReportHTML(options: {
                         ${comments.map((comment: any) => `
                           <div class="comment">
                             <span class="comment-author">${comment.profiles?.full_name || 'User'}:</span>
-                            ${comment.comment_text}
+                            ${escapeHtml(comment.comment_text)}
                           </div>
                         `).join('')}
                       </div>
