@@ -67,6 +67,59 @@ export function MediaReportBuilderModal({
   const photoCount = selectedMedia.filter(m => m.file_type === 'image').length;
   const videoCount = selectedMedia.filter(m => m.file_type === 'video').length;
 
+  const handleGenerateHTMLReport = async () => {
+    setIsGenerating(true);
+    setProgress({ current: 0, total: selectedMedia.length });
+
+    try {
+      const mediaIds = selectedMedia.map(m => m.id);
+      const projectId = selectedMedia[0]?.project_id; // Get project ID from media
+
+      if (!projectId) {
+        toast.error('Project ID not found');
+        return;
+      }
+
+      // Call the edge function
+      const { data, error } = await supabase.functions.invoke('generate-media-report', {
+        body: {
+          projectId,
+          mediaIds,
+          reportTitle: reportTitle || `${projectName} - Media Report`,
+        },
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to generate report');
+      }
+
+      // The response is already a PDF blob
+      const blob = new Blob([data], { type: 'application/pdf' });
+      const fileName = `${projectNumber}_html_report.pdf`;
+      
+      // Download PDF
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success('HTML report generated successfully!');
+      onComplete();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('HTML report generation failed:', error);
+      toast.error('Failed to generate HTML report: ' + (error as Error).message);
+    } finally {
+      setIsGenerating(false);
+      setProgress({ current: 0, total: 0 });
+    }
+  };
+
   const handleGeneratePDF = async (preview: boolean = false) => {
     setIsGenerating(true);
     setProgress({ current: 0, total: selectedMedia.length });
@@ -410,9 +463,28 @@ export function MediaReportBuilderModal({
             onClick={() => onOpenChange(false)}
             disabled={isGenerating}
             size={isMobile ? "sm" : "default"}
-            className={cn(isMobile && "w-full order-3")}
+            className={cn(isMobile && "w-full order-4")}
           >
             Cancel
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={handleGenerateHTMLReport}
+            disabled={isGenerating || selectedMedia.length === 0}
+            size={isMobile ? "sm" : "default"}
+            className={cn(isMobile && "w-full order-2")}
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "mr-2 animate-spin")} />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileText className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
+                Professional Report (Beta)
+              </>
+            )}
           </Button>
           <Button
             variant="outline"
