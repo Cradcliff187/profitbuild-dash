@@ -88,16 +88,50 @@ Deno.serve(async (req) => {
     // Generate signed URLs for each media item
     const mediaWithUrls = await Promise.all(
       (mediaItems || []).map(async (media) => {
-        const { data: signedData } = await supabase.storage
-          .from('project-media')
-          .createSignedUrl(media.storage_path, 3600); // 1 hour expiry
+        try {
+          // file_url already contains the storage path
+          const storagePath = media.file_url;
+          
+          if (!storagePath) {
+            console.warn(`⚠️ Media item ${media.id} has no file_url`);
+            return media;
+          }
 
-        return {
-          ...media,
-          file_url: signedData?.signedUrl || media.file_url,
-        };
+          // Check if it's already a full URL (shouldn't happen but defensive coding)
+          if (storagePath.startsWith('http')) {
+            console.log(`✅ Media ${media.id} already has full URL`);
+            return media;
+          }
+
+          // Create signed URL using the storage path from file_url
+          const { data: signedData, error } = await supabase.storage
+            .from('project-media')
+            .createSignedUrl(storagePath, 3600); // 1 hour expiry
+
+          if (error) {
+            console.error(`❌ Failed to create signed URL for ${storagePath}:`, error.message);
+            return media; // Return original media, let HTML generation handle missing URL
+          }
+
+          if (!signedData?.signedUrl) {
+            console.warn(`⚠️ No signed URL returned for ${storagePath}`);
+            return media;
+          }
+
+          console.log(`✅ Signed URL created for media ${media.id}`);
+          
+          return {
+            ...media,
+            file_url: signedData.signedUrl, // Replace with signed URL
+          };
+        } catch (err) {
+          console.error(`❌ Exception creating signed URL for media ${media.id}:`, err);
+          return media; // Return original on exception
+        }
       })
     );
+
+    console.log(`✅ Generated ${mediaWithUrls.length} signed URLs`);
 
     // Fetch comments for these media items
     console.log('💬 Fetching comments...');
