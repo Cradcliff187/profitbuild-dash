@@ -83,6 +83,17 @@ export const ProjectsTableView = ({
     { key: 'actions', label: 'Actions', required: true },
   ];
 
+  // Helper function to extract day number from schedule display text
+  const extractDayNumber = (displayText: string): string => {
+    // Extract the first number from strings like:
+    // "32 days remaining" → "32"
+    // "5 days overdue" → "5"
+    // "Day 10 of 45 (35 left)" → "10"
+    // "Starts in 7 days" → "7"
+    const match = displayText.match(/\d+/);
+    return match ? match[0] : displayText;
+  };
+
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem('projects-visible-columns');
@@ -448,7 +459,7 @@ export const ProjectsTableView = ({
         if (!project.start_date) return <span className="text-muted-foreground text-xs">Not set</span>;
         
         const dateObj = new Date(project.start_date);
-        const formattedDate = format(dateObj, 'MMM d, yyyy');
+        const formattedDate = format(dateObj, 'MM/dd/yyyy');
         
         const getDateContext = () => {
           switch (project.status) {
@@ -488,7 +499,7 @@ export const ProjectsTableView = ({
         if (!project.end_date) return <span className="text-muted-foreground text-xs">Not set</span>;
         
         const dateObj = new Date(project.end_date);
-        const formattedDate = format(dateObj, 'MMM d, yyyy');
+        const formattedDate = format(dateObj, 'MM/dd/yyyy');
         
         const getEndDateContext = () => {
           switch (project.status) {
@@ -582,7 +593,7 @@ export const ProjectsTableView = ({
               <div className="space-y-1 cursor-help">
                 <div className={`text-xs flex items-center gap-1 justify-center ${getStatusColor(durationData.status)}`}>
                   <Clock className="h-3 w-3" />
-                  {durationData.display}
+                  {extractDayNumber(durationData.display)}
                 </div>
                 {durationData.progress !== undefined && (
                   <div className="w-16 mx-auto">
