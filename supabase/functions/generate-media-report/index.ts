@@ -333,6 +333,7 @@ function generateReportHTML(options: {
             align-items: center;
             justify-content: center;
             min-height: 400px;
+            position: relative;
           }
           
           .media-image {
@@ -374,6 +375,20 @@ function generateReportHTML(options: {
             color: #4a5568;
             padding: 8px 12px;
             vertical-align: top;
+          }
+          
+          .photo-number {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(27, 43, 67, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
           }
           
           .metadata-item.full-width {
@@ -499,13 +514,14 @@ function generateReportHTML(options: {
           
           <!-- Media Items -->
           <div class="media-section">
-            ${options.mediaItems.map((media: any) => {
+            ${options.mediaItems.map((media: any, index: number) => {
               const comments = options.comments.get(media.id) || [];
               const takenDate = media.taken_at || media.created_at;
               
               return `
                 <div class="media-item">
                   <div class="media-image-container">
+                    <div class="photo-number">Photo ${index + 1} of ${options.mediaItems.length}</div>
                     <img 
                       src="${media.file_url}" 
                       alt="${media.caption || 'Project Media'}" 
