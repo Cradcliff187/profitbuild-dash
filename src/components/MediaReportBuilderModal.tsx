@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { FileText, Loader2, Image as ImageIcon, Video as VideoIcon, AlertTriangle, Mic, MessageSquare, Pencil, Trash2 } from 'lucide-react';
+import { FileText, Download, Image as ImageIcon, Video as VideoIcon, AlertTriangle, Mic, MessageSquare, Pencil, Trash2 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
@@ -8,13 +8,10 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
-import { Progress } from './ui/progress';
 import { ScrollArea } from './ui/scroll-area';
 import { Alert, AlertDescription } from './ui/alert';
 import { toast } from 'sonner';
-import { generateMediaReportPDF } from '@/utils/mediaReportPdfGenerator';
-import { generatePDFFileName, estimatePDFSize } from '@/utils/pdfHelpers';
-import { PdfPreviewModal } from './PdfPreviewModal';
+import { estimatePDFSize } from '@/utils/pdfHelpers';
 import { VoiceCaptionModal } from './VoiceCaptionModal';
 import type { ProjectMedia } from '@/types/project';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -56,9 +53,7 @@ export function MediaReportBuilderModal({
   const isMobile = useIsMobile();
   const [reportTitle, setReportTitle] = useState('Project Media Report');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState({ current: 0, total: 0 });
-  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
   const [reportSummary, setReportSummary] = useState('');
   const [showVoiceSummaryModal, setShowVoiceSummaryModal] = useState(false);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
@@ -77,7 +72,7 @@ export function MediaReportBuilderModal({
 
   const handleGenerateHTMLReport = async () => {
     setIsGenerating(true);
-    setProgress({ current: 0, total: selectedMedia.length });
+    setGenerationProgress(0);
 
     try {
       const mediaIds = selectedMedia.map(m => m.id);
@@ -114,7 +109,7 @@ export function MediaReportBuilderModal({
       console.log('🎯 Converting HTML to PDF in browser...');
 
       // Update progress indicator
-      setProgress({ current: 1, total: 2 });
+      setGenerationProgress(selectedMedia.length * 0.5);
 
       // Step 2: Convert HTML to PDF client-side
       const fileName = `${projectNumber}_Professional_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
@@ -168,115 +163,7 @@ export function MediaReportBuilderModal({
       });
     } finally {
       setIsGenerating(false);
-      setProgress({ current: 0, total: 0 });
-    }
-  };
-
-  const handleGeneratePDF = async (preview: boolean = false) => {
-    setIsGenerating(true);
-    setProgress({ current: 0, total: selectedMedia.length });
-
-    try {
-      // Sort by date for consistent ordering
-      const sortedMedia = [...selectedMedia].sort((a, b) => {
-        const dateA = new Date(a.taken_at || a.created_at).getTime();
-        const dateB = new Date(b.taken_at || b.created_at).getTime();
-        return dateA - dateB;
-      });
-
-      // Fetch all comments for selected media
-      const mediaIds = sortedMedia.map(m => m.id);
-      const { data: comments, error: commentsError } = await supabase
-        .from('media_comments')
-        .select(`
-          id,
-          media_id,
-          comment_text,
-          created_at,
-          user_id,
-          profiles:user_id (
-            full_name,
-            email
-          )
-        `)
-        .in('media_id', mediaIds)
-        .order('created_at', { ascending: true });
-
-      if (commentsError) {
-        console.error('Failed to fetch comments:', commentsError);
-        toast.error('Failed to load comments for report');
-      }
-
-      // Group comments by media_id
-      const commentsByMedia = new Map<string, MediaComment[]>();
-      (comments || []).forEach((comment) => {
-        if (!commentsByMedia.has(comment.media_id)) {
-          commentsByMedia.set(comment.media_id, []);
-        }
-        commentsByMedia.get(comment.media_id)!.push(comment as MediaComment);
-      });
-
-      // Generate PDF with progress tracking
-      const result = await generateMediaReportPDF({
-        projectName,
-        projectNumber,
-        clientName,
-        address,
-        mediaItems: sortedMedia,
-        reportTitle,
-        comments: commentsByMedia,
-        aggregateComments: false,
-        storyFormat: true,
-        photoSize: 'standard',
-        layoutType: 'story',
-        onProgress: (current, total) => {
-          setProgress({ current, total });
-        },
-      });
-
-      const fileName = generatePDFFileName({
-        projectName,
-        projectNumber,
-        itemCount: selectedMedia.length,
-      });
-
-      if (preview) {
-        // Store blob and open preview modal
-        setPreviewBlob(result.blob);
-        setShowPreviewModal(true);
-        onOpenChange(false); // Close builder modal before showing preview
-        toast.success('Preview ready');
-      } else {
-        // Auto-download
-        const url = URL.createObjectURL(result.blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        toast.success(`PDF generated: ${fileName}`);
-        onComplete();
-        onOpenChange(false);
-      }
-
-      // Show warning if any items failed
-      if (result.stats.failed > 0) {
-        toast.error(
-          `${result.stats.failed} of ${result.stats.total} items failed to process`,
-          {
-            description: result.stats.failedItems.join(', ')
-          }
-        );
-      }
-    } catch (error) {
-      console.error('PDF generation failed:', error);
-      toast.error('Failed to generate PDF. Please try again.');
-    } finally {
-      setIsGenerating(false);
-      setProgress({ current: 0, total: 0 });
+      setGenerationProgress(0);
     }
   };
 
@@ -490,79 +377,47 @@ export function MediaReportBuilderModal({
             </div>
           </div>
 
-          {/* Progress Indicator */}
+          {/* Generation Progress */}
           {isGenerating && (
-            <div className={cn(isMobile ? "space-y-1.5" : "space-y-2")}>
-              <div className={cn("flex items-center justify-between", isMobile ? "text-xs" : "text-sm")}>
-                <span className="text-muted-foreground">Generating PDF...</span>
-                <span className="font-medium">
-                  {progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0}%
+            <div className={cn("border rounded-lg", isMobile ? "p-2" : "p-3")}>
+              <div className="flex items-center justify-between mb-2">
+                <span className={cn("font-medium", isMobile ? "text-xs" : "text-sm")}>
+                  Generating Report...
+                </span>
+                <span className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
+                  {Math.round((generationProgress / selectedMedia.length) * 100)}%
                 </span>
               </div>
-              <Progress 
-                value={progress.total > 0 ? (progress.current / progress.total) * 100 : 0} 
-                className={cn(isMobile ? "h-1.5" : "h-2")} 
-              />
-              <p className={cn("text-muted-foreground text-center", isMobile ? "text-[10px]" : "text-xs")}>
-                Processing {progress.current} of {progress.total} items...
+              <p className={cn("text-muted-foreground mt-2", isMobile ? "text-[10px]" : "text-xs")}>
+                ⏳ Processing media items... Please keep this window open.
               </p>
             </div>
           )}
         </div>
 
-        <DialogFooter className={cn("gap-2", isMobile && "flex-col")}>
-          <Button
-            variant="outline"
+        <DialogFooter className={cn("flex gap-2", isMobile ? "flex-col" : "")}>
+          <Button 
+            variant="outline" 
             onClick={() => onOpenChange(false)}
             disabled={isGenerating}
             size={isMobile ? "sm" : "default"}
-            className={cn(isMobile && "w-full order-4")}
           >
             Cancel
           </Button>
           <Button
-            variant="secondary"
             onClick={handleGenerateHTMLReport}
             disabled={isGenerating || selectedMedia.length === 0}
             size={isMobile ? "sm" : "default"}
-            className={cn(isMobile && "w-full order-2")}
           >
             {isGenerating ? (
               <>
-                <Loader2 className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "mr-2 animate-spin")} />
-                Generating...
+                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                Generating... {Math.round((generationProgress / selectedMedia.length) * 100)}%
               </>
             ) : (
               <>
-                <FileText className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
-                Generate Professional Report
-              </>
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => handleGeneratePDF(true)}
-            disabled={isGenerating || selectedMedia.length === 0}
-            size={isMobile ? "sm" : "default"}
-            className={cn(isMobile && "w-full order-2")}
-          >
-            Preview
-          </Button>
-          <Button
-            onClick={() => handleGeneratePDF(false)}
-            disabled={isGenerating || selectedMedia.length === 0}
-            size={isMobile ? "sm" : "default"}
-            className={cn(isMobile && "w-full order-1")}
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <FileText className="h-4 w-4 mr-2" />
-                Download PDF
+                <Download className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
+                Generate Report
               </>
             )}
           </Button>
@@ -581,22 +436,6 @@ export function MediaReportBuilderModal({
       }}
       imageUrl={undefined}
     />
-
-    <PdfPreviewModal
-          open={showPreviewModal}
-          onOpenChange={(open) => {
-            setShowPreviewModal(open);
-            if (!open) {
-              setPreviewBlob(null);
-            }
-          }}
-          pdfBlob={previewBlob}
-          fileName={generatePDFFileName({
-            projectName,
-            projectNumber,
-            itemCount: selectedMedia.length,
-          })}
-        />
     </>
   );
 }
