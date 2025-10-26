@@ -1,5 +1,4 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import puppeteer from 'https://deno.land/x/puppeteer@16.2.0/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -167,41 +166,16 @@ Deno.serve(async (req) => {
       comments: commentsByMedia,
     });
     console.log('✅ HTML generated');
+    
+    // Log HTML size for debugging
+    const htmlSize = new TextEncoder().encode(html).length;
+    console.log(`✅ HTML report ready: ${(htmlSize / 1024).toFixed(1)}KB, ${mediaWithUrls.length} media items`);
 
-    // Convert HTML to PDF using Puppeteer
-    console.log('🎯 Converting HTML to PDF with Puppeteer...');
-    const browser = await puppeteer.launch({
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-      ],
-    });
-
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true, // Essential for gradients!
-      margin: {
-        top: '10mm',
-        right: '10mm',
-        bottom: '10mm',
-        left: '10mm',
-      },
-    });
-
-    await browser.close();
-    console.log('✅ PDF generated successfully');
-
-    // Return PDF
-    return new Response(pdfBuffer, {
+    // Return HTML directly for client-side PDF conversion
+    return new Response(html, {
       headers: {
         ...corsHeaders,
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${project.project_number}_report.pdf"`,
+        'Content-Type': 'text/html; charset=utf-8',
       },
     });
 

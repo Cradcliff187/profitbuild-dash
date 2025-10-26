@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { FileText, Loader2, Image as ImageIcon, Video as VideoIcon, AlertTriangle } from 'lucide-react';
+import html2pdf from 'html2pdf.js';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -73,15 +74,17 @@ export function MediaReportBuilderModal({
 
     try {
       const mediaIds = selectedMedia.map(m => m.id);
-      const projectId = selectedMedia[0]?.project_id; // Get project ID from media
+      const projectId = selectedMedia[0]?.project_id;
 
       if (!projectId) {
         toast.error('Project ID not found');
         return;
       }
 
-      // Call the edge function
-      const { data, error } = await supabase.functions.invoke('generate-media-report', {
+      console.log('🎨 Generating HTML from edge function...');
+      
+      // Step 1: Get HTML from edge function
+      const { data: htmlString, error } = await supabase.functions.invoke('generate-media-report', {
         body: {
           projectId,
           mediaIds,
@@ -91,29 +94,69 @@ export function MediaReportBuilderModal({
 
       if (error) {
         console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to generate report');
+        throw new Error(error.message || 'Failed to generate HTML');
       }
 
-      // The response is already a PDF blob
-      const blob = new Blob([data], { type: 'application/pdf' });
-      const fileName = `${projectNumber}_html_report.pdf`;
-      
-      // Download PDF
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      if (!htmlString || typeof htmlString !== 'string') {
+        throw new Error('Invalid HTML response from server');
+      }
 
-      toast.success('HTML report generated successfully!');
+      console.log(`✅ HTML received (${(htmlString.length / 1024).toFixed(1)}KB)`);
+      console.log('🎯 Converting HTML to PDF in browser...');
+
+      // Update progress indicator
+      setProgress({ current: 1, total: 2 });
+
+      // Step 2: Convert HTML to PDF client-side
+      const fileName = `${projectNumber}_Professional_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      
+      const options = {
+        margin: [10, 10, 10, 10] as [number, number, number, number],
+        filename: fileName,
+        image: { 
+          type: 'jpeg' as const, 
+          quality: 0.95
+        },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          letterRendering: true,
+        },
+        jsPDF: { 
+          unit: 'mm' as const, 
+          format: 'a4' as const, 
+          orientation: 'portrait' as const,
+          compress: true
+        },
+        pagebreak: { 
+          mode: ['avoid-all', 'css', 'legacy'],
+          before: '.page-break',
+          after: '.page-break-after',
+          avoid: ['img', '.no-break']
+        }
+      };
+
+      // Convert and auto-download
+      await html2pdf()
+        .set(options)
+        .from(htmlString)
+        .save();
+
+      console.log('✅ PDF generated and downloaded');
+      
+      toast.success('Professional PDF report generated!', {
+        description: `${selectedMedia.length} items • ${fileName}`
+      });
+      
       onComplete();
       onOpenChange(false);
+
     } catch (error) {
-      console.error('HTML report generation failed:', error);
-      toast.error('Failed to generate HTML report: ' + (error as Error).message);
+      console.error('❌ Report generation failed:', error);
+      toast.error('Failed to generate report', {
+        description: (error as Error).message
+      });
     } finally {
       setIsGenerating(false);
       setProgress({ current: 0, total: 0 });
@@ -482,7 +525,7 @@ export function MediaReportBuilderModal({
             ) : (
               <>
                 <FileText className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
-                Professional Report (Beta)
+                Generate Professional Report
               </>
             )}
           </Button>
