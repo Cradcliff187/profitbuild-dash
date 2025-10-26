@@ -11,8 +11,6 @@ import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { ScrollArea } from './ui/scroll-area';
 import { Alert, AlertDescription } from './ui/alert';
-import { Checkbox } from './ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { toast } from 'sonner';
 import { generateMediaReportPDF } from '@/utils/mediaReportPdfGenerator';
 import { generatePDFFileName, estimatePDFSize } from '@/utils/pdfHelpers';
@@ -56,13 +54,8 @@ export function MediaReportBuilderModal({
 }: MediaReportBuilderModalProps) {
   const isMobile = useIsMobile();
   const [reportTitle, setReportTitle] = useState('Project Media Report');
-  const [reportFormat, setReportFormat] = useState<'detailed' | 'story'>('detailed');
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
-  const [aggregateComments, setAggregateComments] = useState(false);
-  const [storyFormat, setStoryFormat] = useState(false);
-  const [photoSize, setPhotoSize] = useState<'standard' | 'large' | 'full'>('standard');
-  const [layoutType, setLayoutType] = useState<'single' | 'grid_2x2' | 'story'>('single');
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
@@ -90,7 +83,7 @@ export function MediaReportBuilderModal({
           projectId,
           mediaIds,
           reportTitle: reportTitle || `${projectName} - Media Report`,
-          format: reportFormat,
+          format: 'story', // Always use story timeline format
         },
       });
 
@@ -218,10 +211,10 @@ export function MediaReportBuilderModal({
         mediaItems: sortedMedia,
         reportTitle,
         comments: commentsByMedia,
-        aggregateComments,
-        storyFormat,
-        photoSize,
-        layoutType,
+        aggregateComments: false,
+        storyFormat: true,
+        photoSize: 'standard',
+        layoutType: 'story',
         onProgress: (current, total) => {
           setProgress({ current, total });
         },
@@ -290,7 +283,7 @@ export function MediaReportBuilderModal({
             Generate Media Report
           </DialogTitle>
           <DialogDescription className={cn(isMobile && "text-xs")}>
-            Create a professional PDF report with selected photos and videos
+            Generate a compact Story Timeline report with photos organized chronologically by date
           </DialogDescription>
         </DialogHeader>
 
@@ -377,116 +370,10 @@ export function MediaReportBuilderModal({
                 disabled={isGenerating}
                 className={cn(isMobile ? "h-8 text-sm" : "h-9")}
               />
-            </div>
-
-            {/* Report Format Selector */}
-            <div className={cn(isMobile ? "space-y-1" : "space-y-2")}>
-              <Label htmlFor="report-format" className={cn(isMobile ? "text-xs" : "text-sm")}>Report Format</Label>
-              <Select 
-                value={reportFormat} 
-                onValueChange={(value) => setReportFormat(value as 'detailed' | 'story')}
-                disabled={isGenerating}
-              >
-                <SelectTrigger id="report-format" className={cn(isMobile ? "h-8 text-sm" : "h-9")}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="detailed">
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium">Detailed (Client Deliverable)</span>
-                      <span className="text-xs text-muted-foreground">One photo per page, full metadata</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="story">
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium">Story Timeline (Internal Review)</span>
-                      <span className="text-xs text-muted-foreground">4-6 photos per page, compact layout</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
               <p className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
-                {reportFormat === 'detailed' 
-                  ? '📄 Professional format with full-page photos and complete metadata. Best for client presentations and formal documentation.'
-                  : '📋 Compact timeline format showing multiple photos per page with inline comments. Best for daily reviews and field coordination.'}
+                📋 Compact timeline format showing multiple photos per page with inline comments
               </p>
             </div>
-
-            {/* Story Format Option */}
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="story-format"
-                checked={storyFormat}
-                onCheckedChange={(checked) => setStoryFormat(checked as boolean)}
-                disabled={isGenerating}
-                className={cn(isMobile && "h-4 w-4")}
-              />
-              <Label
-                htmlFor="story-format"
-                className={cn("font-normal cursor-pointer", isMobile ? "text-xs" : "text-sm")}
-              >
-                Generate as Story Report (narrative timeline)
-              </Label>
-            </div>
-            {storyFormat && (
-              <div className={cn("text-muted-foreground pl-6 -mt-1", isMobile ? "text-[10px]" : "text-xs")}>
-                Compact layout with time grouping, continuous flow, and narrative captions
-              </div>
-            )}
-
-            {/* Comment Aggregation Option */}
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="aggregate-comments"
-                checked={aggregateComments}
-                onCheckedChange={(checked) => setAggregateComments(checked as boolean)}
-                disabled={isGenerating || storyFormat}
-                className={cn(isMobile && "h-4 w-4")}
-              />
-              <Label
-                htmlFor="aggregate-comments"
-                className={cn("font-normal cursor-pointer", isMobile ? "text-xs" : "text-sm")}
-              >
-                Aggregate all comments at end of report
-              </Label>
-            </div>
-            {storyFormat && (
-              <div className={cn("text-muted-foreground pl-6 -mt-1", isMobile ? "text-[10px]" : "text-xs")}>
-                (Comments are inline in story format)
-              </div>
-            )}
-
-            {/* Photo Size Control */}
-            <div className={cn(isMobile ? "space-y-1" : "space-y-2")}>
-              <Label htmlFor="photo-size" className={cn(isMobile ? "text-xs" : "text-sm")}>Photo Size</Label>
-              <Select value={photoSize} onValueChange={(value) => setPhotoSize(value as 'standard' | 'large' | 'full')} disabled={isGenerating}>
-                <SelectTrigger id="photo-size" className={cn(isMobile ? "h-8 text-sm" : "h-9")}>
-                  <SelectValue placeholder="Select size" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="standard">Standard (4×6) - Recommended</SelectItem>
-                  <SelectItem value="large">Large (5×7)</SelectItem>
-                  <SelectItem value="full">Full Page (8×10)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Layout Type Control - Desktop Only */}
-            {!isMobile && (
-              <div className="space-y-2">
-                <Label htmlFor="layout-type" className="text-sm">Layout Style</Label>
-                <Select value={layoutType} onValueChange={(value) => setLayoutType(value as 'single' | 'grid_2x2' | 'story')} disabled={isGenerating}>
-                  <SelectTrigger id="layout-type" className="h-9">
-                    <SelectValue placeholder="Select layout" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="single">One Photo Per Page</SelectItem>
-                    <SelectItem value="grid_2x2">Grid (2×2) - Coming Soon</SelectItem>
-                    <SelectItem value="story">Timeline Story</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             {/* Project Info Preview */}
             <div className={cn("bg-muted/50 rounded-lg space-y-1", isMobile ? "p-2 text-[10px]" : "p-3 text-xs")}>
