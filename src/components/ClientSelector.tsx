@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChevronsUpDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Client } from "@/types/client";
@@ -33,6 +33,8 @@ export const ClientSelector = ({
   const [open, setOpen] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { data: clients = [], refetch } = useQuery({
     queryKey: ["clients"],
@@ -50,10 +52,54 @@ export const ClientSelector = ({
 
   const selectedClient = clients.find(client => client.id === value);
 
-  const filteredClients = clients.filter(client =>
-    client.client_name.toLowerCase().includes(searchValue.toLowerCase()) ||
-    client.company_name?.toLowerCase().includes(searchValue.toLowerCase())
-  );
+  // Enhanced search across multiple fields
+  const filteredClients = clients.filter(client => {
+    const search = searchValue.toLowerCase();
+    return (
+      client.client_name.toLowerCase().includes(search) ||
+      client.company_name?.toLowerCase().includes(search) ||
+      client.contact_person?.toLowerCase().includes(search) ||
+      client.email?.toLowerCase().includes(search) ||
+      client.phone?.toLowerCase().includes(search)
+    );
+  });
+
+  // Auto-focus search when opened
+  useEffect(() => {
+    if (open && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 10);
+      setSearchValue("");
+      setSelectedIndex(0);
+    }
+  }, [open]);
+
+  // Keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (filteredClients.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.min(prev + 1, filteredClients.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === "Enter" && selectedIndex >= 0) {
+      e.preventDefault();
+      const client = filteredClients[selectedIndex];
+      if (client) {
+        onValueChange(client.id, client.client_name);
+        setOpen(false);
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setOpen(false);
+    }
+  };
+
+  const handleSelect = (client: Client) => {
+    onValueChange(client.id, client.client_name);
+    setOpen(false);
+  };
 
   const handleClientCreated = (createdClient?: Client) => {
     setShowClientForm(false);
@@ -84,7 +130,7 @@ export const ClientSelector = ({
             aria-expanded={open}
             onBlur={onBlur}
             className={cn(
-              "w-full justify-between",
+              "w-full justify-between h-8 text-xs",
               error && "border-destructive"
             )}
           >
@@ -96,71 +142,88 @@ export const ClientSelector = ({
             ) : (
               placeholder
             )}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[--radix-popper-anchor-width] p-0 z-50">
-          <Command>
-            <CommandInput 
-              placeholder="Search clients..." 
-              value={searchValue}
-              onValueChange={setSearchValue}
-            />
-            <CommandList>
-              <CommandEmpty>
-                <div className="p-2">
-                  <p className="text-sm text-muted-foreground mb-2">No clients found.</p>
+          <div className="flex flex-col h-[280px]">
+            {/* Search Input */}
+            <div className="p-2 border-b">
+              <Input
+                ref={searchInputRef}
+                placeholder="Search clients..."
+                value={searchValue}
+                onChange={(e) => {
+                  setSearchValue(e.target.value);
+                  setSelectedIndex(0);
+                }}
+                onKeyDown={handleKeyDown}
+                className="h-7 text-xs"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''} found
+              </p>
+            </div>
+
+            {/* Client List */}
+            {filteredClients.length > 0 ? (
+              <>
+                <ScrollArea className="flex-1">
+                  <div className="p-1">
+                    {filteredClients.map((client, index) => (
+                      <div
+                        key={client.id}
+                        onClick={() => handleSelect(client)}
+                        className={cn(
+                          "px-2 py-1.5 cursor-pointer rounded text-xs transition-colors",
+                          value === client.id && "bg-accent/50",
+                          selectedIndex === index && "bg-accent",
+                          "hover:bg-accent"
+                        )}
+                      >
+                        <div className="font-medium">{client.client_name}</div>
+                        {client.company_name && (
+                          <div className="text-muted-foreground">{client.company_name}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+
+                {/* Footer with Add Button */}
+                <div className="p-2 border-t">
                   <Button
                     variant="outline"
                     size="sm"
+                    className="w-full h-7 text-xs"
                     onClick={() => {
                       setShowClientForm(true);
                       setOpen(false);
                     }}
-                    className="w-full"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-3 w-3 mr-1" />
                     Add New Client
                   </Button>
                 </div>
-              </CommandEmpty>
-              <CommandGroup>
-                <CommandItem
-                  onSelect={() => {
+              </>
+            ) : (
+              /* Empty State */
+              <div className="flex flex-col items-center justify-center flex-1 p-4 text-center">
+                <p className="text-sm text-muted-foreground mb-3">No clients found</p>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
                     setShowClientForm(true);
                     setOpen(false);
                   }}
-                  className="font-medium"
                 >
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="h-3 w-3 mr-1" />
                   Add New Client
-                </CommandItem>
-                {filteredClients.map((client) => (
-                  <CommandItem
-                    key={client.id}
-                    value={client.id}
-                    onSelect={() => {
-                      onValueChange(client.id, client.client_name);
-                      setOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === client.id ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <div className="flex-1 truncate">
-                      <div className="font-medium">{client.client_name}</div>
-                      {client.company_name && (
-                        <div className="text-sm text-muted-foreground">{client.company_name}</div>
-                      )}
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
+                </Button>
+              </div>
+            )}
+          </div>
         </PopoverContent>
       </Popover>
 
