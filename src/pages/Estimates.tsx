@@ -171,6 +171,7 @@ const EstimatesPage = () => {
         .select(`
           *,
           projects (
+            project_number,
             project_name,
             client_name
           )
@@ -247,6 +248,7 @@ const EstimatesPage = () => {
         lineItems: lineItemsByEstimate[est.id] || [],
         created_at: new Date(est.created_at),
         updated_at: new Date(est.updated_at),
+        project_number: est.projects?.project_number,
         project_name: est.projects?.project_name,
         client_name: est.projects?.client_name,
         quotes: quotesByEstimate[est.id] || [],

@@ -153,7 +153,7 @@ const Quotes = () => {
         .select(`
           *,
           payees(payee_name),
-          projects(project_name, client_name),
+          projects(project_number, project_name, client_name),
           quote_line_items(*)
         `);
       
@@ -196,6 +196,7 @@ const Quotes = () => {
             id: quote.id || '',
             project_id: quote.project_id || '',
             estimate_id: quote.estimate_id || '',
+            project_number: quote.projects?.project_number || '',
             projectName: quote.projects?.project_name || '',
             client: quote.projects?.client_name || '',
             payee_id: quote.payee_id || '',
