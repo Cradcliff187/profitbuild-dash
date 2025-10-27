@@ -800,7 +800,11 @@ useEffect(() => {
           {!preselectedProjectId && !initialEstimate && (
             <div className="space-y-2">
               <RequiredLabel>Select Project</RequiredLabel>
-              {!projectsLoading && availableProjects.length > 0 && (
+              {projectsLoading ? (
+                <div className="flex items-center justify-center py-4 border rounded-md">
+                  <div className="text-sm text-muted-foreground">Loading projects...</div>
+                </div>
+              ) : (
                 <ProjectSelectorNew
                   projects={availableProjects}
                   selectedProject={selectedProject}
