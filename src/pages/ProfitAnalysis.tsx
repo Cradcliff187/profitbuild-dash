@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Estimate } from '@/types/estimate';
 import { Quote, QuoteStatus } from '@/types/quote';
 import { Expense, ExpenseCategory } from '@/types/expense';
 import { Project } from '@/types/project';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import ProfitAnalysis from '@/components/ProfitAnalysis';
 
 export default function ProfitAnalysisPage() {
@@ -189,12 +191,23 @@ export default function ProfitAnalysisPage() {
 
   return (
     <div className="container mx-auto p-6">
-      <ProfitAnalysis 
-        estimates={estimates}
-        quotes={quotes}
-        expenses={expenses}
-        projects={projects}
-      />
+      {/* Construction Banner */}
+      <Alert className="mb-3 border-warning bg-warning/10">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription className="text-sm font-medium">
+          <strong>🚧 UNDER CONSTRUCTION:</strong> Advanced profit analytics and financial insights are currently being developed. 
+          Data shown may be incomplete or inaccurate.
+        </AlertDescription>
+      </Alert>
+
+      <div className="opacity-50 pointer-events-none">
+        <ProfitAnalysis 
+          estimates={estimates}
+          quotes={quotes}
+          expenses={expenses}
+          projects={projects}
+        />
+      </div>
     </div>
   );
 }

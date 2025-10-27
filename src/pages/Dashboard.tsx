@@ -391,8 +391,18 @@ const Dashboard = () => {
 
   return (
     <div className="dense-spacing">
-      {/* Budget Alert Banner */}
-      {overBudgetProjects.length > 0 && (
+      {/* Construction Banner */}
+      <Alert className="mb-3 border-warning bg-warning/10">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription className="text-sm font-medium">
+          <strong>🚧 UNDER CONSTRUCTION:</strong> This dashboard is currently in development. 
+          Data shown may be incomplete or inaccurate.
+        </AlertDescription>
+      </Alert>
+
+      <div className="opacity-50 pointer-events-none">
+        {/* Budget Alert Banner */}
+        {overBudgetProjects.length > 0 && (
         <Alert className="border-destructive bg-destructive/10 p-2">
           <AlertTriangle className="h-3 w-3 text-destructive" />
           <AlertDescription className="text-destructive text-label font-medium">
@@ -600,6 +610,7 @@ const Dashboard = () => {
         open={showCreateWorkOrderModal}
         onOpenChange={setShowCreateWorkOrderModal}
       />
+      </div>
     </div>
   );
 };
