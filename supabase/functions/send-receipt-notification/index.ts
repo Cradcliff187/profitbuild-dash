@@ -359,7 +359,7 @@ Deno.serve(async (req) => {
     console.log('📨 Sending receipt notification email...');
     const { data: emailResult, error: emailError } = await resend.emails.send({
       from: `${companyName} <receipts@rcgwork.com>`,
-      to: 'employeereceipts@radcliffcg.com',
+      to: 'info@radcliff.cg.com',
       subject: `New Receipt: ${formattedAmount} from ${employeeName}`,
       html: emailHtml,
     });
