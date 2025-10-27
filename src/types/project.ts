@@ -122,7 +122,7 @@ export const generateProjectNumber = async (): Promise<string> => {
       console.error('Error generating project number:', error);
       // Fallback to timestamp-based number if database call fails
       const timestamp = Date.now().toString().slice(-3);
-      return `125-${timestamp}`;
+      return `225-${timestamp}`;
     }
     
     return data;
@@ -130,12 +130,12 @@ export const generateProjectNumber = async (): Promise<string> => {
     console.error('Error generating project number:', error);
     // Fallback to timestamp-based number if import or database call fails
     const timestamp = Date.now().toString().slice(-3);
-    return `125-${timestamp}`;
+    return `225-${timestamp}`;
   }
 };
 
 // Synchronous fallback for immediate use (will be replaced by async version)
 export const generateProjectNumberSync = (): string => {
   const timestamp = Date.now().toString().slice(-3);
-  return `125-${timestamp}`;
+  return `225-${timestamp}`;
 };
