@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Project } from "@/types/project";
-import { ProjectFormInline } from "@/components/ProjectFormInline";
+import { ProjectForm } from "@/components/ProjectForm";
 
 interface ProjectSelectorNewProps {
   projects: Project[];
@@ -145,7 +145,7 @@ export const ProjectSelectorNew = ({
       </Popover>
 
       {showProjectForm && (
-        <ProjectFormInline
+        <ProjectForm
           onSave={handleProjectCreated}
           onCancel={() => setShowProjectForm(false)}
         />

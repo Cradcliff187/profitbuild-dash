@@ -42,6 +42,7 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
   const [clientError, setClientError] = useState("");
   const [projectNameError, setProjectNameError] = useState("");
   const [projectTypeError, setProjectTypeError] = useState("");
+  const [addressError, setAddressError] = useState("");
   const [hasValidated, setHasValidated] = useState(false);
 
   useEffect(() => {
@@ -208,16 +209,25 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
     return "";
   };
 
+  const validateAddress = () => {
+    if (!address.trim()) {
+      return "Project address is required";
+    }
+    return "";
+  };
+
   const validateAllFields = () => {
     const clientErr = validateClient();
     const nameErr = validateProjectName();
     const typeErr = validateProjectType();
+    const addressErr = validateAddress();
     
     setClientError(clientErr);
     setProjectNameError(nameErr);
     setProjectTypeError(typeErr);
+    setAddressError(addressErr);
     
-    return !clientErr && !nameErr && !typeErr;
+    return !clientErr && !nameErr && !typeErr && !addressErr;
   };
 
   const getCompletedFieldsCount = () => {
@@ -225,6 +235,7 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
     if (selectedClientId) count++;
     if (projectName.trim() && projectName.trim().length >= 3) count++;
     if (projectType) count++;
+    if (address.trim()) count++;
     return count;
   };
 
@@ -259,6 +270,19 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
     }
   };
 
+  const handleAddressChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setAddress(e.target.value);
+    if (hasValidated) {
+      setAddressError(validateAddress());
+    }
+  };
+
+  const handleAddressBlur = () => {
+    if (hasValidated) {
+      setAddressError(validateAddress());
+    }
+  };
+
   return (
     <div className="form-dense space-y-2">
       <Card className="compact-card">
@@ -274,7 +298,7 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
             <CheckCircle className="h-4 w-4 text-success" />
             <div>
               <p className="text-label font-medium text-success">
-                {getCompletedFieldsCount()} of 3 required fields complete
+                {getCompletedFieldsCount()} of 4 required fields complete
               </p>
               <p className="text-label text-muted-foreground">
                 Fill in all required fields to create your project
@@ -375,14 +399,19 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
 
           {/* Address */}
           <div className="space-y-2">
-            <Label htmlFor="address">Project Address</Label>
+            <RequiredLabel htmlFor="address">Project Address</RequiredLabel>
             <Textarea
               id="address"
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={handleAddressChange}
+              onBlur={handleAddressBlur}
               placeholder="Enter project address"
               rows={3}
+              className={cn(addressError && "border-destructive")}
             />
+            {addressError && (
+              <p className="text-xs text-destructive">{addressError}</p>
+            )}
           </div>
 
           {/* Project Type, Status, Job Type */}
