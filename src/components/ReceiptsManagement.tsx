@@ -502,10 +502,6 @@ export const ReceiptsManagement: React.FC = () => {
             <Download className="h-3 w-3 mr-1" />
             Export CSV
           </Button>
-          <Button onClick={handleBulkDownload} variant="outline" size="sm">
-            <FileImage className="w-3 h-3 mr-2" />
-            Download Images ({filteredReceipts.length})
-          </Button>
         </div>
       </div>
 
