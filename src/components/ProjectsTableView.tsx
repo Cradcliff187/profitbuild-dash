@@ -1142,6 +1142,9 @@ export const ProjectsTableView = ({
           data={groupedData}
           columns={columns}
           isGrouped={true}
+          collapsedGroups={collapsedGroups}
+          onCollapsedGroupsChange={setCollapsedGroups}
+          collapseAllButton={collapseButton}
           onView={handleViewDetails}
           onEdit={onEdit}
           getItemId={(project) => project.id}

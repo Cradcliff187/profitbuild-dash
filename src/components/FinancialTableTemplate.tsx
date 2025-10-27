@@ -41,6 +41,8 @@ interface FinancialTableTemplateProps<T> {
   showActions?: boolean;
   sortable?: boolean;
   collapseAllButton?: React.ReactNode;
+  collapsedGroups?: Set<string>;
+  onCollapsedGroupsChange?: (groups: Set<string>) => void;
 }
 
 export function FinancialTableTemplate<T>({
@@ -57,12 +59,18 @@ export function FinancialTableTemplate<T>({
   showActions = true,
   sortable = true,
   collapseAllButton,
+  collapsedGroups: externalCollapsedGroups,
+  onCollapsedGroupsChange,
 }: FinancialTableTemplateProps<T>) {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [internalCollapsedGroups, setInternalCollapsedGroups] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
+  // Use external state if provided, otherwise use internal state
+  const collapsedGroups = externalCollapsedGroups ?? internalCollapsedGroups;
+  const setCollapsedGroups = onCollapsedGroupsChange ?? setInternalCollapsedGroups;
 
   const handleSort = (columnKey: string) => {
     if (!sortable) return;
@@ -83,27 +91,6 @@ export function FinancialTableTemplate<T>({
       newCollapsed.add(groupKey);
     }
     setCollapsedGroups(newCollapsed);
-  };
-
-  const expandAllGroups = () => {
-    setCollapsedGroups(new Set());
-  };
-
-  const collapseAllGroups = () => {
-    if (isGrouped) {
-      const allKeys = new Set(
-        (data as FinancialTableGroup<T>[]).map(g => g.groupKey)
-      );
-      setCollapsedGroups(allKeys);
-    }
-  };
-
-  const toggleAllGroups = () => {
-    if (collapsedGroups.size > 0) {
-      expandAllGroups();
-    } else {
-      collapseAllGroups();
-    }
   };
 
   const handleDeleteClick = (id: string) => {
