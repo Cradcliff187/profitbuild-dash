@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Image, Download, Trash2, Search, FileImage } from 'lucide-react';
+import { Image, Download, Trash2, Search, FileImage, MoreHorizontal } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -25,34 +24,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from 'lucide-react';
 
-interface TimeEntryReceipt {
+interface UnifiedReceipt {
   id: string;
-  attachment_url: string;
-  worker_name: string;
-  project_number: string;
-  project_name: string;
-  expense_date: string;
-  hours: number;
-  amount: number;
-}
-
-interface StandaloneReceipt {
-  id: string;
+  type: 'time_entry' | 'standalone';
   image_url: string;
-  amount: number;
   payee_name: string;
   project_number: string;
   project_name: string;
-  description: string;
-  captured_at: string;
+  date: string;
+  amount: number;
+  description?: string;
+  hours?: number;
 }
 
 export const ReceiptsManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'time-entries' | 'all-receipts'>('time-entries');
-  const [timeEntryReceipts, setTimeEntryReceipts] = useState<TimeEntryReceipt[]>([]);
-  const [standaloneReceipts, setStandaloneReceipts] = useState<StandaloneReceipt[]>([]);
+  const [allReceipts, setAllReceipts] = useState<UnifiedReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -68,114 +55,105 @@ export const ReceiptsManagement: React.FC = () => {
   const loadReceipts = async () => {
     setLoading(true);
     try {
-      await Promise.all([loadTimeEntryReceipts(), loadStandaloneReceipts()]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      // Fetch both types in parallel
+      const [timeEntryResult, standaloneResult] = await Promise.all([
+        supabase
+          .from('expenses')
+          .select(`
+            id,
+            expense_date,
+            amount,
+            attachment_url,
+            start_time,
+            end_time,
+            payees!inner(payee_name),
+            projects!inner(project_number, project_name)
+          `)
+          .eq('category', 'labor_internal')
+          .not('attachment_url', 'is', null)
+          .order('expense_date', { ascending: false }),
+        
+        supabase
+          .from('receipts')
+          .select(`
+            id,
+            image_url,
+            amount,
+            description,
+            captured_at,
+            payees(payee_name),
+            projects(project_number, project_name)
+          `)
+          .order('captured_at', { ascending: false })
+      ]);
 
-  const loadTimeEntryReceipts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .select(`
-          id,
-          expense_date,
-          amount,
-          attachment_url,
-          start_time,
-          end_time,
-          payees!inner(payee_name),
-          projects!inner(project_number, project_name)
-        `)
-        .eq('category', 'labor_internal')
-        .not('attachment_url', 'is', null)
-        .order('expense_date', { ascending: false });
+      if (timeEntryResult.error) throw timeEntryResult.error;
+      if (standaloneResult.error) throw standaloneResult.error;
 
-      if (error) throw error;
-
-      const formatted = (data || []).map((expense: any) => {
+      // Transform time entry receipts
+      const timeEntryReceipts: UnifiedReceipt[] = (timeEntryResult.data || []).map((expense: any) => {
         const hours = expense.start_time && expense.end_time
           ? (new Date(expense.end_time).getTime() - new Date(expense.start_time).getTime()) / (1000 * 60 * 60)
           : 0;
 
         return {
           id: expense.id,
-          attachment_url: expense.attachment_url,
-          worker_name: expense.payees?.payee_name || 'Unknown',
+          type: 'time_entry' as const,
+          image_url: expense.attachment_url,
+          payee_name: expense.payees?.payee_name || 'Unknown',
           project_number: expense.projects?.project_number || '',
           project_name: expense.projects?.project_name || '',
-          expense_date: expense.expense_date,
-          hours,
+          date: expense.expense_date,
           amount: expense.amount,
+          hours,
         };
       });
 
-      setTimeEntryReceipts(formatted);
-    } catch (error) {
-      console.error('Failed to load time entry receipts:', error);
-      toast.error('Failed to load time entry receipts');
-    }
-  };
-
-  const loadStandaloneReceipts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('receipts')
-        .select(`
-          id,
-          image_url,
-          amount,
-          description,
-          captured_at,
-          payees(payee_name),
-          projects(project_number, project_name)
-        `)
-        .order('captured_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formatted = (data || []).map((receipt: any) => ({
+      // Transform standalone receipts
+      const standaloneReceipts: UnifiedReceipt[] = (standaloneResult.data || []).map((receipt: any) => ({
         id: receipt.id,
+        type: 'standalone' as const,
         image_url: receipt.image_url,
-        amount: receipt.amount,
         payee_name: receipt.payees?.payee_name || 'Unknown',
         project_number: receipt.projects?.project_number || 'SYS-000',
         project_name: receipt.projects?.project_name || 'Unassigned',
+        date: receipt.captured_at,
+        amount: receipt.amount,
         description: receipt.description || '',
-        captured_at: receipt.captured_at,
       }));
 
-      setStandaloneReceipts(formatted);
+      // Merge and sort by date (most recent first)
+      const unified = [...timeEntryReceipts, ...standaloneReceipts]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      setAllReceipts(unified);
     } catch (error) {
-      console.error('Failed to load standalone receipts:', error);
-      toast.error('Failed to load standalone receipts');
+      console.error('Failed to load receipts:', error);
+      toast.error('Failed to load receipts');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleViewTimeEntryReceipt = (receipt: TimeEntryReceipt) => {
-    setSelectedReceiptUrl(receipt.attachment_url);
-    setPreviewDetails({
-      worker: receipt.worker_name,
-      project: `${receipt.project_number} - ${receipt.project_name}`,
-      date: format(new Date(receipt.expense_date), 'MMM dd, yyyy'),
-      hours: `${receipt.hours.toFixed(2)} hrs`,
-    });
-    setPreviewOpen(true);
-  };
-
-  const handleViewStandaloneReceipt = (receipt: StandaloneReceipt) => {
+  const handleViewReceipt = (receipt: UnifiedReceipt) => {
     setSelectedReceiptUrl(receipt.image_url);
     setPreviewDetails({
       payee: receipt.payee_name,
       project: `${receipt.project_number} - ${receipt.project_name}`,
-      date: format(new Date(receipt.captured_at), 'MMM dd, yyyy'),
+      date: format(new Date(receipt.date), 'MMM dd, yyyy'),
       amount: `$${receipt.amount.toFixed(2)}`,
+      ...(receipt.hours !== undefined && { hours: `${receipt.hours.toFixed(2)} hrs` }),
     });
     setPreviewOpen(true);
   };
 
-  const handleDeleteStandaloneReceipt = async (receiptId: string) => {
+  const handleDeleteReceipt = async (receiptId: string, receiptType: 'time_entry' | 'standalone') => {
+    // Only allow deletion of standalone receipts
+    if (receiptType !== 'standalone') {
+      toast.error('Cannot delete time entry receipts');
+      return;
+    }
+
     if (!confirm('Are you sure you want to delete this receipt?')) return;
 
     try {
@@ -187,7 +165,7 @@ export const ReceiptsManagement: React.FC = () => {
       if (error) throw error;
 
       toast.success('Receipt deleted');
-      loadStandaloneReceipts();
+      loadReceipts();
     } catch (error) {
       toast.error('Failed to delete receipt');
     }
@@ -195,34 +173,23 @@ export const ReceiptsManagement: React.FC = () => {
 
   const handleBulkDownload = async () => {
     try {
-      const receiptsToDownload = activeTab === 'time-entries'
-        ? filteredTimeEntryReceipts.map(r => ({
-            id: r.id,
-            attachment_url: r.attachment_url,
-            worker_name: r.worker_name,
-            project_number: r.project_number,
-            expense_date: r.expense_date,
-            hours: r.hours,
-          }))
-        : filteredStandaloneReceipts.map(r => ({
-            id: r.id,
-            attachment_url: r.image_url,
-            worker_name: r.payee_name,
-            project_number: r.project_number,
-            expense_date: r.captured_at,
-            hours: 0,
-          }));
-
-      if (receiptsToDownload.length === 0) {
+      if (filteredReceipts.length === 0) {
         toast.error('No receipts to download');
         return;
       }
 
-      toast.success(`Downloading ${receiptsToDownload.length} receipts...`);
+      toast.success(`Downloading ${filteredReceipts.length} receipts...`);
       const dateStr = format(new Date(), 'yyyy-MM-dd');
-      const filename = activeTab === 'time-entries' 
-        ? `time_entry_receipts_${dateStr}.zip`
-        : `all_receipts_${dateStr}.zip`;
+      const filename = `all_receipts_${dateStr}.zip`;
+
+      const receiptsToDownload = filteredReceipts.map(r => ({
+        id: r.id,
+        attachment_url: r.image_url,
+        worker_name: r.payee_name,
+        project_number: r.project_number,
+        expense_date: r.date,
+        hours: r.hours || 0,
+      }));
       
       await downloadReceiptsAsZip(receiptsToDownload, filename);
       toast.success('Download complete');
@@ -232,24 +199,15 @@ export const ReceiptsManagement: React.FC = () => {
   };
 
   // Filter receipts based on search
-  const filteredTimeEntryReceipts = timeEntryReceipts.filter(r => {
-    const search = searchTerm.toLowerCase();
-    return (
-      r.worker_name.toLowerCase().includes(search) ||
-      r.project_number.toLowerCase().includes(search) ||
-      r.project_name.toLowerCase().includes(search) ||
-      format(new Date(r.expense_date), 'MMM dd, yyyy').toLowerCase().includes(search)
-    );
-  });
-
-  const filteredStandaloneReceipts = standaloneReceipts.filter(r => {
+  const filteredReceipts = allReceipts.filter(r => {
     const search = searchTerm.toLowerCase();
     return (
       r.payee_name.toLowerCase().includes(search) ||
       r.project_number.toLowerCase().includes(search) ||
       r.project_name.toLowerCase().includes(search) ||
-      r.description.toLowerCase().includes(search) ||
-      format(new Date(r.captured_at), 'MMM dd, yyyy').toLowerCase().includes(search)
+      (r.description && r.description.toLowerCase().includes(search)) ||
+      format(new Date(r.date), 'MMM dd, yyyy').toLowerCase().includes(search) ||
+      r.type.includes(search)
     );
   });
 
@@ -273,7 +231,7 @@ export const ReceiptsManagement: React.FC = () => {
         </div>
         <Button onClick={handleBulkDownload} variant="outline" size="sm">
           <FileImage className="w-3 h-3 mr-2" />
-          Download All ({activeTab === 'time-entries' ? filteredTimeEntryReceipts.length : filteredStandaloneReceipts.length})
+          Download All ({filteredReceipts.length})
         </Button>
       </div>
 
@@ -288,203 +246,128 @@ export const ReceiptsManagement: React.FC = () => {
         />
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-        <TabsList className="h-8">
-          <TabsTrigger value="time-entries" className="text-xs h-7">
-            Time Entry Receipts ({timeEntryReceipts.length})
-          </TabsTrigger>
-          <TabsTrigger value="all-receipts" className="text-xs h-7">
-            All Receipts ({standaloneReceipts.length})
-          </TabsTrigger>
-        </TabsList>
+      {/* Single Unified Table */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="h-8">
+                <TableHead className="w-12 text-xs">Preview</TableHead>
+                <TableHead className="w-24 text-xs">Type</TableHead>
+                <TableHead className="text-xs">Payee/Worker</TableHead>
+                <TableHead className="text-xs">Project</TableHead>
+                <TableHead className="text-xs">Date</TableHead>
+                <TableHead className="text-right text-xs">Amount</TableHead>
+                <TableHead className="text-xs max-w-xs">Description</TableHead>
+                <TableHead className="text-right text-xs w-20">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredReceipts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-6 text-xs text-muted-foreground">
+                    No receipts found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredReceipts.map((receipt) => (
+                  <TableRow key={receipt.id} className="h-9 hover:bg-muted/50 even:bg-muted/20">
+                    {/* Preview Button */}
+                    <TableCell className="p-1.5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => handleViewReceipt(receipt)}
+                      >
+                        <Image className="h-3 w-3 text-blue-600" />
+                      </Button>
+                    </TableCell>
 
-        {/* Time Entry Receipts Tab */}
-        <TabsContent value="time-entries">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="h-8">
-                    <TableHead className="w-12 text-xs">Preview</TableHead>
-                    <TableHead className="text-xs">Worker</TableHead>
-                    <TableHead className="text-xs">Project</TableHead>
-                    <TableHead className="text-xs">Date</TableHead>
-                    <TableHead className="text-right text-xs">Hours</TableHead>
-                    <TableHead className="text-right text-xs">Amount</TableHead>
-                    <TableHead className="text-right text-xs">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTimeEntryReceipts.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-6 text-xs text-muted-foreground">
-                        No time entry receipts found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredTimeEntryReceipts.map((receipt) => (
-                      <TableRow key={receipt.id} className="h-9">
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={() => handleViewTimeEntryReceipt(receipt)}
-                          >
-                            <Image className="h-3 w-3 text-blue-600" />
-                          </Button>
-                        </TableCell>
-                        <TableCell className="font-medium text-sm">{receipt.worker_name}</TableCell>
-                        <TableCell>
-                          <div className="text-xs">
-                            <div className="font-medium">{receipt.project_number}</div>
-                            <div className="text-muted-foreground">{receipt.project_name}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {format(new Date(receipt.expense_date), 'MMM dd, yyyy')}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-xs">
-                          {receipt.hours.toFixed(2)}h
-                        </TableCell>
-                        <TableCell className="text-right font-semibold text-sm">
-                          ${receipt.amount.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                <MoreHorizontal className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewTimeEntryReceipt(receipt)}>
-                                <Image className="h-3 w-3 mr-2" />
-                                View Receipt
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={async () => {
-                                const filename = `receipt_${receipt.worker_name}_${format(new Date(receipt.expense_date), 'yyyy-MM-dd')}.jpg`;
-                                try {
-                                  await downloadSingleReceipt(receipt.attachment_url, filename);
-                                  toast.success('Receipt downloaded');
-                                } catch (error) {
-                                  toast.error('Failed to download receipt');
-                                }
-                              }}>
-                                <Download className="h-3 w-3 mr-2" />
-                                Download Receipt
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                    {/* Type Badge */}
+                    <TableCell className="p-1.5">
+                      <Badge 
+                        variant={receipt.type === 'time_entry' ? 'default' : 'secondary'}
+                        className="text-[10px] h-4 px-1.5"
+                      >
+                        {receipt.type === 'time_entry' ? 'Time Entry' : 'Standalone'}
+                      </Badge>
+                    </TableCell>
 
-        {/* All Receipts Tab */}
-        <TabsContent value="all-receipts">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="h-8">
-                    <TableHead className="w-12 text-xs">Preview</TableHead>
-                    <TableHead className="text-xs">Payee</TableHead>
-                    <TableHead className="text-xs">Project</TableHead>
-                    <TableHead className="text-xs">Description</TableHead>
-                    <TableHead className="text-xs">Date</TableHead>
-                    <TableHead className="text-right text-xs">Amount</TableHead>
-                    <TableHead className="text-right text-xs">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredStandaloneReceipts.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-6 text-xs text-muted-foreground">
-                        No standalone receipts found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredStandaloneReceipts.map((receipt) => (
-                      <TableRow key={receipt.id} className="h-9">
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={() => handleViewStandaloneReceipt(receipt)}
-                          >
-                            <Image className="h-3 w-3 text-blue-600" />
+                    {/* Payee/Worker */}
+                    <TableCell className="p-1.5 font-medium text-xs">
+                      {receipt.payee_name}
+                    </TableCell>
+
+                    {/* Project */}
+                    <TableCell className="p-1.5">
+                      <div className="text-xs">
+                        <div className="font-medium">{receipt.project_number}</div>
+                        <div className="text-muted-foreground text-[10px]">{receipt.project_name}</div>
+                      </div>
+                    </TableCell>
+
+                    {/* Date */}
+                    <TableCell className="p-1.5 text-xs">
+                      {format(new Date(receipt.date), 'MMM dd, yyyy')}
+                    </TableCell>
+
+                    {/* Amount */}
+                    <TableCell className="p-1.5 text-right font-semibold text-xs">
+                      ${receipt.amount.toFixed(2)}
+                    </TableCell>
+
+                    {/* Description */}
+                    <TableCell className="p-1.5 text-xs text-muted-foreground max-w-xs truncate">
+                      {receipt.type === 'time_entry' && receipt.hours !== undefined
+                        ? `${receipt.hours.toFixed(2)} hrs`
+                        : receipt.description || '-'}
+                    </TableCell>
+
+                    {/* Actions */}
+                    <TableCell className="p-1.5 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <MoreHorizontal className="h-3 w-3" />
                           </Button>
-                        </TableCell>
-                        <TableCell className="font-medium text-sm">{receipt.payee_name}</TableCell>
-                        <TableCell>
-                          <div className="text-xs">
-                            <div className="font-medium">{receipt.project_number}</div>
-                            <div className="text-muted-foreground">{receipt.project_name}</div>
-                          </div>
-                          {receipt.project_number === 'SYS-000' && (
-                            <Badge variant="outline" className="mt-1 text-xs">Unassigned</Badge>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewReceipt(receipt)}>
+                            <Image className="h-3 w-3 mr-2" />
+                            View Receipt
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={async () => {
+                            const filename = `receipt_${receipt.payee_name}_${format(new Date(receipt.date), 'yyyy-MM-dd')}.jpg`;
+                            try {
+                              await downloadSingleReceipt(receipt.image_url, filename);
+                              toast.success('Receipt downloaded');
+                            } catch (error) {
+                              toast.error('Failed to download receipt');
+                            }
+                          }}>
+                            <Download className="h-3 w-3 mr-2" />
+                            Download
+                          </DropdownMenuItem>
+                          {receipt.type === 'standalone' && (
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteReceipt(receipt.id, receipt.type)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
                           )}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground max-w-xs truncate">
-                          {receipt.description || '-'}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {format(new Date(receipt.captured_at), 'MMM dd, yyyy')}
-                        </TableCell>
-                        <TableCell className="text-right font-semibold text-sm">
-                          ${receipt.amount.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                <MoreHorizontal className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewStandaloneReceipt(receipt)}>
-                                <Image className="h-3 w-3 mr-2" />
-                                View Receipt
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={async () => {
-                                const filename = `receipt_${receipt.payee_name}_${format(new Date(receipt.captured_at), 'yyyy-MM-dd')}.jpg`;
-                                try {
-                                  await downloadSingleReceipt(receipt.image_url, filename);
-                                  toast.success('Receipt downloaded');
-                                } catch (error) {
-                                  toast.error('Failed to download receipt');
-                                }
-                              }}>
-                                <Download className="h-3 w-3 mr-2" />
-                                Download Receipt
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteStandaloneReceipt(receipt.id)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="h-3 w-3 mr-2" />
-                                Delete Receipt
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Preview Modal */}
       <ReceiptPreviewModal
