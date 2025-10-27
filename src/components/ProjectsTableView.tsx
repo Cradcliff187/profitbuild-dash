@@ -1126,16 +1126,13 @@ export const ProjectsTableView = ({
           <div className="text-sm text-muted-foreground">
             {projects.length} {projects.length === 1 ? 'project' : 'projects'}
           </div>
-          <div className="flex items-center gap-2">
-            {collapseButton}
-            <ColumnSelector
-              columns={columnDefinitions}
-              visibleColumns={visibleColumns}
-              onVisibilityChange={setVisibleColumns}
-              columnOrder={columnOrder}
-              onColumnOrderChange={setColumnOrder}
-            />
-          </div>
+          <ColumnSelector
+            columns={columnDefinitions}
+            visibleColumns={visibleColumns}
+            onVisibilityChange={setVisibleColumns}
+            columnOrder={columnOrder}
+            onColumnOrderChange={setColumnOrder}
+          />
         </div>
         
         <ProjectsTable

@@ -480,15 +480,6 @@ export const QuotesTableView = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          {quotes.length} {quotes.length === 1 ? 'quote' : 'quotes'} across {groupedData.length} {groupedData.length === 1 ? 'project' : 'projects'}
-        </div>
-        <div className="flex items-center gap-2">
-          {collapseButton}
-        </div>
-      </div>
-      
       <QuotesTable
         data={groupedData}
         columns={columns}

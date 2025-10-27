@@ -539,16 +539,13 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         <div className="text-sm text-muted-foreground">
           {localEstimates.length} {localEstimates.length === 1 ? 'estimate' : 'estimates'} across {groupedData.length} {groupedData.length === 1 ? 'project' : 'projects'}
         </div>
-        <div className="flex items-center gap-2">
-          {collapseButton}
-          <ColumnSelector
-            columns={columnDefinitions}
-            visibleColumns={visibleColumns}
-            onVisibilityChange={setVisibleColumns}
-            columnOrder={columnOrder}
-            onColumnOrderChange={setColumnOrder}
-          />
-        </div>
+        <ColumnSelector
+          columns={columnDefinitions}
+          visibleColumns={visibleColumns}
+          onVisibilityChange={setVisibleColumns}
+          columnOrder={columnOrder}
+          onColumnOrderChange={setColumnOrder}
+        />
       </div>
       
       <EstimatesTable
