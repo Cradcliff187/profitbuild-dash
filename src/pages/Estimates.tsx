@@ -307,6 +307,57 @@ const EstimatesPage = () => {
 
   const handleDelete = async (id: string) => {
     try {
+      // First, check if the estimate exists
+      const estimate = estimates.find(e => e.id === id);
+      if (!estimate) {
+        toast({
+          title: "Error",
+          description: "Estimate not found.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check if project still exists
+      const { data: project, error: projectCheckError } = await supabase
+        .from('projects')
+        .select('id, project_name, project_number')
+        .eq('id', estimate.project_id)
+        .maybeSingle();
+
+      if (projectCheckError && projectCheckError.code !== 'PGRST116') {
+        throw projectCheckError;
+      }
+
+      if (project) {
+        // Project exists - cannot delete estimate
+        toast({
+          title: "Cannot Delete Estimate",
+          description: `This estimate is linked to project "${project.project_name}" (${project.project_number}). You must delete the project first to remove this estimate.`,
+          variant: "destructive",
+          duration: 8000
+        });
+        return;
+      }
+
+      // Check for child versions
+      const { data: childVersions } = await supabase
+        .from('estimates')
+        .select('id, estimate_number')
+        .eq('parent_estimate_id', id);
+
+      if (childVersions && childVersions.length > 0) {
+        toast({
+          title: "Cannot Delete Estimate",
+          description: `This estimate has ${childVersions.length} child version(s). Delete the child versions first: ${childVersions.map(v => v.estimate_number).join(', ')}`,
+          variant: "destructive",
+          duration: 8000
+        });
+        return;
+      }
+
+      // Project doesn't exist and no child versions - proceed with deletion
+      
       // Delete estimate line items first
       const { error: lineItemsError } = await supabase
         .from('estimate_line_items')
@@ -329,7 +380,20 @@ const EstimatesPage = () => {
         .delete()
         .eq('id', id);
       
-      if (estimateError) throw estimateError;
+      if (estimateError) {
+        // Parse specific database errors
+        if (estimateError.message.includes('foreign key') || estimateError.code === '23503') {
+          toast({
+            title: "Cannot Delete Estimate",
+            description: "This estimate is referenced by other records in the database. Please contact support for assistance.",
+            variant: "destructive",
+            duration: 8000
+          });
+        } else {
+          throw estimateError;
+        }
+        return;
+      }
 
       // Remove from local state
       setEstimates(prev => prev.filter(e => e.id !== id));
@@ -342,7 +406,7 @@ const EstimatesPage = () => {
       console.error('Error deleting estimate:', error);
       toast({
         title: "Error",
-        description: "Failed to delete estimate. Please try again.",
+        description: `Failed to delete estimate: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     }
