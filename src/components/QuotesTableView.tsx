@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal, Copy } from "lucide-react";
+import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal, Copy, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -55,6 +55,7 @@ export const QuotesTableView = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState<string | null>(null);
   const [localQuotes, setLocalQuotes] = useState(quotes);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   // Update local state when quotes prop changes
   React.useEffect(() => {
@@ -429,6 +430,38 @@ export const QuotesTableView = ({
     },
   ];
 
+  const toggleAllGroups = () => {
+    if (collapsedGroups.size > 0) {
+      setCollapsedGroups(new Set());
+    } else {
+      const allKeys = new Set(groupedData.map(g => g.groupKey));
+      setCollapsedGroups(allKeys);
+    }
+  };
+
+  const collapseButton = (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-2"
+            onClick={toggleAllGroups}
+          >
+            <ChevronsUpDown className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {collapsedGroups.size > 0 ? 'Expand All' : 'Collapse All'}
+            </span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          {collapsedGroups.size > 0 ? 'Expand all groups' : 'Collapse all groups'}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+
   if (quotes.length === 0) {
     return (
       <div className="text-center py-12">
@@ -447,6 +480,15 @@ export const QuotesTableView = ({
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          {quotes.length} {quotes.length === 1 ? 'quote' : 'quotes'} across {groupedData.length} {groupedData.length === 1 ? 'project' : 'projects'}
+        </div>
+        <div className="flex items-center gap-2">
+          {collapseButton}
+        </div>
+      </div>
+      
       <QuotesTable
         data={groupedData}
         columns={columns}

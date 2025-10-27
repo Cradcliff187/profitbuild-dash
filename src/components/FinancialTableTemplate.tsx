@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { ChevronUp, ChevronDown, Eye, Edit, Trash2 } from "lucide-react";
+import { ChevronUp, ChevronDown, Eye, Edit, Trash2, ChevronsUpDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +40,7 @@ interface FinancialTableTemplateProps<T> {
   emptyIcon?: React.ReactNode;
   showActions?: boolean;
   sortable?: boolean;
+  collapseAllButton?: React.ReactNode;
 }
 
 export function FinancialTableTemplate<T>({
@@ -54,6 +56,7 @@ export function FinancialTableTemplate<T>({
   emptyIcon,
   showActions = true,
   sortable = true,
+  collapseAllButton,
 }: FinancialTableTemplateProps<T>) {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -80,6 +83,27 @@ export function FinancialTableTemplate<T>({
       newCollapsed.add(groupKey);
     }
     setCollapsedGroups(newCollapsed);
+  };
+
+  const expandAllGroups = () => {
+    setCollapsedGroups(new Set());
+  };
+
+  const collapseAllGroups = () => {
+    if (isGrouped) {
+      const allKeys = new Set(
+        (data as FinancialTableGroup<T>[]).map(g => g.groupKey)
+      );
+      setCollapsedGroups(allKeys);
+    }
+  };
+
+  const toggleAllGroups = () => {
+    if (collapsedGroups.size > 0) {
+      expandAllGroups();
+    } else {
+      collapseAllGroups();
+    }
   };
 
   const handleDeleteClick = (id: string) => {
@@ -261,6 +285,11 @@ export function FinancialTableTemplate<T>({
   return (
     <>
       <div className={cn("border border-border/50 rounded-lg bg-card overflow-hidden", className)}>
+        {collapseAllButton && isGrouped && (
+          <div className="px-3 py-2 border-b border-border/50 bg-muted/20 flex items-center justify-end">
+            {collapseAllButton}
+          </div>
+        )}
         <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px] w-full">
           <div className="mobile-table-wrapper">
             <Table className="min-w-[800px] w-full">

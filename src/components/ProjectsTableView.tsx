@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, DollarSign, Calendar, Clock, AlertTriangle, Filter, Trash2 } from "lucide-react";
+import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, DollarSign, Calendar, Clock, AlertTriangle, Filter, Trash2, ChevronsUpDown } from "lucide-react";
 import { ProjectStatusSelector } from "@/components/ProjectStatusSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,7 @@ export const ProjectsTableView = ({
   });
 
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   // Define column metadata for selector
   const columnDefinitions = [
@@ -1086,6 +1087,36 @@ export const ProjectsTableView = ({
       col !== undefined && visibleColumns.includes(col.key)
     );
 
+  const toggleAllGroups = () => {
+    if (collapsedGroups.size > 0) {
+      setCollapsedGroups(new Set());
+    } else {
+      const allKeys = new Set(groupedData.map(g => g.groupKey));
+      setCollapsedGroups(allKeys);
+    }
+  };
+
+  const collapseButton = (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 gap-2"
+          onClick={toggleAllGroups}
+        >
+          <ChevronsUpDown className="h-4 w-4" />
+          <span className="hidden sm:inline">
+            {collapsedGroups.size > 0 ? 'Expand All' : 'Collapse All'}
+          </span>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        {collapsedGroups.size > 0 ? 'Expand all groups' : 'Collapse all groups'}
+      </TooltipContent>
+    </Tooltip>
+  );
+
   const ProjectsTable = FinancialTableTemplate<ProjectWithFinancials>;
 
   return (
@@ -1095,13 +1126,16 @@ export const ProjectsTableView = ({
           <div className="text-sm text-muted-foreground">
             {projects.length} {projects.length === 1 ? 'project' : 'projects'}
           </div>
-          <ColumnSelector
-            columns={columnDefinitions}
-            visibleColumns={visibleColumns}
-            onVisibilityChange={setVisibleColumns}
-            columnOrder={columnOrder}
-            onColumnOrderChange={setColumnOrder}
-          />
+          <div className="flex items-center gap-2">
+            {collapseButton}
+            <ColumnSelector
+              columns={columnDefinitions}
+              visibleColumns={visibleColumns}
+              onVisibilityChange={setVisibleColumns}
+              columnOrder={columnOrder}
+              onColumnOrderChange={setColumnOrder}
+            />
+          </div>
         </div>
         
         <ProjectsTable
