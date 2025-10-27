@@ -295,8 +295,8 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
     >
       <div className="space-y-2">
         {entry?.approval_status === 'approved' && (
-          <Alert className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
-            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <Alert className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800 p-2">
+            <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
             <AlertTitle className="text-green-800 dark:text-green-200">Entry Approved</AlertTitle>
             <AlertDescription className="text-green-700 dark:text-green-300">
               This time entry has been approved. Only admins can make changes.
@@ -305,8 +305,8 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
         )}
         
         {entry?.approval_status === 'rejected' && (
-          <Alert variant="destructive">
-            <XCircle className="h-4 w-4" />
+          <Alert variant="destructive" className="p-2">
+            <XCircle className="h-3.5 w-3.5" />
             <AlertTitle>Entry Rejected</AlertTitle>
             <AlertDescription>
               {entry.rejection_reason || 'This entry was rejected. You can edit and resubmit.'}
@@ -315,8 +315,8 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
         )}
 
         {entry?.approval_status === 'pending' && (
-          <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
-            <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-2">
+            <AlertCircle className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
             <AlertTitle className="text-blue-800 dark:text-blue-200">Pending Approval</AlertTitle>
             <AlertDescription className="text-blue-700 dark:text-blue-300">
               You can still edit this entry until it's approved.
@@ -325,8 +325,8 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
         )}
 
         {entry?.is_locked && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
+          <Alert className="p-2">
+            <AlertCircle className="h-3.5 w-3.5" />
             <AlertTitle>Entry Locked</AlertTitle>
             <AlertDescription>
               This entry is locked and cannot be edited.
@@ -355,11 +355,12 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
           isMobile={isMobile}
         />
 
-        <div className="flex gap-2 pt-3">
+        <div className="flex gap-1.5 pt-2">
           {canDelete && (
             <Button 
               type="button"
-              variant="destructive" 
+              variant="destructive"
+              size="sm"
               onClick={handleDelete}
               disabled={loading}
             >
@@ -368,7 +369,8 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
           )}
           <Button 
             type="button"
-            variant="outline" 
+            variant="outline"
+            size="sm"
             onClick={() => onOpenChange(false)} 
             disabled={loading}
             className="flex-1"
@@ -378,6 +380,7 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
           {canEdit && (
             <Button 
               type="button"
+              size="sm"
               onClick={handleSave} 
               disabled={loading}
               className="flex-1"

@@ -17,11 +17,11 @@ export const TimeEntryBulkActions = ({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="flex items-center gap-2 p-2 bg-muted border rounded-md">
+    <div className="flex items-center gap-1.5 p-1.5 bg-muted border rounded-md">
       <span className="text-xs font-medium">
         {selectedCount} {selectedCount === 1 ? 'entry' : 'entries'} selected
       </span>
-      <div className="flex gap-2 ml-auto">
+      <div className="flex gap-1.5 ml-auto">
         <Button size="sm" variant="default" onClick={onApprove}>
           <CheckCircle className="h-3 w-3 mr-1" />
           Approve

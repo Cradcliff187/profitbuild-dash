@@ -232,11 +232,11 @@ const TimeEntries = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Clock className="h-5 w-5" />
+          <h1 className="text-lg font-bold flex items-center gap-2">
+            <Clock className="h-4 w-4" />
             Time Entry Management
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">Review and approve time entries</p>
+          <p className="text-xs text-muted-foreground">Review and approve time entries</p>
         </div>
         <div className="flex items-center gap-2">
           <ColumnSelector
@@ -265,9 +265,9 @@ const TimeEntries = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Pending Approval</p>
-                <p className="text-lg font-bold">{statistics.pendingCount}</p>
+                <p className="text-base font-bold">{statistics.pendingCount}</p>
               </div>
-              <Clock className="h-6 w-6 text-yellow-500" />
+              <Clock className="h-5 w-5 text-yellow-500" />
             </div>
           </CardContent>
         </Card>
@@ -277,9 +277,9 @@ const TimeEntries = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Approved This Week</p>
-                <p className="text-lg font-bold">{statistics.approvedThisWeekHours.toFixed(1)}h</p>
+                <p className="text-base font-bold">{statistics.approvedThisWeekHours.toFixed(1)}h</p>
               </div>
-              <CheckCircle className="h-6 w-6 text-green-500" />
+              <CheckCircle className="h-5 w-5 text-green-500" />
             </div>
           </CardContent>
         </Card>
@@ -289,9 +289,9 @@ const TimeEntries = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Rejected</p>
-                <p className="text-lg font-bold">{statistics.rejectedCount}</p>
+                <p className="text-base font-bold">{statistics.rejectedCount}</p>
               </div>
-              <XCircle className="h-6 w-6 text-red-500" />
+              <XCircle className="h-5 w-5 text-red-500" />
             </div>
           </CardContent>
         </Card>
@@ -301,9 +301,9 @@ const TimeEntries = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Total This Month</p>
-                <p className="text-lg font-bold">{statistics.totalThisMonthHours.toFixed(1)}h</p>
+                <p className="text-base font-bold">{statistics.totalThisMonthHours.toFixed(1)}h</p>
               </div>
-              <Clock className="h-6 w-6 text-blue-500" />
+              <Clock className="h-5 w-5 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -326,8 +326,8 @@ const TimeEntries = () => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
+                <TableRow className="h-8">
+                  <TableHead className="w-10 p-2">
                     <Checkbox
                       checked={selectedIds.length === entries.length && entries.length > 0}
                       onCheckedChange={handleSelectAll}
@@ -336,29 +336,43 @@ const TimeEntries = () => {
                   {columnOrder.map(colKey => {
                     if (!visibleColumns.includes(colKey)) return null;
                     
+                    const widths: Record<string, string> = {
+                      worker: 'w-32',
+                      project: 'w-48',
+                      address: 'w-40',
+                      date: 'w-28',
+                      start: 'w-20',
+                      end: 'w-20',
+                      hours: 'w-20',
+                      amount: 'w-24',
+                      status: 'w-24',
+                      submitted_at: 'w-36',
+                      actions: 'w-20'
+                    };
+                    
                     switch (colKey) {
                       case 'worker':
-                        return <TableHead key={colKey}>Worker</TableHead>;
+                        return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>Worker</TableHead>;
                       case 'project':
-                        return <TableHead key={colKey}>Project</TableHead>;
+                        return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>Project</TableHead>;
                       case 'address':
-                        return <TableHead key={colKey}>Address</TableHead>;
+                        return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>Address</TableHead>;
                       case 'date':
-                        return <TableHead key={colKey}>Date</TableHead>;
+                        return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>Date</TableHead>;
                       case 'start':
-                        return <TableHead key={colKey}>Start</TableHead>;
+                        return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>Start</TableHead>;
                       case 'end':
-                        return <TableHead key={colKey}>End</TableHead>;
+                        return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>End</TableHead>;
                       case 'hours':
-                        return <TableHead key={colKey} className="text-right">Hours</TableHead>;
+                        return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 text-right ${widths[colKey]}`}>Hours</TableHead>;
                       case 'amount':
-                        return <TableHead key={colKey} className="text-right">Amount</TableHead>;
+                        return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 text-right ${widths[colKey]}`}>Amount</TableHead>;
                       case 'status':
-                        return <TableHead key={colKey}>Status</TableHead>;
+                        return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>Status</TableHead>;
                       case 'submitted_at':
-                        return <TableHead key={colKey}>Submitted At</TableHead>;
+                        return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>Submitted At</TableHead>;
                       case 'actions':
-                        return <TableHead key={colKey} className="text-right">Actions</TableHead>;
+                        return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 text-right ${widths[colKey]}`}>Actions</TableHead>;
                       default:
                         return null;
                     }
@@ -368,20 +382,20 @@ const TimeEntries = () => {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={visibleColumns.length + 1} className="text-center py-8">
+                    <TableCell colSpan={visibleColumns.length + 1} className="text-center py-4 text-xs">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : entries.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={visibleColumns.length + 1} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={visibleColumns.length + 1} className="text-center py-4 text-xs text-muted-foreground">
                       No time entries found
                     </TableCell>
                   </TableRow>
                 ) : (
                   entries.map(entry => (
-                    <TableRow key={entry.id}>
-                      <TableCell className="w-12">
+                    <TableRow key={entry.id} className="h-9 hover:bg-muted/50 even:bg-muted/20">
+                      <TableCell className="p-1.5">
                         <Checkbox
                           checked={selectedIds.includes(entry.id)}
                           onCheckedChange={(checked) => handleSelectOne(entry.id, checked as boolean)}
@@ -393,67 +407,63 @@ const TimeEntries = () => {
                         switch (colKey) {
                           case 'worker':
                             return (
-                              <TableCell key={colKey}>
-                                <div className="text-xs font-medium">{entry.worker_name}</div>
-                              </TableCell>
+                              <TableCell key={colKey} className="p-1.5 text-xs font-medium">{entry.worker_name}</TableCell>
                             );
                           case 'project':
                             return (
-                              <TableCell key={colKey}>
-                                <div className="text-xs">
+                              <TableCell key={colKey} className="p-1.5">
+                                <div className="text-xs leading-tight">
                                   <div className="font-medium">{entry.project_number}</div>
-                                  <div className="text-muted-foreground">{entry.project_name}</div>
-                                  <div className="text-muted-foreground">{entry.client_name}</div>
+                                  <div className="text-muted-foreground text-[10px]">{entry.project_name}</div>
+                                  <div className="text-muted-foreground text-[10px]">{entry.client_name}</div>
                                 </div>
                               </TableCell>
                             );
                           case 'address':
                             return (
-                              <TableCell key={colKey}>
-                                <div className="text-xs text-muted-foreground">
-                                  {entry.project_address || '-'}
-                                </div>
+                              <TableCell key={colKey} className="p-1.5 text-xs text-muted-foreground">
+                                {entry.project_address || '-'}
                               </TableCell>
                             );
                           case 'date':
                             return (
-                              <TableCell key={colKey} className="text-xs">
+                              <TableCell key={colKey} className="p-1.5 text-xs">
                                 {format(new Date(entry.expense_date), 'MMM dd, yyyy')}
                               </TableCell>
                             );
                           case 'start':
                             return (
-                              <TableCell key={colKey} className="font-mono text-xs">
+                              <TableCell key={colKey} className="p-1.5 font-mono text-xs">
                                 {entry.start_time ? format(new Date(entry.start_time), 'HH:mm') : '-'}
                               </TableCell>
                             );
                           case 'end':
                             return (
-                              <TableCell key={colKey} className="font-mono text-xs">
+                              <TableCell key={colKey} className="p-1.5 font-mono text-xs">
                                 {entry.end_time ? format(new Date(entry.end_time), 'HH:mm') : '-'}
                               </TableCell>
                             );
                           case 'hours':
                             return (
-                              <TableCell key={colKey} className="font-mono text-xs text-right">
+                              <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right">
                                 {entry.hours.toFixed(2)}
                               </TableCell>
                             );
                           case 'amount':
                             return (
-                              <TableCell key={colKey} className="font-mono text-xs text-right">
+                              <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right font-semibold">
                                 ${entry.amount.toFixed(2)}
                               </TableCell>
                             );
                           case 'status':
                             return (
-                              <TableCell key={colKey}>
+                              <TableCell key={colKey} className="p-1.5">
                                 {getStatusBadge(entry.approval_status)}
                               </TableCell>
                             );
                           case 'submitted_at':
                             return (
-                              <TableCell key={colKey} className="text-xs">
+                              <TableCell key={colKey} className="p-1.5 text-xs">
                                 {format(new Date(entry.created_at), 'MMM dd, yyyy HH:mm')}
                               </TableCell>
                             );

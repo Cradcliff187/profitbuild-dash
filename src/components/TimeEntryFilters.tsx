@@ -71,7 +71,7 @@ export const TimeEntryFiltersComponent = ({ filters, onFiltersChange }: TimeEntr
     filters.projectId;
 
   return (
-    <div className="space-y-3 p-3 bg-muted/50 rounded-md border">
+    <div className="space-y-2 p-2 bg-muted/50 rounded-md border">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium">Filters</h3>
         {hasActiveFilters && (
@@ -87,7 +87,7 @@ export const TimeEntryFiltersComponent = ({ filters, onFiltersChange }: TimeEntr
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
         <div className="space-y-1">
           <Label htmlFor="date-from" className="text-xs">From Date</Label>
           <Input

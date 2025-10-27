@@ -161,8 +161,8 @@ export const TimeEntryForm = ({
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex gap-1.5">
+    <div className="space-y-1.5">
+      <div className="flex gap-1">
         <Button 
           type="button" 
           variant="outline" 
@@ -208,13 +208,13 @@ export const TimeEntryForm = ({
       </div>
 
       <div>
-        <Label htmlFor="worker">Team Member *</Label>
+        <Label htmlFor="worker" className="text-xs">Team Member *</Label>
         <NativeSelect
           id="worker"
           value={workerId || ""}
           onValueChange={setWorkerId}
           disabled={disabled}
-          className={cn(isMobile && "h-10 text-base")}
+          className={cn("h-8", isMobile && "h-10 text-base")}
         >
           <option value="" disabled>Select team member</option>
           {workers.map(w => (
@@ -226,13 +226,13 @@ export const TimeEntryForm = ({
       </div>
 
       <div>
-        <Label htmlFor="project">Project *</Label>
+        <Label htmlFor="project" className="text-xs">Project *</Label>
         <NativeSelect
           id="project"
           value={projectId || ""}
           onValueChange={setProjectId}
           disabled={disabled}
-          className={cn(isMobile && "h-10 text-base")}
+          className={cn("h-8", isMobile && "h-10 text-base")}
         >
           <option value="" disabled>Select project</option>
           {projects.map(p => (
@@ -244,7 +244,7 @@ export const TimeEntryForm = ({
       </div>
 
       <div>
-        <Label htmlFor="date">Date *</Label>
+        <Label htmlFor="date" className="text-xs">Date *</Label>
         <Input
           id="date"
           type="date"
@@ -258,7 +258,7 @@ export const TimeEntryForm = ({
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <Label htmlFor="startTime">Start Time</Label>
+          <Label htmlFor="startTime" className="text-xs">Start Time</Label>
           <Input
             id="startTime"
             type="time"
@@ -270,7 +270,7 @@ export const TimeEntryForm = ({
           />
         </div>
         <div>
-          <Label htmlFor="endTime">End Time</Label>
+          <Label htmlFor="endTime" className="text-xs">End Time</Label>
           <Input
             id="endTime"
             type="time"
@@ -284,7 +284,7 @@ export const TimeEntryForm = ({
       </div>
 
       <div>
-        <Label htmlFor="hours">Hours *</Label>
+        <Label htmlFor="hours" className="text-xs">Hours *</Label>
         <Input
           id="hours"
           type="number"
@@ -301,7 +301,7 @@ export const TimeEntryForm = ({
 
       {showReceipt && (
         <div>
-          <Label>Receipt</Label>
+          <Label className="text-xs">Receipt</Label>
           {receiptUrl ? (
             <div className="flex items-center gap-2 mt-1">
               {signedReceiptUrl && (
