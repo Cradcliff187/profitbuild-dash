@@ -271,13 +271,13 @@ const TimeEntries = () => {
 
   const getStatusBadge = (status: string | null) => {
     if (!status || status === 'pending') {
-      return <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">Pending</Badge>;
+      return <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-yellow-50 text-yellow-700 border-yellow-300">Pending</Badge>;
     }
     if (status === 'approved') {
-      return <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-300">Approved</Badge>;
+      return <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-green-50 text-green-700 border-green-300">Approved</Badge>;
     }
     if (status === 'rejected') {
-      return <Badge variant="outline" className="text-xs bg-red-100 text-red-800 border-red-300">Rejected</Badge>;
+      return <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-red-50 text-red-700 border-red-300">Rejected</Badge>;
     }
     return null;
   };

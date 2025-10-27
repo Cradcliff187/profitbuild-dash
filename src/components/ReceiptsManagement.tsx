@@ -14,6 +14,7 @@ import { RejectTimeEntryDialog } from '@/components/RejectTimeEntryDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { usePagination } from '@/hooks/usePagination';
 import { CompletePagination } from '@/components/ui/complete-pagination';
+import { exportReceiptsToCSV } from '@/utils/receiptExport';
 import {
   Table,
   TableBody,
@@ -52,6 +53,7 @@ interface UnifiedReceipt {
   approved_by?: string;
   approved_at?: string;
   rejection_reason?: string;
+  submitted_for_approval_at?: string;
 }
 
 export const ReceiptsManagement: React.FC = () => {
@@ -137,6 +139,7 @@ export const ReceiptsManagement: React.FC = () => {
             approval_status,
             approved_by,
             approved_at,
+            submitted_for_approval_at,
             rejection_reason,
             payees(payee_name),
             projects(project_number, project_name)
@@ -181,6 +184,7 @@ export const ReceiptsManagement: React.FC = () => {
         approved_by: receipt.approved_by,
         approved_at: receipt.approved_at,
         rejection_reason: receipt.rejection_reason,
+        submitted_for_approval_at: receipt.submitted_for_approval_at,
       }));
 
       // Merge and sort by date (most recent first)
@@ -488,10 +492,21 @@ export const ReceiptsManagement: React.FC = () => {
             View and manage all receipts from time entries and standalone uploads
           </p>
         </div>
-        <Button onClick={handleBulkDownload} variant="outline" size="sm">
-          <FileImage className="w-3 h-3 mr-2" />
-          Download All ({filteredReceipts.length})
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => exportReceiptsToCSV(filteredReceipts)}
+            disabled={filteredReceipts.length === 0}
+          >
+            <Download className="h-3 w-3 mr-1" />
+            Export CSV
+          </Button>
+          <Button onClick={handleBulkDownload} variant="outline" size="sm">
+            <FileImage className="w-3 h-3 mr-2" />
+            Download Images ({filteredReceipts.length})
+          </Button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -614,6 +629,7 @@ export const ReceiptsManagement: React.FC = () => {
                 <TableHead className="text-xs">Date</TableHead>
                 <TableHead className="text-right text-xs">Amount</TableHead>
                 <TableHead className="text-xs w-24">Status</TableHead>
+                <TableHead className="text-xs w-36">Submitted At</TableHead>
                 <TableHead className="text-xs max-w-xs">Description</TableHead>
                 <TableHead className="text-right text-xs w-20">Actions</TableHead>
               </TableRow>
@@ -621,7 +637,7 @@ export const ReceiptsManagement: React.FC = () => {
             <TableBody>
               {paginatedReceipts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-6 text-xs text-muted-foreground">
+                  <TableCell colSpan={11} className="text-center py-6 text-xs text-muted-foreground">
                     No receipts found
                   </TableCell>
                 </TableRow>
@@ -688,6 +704,13 @@ export const ReceiptsManagement: React.FC = () => {
                     {/* Status */}
                     <TableCell className="p-1.5">
                       {getStatusBadge(receipt.approval_status)}
+                    </TableCell>
+
+                    {/* Submitted At */}
+                    <TableCell className="p-1.5 text-xs">
+                      {receipt.submitted_for_approval_at 
+                        ? format(new Date(receipt.submitted_for_approval_at), 'MMM dd, HH:mm')
+                        : '-'}
                     </TableCell>
 
                     {/* Description */}
