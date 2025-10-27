@@ -1106,7 +1106,7 @@ export const MobileTimeTracker: React.FC = () => {
             </button>
             
             {showWorkerSelect && !activeTimer && (
-              <div className="mt-2 border rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+              <div className="mt-2 border rounded-lg max-h-64 overflow-y-auto">
                 {teamMembers.map(member => (
                   <button
                     key={member.id}
@@ -1168,7 +1168,7 @@ export const MobileTimeTracker: React.FC = () => {
             </button>
             
             {showProjectSelect && !activeTimer && (
-              <div className="mt-2 border rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+              <div className="mt-2 border rounded-lg max-h-64 overflow-y-auto">
                 {projects.map(project => (
                   <button
                     key={project.id}
