@@ -30,6 +30,7 @@ export interface Quote {
   id: string;
   project_id: string; // Links to project
   estimate_id?: string; // Optional link to specific estimate
+  project_number?: string; // Copied from project
   projectName: string; // Copied from project
   client: string; // Copied from project
   payee_id: string; // Links to payee

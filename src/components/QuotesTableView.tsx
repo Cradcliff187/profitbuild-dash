@@ -171,7 +171,7 @@ export const QuotesTableView = ({
   const groupedData: FinancialTableGroup<QuoteWithEstimate>[] = Object.entries(quotesByProject).map(
     ([projectId, projectQuotes]) => ({
       groupKey: projectId,
-      groupLabel: `${projectQuotes[0].projectName} - ${projectQuotes[0].client}`,
+      groupLabel: `[${projectQuotes[0].project_number}] ${projectQuotes[0].projectName} - ${projectQuotes[0].client}`,
       items: projectQuotes,
       isCollapsible: true,
       defaultExpanded: true,
@@ -209,6 +209,8 @@ export const QuotesTableView = ({
       label: 'Quote #',
       align: 'left',
       width: '120px',
+      sortable: true,
+      getSortValue: (quote) => quote.quoteNumber,
       render: (quote) => (
         <div className="font-mono text-xs text-foreground/80">
           {quote.quoteNumber}
@@ -220,6 +222,8 @@ export const QuotesTableView = ({
       label: 'Line Items',
       align: 'center',
       width: '90px',
+      sortable: true,
+      getSortValue: (quote) => quote.lineItems?.length || 0,
       render: (quote) => {
         const count = quote.lineItems?.length || 0;
         return (
@@ -243,6 +247,8 @@ export const QuotesTableView = ({
       label: 'Quoted By',
       align: 'left',
       width: '140px',
+      sortable: true,
+      getSortValue: (quote) => quote.quotedBy,
       render: (quote) => (
         <div className="flex items-center gap-2">
           <User className="h-3 w-3 text-muted-foreground" />
@@ -272,6 +278,8 @@ export const QuotesTableView = ({
       label: 'Received',
       align: 'right',
       width: '100px',
+      sortable: true,
+      getSortValue: (quote) => new Date(quote.dateReceived).getTime(),
       render: (quote) => (
         <div className="text-xs text-foreground/70">
           {format(quote.dateReceived, 'MMM dd')}
@@ -283,6 +291,8 @@ export const QuotesTableView = ({
       label: 'Valid Until',
       align: 'right',
       width: '100px',
+      sortable: true,
+      getSortValue: (quote) => quote.valid_until ? new Date(quote.valid_until).getTime() : 0,
       render: (quote) => {
         if (!quote.valid_until) return <span className="text-xs text-muted-foreground">-</span>;
         
@@ -305,6 +315,8 @@ export const QuotesTableView = ({
       label: 'Quote Total',
       align: 'right',
       width: '120px',
+      sortable: true,
+      getSortValue: (quote) => quote.total,
       render: (quote) => (
         <div className="font-semibold text-sm font-mono tabular-nums">
           {formatCurrency(quote.total, { showCents: false })}
@@ -316,6 +328,8 @@ export const QuotesTableView = ({
       label: 'Estimate Cost',
       align: 'right',
       width: '130px',
+      sortable: true,
+      getSortValue: (quote) => getEstimateLineItemCost(quote) || 0,
       render: (quote) => {
         const estimateCost = getEstimateLineItemCost(quote);
         return (
@@ -330,6 +344,8 @@ export const QuotesTableView = ({
       label: 'Quoted Amount',
       align: 'right',
       width: '130px',
+      sortable: true,
+      getSortValue: (quote) => getQuotedAmountForEstimateMatch(quote) || 0,
       render: (quote) => {
         const quotedAmount = getQuotedAmountForEstimateMatch(quote);
         return (
@@ -344,6 +360,8 @@ export const QuotesTableView = ({
       label: 'Cost Variance',
       align: 'right',
       width: '120px',
+      sortable: true,
+      getSortValue: (quote) => getCostVariance(quote).amount,
       render: (quote) => {
         const variance = getCostVariance(quote);
         if (!quote.estimate) return <span className="text-xs text-muted-foreground">-</span>;

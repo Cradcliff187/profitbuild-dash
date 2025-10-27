@@ -74,7 +74,11 @@ export function FinancialTableTemplate<T>({
   const setCollapsedGroups = onCollapsedGroupsChange ?? setInternalCollapsedGroups;
 
   const handleSort = (columnKey: string) => {
-    if (!sortable) return;
+    if (!sortable) return; // Table-level check
+    
+    // Column-level check
+    const column = columns.find(col => col.key === columnKey);
+    if (!column || column.sortable === false) return;
     
     if (sortColumn === columnKey) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -84,56 +88,79 @@ export function FinancialTableTemplate<T>({
     }
   };
 
-  // Sort grouped data when sortColumn or sortDirection changes
+  // Sort data when sortColumn or sortDirection changes
   const sortedData = useMemo(() => {
-    if (!isGrouped || !sortColumn) {
+    if (!sortColumn) {
       return data;
     }
 
-    const groups = data as FinancialTableGroup<T>[];
     const sortedColumn = columns.find(col => col.key === sortColumn);
-    
     if (!sortedColumn) return data;
 
-    // Sort items within each group
-    const sortedGroups = groups.map(group => {
-      const sortedItems = [...group.items].sort((a, b) => {
-        let aValue: any;
-        let bValue: any;
+    // Handle grouped data
+    if (isGrouped) {
+      const groups = data as FinancialTableGroup<T>[];
+      
+      const sortedGroups = groups.map(group => {
+        const sortedItems = [...group.items].sort((a, b) => {
+          let aValue: any;
+          let bValue: any;
 
-        // Use custom getSortValue if provided, otherwise extract from item
-        if (sortedColumn.getSortValue) {
-          aValue = sortedColumn.getSortValue(a);
-          bValue = sortedColumn.getSortValue(b);
-        } else {
-          aValue = (a as any)[sortColumn];
-          bValue = (b as any)[sortColumn];
-        }
+          if (sortedColumn.getSortValue) {
+            aValue = sortedColumn.getSortValue(a);
+            bValue = sortedColumn.getSortValue(b);
+          } else {
+            aValue = (a as any)[sortColumn];
+            bValue = (b as any)[sortColumn];
+          }
 
-        // Handle null/undefined values
-        if (aValue == null) return 1;
-        if (bValue == null) return -1;
+          if (aValue == null) return 1;
+          if (bValue == null) return -1;
 
-        // Numeric comparison
-        if (typeof aValue === 'number' && typeof bValue === 'number') {
-          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-        }
+          if (typeof aValue === 'number' && typeof bValue === 'number') {
+            return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+          }
 
-        // String comparison
-        const aStr = String(aValue).toLowerCase();
-        const bStr = String(bValue).toLowerCase();
-        
-        if (sortDirection === 'asc') {
-          return aStr.localeCompare(bStr);
-        } else {
-          return bStr.localeCompare(aStr);
-        }
+          const aStr = String(aValue).toLowerCase();
+          const bStr = String(bValue).toLowerCase();
+          
+          return sortDirection === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+        });
+
+        return { ...group, items: sortedItems };
       });
 
-      return { ...group, items: sortedItems };
+      return sortedGroups;
+    }
+
+    // Handle ungrouped data
+    const items = data as T[];
+    const sortedItems = [...items].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      if (sortedColumn.getSortValue) {
+        aValue = sortedColumn.getSortValue(a);
+        bValue = sortedColumn.getSortValue(b);
+      } else {
+        aValue = (a as any)[sortColumn];
+        bValue = (b as any)[sortColumn];
+      }
+
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      
+      return sortDirection === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
     });
 
-    return sortedGroups;
+    return sortedItems;
   }, [data, isGrouped, sortColumn, sortDirection, columns]);
 
   const toggleGroupCollapse = (groupKey: string) => {
@@ -177,7 +204,7 @@ export function FinancialTableTemplate<T>({
               column.align === 'right' && "text-right",
               column.align === 'center' && "text-center",
               column.className,
-              sortable && column.sortable !== false && "cursor-pointer hover:text-foreground transition-colors",
+              sortable && column.sortable !== false && "cursor-pointer hover:text-foreground transition-colors select-none",
               column.width && `w-[${column.width}]`
             )}
             style={column.width ? { width: column.width } : undefined}

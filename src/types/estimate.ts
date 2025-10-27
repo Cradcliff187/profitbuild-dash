@@ -47,6 +47,7 @@ export interface Estimate {
   targetMarginPercent: number;
   // For display purposes (populated from project)
   project_name?: string;
+  project_number?: string;
   client_name?: string;
 }
 
