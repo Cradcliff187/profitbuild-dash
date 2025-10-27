@@ -167,6 +167,18 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
       if (receiptError) throw receiptError;
 
+      // 🆕 Send email notification
+      try {
+        console.log('📧 Sending receipt notification email...');
+        await supabase.functions.invoke('send-receipt-notification', {
+          body: receiptData
+        });
+        console.log('✅ Receipt notification sent successfully');
+      } catch (emailErr) {
+        console.error('❌ Failed to send email notification:', emailErr);
+        // Continue even if email fails - don't block the user
+      }
+
       toast.success('Receipt saved successfully');
       onSuccess?.(receiptData);
       handleClose();
