@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ClipboardCheck, Download, Edit, CheckCircle, XCircle, Clock, MoreHorizontal, Eye, FileImage } from "lucide-react";
+import { ClipboardCheck, Download, Edit, CheckCircle, XCircle, Clock, MoreHorizontal, Eye, FileImage, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -34,6 +34,7 @@ const columnDefinitions = [
   { key: 'end', label: 'End Time', required: false },
   { key: 'hours', label: 'Hours', required: false },
   { key: 'amount', label: 'Amount', required: false },
+  { key: 'receipt', label: 'Receipt', required: false },
   { key: 'status', label: 'Status', required: false },
   { key: 'submitted_at', label: 'Submitted At', required: false },
   { key: 'actions', label: 'Actions', required: true },
@@ -69,6 +70,7 @@ const TimeEntries = () => {
       'end',
       'hours',
       'amount',
+      'receipt',
       'status',
       'submitted_at',
       'actions'
@@ -364,6 +366,7 @@ const TimeEntries = () => {
                       end: 'w-20',
                       hours: 'w-20',
                       amount: 'w-24',
+                      receipt: 'w-16',
                       status: 'w-24',
                       submitted_at: 'w-36',
                       actions: 'w-20'
@@ -386,6 +389,8 @@ const TimeEntries = () => {
                         return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 text-right ${widths[colKey]}`}>Hours</TableHead>;
                       case 'amount':
                         return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 text-right ${widths[colKey]}`}>Amount</TableHead>;
+                      case 'receipt':
+                        return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 text-center ${widths[colKey]}`}>Receipt</TableHead>;
                       case 'status':
                         return <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>Status</TableHead>;
                       case 'submitted_at':
@@ -472,6 +477,16 @@ const TimeEntries = () => {
                             return (
                               <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right font-semibold">
                                 ${entry.amount.toFixed(2)}
+                              </TableCell>
+                            );
+                          case 'receipt':
+                            return (
+                              <TableCell key={colKey} className="p-1.5 text-center">
+                                {entry.attachment_url ? (
+                                  <Paperclip className="h-3 w-3 text-blue-600 inline-block" />
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">-</span>
+                                )}
                               </TableCell>
                             );
                           case 'status':
