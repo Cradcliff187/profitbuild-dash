@@ -54,6 +54,7 @@ const TimeEntries = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any>(null);
+  const [receiptCount, setReceiptCount] = useState(0);
 
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
@@ -107,6 +108,26 @@ const TimeEntries = () => {
     localStorage.setItem('time-entries-column-order', JSON.stringify(columnOrder));
   }, [columnOrder]);
 
+  // Fetch receipt count
+  const fetchReceiptCount = async () => {
+    try {
+      const [{ count: timeEntryCount }, { count: standaloneCount }] = await Promise.all([
+        supabase
+          .from('expenses')
+          .select('*', { count: 'exact', head: true })
+          .eq('category', 'labor_internal')
+          .not('attachment_url', 'is', null),
+        supabase
+          .from('receipts')
+          .select('*', { count: 'exact', head: true })
+      ]);
+      
+      setReceiptCount((timeEntryCount || 0) + (standaloneCount || 0));
+    } catch (error) {
+      console.error('Failed to fetch receipt count:', error);
+    }
+  };
+
   const pagination = usePagination({
     totalItems: 0,
     pageSize,
@@ -126,7 +147,12 @@ const TimeEntries = () => {
     }
   }, [totalCount]);
 
-  // Real-time updates
+  // Fetch receipt count on mount
+  useEffect(() => {
+    fetchReceiptCount();
+  }, []);
+
+  // Real-time updates for time entries
   useEffect(() => {
     const channel = supabase
       .channel('time-entries-admin')
@@ -144,6 +170,28 @@ const TimeEntries = () => {
       supabase.removeChannel(channel);
     };
   }, [refetch]);
+
+  // Real-time updates for receipt count
+  useEffect(() => {
+    const channel = supabase
+      .channel('receipt-count-updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'expenses',
+        filter: 'category=eq.labor_internal'
+      }, fetchReceiptCount)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'receipts'
+      }, fetchReceiptCount)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -254,6 +302,11 @@ const TimeEntries = () => {
           <TabsTrigger value="receipts" className="text-xs h-7">
             <FileImage className="h-3 w-3 mr-1" />
             Receipts
+            {receiptCount > 0 && (
+              <Badge variant="secondary" className="ml-1.5 h-4 text-[10px] px-1.5">
+                {receiptCount}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
