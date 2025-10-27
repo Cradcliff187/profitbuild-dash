@@ -61,9 +61,9 @@ Deno.serve(async (req) => {
       .from('receipts')
       .select(`
         *,
-        profiles!receipts_user_id_fkey(full_name, email),
-        payees(payee_name),
-        projects(project_name, project_number)
+        profiles:user_id(full_name, email),
+        payees:payee_id(payee_name),
+        projects:project_id(project_name, project_number)
       `)
       .eq('id', receiptData.id)
       .single();
