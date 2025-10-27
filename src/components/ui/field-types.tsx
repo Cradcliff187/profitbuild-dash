@@ -52,17 +52,21 @@ interface EditableFieldProps extends React.ComponentPropsWithoutRef<typeof Input
   required?: boolean;
   tooltip?: string;
   error?: string;
+  showIcon?: boolean;
 }
 
 const EditableField = React.forwardRef<React.ElementRef<typeof Input>, EditableFieldProps>(
-  ({ label, required, tooltip, className, error, ...props }, ref) => (
+  ({ label, required, tooltip, className, error, showIcon = true, ...props }, ref) => (
     <BaseField label={label} required={required} tooltip={tooltip}>
       <div className="relative">
-        <Edit3 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+        {showIcon && (
+          <Edit3 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+        )}
         <Input
           ref={ref}
           className={cn(
-            "pl-9 field-editable border-input bg-background",
+            showIcon ? "pl-9" : "pl-3",
+            "field-editable border-input bg-background",
             "focus:ring-2 focus:ring-primary/20 focus:border-primary",
             "transition-all duration-200",
             error && "border-destructive focus:border-destructive focus:ring-destructive/20",

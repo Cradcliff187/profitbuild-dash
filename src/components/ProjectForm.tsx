@@ -326,6 +326,7 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
               required
               error={projectNameError}
               tooltip="Descriptive name for this project"
+              showIcon={false}
             />
             
             <div className="space-y-1">
