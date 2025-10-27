@@ -1086,7 +1086,10 @@ export const MobileTimeTracker: React.FC = () => {
               Team Member
             </label>
             <button
-              onClick={() => setShowWorkerSelect(!showWorkerSelect)}
+              onClick={() => {
+                setShowProjectSelect(false);
+                setShowWorkerSelect(!showWorkerSelect);
+              }}
               disabled={activeTimer !== null}
               className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
             >
@@ -1142,13 +1145,16 @@ export const MobileTimeTracker: React.FC = () => {
           </div>
 
           {/* Project Selection */}
-          <div className="bg-card rounded-xl shadow-sm p-4">
+          <div className="bg-card rounded-xl shadow-sm p-4 relative">
             <label className="block text-sm font-semibold text-foreground mb-2">
               <MapPin className="w-4 h-4 inline mr-1" />
               Project
             </label>
             <button
-              onClick={() => setShowProjectSelect(!showProjectSelect)}
+              onClick={() => {
+                setShowWorkerSelect(false);
+                setShowProjectSelect(!showProjectSelect);
+              }}
               disabled={activeTimer !== null}
               className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
             >
@@ -1168,7 +1174,7 @@ export const MobileTimeTracker: React.FC = () => {
             </button>
             
             {showProjectSelect && !activeTimer && (
-              <div className="mt-2 border rounded-lg bg-card shadow-md relative z-50 max-h-64 overflow-y-auto">
+              <div className="absolute left-0 right-0 top-full mt-2 border rounded-lg bg-card shadow-md z-[60] max-h-64 overflow-y-auto">
                 {projects.map(project => (
                   <button
                     key={project.id}
