@@ -52,6 +52,34 @@ export const ReceiptsManagement: React.FC = () => {
     loadReceipts();
   }, []);
 
+  // Real-time updates for receipts
+  useEffect(() => {
+    const channel = supabase
+      .channel('receipts-realtime-updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'expenses',
+        filter: 'category=eq.labor_internal'
+      }, () => {
+        console.log('Time entry receipt updated');
+        loadReceipts();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'receipts'
+      }, () => {
+        console.log('Standalone receipt updated');
+        loadReceipts();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const loadReceipts = async () => {
     setLoading(true);
     try {
