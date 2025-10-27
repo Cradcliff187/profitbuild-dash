@@ -1100,7 +1100,7 @@ export const ProjectsTableView = ({
   // Convert to grouped format - one group per project
   const groupedData: FinancialTableGroup<ProjectWithFinancials>[] = sortedProjects.map(project => ({
     groupKey: project.id,
-    groupLabel: project.project_name,
+    groupLabel: `[${project.project_number}] ${project.project_name}`,
     items: [project],
     isCollapsible: true,
     defaultExpanded: true,
