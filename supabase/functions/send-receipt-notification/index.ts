@@ -56,31 +56,83 @@ Deno.serve(async (req) => {
     
     const resend = new Resend(resendApiKey);
 
-    // Fetch additional information about the receipt
-    const { data: receipt, error: receiptError } = await supabase
+    // Fetch receipt details
+    console.log('🔍 Fetching receipt:', receiptData.id);
+    const { data: receiptRow, error: receiptError } = await supabase
       .from('receipts')
-      .select(`
-        *,
-        profiles:user_id(full_name, email),
-        payees:payee_id(payee_name),
-        projects:project_id(project_name, project_number)
-      `)
+      .select('*')
       .eq('id', receiptData.id)
       .single();
 
     if (receiptError) {
-      console.error('Error fetching receipt details:', receiptError);
+      console.error('❌ Error fetching receipt details:', receiptError);
       throw receiptError;
+    }
+
+    console.log('✅ Receipt fetched - user_id:', receiptRow.user_id, 'payee_id:', receiptRow.payee_id, 'project_id:', receiptRow.project_id);
+
+    // Fetch profile separately
+    let profile: { full_name?: string; email?: string } | null = null;
+    if (receiptRow.user_id) {
+      console.log('🔍 Fetching profile for user:', receiptRow.user_id);
+      const { data: p, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', receiptRow.user_id)
+        .single();
+      
+      if (profileError) {
+        console.error('⚠️ Error fetching profile:', profileError);
+      } else {
+        profile = p;
+        console.log('✅ Profile fetched:', profile?.full_name);
+      }
+    }
+
+    // Fetch payee separately
+    let payee: { payee_name?: string } | null = null;
+    if (receiptRow.payee_id) {
+      console.log('🔍 Fetching payee:', receiptRow.payee_id);
+      const { data: py, error: payeeError } = await supabase
+        .from('payees')
+        .select('payee_name')
+        .eq('id', receiptRow.payee_id)
+        .single();
+      
+      if (payeeError) {
+        console.error('⚠️ Error fetching payee:', payeeError);
+      } else {
+        payee = py;
+        console.log('✅ Payee fetched:', payee?.payee_name);
+      }
+    }
+
+    // Fetch project separately
+    let project: { project_number?: string; project_name?: string } | null = null;
+    if (receiptRow.project_id) {
+      console.log('🔍 Fetching project:', receiptRow.project_id);
+      const { data: pj, error: projectError } = await supabase
+        .from('projects')
+        .select('project_number, project_name')
+        .eq('id', receiptRow.project_id)
+        .single();
+      
+      if (projectError) {
+        console.error('⚠️ Error fetching project:', projectError);
+      } else {
+        project = pj;
+        console.log('✅ Project fetched:', project?.project_number);
+      }
     }
 
     // Format the amount
     const formattedAmount = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
-    }).format(receipt.amount);
+    }).format(receiptRow.amount);
 
     // Format the date
-    const submittedDate = new Date(receipt.captured_at).toLocaleDateString('en-US', {
+    const submittedDate = new Date(receiptRow.captured_at).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -89,13 +141,13 @@ Deno.serve(async (req) => {
     });
 
     // Prepare email content
-    const employeeName = receipt.profiles?.full_name || 'Unknown Employee';
-    const employeeEmail = receipt.profiles?.email || 'Unknown Email';
-    const payeeName = receipt.payees?.payee_name || 'Not specified';
-    const projectInfo = receipt.projects 
-      ? `${receipt.projects.project_number} - ${receipt.projects.project_name}`
+    const employeeName = profile?.full_name || 'Unknown Employee';
+    const employeeEmail = profile?.email || 'Unknown Email';
+    const payeeName = payee?.payee_name || 'Not specified';
+    const projectInfo = project 
+      ? `${project.project_number} - ${project.project_name}`
       : 'No project assigned';
-    const description = receipt.description || 'No description provided';
+    const description = receiptRow.description || 'No description provided';
 
     // Build the email HTML (matching send-auth-email template structure)
     const emailHtml = `
