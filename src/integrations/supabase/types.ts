@@ -1291,6 +1291,9 @@ export type Database = {
       receipts: {
         Row: {
           amount: number
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           captured_at: string
           created_at: string
           description: string | null
@@ -1298,11 +1301,16 @@ export type Database = {
           image_url: string
           payee_id: string | null
           project_id: string | null
+          rejection_reason: string | null
+          submitted_for_approval_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           amount: number
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           captured_at?: string
           created_at?: string
           description?: string | null
@@ -1310,11 +1318,16 @@ export type Database = {
           image_url: string
           payee_id?: string | null
           project_id?: string | null
+          rejection_reason?: string | null
+          submitted_for_approval_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           amount?: number
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           captured_at?: string
           created_at?: string
           description?: string | null
@@ -1322,6 +1335,8 @@ export type Database = {
           image_url?: string
           payee_id?: string | null
           project_id?: string | null
+          rejection_reason?: string | null
+          submitted_for_approval_at?: string | null
           updated_at?: string
           user_id?: string
         }
