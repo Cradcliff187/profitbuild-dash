@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ClipboardCheck, Download, Edit, CheckCircle, XCircle, Clock, MoreHorizontal, Eye } from "lucide-react";
+import { ClipboardCheck, Download, Edit, CheckCircle, XCircle, Clock, MoreHorizontal, Eye, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,6 +21,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { ColumnSelector } from "@/components/ui/column-selector";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReceiptsManagement } from "@/components/ReceiptsManagement";
 
 // Define column metadata for selector (must be outside component for state initialization)
 const columnDefinitions = [
@@ -230,97 +232,114 @@ const TimeEntries = () => {
   return (
     <div className="container mx-auto py-2 space-y-2">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-2">
         <div>
           <h1 className="text-lg font-bold flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Time Entry Management
           </h1>
-          <p className="text-xs text-muted-foreground">Review and approve time entries</p>
+          <p className="text-xs text-muted-foreground">Review time entries and manage receipts</p>
         </div>
-        <div className="flex items-center gap-2">
-          <ColumnSelector
-            columns={columnDefinitions}
-            visibleColumns={visibleColumns}
-            onVisibilityChange={setVisibleColumns}
-            columnOrder={columnOrder}
-            onColumnOrderChange={setColumnOrder}
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="entries" className="w-full">
+        <TabsList className="mb-2 h-8">
+          <TabsTrigger value="entries" className="text-xs h-7">
+            <ClipboardCheck className="h-3 w-3 mr-1" />
+            Time Entries
+          </TabsTrigger>
+          <TabsTrigger value="receipts" className="text-xs h-7">
+            <FileImage className="h-3 w-3 mr-1" />
+            Receipts
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Time Entries Tab */}
+        <TabsContent value="entries" className="space-y-2">
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-2">
+            <ColumnSelector
+              columns={columnDefinitions}
+              visibleColumns={visibleColumns}
+              onVisibilityChange={setVisibleColumns}
+              columnOrder={columnOrder}
+              onColumnOrderChange={setColumnOrder}
+            />
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => exportTimeEntriesToCSV(entries)}
+              disabled={entries.length === 0}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Export CSV
+            </Button>
+          </div>
+
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <Card>
+              <CardContent className="p-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Pending Approval</p>
+                    <p className="text-base font-bold">{statistics.pendingCount}</p>
+                  </div>
+                  <Clock className="h-5 w-5 text-yellow-500" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Approved This Week</p>
+                    <p className="text-base font-bold">{statistics.approvedThisWeekHours.toFixed(1)}h</p>
+                  </div>
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Rejected</p>
+                    <p className="text-base font-bold">{statistics.rejectedCount}</p>
+                  </div>
+                  <XCircle className="h-5 w-5 text-red-500" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total This Month</p>
+                    <p className="text-base font-bold">{statistics.totalThisMonthHours.toFixed(1)}h</p>
+                  </div>
+                  <Clock className="h-5 w-5 text-blue-500" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filters */}
+          <TimeEntryFiltersComponent filters={filters} onFiltersChange={setFilters} />
+
+          {/* Bulk Actions */}
+          <TimeEntryBulkActions
+            selectedCount={selectedIds.length}
+            onApprove={() => handleApprove(selectedIds)}
+            onReject={() => setRejectDialogOpen(true)}
+            onCancel={() => setSelectedIds([])}
           />
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => exportTimeEntriesToCSV(entries)}
-            disabled={entries.length === 0}
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Export CSV
-          </Button>
-        </div>
-      </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        <Card>
-          <CardContent className="p-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Pending Approval</p>
-                <p className="text-base font-bold">{statistics.pendingCount}</p>
-              </div>
-              <Clock className="h-5 w-5 text-yellow-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Approved This Week</p>
-                <p className="text-base font-bold">{statistics.approvedThisWeekHours.toFixed(1)}h</p>
-              </div>
-              <CheckCircle className="h-5 w-5 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Rejected</p>
-                <p className="text-base font-bold">{statistics.rejectedCount}</p>
-              </div>
-              <XCircle className="h-5 w-5 text-red-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Total This Month</p>
-                <p className="text-base font-bold">{statistics.totalThisMonthHours.toFixed(1)}h</p>
-              </div>
-              <Clock className="h-5 w-5 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <TimeEntryFiltersComponent filters={filters} onFiltersChange={setFilters} />
-
-      {/* Bulk Actions */}
-      <TimeEntryBulkActions
-        selectedCount={selectedIds.length}
-        onApprove={() => handleApprove(selectedIds)}
-        onReject={() => setRejectDialogOpen(true)}
-        onCancel={() => setSelectedIds([])}
-      />
-
-      {/* Table */}
+          {/* Table */}
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -553,6 +572,13 @@ const TimeEntries = () => {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {/* Receipts Tab */}
+        <TabsContent value="receipts">
+          <ReceiptsManagement />
+        </TabsContent>
+      </Tabs>
 
       {/* Dialogs */}
       <RejectTimeEntryDialog

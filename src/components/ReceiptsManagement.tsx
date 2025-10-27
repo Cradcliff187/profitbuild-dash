@@ -23,7 +23,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from 'lucide-react';
@@ -50,7 +49,7 @@ interface StandaloneReceipt {
   captured_at: string;
 }
 
-const ReceiptsPanel: React.FC = () => {
+export const ReceiptsManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'time-entries' | 'all-receipts'>('time-entries');
   const [timeEntryReceipts, setTimeEntryReceipts] = useState<TimeEntryReceipt[]>([]);
   const [standaloneReceipts, setStandaloneReceipts] = useState<StandaloneReceipt[]>([]);
@@ -263,11 +262,11 @@ const ReceiptsPanel: React.FC = () => {
   }
 
   return (
-    <div className="space-y-3 p-4">
+    <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Receipt Management</h2>
+          <h3 className="text-base font-semibold">Receipt Management</h3>
           <p className="text-xs text-muted-foreground">
             View and manage all receipts from time entries and standalone uploads
           </p>
@@ -291,11 +290,11 @@ const ReceiptsPanel: React.FC = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-        <TabsList>
-          <TabsTrigger value="time-entries" className="text-xs">
+        <TabsList className="h-8">
+          <TabsTrigger value="time-entries" className="text-xs h-7">
             Time Entry Receipts ({timeEntryReceipts.length})
           </TabsTrigger>
-          <TabsTrigger value="all-receipts" className="text-xs">
+          <TabsTrigger value="all-receipts" className="text-xs h-7">
             All Receipts ({standaloneReceipts.length})
           </TabsTrigger>
         </TabsList>
@@ -467,10 +466,9 @@ const ReceiptsPanel: React.FC = () => {
                                 <Download className="h-3 w-3 mr-2" />
                                 Download Receipt
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteStandaloneReceipt(receipt.id)}
-                                className="text-red-600"
+                                className="text-destructive"
                               >
                                 <Trash2 className="h-3 w-3 mr-2" />
                                 Delete Receipt
@@ -498,5 +496,3 @@ const ReceiptsPanel: React.FC = () => {
     </div>
   );
 };
-
-export default ReceiptsPanel;
