@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { ChevronUp, ChevronDown, Eye, Edit, Trash2, ChevronsUpDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -16,6 +16,7 @@ export interface FinancialTableColumn<T> {
   sortable?: boolean;
   render?: (item: T) => React.ReactNode;
   className?: string;
+  getSortValue?: (item: T) => string | number;
 }
 
 export interface FinancialTableGroup<T> {
@@ -83,6 +84,58 @@ export function FinancialTableTemplate<T>({
     }
   };
 
+  // Sort grouped data when sortColumn or sortDirection changes
+  const sortedData = useMemo(() => {
+    if (!isGrouped || !sortColumn) {
+      return data;
+    }
+
+    const groups = data as FinancialTableGroup<T>[];
+    const sortedColumn = columns.find(col => col.key === sortColumn);
+    
+    if (!sortedColumn) return data;
+
+    // Sort items within each group
+    const sortedGroups = groups.map(group => {
+      const sortedItems = [...group.items].sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        // Use custom getSortValue if provided, otherwise extract from item
+        if (sortedColumn.getSortValue) {
+          aValue = sortedColumn.getSortValue(a);
+          bValue = sortedColumn.getSortValue(b);
+        } else {
+          aValue = (a as any)[sortColumn];
+          bValue = (b as any)[sortColumn];
+        }
+
+        // Handle null/undefined values
+        if (aValue == null) return 1;
+        if (bValue == null) return -1;
+
+        // Numeric comparison
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+        }
+
+        // String comparison
+        const aStr = String(aValue).toLowerCase();
+        const bStr = String(bValue).toLowerCase();
+        
+        if (sortDirection === 'asc') {
+          return aStr.localeCompare(bStr);
+        } else {
+          return bStr.localeCompare(aStr);
+        }
+      });
+
+      return { ...group, items: sortedItems };
+    });
+
+    return sortedGroups;
+  }, [data, isGrouped, sortColumn, sortDirection, columns]);
+
   const toggleGroupCollapse = (groupKey: string) => {
     const newCollapsed = new Set(collapsedGroups);
     if (newCollapsed.has(groupKey)) {
@@ -124,7 +177,7 @@ export function FinancialTableTemplate<T>({
               column.align === 'right' && "text-right",
               column.align === 'center' && "text-center",
               column.className,
-              sortable && column.sortable !== false && "cursor-pointer hover:text-foreground",
+              sortable && column.sortable !== false && "cursor-pointer hover:text-foreground transition-colors",
               column.width && `w-[${column.width}]`
             )}
             style={column.width ? { width: column.width } : undefined}
@@ -211,7 +264,7 @@ export function FinancialTableTemplate<T>({
   );
 
   const renderGroupedData = () => {
-    const groups = data as FinancialTableGroup<T>[];
+    const groups = sortedData as FinancialTableGroup<T>[];
     
     return groups.map((group) => {
       const isCollapsed = collapsedGroups.has(group.groupKey);
@@ -230,7 +283,10 @@ export function FinancialTableTemplate<T>({
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 hover:bg-primary/10"
-                    onClick={() => toggleGroupCollapse(group.groupKey)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleGroupCollapse(group.groupKey);
+                    }}
                   >
                     {isCollapsed ? 
                       <ChevronDown className="h-3 w-3" /> : 
@@ -256,11 +312,11 @@ export function FinancialTableTemplate<T>({
   };
 
   const renderSimpleData = () => {
-    const items = data as T[];
+    const items = sortedData as T[];
     return items.map((item, index) => renderTableRow(item, index));
   };
 
-  if ((isGrouped ? (data as FinancialTableGroup<T>[]).length === 0 : (data as T[]).length === 0)) {
+  if ((isGrouped ? (sortedData as FinancialTableGroup<T>[]).length === 0 : (sortedData as T[]).length === 0)) {
     return (
       <div className="text-center py-12 text-muted-foreground">
         {emptyIcon && <div className="mb-4 flex justify-center">{emptyIcon}</div>}

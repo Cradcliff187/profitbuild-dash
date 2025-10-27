@@ -405,6 +405,7 @@ export const ProjectsTableView = ({
       key: 'project_number',
       label: 'Project #',
       sortable: true,
+      getSortValue: (project) => project.project_number,
       render: (project) => (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -456,6 +457,7 @@ export const ProjectsTableView = ({
       label: 'Start Date',
       align: 'right',
       sortable: true,
+      getSortValue: (project) => project.start_date ? new Date(project.start_date).getTime() : 0,
       render: (project) => {
         if (!project.start_date) return <span className="text-muted-foreground text-xs">Not set</span>;
         
@@ -496,6 +498,7 @@ export const ProjectsTableView = ({
       label: 'Target/End Date',
       align: 'right',
       sortable: true,
+      getSortValue: (project) => project.end_date ? new Date(project.end_date).getTime() : 0,
       render: (project) => {
         if (!project.end_date) return <span className="text-muted-foreground text-xs">Not set</span>;
         
@@ -618,6 +621,7 @@ export const ProjectsTableView = ({
       label: 'Contract Value',
       align: 'right' as const,
       sortable: true,
+      getSortValue: (project) => project.contracted_amount || 0,
       render: (project: ProjectWithFinancials) => {
         const projectEstimates = estimates.filter(e => e.project_id === project.id);
         const hasApprovedEstimate = projectEstimates.some(e => e.status === 'approved');
@@ -660,6 +664,7 @@ export const ProjectsTableView = ({
       label: 'Original Contract',
       align: 'right' as const,
       sortable: true,
+      getSortValue: (project) => project.originalContractAmount || 0,
       render: (project: ProjectWithFinancials) => (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -682,6 +687,7 @@ export const ProjectsTableView = ({
       label: 'Change Orders',
       align: 'right' as const,
       sortable: true,
+      getSortValue: (project) => project.changeOrderRevenue || 0,
       render: (project: ProjectWithFinancials) => {
         const hasChangeOrders = (project.changeOrderCount || 0) > 0;
         const changeOrderRevenue = project.changeOrderRevenue || 0;
@@ -732,6 +738,7 @@ export const ProjectsTableView = ({
       label: 'Original Est. Costs',
       align: 'right' as const,
       sortable: true,
+      getSortValue: (project) => project.originalEstimatedCosts || 0,
       render: (project: ProjectWithFinancials) => (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -750,6 +757,11 @@ export const ProjectsTableView = ({
       label: 'Original Est. Margin ($)',
       align: 'right' as const,
       sortable: true,
+      getSortValue: (project) => {
+        const contractValue = project.contracted_amount || 0;
+        const originalCosts = project.originalEstimatedCosts || 0;
+        return contractValue - originalCosts;
+      },
       render: (project: ProjectWithFinancials) => {
         const contractValue = project.contracted_amount || 0;
         const originalCosts = project.originalEstimatedCosts || 0;
@@ -783,6 +795,7 @@ export const ProjectsTableView = ({
       label: 'Adjusted Est. Costs',
       align: 'right',
       sortable: true,
+      getSortValue: (project) => project.adjusted_est_costs || 0,
       render: (project) => {
         const hasApprovedEstimate = estimates.some(e => 
           e.project_id === project.id && e.status === 'approved'
@@ -812,6 +825,11 @@ export const ProjectsTableView = ({
       label: 'Cost Variance',
       align: 'right',
       sortable: true,
+      getSortValue: (project) => {
+        const originalCosts = project.original_est_costs || 0;
+        const adjustedCosts = project.adjusted_est_costs || 0;
+        return adjustedCosts - originalCosts;
+      },
       render: (project) => {
         const hasApprovedEstimate = estimates.some(e => 
           e.project_id === project.id && e.status === 'approved'
@@ -865,6 +883,7 @@ export const ProjectsTableView = ({
       label: 'Projected Margin ($)',
       align: 'right' as const,
       sortable: true,
+      getSortValue: (project) => project.projectedMargin || 0,
       render: (project: ProjectWithFinancials) => {
         const projectedMargin = project.projectedMargin || 0;
         const isPositive = projectedMargin >= 0;
@@ -897,6 +916,11 @@ export const ProjectsTableView = ({
       label: 'Projected Margin %',
       align: 'right' as const,
       sortable: true,
+      getSortValue: (project) => {
+        return project.currentContractAmount > 0 
+          ? ((project.projectedMargin || 0) / project.currentContractAmount) * 100 
+          : 0;
+      },
       render: (project: ProjectWithFinancials) => {
         const projectedMarginPct = project.currentContractAmount > 0 
           ? ((project.projectedMargin || 0) / project.currentContractAmount) * 100 
@@ -925,6 +949,7 @@ export const ProjectsTableView = ({
       label: 'Actual Expenses',
       align: 'right',
       sortable: true,
+      getSortValue: (project) => project.actualExpenses || 0,
       render: (project) => {
         const actualExpenses = project.actualExpenses || 0;
         const adjustedCosts = project.adjustedEstCosts || 0;
@@ -955,6 +980,7 @@ export const ProjectsTableView = ({
       label: 'Line Items',
       align: 'center' as const,
       sortable: true,
+      getSortValue: (project) => project.totalLineItemCount || 0,
       render: (project: ProjectWithFinancials) => {
         const count = project.totalLineItemCount || 0;
         

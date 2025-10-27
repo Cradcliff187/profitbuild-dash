@@ -193,6 +193,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Estimate #',
       align: 'left',
       width: isMobile ? '140px' : '120px',
+      getSortValue: (estimate) => estimate.estimate_number,
       render: (estimate) => (
         <div className={cn("font-mono text-foreground/80", isMobile ? "text-xs" : "text-[11px]")}>
           {estimate.estimate_number}
@@ -204,6 +205,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Line Items',
       align: 'center',
       width: '90px',
+      getSortValue: (estimate) => estimate.lineItems?.length || 0,
       render: (estimate) => {
         const count = estimate.lineItems?.length || 0;
         
@@ -228,6 +230,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Version',
       align: 'left',
       width: '80px',
+      getSortValue: (estimate) => estimate.version_number || 1,
       render: (estimate) => (
         <div className="flex items-center gap-1">
           <Badge 
@@ -268,6 +271,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Created',
       align: 'right',
       width: '100px',
+      getSortValue: (estimate) => new Date(estimate.date_created).getTime(),
       render: (estimate) => (
         <div className="text-xs text-foreground/70">
           {format(estimate.date_created, 'MMM dd')}
@@ -279,6 +283,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Price',
       align: 'right',
       width: isMobile ? '120px' : '100px',
+      getSortValue: (estimate) => estimate.total_amount,
       render: (estimate) => (
         <div className={cn("font-semibold font-mono tabular-nums", isMobile ? "text-sm" : "text-xs")}>
           {formatCurrency(estimate.total_amount, { showCents: false })}
@@ -290,6 +295,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Cost',
       align: 'right',
       width: '110px',
+      getSortValue: (estimate) => calculateEstimateFinancials(estimate.lineItems).totalCost,
       render: (estimate) => {
         const financials = calculateEstimateFinancials(estimate.lineItems);
         return (
@@ -304,6 +310,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Profit',
       align: 'right',
       width: '110px',
+      getSortValue: (estimate) => calculateEstimateFinancials(estimate.lineItems).grossProfit,
       render: (estimate) => {
         const financials = calculateEstimateFinancials(estimate.lineItems);
         return (
@@ -321,6 +328,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Margin %',
       align: 'right',
       width: '90px',
+      getSortValue: (estimate) => calculateEstimateFinancials(estimate.lineItems).grossMarginPercent,
       render: (estimate) => {
         const financials = calculateEstimateFinancials(estimate.lineItems);
         const status = getMarginPerformanceStatus(financials.grossMarginPercent);
@@ -343,6 +351,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Markup %',
       align: 'right',
       width: '90px',
+      getSortValue: (estimate) => calculateEstimateFinancials(estimate.lineItems).averageMarkupPercent,
       render: (estimate) => {
         const financials = calculateEstimateFinancials(estimate.lineItems);
         const status = getMarkupPerformanceStatus(financials.averageMarkupPercent);
@@ -365,6 +374,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Markup $',
       align: 'right',
       width: '100px',
+      getSortValue: (estimate) => calculateEstimateFinancials(estimate.lineItems).totalMarkupAmount,
       render: (estimate) => {
         const financials = calculateEstimateFinancials(estimate.lineItems);
         return (
@@ -408,6 +418,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Contingency %',
       align: 'right',
       width: '100px',
+      getSortValue: (estimate) => estimate.contingency_percent || 0,
       render: (estimate) => {
         if (!estimate.contingency_percent || estimate.contingency_percent === 0) {
           return <span className="text-xs text-muted-foreground">-</span>;
@@ -424,6 +435,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Contingency $',
       align: 'right',
       width: '110px',
+      getSortValue: (estimate) => estimate.contingency_amount || 0,
       render: (estimate) => {
         if (!estimate.contingency_amount || estimate.contingency_amount === 0) {
           return <span className="text-xs text-muted-foreground">-</span>;
@@ -440,6 +452,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Total w/ Cont.',
       align: 'right',
       width: '130px',
+      getSortValue: (estimate) => estimate.total_amount + (estimate.contingency_amount || 0),
       render: (estimate) => {
         const totalWithContingency = estimate.total_amount + (estimate.contingency_amount || 0);
         return (
