@@ -459,9 +459,6 @@ const Projects = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold">Projects</h1>
-            <p className="text-muted-foreground">
-              {filteredAndSortedProjects.length} project{filteredAndSortedProjects.length !== 1 ? 's' : ''}
-            </p>
           </div>
           
           <div className="flex items-center gap-3">
