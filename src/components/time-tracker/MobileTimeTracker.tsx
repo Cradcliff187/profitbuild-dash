@@ -316,7 +316,7 @@ export const MobileTimeTracker: React.FC = () => {
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('id, project_number, project_name, client_name, address')
-        .in('status', ['in_progress', 'approved'])
+        .in('status', ['in_progress', 'estimating'])
         .neq('project_number', '000-UNASSIGNED')
         .neq('project_number', 'SYS-000')
         .order('project_number', { ascending: false })
