@@ -1145,7 +1145,7 @@ export const MobileTimeTracker: React.FC = () => {
           </div>
 
           {/* Project Selection */}
-          <div className="bg-card rounded-xl shadow-sm p-4 relative">
+          <div className="bg-card rounded-xl shadow-sm p-4">
             <label className="block text-sm font-semibold text-foreground mb-2">
               <MapPin className="w-4 h-4 inline mr-1" />
               Project
@@ -1174,7 +1174,7 @@ export const MobileTimeTracker: React.FC = () => {
             </button>
             
             {showProjectSelect && !activeTimer && (
-              <div className="absolute left-0 right-0 top-full mt-2 border rounded-lg bg-card shadow-md z-[60] max-h-64 overflow-y-auto">
+              <div className="mt-2 border rounded-lg bg-card shadow-md relative z-50 max-h-64 overflow-y-auto">
                 {projects.map(project => (
                   <button
                     key={project.id}
