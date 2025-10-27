@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Image, Download, Trash2, Search, FileImage, MoreHorizontal, CheckCircle, XCircle } from 'lucide-react';
+import { Image, Download, Trash2, Search, FileImage, MoreHorizontal, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -11,6 +11,9 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ReceiptPreviewModal } from '@/components/ReceiptPreviewModal';
 import { downloadSingleReceipt, downloadReceiptsAsZip } from '@/utils/receiptDownloadUtils';
 import { RejectTimeEntryDialog } from '@/components/RejectTimeEntryDialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { usePagination } from '@/hooks/usePagination';
+import { CompletePagination } from '@/components/ui/complete-pagination';
 import {
   Table,
   TableBody,
@@ -65,6 +68,10 @@ export const ReceiptsManagement: React.FC = () => {
   // Approval state
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [receiptToReject, setReceiptToReject] = useState<string | null>(null);
+  const [bulkRejectDialogOpen, setBulkRejectDialogOpen] = useState(false);
+  
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     loadReceipts();
@@ -272,13 +279,13 @@ export const ReceiptsManagement: React.FC = () => {
 
   const getStatusBadge = (status?: string) => {
     if (!status || status === 'pending') {
-      return <Badge variant="secondary" className="text-[10px] h-4 px-1.5">Pending</Badge>;
+      return <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-yellow-50 text-yellow-700 border-yellow-300">Pending</Badge>;
     }
     if (status === 'approved') {
-      return <Badge variant="default" className="bg-green-600 text-[10px] h-4 px-1.5">Approved</Badge>;
+      return <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-green-50 text-green-700 border-green-300">Approved</Badge>;
     }
     if (status === 'rejected') {
-      return <Badge variant="destructive" className="text-[10px] h-4 px-1.5">Rejected</Badge>;
+      return <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-red-50 text-red-700 border-red-300">Rejected</Badge>;
     }
     return null;
   };
@@ -328,6 +335,141 @@ export const ReceiptsManagement: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  // Statistics calculation
+  const statistics = useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    
+    return {
+      pendingCount: allReceipts.filter(r => 
+        !r.approval_status || r.approval_status === 'pending'
+      ).length,
+      approvedTodayCount: allReceipts.filter(r => 
+        r.approval_status === 'approved' && 
+        r.approved_at && 
+        new Date(r.approved_at) >= todayStart
+      ).length,
+      rejectedCount: allReceipts.filter(r => 
+        r.approval_status === 'rejected'
+      ).length,
+      totalThisWeekCount: allReceipts.filter(r => 
+        new Date(r.date) >= weekStart
+      ).length,
+    };
+  }, [allReceipts]);
+
+  // Pagination
+  const pagination = usePagination({
+    totalItems: filteredReceipts.length,
+    pageSize: 25,
+    initialPage: 1,
+  });
+
+  const paginatedReceipts = filteredReceipts.slice(
+    pagination.startIndex,
+    pagination.endIndex
+  );
+
+  // Bulk selection handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const standaloneIds = paginatedReceipts
+        .filter(r => r.type === 'standalone')
+        .map(r => r.id);
+      setSelectedIds(standaloneIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds([...selectedIds, id]);
+    } else {
+      setSelectedIds(selectedIds.filter(sid => sid !== id));
+    }
+  };
+
+  // Bulk action handlers
+  const handleBulkApprove = async () => {
+    if (selectedIds.length === 0) return;
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from('receipts')
+        .update({
+          approval_status: 'approved',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .in('id', selectedIds);
+
+      if (error) throw error;
+      toast.success(`${selectedIds.length} receipts approved`);
+      setSelectedIds([]);
+      loadReceipts();
+    } catch (error) {
+      console.error('Bulk approval error:', error);
+      toast.error('Failed to approve receipts');
+    }
+  };
+
+  const handleBulkReject = async (reason: string) => {
+    if (selectedIds.length === 0) return;
+    
+    try {
+      const { error } = await supabase
+        .from('receipts')
+        .update({
+          approval_status: 'rejected',
+          rejection_reason: reason,
+          approved_by: null,
+          approved_at: null
+        })
+        .in('id', selectedIds);
+
+      if (error) throw error;
+      toast.success(`${selectedIds.length} receipts rejected`);
+      setBulkRejectDialogOpen(false);
+      setSelectedIds([]);
+      loadReceipts();
+    } catch (error) {
+      console.error('Bulk rejection error:', error);
+      toast.error('Failed to reject receipts');
+    }
+  };
+
+  const handleBulkDownloadSelected = async () => {
+    if (selectedIds.length === 0) return;
+    
+    try {
+      const receiptsToDownload = allReceipts
+        .filter(r => selectedIds.includes(r.id))
+        .map(r => ({
+          id: r.id,
+          attachment_url: r.image_url,
+          worker_name: r.payee_name,
+          project_number: r.project_number,
+          expense_date: r.date,
+          hours: r.hours || 0,
+        }));
+      
+      const dateStr = format(new Date(), 'yyyy-MM-dd');
+      const filename = `selected_receipts_${dateStr}.zip`;
+      
+      toast.success(`Downloading ${selectedIds.length} receipts...`);
+      await downloadReceiptsAsZip(receiptsToDownload, filename);
+      toast.success('Download complete');
+    } catch (error) {
+      toast.error('Failed to download receipts');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -350,6 +492,57 @@ export const ReceiptsManagement: React.FC = () => {
           <FileImage className="w-3 h-3 mr-2" />
           Download All ({filteredReceipts.length})
         </Button>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <Card>
+          <CardContent className="p-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Pending Approval</p>
+                <p className="text-base font-bold">{statistics.pendingCount}</p>
+              </div>
+              <Clock className="h-5 w-5 text-yellow-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Approved Today</p>
+                <p className="text-base font-bold">{statistics.approvedTodayCount}</p>
+              </div>
+              <CheckCircle className="h-5 w-5 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Rejected</p>
+                <p className="text-base font-bold">{statistics.rejectedCount}</p>
+              </div>
+              <XCircle className="h-5 w-5 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Total This Week</p>
+                <p className="text-base font-bold">{statistics.totalThisWeekCount}</p>
+              </div>
+              <FileImage className="h-5 w-5 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search and Filters */}
@@ -376,12 +569,44 @@ export const ReceiptsManagement: React.FC = () => {
         </Select>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center gap-1.5 p-1.5 bg-muted border rounded-md">
+          <span className="text-xs font-medium">
+            {selectedIds.length} {selectedIds.length === 1 ? 'receipt' : 'receipts'} selected
+          </span>
+          <div className="flex gap-1.5 ml-auto">
+            <Button size="sm" variant="default" onClick={handleBulkApprove}>
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Approve
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => setBulkRejectDialogOpen(true)}>
+              <XCircle className="h-3 w-3 mr-1" />
+              Reject
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleBulkDownloadSelected}>
+              <Download className="h-3 w-3 mr-1" />
+              Download
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Single Unified Table */}
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow className="h-8">
+                <TableHead className="w-10 p-2 text-xs">
+                  <Checkbox
+                    checked={selectedIds.length === paginatedReceipts.filter(r => r.type === 'standalone').length && paginatedReceipts.filter(r => r.type === 'standalone').length > 0}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
                 <TableHead className="w-12 text-xs">Preview</TableHead>
                 <TableHead className="w-24 text-xs">Type</TableHead>
                 <TableHead className="text-xs">Payee/Worker</TableHead>
@@ -394,15 +619,27 @@ export const ReceiptsManagement: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredReceipts.length === 0 ? (
+              {paginatedReceipts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-6 text-xs text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-6 text-xs text-muted-foreground">
                     No receipts found
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredReceipts.map((receipt) => (
+                paginatedReceipts.map((receipt) => (
                   <TableRow key={receipt.id} className="h-9 hover:bg-muted/50 even:bg-muted/20">
+                    {/* Selection Checkbox */}
+                    <TableCell className="p-1.5">
+                      {receipt.type === 'standalone' ? (
+                        <Checkbox
+                          checked={selectedIds.includes(receipt.id)}
+                          onCheckedChange={(checked) => handleSelectOne(receipt.id, checked as boolean)}
+                        />
+                      ) : (
+                        <div className="w-4 h-4" />
+                      )}
+                    </TableCell>
+
                     {/* Preview Button */}
                     <TableCell className="p-1.5">
                       <Button
@@ -528,6 +765,20 @@ export const ReceiptsManagement: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* Pagination */}
+      {filteredReceipts.length > 0 && (
+        <div className="flex items-center justify-between px-2 py-2">
+          <div className="text-xs text-muted-foreground">
+            Showing {pagination.startIndex + 1} to {Math.min(pagination.endIndex, filteredReceipts.length)} of {filteredReceipts.length} receipts
+          </div>
+          <CompletePagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            onPageChange={pagination.goToPage}
+          />
+        </div>
+      )}
+
       {/* Preview Modal */}
       <ReceiptPreviewModal
         open={previewOpen}
@@ -536,7 +787,7 @@ export const ReceiptsManagement: React.FC = () => {
         timeEntryDetails={previewDetails}
       />
 
-      {/* Reject Dialog */}
+      {/* Reject Dialog for Single Receipt */}
       <RejectTimeEntryDialog
         open={rejectDialogOpen}
         onOpenChange={setRejectDialogOpen}
@@ -546,6 +797,14 @@ export const ReceiptsManagement: React.FC = () => {
           }
         }}
         entryCount={1}
+      />
+
+      {/* Bulk Reject Dialog */}
+      <RejectTimeEntryDialog
+        open={bulkRejectDialogOpen}
+        onOpenChange={setBulkRejectDialogOpen}
+        onConfirm={handleBulkReject}
+        entryCount={selectedIds.length}
       />
     </div>
   );
