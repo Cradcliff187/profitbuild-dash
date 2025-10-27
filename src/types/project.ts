@@ -68,13 +68,14 @@ export interface MarginThreshold {
 }
 
 export const JOB_TYPES = [
-  'Residential',
   'Commercial',
-  'Government',
-  'Industrial',
-  'Renovation',
   'Emergency Service',
-  'Maintenance'
+  'Government',
+  'Healthcare',
+  'Industrial',
+  'Maintenance',
+  'Renovation',
+  'Residential'
 ] as const;
 
 export const PROJECT_STATUSES = [
