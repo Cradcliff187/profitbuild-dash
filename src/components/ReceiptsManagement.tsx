@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Image, Download, Trash2, Search, FileImage, MoreHorizontal } from 'lucide-react';
+import { Image, Download, Trash2, Search, FileImage, MoreHorizontal, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ReceiptPreviewModal } from '@/components/ReceiptPreviewModal';
 import { downloadSingleReceipt, downloadReceiptsAsZip } from '@/utils/receiptDownloadUtils';
+import { RejectTimeEntryDialog } from '@/components/RejectTimeEntryDialog';
 import {
   Table,
   TableBody,
@@ -22,8 +23,16 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface UnifiedReceipt {
   id: string;
@@ -36,17 +45,26 @@ interface UnifiedReceipt {
   amount: number;
   description?: string;
   hours?: number;
+  approval_status?: string;
+  approved_by?: string;
+  approved_at?: string;
+  rejection_reason?: string;
 }
 
 export const ReceiptsManagement: React.FC = () => {
   const [allReceipts, setAllReceipts] = useState<UnifiedReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   
   // Preview modal state
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
   const [previewDetails, setPreviewDetails] = useState<any>(null);
+  
+  // Approval state
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [receiptToReject, setReceiptToReject] = useState<string | null>(null);
 
   useEffect(() => {
     loadReceipts();
@@ -109,6 +127,10 @@ export const ReceiptsManagement: React.FC = () => {
             amount,
             description,
             captured_at,
+            approval_status,
+            approved_by,
+            approved_at,
+            rejection_reason,
             payees(payee_name),
             projects(project_number, project_name)
           `)
@@ -148,6 +170,10 @@ export const ReceiptsManagement: React.FC = () => {
         date: receipt.captured_at,
         amount: receipt.amount,
         description: receipt.description || '',
+        approval_status: receipt.approval_status,
+        approved_by: receipt.approved_by,
+        approved_at: receipt.approved_at,
+        rejection_reason: receipt.rejection_reason,
       }));
 
       // Merge and sort by date (most recent first)
@@ -175,6 +201,51 @@ export const ReceiptsManagement: React.FC = () => {
     setPreviewOpen(true);
   };
 
+  const handleApproveReceipt = async (receiptId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from('receipts')
+        .update({
+          approval_status: 'approved',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', receiptId);
+
+      if (error) throw error;
+      toast.success('Receipt approved');
+      loadReceipts();
+    } catch (error) {
+      console.error('Approval error:', error);
+      toast.error('Failed to approve receipt');
+    }
+  };
+
+  const handleRejectReceipt = async (receiptId: string, reason: string) => {
+    try {
+      const { error } = await supabase
+        .from('receipts')
+        .update({
+          approval_status: 'rejected',
+          rejection_reason: reason,
+          approved_by: null,
+          approved_at: null
+        })
+        .eq('id', receiptId);
+
+      if (error) throw error;
+      toast.success('Receipt rejected');
+      setRejectDialogOpen(false);
+      setReceiptToReject(null);
+      loadReceipts();
+    } catch (error) {
+      console.error('Rejection error:', error);
+      toast.error('Failed to reject receipt');
+    }
+  };
+
   const handleDeleteReceipt = async (receiptId: string, receiptType: 'time_entry' | 'standalone') => {
     // Only allow deletion of standalone receipts
     if (receiptType !== 'standalone') {
@@ -197,6 +268,19 @@ export const ReceiptsManagement: React.FC = () => {
     } catch (error) {
       toast.error('Failed to delete receipt');
     }
+  };
+
+  const getStatusBadge = (status?: string) => {
+    if (!status || status === 'pending') {
+      return <Badge variant="secondary" className="text-[10px] h-4 px-1.5">Pending</Badge>;
+    }
+    if (status === 'approved') {
+      return <Badge variant="default" className="bg-green-600 text-[10px] h-4 px-1.5">Approved</Badge>;
+    }
+    if (status === 'rejected') {
+      return <Badge variant="destructive" className="text-[10px] h-4 px-1.5">Rejected</Badge>;
+    }
+    return null;
   };
 
   const handleBulkDownload = async () => {
@@ -226,10 +310,10 @@ export const ReceiptsManagement: React.FC = () => {
     }
   };
 
-  // Filter receipts based on search
+  // Filter receipts based on search and status
   const filteredReceipts = allReceipts.filter(r => {
     const search = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       r.payee_name.toLowerCase().includes(search) ||
       r.project_number.toLowerCase().includes(search) ||
       r.project_name.toLowerCase().includes(search) ||
@@ -237,6 +321,11 @@ export const ReceiptsManagement: React.FC = () => {
       format(new Date(r.date), 'MMM dd, yyyy').toLowerCase().includes(search) ||
       r.type.includes(search)
     );
+    
+    const matchesStatus = statusFilter === 'all' || 
+      (r.approval_status || 'pending') === statusFilter;
+    
+    return matchesSearch && matchesStatus;
   });
 
   if (loading) {
@@ -263,15 +352,28 @@ export const ReceiptsManagement: React.FC = () => {
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-        <Input
-          placeholder="Search receipts..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-7 h-8 text-sm"
-        />
+      {/* Search and Filters */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+          <Input
+            placeholder="Search receipts..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-7 h-8 text-sm"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-40 h-8 text-xs">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Single Unified Table */}
@@ -286,6 +388,7 @@ export const ReceiptsManagement: React.FC = () => {
                 <TableHead className="text-xs">Project</TableHead>
                 <TableHead className="text-xs">Date</TableHead>
                 <TableHead className="text-right text-xs">Amount</TableHead>
+                <TableHead className="text-xs w-24">Status</TableHead>
                 <TableHead className="text-xs max-w-xs">Description</TableHead>
                 <TableHead className="text-right text-xs w-20">Actions</TableHead>
               </TableRow>
@@ -293,7 +396,7 @@ export const ReceiptsManagement: React.FC = () => {
             <TableBody>
               {filteredReceipts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-6 text-xs text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-6 text-xs text-muted-foreground">
                     No receipts found
                   </TableCell>
                 </TableRow>
@@ -345,6 +448,11 @@ export const ReceiptsManagement: React.FC = () => {
                       ${receipt.amount.toFixed(2)}
                     </TableCell>
 
+                    {/* Status */}
+                    <TableCell className="p-1.5">
+                      {getStatusBadge(receipt.approval_status)}
+                    </TableCell>
+
                     {/* Description */}
                     <TableCell className="p-1.5 text-xs text-muted-foreground max-w-xs truncate">
                       {receipt.type === 'time_entry' && receipt.hours !== undefined
@@ -377,14 +485,37 @@ export const ReceiptsManagement: React.FC = () => {
                             <Download className="h-3 w-3 mr-2" />
                             Download
                           </DropdownMenuItem>
+                          
+                          {/* Approve/Reject actions for standalone receipts only */}
+                          {receipt.type === 'standalone' && (!receipt.approval_status || receipt.approval_status === 'pending') && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleApproveReceipt(receipt.id)}>
+                                <CheckCircle className="h-3 w-3 mr-2 text-green-600" />
+                                Approve
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setReceiptToReject(receipt.id);
+                                setRejectDialogOpen(true);
+                              }}>
+                                <XCircle className="h-3 w-3 mr-2 text-red-600" />
+                                Reject
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          
+                          {/* Delete action for standalone receipts */}
                           {receipt.type === 'standalone' && (
-                            <DropdownMenuItem 
-                              onClick={() => handleDeleteReceipt(receipt.id, receipt.type)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-3 w-3 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => handleDeleteReceipt(receipt.id, receipt.type)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-3 w-3 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -403,6 +534,18 @@ export const ReceiptsManagement: React.FC = () => {
         onOpenChange={setPreviewOpen}
         receiptUrl={selectedReceiptUrl}
         timeEntryDetails={previewDetails}
+      />
+
+      {/* Reject Dialog */}
+      <RejectTimeEntryDialog
+        open={rejectDialogOpen}
+        onOpenChange={setRejectDialogOpen}
+        onConfirm={async (reason) => {
+          if (receiptToReject) {
+            await handleRejectReceipt(receiptToReject, reason);
+          }
+        }}
+        entryCount={1}
       />
     </div>
   );
