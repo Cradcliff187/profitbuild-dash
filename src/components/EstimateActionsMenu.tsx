@@ -147,7 +147,7 @@ export const EstimateActionsMenu = ({
         lineItems,
         created_at: new Date(newVersionData.created_at),
         updated_at: new Date(newVersionData.updated_at),
-        defaultMarkupPercent: newVersionData.default_markup_percent || 15,
+        defaultMarkupPercent: newVersionData.default_markup_percent || 25,
         targetMarginPercent: newVersionData.target_margin_percent || 20,
       };
 

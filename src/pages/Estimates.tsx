@@ -250,7 +250,7 @@ const EstimatesPage = () => {
         project_name: est.projects?.project_name,
         client_name: est.projects?.client_name,
         quotes: quotesByEstimate[est.id] || [],
-        defaultMarkupPercent: 15,
+        defaultMarkupPercent: 25,
         targetMarginPercent: 20,
         is_draft: false
       })) || [];

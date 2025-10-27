@@ -313,7 +313,7 @@ const Quotes = () => {
               totalMarkup: safeNumber(item.total_markup),
               sortOrder: safeNumber(item.sort_order)
             })),
-            defaultMarkupPercent: 15,
+            defaultMarkupPercent: 25,
             targetMarginPercent: 20
           };
         } catch (error) {
@@ -339,7 +339,7 @@ const Quotes = () => {
             updated_at: new Date(),
             createdAt: new Date(),
             lineItems: [],
-            defaultMarkupPercent: 15,
+            defaultMarkupPercent: 25,
             targetMarginPercent: 20
           };
         }

@@ -134,7 +134,7 @@ const Projects = () => {
         project_name: formattedProjects.find(p => p.id === estimate.project_id)?.project_name,
         client_name: formattedProjects.find(p => p.id === estimate.project_id)?.client_name,
         lineItems: [], // Add empty array for required property
-        defaultMarkupPercent: 15,
+        defaultMarkupPercent: 25,
         targetMarginPercent: 20
       })) || [];
 

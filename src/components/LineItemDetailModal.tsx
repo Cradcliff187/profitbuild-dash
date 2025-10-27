@@ -95,7 +95,7 @@ export const LineItemDetailModal: React.FC<LineItemDetailModalProps> = ({
     if (type === 'percent') {
       updatedItem.markupAmount = null;
       if (!updatedItem.markupPercent) {
-        updatedItem.markupPercent = 15; // Default 15%
+        updatedItem.markupPercent = 25; // Default 25%
       }
     } else {
       updatedItem.markupPercent = null;

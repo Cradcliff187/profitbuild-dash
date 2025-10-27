@@ -136,7 +136,7 @@ export const ProjectDetailView = () => {
         updated_at: new Date(estimate.updated_at),
         valid_until: estimate.valid_until ? new Date(estimate.valid_until) : undefined,
         lineItems: [],
-        defaultMarkupPercent: estimate.default_markup_percent || 15,
+        defaultMarkupPercent: estimate.default_markup_percent || 25,
         targetMarginPercent: estimate.target_margin_percent || 20
       }));
 

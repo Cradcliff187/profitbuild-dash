@@ -110,7 +110,7 @@ const Dashboard = () => {
         date_created: new Date(estimate.date_created),
         valid_until: estimate.valid_until ? new Date(estimate.valid_until) : undefined,
         status: estimate.status,
-        defaultMarkupPercent: estimate.defaultMarkupPercent || 15,
+        defaultMarkupPercent: estimate.defaultMarkupPercent || 25,
         targetMarginPercent: estimate.targetMarginPercent || 20,
         total_amount: estimate.total_amount,
         notes: estimate.notes,

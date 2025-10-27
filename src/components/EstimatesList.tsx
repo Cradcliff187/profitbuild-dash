@@ -187,7 +187,7 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
           updated_at: new Date(newVersionData.updated_at),
           project_name: sourceEstimate.project_name,
           client_name: sourceEstimate.client_name,
-          defaultMarkupPercent: newVersionData.default_markup_percent || 15,
+          defaultMarkupPercent: newVersionData.default_markup_percent || 25,
           targetMarginPercent: newVersionData.target_margin_percent || 20,
           is_draft: newVersionData.is_draft ?? false,
         };

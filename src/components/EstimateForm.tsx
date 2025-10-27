@@ -241,7 +241,7 @@ useEffect(() => {
       unit: defaultUnit,
       sort_order: lineItems.length,
       costPerUnit: 0,
-      markupPercent: 15, // Default 15% markup
+      markupPercent: 25, // Default 25% markup
       markupAmount: null,
       totalCost: 0,
       totalMarkup: 0
@@ -631,7 +631,7 @@ useEffect(() => {
             parent_estimate_id: estimateData.parent_estimate_id,
             is_current_version: true,
             valid_for_days: estimateData.valid_for_days,
-            defaultMarkupPercent: 15,
+            defaultMarkupPercent: 25,
             targetMarginPercent: 20
           };
 
@@ -714,7 +714,7 @@ useEffect(() => {
             id: createdEstimate.id,
             project_id: createdEstimate.project_id,
             estimate_number: createdEstimate.estimate_number,
-            defaultMarkupPercent: 15,
+            defaultMarkupPercent: 25,
             targetMarginPercent: 20,
             date_created: new Date(createdEstimate.date_created),
             total_amount: createdEstimate.total_amount,

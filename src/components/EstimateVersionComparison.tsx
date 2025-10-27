@@ -59,7 +59,7 @@ export const EstimateVersionComparison = ({ projectId, onClose }: EstimateVersio
         updated_at: new Date(est.updated_at),
         project_name: '',
         client_name: '',
-        defaultMarkupPercent: 15,
+        defaultMarkupPercent: 25,
         targetMarginPercent: 20
       }));
 

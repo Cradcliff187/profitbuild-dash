@@ -70,7 +70,7 @@ export default function ProfitAnalysisPage() {
         updated_at: new Date(estimate.updated_at),
         createdAt: new Date(estimate.created_at),
         lineItems: [],
-        defaultMarkupPercent: 15,
+        defaultMarkupPercent: 25,
         targetMarginPercent: 20
       }));
 

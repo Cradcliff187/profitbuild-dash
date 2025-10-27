@@ -49,7 +49,7 @@ const getCategoryAbbrev = (category: LineItemCategory): string => {
 
 const getMarkupColor = (markupPercent: number): string => {
   if (markupPercent < 0) return 'text-destructive';
-  if (markupPercent < 15) return 'text-warning';
+  if (markupPercent < 25) return 'text-warning';
   return 'text-success';
 };
 

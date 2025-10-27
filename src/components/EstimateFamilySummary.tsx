@@ -63,7 +63,7 @@ export const EstimateFamilySummary = ({
         updated_at: new Date(est.updated_at),
         project_name: projectName,
         client_name: '',
-        defaultMarkupPercent: 15,
+        defaultMarkupPercent: 25,
         targetMarginPercent: 20
       }));
 
