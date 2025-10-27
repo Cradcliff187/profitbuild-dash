@@ -111,15 +111,18 @@ const TimeEntries = () => {
   // Fetch receipt count
   const fetchReceiptCount = async () => {
     try {
+      // Count only PENDING receipts from both sources
       const [{ count: timeEntryCount }, { count: standaloneCount }] = await Promise.all([
         supabase
           .from('expenses')
           .select('*', { count: 'exact', head: true })
           .eq('category', 'labor_internal')
-          .not('attachment_url', 'is', null),
+          .not('attachment_url', 'is', null)
+          .or('approval_status.is.null,approval_status.eq.pending'),
         supabase
           .from('receipts')
           .select('*', { count: 'exact', head: true })
+          .or('approval_status.is.null,approval_status.eq.pending')
       ]);
       
       setReceiptCount((timeEntryCount || 0) + (standaloneCount || 0));
