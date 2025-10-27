@@ -19,21 +19,13 @@ interface QuickWorkOrderFormProps {
 
 const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) => {
   const [formData, setFormData] = useState({
-    projectNumber: '',  // Will be set async
+    projectNumber: 'Auto-generated on save',
     clientName: '',
     projectName: '',
     estimatedAmount: '',
     startDate: new Date(),
   });
 
-  // Initialize project number on mount
-  useEffect(() => {
-    const initProjectNumber = async () => {
-      const number = await generateProjectNumber();
-      setFormData(prev => ({ ...prev, projectNumber: number }));
-    };
-    initProjectNumber();
-  }, []);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -52,11 +44,15 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
     setLoading(true);
 
     try {
+      // Generate project number NOW (not on form load)
+      const generatedNumber = await generateProjectNumber();
+      setFormData(prev => ({ ...prev, projectNumber: generatedNumber }));
+      
       // Create the work order project
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .insert({
-          project_number: formData.projectNumber,
+          project_number: generatedNumber,
           project_name: formData.projectName,
           client_name: formData.clientName,
           project_type: 'work_order',
@@ -106,6 +102,15 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
   };
 
   const regenerateProjectNumber = async () => {
+    // Only allow regeneration if a real number has been generated
+    if (formData.projectNumber === "Auto-generated on save") {
+      toast({
+        title: "Not Yet Generated",
+        description: "Project number will be generated when you create the work order.",
+      });
+      return;
+    }
+    
     const number = await generateProjectNumber();
     setFormData(prev => ({
       ...prev,
@@ -123,12 +128,14 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
             value={formData.projectNumber}
             readOnly
             className="bg-muted"
+            placeholder="Will be generated on save"
           />
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={regenerateProjectNumber}
+            disabled={formData.projectNumber === "Auto-generated on save"}
           >
             Regenerate
           </Button>
