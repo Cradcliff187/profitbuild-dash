@@ -134,13 +134,13 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
         
         const approvedThisWeek = allEntries.filter(e => 
           e.approval_status === 'approved' && 
-          new Date(e.expense_date) >= weekStart
+          new Date(e.expense_date + 'T12:00:00') >= weekStart
         );
         const approvedThisWeekHours = approvedThisWeek.reduce((sum, e) => 
           sum + calculateHours(e.start_time, e.end_time, e.description), 0
         );
 
-        const thisMonth = allEntries.filter(e => new Date(e.expense_date) >= monthStart);
+        const thisMonth = allEntries.filter(e => new Date(e.expense_date + 'T12:00:00') >= monthStart);
         const totalThisMonthHours = thisMonth.reduce((sum, e) => 
           sum + calculateHours(e.start_time, e.end_time, e.description), 0
         );

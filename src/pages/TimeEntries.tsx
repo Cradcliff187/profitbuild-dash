@@ -530,7 +530,7 @@ const TimeEntries = () => {
                           case 'date':
                             return (
                               <TableCell key={colKey} className="p-1.5 text-xs">
-                                {format(new Date(entry.expense_date), 'MMM dd, yyyy')}
+                                {format(new Date(entry.expense_date + 'T12:00:00'), 'MMM dd, yyyy')}
                               </TableCell>
                             );
                           case 'start':

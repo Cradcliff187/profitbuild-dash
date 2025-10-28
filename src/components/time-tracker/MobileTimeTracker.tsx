@@ -797,7 +797,7 @@ export const MobileTimeTracker: React.FC = () => {
         category: 'labor_internal' as const,
         transaction_type: 'expense' as const,
         amount: amount,
-        expense_date: format(activeTimer.startTime, 'yyyy-MM-dd'),
+        expense_date: `${activeTimer.startTime.getFullYear()}-${String(activeTimer.startTime.getMonth() + 1).padStart(2, '0')}-${String(activeTimer.startTime.getDate()).padStart(2, '0')}`,
         description: '',
         is_planned: false,
         created_offline: !isOnline,
