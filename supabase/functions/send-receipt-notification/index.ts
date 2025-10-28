@@ -370,6 +370,7 @@ Deno.serve(async (req) => {
     const { data: emailResult, error: emailError } = await resend.emails.send({
       from: `${companyName} <noreply@rcgwork.com>`,
       to: 'receipts@radcliffcg.com',
+      reply_to: profile?.email || undefined,
       subject: emailSubject,
       html: emailHtml,
     });
