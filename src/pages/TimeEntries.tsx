@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ClipboardCheck, Download, Edit, CheckCircle, XCircle, Clock, MoreHorizontal, Eye, FileImage, Paperclip, Trash2 } from "lucide-react";
+import { ClipboardCheck, Download, Edit, CheckCircle, XCircle, Clock, MoreHorizontal, Eye, FileImage, Paperclip, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -33,6 +33,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ColumnSelector } from "@/components/ui/column-selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReceiptsManagement } from "@/components/ReceiptsManagement";
+import { CreateTimeEntryDialog } from "@/components/time-tracker/CreateTimeEntryDialog";
+import { useRoles } from "@/contexts/RoleContext";
 
 // Define column metadata for selector (must be outside component for state initialization)
 const columnDefinitions = [
@@ -75,6 +77,9 @@ const TimeEntries = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [receiptCount, setReceiptCount] = useState(0);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const { isAdmin, isManager } = useRoles();
+  const canCreateTimeEntry = isAdmin || isManager;
 
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
@@ -316,6 +321,19 @@ const TimeEntries = () => {
     }
   };
 
+  const handleCreateTimeEntry = () => {
+    setCreateDialogOpen(true);
+  };
+
+  const handleTimeEntrySaved = () => {
+    refetch();
+    fetchReceiptCount();
+    toast({
+      title: 'Success',
+      description: 'Time entry created successfully',
+    });
+  };
+
   const getStatusBadge = (status: string | null) => {
     if (!status || status === 'pending') {
       return <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-yellow-50 text-yellow-700 border-yellow-300">Pending</Badge>;
@@ -376,6 +394,16 @@ const TimeEntries = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {canCreateTimeEntry && (
+                <Button
+                  onClick={handleCreateTimeEntry}
+                  size="sm"
+                  className="flex items-center gap-1"
+                >
+                  <Plus className="h-3 w-3" />
+                  Create Time Entry
+                </Button>
+              )}
               <ColumnSelector
                 columns={columnDefinitions}
                 visibleColumns={visibleColumns}
@@ -748,6 +776,15 @@ const TimeEntries = () => {
             setEditingEntry(null);
             refetch();
           }}
+        />
+      )}
+
+      {/* Create Time Entry Dialog - Only for admins and managers */}
+      {canCreateTimeEntry && (
+        <CreateTimeEntryDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          onSaved={handleTimeEntrySaved}
         />
       )}
     </div>
