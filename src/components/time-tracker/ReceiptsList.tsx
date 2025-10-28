@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfWeek, startOfMonth, isWithinInterval } from 'date-fns';
-import { Receipt, Search, Trash2, Plus, Edit, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { Receipt, Trash2, Plus, Edit, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { AddReceiptModal } from './AddReceiptModal';
 import { EditReceiptModal } from './EditReceiptModal';
 import { ReassignReceiptDialog } from './ReassignReceiptDialog';
@@ -212,13 +212,12 @@ export const ReceiptsList = () => {
     <MobilePageWrapper className="space-y-3">
       {/* Search & Sort Bar */}
       <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="flex-1">
           <Input
             placeholder="Search receipts..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 h-9 text-sm"
+            className="pl-3 h-9 text-sm"
           />
         </div>
         <NativeSelect
