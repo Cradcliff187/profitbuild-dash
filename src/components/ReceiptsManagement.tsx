@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Image, Download, Trash2, Search, FileImage, MoreHorizontal, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Image, Download, Trash2, FileImage, MoreHorizontal, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { ReceiptFiltersComponent, ReceiptFilters } from '@/components/ReceiptFilters';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -30,19 +30,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface UnifiedReceipt {
   id: string;
   type: 'time_entry' | 'standalone';
   image_url: string;
+  payee_id: string;
   payee_name: string;
+  project_id: string;
   project_number: string;
   project_name: string;
   date: string;
@@ -59,8 +54,14 @@ interface UnifiedReceipt {
 export const ReceiptsManagement: React.FC = () => {
   const [allReceipts, setAllReceipts] = useState<UnifiedReceipt[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [filters, setFilters] = useState<ReceiptFilters>({
+    dateFrom: null,
+    dateTo: null,
+    status: 'all',
+    payeeId: null,
+    projectId: null,
+    receiptType: 'all',
+  });
   
   // Preview modal state
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -121,6 +122,8 @@ export const ReceiptsManagement: React.FC = () => {
             attachment_url,
             start_time,
             end_time,
+            payee_id,
+            project_id,
             payees!inner(payee_name),
             projects!inner(project_number, project_name)
           `)
@@ -141,6 +144,8 @@ export const ReceiptsManagement: React.FC = () => {
             approved_at,
             submitted_for_approval_at,
             rejection_reason,
+            payee_id,
+            project_id,
             payees(payee_name),
             projects(project_number, project_name)
           `)
@@ -160,7 +165,9 @@ export const ReceiptsManagement: React.FC = () => {
           id: expense.id,
           type: 'time_entry' as const,
           image_url: expense.attachment_url,
+          payee_id: expense.payee_id || '',
           payee_name: expense.payees?.payee_name || 'Unknown',
+          project_id: expense.project_id || '',
           project_number: expense.projects?.project_number || '',
           project_name: expense.projects?.project_name || '',
           date: expense.expense_date,
@@ -174,7 +181,9 @@ export const ReceiptsManagement: React.FC = () => {
         id: receipt.id,
         type: 'standalone' as const,
         image_url: receipt.image_url,
+        payee_id: receipt.payee_id || '',
         payee_name: receipt.payees?.payee_name || 'Unknown',
+        project_id: receipt.project_id || '',
         project_number: receipt.projects?.project_number || 'SYS-000',
         project_name: receipt.projects?.project_name || 'Unassigned',
         date: receipt.captured_at,
@@ -321,22 +330,26 @@ export const ReceiptsManagement: React.FC = () => {
     }
   };
 
-  // Filter receipts based on search and status
+  // Filter receipts based on all filter criteria
   const filteredReceipts = allReceipts.filter(r => {
-    const search = searchTerm.toLowerCase();
-    const matchesSearch = (
-      r.payee_name.toLowerCase().includes(search) ||
-      r.project_number.toLowerCase().includes(search) ||
-      r.project_name.toLowerCase().includes(search) ||
-      (r.description && r.description.toLowerCase().includes(search)) ||
-      format(new Date(r.date), 'MMM dd, yyyy').toLowerCase().includes(search) ||
-      r.type.includes(search)
-    );
+    // Date range filter
+    if (filters.dateFrom && new Date(r.date) < new Date(filters.dateFrom)) return false;
+    if (filters.dateTo && new Date(r.date) > new Date(filters.dateTo)) return false;
     
-    const matchesStatus = statusFilter === 'all' || 
-      (r.approval_status || 'pending') === statusFilter;
+    // Status filter
+    const receiptStatus = r.approval_status || 'pending';
+    if (filters.status !== 'all' && receiptStatus !== filters.status) return false;
     
-    return matchesSearch && matchesStatus;
+    // Receipt type filter
+    if (filters.receiptType !== 'all' && r.type !== filters.receiptType) return false;
+    
+    // Payee filter
+    if (filters.payeeId && r.payee_id !== filters.payeeId) return false;
+    
+    // Project filter
+    if (filters.projectId && r.project_id !== filters.projectId) return false;
+    
+    return true;
   });
 
   // Statistics calculation
@@ -556,29 +569,8 @@ export const ReceiptsManagement: React.FC = () => {
         </Card>
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <Input
-            placeholder="Search receipts..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-7 h-8 text-sm"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40 h-8 text-xs">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Filters */}
+      <ReceiptFiltersComponent filters={filters} onFiltersChange={setFilters} />
 
       {/* Bulk Actions Bar */}
       {selectedIds.length > 0 && (
