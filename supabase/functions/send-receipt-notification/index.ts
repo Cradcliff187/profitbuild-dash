@@ -140,6 +140,13 @@ Deno.serve(async (req) => {
       minute: '2-digit'
     });
 
+    // Format compact date for subject line
+    const formattedDate = new Date(receiptRow.captured_at).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
     // Prepare email content
     const employeeName = profile?.full_name || 'Unknown Employee';
     const employeeEmail = profile?.email || 'Unknown Email';
@@ -357,10 +364,13 @@ Deno.serve(async (req) => {
 
     // Send email via Resend
     console.log('📨 Sending receipt notification email...');
+    const emailSubject = `RCG Receipt: ${project?.project_number || 'No Project'} - ${payeeName} - ${formattedDate}`;
+    console.log('📧 Subject:', emailSubject);
+    
     const { data: emailResult, error: emailError } = await resend.emails.send({
       from: `${companyName} <noreply@rcgwork.com>`,
       to: 'employeereceipts@radcliffcg.com',
-      subject: `RCG Receipt: ${project?.project_number || 'No Project'} - ${payeeName} - ${formattedDate}`,
+      subject: emailSubject,
       html: emailHtml,
     });
 

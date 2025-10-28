@@ -175,7 +175,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
       if (emailError) {
         console.error('❌ Email notification failed:', emailError);
-        toast.success('Receipt saved, but email notification failed. Use "Resend" from the receipts list.');
+        toast.warning('Receipt saved, but email notification failed. Use "Resend" from the receipts list.');
       } else {
         console.log('✅ Email notification sent. Response:', emailResponse);
         toast.success('Receipt saved and notification sent!');
