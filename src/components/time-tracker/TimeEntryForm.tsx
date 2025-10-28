@@ -126,7 +126,7 @@ export const TimeEntryForm = ({
       supabase
         .from('projects')
         .select('id, project_name, project_number')
-        .in('status', ['approved', 'in_progress'])
+        .in('status', ['estimating', 'approved', 'in_progress', 'on_hold'])
         .neq('project_number', '000-UNASSIGNED')
         .neq('project_number', 'SYS-000')
         .order('project_number', { ascending: false }),
