@@ -318,6 +318,16 @@ const TimeEntries = () => {
 
         {/* Time Entries Tab */}
         <TabsContent value="entries" className="space-y-2">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold">Time Entry Management</h3>
+              <p className="text-xs text-muted-foreground">
+                Review, approve, and manage time entries for all projects and employees
+              </p>
+            </div>
+          </div>
+
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-2">
             <ColumnSelector
