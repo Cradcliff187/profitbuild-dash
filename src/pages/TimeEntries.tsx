@@ -44,7 +44,13 @@ const TimeEntries = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get('tab') === 'receipts' ? 'receipts' : 'entries';
+  const tabFromUrl = searchParams.get('tab') === 'receipts' ? 'receipts' : 'entries';
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
+
+  // Sync tab with URL parameter changes
+  useEffect(() => {
+    setActiveTab(tabFromUrl);
+  }, [tabFromUrl]);
   
   const [filters, setFilters] = useState<TimeEntryFilters>({
     dateFrom: null,
@@ -299,7 +305,7 @@ const TimeEntries = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue={defaultTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-2 h-8">
           <TabsTrigger value="entries" className="text-xs h-7">
             <ClipboardCheck className="h-3 w-3 mr-1" />
