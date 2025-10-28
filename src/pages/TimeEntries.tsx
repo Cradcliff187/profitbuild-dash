@@ -19,7 +19,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { CompletePagination } from "@/components/ui/complete-pagination";
 import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ColumnSelector } from "@/components/ui/column-selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReceiptsManagement } from "@/components/ReceiptsManagement";
@@ -43,6 +43,9 @@ const columnDefinitions = [
 const TimeEntries = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') === 'receipts' ? 'receipts' : 'entries';
+  
   const [filters, setFilters] = useState<TimeEntryFilters>({
     dateFrom: null,
     dateTo: null,
@@ -296,7 +299,7 @@ const TimeEntries = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="entries" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="mb-2 h-8">
           <TabsTrigger value="entries" className="text-xs h-7">
             <ClipboardCheck className="h-3 w-3 mr-1" />

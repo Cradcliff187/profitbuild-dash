@@ -336,6 +336,22 @@ Deno.serve(async (req) => {
                     </td>
                   </tr>
                   
+                  <!-- CTA Button -->
+                  <tr>
+                    <td style="padding: 0 48px 32px;">
+                      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                        <tr>
+                          <td align="center">
+                            <a href="https://rcgwork.com/time-entries?tab=receipts" 
+                               style="display: inline-block; background-color: ${accentColor}; color: white; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-size: 15px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                              📋 Review Receipt
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  
                   <!-- Footer -->
                   <tr>
                     <td style="padding: 32px 48px; text-align: center; background: linear-gradient(180deg, #ffffff 0%, ${lightBgColor} 100%); border-top: 1px solid #e2e8f0;">
