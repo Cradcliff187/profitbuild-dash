@@ -142,6 +142,7 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
         setHours={setHours}
         disabled={loading}
         isMobile={isMobile}
+        showRates={false}
       />
       <div className="flex gap-2 pt-2">
         <Button 

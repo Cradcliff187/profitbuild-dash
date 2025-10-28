@@ -353,6 +353,7 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
           disabled={!canEdit || loading}
           showReceipt={true}
           isMobile={isMobile}
+          showRates={false}
         />
 
         <div className="flex gap-1.5 pt-2">

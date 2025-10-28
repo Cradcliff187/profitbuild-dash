@@ -41,6 +41,7 @@ interface TimeEntryFormProps {
   disabled?: boolean;
   showReceipt?: boolean;
   isMobile?: boolean;
+  showRates?: boolean;
 }
 
 export const TimeEntryForm = ({
@@ -62,6 +63,7 @@ export const TimeEntryForm = ({
   disabled = false,
   showReceipt = false,
   isMobile = false,
+  showRates = true,
 }: TimeEntryFormProps) => {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -219,7 +221,7 @@ export const TimeEntryForm = ({
           <option value="" disabled>Select team member</option>
           {workers.map(w => (
             <option key={w.id} value={w.id}>
-              {w.name} - ${w.rate}/hr
+              {showRates ? `${w.name} - $${w.rate}/hr` : w.name}
             </option>
           ))}
         </NativeSelect>
