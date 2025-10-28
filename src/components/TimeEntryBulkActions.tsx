@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Trash2 } from "lucide-react";
 
 interface TimeEntryBulkActionsProps {
   selectedCount: number;
   onApprove: () => void;
   onReject: () => void;
+  onDelete: () => void;
   onCancel: () => void;
 }
 
@@ -12,6 +13,7 @@ export const TimeEntryBulkActions = ({
   selectedCount,
   onApprove,
   onReject,
+  onDelete,
   onCancel,
 }: TimeEntryBulkActionsProps) => {
   if (selectedCount === 0) return null;
@@ -29,6 +31,10 @@ export const TimeEntryBulkActions = ({
         <Button size="sm" variant="destructive" onClick={onReject}>
           <XCircle className="h-3 w-3 mr-1" />
           Reject
+        </Button>
+        <Button size="sm" variant="outline" onClick={onDelete}>
+          <Trash2 className="h-3 w-3 mr-1" />
+          Delete
         </Button>
         <Button size="sm" variant="ghost" onClick={onCancel}>
           Cancel

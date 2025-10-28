@@ -1,7 +1,17 @@
 import { useState, useEffect } from "react";
-import { ClipboardCheck, Download, Edit, CheckCircle, XCircle, Clock, MoreHorizontal, Eye, FileImage, Paperclip } from "lucide-react";
+import { ClipboardCheck, Download, Edit, CheckCircle, XCircle, Clock, MoreHorizontal, Eye, FileImage, Paperclip, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +72,7 @@ const TimeEntries = () => {
   const [pageSize, setPageSize] = useState(25);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [receiptCount, setReceiptCount] = useState(0);
 
@@ -278,6 +289,33 @@ const TimeEntries = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (selectedIds.length === 0) return;
+    
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .in('id', selectedIds);
+        
+      if (error) throw error;
+      
+      toast({
+        title: 'Success',
+        description: `${selectedIds.length} ${selectedIds.length === 1 ? 'entry' : 'entries'} deleted`,
+      });
+      setSelectedIds([]);
+      setDeleteDialogOpen(false);
+      refetch();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete entries',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getStatusBadge = (status: string | null) => {
     if (!status || status === 'pending') {
       return <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-yellow-50 text-yellow-700 border-yellow-300">Pending</Badge>;
@@ -416,6 +454,7 @@ const TimeEntries = () => {
             selectedCount={selectedIds.length}
             onApprove={() => handleApprove(selectedIds)}
             onReject={() => setRejectDialogOpen(true)}
+            onDelete={() => setDeleteDialogOpen(true)}
             onCancel={() => setSelectedIds([])}
           />
 
@@ -680,6 +719,25 @@ const TimeEntries = () => {
         onConfirm={handleReject}
         entryCount={selectedIds.length}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Time Entries</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.length} {selectedIds.length === 1 ? 'time entry' : 'time entries'}?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {editingEntry && (
         <EditTimeEntryDialog

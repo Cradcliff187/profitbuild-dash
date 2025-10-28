@@ -16,6 +16,16 @@ import { usePagination } from '@/hooks/usePagination';
 import { CompletePagination } from '@/components/ui/complete-pagination';
 import { exportReceiptsToCSV } from '@/utils/receiptExport';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -73,6 +83,7 @@ export const ReceiptsManagement: React.FC = () => {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [receiptToReject, setReceiptToReject] = useState<string | null>(null);
   const [bulkRejectDialogOpen, setBulkRejectDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -489,6 +500,27 @@ export const ReceiptsManagement: React.FC = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    
+    try {
+      // Only standalone receipts can be deleted (time entry receipts are part of expenses)
+      const { error } = await supabase
+        .from('receipts')
+        .delete()
+        .in('id', selectedIds);
+
+      if (error) throw error;
+      toast.success(`${selectedIds.length} ${selectedIds.length === 1 ? 'receipt' : 'receipts'} deleted`);
+      setDeleteDialogOpen(false);
+      setSelectedIds([]);
+      loadReceipts();
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      toast.error('Failed to delete receipts');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -592,6 +624,10 @@ export const ReceiptsManagement: React.FC = () => {
             <Button size="sm" variant="outline" onClick={handleBulkDownloadSelected}>
               <Download className="h-3 w-3 mr-1" />
               Download
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setDeleteDialogOpen(true)}>
+              <Trash2 className="h-3 w-3 mr-1" />
+              Delete
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>
               Cancel
@@ -819,6 +855,25 @@ export const ReceiptsManagement: React.FC = () => {
         onConfirm={handleBulkReject}
         entryCount={selectedIds.length}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Receipts</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.length} {selectedIds.length === 1 ? 'receipt' : 'receipts'}?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
