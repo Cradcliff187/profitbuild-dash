@@ -25,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ColumnSelector } from '@/components/ui/column-selector';
 import {
   Table,
   TableBody,
@@ -40,6 +41,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+const receiptColumnDefinitions = [
+  { key: 'preview', label: 'Preview', required: true },
+  { key: 'type', label: 'Type', required: false },
+  { key: 'payee', label: 'Payee/Worker', required: true },
+  { key: 'project', label: 'Project', required: true },
+  { key: 'date', label: 'Date', required: true },
+  { key: 'amount', label: 'Amount', required: false },
+  { key: 'status', label: 'Status', required: false },
+  { key: 'submitted_at', label: 'Submitted At', required: false },
+  { key: 'description', label: 'Description', required: false },
+  { key: 'actions', label: 'Actions', required: true },
+];
 
 interface UnifiedReceipt {
   id: string;
@@ -88,9 +102,60 @@ export const ReceiptsManagement: React.FC = () => {
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
+  // Column visibility state with localStorage persistence
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem('receipts-visible-columns');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    // Default visible columns
+    return [
+      'preview',
+      'type',
+      'payee',
+      'project',
+      'date',
+      'amount',
+      'status',
+      'submitted_at',
+      'description',
+      'actions'
+    ];
+  });
+
+  // Column order state with localStorage persistence
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem('receipts-column-order');
+    if (saved) {
+      const savedOrder = JSON.parse(saved);
+      // Filter out any invalid column keys
+      const validOrder = savedOrder.filter((key: string) => 
+        receiptColumnDefinitions.some(col => col.key === key)
+      );
+      // Add any new columns that aren't in saved order
+      const newColumns = receiptColumnDefinitions
+        .map(col => col.key)
+        .filter(key => !validOrder.includes(key));
+      
+      return [...validOrder, ...newColumns];
+    }
+    // Default: use order from receiptColumnDefinitions
+    return receiptColumnDefinitions.map(col => col.key);
+  });
+
   useEffect(() => {
     loadReceipts();
   }, []);
+
+  // Save visibility to localStorage
+  useEffect(() => {
+    localStorage.setItem('receipts-visible-columns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  // Save column order to localStorage
+  useEffect(() => {
+    localStorage.setItem('receipts-column-order', JSON.stringify(columnOrder));
+  }, [columnOrder]);
 
   // Real-time updates for receipts
   useEffect(() => {
@@ -540,6 +605,13 @@ export const ReceiptsManagement: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <ColumnSelector
+            columns={receiptColumnDefinitions}
+            visibleColumns={visibleColumns}
+            onVisibilityChange={setVisibleColumns}
+            columnOrder={columnOrder}
+            onColumnOrderChange={setColumnOrder}
+          />
           <Button 
             variant="outline" 
             size="sm"
@@ -648,29 +720,62 @@ export const ReceiptsManagement: React.FC = () => {
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
-                <TableHead className="w-12 text-xs">Preview</TableHead>
-                <TableHead className="w-24 text-xs">Type</TableHead>
-                <TableHead className="text-xs">Payee/Worker</TableHead>
-                <TableHead className="text-xs">Project</TableHead>
-                <TableHead className="text-xs">Date</TableHead>
-                <TableHead className="text-right text-xs">Amount</TableHead>
-                <TableHead className="text-xs w-24">Status</TableHead>
-                <TableHead className="text-xs w-36">Submitted At</TableHead>
-                <TableHead className="text-xs max-w-xs">Description</TableHead>
-                <TableHead className="text-right text-xs w-20">Actions</TableHead>
+                {columnOrder.map(colKey => {
+                  if (!visibleColumns.includes(colKey)) return null;
+                  
+                  const widths: Record<string, string> = {
+                    preview: 'w-12',
+                    type: 'w-24',
+                    payee: 'w-40',
+                    project: 'w-48',
+                    date: 'w-28',
+                    amount: 'w-24',
+                    status: 'w-24',
+                    submitted_at: 'w-36',
+                    description: 'max-w-xs',
+                    actions: 'w-20'
+                  };
+                  
+                  const alignments: Record<string, string> = {
+                    amount: 'text-right',
+                    actions: 'text-right'
+                  };
+                  
+                  const labels: Record<string, string> = {
+                    preview: 'Preview',
+                    type: 'Type',
+                    payee: 'Payee/Worker',
+                    project: 'Project',
+                    date: 'Date',
+                    amount: 'Amount',
+                    status: 'Status',
+                    submitted_at: 'Submitted At',
+                    description: 'Description',
+                    actions: 'Actions'
+                  };
+                  
+                  return (
+                    <TableHead 
+                      key={colKey} 
+                      className={`p-2 text-xs font-medium h-8 ${widths[colKey]} ${alignments[colKey] || ''}`}
+                    >
+                      {labels[colKey]}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedReceipts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-6 text-xs text-muted-foreground">
+                  <TableCell colSpan={visibleColumns.length + 1} className="text-center py-6 text-xs text-muted-foreground">
                     No receipts found
                   </TableCell>
                 </TableRow>
               ) : (
                 paginatedReceipts.map((receipt) => (
                   <TableRow key={receipt.id} className="h-9 hover:bg-muted/50 even:bg-muted/20">
-                    {/* Selection Checkbox */}
+                    {/* Selection Checkbox - always visible */}
                     <TableCell className="p-1.5">
                       {receipt.type === 'standalone' ? (
                         <Checkbox
@@ -682,130 +787,162 @@ export const ReceiptsManagement: React.FC = () => {
                       )}
                     </TableCell>
 
-                    {/* Preview Button */}
-                    <TableCell className="p-1.5">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => handleViewReceipt(receipt)}
-                      >
-                        <Image className="h-3 w-3 text-blue-600" />
-                      </Button>
-                    </TableCell>
-
-                    {/* Type Badge */}
-                    <TableCell className="p-1.5">
-                      <Badge 
-                        variant={receipt.type === 'time_entry' ? 'default' : 'secondary'}
-                        className="text-[10px] h-4 px-1.5"
-                      >
-                        {receipt.type === 'time_entry' ? 'Time Entry' : 'Standalone'}
-                      </Badge>
-                    </TableCell>
-
-                    {/* Payee/Worker */}
-                    <TableCell className="p-1.5 font-medium text-xs">
-                      {receipt.payee_name}
-                    </TableCell>
-
-                    {/* Project */}
-                    <TableCell className="p-1.5">
-                      <div className="text-xs">
-                        <div className="font-medium">{receipt.project_number}</div>
-                        <div className="text-muted-foreground text-[10px]">{receipt.project_name}</div>
-                      </div>
-                    </TableCell>
-
-                    {/* Date */}
-                    <TableCell className="p-1.5 text-xs">
-                      {format(new Date(receipt.date), 'MMM dd, yyyy')}
-                    </TableCell>
-
-                    {/* Amount */}
-                    <TableCell className="p-1.5 text-right font-semibold text-xs">
-                      ${receipt.amount.toFixed(2)}
-                    </TableCell>
-
-                    {/* Status */}
-                    <TableCell className="p-1.5">
-                      {getStatusBadge(receipt.approval_status)}
-                    </TableCell>
-
-                    {/* Submitted At */}
-                    <TableCell className="p-1.5 text-xs">
-                      {receipt.submitted_for_approval_at 
-                        ? format(new Date(receipt.submitted_for_approval_at), 'MMM dd, HH:mm')
-                        : '-'}
-                    </TableCell>
-
-                    {/* Description */}
-                    <TableCell className="p-1.5 text-xs text-muted-foreground max-w-xs truncate">
-                      {receipt.type === 'time_entry' && receipt.hours !== undefined
-                        ? `${receipt.hours.toFixed(2)} hrs`
-                        : receipt.description || '-'}
-                    </TableCell>
-
-                    {/* Actions */}
-                    <TableCell className="p-1.5 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                            <MoreHorizontal className="h-3 w-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewReceipt(receipt)}>
-                            <Image className="h-3 w-3 mr-2" />
-                            View Receipt
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={async () => {
-                            const filename = `receipt_${receipt.payee_name}_${format(new Date(receipt.date), 'yyyy-MM-dd')}.jpg`;
-                            try {
-                              await downloadSingleReceipt(receipt.image_url, filename);
-                              toast.success('Receipt downloaded');
-                            } catch (error) {
-                              toast.error('Failed to download receipt');
-                            }
-                          }}>
-                            <Download className="h-3 w-3 mr-2" />
-                            Download
-                          </DropdownMenuItem>
-                          
-                          {/* Approve/Reject actions for standalone receipts only */}
-                          {receipt.type === 'standalone' && (!receipt.approval_status || receipt.approval_status === 'pending') && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleApproveReceipt(receipt.id)}>
-                                <CheckCircle className="h-3 w-3 mr-2 text-green-600" />
-                                Approve
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => {
-                                setReceiptToReject(receipt.id);
-                                setRejectDialogOpen(true);
-                              }}>
-                                <XCircle className="h-3 w-3 mr-2 text-red-600" />
-                                Reject
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          
-                          {/* Delete action for standalone receipts */}
-                          {receipt.type === 'standalone' && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteReceipt(receipt.id, receipt.type)}
-                                className="text-destructive"
+                    {/* Dynamic columns based on columnOrder and visibleColumns */}
+                    {columnOrder.map(colKey => {
+                      if (!visibleColumns.includes(colKey)) return null;
+                      
+                      switch (colKey) {
+                        case 'preview':
+                          return (
+                            <TableCell key={colKey} className="p-1.5">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => handleViewReceipt(receipt)}
                               >
-                                <Trash2 className="h-3 w-3 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                                <Image className="h-3 w-3 text-blue-600" />
+                              </Button>
+                            </TableCell>
+                          );
+                        
+                        case 'type':
+                          return (
+                            <TableCell key={colKey} className="p-1.5">
+                              <Badge 
+                                variant={receipt.type === 'time_entry' ? 'default' : 'secondary'}
+                                className="text-[10px] h-4 px-1.5"
+                              >
+                                {receipt.type === 'time_entry' ? 'Time Entry' : 'Standalone'}
+                              </Badge>
+                            </TableCell>
+                          );
+                        
+                        case 'payee':
+                          return (
+                            <TableCell key={colKey} className="p-1.5 text-xs font-medium">
+                              {receipt.payee_name}
+                            </TableCell>
+                          );
+                        
+                        case 'project':
+                          return (
+                            <TableCell key={colKey} className="p-1.5">
+                              <div className="text-xs">
+                                <div className="font-medium">{receipt.project_number}</div>
+                                <div className="text-muted-foreground text-[10px] truncate max-w-[200px]">
+                                  {receipt.project_name}
+                                </div>
+                              </div>
+                            </TableCell>
+                          );
+                        
+                        case 'date':
+                          return (
+                            <TableCell key={colKey} className="p-1.5 text-xs">
+                              {format(new Date(receipt.date), 'MMM dd, yyyy')}
+                            </TableCell>
+                          );
+                        
+                        case 'amount':
+                          return (
+                            <TableCell key={colKey} className="p-1.5 text-xs text-right font-semibold">
+                              ${receipt.amount.toFixed(2)}
+                            </TableCell>
+                          );
+                        
+                        case 'status':
+                          return (
+                            <TableCell key={colKey} className="p-1.5">
+                              {getStatusBadge(receipt.approval_status)}
+                            </TableCell>
+                          );
+                        
+                        case 'submitted_at':
+                          return (
+                            <TableCell key={colKey} className="p-1.5 text-xs">
+                              {receipt.submitted_for_approval_at 
+                                ? format(new Date(receipt.submitted_for_approval_at), 'MMM dd, HH:mm')
+                                : '-'}
+                            </TableCell>
+                          );
+                        
+                        case 'description':
+                          return (
+                            <TableCell key={colKey} className="p-1.5 text-xs text-muted-foreground">
+                              <div className="truncate max-w-[300px]">
+                                {receipt.type === 'time_entry' && receipt.hours !== undefined
+                                  ? `${receipt.hours.toFixed(2)} hrs`
+                                  : receipt.description || '-'}
+                              </div>
+                            </TableCell>
+                          );
+                        
+                        case 'actions':
+                          return (
+                            <TableCell key={colKey} className="p-1.5 text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                    <MoreHorizontal className="h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleViewReceipt(receipt)}>
+                                    <Image className="h-3 w-3 mr-2" />
+                                    View Receipt
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={async () => {
+                                    const filename = `receipt_${receipt.payee_name}_${format(new Date(receipt.date), 'yyyy-MM-dd')}.jpg`;
+                                    try {
+                                      await downloadSingleReceipt(receipt.image_url, filename);
+                                      toast.success('Receipt downloaded');
+                                    } catch (error) {
+                                      toast.error('Failed to download receipt');
+                                    }
+                                  }}>
+                                    <Download className="h-3 w-3 mr-2" />
+                                    Download
+                                  </DropdownMenuItem>
+                                  
+                                  {receipt.type === 'standalone' && (!receipt.approval_status || receipt.approval_status === 'pending') && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => handleApproveReceipt(receipt.id)}>
+                                        <CheckCircle className="h-3 w-3 mr-2 text-green-600" />
+                                        Approve
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => {
+                                        setReceiptToReject(receipt.id);
+                                        setRejectDialogOpen(true);
+                                      }}>
+                                        <XCircle className="h-3 w-3 mr-2 text-red-600" />
+                                        Reject
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  
+                                  {receipt.type === 'standalone' && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem 
+                                        onClick={() => handleDeleteReceipt(receipt.id, receipt.type)}
+                                        className="text-destructive"
+                                      >
+                                        <Trash2 className="h-3 w-3 mr-2" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          );
+                        
+                        default:
+                          return null;
+                      }
+                    })}
                   </TableRow>
                 ))
               )}
