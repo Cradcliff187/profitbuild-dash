@@ -310,6 +310,11 @@ const TimeEntries = () => {
           <TabsTrigger value="entries" className="text-xs h-7">
             <ClipboardCheck className="h-3 w-3 mr-1" />
             Time Entries
+            {statistics.pendingCount > 0 && (
+              <Badge variant="secondary" className="ml-1.5 h-4 text-[10px] px-1.5">
+                {statistics.pendingCount}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="receipts" className="text-xs h-7">
             <FileImage className="h-3 w-3 mr-1" />
