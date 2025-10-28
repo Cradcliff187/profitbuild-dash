@@ -60,7 +60,8 @@ export const ReceiptsManagement: React.FC = () => {
     status: 'all',
     payeeId: null,
     projectId: null,
-    receiptType: 'all',
+    amountMin: null,
+    amountMax: null,
   });
   
   // Preview modal state
@@ -340,8 +341,9 @@ export const ReceiptsManagement: React.FC = () => {
     const receiptStatus = r.approval_status || 'pending';
     if (filters.status !== 'all' && receiptStatus !== filters.status) return false;
     
-    // Receipt type filter
-    if (filters.receiptType !== 'all' && r.type !== filters.receiptType) return false;
+    // Amount range filter
+    if (filters.amountMin && r.amount < parseFloat(filters.amountMin)) return false;
+    if (filters.amountMax && r.amount > parseFloat(filters.amountMax)) return false;
     
     // Payee filter
     if (filters.payeeId && r.payee_id !== filters.payeeId) return false;

@@ -12,7 +12,8 @@ export interface ReceiptFilters {
   status: string;
   payeeId: string | null;
   projectId: string | null;
-  receiptType: string;
+  amountMin: string | null;
+  amountMax: string | null;
 }
 
 interface ReceiptFiltersProps {
@@ -45,7 +46,8 @@ export const ReceiptFiltersComponent = ({ filters, onFiltersChange }: ReceiptFil
     const { data } = await supabase
       .from('projects')
       .select('id, project_number, project_name')
-      .in('status', ['in_progress', 'approved'])
+      .neq('project_number', 'SYS-000')
+      .neq('project_number', '000-UNASSIGNED')
       .order('project_number');
     
     if (data) {
@@ -64,7 +66,8 @@ export const ReceiptFiltersComponent = ({ filters, onFiltersChange }: ReceiptFil
       status: 'all',
       payeeId: null,
       projectId: null,
-      receiptType: 'all',
+      amountMin: null,
+      amountMax: null,
     });
   };
 
@@ -74,7 +77,8 @@ export const ReceiptFiltersComponent = ({ filters, onFiltersChange }: ReceiptFil
     filters.status !== 'all' || 
     filters.payeeId || 
     filters.projectId ||
-    filters.receiptType !== 'all';
+    filters.amountMin ||
+    filters.amountMax;
 
   return (
     <div className="space-y-2 p-2 bg-muted/50 rounded-md border">
@@ -93,7 +97,7 @@ export const ReceiptFiltersComponent = ({ filters, onFiltersChange }: ReceiptFil
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-2">
         <div className="space-y-1">
           <Label htmlFor="date-from" className="text-xs">From Date</Label>
           <Input
@@ -132,17 +136,29 @@ export const ReceiptFiltersComponent = ({ filters, onFiltersChange }: ReceiptFil
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="receipt-type" className="text-xs">Receipt Type</Label>
-          <NativeSelect
-            id="receipt-type"
-            value={filters.receiptType}
-            onValueChange={(value) => onFiltersChange({ ...filters, receiptType: value })}
+          <Label htmlFor="amount-min" className="text-xs">Min Amount</Label>
+          <Input
+            id="amount-min"
+            type="number"
+            step="0.01"
+            placeholder="0.00"
+            value={filters.amountMin || ''}
+            onChange={(e) => onFiltersChange({ ...filters, amountMin: e.target.value || null })}
             className="h-8 text-xs"
-          >
-            <option value="all">All Types</option>
-            <option value="time_entry">Time Entry</option>
-            <option value="standalone">Standalone</option>
-          </NativeSelect>
+          />
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="amount-max" className="text-xs">Max Amount</Label>
+          <Input
+            id="amount-max"
+            type="number"
+            step="0.01"
+            placeholder="0.00"
+            value={filters.amountMax || ''}
+            onChange={(e) => onFiltersChange({ ...filters, amountMax: e.target.value || null })}
+            className="h-8 text-xs"
+          />
         </div>
 
         <div className="space-y-1">

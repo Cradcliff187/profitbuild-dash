@@ -39,7 +39,6 @@ export const TimeEntryFiltersComponent = ({ filters, onFiltersChange }: TimeEntr
     const { data } = await supabase
       .from('projects')
       .select('id, project_number, project_name')
-      .in('status', ['in_progress', 'approved'])
       .neq('project_number', 'SYS-000')
       .neq('project_number', '000-UNASSIGNED')
       .order('project_number');
