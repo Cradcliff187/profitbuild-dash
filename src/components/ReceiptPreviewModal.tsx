@@ -1,4 +1,5 @@
 import React from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Dialog,
   DialogContent,
@@ -26,60 +27,60 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   receiptUrl,
   timeEntryDetails,
 }) => {
+  const isMobile = useIsMobile();
+  
   if (!receiptUrl) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-full max-h-[95vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] lg:max-w-[1200px] w-full max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Receipt Preview</DialogTitle>
         </DialogHeader>
         
-        {/* Receipt Details */}
+        {/* Compact Receipt Details */}
         {timeEntryDetails && (
-          <div className="grid grid-cols-2 gap-3 p-3 bg-muted/50 rounded-lg text-sm mb-3">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 p-2 bg-muted/50 rounded text-xs mb-2">
+            {timeEntryDetails.project && (
+              <span>
+                <strong className="font-semibold">Project:</strong> {timeEntryDetails.project}
+              </span>
+            )}
+            {timeEntryDetails.date && (
+              <span>
+                <strong className="font-semibold">Date:</strong> {timeEntryDetails.date}
+              </span>
+            )}
             {timeEntryDetails.worker && (
-              <div>
-                <span className="text-muted-foreground">Worker:</span>
-                <span className="ml-2 font-medium">{timeEntryDetails.worker}</span>
-              </div>
+              <span>
+                <strong className="font-semibold">Worker:</strong> {timeEntryDetails.worker}
+              </span>
             )}
             {timeEntryDetails.payee && (
-              <div>
-                <span className="text-muted-foreground">Payee:</span>
-                <span className="ml-2 font-medium">{timeEntryDetails.payee}</span>
-              </div>
+              <span>
+                <strong className="font-semibold">Payee:</strong> {timeEntryDetails.payee}
+              </span>
             )}
-            <div>
-              <span className="text-muted-foreground">Project:</span>
-              <span className="ml-2 font-medium">{timeEntryDetails.project}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Date:</span>
-              <span className="ml-2 font-medium">{timeEntryDetails.date}</span>
-            </div>
             {timeEntryDetails.hours && (
-              <div>
-                <span className="text-muted-foreground">Hours:</span>
-                <span className="ml-2 font-medium">{timeEntryDetails.hours}</span>
-              </div>
+              <span>
+                <strong className="font-semibold">Hours:</strong> {timeEntryDetails.hours}
+              </span>
             )}
             {timeEntryDetails.amount && (
-              <div>
-                <span className="text-muted-foreground">Amount:</span>
-                <span className="ml-2 font-medium">{timeEntryDetails.amount}</span>
-              </div>
+              <span>
+                <strong className="font-semibold">Amount:</strong> {timeEntryDetails.amount}
+              </span>
             )}
           </div>
         )}
 
-        {/* Receipt Image */}
-        <div className="flex justify-center items-center bg-muted/30 rounded-lg p-2 min-h-[400px]">
+        {/* Receipt Image - Responsive Sizing */}
+        <div className="flex justify-center items-center bg-muted/30 rounded-lg p-2 min-h-[500px] lg:min-h-[600px]">
           <img
             src={receiptUrl}
             alt="Receipt"
             className="max-w-full h-auto rounded shadow-lg cursor-pointer hover:opacity-95 transition-opacity"
-            style={{ maxHeight: '75vh' }}
+            style={{ maxHeight: isMobile ? '70vh' : '85vh' }}
             onClick={() => window.open(receiptUrl, '_blank')}
             title="Click to open full size in new tab"
           />
