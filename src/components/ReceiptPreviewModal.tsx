@@ -30,7 +30,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] w-full max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Receipt Preview</DialogTitle>
         </DialogHeader>
@@ -74,12 +74,14 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
         )}
 
         {/* Receipt Image */}
-        <div className="flex justify-center bg-muted/30 rounded-lg p-4">
+        <div className="flex justify-center items-center bg-muted/30 rounded-lg p-2 min-h-[400px]">
           <img
             src={receiptUrl}
             alt="Receipt"
-            className="max-w-full h-auto rounded shadow-lg"
-            style={{ maxHeight: '60vh' }}
+            className="max-w-full h-auto rounded shadow-lg cursor-pointer hover:opacity-95 transition-opacity"
+            style={{ maxHeight: '75vh' }}
+            onClick={() => window.open(receiptUrl, '_blank')}
+            title="Click to open full size in new tab"
           />
         </div>
       </DialogContent>

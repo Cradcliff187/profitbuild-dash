@@ -96,6 +96,7 @@ export const MobileTimeTracker: React.FC = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showReceiptPrompt, setShowReceiptPrompt] = useState(false);
   const [pendingReceiptExpenseId, setPendingReceiptExpenseId] = useState<string | null>(null);
+  const [pendingReceiptProjectId, setPendingReceiptProjectId] = useState<string | null>(null);
   const [showDuplicateTimerAlert, setShowDuplicateTimerAlert] = useState(false);
   const [existingTimerInfo, setExistingTimerInfo] = useState<any>(null);
   const [activeTimerPayeeIds, setActiveTimerPayeeIds] = useState<Set<string>>(new Set());
@@ -889,12 +890,16 @@ export const MobileTimeTracker: React.FC = () => {
   };
 
   const handleClockOut = async () => {
+    // Capture project before completing clock out
+    const projectId = activeTimer?.project.id;
+    
     // Save time entry immediately
     const expenseId = await completeClockOut();
     
     // Then ask if user wants to add receipt
-    if (expenseId && isOnline) {
+    if (expenseId && isOnline && projectId) {
       setPendingReceiptExpenseId(expenseId);
+      setPendingReceiptProjectId(projectId);
       setShowReceiptPrompt(true);
     }
   };
@@ -1411,6 +1416,7 @@ export const MobileTimeTracker: React.FC = () => {
             <AlertDialogCancel onClick={() => {
               setShowReceiptPrompt(false);
               setPendingReceiptExpenseId(null);
+              setPendingReceiptProjectId(null);
             }}>
               Skip
             </AlertDialogCancel>
@@ -1427,9 +1433,11 @@ export const MobileTimeTracker: React.FC = () => {
       {/* Receipt Capture Modal */}
       <AddReceiptModal
         open={showReceiptModal}
+        initialProjectId={pendingReceiptProjectId || undefined}
         onClose={() => {
           setShowReceiptModal(false);
           setPendingReceiptExpenseId(null);
+          setPendingReceiptProjectId(null);
         }}
         onSuccess={(receipt) => {
           handleReceiptFromClockOut(receipt.id);

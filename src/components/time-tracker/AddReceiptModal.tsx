@@ -26,12 +26,14 @@ interface AddReceiptModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: (receipt: { id: string }) => void;
+  initialProjectId?: string;
 }
 
 export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   open,
   onClose,
-  onSuccess
+  onSuccess,
+  initialProjectId
 }) => {
   const isMobile = useIsMobile();
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
@@ -46,8 +48,12 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   useEffect(() => {
     if (open) {
       loadProjects();
+      // Pre-populate project if provided
+      if (initialProjectId) {
+        setSelectedProjectId(initialProjectId);
+      }
     }
-  }, [open]);
+  }, [open, initialProjectId]);
 
   const loadProjects = async () => {
     try {
