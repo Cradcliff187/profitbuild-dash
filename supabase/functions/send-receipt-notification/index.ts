@@ -369,7 +369,7 @@ Deno.serve(async (req) => {
     
     const { data: emailResult, error: emailError } = await resend.emails.send({
       from: `${companyName} <noreply@rcgwork.com>`,
-      to: 'receipts@radcliffconstructiongroup.com',
+      to: 'receipts@radcliffcg.com',
       subject: emailSubject,
       html: emailHtml,
     });
