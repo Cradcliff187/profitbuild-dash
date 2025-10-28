@@ -173,7 +173,7 @@ export const TimeEntryForm = ({
             setHours('8'); 
           }}
           disabled={disabled}
-          className="flex-1"
+          className="flex-1 text-xs"
         >
           8h
         </Button>
@@ -187,7 +187,7 @@ export const TimeEntryForm = ({
             setHours('4'); 
           }}
           disabled={disabled}
-          className="flex-1"
+          className="flex-1 text-xs"
         >
           4h
         </Button>
@@ -201,7 +201,7 @@ export const TimeEntryForm = ({
             setHours('10'); 
           }}
           disabled={disabled}
-          className="flex-1"
+          className="flex-1 text-xs"
         >
           10h
         </Button>

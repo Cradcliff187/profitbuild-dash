@@ -27,7 +27,7 @@ export const TimeEntryDialog = ({
           "max-h-[92vh] overflow-y-auto",
           isMobile 
             ? "fixed bottom-0 left-0 right-0 top-auto translate-x-0 translate-y-0 rounded-t-2xl pb-safe max-w-full w-full p-3 sm:p-6" 
-            : "max-w-lg"
+            : "max-w-lg p-4"
         )}
         onPointerDownOutside={(e) => {
           if (isMobile) {
@@ -46,8 +46,8 @@ export const TimeEntryDialog = ({
         }}
       >
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
+          <DialogTitle className="text-sm font-semibold">{title}</DialogTitle>
+          {description && <DialogDescription className="text-xs">{description}</DialogDescription>}
         </DialogHeader>
         {children}
       </DialogContent>
