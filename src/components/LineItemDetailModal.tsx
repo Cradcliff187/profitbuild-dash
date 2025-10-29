@@ -247,6 +247,8 @@ export const LineItemDetailModal: React.FC<LineItemDetailModalProps> = ({
                 <Input
                   type="number"
                   step={markupType === 'percent' ? '0.1' : '0.01'}
+                  min={markupType === 'percent' ? -100 : undefined}
+                  max={markupType === 'percent' ? 1000 : undefined}
                   value={
                     markupType === 'percent'
                       ? (formData.markupPercent || 0)
@@ -259,7 +261,8 @@ export const LineItemDetailModal: React.FC<LineItemDetailModalProps> = ({
                       value
                     );
                   }}
-                  placeholder={markupType === 'percent' ? '15.0' : '10.00'}
+                  placeholder={markupType === 'percent' ? '25 (negative for discount)' : '10.00'}
+                  className={markupType === 'percent' && (formData.markupPercent || 0) < 0 ? 'text-destructive' : ''}
                 />
               </div>
               <div className="space-y-2">
@@ -290,7 +293,7 @@ export const LineItemDetailModal: React.FC<LineItemDetailModalProps> = ({
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Margin</div>
-              <Badge variant={calculateMarginPercent() < 10 ? "destructive" : "secondary"}>
+              <Badge variant={calculateMarginPercent() < 0 ? "destructive" : calculateMarginPercent() < 10 ? "outline" : "secondary"}>
                 {calculateMarginPercent().toFixed(1)}%
               </Badge>
             </div>

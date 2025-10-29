@@ -338,6 +338,22 @@ useEffect(() => {
       return;
     }
 
+    // Check for negative markups and warn user
+    const negativeMarkupItems = validLineItems.filter(item => {
+      const markupPercent = item.costPerUnit > 0 
+        ? ((item.pricePerUnit - item.costPerUnit) / item.costPerUnit) * 100 
+        : 0;
+      return markupPercent < 0;
+    });
+    
+    if (negativeMarkupItems.length > 0) {
+      toast({
+        title: "⚠️ Negative Markup Detected",
+        description: `${negativeMarkupItems.length} line item${negativeMarkupItems.length > 1 ? 's are' : ' is'} priced below cost. Verify this is intentional.`,
+        variant: "default",
+      });
+    }
+
     if (!projectId) {
       toast({
         title: "Missing Project",

@@ -81,7 +81,8 @@ export const calculateEstimateFinancials = (lineItems: LineItem[]): EstimateFina
 /**
  * Get margin performance status based on percentage thresholds
  */
-export const getMarginPerformanceStatus = (marginPercent: number): 'excellent' | 'good' | 'poor' | 'critical' => {
+export const getMarginPerformanceStatus = (marginPercent: number): 'excellent' | 'good' | 'poor' | 'critical' | 'loss' => {
+  if (marginPercent < 0) return 'loss';
   if (marginPercent >= 25) return 'excellent';
   if (marginPercent >= 15) return 'good';  
   if (marginPercent >= 5) return 'poor';
@@ -91,7 +92,8 @@ export const getMarginPerformanceStatus = (marginPercent: number): 'excellent' |
 /**
  * Get markup performance status based on percentage thresholds
  */
-export const getMarkupPerformanceStatus = (markupPercent: number): 'excellent' | 'good' | 'poor' | 'critical' => {
+export const getMarkupPerformanceStatus = (markupPercent: number): 'excellent' | 'good' | 'poor' | 'critical' | 'loss' => {
+  if (markupPercent < 0) return 'loss';
   if (markupPercent >= 30) return 'excellent';
   if (markupPercent >= 20) return 'good';
   if (markupPercent >= 10) return 'poor';
