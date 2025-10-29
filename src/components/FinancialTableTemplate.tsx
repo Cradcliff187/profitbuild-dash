@@ -21,7 +21,7 @@ export interface FinancialTableColumn<T> {
 
 export interface FinancialTableGroup<T> {
   groupKey: string;
-  groupLabel: string;
+  groupLabel: string | React.ReactNode;
   groupLabelCollapsed?: string;
   items: T[];
   isCollapsible?: boolean;
