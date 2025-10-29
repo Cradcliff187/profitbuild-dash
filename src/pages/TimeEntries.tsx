@@ -202,20 +202,21 @@ const TimeEntries = () => {
   // Fetch projects for filter
   useEffect(() => {
     const fetchProjects = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('projects')
-        .select('id, project_number, project_name')
-        .eq('is_active', true)
-        .neq('project_number', 'SYS-000')
-        .neq('project_number', '000-UNASSIGNED')
-        .order('project_number');
-      
-      if (!error && data) {
-        setProjects(data.map((p: any) => ({ 
-          id: p.id, 
-          number: p.project_number, 
-          name: p.project_name 
-        })));
+        .select('id, project_number, project_name') as any;
+
+      if (data) {
+        setProjects(data
+          .filter((p: any) => 
+            p.project_number !== 'SYS-000' && 
+            p.project_number !== '000-UNASSIGNED'
+          )
+          .map((p: any) => ({ 
+            id: p.id, 
+            number: p.project_number, 
+            name: p.project_name 
+          })));
       }
     };
     fetchProjects();
