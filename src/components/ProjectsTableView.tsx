@@ -959,7 +959,7 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className="font-medium text-sm font-mono tabular-nums">{formatCurrency(actualExpenses)}</div>
+                <div className="font-medium text-xs font-mono tabular-nums">{formatCurrency(actualExpenses)}</div>
               </div>
             </TooltipTrigger>
             <TooltipContent>
@@ -989,9 +989,9 @@ export const ProjectsTableView = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-medium">
-                    {count}
-                  </div>
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-xs font-medium">
+                  {count}
+                </div>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
