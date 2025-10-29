@@ -196,7 +196,7 @@ export const QuotesTableView = ({
       // Handle both camelCase and snake_case
       const linkId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
       if (linkId) {
-        totalQuoted += Number(qli.total || 0);
+        totalQuoted += Number(qli.totalCost || (qli as any).total_cost || 0);
         hasMatch = true;
       }
     });
@@ -205,13 +205,14 @@ export const QuotesTableView = ({
       return totalQuoted;
     }
     
-    // Fallback: If quote has quote-level estimate_line_item_id link, use quote total
+    // Fallback: If quote has quote-level estimate_line_item_id link, sum costs if available
     if (quote.estimate_line_item_id) {
-      return Number(quote.total || 0);
+      const sumCost = quoteLineItems.reduce((s, i) => s + Number(i.totalCost || (i as any).total_cost || 0), 0);
+      return sumCost || null;
     }
     
-    // Last fallback: sum all quote line item totals
-    return quoteLineItems.reduce((sum, item) => sum + Number(item.total || 0), 0);
+    // Last fallback: sum all quote line item costs
+    return quoteLineItems.reduce((sum, item) => sum + Number(item.totalCost || (item as any).total_cost || 0), 0);
   };
 
   // Line-item-aware variance calculation for individual quotes
@@ -398,16 +399,25 @@ export const QuotesTableView = ({
       },
     },
     {
-      key: 'quote_total',
-      label: 'Quote Total',
+      key: 'vendor_cost',
+      label: 'Vendor Cost',
       align: 'right',
       width: '120px',
       sortable: true,
-      getSortValue: (quote) => quote.total,
+      getSortValue: (quote) => calculateQuoteTotalCost(quote.lineItems || []),
       render: (quote) => (
-        <div className="font-semibold text-xs font-mono tabular-nums">
-          {formatCurrency(quote.total, { showCents: false })}
-        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="font-semibold text-xs font-mono tabular-nums cursor-help">
+                {formatCurrency(calculateQuoteTotalCost(quote.lineItems || []), { showCents: false })}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">Total cost quoted by vendor</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       ),
     },
     {
@@ -466,36 +476,6 @@ export const QuotesTableView = ({
               </TooltipTrigger>
               <TooltipContent>
                 <p className="text-xs">Your estimated price (revenue) to customer</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        );
-      },
-    },
-    {
-      key: 'quoted_cost',
-      label: 'Quoted Cost',
-      align: 'right',
-      width: '120px',
-      sortable: true,
-      getSortValue: (quote) => getQuotedAmountForEstimateMatch(quote) || 0,
-      render: (quote) => {
-        const quotedAmount = getQuotedAmountForEstimateMatch(quote);
-        
-        if (quotedAmount === null) {
-          return <span className="text-xs text-muted-foreground">N/A</span>;
-        }
-        
-        return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="text-xs font-mono tabular-nums font-medium cursor-help">
-                  {formatCurrency(quotedAmount, { showCents: false })}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">Vendor's quoted cost for matched line items</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
