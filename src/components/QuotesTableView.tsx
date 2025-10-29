@@ -504,7 +504,7 @@ export const QuotesTableView = ({
     },
     {
       key: 'cost_variance_amount',
-      label: 'Variance ($)',
+      label: 'Cost Variance ($)',
       align: 'right',
       width: '110px',
       sortable: true,
@@ -526,7 +526,7 @@ export const QuotesTableView = ({
     },
     {
       key: 'cost_variance_percent',
-      label: 'Variance (%)',
+      label: 'Cost Variance (%)',
       align: 'right',
       width: '90px',
       sortable: true,
