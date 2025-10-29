@@ -95,17 +95,17 @@ const Navigation = () => {
   const primaryItems = [
     { to: "/", label: "Dashboard", icon: Building2, show: hasFinancialAccess },
     { to: "/projects", label: "Projects", icon: Building2, show: hasFinancialAccess },
-    { to: "/time-tracker", label: "Time Tracker", icon: Clock, show: true },
-    { to: "/field-media", label: "Field Media", icon: Camera, show: isFieldWorker },
     { to: "/estimates", label: "Estimates", icon: Calculator, show: hasFinancialAccess },
-    { to: "/expenses", label: "Expenses", icon: Receipt, show: hasFinancialAccess },
     { to: "/quotes", label: "Quotes", icon: FileText, show: hasFinancialAccess },
+    { to: "/time-entries", label: "Time Management", icon: ClipboardCheck, show: isAdmin || isManager },
+    { to: "/field-media", label: "Field Media", icon: Camera, show: isFieldWorker },
   ].filter(item => item.show);
 
   // Secondary items (grouped under "More" dropdown)
   const secondaryItems = [
+    { to: "/time-tracker", label: "Time Tracker", icon: Clock, show: true },
+    { to: "/expenses", label: "Expenses", icon: Receipt, show: hasFinancialAccess },
     { to: "/work-orders", label: "Work Orders", icon: Wrench, show: hasFinancialAccess },
-    { to: "/time-entries", label: "Time Management", icon: ClipboardCheck, show: isAdmin || isManager },
     { to: "/payees", label: "Payees", icon: Users, show: hasClientAccess },
     { to: "/clients", label: "Clients", icon: UserCheck, show: hasClientAccess },
     { to: "/profit-analysis", label: "Profit Analysis", icon: TrendingUp, show: hasFinancialAccess },
