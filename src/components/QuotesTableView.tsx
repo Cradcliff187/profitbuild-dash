@@ -301,16 +301,26 @@ export const QuotesTableView = ({
     quotesByProject[projectId].sort((a, b) => new Date(b.dateReceived).getTime() - new Date(a.dateReceived).getTime());
   });
 
-  // Convert to grouped format for the table
-  const groupedData: FinancialTableGroup<QuoteWithEstimate>[] = Object.entries(quotesByProject).map(
-    ([projectId, projectQuotes]) => ({
-      groupKey: projectId,
-      groupLabel: `[${projectQuotes[0].project_number}] ${projectQuotes[0].projectName} - ${projectQuotes[0].client}`,
-      items: projectQuotes,
-      isCollapsible: true,
-      defaultExpanded: false,
+  // Convert to grouped format for the table and sort by project creation date
+  const groupedData: FinancialTableGroup<QuoteWithEstimate>[] = Object.entries(quotesByProject)
+    .map(([projectId, projectQuotes]) => {
+      // Use earliest quote's createdAt as proxy for project creation date
+      const projectCreatedAt = projectQuotes.reduce((earliest, quote) => {
+        const quoteDate = new Date(quote.createdAt).getTime();
+        return quoteDate < earliest ? quoteDate : earliest;
+      }, new Date(projectQuotes[0].createdAt).getTime());
+
+      return {
+        groupKey: projectId,
+        groupLabel: `[${projectQuotes[0].project_number}] ${projectQuotes[0].projectName} - ${projectQuotes[0].client}`,
+        items: projectQuotes,
+        isCollapsible: true,
+        defaultExpanded: false,
+        sortKey: projectCreatedAt,
+      };
     })
-  );
+    // Sort groups by project creation date (newest first)
+    .sort((a, b) => (b.sortKey as number) - (a.sortKey as number));
 
   const handleDeleteClick = (quoteId: string) => {
     setQuoteToDelete(quoteId);

@@ -163,16 +163,26 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
   };
 
 
-  // Convert to grouped format for the table
-  const groupedData: FinancialTableGroup<EstimateWithQuotes>[] = Object.entries(estimatesByProject).map(
-    ([projectId, projectEstimates]) => ({
-      groupKey: projectId,
-      groupLabel: `[${projectEstimates[0].project_number}] ${projectEstimates[0].project_name} - ${projectEstimates[0].client_name}`,
-      items: projectEstimates,
-      isCollapsible: true,
-      defaultExpanded: false,
+  // Convert to grouped format for the table and sort by project creation date
+  const groupedData: FinancialTableGroup<EstimateWithQuotes>[] = Object.entries(estimatesByProject)
+    .map(([projectId, projectEstimates]) => {
+      // Use earliest estimate's created_at as proxy for project creation date
+      const projectCreatedAt = projectEstimates.reduce((earliest, est) => {
+        const estDate = new Date(est.created_at).getTime();
+        return estDate < earliest ? estDate : earliest;
+      }, new Date(projectEstimates[0].created_at).getTime());
+
+      return {
+        groupKey: projectId,
+        groupLabel: `[${projectEstimates[0].project_number}] ${projectEstimates[0].project_name} - ${projectEstimates[0].client_name}`,
+        items: projectEstimates,
+        isCollapsible: true,
+        defaultExpanded: false,
+        sortKey: projectCreatedAt,
+      };
     })
-  );
+    // Sort groups by project creation date (newest first)
+    .sort((a, b) => (b.sortKey as number) - (a.sortKey as number));
 
   const allColumns: FinancialTableColumn<EstimateWithQuotes>[] = [
     {
