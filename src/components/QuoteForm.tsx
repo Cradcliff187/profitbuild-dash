@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Save, Calendar as CalendarIcon, Plus, ArrowRight, TrendingUp, TrendingDown, Check } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Save, Calendar as CalendarIcon, Plus, ArrowRight, TrendingUp, TrendingDown, Check, Search, X } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,6 +78,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   const [attachmentUrl, setAttachmentUrl] = useState<string>("");
   const [lineItems, setLineItems] = useState<QuoteLineItem[]>([]);
   const [validationErrors, setValidationErrors] = useState<Record<string, QuoteValidationResult>>({});
+  const [estimateSearchQuery, setEstimateSearchQuery] = useState('');
 
   const generateQuoteNumber = async (projectId: string, projectNumber: string, estimateId: string) => {
     try {
@@ -431,6 +432,34 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     });
   };
 
+  const filteredAndSortedEstimates = useMemo(() => {
+    return estimates
+      // Filter by search query
+      .filter(estimate => {
+        if (!estimateSearchQuery.trim()) return true;
+        
+        const query = estimateSearchQuery.toLowerCase();
+        return (
+          estimate.project_name?.toLowerCase().includes(query) ||
+          estimate.client_name?.toLowerCase().includes(query) ||
+          estimate.estimate_number?.toLowerCase().includes(query)
+        );
+      })
+      // Sort by estimate number descending (EST-005 before EST-004)
+      .sort((a, b) => {
+        // Extract numeric part from estimate number (EST-005 -> 5)
+        const getNumber = (estNum: string) => {
+          const match = estNum?.match(/\d+$/);
+          return match ? parseInt(match[0], 10) : 0;
+        };
+        
+        const numA = getNumber(a.estimate_number);
+        const numB = getNumber(b.estimate_number);
+        
+        return numB - numA; // Descending order
+      });
+  }, [estimates, estimateSearchQuery]);
+
   if (!selectedEstimate) {
     return (
       <Card className="compact-card">
@@ -441,17 +470,53 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
           <div className="form-dense">
             <div className="space-y-2">
               <Label className="text-label">Select Project Estimate</Label>
+              
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search by project, client, or estimate number..."
+                  value={estimateSearchQuery}
+                  onChange={(e) => setEstimateSearchQuery(e.target.value)}
+                  className="pl-8 h-9 text-sm"
+                />
+                {estimateSearchQuery && (
+                  <button
+                    onClick={() => setEstimateSearchQuery('')}
+                    className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              
+              {/* Results count when searching */}
+              {estimateSearchQuery && (
+                <p className="text-xs text-muted-foreground">
+                  Found {filteredAndSortedEstimates.length} estimate{filteredAndSortedEstimates.length !== 1 ? 's' : ''}
+                </p>
+              )}
+
               <div className="space-y-2">
                 {estimates.length === 0 ? (
                   <div className="text-center py-6 text-muted-foreground">
                     <p className="text-label">No estimates available</p>
                     <p className="text-label">Create an estimate first to generate quotes</p>
                   </div>
+                ) : filteredAndSortedEstimates.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <p className="text-label">No estimates match your search</p>
+                    <button 
+                      onClick={() => setEstimateSearchQuery('')}
+                      className="text-primary hover:underline text-sm mt-2"
+                    >
+                      Clear search
+                    </button>
+                  </div>
                 ) : (
                   <div className="grid gap-2">
-                    {estimates
-                      .sort((a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime())
-                      .map((estimate) => (
+                    {filteredAndSortedEstimates.map((estimate) => (
                         <Card 
                           key={estimate.id} 
                           className="cursor-pointer hover:bg-accent transition-colors compact-card"
