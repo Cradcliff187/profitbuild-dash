@@ -414,32 +414,68 @@ const Quotes = () => {
           if (lineItemsError) throw lineItemsError;
         }
       } else {
-        // Create new quote
-        // Extract sequence number from quote_number (e.g., "225-012-QTE-01-02" → 2)
-        const sequenceNumber = parseInt(quote.quoteNumber.split('-').pop() || '1', 10);
+        // Create new quote with retry logic for duplicate quote numbers
+        let quoteData;
+        let quoteError;
+        let retryAttempt = 0;
+        const maxRetries = 1;
         
-        const { data: quoteData, error: quoteError } = await supabase
-          .from('quotes')
-          .insert({
-            project_id: quote.project_id,
-            estimate_id: quote.estimate_id,
-            payee_id: quote.payee_id,
-            quote_number: quote.quoteNumber,
-            sequence_number: sequenceNumber,
-            date_received: quote.dateReceived.toISOString().split('T')[0],
-            status: quote.status,
-            accepted_date: quote.accepted_date ? quote.accepted_date.toISOString() : null,
-            valid_until: quote.valid_until ? quote.valid_until.toISOString().split('T')[0] : null,
-            rejection_reason: quote.rejection_reason,
-            estimate_line_item_id: quote.estimate_line_item_id,
-            includes_materials: quote.includes_materials,
-            includes_labor: quote.includes_labor,
-            total_amount: quote.total,
-            notes: quote.notes,
-            attachment_url: quote.attachment_url
-          })
-          .select()
-          .single();
+        while (retryAttempt <= maxRetries) {
+          // Extract sequence number from quote_number (e.g., "225-012-QTE-01-02" → 2)
+          const sequenceNumber = parseInt(quote.quoteNumber.split('-').pop() || '1', 10);
+          
+          const insertResult = await supabase
+            .from('quotes')
+            .insert({
+              project_id: quote.project_id,
+              estimate_id: quote.estimate_id,
+              payee_id: quote.payee_id,
+              quote_number: quote.quoteNumber,
+              sequence_number: sequenceNumber,
+              date_received: quote.dateReceived.toISOString().split('T')[0],
+              status: quote.status,
+              accepted_date: quote.accepted_date ? quote.accepted_date.toISOString() : null,
+              valid_until: quote.valid_until ? quote.valid_until.toISOString().split('T')[0] : null,
+              rejection_reason: quote.rejection_reason,
+              estimate_line_item_id: quote.estimate_line_item_id,
+              includes_materials: quote.includes_materials,
+              includes_labor: quote.includes_labor,
+              total_amount: quote.total,
+              notes: quote.notes,
+              attachment_url: quote.attachment_url
+            })
+            .select()
+            .single();
+          
+          quoteData = insertResult.data;
+          quoteError = insertResult.error;
+          
+          // Check if it's a duplicate key error (PostgreSQL code 23505)
+          if (quoteError && quoteError.code === '23505' && retryAttempt < maxRetries) {
+            // Regenerate quote number and retry
+            const { data: newQuoteNumber, error: rpcError } = await supabase
+              .rpc('generate_quote_number', {
+                project_number_param: quote.project_number || '',
+                project_id_param: quote.project_id,
+                estimate_id_param: quote.estimate_id
+              });
+            
+            if (rpcError || !newQuoteNumber) {
+              toast({
+                title: "Error",
+                description: "Failed to generate new quote number",
+                variant: "destructive",
+              });
+              throw quoteError;
+            }
+            
+            quote.quoteNumber = newQuoteNumber;
+            retryAttempt++;
+            continue;
+          }
+          
+          break;
+        }
 
         if (quoteError) throw quoteError;
 
