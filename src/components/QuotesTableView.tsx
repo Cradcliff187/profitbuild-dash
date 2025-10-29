@@ -391,10 +391,10 @@ export const QuotesTableView = ({
       },
     },
     {
-      key: 'cost_variance',
-      label: 'Cost Variance',
+      key: 'cost_variance_amount',
+      label: 'Variance ($)',
       align: 'right',
-      width: '120px',
+      width: '110px',
       sortable: true,
       getSortValue: (quote) => getCostVariance(quote).amount,
       render: (quote) => {
@@ -402,22 +402,35 @@ export const QuotesTableView = ({
         if (!quote.estimate) return <span className="text-xs text-muted-foreground">-</span>;
         
         return (
-          <div className="space-y-1">
-            <div className={cn(
-              "text-xs font-semibold font-mono tabular-nums",
-              variance.status === 'under' ? 'text-green-700' : 
-              variance.status === 'over' ? 'text-red-700' : 'text-foreground/70'
-            )}>
-              {formatCurrency(variance.status === 'under' ? -variance.amount : variance.amount, { showCents: false })}
-            </div>
-            <div className={cn(
-              "text-xs font-mono tabular-nums",
-              variance.status === 'under' ? 'text-green-600' : 
-              variance.status === 'over' ? 'text-red-600' : 'text-foreground/50'
-            )}>
-              {variance.status === 'over' ? '+' : variance.status === 'under' ? '-' : ''}
-              {variance.percentage.toFixed(1)}%
-            </div>
+          <div className={cn(
+            "text-xs font-semibold font-mono tabular-nums",
+            variance.status === 'under' ? 'text-green-700' : 
+            variance.status === 'over' ? 'text-red-700' : 'text-foreground/70'
+          )}>
+            {formatCurrency(variance.status === 'under' ? -variance.amount : variance.amount, { showCents: false })}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'cost_variance_percent',
+      label: 'Variance (%)',
+      align: 'right',
+      width: '90px',
+      sortable: true,
+      getSortValue: (quote) => getCostVariance(quote).percentage,
+      render: (quote) => {
+        const variance = getCostVariance(quote);
+        if (!quote.estimate) return <span className="text-xs text-muted-foreground">-</span>;
+        
+        return (
+          <div className={cn(
+            "text-xs font-semibold font-mono tabular-nums",
+            variance.status === 'under' ? 'text-green-600' : 
+            variance.status === 'over' ? 'text-red-600' : 'text-foreground/50'
+          )}>
+            {variance.status === 'over' ? '+' : variance.status === 'under' ? '-' : ''}
+            {variance.percentage.toFixed(1)}%
           </div>
         );
       },
