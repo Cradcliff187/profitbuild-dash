@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Image, Download, Trash2, FileImage, MoreHorizontal, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Image, Download, Trash2, FileImage, MoreHorizontal, CheckCircle, XCircle, Clock, Edit } from 'lucide-react';
 import { ReceiptSearchFilters, ReceiptFilters } from '@/components/ReceiptSearchFilters';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ReceiptPreviewModal } from '@/components/ReceiptPreviewModal';
 import { downloadSingleReceipt, downloadReceiptsAsZip } from '@/utils/receiptDownloadUtils';
 import { RejectTimeEntryDialog } from '@/components/RejectTimeEntryDialog';
+import { EditReceiptDialog } from '@/components/time-tracker/EditReceiptDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { usePagination } from '@/hooks/usePagination';
 import { CompletePagination } from '@/components/ui/complete-pagination';
@@ -73,6 +74,8 @@ interface UnifiedReceipt {
   approved_at?: string;
   rejection_reason?: string;
   submitted_for_approval_at?: string;
+  user_id?: string;
+  captured_at?: string;
 }
 
 export const ReceiptsManagement: React.FC = () => {
@@ -102,6 +105,9 @@ export const ReceiptsManagement: React.FC = () => {
   const [receiptToReject, setReceiptToReject] = useState<string | null>(null);
   const [bulkRejectDialogOpen, setBulkRejectDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
+  // Edit modal state
+  const [editingReceipt, setEditingReceipt] = useState<UnifiedReceipt | null>(null);
   
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -264,6 +270,7 @@ export const ReceiptsManagement: React.FC = () => {
             rejection_reason,
             payee_id,
             project_id,
+            user_id,
             payees(payee_name),
             projects(project_number, project_name)
           `)
@@ -312,6 +319,8 @@ export const ReceiptsManagement: React.FC = () => {
         approved_at: receipt.approved_at,
         rejection_reason: receipt.rejection_reason,
         submitted_for_approval_at: receipt.submitted_for_approval_at,
+        user_id: receipt.user_id,
+        captured_at: receipt.captured_at,
       }));
 
       // Merge and sort by date (most recent first)
@@ -954,6 +963,14 @@ export const ReceiptsManagement: React.FC = () => {
                                     <Image className="h-3 w-3 mr-2" />
                                     View Receipt
                                   </DropdownMenuItem>
+                                  
+                                  {receipt.type === 'standalone' && (
+                                    <DropdownMenuItem onClick={() => setEditingReceipt(receipt)}>
+                                      <Edit className="h-3 w-3 mr-2" />
+                                      Edit Receipt
+                                    </DropdownMenuItem>
+                                  )}
+                                  
                                   <DropdownMenuItem onClick={async () => {
                                     const filename = `receipt_${receipt.payee_name}_${format(new Date(receipt.date), 'yyyy-MM-dd')}.jpg`;
                                     try {
@@ -1034,6 +1051,19 @@ export const ReceiptsManagement: React.FC = () => {
         receiptUrl={selectedReceiptUrl}
         timeEntryDetails={previewDetails}
       />
+
+      {/* Edit Receipt Dialog */}
+      {editingReceipt && (
+        <EditReceiptDialog
+          receipt={editingReceipt}
+          open={!!editingReceipt}
+          onOpenChange={(open) => !open && setEditingReceipt(null)}
+          onSaved={() => {
+            setEditingReceipt(null);
+            loadReceipts();
+          }}
+        />
+      )}
 
       {/* Reject Dialog for Single Receipt */}
       <RejectTimeEntryDialog
