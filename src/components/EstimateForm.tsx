@@ -913,12 +913,21 @@ useEffect(() => {
             <h3 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Estimate Summary</h3>
             
             {/* Calculated Totals */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 mb-3">
               <CalculatedField
                 label="Subtotal"
                 value={calculateTotal()}
                 formula="Sum of all line item totals"
                 tooltip="Total of all line items before contingency"
+                variant="default"
+                prefix="$"
+              />
+              
+              <CalculatedField
+                label="Total Estimated Cost"
+                value={calculateTotalCost()}
+                formula="Sum of all line item costs"
+                tooltip="Total internal costs for all line items"
                 variant="default"
                 prefix="$"
               />
