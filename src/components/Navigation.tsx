@@ -99,13 +99,13 @@ const Navigation = () => {
     { to: "/field-media", label: "Field Media", icon: Camera, show: isFieldWorker },
     { to: "/estimates", label: "Estimates", icon: Calculator, show: hasFinancialAccess },
     { to: "/expenses", label: "Expenses", icon: Receipt, show: hasFinancialAccess },
+    { to: "/quotes", label: "Quotes", icon: FileText, show: hasFinancialAccess },
   ].filter(item => item.show);
 
   // Secondary items (grouped under "More" dropdown)
   const secondaryItems = [
     { to: "/work-orders", label: "Work Orders", icon: Wrench, show: hasFinancialAccess },
     { to: "/time-entries", label: "Time Management", icon: ClipboardCheck, show: isAdmin || isManager },
-    { to: "/quotes", label: "Quotes", icon: FileText, show: hasFinancialAccess },
     { to: "/payees", label: "Payees", icon: Users, show: hasClientAccess },
     { to: "/clients", label: "Clients", icon: UserCheck, show: hasClientAccess },
     { to: "/profit-analysis", label: "Profit Analysis", icon: TrendingUp, show: hasFinancialAccess },
@@ -138,7 +138,7 @@ const Navigation = () => {
 
   return (
     <nav className="bg-card border-b-2 border-primary/20 shadow-sm sticky top-0 z-20 backdrop-blur-sm bg-card/95" aria-label="Main navigation">
-      <div className="container mx-auto px-4">
+      <div className="w-full px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center py-2">

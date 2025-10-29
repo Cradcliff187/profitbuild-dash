@@ -63,7 +63,9 @@ export default function ProtectedLayout() {
     <div className="flex flex-col h-screen overflow-hidden">
       <Navigation />
       <main className="flex-1 overflow-auto w-full mobile-safe-padding py-4 sm:py-6 md:py-8">
-        <Outlet />
+        <div className="px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
