@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
 import { TimeEntryFilters } from "@/types/timeEntry";
-import { TimeEntryFiltersComponent } from "@/components/TimeEntryFilters";
+import { TimeEntrySearchFilters } from "@/components/TimeEntrySearchFilters";
 import { TimeEntryBulkActions } from "@/components/TimeEntryBulkActions";
 import { RejectTimeEntryDialog } from "@/components/RejectTimeEntryDialog";
 import { EditTimeEntryDialog } from "@/components/time-tracker/EditTimeEntryDialog";
@@ -67,10 +67,12 @@ const TimeEntries = () => {
   const [filters, setFilters] = useState<TimeEntryFilters>({
     dateFrom: null,
     dateTo: null,
-    status: 'all',
-    workerId: null,
-    projectId: null,
+    status: [],
+    workerIds: [],
+    projectIds: [],
   });
+  const [workers, setWorkers] = useState<Array<{ id: string; name: string }>>([]);
+  const [projects, setProjects] = useState<Array<{ id: string; number: string; name: string }>>([]);
   const [pageSize, setPageSize] = useState(25);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -178,6 +180,45 @@ const TimeEntries = () => {
   // Fetch receipt count on mount
   useEffect(() => {
     fetchReceiptCount();
+  }, []);
+
+  // Fetch workers for filter
+  useEffect(() => {
+    const fetchWorkers = async () => {
+      const { data } = await supabase
+        .from('payees')
+        .select('id, payee_name')
+        .eq('payee_type', 'internal')
+        .eq('is_active', true)
+        .order('payee_name');
+      
+      if (data) {
+        setWorkers(data.map(w => ({ id: w.id, name: w.payee_name })));
+      }
+    };
+    fetchWorkers();
+  }, []);
+
+  // Fetch projects for filter
+  useEffect(() => {
+    const fetchProjects = async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, project_number, project_name')
+        .eq('is_active', true)
+        .neq('project_number', 'SYS-000')
+        .neq('project_number', '000-UNASSIGNED')
+        .order('project_number');
+      
+      if (!error && data) {
+        setProjects(data.map((p: any) => ({ 
+          id: p.id, 
+          number: p.project_number, 
+          name: p.project_name 
+        })));
+      }
+    };
+    fetchProjects();
   }, []);
 
   // Real-time updates for time entries
@@ -334,6 +375,16 @@ const TimeEntries = () => {
     });
   };
 
+  const handleResetFilters = () => {
+    setFilters({
+      dateFrom: null,
+      dateTo: null,
+      status: [],
+      workerIds: [],
+      projectIds: [],
+    });
+  };
+
   const getStatusBadge = (status: string | null) => {
     if (!status || status === 'pending') {
       return <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-yellow-50 text-yellow-700 border-yellow-300">Pending</Badge>;
@@ -475,7 +526,14 @@ const TimeEntries = () => {
           </div>
 
           {/* Filters */}
-          <TimeEntryFiltersComponent filters={filters} onFiltersChange={setFilters} />
+          <TimeEntrySearchFilters 
+            filters={filters} 
+            onFiltersChange={setFilters}
+            onReset={handleResetFilters}
+            resultCount={totalCount}
+            workers={workers}
+            projects={projects}
+          />
 
           {/* Bulk Actions */}
           <TimeEntryBulkActions

@@ -26,9 +26,9 @@ export interface TimeEntryListItem {
 export interface TimeEntryFilters {
   dateFrom: string | null;
   dateTo: string | null;
-  status: 'all' | 'pending' | 'approved' | 'rejected';
-  workerId: string | null;
-  projectId: string | null;
+  status: string[];
+  workerIds: string[];
+  projectIds: string[];
 }
 
 export interface TimeEntryStatistics {

@@ -49,14 +49,14 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
       if (filters.dateTo) {
         query = query.lte('expense_date', filters.dateTo);
       }
-      if (filters.status !== 'all') {
-        query = query.eq('approval_status', filters.status);
+      if (filters.status.length > 0) {
+        query = query.in('approval_status', filters.status);
       }
-      if (filters.workerId) {
-        query = query.eq('payee_id', filters.workerId);
+      if (filters.workerIds.length > 0) {
+        query = query.in('payee_id', filters.workerIds);
       }
-      if (filters.projectId) {
-        query = query.eq('project_id', filters.projectId);
+      if (filters.projectIds.length > 0) {
+        query = query.in('project_id', filters.projectIds);
       }
 
       // Pagination

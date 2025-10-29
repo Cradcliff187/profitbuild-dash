@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Image, Download, Trash2, FileImage, MoreHorizontal, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { ReceiptFiltersComponent, ReceiptFilters } from '@/components/ReceiptFilters';
+import { ReceiptSearchFilters, ReceiptFilters } from '@/components/ReceiptSearchFilters';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -81,12 +81,16 @@ export const ReceiptsManagement: React.FC = () => {
   const [filters, setFilters] = useState<ReceiptFilters>({
     dateFrom: null,
     dateTo: null,
-    status: 'all',
-    payeeId: null,
-    projectId: null,
-    amountMin: null,
-    amountMax: null,
+    status: [],
+    payeeIds: [],
+    projectIds: [],
+    amountRange: {
+      min: null,
+      max: null,
+    },
   });
+  const [payees, setPayees] = useState<Array<{ id: string; name: string }>>([]);
+  const [projects, setProjects] = useState<Array<{ id: string; number: string; name: string }>>([]);
   
   // Preview modal state
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -145,6 +149,43 @@ export const ReceiptsManagement: React.FC = () => {
 
   useEffect(() => {
     loadReceipts();
+  }, []);
+
+  // Fetch payees for filter
+  useEffect(() => {
+    const fetchPayees = async () => {
+      const { data } = await supabase
+        .from('payees')
+        .select('id, payee_name')
+        .eq('is_active', true)
+        .order('payee_name');
+      
+      if (data) {
+        setPayees(data.map(p => ({ id: p.id, name: p.payee_name })));
+      }
+    };
+    fetchPayees();
+  }, []);
+
+  // Fetch projects for filter
+  useEffect(() => {
+    const fetchProjects = async () => {
+      const { data } = await supabase
+        .from('projects')
+        .select('id, project_number, project_name')
+        .neq('project_number', 'SYS-000')
+        .neq('project_number', '000-UNASSIGNED')
+        .order('project_number');
+      
+      if (data) {
+        setProjects(data.map(p => ({ 
+          id: p.id, 
+          number: p.project_number, 
+          name: p.project_name 
+        })));
+      }
+    };
+    fetchProjects();
   }, []);
 
   // Save visibility to localStorage
@@ -415,17 +456,17 @@ export const ReceiptsManagement: React.FC = () => {
     
     // Status filter
     const receiptStatus = r.approval_status || 'pending';
-    if (filters.status !== 'all' && receiptStatus !== filters.status) return false;
+    if (filters.status.length > 0 && !filters.status.includes(receiptStatus)) return false;
     
     // Amount range filter
-    if (filters.amountMin && r.amount < parseFloat(filters.amountMin)) return false;
-    if (filters.amountMax && r.amount > parseFloat(filters.amountMax)) return false;
+    if (filters.amountRange.min !== null && r.amount < filters.amountRange.min) return false;
+    if (filters.amountRange.max !== null && r.amount > filters.amountRange.max) return false;
     
     // Payee filter
-    if (filters.payeeId && r.payee_id !== filters.payeeId) return false;
+    if (filters.payeeIds.length > 0 && !filters.payeeIds.includes(r.payee_id)) return false;
     
     // Project filter
-    if (filters.projectId && r.project_id !== filters.projectId) return false;
+    if (filters.projectIds.length > 0 && !filters.projectIds.includes(r.project_id)) return false;
     
     return true;
   });
@@ -586,6 +627,20 @@ export const ReceiptsManagement: React.FC = () => {
     }
   };
 
+  const handleResetFilters = () => {
+    setFilters({
+      dateFrom: null,
+      dateTo: null,
+      status: [],
+      payeeIds: [],
+      projectIds: [],
+      amountRange: {
+        min: null,
+        max: null,
+      },
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -676,7 +731,14 @@ export const ReceiptsManagement: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <ReceiptFiltersComponent filters={filters} onFiltersChange={setFilters} />
+      <ReceiptSearchFilters 
+        filters={filters} 
+        onFiltersChange={setFilters}
+        onReset={handleResetFilters}
+        resultCount={filteredReceipts.length}
+        payees={payees}
+        projects={projects}
+      />
 
       {/* Bulk Actions Bar */}
       {selectedIds.length > 0 && (
