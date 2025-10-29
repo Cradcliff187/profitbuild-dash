@@ -59,7 +59,7 @@ export default function ProfitAnalysisPage() {
         total_amount: estimate.total_amount,
         status: estimate.status,
         notes: estimate.notes,
-        contingency_percent: estimate.contingency_percent || 10.0,
+        contingency_percent: estimate.contingency_percent ?? 10.0,
         contingency_amount: estimate.contingency_amount,
         contingency_used: estimate.contingency_used || 0,
         version_number: estimate.version_number || 1,

@@ -115,7 +115,7 @@ const Dashboard = () => {
         total_amount: estimate.total_amount,
         notes: estimate.notes,
         created_by: estimate.created_by,
-        contingency_percent: estimate.contingency_percent || 10.0,
+        contingency_percent: estimate.contingency_percent ?? 10.0,
         contingency_amount: estimate.contingency_amount,
         contingency_used: estimate.contingency_used || 0,
         version_number: estimate.version_number || 1,
