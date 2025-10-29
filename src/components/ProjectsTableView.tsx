@@ -1105,10 +1105,15 @@ export const ProjectsTableView = ({
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
+  // Helper to format status display
+  const getStatusDisplay = (status: string) => {
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
   // Convert to grouped format - one group per project
   const groupedData: FinancialTableGroup<ProjectWithFinancials>[] = sortedProjects.map(project => ({
     groupKey: project.id,
-    groupLabel: `[${project.project_number}] ${project.project_name}`,
+    groupLabel: `${project.project_number} - ${project.project_name} - ${getStatusDisplay(project.status)}`,
     items: [project],
     isCollapsible: true,
     defaultExpanded: false,

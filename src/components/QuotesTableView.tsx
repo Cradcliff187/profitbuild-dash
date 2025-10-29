@@ -164,8 +164,10 @@ export const QuotesTableView = ({
     
     // For each quote line item, compare against its linked estimate line item
     quoteLineItems.forEach(qli => {
+      // Handle both camelCase (TypeScript) and snake_case (database) property names
+      const estimateLineItemId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
       const estimateLineItem = estimateLineItems.find(
-        eli => eli.id === qli.estimateLineItemId
+        eli => eli.id === estimateLineItemId
       );
       
       if (estimateLineItem) {
