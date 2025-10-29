@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
-import { FileText, Plus, BarChart3 } from "lucide-react";
+import { FileText, Plus, BarChart3, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuoteForm } from "@/components/QuoteForm";
 import { QuotesList } from "@/components/QuotesList";
 import { QuoteComparison } from "@/components/QuoteComparison";
 import { QuoteFilters, QuoteSearchFilters } from "@/components/QuoteFilters";
+import { QuoteExportModal } from "@/components/QuoteExportModal";
 import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,7 @@ const Quotes = () => {
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<Array<{ id: string; client_name: string; }>>([]);
   const [payees, setPayees] = useState<Array<{ id: string; payee_name: string; }>>([]);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [searchFilters, setSearchFilters] = useState<QuoteSearchFilters>({
     searchText: '',
     status: [],
@@ -622,10 +624,20 @@ const Quotes = () => {
         </div>
         
         {view === 'list' && (
-          <Button onClick={() => setView('create')} size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            New Quote
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShowExportModal(true)}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button onClick={() => setView('create')} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              New Quote
+            </Button>
+          </div>
         )}
       </div>
 
@@ -676,6 +688,12 @@ const Quotes = () => {
           onBack={() => setView('list')}
         />
       )}
+
+      <QuoteExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        filters={searchFilters}
+      />
     </div>
   );
 };

@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal, Copy, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/utils";
+import { ColumnSelector } from "@/components/ui/column-selector";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +44,22 @@ interface QuotesTableViewProps {
   onCreateNew: () => void;
 }
 
+// Column definitions for the column selector
+const columnDefinitions = [
+  { key: 'quote_number', label: 'Quote #', required: true },
+  { key: 'line_items', label: 'Line Items', required: false },
+  { key: 'payee', label: 'Quoted By', required: false },
+  { key: 'status', label: 'Status', required: true },
+  { key: 'date_received', label: 'Received', required: false },
+  { key: 'valid_until', label: 'Valid Until', required: false },
+  { key: 'vendor_cost', label: 'Vendor Cost', required: true },
+  { key: 'estimate_cost', label: 'Estimate Cost', required: false },
+  { key: 'estimate_price', label: 'Estimate Price', required: false },
+  { key: 'cost_variance_amount', label: 'Cost Variance ($)', required: false },
+  { key: 'cost_variance_percent', label: 'Cost Variance (%)', required: false },
+  { key: 'actions', label: 'Actions', required: true },
+];
+
 export const QuotesTableView = ({ 
   quotes, 
   estimates, 
@@ -56,6 +73,35 @@ export const QuotesTableView = ({
   const [quoteToDelete, setQuoteToDelete] = useState<string | null>(null);
   const [localQuotes, setLocalQuotes] = useState(quotes);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  // Column visibility and order state with localStorage persistence
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    const stored = localStorage.getItem('quotes-visible-columns');
+    return stored ? JSON.parse(stored) : [
+      'quote_number',
+      'payee', 
+      'status',
+      'date_received',
+      'vendor_cost',
+      'estimate_cost',
+      'cost_variance_amount',
+      'actions'
+    ];
+  });
+
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    const stored = localStorage.getItem('quotes-column-order');
+    return stored ? JSON.parse(stored) : columnDefinitions.map(c => c.key);
+  });
+
+  // Persist column preferences to localStorage
+  useEffect(() => {
+    localStorage.setItem('quotes-visible-columns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  useEffect(() => {
+    localStorage.setItem('quotes-column-order', JSON.stringify(columnOrder));
+  }, [columnOrder]);
 
   // Update local state when quotes prop changes
   React.useEffect(() => {
@@ -291,7 +337,8 @@ export const QuotesTableView = ({
     onEdit(duplicatedQuote);
   };
 
-  const columns: FinancialTableColumn<QuoteWithEstimate>[] = [
+  // All possible columns (to be filtered by visibility settings)
+  const allColumns: FinancialTableColumn<QuoteWithEstimate>[] = [
     {
       key: 'quote_number',
       label: 'Quote #',
@@ -578,6 +625,13 @@ export const QuotesTableView = ({
     },
   ];
 
+  // Filter and order columns based on user preferences
+  const columns = columnOrder
+    .map(key => allColumns.find(col => col.key === key))
+    .filter((col): col is FinancialTableColumn<QuoteWithEstimate> => 
+      col !== undefined && visibleColumns.includes(col.key)
+    );
+
   const toggleAllGroups = () => {
     if (collapsedGroups.size > 0) {
       setCollapsedGroups(new Set());
@@ -612,14 +666,23 @@ export const QuotesTableView = ({
 
   if (quotes.length === 0) {
     return (
-      <div className="text-center py-12">
-        <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-        <h3 className="text-lg font-semibold mb-2">No Quotes Yet</h3>
-        <p className="text-muted-foreground mb-6">Create your first quote to start comparing against estimates.</p>
-        <Button onClick={onCreateNew}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create First Quote
-        </Button>
+      <div className="text-center py-12 bg-muted/30 rounded-lg border-2 border-dashed">
+        <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+        <h3 className="text-lg font-medium mb-1">No Quotes Yet</h3>
+        <p className="text-muted-foreground mb-4">Get started by creating your first quote</p>
+        <div className="flex justify-center items-center gap-2">
+          <ColumnSelector
+            columns={columnDefinitions}
+            visibleColumns={visibleColumns}
+            onVisibilityChange={setVisibleColumns}
+            columnOrder={columnOrder}
+            onColumnOrderChange={setColumnOrder}
+          />
+          <Button onClick={onCreateNew} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Create First Quote
+          </Button>
+        </div>
       </div>
     );
   }
@@ -628,6 +691,15 @@ export const QuotesTableView = ({
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end mb-2">
+        <ColumnSelector
+          columns={columnDefinitions}
+          visibleColumns={visibleColumns}
+          onVisibilityChange={setVisibleColumns}
+          columnOrder={columnOrder}
+          onColumnOrderChange={setColumnOrder}
+        />
+      </div>
       <QuotesTable
         data={groupedData}
         columns={columns}
