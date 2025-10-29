@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Building2, Table, Grid, Plus, ArrowUpAZ, ArrowDownZA } from "lucide-react";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -455,56 +456,43 @@ const Projects = () => {
 
   return (
     <div className="space-y-3">
-      {viewMode === 'list' && (
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-bold">Projects</h1>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            {!isMobile && (
-              <>
-                <span className="text-xs text-muted-foreground">Sort by:</span>
-                <Select 
-                  value={filters.sortBy} 
-                  onValueChange={(value: 'name' | 'date' | 'status' | 'margin') => 
-                    setFilters({ ...filters, sortBy: value })
-                  }
-                >
-                  <SelectTrigger className="h-8 w-32 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="date">Date Created</SelectItem>
-                    <SelectItem value="status">Status</SelectItem>
-                    <SelectItem value="margin">Margin</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setFilters({ 
-                    ...filters, 
-                    sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' 
-                  })}
-                  className="h-8 w-8 p-0"
-                >
-                  {filters.sortOrder === 'asc' ? (
-                    <ArrowUpAZ className="h-4 w-4" />
-                  ) : (
-                    <ArrowDownZA className="h-4 w-4" />
-                  )}
-                </Button>
-              </>
-            )}
+      {/* Breadcrumb - Desktop only */}
+      {!isMobile && viewMode === 'list' && (
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Projects</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      )}
+      
+      {/* Header - Matches Quotes page format */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-xl font-bold">
+            {viewMode === 'list' ? 'Projects' : 'Create New Project'}
+          </h1>
+          <p className="text-muted-foreground">
+            {viewMode === 'list' 
+              ? 'Manage construction projects and track financials' 
+              : 'Fill in the project details below'}
+          </p>
+        </div>
+        
+        {viewMode === 'list' && (
+          <div className="flex gap-2">
             <Button onClick={handleCreateNew} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               New Project
             </Button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {viewMode === 'create' && (
         <div className="flex items-center gap-2">
