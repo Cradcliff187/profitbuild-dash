@@ -302,7 +302,7 @@ export function FinancialTableTemplate<T>({
           <TableRow className="bg-muted/50 border-b-2 border-primary/20 hover:bg-muted/70">
             <TableCell
               colSpan={columns.length + (showActions ? 1 : 0)}
-              className="px-3 py-2 font-semibold text-sm text-foreground"
+              className="px-3 py-2 font-semibold text-xs text-foreground"
             >
               <div className="flex items-center gap-2">
                 {group.isCollapsible !== false && (

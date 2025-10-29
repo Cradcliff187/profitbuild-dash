@@ -225,7 +225,7 @@ export const ProjectsTableView = ({
     const formattedDate = format(dateObj, 'MMM d, yyyy');
     
     let label = '';
-    let className = 'text-xs';
+    let className = 'text-[11px]';
     
     if (isEndDate) {
       switch (status) {
@@ -276,8 +276,8 @@ export const ProjectsTableView = ({
     
     return (
       <div className="text-right">
-        <div className="font-medium text-sm">{formattedDate}</div>
-        <div className={className}>{label}</div>
+        <div className="font-medium text-xs">{formattedDate}</div>
+        <div className="text-[11px]">{label}</div>
       </div>
     );
   };
@@ -409,7 +409,7 @@ export const ProjectsTableView = ({
       render: (project) => (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className={cn("font-mono text-foreground/80 cursor-help whitespace-nowrap", isMobile ? "text-xs" : "text-[11px]")}>
+            <div className="font-mono text-foreground/80 cursor-help whitespace-nowrap text-xs">
               {project.project_number}
             </div>
           </TooltipTrigger>
@@ -459,7 +459,7 @@ export const ProjectsTableView = ({
       sortable: true,
       getSortValue: (project) => project.start_date ? new Date(project.start_date).getTime() : 0,
       render: (project) => {
-        if (!project.start_date) return <span className="text-muted-foreground text-xs">Not set</span>;
+        if (!project.start_date) return <span className="text-muted-foreground text-[11px]">Not set</span>;
         
         const dateObj = new Date(project.start_date);
         const formattedDate = format(dateObj, 'MM/dd/yyyy');
@@ -483,7 +483,7 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className="font-medium text-sm">{formattedDate}</div>
+                <div className="font-medium text-xs">{formattedDate}</div>
               </div>
             </TooltipTrigger>
             <TooltipContent>
@@ -500,7 +500,7 @@ export const ProjectsTableView = ({
       sortable: true,
       getSortValue: (project) => project.end_date ? new Date(project.end_date).getTime() : 0,
       render: (project) => {
-        if (!project.end_date) return <span className="text-muted-foreground text-xs">Not set</span>;
+        if (!project.end_date) return <span className="text-muted-foreground text-[11px]">Not set</span>;
         
         const dateObj = new Date(project.end_date);
         const formattedDate = format(dateObj, 'MM/dd/yyyy');
@@ -524,7 +524,7 @@ export const ProjectsTableView = ({
           }
         };
         
-        let className = 'font-medium text-sm';
+        let className = 'font-medium text-xs';
         if (project.status === 'in_progress' && isPast(dateObj)) {
           className += ' text-destructive';
         }
@@ -549,7 +549,7 @@ export const ProjectsTableView = ({
       align: 'center',
       render: (project) => {
         const durationData = calculateDuration(project.start_date, project.end_date, project.status);
-        if (!durationData) return <span className="text-muted-foreground text-xs">N/A</span>;
+        if (!durationData) return <span className="text-muted-foreground text-[11px]">N/A</span>;
         
         const getStatusColor = (status: string) => {
           switch (status) {
@@ -633,7 +633,7 @@ export const ProjectsTableView = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="text-right cursor-help">
-                  <div className="font-medium text-sm font-mono tabular-nums text-muted-foreground">
+                  <div className="font-medium text-xs font-mono tabular-nums text-muted-foreground">
                     {formatCurrency(latestEstimate.total_amount)}
                   </div>
                 </div>
@@ -649,7 +649,7 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className="font-medium text-sm font-mono tabular-nums">{formatCurrency(project.contracted_amount)}</div>
+                <div className="font-medium text-xs font-mono tabular-nums">{formatCurrency(project.contracted_amount)}</div>
               </div>
             </TooltipTrigger>
             <TooltipContent>
@@ -669,7 +669,7 @@ export const ProjectsTableView = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="text-right cursor-help">
-              <div className="font-medium text-sm font-mono tabular-nums">{formatCurrency(project.originalContractAmount)}</div>
+              <div className="font-medium text-xs font-mono tabular-nums">{formatCurrency(project.originalContractAmount)}</div>
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -697,7 +697,7 @@ export const ProjectsTableView = ({
         if (!hasChangeOrders) {
           return (
             <div className="text-right">
-              <span className="text-muted-foreground text-xs font-mono tabular-nums">—</span>
+              <span className="text-muted-foreground text-[11px] font-mono tabular-nums">—</span>
             </div>
           );
         }
@@ -707,7 +707,7 @@ export const ProjectsTableView = ({
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
                 <div className={cn(
-                  "font-medium text-sm font-mono tabular-nums",
+                  "font-medium text-xs font-mono tabular-nums",
                   netImpact > 0 && "text-green-600 dark:text-green-400",
                   netImpact < 0 && "text-red-600 dark:text-red-400",
                   netImpact === 0 && "text-muted-foreground"
@@ -743,7 +743,7 @@ export const ProjectsTableView = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="text-right cursor-help">
-              <div className="font-medium text-sm font-mono tabular-nums">{formatCurrency(project.originalEstimatedCosts)}</div>
+              <div className="font-medium text-xs font-mono tabular-nums">{formatCurrency(project.originalEstimatedCosts)}</div>
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -772,7 +772,7 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className={`font-medium text-sm font-mono tabular-nums ${
+                <div className={`font-medium text-xs font-mono tabular-nums ${
                   isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`}>
                   {formatCurrency(originalMargin)}
@@ -807,7 +807,7 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className="font-medium text-sm font-mono tabular-nums">
+                <div className="font-medium text-xs font-mono tabular-nums">
                   {formatCurrency(project.adjusted_est_costs || 0)}
                 </div>
               </div>
@@ -853,7 +853,7 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className={`font-medium text-sm font-mono tabular-nums ${
+                <div className={`font-medium text-xs font-mono tabular-nums ${
                   isIncrease ? 'text-red-600 dark:text-red-400' : 
                   variance < 0 ? 'text-green-600 dark:text-green-400' : 
                   'text-muted-foreground'
@@ -892,7 +892,7 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className={`font-medium text-sm font-mono tabular-nums ${
+                <div className={`font-medium text-xs font-mono tabular-nums ${
                   isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`}>
                   {formatCurrency(projectedMargin)}
