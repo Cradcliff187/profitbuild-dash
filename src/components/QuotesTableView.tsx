@@ -86,25 +86,45 @@ export const QuotesTableView = ({
 
   const getEstimateLineItemCost = (quote: Quote): number | null => {
     const estimate = getEstimateForQuote(quote);
-    if (!estimate || !estimate.lineItems || !quote.lineItems) {
+    if (!estimate || !estimate.lineItems) {
       return null;
     }
     
-    // If quote is linked to a specific estimate line item, use that item's cost
-    if (quote.estimate_line_item_id) {
-      const targetLineItem = estimate.lineItems.find(item => item.id === quote.estimate_line_item_id);
-      if (targetLineItem) {
-        return targetLineItem.totalCost || (targetLineItem.quantity * targetLineItem.costPerUnit);
+    const estimateLineItems = estimate.lineItems || [];
+    const quoteLineItems = quote.lineItems || [];
+    
+    if (estimateLineItems.length === 0) return null;
+    
+    let totalEstimatedForQuotedItems = 0;
+    
+    // First, try to match via quote line items' estimate_line_item_id links
+    if (quoteLineItems.length > 0) {
+      quoteLineItems.forEach(qli => {
+        const estimateLineItem = estimateLineItems.find(
+          eli => eli.id === qli.estimateLineItemId
+        );
+        
+        if (estimateLineItem) {
+          totalEstimatedForQuotedItems += Number(estimateLineItem.total || 0);
+        }
+      });
+      
+      if (totalEstimatedForQuotedItems > 0) {
+        return totalEstimatedForQuotedItems;
       }
     }
     
-    // Fallback: If no specific line item link, match by categories present in quote
-    const quoteCategorySet = new Set(quote.lineItems.map(item => item.category));
-    const matchingItems = estimate.lineItems.filter(item => quoteCategorySet.has(item.category));
+    // Fallback: If quote has quote-level estimate_line_item_id link
+    if (quote.estimate_line_item_id) {
+      const targetLineItem = estimateLineItems.find(
+        item => item.id === quote.estimate_line_item_id
+      );
+      if (targetLineItem) {
+        return Number(targetLineItem.total || 0);
+      }
+    }
     
-    if (matchingItems.length === 0) return null;
-    
-    return matchingItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+    return null;
   };
 
   const getQuotedAmountForEstimateMatch = (quote: Quote): number | null => {
