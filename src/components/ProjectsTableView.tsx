@@ -62,6 +62,14 @@ export const ProjectsTableView = ({
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
+  // Initialize all groups as collapsed on first load
+  useEffect(() => {
+    if (projects.length > 0 && collapsedGroups.size === 0) {
+      const allKeys = new Set(projects.map(p => p.id));
+      setCollapsedGroups(allKeys);
+    }
+  }, [projects.length]);
+
   // Define column metadata for selector
   const columnDefinitions = [
     { key: 'project_number', label: 'Project #', required: true },
@@ -1103,7 +1111,7 @@ export const ProjectsTableView = ({
     groupLabel: `[${project.project_number}] ${project.project_name}`,
     items: [project],
     isCollapsible: true,
-    defaultExpanded: true,
+    defaultExpanded: false,
   }));
 
   // Filter columns based on visibility AND sort by custom order
