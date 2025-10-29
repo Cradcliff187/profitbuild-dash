@@ -72,6 +72,14 @@ export const QuotesTableView = ({
     );
   };
 
+  // Initialize all groups as collapsed on first load
+  React.useEffect(() => {
+    if (localQuotes.length > 0 && collapsedGroups.size === 0) {
+      const projectIds = new Set(localQuotes.map(q => q.project_id));
+      setCollapsedGroups(projectIds);
+    }
+  }, [localQuotes.length]);
+
   const getEstimateForQuote = (quote: Quote): Estimate | undefined => {
     return estimates.find(est => est.project_id === quote.project_id);
   };
@@ -174,7 +182,7 @@ export const QuotesTableView = ({
       groupLabel: `[${projectQuotes[0].project_number}] ${projectQuotes[0].projectName} - ${projectQuotes[0].client}`,
       items: projectQuotes,
       isCollapsible: true,
-      defaultExpanded: true,
+      defaultExpanded: false,
     })
   );
 
@@ -230,7 +238,7 @@ export const QuotesTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-center">
-                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-medium">
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-xs font-medium">
                   {count}
                 </div>
               </div>
@@ -252,7 +260,7 @@ export const QuotesTableView = ({
       render: (quote) => (
         <div className="flex items-center gap-2">
           <User className="h-3 w-3 text-muted-foreground" />
-          <span className="text-sm font-medium truncate">{quote.quotedBy}</span>
+          <span className="text-xs font-medium truncate">{quote.quotedBy}</span>
         </div>
       ),
     },
@@ -318,7 +326,7 @@ export const QuotesTableView = ({
       sortable: true,
       getSortValue: (quote) => quote.total,
       render: (quote) => (
-        <div className="font-semibold text-sm font-mono tabular-nums">
+        <div className="font-semibold text-xs font-mono tabular-nums">
           {formatCurrency(quote.total, { showCents: false })}
         </div>
       ),
@@ -333,7 +341,7 @@ export const QuotesTableView = ({
       render: (quote) => {
         const estimateCost = getEstimateLineItemCost(quote);
         return (
-          <div className="text-sm font-mono tabular-nums text-foreground/80">
+          <div className="text-xs font-mono tabular-nums text-foreground/80">
             {estimateCost !== null ? formatCurrency(estimateCost, { showCents: false }) : 'N/A'}
           </div>
         );
@@ -349,7 +357,7 @@ export const QuotesTableView = ({
       render: (quote) => {
         const quotedAmount = getQuotedAmountForEstimateMatch(quote);
         return (
-          <div className="text-sm font-mono tabular-nums font-medium">
+          <div className="text-xs font-mono tabular-nums font-medium">
             {quotedAmount !== null ? formatCurrency(quotedAmount, { showCents: false }) : 'N/A'}
           </div>
         );

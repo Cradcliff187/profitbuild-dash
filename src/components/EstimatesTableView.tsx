@@ -115,6 +115,14 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     setLocalEstimates(estimates);
   }, [estimates]);
 
+  // Initialize all groups as collapsed on first load
+  useEffect(() => {
+    if (localEstimates.length > 0 && collapsedGroups.size === 0) {
+      const projectIds = new Set(localEstimates.map(est => est.project_id));
+      setCollapsedGroups(projectIds);
+    }
+  }, [localEstimates.length]);
+
   const handleStatusUpdate = (estimateId: string, newStatus: EstimateStatus) => {
     setLocalEstimates(prev => 
       prev.map(est => 
@@ -183,7 +191,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       groupLabel: `[${projectEstimates[0].project_number}] ${projectEstimates[0].project_name} - ${projectEstimates[0].client_name}`,
       items: projectEstimates,
       isCollapsible: true,
-      defaultExpanded: true,
+      defaultExpanded: false,
     })
   );
 
@@ -215,7 +223,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-center">
-                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-medium">
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-xs font-medium">
                   {count}
                 </div>
               </div>
@@ -290,7 +298,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       sortable: true,
       getSortValue: (estimate) => estimate.total_amount,
       render: (estimate) => (
-        <div className={cn("font-semibold font-mono tabular-nums", isMobile ? "text-sm" : "text-xs")}>
+        <div className="font-semibold font-mono tabular-nums text-xs">
           {formatCurrency(estimate.total_amount, { showCents: false })}
         </div>
       ),
@@ -305,7 +313,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       render: (estimate) => {
         const financials = calculateEstimateFinancials(estimate.lineItems);
         return (
-          <div className="text-sm font-mono tabular-nums text-foreground/80">
+          <div className="text-xs font-mono tabular-nums text-foreground/80">
             {formatCurrency(financials.totalCost, { showCents: false })}
           </div>
         );
@@ -322,7 +330,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         const financials = calculateEstimateFinancials(estimate.lineItems);
         return (
           <div className={cn(
-            "text-sm font-mono tabular-nums font-medium",
+            "text-xs font-mono tabular-nums font-medium",
             financials.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'
           )}>
             {formatCurrency(financials.grossProfit, { showCents: false })}
@@ -343,7 +351,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         
         return (
           <div className={cn(
-            "text-sm font-semibold font-mono tabular-nums",
+            "text-xs font-semibold font-mono tabular-nums",
             status === 'excellent' && 'text-green-700',
             status === 'good' && 'text-blue-700',
             status === 'poor' && 'text-yellow-700',
@@ -367,7 +375,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         
         return (
           <div className={cn(
-            "text-sm font-mono tabular-nums",
+            "text-xs font-mono tabular-nums",
             status === 'excellent' && 'text-green-700',
             status === 'good' && 'text-blue-700',
             status === 'poor' && 'text-yellow-700',
@@ -388,7 +396,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       render: (estimate) => {
         const financials = calculateEstimateFinancials(estimate.lineItems);
         return (
-          <div className="text-sm font-mono tabular-nums text-foreground/80">
+          <div className="text-xs font-mono tabular-nums text-foreground/80">
             {formatCurrency(financials.totalMarkupAmount, { showCents: false })}
           </div>
         );
@@ -453,7 +461,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
           return <span className="text-xs text-muted-foreground">-</span>;
         }
         return (
-          <div className="text-sm font-mono tabular-nums text-foreground/80">
+          <div className="text-xs font-mono tabular-nums text-foreground/80">
             {formatCurrency(estimate.contingency_amount, { showCents: false })}
           </div>
         );
@@ -469,7 +477,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       render: (estimate) => {
         const totalWithContingency = estimate.total_amount + (estimate.contingency_amount || 0);
         return (
-          <div className="text-sm font-semibold font-mono tabular-nums">
+          <div className="text-xs font-semibold font-mono tabular-nums">
             {formatCurrency(totalWithContingency, { showCents: false })}
           </div>
         );
