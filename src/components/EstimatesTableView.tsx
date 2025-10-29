@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { format } from "date-fns";
 import { Estimate, EstimateStatus } from "@/types/estimate";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
-import { BudgetComparisonBadge, BudgetComparisonStatus } from "./BudgetComparisonBadge";
+// Removed BudgetComparisonBadge import
 import { EstimateActionsMenu } from "./EstimateActionsMenu";
 import { EstimateStatusSelector } from "./EstimateStatusSelector";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -46,7 +46,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     { key: 'gross_margin_percent', label: 'Margin %', required: false },
     { key: 'markup_percent', label: 'Markup %', required: false },
     { key: 'markup_amount', label: 'Markup $', required: false },
-    { key: 'budget_status', label: 'Budget Status', required: false },
+    
     { key: 'variance', label: 'Quote Variance', required: false },
     { key: 'contingency', label: 'Contingency %', required: false },
     { key: 'contingency_amount', label: 'Contingency $', required: false },
@@ -75,7 +75,6 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       'gross_profit',
       'gross_margin_percent',
       'markup_percent',
-      'budget_status',
       'actions'
     ];
   });
@@ -148,41 +147,21 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     estimatesByProject[projectId].sort((a, b) => (b.version_number || 1) - (a.version_number || 1));
   });
 
-  const getQuoteStatus = (estimate: EstimateWithQuotes): BudgetComparisonStatus => {
-    if (!estimate.quotes || estimate.quotes.length === 0) {
-      return 'awaiting-quotes';
-    }
+  // Calculate accepted quote variance for display (line-item aware)
+  const getAcceptedQuoteVariance = (estimate: EstimateWithQuotes): number | null => {
+    const estimateLineItems = estimate.lineItems || [];
+    if (estimateLineItems.length === 0) return null;
     
-    const acceptedQuotes = estimate.quotes.filter(q => q.status === 'accepted');
-    if (acceptedQuotes.length === 0) {
-      return 'awaiting-quotes';
-    }
+    const relatedQuotes = (estimate.quotes || []).filter(q => q.status === 'accepted');
+    if (relatedQuotes.length === 0) return null;
     
-    const totalAcceptedAmount = acceptedQuotes.reduce((sum, q) => sum + q.total_amount, 0);
+    // For now, sum all accepted quote totals vs estimate total
+    // TODO: Implement proper line-item matching when quote line items have estimateLineItemId
+    const totalQuotedAmount = relatedQuotes.reduce((sum, q) => sum + (q.total_amount || 0), 0);
     
-    if (totalAcceptedAmount < estimate.total_amount) {
-      return 'under-budget';
-    } else if (totalAcceptedAmount > estimate.total_amount) {
-      return 'over-budget';
-    }
-    
-    return 'awaiting-quotes';
+    return totalQuotedAmount - estimate.total_amount;
   };
 
-  const getAcceptedQuoteVariance = (estimate: EstimateWithQuotes) => {
-    if (!estimate.quotes || estimate.quotes.length === 0) {
-      return null;
-    }
-    
-    const acceptedQuotes = estimate.quotes.filter(q => q.status === 'accepted');
-    if (acceptedQuotes.length === 0) {
-      return null;
-    }
-    
-    const totalAcceptedAmount = acceptedQuotes.reduce((sum, q) => sum + q.total_amount, 0);
-    const variance = totalAcceptedAmount - estimate.total_amount;
-    return variance;
-  };
 
   // Convert to grouped format for the table
   const groupedData: FinancialTableGroup<EstimateWithQuotes>[] = Object.entries(estimatesByProject).map(
@@ -400,16 +379,6 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
             {formatCurrency(financials.totalMarkupAmount, { showCents: false })}
           </div>
         );
-      },
-    },
-    {
-      key: 'budget_status',
-      label: 'Budget Status',
-      align: 'center',
-      width: '120px',
-      render: (estimate) => {
-        const quoteStatus = getQuoteStatus(estimate);
-        return <BudgetComparisonBadge status={quoteStatus} />;
       },
     },
     {

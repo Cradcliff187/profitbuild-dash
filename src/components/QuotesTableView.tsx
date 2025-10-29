@@ -18,7 +18,7 @@ import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
 import { calculateQuoteTotalCost } from "@/utils/quoteFinancials";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
 import { QuoteStatusSelector } from "./QuoteStatusSelector";
-import { BudgetComparisonBadge, BudgetComparisonStatus } from "./BudgetComparisonBadge";
+// Removed BudgetComparisonBadge import
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -127,31 +127,58 @@ export const QuotesTableView = ({
     }
   };
 
-  const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {
-    const estimateCost = getEstimateLineItemCost(quote);
-    const quotedAmount = getQuotedAmountForEstimateMatch(quote);
+  // Line-item-aware variance calculation for individual quotes
+  const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'under' | 'over' | 'none' } => {
+    const estimate = getEstimateForQuote(quote);
+    if (!estimate) return { amount: 0, percentage: 0, status: 'none' };
     
-    if (estimateCost === null || quotedAmount === null) {
-      return { amount: 0, percentage: 0, status: 'exact' };
+    const estimateLineItems = estimate.lineItems || [];
+    const quoteLineItems = quote.lineItems || [];
+    
+    if (estimateLineItems.length === 0 || quoteLineItems.length === 0) {
+      return { amount: 0, percentage: 0, status: 'none' };
     }
-
-    const difference = quotedAmount - estimateCost;
-    const percentage = estimateCost > 0 ? (difference / estimateCost) * 100 : 0;
+    
+    let totalEstimatedForQuotedItems = 0;
+    let totalQuotedAmount = 0;
+    
+    // For each quote line item, compare against its linked estimate line item
+    quoteLineItems.forEach(qli => {
+      const estimateLineItem = estimateLineItems.find(
+        eli => eli.id === qli.estimateLineItemId
+      );
+      
+      if (estimateLineItem) {
+        // Found matching estimate line item
+        totalEstimatedForQuotedItems += Number(estimateLineItem.total || 0);
+        totalQuotedAmount += Number(qli.total || 0);
+      }
+    });
+    
+    // Fallback: If quote has no line-item links, try quote-level link
+    if (totalEstimatedForQuotedItems === 0 && quote.estimate_line_item_id) {
+      const estimateLineItem = estimateLineItems.find(
+        eli => eli.id === quote.estimate_line_item_id
+      );
+      
+      if (estimateLineItem) {
+        totalEstimatedForQuotedItems = Number(estimateLineItem.total || 0);
+        totalQuotedAmount = Number(quote.total || 0);
+      }
+    }
+    
+    if (totalEstimatedForQuotedItems === 0) {
+      return { amount: 0, percentage: 0, status: 'none' };
+    }
+    
+    const variance = totalQuotedAmount - totalEstimatedForQuotedItems;
+    const variancePercent = (variance / totalEstimatedForQuotedItems) * 100;
     
     return {
-      amount: Math.abs(difference),
-      percentage: Math.abs(percentage),
-      status: difference > 0 ? 'over' : difference < 0 ? 'under' : 'exact'
+      amount: Math.abs(variance),
+      percentage: Math.abs(variancePercent),
+      status: variance > 0 ? 'over' : variance < 0 ? 'under' : 'none'
     };
-  };
-
-  const getQuoteStatus = (quote: Quote): BudgetComparisonStatus => {
-    const estimate = getEstimateForQuote(quote);
-    if (!estimate) return 'awaiting-quotes';
-    
-    if (quote.total < estimate.total_amount) return 'under-budget';
-    if (quote.total > estimate.total_amount) return 'over-budget';
-    return 'on-budget';
   };
 
   // Add estimate data to quotes
@@ -393,16 +420,6 @@ export const QuotesTableView = ({
             </div>
           </div>
         );
-      },
-    },
-    {
-      key: 'budget_status',
-      label: 'Budget Status',
-      align: 'center',
-      width: '120px',
-      render: (quote) => {
-        const status = getQuoteStatus(quote);
-        return <BudgetComparisonBadge status={status} />;
       },
     },
     {
