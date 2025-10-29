@@ -81,6 +81,12 @@ export const QuotesTableView = ({
   }, [localQuotes.length]);
 
   const getEstimateForQuote = (quote: Quote): Estimate | undefined => {
+    // Prioritize exact estimate_id match first
+    if (quote.estimate_id) {
+      const byId = estimates.find(est => est.id === quote.estimate_id);
+      if (byId) return byId;
+    }
+    // Fallback to project match
     return estimates.find(est => est.project_id === quote.project_id);
   };
 
@@ -95,22 +101,73 @@ export const QuotesTableView = ({
     
     if (estimateLineItems.length === 0) return null;
     
-    let totalEstimatedForQuotedItems = 0;
+    let totalEstimatedCost = 0;
+    let hasMatch = false;
     
     // First, try to match via quote line items' estimate_line_item_id links
     if (quoteLineItems.length > 0) {
       quoteLineItems.forEach(qli => {
-        const estimateLineItem = estimateLineItems.find(
-          eli => eli.id === qli.estimateLineItemId
-        );
-        
-        if (estimateLineItem) {
-          totalEstimatedForQuotedItems += Number(estimateLineItem.total || 0);
+        // Handle both camelCase and snake_case
+        const linkId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
+        if (linkId) {
+          const estimateLineItem = estimateLineItems.find(eli => eli.id === linkId);
+          if (estimateLineItem) {
+            totalEstimatedCost += Number(estimateLineItem.totalCost || 0);
+            hasMatch = true;
+          } else {
+            console.warn(`Quote line item references estimate line item ${linkId} but it was not found in estimate ${estimate.id}`);
+          }
         }
       });
       
-      if (totalEstimatedForQuotedItems > 0) {
-        return totalEstimatedForQuotedItems;
+      if (hasMatch) {
+        return totalEstimatedCost;
+      }
+    }
+    
+    // Fallback: If quote has quote-level estimate_line_item_id link
+    if (quote.estimate_line_item_id) {
+      const targetLineItem = estimateLineItems.find(
+        item => item.id === quote.estimate_line_item_id
+      );
+      if (targetLineItem) {
+        return Number(targetLineItem.totalCost || 0);
+      }
+    }
+    
+    return null;
+  };
+
+  const getEstimateLineItemPrice = (quote: Quote): number | null => {
+    const estimate = getEstimateForQuote(quote);
+    if (!estimate || !estimate.lineItems) {
+      return null;
+    }
+    
+    const estimateLineItems = estimate.lineItems || [];
+    const quoteLineItems = quote.lineItems || [];
+    
+    if (estimateLineItems.length === 0) return null;
+    
+    let totalEstimatedPrice = 0;
+    let hasMatch = false;
+    
+    // First, try to match via quote line items' estimate_line_item_id links
+    if (quoteLineItems.length > 0) {
+      quoteLineItems.forEach(qli => {
+        // Handle both camelCase and snake_case
+        const linkId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
+        if (linkId) {
+          const estimateLineItem = estimateLineItems.find(eli => eli.id === linkId);
+          if (estimateLineItem) {
+            totalEstimatedPrice += Number(estimateLineItem.total || 0);
+            hasMatch = true;
+          }
+        }
+      });
+      
+      if (hasMatch) {
+        return totalEstimatedPrice;
       }
     }
     
@@ -128,73 +185,46 @@ export const QuotesTableView = ({
   };
 
   const getQuotedAmountForEstimateMatch = (quote: Quote): number | null => {
-    const estimate = getEstimateForQuote(quote);
-    if (!estimate || !estimate.lineItems || !quote.lineItems) {
-      return null;
+    const quoteLineItems = quote.lineItems || [];
+    if (quoteLineItems.length === 0) return null;
+    
+    let totalQuoted = 0;
+    let hasMatch = false;
+    
+    // Sum quote line items that have estimate_line_item_id links
+    quoteLineItems.forEach(qli => {
+      // Handle both camelCase and snake_case
+      const linkId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
+      if (linkId) {
+        totalQuoted += Number(qli.total || 0);
+        hasMatch = true;
+      }
+    });
+    
+    if (hasMatch) {
+      return totalQuoted;
     }
-
-    // If linked to specific estimate line item
+    
+    // Fallback: If quote has quote-level estimate_line_item_id link, use quote total
     if (quote.estimate_line_item_id) {
-      const targetLineItem = estimate.lineItems.find(item => item.id === quote.estimate_line_item_id);
-      if (!targetLineItem) return null;
-      
-      // Find quote line items that match this category
-      const matchingQuoteItems = quote.lineItems.filter(item => item.category === targetLineItem.category);
-      return matchingQuoteItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
-    } else {
-      // Category-based matching - sum all quote line item costs
-      return quote.lineItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+      return Number(quote.total || 0);
     }
+    
+    // Last fallback: sum all quote line item totals
+    return quoteLineItems.reduce((sum, item) => sum + Number(item.total || 0), 0);
   };
 
   // Line-item-aware variance calculation for individual quotes
   const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'under' | 'over' | 'none' } => {
-    const estimate = getEstimateForQuote(quote);
-    if (!estimate) return { amount: 0, percentage: 0, status: 'none' };
+    const estimateCost = getEstimateLineItemCost(quote);
+    const quotedAmount = getQuotedAmountForEstimateMatch(quote);
     
-    const estimateLineItems = estimate.lineItems || [];
-    const quoteLineItems = quote.lineItems || [];
-    
-    if (estimateLineItems.length === 0 || quoteLineItems.length === 0) {
+    if (estimateCost === null || quotedAmount === null || estimateCost === 0) {
       return { amount: 0, percentage: 0, status: 'none' };
     }
     
-    let totalEstimatedForQuotedItems = 0;
-    let totalQuotedAmount = 0;
-    
-    // For each quote line item, compare against its linked estimate line item
-    quoteLineItems.forEach(qli => {
-      // Handle both camelCase (TypeScript) and snake_case (database) property names
-      const estimateLineItemId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
-      const estimateLineItem = estimateLineItems.find(
-        eli => eli.id === estimateLineItemId
-      );
-      
-      if (estimateLineItem) {
-        // Found matching estimate line item
-        totalEstimatedForQuotedItems += Number(estimateLineItem.total || 0);
-        totalQuotedAmount += Number(qli.total || 0);
-      }
-    });
-    
-    // Fallback: If quote has no line-item links, try quote-level link
-    if (totalEstimatedForQuotedItems === 0 && quote.estimate_line_item_id) {
-      const estimateLineItem = estimateLineItems.find(
-        eli => eli.id === quote.estimate_line_item_id
-      );
-      
-      if (estimateLineItem) {
-        totalEstimatedForQuotedItems = Number(estimateLineItem.total || 0);
-        totalQuotedAmount = Number(quote.total || 0);
-      }
-    }
-    
-    if (totalEstimatedForQuotedItems === 0) {
-      return { amount: 0, percentage: 0, status: 'none' };
-    }
-    
-    const variance = totalQuotedAmount - totalEstimatedForQuotedItems;
-    const variancePercent = (variance / totalEstimatedForQuotedItems) * 100;
+    const variance = quotedAmount - estimateCost;
+    const variancePercent = (variance / estimateCost) * 100;
     
     return {
       amount: Math.abs(variance),
@@ -381,34 +411,94 @@ export const QuotesTableView = ({
       ),
     },
     {
-      key: 'estimate_total',
+      key: 'estimate_cost',
       label: 'Estimate Cost',
       align: 'right',
-      width: '130px',
+      width: '120px',
       sortable: true,
       getSortValue: (quote) => getEstimateLineItemCost(quote) || 0,
       render: (quote) => {
         const estimateCost = getEstimateLineItemCost(quote);
+        const estimate = getEstimateForQuote(quote);
+        
+        if (estimateCost === null) {
+          return <span className="text-xs text-muted-foreground">N/A</span>;
+        }
+        
         return (
-          <div className="text-xs font-mono tabular-nums text-foreground/80">
-            {estimateCost !== null ? formatCurrency(estimateCost, { showCents: false }) : 'N/A'}
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-xs font-mono tabular-nums text-foreground/80 cursor-help">
+                  {formatCurrency(estimateCost, { showCents: false })}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Your estimated cost for matched line items</p>
+                {estimate && <p className="text-xs text-muted-foreground">From estimate: {estimate.estimate_number}</p>}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         );
       },
     },
     {
-      key: 'quoted_amount',
-      label: 'Quoted Amount',
+      key: 'estimate_price',
+      label: 'Estimate Price',
       align: 'right',
-      width: '130px',
+      width: '120px',
+      sortable: true,
+      getSortValue: (quote) => getEstimateLineItemPrice(quote) || 0,
+      render: (quote) => {
+        const estimatePrice = getEstimateLineItemPrice(quote);
+        
+        if (estimatePrice === null) {
+          return <span className="text-xs text-muted-foreground">N/A</span>;
+        }
+        
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-xs font-mono tabular-nums text-foreground/90 cursor-help font-medium">
+                  {formatCurrency(estimatePrice, { showCents: false })}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Your estimated price (revenue) to customer</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      },
+    },
+    {
+      key: 'quoted_cost',
+      label: 'Quoted Cost',
+      align: 'right',
+      width: '120px',
       sortable: true,
       getSortValue: (quote) => getQuotedAmountForEstimateMatch(quote) || 0,
       render: (quote) => {
         const quotedAmount = getQuotedAmountForEstimateMatch(quote);
+        
+        if (quotedAmount === null) {
+          return <span className="text-xs text-muted-foreground">N/A</span>;
+        }
+        
         return (
-          <div className="text-xs font-mono tabular-nums font-medium">
-            {quotedAmount !== null ? formatCurrency(quotedAmount, { showCents: false }) : 'N/A'}
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-xs font-mono tabular-nums font-medium cursor-help">
+                  {formatCurrency(quotedAmount, { showCents: false })}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Vendor's quoted cost for matched line items</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         );
       },
     },
