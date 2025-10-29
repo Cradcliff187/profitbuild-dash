@@ -364,6 +364,9 @@ const Quotes = () => {
     try {
       if (selectedQuote) {
         // Update existing quote
+        // Extract sequence number from quote_number (e.g., "225-012-QTE-01-02" → 2)
+        const sequenceNumber = parseInt(quote.quoteNumber.split('-').pop() || '1', 10);
+        
         const { error } = await supabase
           .from('quotes')
           .update({
@@ -371,6 +374,7 @@ const Quotes = () => {
             estimate_id: quote.estimate_id,
             payee_id: quote.payee_id,
             quote_number: quote.quoteNumber,
+            sequence_number: sequenceNumber,
             date_received: quote.dateReceived.toISOString().split('T')[0],
             status: quote.status,
             accepted_date: quote.accepted_date ? quote.accepted_date.toISOString() : null,
@@ -411,6 +415,9 @@ const Quotes = () => {
         }
       } else {
         // Create new quote
+        // Extract sequence number from quote_number (e.g., "225-012-QTE-01-02" → 2)
+        const sequenceNumber = parseInt(quote.quoteNumber.split('-').pop() || '1', 10);
+        
         const { data: quoteData, error: quoteError } = await supabase
           .from('quotes')
           .insert({
@@ -418,6 +425,7 @@ const Quotes = () => {
             estimate_id: quote.estimate_id,
             payee_id: quote.payee_id,
             quote_number: quote.quoteNumber,
+            sequence_number: sequenceNumber,
             date_received: quote.dateReceived.toISOString().split('T')[0],
             status: quote.status,
             accepted_date: quote.accepted_date ? quote.accepted_date.toISOString() : null,
