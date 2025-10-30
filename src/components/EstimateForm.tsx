@@ -438,10 +438,15 @@ useEffect(() => {
           if (updateError) throw updateError;
 
           // Delete default line items from new version
-          await supabase
+          const { error: deleteError } = await supabase
             .from('estimate_line_items')
             .delete()
             .eq('estimate_id', newVersionId);
+
+          if (deleteError) {
+            console.error('Failed to delete line items for new version:', deleteError);
+            throw new Error(`Cannot create estimate version: ${deleteError.message}`);
+          }
 
           // Insert updated line items for new version
           const lineItemsData = validLineItems.map((item, index) => ({
@@ -507,10 +512,15 @@ useEffect(() => {
           if (estimateError) throw estimateError;
 
           // Delete existing line items and recreate them
-          await supabase
+          const { error: deleteError } = await supabase
             .from('estimate_line_items')
             .delete()
             .eq('estimate_id', initialEstimate.id);
+
+          if (deleteError) {
+            console.error('Failed to delete existing line items:', deleteError);
+            throw new Error(`Cannot update estimate: ${deleteError.message}. You may not have permission to edit this estimate.`);
+          }
 
           // Create new line items
           const lineItemsData = validLineItems.map((item, index) => ({
@@ -604,10 +614,15 @@ useEffect(() => {
           if (updateError) throw updateError;
 
           // Delete default line items from new version and add our line items
-          await supabase
+          const { error: deleteError } = await supabase
             .from('estimate_line_items')
             .delete()
             .eq('estimate_id', newVersionId);
+
+          if (deleteError) {
+            console.error('Failed to delete default line items:', deleteError);
+            throw new Error(`Cannot create estimate: ${deleteError.message}`);
+          }
 
           const lineItemsData = validLineItems.map((item, index) => ({
             estimate_id: newVersionId,
