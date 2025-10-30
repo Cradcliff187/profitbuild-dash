@@ -207,6 +207,7 @@ const EstimatesPage = () => {
             client_name
           )
         `)
+        .not('projects.project_number', 'in', '("SYS-000","000-UNASSIGNED")')
         .order('created_at', { ascending: false });
 
       if (estimatesError) throw estimatesError;
