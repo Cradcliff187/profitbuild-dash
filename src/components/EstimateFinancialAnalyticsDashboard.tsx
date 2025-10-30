@@ -102,6 +102,7 @@ export default function EstimateFinancialAnalyticsDashboard() {
           )
         `)
         .in('status', ['draft', 'sent', 'approved'])
+        .not('projects.project_number', 'in', '("SYS-000","000-UNASSIGNED")')
         .order('date_created', { ascending: false });
 
       if (timeframe !== 'all') {
