@@ -331,22 +331,17 @@ const EstimatesPage = () => {
         return;
       }
 
-      // Check if project still exists
-      const { data: project, error: projectCheckError } = await supabase
-        .from('projects')
-        .select('id, project_name, project_number')
-        .eq('id', estimate.project_id)
-        .maybeSingle();
+      // Check for accepted quotes that would be orphaned
+      const { data: acceptedQuotes } = await supabase
+        .from('quotes')
+        .select('id, quote_number')
+        .eq('estimate_id', id)
+        .eq('status', 'accepted');
 
-      if (projectCheckError && projectCheckError.code !== 'PGRST116') {
-        throw projectCheckError;
-      }
-
-      if (project) {
-        // Project exists - cannot delete estimate
+      if (acceptedQuotes && acceptedQuotes.length > 0) {
         toast({
           title: "Cannot Delete Estimate",
-          description: `This estimate is linked to project "${project.project_name}" (${project.project_number}). You must delete the project first to remove this estimate.`,
+          description: `This estimate has ${acceptedQuotes.length} accepted quote(s): ${acceptedQuotes.map(q => q.quote_number).join(', ')}. You must reject or delete these quotes first.`,
           variant: "destructive",
           duration: 8000
         });
