@@ -55,7 +55,7 @@ const App = () => (
         <OfflineIndicator />
         <BrowserRouter>
           <ErrorBoundary>
-            <div className="min-h-screen bg-background mobile-container">
+            <div className="min-h-screen bg-background w-full overflow-x-hidden">
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/change-password" element={<ChangePassword />} />
