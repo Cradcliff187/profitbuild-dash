@@ -194,7 +194,7 @@ export function FinancialTableTemplate<T>({
   };
 
   const renderTableHeader = () => (
-    <TableHeader className="sticky top-0 bg-card z-10 border-b">
+    <TableHeader className="sticky top-0 bg-card z-20 border-b shadow-sm">
       <TableRow className="border-b border-border/50 hover:bg-transparent">
         {columns.map((column) => (
           <TableHead
@@ -356,20 +356,18 @@ export function FinancialTableTemplate<T>({
     <>
       <div className={cn("border border-border/50 rounded-lg bg-card overflow-hidden", className)}>
         {collapseAllButton && isGrouped && (
-          <div className="px-3 py-2 border-b border-border/50 bg-muted/20 flex items-center justify-end">
-            {collapseAllButton}
-          </div>
-        )}
-        <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px] w-full">
-          <div className="mobile-table-wrapper">
-            <Table className="min-w-[800px] w-full">
-              {renderTableHeader()}
-              <TableBody>
-                {isGrouped ? renderGroupedData() : renderSimpleData()}
-              </TableBody>
-            </Table>
-          </div>
-        </ScrollArea>
+      <div className="px-3 py-2 border-b border-border/50 bg-muted/20 flex items-center justify-end">
+        {collapseAllButton}
+      </div>
+    )}
+    <div className="overflow-auto h-[calc(100vh-280px)] min-h-[600px] w-full">
+      <Table className="min-w-[800px] w-full relative">
+        {renderTableHeader()}
+        <TableBody>
+          {isGrouped ? renderGroupedData() : renderSimpleData()}
+        </TableBody>
+      </Table>
+    </div>
       </div>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
