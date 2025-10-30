@@ -34,6 +34,7 @@ const EstimatesPage = () => {
     status: [],
     projectType: '',
     clientName: [],
+    categories: [],
     dateRange: { start: null, end: null },
     amountRange: { min: null, max: null },
     hasVersions: null
@@ -127,6 +128,15 @@ const EstimatesPage = () => {
       );
     }
 
+    // Category filter - show estimates that contain ANY of the selected categories
+    if (searchFilters.categories.length > 0) {
+      filtered = filtered.filter(estimate => {
+        return estimate.lineItems.some(lineItem => 
+          searchFilters.categories.includes(lineItem.category)
+        );
+      });
+    }
+
     // Has versions filter
     if (searchFilters.hasVersions !== null) {
       const estimatesByFamily = new Map<string, number>();
@@ -155,6 +165,7 @@ const EstimatesPage = () => {
       status: [],
       projectType: '',
       clientName: [],
+      categories: [],
       dateRange: { start: null, end: null },
       amountRange: { min: null, max: null },
       hasVersions: null

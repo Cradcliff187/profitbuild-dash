@@ -15,6 +15,7 @@ export interface SearchFilters {
   status: string[];
   projectType: string;
   clientName: string[];
+  categories: string[];
   dateRange: {
     start: Date | null;
     end: Date | null;
@@ -41,6 +42,16 @@ const STATUS_OPTIONS = [
   { value: 'approved', label: 'Approved' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'expired', label: 'Expired' }
+];
+
+const CATEGORY_OPTIONS = [
+  { value: 'labor_internal', label: 'Labor (Internal)' },
+  { value: 'subcontractors', label: 'Subcontractors' },
+  { value: 'materials', label: 'Materials' },
+  { value: 'equipment', label: 'Equipment' },
+  { value: 'permits', label: 'Permits & Fees' },
+  { value: 'management', label: 'Management' },
+  { value: 'other', label: 'Other' }
 ];
 
 export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
@@ -70,12 +81,20 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
     updateFilters({ clientName: newClients });
   };
 
+  const toggleCategory = (category: string) => {
+    const newCategories = filters.categories.includes(category)
+      ? filters.categories.filter(c => c !== category)
+      : [...filters.categories, category];
+    updateFilters({ categories: newCategories });
+  };
+
   const getActiveFilterCount = (): number => {
     let count = 0;
     if (filters.searchText) count++;
     if (filters.status.length > 0) count++;
     if (filters.projectType) count++;
     if (filters.clientName.length > 0) count++;
+    if (filters.categories.length > 0) count++;
     if (filters.dateRange.start || filters.dateRange.end) count++;
     if (filters.amountRange.min !== null || filters.amountRange.max !== null) count++;
     if (filters.hasVersions !== null) count++;
@@ -233,6 +252,68 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
                 ))}
               </CommandGroup>
             </Command>
+          </PopoverContent>
+        </Popover>
+
+        {/* Category Multi-Select Filter */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-9 w-full justify-between text-xs"
+            >
+              <span className="truncate">
+                {filters.categories.length === 0 
+                  ? "All Categories" 
+                  : filters.categories.length === CATEGORY_OPTIONS.length
+                  ? "All Categories"
+                  : `${filters.categories.length} selected`
+                }
+              </span>
+              <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" align="start">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs px-2"
+                  onClick={() => updateFilters({ 
+                    categories: CATEGORY_OPTIONS.map(c => c.value) 
+                  })}
+                >
+                  Select All
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs px-2"
+                  onClick={() => updateFilters({ categories: [] })}
+                >
+                  Clear
+                </Button>
+              </div>
+              
+              {CATEGORY_OPTIONS.map((option) => (
+                <div 
+                  key={option.value}
+                  className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                  onClick={() => toggleCategory(option.value)}
+                >
+                  <Checkbox
+                    checked={filters.categories.includes(option.value)}
+                    onCheckedChange={() => toggleCategory(option.value)}
+                    className="h-4 w-4"
+                  />
+                  <label className="text-sm cursor-pointer flex-1">
+                    {option.label}
+                  </label>
+                </div>
+              ))}
+            </div>
           </PopoverContent>
         </Popover>
 
