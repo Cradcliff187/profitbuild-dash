@@ -39,7 +39,7 @@ const actions = [
 ];
 
 export function ProjectSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpenMobile, isMobile } = useSidebar();
   const navigate = useNavigate();
   const { id: projectId } = useParams<{ id: string }>();
   const location = useLocation();
@@ -54,6 +54,11 @@ export function ProjectSidebar() {
   const handleNavigation = (sectionUrl: string) => {
     const path = sectionUrl ? `/projects/${projectId}/${sectionUrl}` : `/projects/${projectId}`;
     navigate(path);
+    
+    // Close mobile sidebar after navigation
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   return (
