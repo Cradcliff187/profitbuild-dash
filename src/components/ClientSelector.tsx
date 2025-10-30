@@ -147,9 +147,9 @@ export const ClientSelector = ({
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[--radix-popper-anchor-width] p-0 z-[100] bg-popover">
-          <div className="flex flex-col h-[280px]">
+          <div className="flex flex-col h-[220px]">
             {/* Search Input */}
-            <div className="p-2 border-b">
+            <div className="p-1.5 border-b">
               <Input
                 ref={searchInputRef}
                 placeholder="Search clients..."
@@ -159,9 +159,9 @@ export const ClientSelector = ({
                   setSelectedIndex(0);
                 }}
                 onKeyDown={handleKeyDown}
-                className="h-7 text-xs"
+                className="h-7 text-[11px]"
               />
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-[10px] text-muted-foreground mt-0.5">
                 {filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''} found
               </p>
             </div>
@@ -169,14 +169,14 @@ export const ClientSelector = ({
             {/* Client List */}
             {filteredClients.length > 0 ? (
               <>
-                <ScrollArea className="flex-1 max-h-[180px]">
-                  <div className="p-1">
+                <ScrollArea className="flex-1 overflow-auto">
+                  <div className="p-0.5">
                     {filteredClients.map((client, index) => (
                       <div
                         key={client.id}
                         onClick={() => handleSelect(client)}
                         className={cn(
-                          "px-2 py-1.5 cursor-pointer rounded text-xs transition-colors",
+                          "px-2 py-1 cursor-pointer rounded text-[11px] transition-colors",
                           value === client.id && "bg-accent/50",
                           selectedIndex === index && "bg-accent",
                           "hover:bg-accent"
@@ -192,11 +192,11 @@ export const ClientSelector = ({
                 </ScrollArea>
 
                 {/* Footer with Add Button */}
-                <div className="p-2 border-t">
+                <div className="p-1.5 border-t">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full h-7 text-xs"
+                    className="w-full h-6 text-[11px]"
                     onClick={() => {
                       setShowClientForm(true);
                       setOpen(false);
