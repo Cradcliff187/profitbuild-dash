@@ -119,7 +119,6 @@ export function useLineItemControl(projectId: string): UseLineItemControlReturn 
           total_amount,
           includes_labor,
           includes_materials,
-          estimate_line_item_id,
           quote_line_items (
             id,
             category,
