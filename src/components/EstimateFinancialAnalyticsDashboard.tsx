@@ -35,6 +35,17 @@ interface ScenarioMetrics {
   projectCount: number;
 }
 
+interface MidRangeMetrics extends ScenarioMetrics {
+  meanRevenue: number;
+  meanCost: number;
+  meanProfit: number;
+  meanMargin: number;
+  medianRevenue: number;
+  medianCost: number;
+  medianProfit: number;
+  medianMargin: number;
+}
+
 interface StatusCounts {
   draft: number;
   sent: number;
@@ -146,11 +157,30 @@ export default function EstimateFinancialAnalyticsDashboard() {
       lowCost += lowest.total_cost || 0;
     });
 
-    // Calculate mid-range (average of all estimates)
+    // Calculate mid-range (mean)
     const totalRevenue = estimates.reduce((sum, est) => sum + (est.total_amount || 0), 0);
     const totalCost = estimates.reduce((sum, est) => sum + (est.total_cost || 0), 0);
-    const midRevenue = totalRevenue / estimates.length;
-    const midCost = totalCost / estimates.length;
+    const meanRevenue = totalRevenue / estimates.length;
+    const meanCost = totalCost / estimates.length;
+
+    // Calculate median
+    const sortedRevenues = [...estimates]
+      .map(e => e.total_amount || 0)
+      .sort((a, b) => a - b);
+    const sortedCosts = [...estimates]
+      .map(e => e.total_cost || 0)
+      .sort((a, b) => a - b);
+
+    const medianRevenue = sortedRevenues.length % 2 === 0
+      ? (sortedRevenues[sortedRevenues.length / 2 - 1] + sortedRevenues[sortedRevenues.length / 2]) / 2
+      : sortedRevenues[Math.floor(sortedRevenues.length / 2)];
+
+    const medianCost = sortedCosts.length % 2 === 0
+      ? (sortedCosts[sortedCosts.length / 2 - 1] + sortedCosts[sortedCosts.length / 2]) / 2
+      : sortedCosts[Math.floor(sortedCosts.length / 2)];
+
+    const medianProfit = medianRevenue - medianCost;
+    const medianMargin = medianRevenue > 0 ? ((medianRevenue - medianCost) / medianRevenue) * 100 : 0;
 
     // Status distribution
     const statusCounts: StatusCounts = {
@@ -197,12 +227,20 @@ export default function EstimateFinancialAnalyticsDashboard() {
         projectCount: projectMap.size,
       } as ScenarioMetrics,
       midRange: {
-        totalRevenue: midRevenue,
-        totalCost: midCost,
-        totalProfit: midRevenue - midCost,
-        marginPercent: midRevenue > 0 ? ((midRevenue - midCost) / midRevenue) * 100 : 0,
+        totalRevenue: meanRevenue,
+        totalCost: meanCost,
+        totalProfit: meanRevenue - meanCost,
+        marginPercent: meanRevenue > 0 ? ((meanRevenue - meanCost) / meanRevenue) * 100 : 0,
         projectCount: estimates.length,
-      } as ScenarioMetrics,
+        meanRevenue,
+        meanCost,
+        meanProfit: meanRevenue - meanCost,
+        meanMargin: meanRevenue > 0 ? ((meanRevenue - meanCost) / meanRevenue) * 100 : 0,
+        medianRevenue,
+        medianCost,
+        medianProfit,
+        medianMargin,
+      } as MidRangeMetrics,
       lowSide: {
         totalRevenue: lowRevenue,
         totalCost: lowCost,
@@ -322,31 +360,54 @@ export default function EstimateFinancialAnalyticsDashboard() {
                 <Target className="h-4 w-4 text-primary" />
                 Mid-Range Analysis
               </CardTitle>
-              <Badge variant="outline" className="text-xs">Average</Badge>
+              <Badge variant="outline" className="text-xs">Central Tendency</Badge>
             </div>
           </CardHeader>
           <CardContent className="p-3 pt-0">
             <div className="space-y-2">
-              <div className="text-2xl font-bold font-mono">{formatCurrency(analytics.midRange.totalRevenue)}</div>
-              <div className="grid grid-cols-3 gap-2 text-xs">
+              {/* Two-column metric display: Mean vs Median */}
+              <div className="grid grid-cols-2 gap-3 pb-2 border-b">
                 <div>
-                  <div className="text-muted-foreground">Cost</div>
-                  <div className="font-mono">{formatCurrency(analytics.midRange.totalCost)}</div>
+                  <div className="text-xs text-muted-foreground mb-1">Mean (Average)</div>
+                  <div className="text-xl font-bold font-mono">{formatCurrency(analytics.midRange.meanRevenue)}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Profit</div>
-                  <div className={`font-mono ${analytics.midRange.totalProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
-                    {formatCurrency(analytics.midRange.totalProfit)}
+                  <div className="text-xs text-muted-foreground mb-1">Median (Typical)</div>
+                  <div className="text-xl font-bold font-mono">{formatCurrency(analytics.midRange.medianRevenue)}</div>
+                </div>
+              </div>
+              
+              {/* Skew indicator */}
+              {Math.abs(analytics.midRange.meanRevenue - analytics.midRange.medianRevenue) > (analytics.midRange.medianRevenue * 0.15) && (
+                <div className="text-xs text-orange-600 flex items-center gap-1 py-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  <span>
+                    {analytics.midRange.meanRevenue > analytics.midRange.medianRevenue 
+                      ? 'Distribution skewed by high-value estimates' 
+                      : 'Distribution skewed by low-value estimates'}
+                  </span>
+                </div>
+              )}
+              
+              {/* Compact profit and margin (based on mean) */}
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <div className="text-muted-foreground">Avg Profit</div>
+                  <div className={`font-mono font-medium ${analytics.midRange.meanProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                    {formatCurrency(analytics.midRange.meanProfit)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Margin</div>
-                  <Badge variant={getMarginVariant(analytics.midRange.marginPercent)} className="text-xs">
-                    {analytics.midRange.marginPercent.toFixed(1)}%
+                  <div className="text-muted-foreground">Avg Margin</div>
+                  <Badge variant={getMarginVariant(analytics.midRange.meanMargin)} className="text-xs">
+                    {analytics.midRange.meanMargin.toFixed(1)}%
                   </Badge>
                 </div>
               </div>
-              <div className="text-xs text-muted-foreground">Avg of {analytics.midRange.projectCount} estimates</div>
+              
+              <div className="text-xs text-muted-foreground pt-1">
+                {analytics.midRange.projectCount} estimates
+              </div>
             </div>
           </CardContent>
         </Card>
