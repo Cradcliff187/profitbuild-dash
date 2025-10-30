@@ -76,7 +76,10 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
 
   useEffect(() => {
     loadMatchingData();
-  }, []);
+    if (projectId) {
+      setProjectFilter(projectId);
+    }
+  }, [projectId]);
 
   const loadMatchingData = async () => {
     setIsLoading(true);
@@ -476,7 +479,11 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div>
           <h2 className="text-2xl font-bold">Global Expense Matching</h2>
-          <p className="text-muted-foreground">Match expenses to estimate and quote line items across all projects</p>
+          <p className="text-muted-foreground">
+            {projectId 
+              ? "Match expenses to estimate and quote line items for this project"
+              : "Match expenses to estimate and quote line items across all projects"}
+          </p>
         </div>
         
         <div className="flex gap-2">
@@ -535,22 +542,24 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
           </div>
         </div>
         
-        <div className="w-full sm:w-48">
-          <Label>Project Filter</Label>
-          <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Projects</SelectItem>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.project_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {!projectId && (
+          <div className="w-full sm:w-48">
+            <Label>Project Filter</Label>
+            <Select value={projectFilter} onValueChange={setProjectFilter}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Projects</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.project_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="w-full sm:w-48">
           <Label>Status Filter</Label>
@@ -569,7 +578,10 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
       </div>
 
       {/* Main Interface */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={cn(
+        "grid gap-6",
+        projectId ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1 lg:grid-cols-2"
+      )}>
         {/* Expenses */}
         <Card>
           <CardHeader>
@@ -613,10 +625,12 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
                 <div className="text-sm mb-1 font-medium">{expense.payee_name || 'No payee'}</div>
                 
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Building className="h-3 w-3" />
-                    {expense.project_name}
-                  </div>
+                  {!projectId && expense.project_name && (
+                    <div className="flex items-center gap-1">
+                      <Building className="h-3 w-3" />
+                      {expense.project_name}
+                    </div>
+                  )}
                   <div className="flex items-center gap-1">
                     <FileText className="h-3 w-3" />
                     {EXPENSE_CATEGORY_DISPLAY[expense.category]}
@@ -655,10 +669,12 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
                         <div className="font-medium text-sm">{item.description}</div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Building className="h-3 w-3" />
-                          {item.project_name}
-                        </div>
+                        {!projectId && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Building className="h-3 w-3" />
+                            {item.project_name}
+                          </div>
+                        )}
                         <div className="text-xs text-muted-foreground">
                           {CATEGORY_DISPLAY_MAP[item.category]}
                         </div>
@@ -691,10 +707,12 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
                         <div className="font-medium text-sm">{item.description}</div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Building className="h-3 w-3" />
-                          {item.project_name}
-                        </div>
+                        {!projectId && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Building className="h-3 w-3" />
+                            {item.project_name}
+                          </div>
+                        )}
                         <div className="text-xs text-muted-foreground flex items-center gap-1">
                           <User className="h-3 w-3" />
                           {item.payee_name}
