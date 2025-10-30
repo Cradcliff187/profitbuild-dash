@@ -483,13 +483,12 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
               
               {/* Search Input */}
               <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Search by project, client, or estimate number..."
                   value={estimateSearchQuery}
                   onChange={(e) => setEstimateSearchQuery(e.target.value)}
-                  className="pl-8 h-9 text-sm"
+                  className="h-9 text-sm"
                 />
                 {estimateSearchQuery && (
                   <button
