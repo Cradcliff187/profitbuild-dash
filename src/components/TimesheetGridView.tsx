@@ -259,7 +259,7 @@ export function TimesheetGridView({ open, onClose, onSuccess, preselectedProject
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-4xl lg:max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg">
               Timesheet - Week of {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}
@@ -268,7 +268,7 @@ export function TimesheetGridView({ open, onClose, onSuccess, preselectedProject
 
           <div className="space-y-3">
             {/* Project & Date Selection */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               <div>
                 <label className="text-xs font-medium mb-1 block">Project</label>
                 <ProjectSelectorNew
@@ -291,8 +291,8 @@ export function TimesheetGridView({ open, onClose, onSuccess, preselectedProject
             </div>
 
             {/* Timesheet Grid */}
-            <div className="border rounded-md overflow-x-auto">
-              <table className="w-full text-xs">
+            <div className="border rounded-md overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+              <table className="w-full text-xs min-w-[640px]">
                 <thead className="bg-muted/50 sticky top-0">
                   <tr>
                     <th className="text-left p-2 font-medium w-48">Worker</th>

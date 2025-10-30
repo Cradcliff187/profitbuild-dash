@@ -400,7 +400,7 @@ const TimeEntries = () => {
   };
 
   return (
-    <div className="container mx-auto py-2 space-y-2">
+    <div className="w-full overflow-x-hidden px-2 sm:px-4 py-2 space-y-2">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div>
@@ -476,7 +476,7 @@ const TimeEntries = () => {
           </div>
 
           {/* Statistics Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2">
             <Card>
               <CardContent className="p-2">
                 <div className="flex items-center justify-between">
@@ -546,9 +546,9 @@ const TimeEntries = () => {
           />
 
           {/* Table */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
             <Table>
               <TableHeader>
                 <TableRow className="h-8">
