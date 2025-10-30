@@ -241,8 +241,9 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
           <p>No line items yet. Click "Add Line Item" to get started.</p>
         </div>
       ) : (
-        <div className="border rounded-md">
-          <Table>
+        <div className="border rounded-md overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+          <div className="min-w-[800px]">
+            <Table>
             <TableHeader>
               <TableRow className={cn("h-table-header", isMobile ? "bg-muted/30" : "sticky top-0 bg-background z-10")}>
                 <TableHead className={cn("p-2 font-medium", isMobile ? "w-[90px] text-xs" : "w-[80px] text-[11px]")}>Cat</TableHead>
@@ -424,6 +425,7 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
               ))}
             </TableBody>
           </Table>
+          </div>
         </div>
       )}
     </div>
