@@ -19,6 +19,7 @@ interface LineItemTableProps {
   onAddLineItem: () => void;
   onEditDetails: (lineItem: LineItem) => void;
   onDuplicateLineItem?: (lineItem: LineItem) => void;
+  readOnly?: boolean;
 }
 
 const getCategoryColor = (category: LineItemCategory): string => {
@@ -175,6 +176,7 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
   onAddLineItem,
   onEditDetails,
   onDuplicateLineItem,
+  readOnly = false,
 }) => {
   const isMobile = useIsMobile();
   const calculateMarkupPercent = (lineItem: LineItem): number => {
@@ -260,127 +262,163 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                   <TableCell className="p-2">
                     <div className="flex items-center gap-1">
                       <div className={`w-1.5 h-1.5 rounded-full ${getCategoryColor(lineItem.category)}`} />
-                      <Select
-                        value={lineItem.category}
-                        onValueChange={(value) => onUpdateLineItem(lineItem.id, 'category', value)}
-                      >
-                        <SelectTrigger className="h-[28px] border-0 bg-transparent p-0 hover:bg-muted/50">
-                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-3.5 cursor-pointer">
-                            {getCategoryAbbrev(lineItem.category)}
-                          </Badge>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(CATEGORY_DISPLAY_MAP).map(([key, label]) => (
-                            <SelectItem key={key} value={key} className="text-xs">
-                              {label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {readOnly ? (
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 h-3.5">
+                          {getCategoryAbbrev(lineItem.category)}
+                        </Badge>
+                      ) : (
+                        <Select
+                          value={lineItem.category}
+                          onValueChange={(value) => onUpdateLineItem(lineItem.id, 'category', value)}
+                        >
+                          <SelectTrigger className="h-[28px] border-0 bg-transparent p-0 hover:bg-muted/50">
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-3.5 cursor-pointer">
+                              {getCategoryAbbrev(lineItem.category)}
+                            </Badge>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(CATEGORY_DISPLAY_MAP).map(([key, label]) => (
+                              <SelectItem key={key} value={key} className="text-xs">
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="p-2">
-                    <EditableCell
-                      value={lineItem.description}
-                      onChange={(value) => onUpdateLineItem(lineItem.id, 'description', value)}
-                    />
+                    {readOnly ? (
+                      <div className="text-xs px-2 py-1">{lineItem.description}</div>
+                    ) : (
+                      <EditableCell
+                        value={lineItem.description}
+                        onChange={(value) => onUpdateLineItem(lineItem.id, 'description', value)}
+                      />
+                    )}
                   </TableCell>
                   <TableCell className="p-2 text-right">
-                    <QuantityEditableCell
-                      quantity={lineItem.quantity}
-                      unit={lineItem.unit}
-                      onChange={(value) => onUpdateLineItem(lineItem.id, 'quantity', parseFloat(value) || 0)}
-                    />
+                    {readOnly ? (
+                      <div className="text-xs font-mono px-2 py-1 text-right">
+                        {lineItem.quantity.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                      </div>
+                    ) : (
+                      <QuantityEditableCell
+                        quantity={lineItem.quantity}
+                        unit={lineItem.unit}
+                        onChange={(value) => onUpdateLineItem(lineItem.id, 'quantity', parseFloat(value) || 0)}
+                      />
+                    )}
                   </TableCell>
                   <TableCell className="p-2">
-                    <Select 
-                      value={lineItem.unit || 'none'} 
-                      onValueChange={(value) => onUpdateLineItem(lineItem.id, 'unit', value === 'none' ? null : value)}
-                    >
-                      <SelectTrigger className="h-[32px] text-xs">
-                        <SelectValue placeholder="-" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">-</SelectItem>
-                        <SelectItem value="EA">ea</SelectItem>
-                        <SelectItem value="SF">sf</SelectItem>
-                        <SelectItem value="LF">lf</SelectItem>
-                        <SelectItem value="CY">cy</SelectItem>
-                        <SelectItem value="HR">hr</SelectItem>
-                        <SelectItem value="GAL">gal</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {readOnly ? (
+                      <div className="text-xs px-2 py-1">{lineItem.unit || '-'}</div>
+                    ) : (
+                      <Select 
+                        value={lineItem.unit || 'none'} 
+                        onValueChange={(value) => onUpdateLineItem(lineItem.id, 'unit', value === 'none' ? null : value)}
+                      >
+                        <SelectTrigger className="h-[32px] text-xs">
+                          <SelectValue placeholder="-" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">-</SelectItem>
+                          <SelectItem value="EA">ea</SelectItem>
+                          <SelectItem value="SF">sf</SelectItem>
+                          <SelectItem value="LF">lf</SelectItem>
+                          <SelectItem value="CY">cy</SelectItem>
+                          <SelectItem value="HR">hr</SelectItem>
+                          <SelectItem value="GAL">gal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </TableCell>
                   <TableCell className="p-2 text-right">
-                    <EditableCell
-                      value={lineItem.costPerUnit}
-                      onChange={(value) => onUpdateLineItem(lineItem.id, 'costPerUnit', parseFloat(value) || 0)}
-                      type="number"
-                      currency={true}
-                      align="right"
-                    />
+                    {readOnly ? (
+                      <div className="text-xs font-mono px-2 py-1 text-right">{formatCurrency(lineItem.costPerUnit)}</div>
+                    ) : (
+                      <EditableCell
+                        value={lineItem.costPerUnit}
+                        onChange={(value) => onUpdateLineItem(lineItem.id, 'costPerUnit', parseFloat(value) || 0)}
+                        type="number"
+                        currency={true}
+                        align="right"
+                      />
+                    )}
                   </TableCell>
                   <TableCell className="p-2 text-right">
-                    <EditableCell
-                      value={calculateMarkupPercent(lineItem).toFixed(3)}
-                      onChange={(value) => handleMarkupPercentChange(lineItem.id, parseFloat(value) || 0)}
-                      type="number"
-                      align="right"
-                      className={getMarkupColor(calculateMarkupPercent(lineItem))}
-                    />
+                    {readOnly ? (
+                      <div className={`text-xs font-mono px-2 py-1 text-right ${getMarkupColor(calculateMarkupPercent(lineItem))}`}>
+                        {calculateMarkupPercent(lineItem).toFixed(3)}
+                      </div>
+                    ) : (
+                      <EditableCell
+                        value={calculateMarkupPercent(lineItem).toFixed(3)}
+                        onChange={(value) => handleMarkupPercentChange(lineItem.id, parseFloat(value) || 0)}
+                        type="number"
+                        align="right"
+                        className={getMarkupColor(calculateMarkupPercent(lineItem))}
+                      />
+                    )}
                   </TableCell>
                   <TableCell className="p-2 text-right">
-                    <EditableCell
-                      value={calculateMarkupAmount(lineItem)}
-                      onChange={(value) => handleMarkupAmountChange(lineItem.id, parseFloat(value) || 0)}
-                      type="number"
-                      currency={true}
-                      align="right"
-                    />
+                    {readOnly ? (
+                      <div className="text-xs font-mono px-2 py-1 text-right">{formatCurrency(calculateMarkupAmount(lineItem))}</div>
+                    ) : (
+                      <EditableCell
+                        value={calculateMarkupAmount(lineItem)}
+                        onChange={(value) => handleMarkupAmountChange(lineItem.id, parseFloat(value) || 0)}
+                        type="number"
+                        currency={true}
+                        align="right"
+                      />
+                    )}
                   </TableCell>
                   <TableCell className="p-2 text-right font-mono text-xs font-semibold">
                     {formatCurrency(lineItem.total)}
                   </TableCell>
                   <TableCell className="p-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-[28px] w-6 p-0">
-                          <MoreHorizontal className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-36">
-                        <DropdownMenuItem onClick={() => onEditDetails(lineItem)} className="text-xs">
-                          <Edit className="h-3 w-3 mr-2" />
-                          Edit Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDuplicate(lineItem)} className="text-xs" disabled={!onDuplicateLineItem}>
-                          <Copy className="h-3 w-3 mr-2" />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-xs text-destructive">
-                              <Trash2 className="h-3 w-3 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Line Item</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete "{lineItem.description}"? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => onRemoveLineItem(lineItem.id)}>
+                    {!readOnly && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-[28px] w-6 p-0">
+                            <MoreHorizontal className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-36">
+                          <DropdownMenuItem onClick={() => onEditDetails(lineItem)} className="text-xs">
+                            <Edit className="h-3 w-3 mr-2" />
+                            Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDuplicate(lineItem)} className="text-xs" disabled={!onDuplicateLineItem}>
+                            <Copy className="h-3 w-3 mr-2" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-xs text-destructive">
+                                <Trash2 className="h-3 w-3 mr-2" />
                                 Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Line Item</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{lineItem.description}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onRemoveLineItem(lineItem.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

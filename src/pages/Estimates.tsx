@@ -548,6 +548,7 @@ const EstimatesPage = () => {
         </Tabs>
       ) : (
         <EstimateForm
+          mode={viewMode as 'create' | 'edit' | 'view'}
           initialEstimate={selectedEstimate}
           preselectedProjectId={preselectedProjectId}
           onSave={handleSaveEstimate}

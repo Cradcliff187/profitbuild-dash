@@ -29,13 +29,14 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 
 interface EstimateFormProps {
+  mode?: 'create' | 'edit' | 'view'; // Mode: create, edit, or view
   initialEstimate?: Estimate; // For editing mode
   preselectedProjectId?: string; // For linking from project page
   onSave: (estimate: Estimate) => void;
   onCancel: () => void;
 }
 
-export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, onCancel }: EstimateFormProps) => {
+export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjectId, onSave, onCancel }: EstimateFormProps) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
@@ -806,7 +807,7 @@ useEffect(() => {
       <Card>
         <CardHeader className="p-3">
           <CardTitle className="text-base">
-            {initialEstimate ? 'Edit Estimate' : 'Create Estimate'}
+            {mode === 'view' ? 'View Estimate Details' : initialEstimate ? 'Edit Estimate' : 'Create Estimate'}
             {projectName && (
               <div className="text-xs font-normal text-muted-foreground mt-1">
                 Project: {projectName} • Client: {clientName}
@@ -815,8 +816,8 @@ useEffect(() => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 p-3">
-          {/* Project Selection - Show if no project is preselected */}
-          {!preselectedProjectId && !initialEstimate && (
+          {/* Project Selection - Show if no project is preselected and not in view mode */}
+          {!preselectedProjectId && !initialEstimate && mode !== 'view' && (
             <div className="space-y-2">
               <RequiredLabel>Project</RequiredLabel>
               {projectsLoading ? (
@@ -856,79 +857,108 @@ useEffect(() => {
           {/* Estimate Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
-              <RequiredLabel>Estimate Date</RequiredLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={(date) => date && setDate(date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              {mode === 'view' ? (
+                <ReadOnlyField
+                  label="Estimate Date"
+                  value={format(date, "PPP")}
+                />
+              ) : (
+                <>
+                  <RequiredLabel>Estimate Date</RequiredLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !date && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date ? format(date, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={(date) => date && setDate(date)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label>Valid Until (Optional)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !validUntil && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {validUntil ? format(validUntil, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={validUntil}
-                    onSelect={setValidUntil}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              {mode === 'view' ? (
+                <ReadOnlyField
+                  label="Valid Until"
+                  value={validUntil ? format(validUntil, "PPP") : "Not specified"}
+                />
+              ) : (
+                <>
+                  <Label>Valid Until (Optional)</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !validUntil && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {validUntil ? format(validUntil, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={validUntil}
+                        onSelect={setValidUntil}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </>
+              )}
             </div>
           </div>
 
           {/* Notes - Full Width */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Additional notes for this estimate..."
-              rows={2}
-              className="resize-none"
-            />
+            {mode === 'view' ? (
+              <ReadOnlyField
+                label="Notes"
+                value={notes || "No notes"}
+              />
+            ) : (
+              <>
+                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Textarea
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Additional notes for this estimate..."
+                  rows={2}
+                  className="resize-none"
+                />
+              </>
+            )}
           </div>
 
           {/* Line Items Section */}
           <div className="space-y-3 mt-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-2 border-b">
               <RequiredLabel className="text-sm font-semibold">Line Items</RequiredLabel>
-              <Button onClick={addLineItem} variant="default" size="sm" className="h-8">
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                Add Line Item
-              </Button>
+              {mode !== 'view' && (
+                <Button onClick={addLineItem} variant="default" size="sm" className="h-8">
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Add Line Item
+                </Button>
+              )}
             </div>
 
             <LineItemTable
@@ -941,6 +971,7 @@ useEffect(() => {
                 setIsDetailModalOpen(true);
               }}
               onDuplicateLineItem={duplicateLineItem}
+              readOnly={mode === 'view'}
             />
           </div>
 
@@ -1030,12 +1061,14 @@ useEffect(() => {
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">
-            <Button onClick={handleSave} className="flex-1" disabled={isLoading}>
-              <Save className="h-4 w-4 mr-2" />
-              {isLoading ? "Saving..." : (initialEstimate ? "Update Estimate" : "Create Estimate")}
-            </Button>
-            <Button onClick={onCancel} variant="outline" disabled={isLoading}>
-              Cancel
+            {mode !== 'view' && (
+              <Button onClick={handleSave} className="flex-1" disabled={isLoading}>
+                <Save className="h-4 w-4 mr-2" />
+                {isLoading ? "Saving..." : (initialEstimate ? "Update Estimate" : "Create Estimate")}
+              </Button>
+            )}
+            <Button onClick={onCancel} variant="outline" disabled={isLoading} className={mode === 'view' ? 'flex-1' : ''}>
+              {mode === 'view' ? 'Close' : 'Cancel'}
             </Button>
           </div>
 
