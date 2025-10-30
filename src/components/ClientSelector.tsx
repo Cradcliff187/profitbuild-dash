@@ -130,7 +130,8 @@ export const ClientSelector = ({
             aria-expanded={open}
             onBlur={onBlur}
             className={cn(
-              "w-full justify-between h-8 text-xs",
+              "w-full justify-between h-8 px-3 py-1.5 text-xs font-normal",
+              !value && "text-muted-foreground",
               error && "border-destructive"
             )}
           >
