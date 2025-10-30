@@ -145,7 +145,7 @@ export const ClientSelector = ({
             <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-[--radix-popper-anchor-width] p-0 z-[100]">
+        <PopoverContent align="start" className="w-[--radix-popper-anchor-width] p-0 z-[100] bg-popover">
           <div className="flex flex-col h-[280px]">
             {/* Search Input */}
             <div className="p-2 border-b">
@@ -168,7 +168,7 @@ export const ClientSelector = ({
             {/* Client List */}
             {filteredClients.length > 0 ? (
               <>
-                <ScrollArea className="flex-1 pointer-events-auto">
+                <ScrollArea className="flex-1 max-h-[180px]">
                   <div className="p-1">
                     {filteredClients.map((client, index) => (
                       <div

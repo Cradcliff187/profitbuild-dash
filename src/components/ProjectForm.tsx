@@ -337,23 +337,15 @@ export const ProjectForm = ({ onSave, onCancel }: ProjectFormProps) => {
               showIcon={false}
             />
             
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <RequiredLabel>Client</RequiredLabel>
-              </div>
-              <ClientSelector
-                 value={selectedClientId}
-                 onValueChange={handleClientChange}
-                 onBlur={handleClientBlur}
-                 placeholder="Select a client"
-                 required={true}
-                 error={clientError}
-                 showLabel={false}
-               />
-              {clientError && (
-                <p className="text-sm font-medium text-destructive">{clientError}</p>
-              )}
-            </div>
+            <ClientSelector
+              value={selectedClientId}
+              onValueChange={handleClientChange}
+              onBlur={handleClientBlur}
+              placeholder="Select a client"
+              required={true}
+              error={clientError}
+              showLabel={true}
+            />
           </div>
 
           {/* Client Details */}
