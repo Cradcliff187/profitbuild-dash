@@ -1,18 +1,12 @@
-import React, { useState } from "react";
+import React from "react";
 import { 
   MoreHorizontal, 
   Eye, 
   Edit, 
   Trash2, 
-  Send, 
-  CheckCircle, 
-  XCircle, 
-  RotateCcw, 
-  Clock,
   Copy,
   FileText,
-  DollarSign,
-  AlertTriangle
+  DollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -41,7 +35,6 @@ interface EstimateActionsMenuProps {
   onView: (estimate: EstimateWithQuotes) => void;
   onEdit: (estimate: EstimateWithQuotes) => void;
   onDelete: (id: string) => void;
-  onStatusUpdate?: (estimateId: string, newStatus: EstimateStatus) => void;
   className?: string;
 }
 
@@ -50,42 +43,9 @@ export const EstimateActionsMenu = ({
   onView, 
   onEdit, 
   onDelete,
-  onStatusUpdate,
   className 
 }: EstimateActionsMenuProps) => {
   const { toast } = useToast();
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  const updateStatus = async (newStatus: EstimateStatus) => {
-    setIsUpdating(true);
-    try {
-      const { error } = await supabase
-        .from('estimates')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', estimate.id);
-
-      if (error) throw error;
-
-      onStatusUpdate?.(estimate.id, newStatus);
-      
-      toast({
-        title: "Status Updated",
-        description: `Estimate status changed to ${newStatus}`,
-      });
-    } catch (error) {
-      console.error('Error updating estimate status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update estimate status",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
 
   const createVersion = async () => {
     try {
@@ -187,63 +147,6 @@ export const EstimateActionsMenu = ({
     window.location.href = `/quotes?estimateId=${estimate.id}`;
   };
 
-  const getStatusActions = () => {
-    const actions = [];
-    
-    switch (estimate.status) {
-      case 'draft':
-        actions.push({
-          action: () => updateStatus('sent'),
-          label: 'Send Estimate',
-          icon: <Send className="h-4 w-4" />
-        });
-        break;
-      case 'sent':
-        actions.push(
-          {
-            action: () => updateStatus('approved'),
-            label: 'Mark Approved',
-            icon: <CheckCircle className="h-4 w-4" />
-          },
-          {
-            action: () => updateStatus('rejected'),
-            label: 'Mark Rejected',
-            icon: <XCircle className="h-4 w-4" />
-          },
-          {
-            action: () => updateStatus('expired'),
-            label: 'Mark Expired',
-            icon: <Clock className="h-4 w-4" />
-          }
-        );
-        break;
-      case 'approved':
-      case 'rejected':
-        actions.push({
-          action: () => updateStatus('draft'),
-          label: 'Reopen as Draft',
-          icon: <RotateCcw className="h-4 w-4" />
-        });
-        break;
-      case 'expired':
-        actions.push(
-          {
-            action: () => updateStatus('draft'),
-            label: 'Reopen as Draft',
-            icon: <RotateCcw className="h-4 w-4" />
-          },
-          {
-            action: () => updateStatus('sent'),
-            label: 'Mark as Sent',
-            icon: <Send className="h-4 w-4" />
-          }
-        );
-        break;
-    }
-    
-    return actions;
-  };
-
   const hasLineItems = estimate.lineItems && estimate.lineItems.length > 0;
 
   return (
@@ -252,7 +155,6 @@ export const EstimateActionsMenu = ({
         <Button
           variant="ghost"
           size="sm"
-          disabled={isUpdating}
           className={cn(
             "h-8 w-8 p-0 hover:bg-muted/50",
             className
@@ -302,26 +204,6 @@ export const EstimateActionsMenu = ({
           <FileText className="h-4 w-4 mr-2" />
           Create New Version
         </DropdownMenuItem>
-
-        {/* Status Update Actions */}
-        {getStatusActions().length > 0 && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-              Status Actions
-            </DropdownMenuLabel>
-            {getStatusActions().map((statusAction, index) => (
-              <DropdownMenuItem 
-                key={index}
-                onClick={statusAction.action}
-                disabled={isUpdating}
-              >
-                {statusAction.icon}
-                <span className="ml-2">{statusAction.label}</span>
-              </DropdownMenuItem>
-            ))}
-          </>
-        )}
 
         <DropdownMenuSeparator />
         

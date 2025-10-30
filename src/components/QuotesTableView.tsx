@@ -40,7 +40,6 @@ interface QuotesTableViewProps {
   onEdit: (quote: Quote) => void;
   onDelete: (quoteId: string) => void;
   onCompare: (quote: Quote) => void;
-  onAccept?: (quote: Quote) => void;
   onCreateNew: () => void;
 }
 
@@ -66,7 +65,6 @@ export const QuotesTableView = ({
   onEdit, 
   onDelete, 
   onCompare, 
-  onAccept, 
   onCreateNew 
 }: QuotesTableViewProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -597,15 +595,6 @@ export const QuotesTableView = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
-            {quote.status === QuoteStatus.PENDING && onAccept && (
-              <>
-                <DropdownMenuItem onClick={() => onAccept(quote)} className="text-green-600">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Accept
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
             <DropdownMenuItem onClick={() => onEdit(quote)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit

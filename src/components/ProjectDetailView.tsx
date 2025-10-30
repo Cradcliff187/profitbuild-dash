@@ -338,7 +338,6 @@ export const ProjectDetailView = () => {
                     onEdit={() => loadProjectData()}
                     onDelete={() => loadProjectData()}
                     onCompare={() => {}}
-                    onAccept={() => loadProjectData()}
                     onCreateNew={() => {}}
                   />
                 </div>
