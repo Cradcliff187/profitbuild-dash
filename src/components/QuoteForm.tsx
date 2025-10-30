@@ -156,6 +156,13 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     }
   }, [selectedEstimate, initialQuote]);
 
+  // Scroll to top when transitioning from line item selection to quote form
+  useEffect(() => {
+    if (!showLineItemSelection && selectedEstimate) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [showLineItemSelection, selectedEstimate]);
+
   const handleLineItemSelection = () => {
     if (selectedLineItemIds.length === 0) {
       toast({
