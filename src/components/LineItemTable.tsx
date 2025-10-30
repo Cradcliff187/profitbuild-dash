@@ -322,7 +322,7 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                   </TableCell>
                   <TableCell className="p-2 text-right">
                     <EditableCell
-                      value={calculateMarkupPercent(lineItem).toFixed(1)}
+                      value={calculateMarkupPercent(lineItem).toFixed(3)}
                       onChange={(value) => handleMarkupPercentChange(lineItem.id, parseFloat(value) || 0)}
                       type="number"
                       align="right"
