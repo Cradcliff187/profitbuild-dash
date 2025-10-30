@@ -73,6 +73,26 @@ const EstimatesPage = () => {
     applyFilters();
   }, [estimates, searchFilters]);
 
+  // Real-time updates for estimates
+  useEffect(() => {
+    const channel = supabase
+      .channel('estimates-realtime-updates')
+      .on('postgres_changes', {
+        event: '*', // Listen to INSERT, UPDATE, DELETE
+        schema: 'public',
+        table: 'estimates'
+      }, (payload) => {
+        console.log('Estimate changed:', payload);
+        // Reload all estimates to ensure related data is fresh
+        loadEstimates();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const applyFilters = () => {
     let filtered = [...estimates];
 
