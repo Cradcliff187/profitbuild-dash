@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ProjectForm } from "@/components/ProjectForm";
+import { ProjectFormSimple } from "@/components/ProjectFormSimple";
 import { ProjectsList } from "@/components/ProjectsList";
 import { ProjectsTableView } from "@/components/ProjectsTableView";
 import { ProjectFilters, ProjectSearchFilters } from "@/components/ProjectFilters";
@@ -526,7 +526,7 @@ const Projects = () => {
       )}
 
       {viewMode === 'create' && (
-        <ProjectForm
+        <ProjectFormSimple
           onSave={handleSaveProject}
           onCancel={handleCancel}
         />
