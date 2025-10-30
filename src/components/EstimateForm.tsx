@@ -18,7 +18,7 @@ import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ProjectFormSimple } from "@/components/ProjectFormSimple";
 import { LineItemTable } from "@/components/LineItemTable";
 import { LineItemDetailModal } from "@/components/LineItemDetailModal";
@@ -1195,24 +1195,25 @@ useEffect(() => {
         }}
       />
 
-      {/* Project Creation Dialog */}
-      <Dialog open={showProjectCreation} onOpenChange={setShowProjectCreation}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
-            <DialogDescription>
-              Create a new project to associate with this estimate.
-            </DialogDescription>
-          </DialogHeader>
+      {/* Project Creation Sheet */}
+      <Sheet open={showProjectCreation} onOpenChange={setShowProjectCreation}>
+        <SheetContent side="right" className="sm:max-w-md w-full p-4 z-[80] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Create New Project</SheetTitle>
+            <SheetDescription>
+              Quickly create a project for this estimate.
+            </SheetDescription>
+          </SheetHeader>
           <ProjectFormSimple
+            disableNavigate={true}
             onSave={(project) => {
               handleCreateNewProject(project);
               setShowProjectCreation(false);
             }}
             onCancel={() => setShowProjectCreation(false)}
           />
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

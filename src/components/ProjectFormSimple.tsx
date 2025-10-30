@@ -31,9 +31,10 @@ type FormData = z.infer<typeof formSchema>;
 interface ProjectFormSimpleProps {
   onSave: (project: any) => void;
   onCancel: () => void;
+  disableNavigate?: boolean;
 }
 
-export function ProjectFormSimple({ onSave, onCancel }: ProjectFormSimpleProps) {
+export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false }: ProjectFormSimpleProps) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -99,11 +100,13 @@ export function ProjectFormSimple({ onSave, onCancel }: ProjectFormSimpleProps) 
       toast.success("Project created successfully");
       onSave(project);
 
-      // Navigate based on project type
-      if (data.project_type === "construction_project") {
-        navigate(`/estimates?project=${project.id}`);
-      } else {
-        navigate(`/projects/${project.id}`);
+      // Navigate based on project type (only if not disabled)
+      if (!disableNavigate) {
+        if (data.project_type === "construction_project") {
+          navigate(`/estimates?project=${project.id}`);
+        } else {
+          navigate(`/projects/${project.id}`);
+        }
       }
     } catch (error) {
       console.error("Error creating project:", error);
