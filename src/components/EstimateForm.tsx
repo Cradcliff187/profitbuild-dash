@@ -18,6 +18,8 @@ import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ProjectForm } from "@/components/ProjectForm";
 import { LineItemTable } from "@/components/LineItemTable";
 import { LineItemDetailModal } from "@/components/LineItemDetailModal";
 import { EstimateStatusActions } from "@/components/EstimateStatusActions";
@@ -55,6 +57,7 @@ export const EstimateForm = ({ initialEstimate, preselectedProjectId, onSave, on
   const [selectedLineItemForEdit, setSelectedLineItemForEdit] = useState<LineItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [showProjectCreation, setShowProjectCreation] = useState(false);
 
 useEffect(() => {
   // Load available projects once on mount
@@ -815,19 +818,37 @@ useEffect(() => {
           {/* Project Selection - Show if no project is preselected */}
           {!preselectedProjectId && !initialEstimate && (
             <div className="space-y-2">
-              <RequiredLabel>Select Project</RequiredLabel>
+              <RequiredLabel>Project</RequiredLabel>
               {projectsLoading ? (
                 <div className="flex items-center justify-center py-4 border rounded-md">
                   <div className="text-sm text-muted-foreground">Loading projects...</div>
                 </div>
               ) : (
-                <ProjectSelectorNew
-                  projects={availableProjects}
-                  selectedProject={selectedProject}
-                  onSelect={handleProjectSelect}
-                  onCreateNew={handleCreateNewProject}
-                  placeholder="Choose a project for this estimate..."
-                />
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex-1 min-w-0">
+                    <ProjectSelectorNew
+                      projects={availableProjects}
+                      selectedProject={selectedProject}
+                      onSelect={handleProjectSelect}
+                      placeholder="Select existing project..."
+                      hideCreateButton={true}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="default"
+                    onClick={() => setShowProjectCreation(true)}
+                    className="w-full sm:w-auto sm:shrink-0"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    <span className="sm:hidden">Create New Project</span>
+                    <span className="hidden sm:inline">New Project</span>
+                  </Button>
+                </div>
+              )}
+              {!projectId && (
+                <p className="text-xs text-muted-foreground">Please select a project to continue</p>
               )}
             </div>
           )}
@@ -1048,6 +1069,25 @@ useEffect(() => {
           ));
         }}
       />
+
+      {/* Project Creation Dialog */}
+      <Dialog open={showProjectCreation} onOpenChange={setShowProjectCreation}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Project</DialogTitle>
+            <DialogDescription>
+              Create a new project to associate with this estimate.
+            </DialogDescription>
+          </DialogHeader>
+          <ProjectForm
+            onSave={(project) => {
+              handleCreateNewProject(project);
+              setShowProjectCreation(false);
+            }}
+            onCancel={() => setShowProjectCreation(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

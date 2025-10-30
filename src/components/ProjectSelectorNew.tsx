@@ -24,6 +24,7 @@ interface ProjectSelectorNewProps {
   onSelect: (project: Project) => void;
   onCreateNew?: (project: Project) => void;
   placeholder?: string;
+  hideCreateButton?: boolean;
 }
 
 export const ProjectSelectorNew = ({
@@ -31,7 +32,8 @@ export const ProjectSelectorNew = ({
   selectedProject,
   onSelect,
   onCreateNew,
-  placeholder = "Select a project..."
+  placeholder = "Select a project...",
+  hideCreateButton = false
 }: ProjectSelectorNewProps) => {
   const [open, setOpen] = useState(false);
   const [showProjectForm, setShowProjectForm] = useState(false);
@@ -132,7 +134,7 @@ export const ProjectSelectorNew = ({
                     </div>
                   </CommandItem>
                 ))}
-                {projects.length > 0 && (
+                {projects.length > 0 && !hideCreateButton && (
                   <CommandItem onSelect={handleCreateNewClick}>
                     <Plus className="mr-2 h-4 w-4" />
                     <span>Create New Project</span>
