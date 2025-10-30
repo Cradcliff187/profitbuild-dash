@@ -805,15 +805,45 @@ useEffect(() => {
   return (
     <div className="form-dense space-y-2">
       <Card>
-        <CardHeader className="p-3">
-          <CardTitle className="text-base">
-            {mode === 'view' ? 'View Estimate Details' : initialEstimate ? 'Edit Estimate' : 'Create Estimate'}
-            {projectName && (
+        <CardHeader className="p-4 bg-muted/30 border-b">
+          <div className="space-y-3">
+            <CardTitle className="text-lg font-semibold">
+              {mode === 'view' ? 'View Estimate Details' : initialEstimate ? 'Edit Estimate' : 'Create Estimate'}
+            </CardTitle>
+            
+            {mode === 'view' && initialEstimate && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Estimate Number</span>
+                    <span className="text-base font-bold text-primary mt-1">{initialEstimate.estimate_number || 'N/A'}</span>
+                  </div>
+                  
+                  <div className="flex flex-col">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Project Number</span>
+                    <span className="text-base font-bold text-primary mt-1">{selectedProject?.project_number || projectName || 'N/A'}</span>
+                  </div>
+                  
+                  <div className="flex flex-col">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Version</span>
+                    <span className="text-base font-bold text-primary mt-1">v{initialEstimate.version_number || 1}</span>
+                  </div>
+                </div>
+                
+                {projectName && (
+                  <div className="text-sm text-muted-foreground pt-2 border-t">
+                    <span className="font-medium">Project:</span> {projectName} • <span className="font-medium">Client:</span> {clientName}
+                  </div>
+                )}
+              </>
+            )}
+            
+            {mode !== 'view' && projectName && (
               <div className="text-xs font-normal text-muted-foreground mt-1">
                 Project: {projectName} • Client: {clientName}
               </div>
             )}
-          </CardTitle>
+          </div>
         </CardHeader>
         <CardContent className="space-y-2 p-3">
           {/* Project Selection - Show if no project is preselected and not in view mode */}
@@ -930,10 +960,14 @@ useEffect(() => {
           {/* Notes - Full Width */}
           <div className="space-y-2">
             {mode === 'view' ? (
-              <ReadOnlyField
-                label="Notes"
-                value={notes || "No notes"}
-              />
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Notes</Label>
+                <div className="px-3 py-3 bg-muted/30 border rounded-md min-h-[80px]">
+                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                    {notes || "No notes provided"}
+                  </p>
+                </div>
+              </div>
             ) : (
               <>
                 <Label htmlFor="notes">Notes (Optional)</Label>
