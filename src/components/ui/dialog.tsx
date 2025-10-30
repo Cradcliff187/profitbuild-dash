@@ -37,9 +37,21 @@ const isNativePickerInteraction = (target: EventTarget | null): boolean => {
   return isSelect || isPicker;
 };
 
+// Helper to detect clicks on Radix Popover components
+const isRadixPopoverInteraction = (target: EventTarget | null): boolean => {
+  if (!(target instanceof Element)) return false;
+  return !!(
+    target.closest('[data-radix-popover-trigger]') ||
+    target.closest('[data-radix-popover-content]') ||
+    target.closest('[data-radix-popper-content-wrapper]')
+  );
+};
+
 // Combined helper to detect any dropdown-like interaction
 const isDropdownLikeInteraction = (target: EventTarget | null): boolean => {
-  return isRadixSelectInteraction(target) || isNativePickerInteraction(target);
+  return isRadixSelectInteraction(target) || 
+         isNativePickerInteraction(target) || 
+         isRadixPopoverInteraction(target);
 };
 
 const Dialog = DialogPrimitive.Root;
