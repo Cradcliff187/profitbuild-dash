@@ -125,11 +125,11 @@ export default function EstimateFinancialAnalyticsDashboard() {
     let highCost = 0;
     projectMap.forEach(projectEstimates => {
       const highest = projectEstimates.reduce((max, est) => {
-        const revenue = (est.total_amount || 0) - (est.contingency_amount || 0);
-        const maxRevenue = (max.total_amount || 0) - (max.contingency_amount || 0);
+        const revenue = est.total_amount || 0;
+        const maxRevenue = max.total_amount || 0;
         return revenue > maxRevenue ? est : max;
       });
-      highRevenue += (highest.total_amount || 0) - (highest.contingency_amount || 0);
+      highRevenue += highest.total_amount || 0;
       highCost += highest.total_cost || 0;
     });
 
@@ -138,17 +138,16 @@ export default function EstimateFinancialAnalyticsDashboard() {
     let lowCost = 0;
     projectMap.forEach(projectEstimates => {
       const lowest = projectEstimates.reduce((min, est) => {
-        const revenue = (est.total_amount || 0) - (est.contingency_amount || 0);
-        const minRevenue = (min.total_amount || 0) - (min.contingency_amount || 0);
+        const revenue = est.total_amount || 0;
+        const minRevenue = min.total_amount || 0;
         return revenue < minRevenue ? est : min;
       });
-      lowRevenue += (lowest.total_amount || 0) - (lowest.contingency_amount || 0);
+      lowRevenue += lowest.total_amount || 0;
       lowCost += lowest.total_cost || 0;
     });
 
     // Calculate mid-range (average of all estimates)
-    const totalRevenue = estimates.reduce((sum, est) => 
-      sum + (est.total_amount || 0) - (est.contingency_amount || 0), 0);
+    const totalRevenue = estimates.reduce((sum, est) => sum + (est.total_amount || 0), 0);
     const totalCost = estimates.reduce((sum, est) => sum + (est.total_cost || 0), 0);
     const midRevenue = totalRevenue / estimates.length;
     const midCost = totalCost / estimates.length;
@@ -166,8 +165,9 @@ export default function EstimateFinancialAnalyticsDashboard() {
     // Project breakdown
     const projectBreakdown: ProjectRange[] = [];
     projectMap.forEach((projectEstimates, projectId) => {
-      const revenues = projectEstimates.map(e => (e.total_amount || 0) - (e.contingency_amount || 0));
+      const revenues = projectEstimates.map(e => e.total_amount || 0);
       const costs = projectEstimates.map(e => e.total_cost || 0);
+      
       const low = Math.min(...revenues);
       const high = Math.max(...revenues);
       const lowIdx = revenues.indexOf(low);
