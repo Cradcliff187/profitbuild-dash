@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ProjectForm } from "@/components/ProjectForm";
+import { ProjectFormSimple } from "@/components/ProjectFormSimple";
 import { LineItemTable } from "@/components/LineItemTable";
 import { LineItemDetailModal } from "@/components/LineItemDetailModal";
 import { EstimateStatusActions } from "@/components/EstimateStatusActions";
@@ -1204,7 +1204,7 @@ useEffect(() => {
               Create a new project to associate with this estimate.
             </DialogDescription>
           </DialogHeader>
-          <ProjectForm
+          <ProjectFormSimple
             onSave={(project) => {
               handleCreateNewProject(project);
               setShowProjectCreation(false);
