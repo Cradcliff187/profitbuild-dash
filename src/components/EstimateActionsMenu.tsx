@@ -245,8 +245,6 @@ export const EstimateActionsMenu = ({
   };
 
   const hasLineItems = estimate.lineItems && estimate.lineItems.length > 0;
-  const hasAmount = estimate.total_amount > 0;
-  const hasDataIssue = !hasLineItems && hasAmount;
 
   return (
     <DropdownMenu>
@@ -282,18 +280,6 @@ export const EstimateActionsMenu = ({
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
-
-        {/* Line Items & Quote Actions */}
-        <DropdownMenuItem 
-          onClick={() => onEdit(estimate)}
-          className={cn(hasDataIssue && "text-amber-600")}
-        >
-          <FileText className="h-4 w-4 mr-2" />
-          View Line Items
-          {hasDataIssue && (
-            <AlertTriangle className="h-3 w-3 ml-auto text-amber-500" />
-          )}
-        </DropdownMenuItem>
 
         <DropdownMenuItem 
           onClick={createQuote}

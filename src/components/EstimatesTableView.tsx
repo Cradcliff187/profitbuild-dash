@@ -36,21 +36,20 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
   // Define column metadata for selector
   const columnDefinitions = [
     { key: 'estimate_number', label: 'Estimate #', required: true },
-    { key: 'line_items', label: 'Line Items', required: false },
     { key: 'version_number', label: 'Version', required: false },
     { key: 'status', label: 'Status', required: true },
     { key: 'date_created', label: 'Created', required: false },
+    { key: 'total_with_contingency', label: 'Total w/ Cont.', required: false },
     { key: 'total_amount', label: 'Price', required: true },
+    { key: 'contingency_amount', label: 'Contingency $', required: false },
     { key: 'total_cost', label: 'Cost', required: false },
     { key: 'gross_profit', label: 'Profit', required: false },
     { key: 'gross_margin_percent', label: 'Margin %', required: false },
-    { key: 'markup_percent', label: 'Markup %', required: false },
     { key: 'markup_amount', label: 'Markup $', required: false },
-    
+    { key: 'markup_percent', label: 'Markup %', required: false },
     { key: 'variance', label: 'Quote Variance', required: false },
     { key: 'contingency', label: 'Contingency %', required: false },
-    { key: 'contingency_amount', label: 'Contingency $', required: false },
-    { key: 'total_with_contingency', label: 'Total w/ Cont.', required: false },
+    { key: 'line_items', label: 'Line Items', required: false },
     { key: 'actions', label: 'Actions', required: true },
   ];
 
@@ -66,15 +65,20 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
     }
     return [
       'estimate_number',
-      'line_items',
       'version_number',
       'status',
       'date_created',
+      'total_with_contingency',
       'total_amount',
+      'contingency_amount',
       'total_cost',
       'gross_profit',
       'gross_margin_percent',
+      'markup_amount',
       'markup_percent',
+      'variance',
+      'contingency',
+      'line_items',
       'actions'
     ];
   });
