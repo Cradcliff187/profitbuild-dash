@@ -870,6 +870,79 @@ export type Database = {
           },
         ]
       }
+      project_documents: {
+        Row: {
+          created_at: string
+          description: string | null
+          document_type: string
+          expires_at: string | null
+          file_name: string
+          file_size: number
+          file_url: string
+          id: string
+          mime_type: string
+          project_id: string
+          related_quote_id: string | null
+          updated_at: string
+          uploaded_by: string | null
+          version_number: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          document_type: string
+          expires_at?: string | null
+          file_name: string
+          file_size: number
+          file_url: string
+          id?: string
+          mime_type: string
+          project_id: string
+          related_quote_id?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          version_number?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          document_type?: string
+          expires_at?: string | null
+          file_name?: string
+          file_size?: number
+          file_url?: string
+          id?: string
+          mime_type?: string
+          project_id?: string
+          related_quote_id?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          version_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_documents_related_quote_id_fkey"
+            columns: ["related_quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_media: {
         Row: {
           altitude: number | null

@@ -16,6 +16,7 @@ import { ChangeOrdersList } from "@/components/ChangeOrdersList";
 import { ChangeOrderForm } from "@/components/ChangeOrderForm";
 import { ProjectMediaGallery } from "@/components/ProjectMediaGallery";
 import { ProjectEditForm } from "@/components/ProjectEditForm";
+import { ProjectDocumentsHub } from "@/components/ProjectDocumentsHub";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -387,6 +388,15 @@ export const ProjectDetailView = () => {
                   projectNumber={project.project_number}
                   clientName={project.client_name}
                   address={project.address}
+                />
+              } />
+              
+              <Route path="documents" element={
+                <ProjectDocumentsHub 
+                  projectId={project.id}
+                  projectName={project.project_name}
+                  projectNumber={project.project_number}
+                  clientName={project.client_name}
                 />
               } />
               
