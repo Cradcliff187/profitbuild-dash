@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation, Routes, Route } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Routes, Route, Navigate } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Camera, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -381,15 +381,11 @@ export const ProjectDetailView = () => {
                 />
               } />
               
-              <Route path="media" element={
-                <ProjectMediaGallery 
-                  projectId={project.id}
-                  projectName={project.project_name}
-                  projectNumber={project.project_number}
-                  clientName={project.client_name}
-                  address={project.address}
-                />
-              } />
+              {/* Redirect old media route to new documents route */}
+              <Route 
+                path="media" 
+                element={<Navigate to={`/projects/${projectId}/documents`} replace />} 
+              />
               
               <Route path="documents" element={
                 <ProjectDocumentsHub 

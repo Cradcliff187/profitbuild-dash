@@ -12,7 +12,7 @@ export function useSmartNavigation() {
   const navigateToProjectMedia = (projectId: string) => {
     const path = isFieldWorker 
       ? `/field-media/${projectId}` 
-      : `/projects/${projectId}/media`;
+      : `/projects/${projectId}/documents`;
     navigate(path);
   };
   

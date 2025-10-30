@@ -30,7 +30,7 @@ const sections = [
   { title: "Line Item Control", url: "control", icon: Target },
   { title: "Expense Matching", url: "matching", icon: Link2 },
   { title: "Change Orders", url: "changes", icon: FileEdit },
-  { title: "Media", url: "media", icon: Camera },
+  { title: "Documents", url: "documents", icon: FileText },
 ];
 
 const actions = [
