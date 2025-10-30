@@ -701,14 +701,20 @@ export const QuotesTableView = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end mb-2">
-        <ColumnSelector
-          columns={columnDefinitions}
-          visibleColumns={visibleColumns}
-          onVisibilityChange={setVisibleColumns}
-          columnOrder={columnOrder}
-          onColumnOrderChange={setColumnOrder}
-        />
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          {localQuotes.length} {localQuotes.length === 1 ? 'quote' : 'quotes'} across {groupedData.length} {groupedData.length === 1 ? 'project' : 'projects'}
+        </div>
+        <div className="flex items-center gap-2">
+          <ColumnSelector
+            columns={columnDefinitions}
+            visibleColumns={visibleColumns}
+            onVisibilityChange={setVisibleColumns}
+            columnOrder={columnOrder}
+            onColumnOrderChange={setColumnOrder}
+          />
+          {collapseButton}
+        </div>
       </div>
       <QuotesTable
         data={groupedData}
@@ -716,7 +722,7 @@ export const QuotesTableView = ({
         isGrouped={true}
         collapsedGroups={collapsedGroups}
         onCollapsedGroupsChange={setCollapsedGroups}
-        collapseAllButton={collapseButton}
+        collapseAllButton={undefined}
         onView={onCompare}
         onEdit={onEdit}
         onDelete={onDelete}

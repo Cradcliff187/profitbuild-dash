@@ -1165,13 +1165,16 @@ export const ProjectsTableView = ({
           <div className="text-sm text-muted-foreground">
             {projects.length} {projects.length === 1 ? 'project' : 'projects'}
           </div>
-          <ColumnSelector
-            columns={columnDefinitions}
-            visibleColumns={visibleColumns}
-            onVisibilityChange={setVisibleColumns}
-            columnOrder={columnOrder}
-            onColumnOrderChange={setColumnOrder}
-          />
+          <div className="flex items-center gap-2">
+            <ColumnSelector
+              columns={columnDefinitions}
+              visibleColumns={visibleColumns}
+              onVisibilityChange={setVisibleColumns}
+              columnOrder={columnOrder}
+              onColumnOrderChange={setColumnOrder}
+            />
+            {collapseButton}
+          </div>
         </div>
         
         <ProjectsTable
@@ -1180,7 +1183,7 @@ export const ProjectsTableView = ({
           isGrouped={true}
           collapsedGroups={collapsedGroups}
           onCollapsedGroupsChange={setCollapsedGroups}
-          collapseAllButton={collapseButton}
+          collapseAllButton={undefined}
           onView={handleViewDetails}
           onEdit={onEdit}
           getItemId={(project) => project.id}
