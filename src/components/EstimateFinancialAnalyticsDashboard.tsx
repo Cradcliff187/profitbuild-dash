@@ -314,7 +314,7 @@ export default function EstimateFinancialAnalyticsDashboard() {
       </div>
 
       {/* Primary Financial Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
         {/* High-Side Card */}
         <Card>
           <CardHeader className="p-3 pb-2">
@@ -486,8 +486,9 @@ export default function EstimateFinancialAnalyticsDashboard() {
           <CardTitle className="text-sm font-medium">Project-Level Estimate Ranges</CardTitle>
         </CardHeader>
         <CardContent className="p-3 pt-0">
-          <div className="rounded-md border">
-            <Table>
+          <div className="overflow-x-auto -mx-3 px-3">
+            <div className="rounded-md border min-w-[640px]">
+              <Table>
               <TableHeader>
                 <TableRow className="h-8">
                   <TableHead className="text-xs p-2">Project</TableHead>
@@ -521,6 +522,7 @@ export default function EstimateFinancialAnalyticsDashboard() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </div>
           {analytics.projectBreakdown.length > 10 && (
             <p className="text-xs text-muted-foreground text-center mt-2">

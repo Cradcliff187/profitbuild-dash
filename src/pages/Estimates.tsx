@@ -473,7 +473,7 @@ const EstimatesPage = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="w-full overflow-x-hidden space-y-4">
       {!isMobile && viewMode === 'list' && (
         <Breadcrumb>
           <BreadcrumbList>

@@ -134,7 +134,7 @@ const Expenses = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="w-full overflow-x-hidden space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Receipt className="h-5 w-5 text-primary" />
