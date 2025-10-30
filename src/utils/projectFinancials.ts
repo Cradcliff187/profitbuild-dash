@@ -131,7 +131,7 @@ export async function calculateProjectFinancials(
       // Get accepted quotes for this project
       const { data: acceptedQuotes } = await supabase
         .from('quotes')
-        .select('id, total_amount, estimate_line_item_id, includes_materials, includes_labor')
+        .select('id, total_amount, includes_materials, includes_labor')
         .eq('project_id', project.id)
         .eq('status', 'accepted');
 
@@ -206,18 +206,21 @@ export async function calculateProjectFinancials(
         
         let externalCostsWithQuotes = 0;
         if (acceptedQuotes && acceptedQuotes.length > 0) {
-          // Map quotes to their estimate line items
-          const quotesByLineItem = new Map();
-          acceptedQuotes.forEach(quote => {
-            if (quote.estimate_line_item_id) {
-              quotesByLineItem.set(quote.estimate_line_item_id, quote.total_amount || 0);
-            }
-          });
+          // Map quote line items to their estimate line items
+          const quoteLineItemsByEstimateLineItem = new Map();
+          if (quoteLineItems) {
+            quoteLineItems.forEach(qli => {
+              if (qli.estimate_line_item_id) {
+                const existing = quoteLineItemsByEstimateLineItem.get(qli.estimate_line_item_id) || 0;
+                quoteLineItemsByEstimateLineItem.set(qli.estimate_line_item_id, existing + (qli.total_cost || 0));
+              }
+            });
+          }
           
-          // Calculate external costs: use quote amount if available, otherwise estimate cost
+          // Calculate external costs: use quote line item cost if available, otherwise estimate cost
         // Calculate external costs: use QUOTE COST if available, else ESTIMATE COST (never use price)
         externalCostsWithQuotes = externalItems.reduce((sum, item) => {
-          const quoteAmount = quotesByLineItem.get(item.id);
+          const quoteAmount = quoteLineItemsByEstimateLineItem.get(item.id);
           const itemCost = quoteAmount !== undefined ? quoteAmount : 
             (item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0));
           return sum + itemCost;
@@ -384,7 +387,7 @@ export async function calculateMultipleProjectFinancials(
       // Get accepted quotes for all projects
       const { data: quotes } = await supabase
         .from('quotes')
-        .select('id, project_id, total_amount, estimate_line_item_id, includes_materials, includes_labor')
+        .select('id, project_id, total_amount, includes_materials, includes_labor')
         .in('project_id', projects.map(p => p.id))
         .eq('status', 'accepted');
 

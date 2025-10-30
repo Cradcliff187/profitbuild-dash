@@ -54,6 +54,9 @@ export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjec
   const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
   
+  // Track original line item IDs for diff-based updates (preserves quote relationships)
+  const originalLineItemIds = useRef<Set<string>>(new Set());
+  
   // View state for line items
   const [selectedLineItemForEdit, setSelectedLineItemForEdit] = useState<LineItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -195,6 +198,9 @@ useEffect(() => {
         totalCost: item.total_cost || 0,
         totalMarkup: item.total_markup || 0
       })) || [];
+
+      // Track original line item IDs for diff-based updates
+      originalLineItemIds.current = new Set(items.map(item => item.id));
 
       setLineItems(items as LineItem[]);
     } catch (error) {
@@ -511,37 +517,74 @@ useEffect(() => {
 
           if (estimateError) throw estimateError;
 
-          // Delete existing line items and recreate them
-          const { error: deleteError } = await supabase
-            .from('estimate_line_items')
-            .delete()
-            .eq('estimate_id', initialEstimate.id);
+          // Use diff-based updates to preserve line item IDs and quote relationships
+          const currentIds = new Set(validLineItems.map(li => li.id).filter(Boolean));
+          const toUpdate = validLineItems.filter(li => li.id && originalLineItemIds.current.has(li.id));
+          const toInsert = validLineItems.filter(li => !li.id || !originalLineItemIds.current.has(li.id));
+          const toDelete = Array.from(originalLineItemIds.current).filter(id => !currentIds.has(id));
 
-          if (deleteError) {
-            console.error('Failed to delete existing line items:', deleteError);
-            throw new Error(`Cannot update estimate: ${deleteError.message}. You may not have permission to edit this estimate.`);
+          // Update existing line items (preserves IDs and quote links)
+          if (toUpdate.length > 0) {
+            for (const item of toUpdate) {
+              const { error: updateError } = await supabase
+                .from('estimate_line_items')
+                .update({
+                  category: item.category,
+                  description: item.description.trim(),
+                  quantity: item.quantity,
+                  unit: item.unit || null,
+                  rate: item.pricePerUnit,
+                  cost_per_unit: item.costPerUnit || 0,
+                  markup_percent: item.markupPercent,
+                  markup_amount: item.markupAmount,
+                  sort_order: validLineItems.indexOf(item)
+                })
+                .eq('id', item.id);
+              
+              if (updateError) {
+                console.error('Failed to update line item:', updateError);
+                throw new Error(`Cannot update line item: ${updateError.message}`);
+              }
+            }
           }
 
-          // Create new line items
-          const lineItemsData = validLineItems.map((item, index) => ({
-            estimate_id: initialEstimate.id,
-            category: item.category,
-            description: item.description.trim(),
-            quantity: item.quantity,
-            rate: item.pricePerUnit, // For backward compatibility
-            unit: item.unit || null,
-            sort_order: index,
-            cost_per_unit: item.costPerUnit || 0,
-            markup_percent: item.markupPercent,
-            markup_amount: item.markupAmount
-          }));
+          // Insert new line items
+          if (toInsert.length > 0) {
+            const lineItemsData = toInsert.map((item) => ({
+              estimate_id: initialEstimate.id,
+              category: item.category,
+              description: item.description.trim(),
+              quantity: item.quantity,
+              rate: item.pricePerUnit,
+              unit: item.unit || null,
+              sort_order: validLineItems.indexOf(item),
+              cost_per_unit: item.costPerUnit || 0,
+              markup_percent: item.markupPercent,
+              markup_amount: item.markupAmount
+            }));
 
-          const { error: lineItemsError } = await supabase
-            .from('estimate_line_items')
-            .insert(lineItemsData)
-            .select('id, estimate_id, category, description, quantity, rate, unit, sort_order, cost_per_unit, markup_percent, markup_amount, created_at');
+            const { error: insertError } = await supabase
+              .from('estimate_line_items')
+              .insert(lineItemsData);
 
-          if (lineItemsError) throw lineItemsError;
+            if (insertError) {
+              console.error('Failed to insert line items:', insertError);
+              throw new Error(`Cannot add line items: ${insertError.message}`);
+            }
+          }
+
+          // Delete removed line items (quotes will be detached naturally via cascade)
+          if (toDelete.length > 0) {
+            const { error: deleteError } = await supabase
+              .from('estimate_line_items')
+              .delete()
+              .in('id', toDelete);
+
+            if (deleteError) {
+              console.error('Failed to delete line items:', deleteError);
+              throw new Error(`Cannot delete line items: ${deleteError.message}`);
+            }
+          }
 
           const updatedEstimate: Estimate = {
             ...initialEstimate,

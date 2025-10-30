@@ -1200,7 +1200,6 @@ export type Database = {
           created_at: string | null
           date_received: string | null
           estimate_id: string
-          estimate_line_item_id: string | null
           id: string
           includes_labor: boolean
           includes_materials: boolean
@@ -1221,7 +1220,6 @@ export type Database = {
           created_at?: string | null
           date_received?: string | null
           estimate_id: string
-          estimate_line_item_id?: string | null
           id?: string
           includes_labor?: boolean
           includes_materials?: boolean
@@ -1242,7 +1240,6 @@ export type Database = {
           created_at?: string | null
           date_received?: string | null
           estimate_id?: string
-          estimate_line_item_id?: string | null
           id?: string
           includes_labor?: boolean
           includes_materials?: boolean

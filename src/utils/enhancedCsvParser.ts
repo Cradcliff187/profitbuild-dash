@@ -384,7 +384,7 @@ const correlateExpenseWithLineItems = async (
       
       supabase
         .from('quotes')
-        .select('id, total_amount, payee_id, estimate_line_item_id')
+        .select('id, total_amount, payee_id')
         .eq('project_id', projectId)
         .eq('status', 'accepted')
     ]);
@@ -419,7 +419,7 @@ const correlateExpenseWithLineItems = async (
         correlation_type: 'quoted',
         confidence_score: 90,
         quote_id: quoteMatch.id,
-        estimate_line_item_id: quoteMatch.estimate_line_item_id
+        estimate_line_item_id: undefined // Quote-level correlation no longer uses this field
       };
     }
     
