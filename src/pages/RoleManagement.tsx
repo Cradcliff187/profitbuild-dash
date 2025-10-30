@@ -292,7 +292,7 @@ export default function RoleManagement() {
 
   if (rolesLoading || loading) {
     return (
-      <div className="container mx-auto px-3 py-4 max-w-7xl">
+      <div className="w-full overflow-x-hidden px-2 sm:px-3 py-2 sm:py-4 max-w-7xl mx-auto">
         <div className="mb-4">
           <Skeleton className="h-6 w-48 mb-2" />
           <Skeleton className="h-3 w-96" />
@@ -307,7 +307,7 @@ export default function RoleManagement() {
   }
 
   return (
-    <div className="container mx-auto px-3 py-4 max-w-7xl">
+    <div className="w-full overflow-x-hidden px-2 sm:px-3 py-2 sm:py-4 max-w-7xl mx-auto">
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -327,7 +327,7 @@ export default function RoleManagement() {
       </div>
 
       {/* Search and Bulk Actions Bar */}
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-3 flex items-center gap-1.5 sm:gap-2 flex-wrap">
         <div className="relative flex-1 max-w-md">
           <Input
             id="user-search"
@@ -428,8 +428,9 @@ export default function RoleManagement() {
               </p>
             </div>
           ) : (
-            <div className="border-t">
-              <Table>
+            <div className="border-t overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+              <div className="min-w-[800px]">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">
@@ -526,7 +527,7 @@ export default function RoleManagement() {
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <Select onValueChange={(value) => addRole(user.id, value as AppRole)}>
-                              <SelectTrigger className="h-7 w-[120px] text-xs">
+                              <SelectTrigger className="h-7 w-[100px] sm:w-[120px] text-xs">
                                 <div className="flex items-center gap-1.5">
                                   <UserPlus className="h-3 w-3" />
                                   <span>Add Role</span>
@@ -576,6 +577,7 @@ export default function RoleManagement() {
                   })}
                 </TableBody>
               </Table>
+              </div>
             </div>
           )}
         </CardContent>
