@@ -4,7 +4,7 @@ import { EstimatesList } from "@/components/EstimatesList";
 import { EstimateForm } from "@/components/EstimateForm";
 import { EstimateSearchFilters, type SearchFilters } from "@/components/EstimateSearchFilters";
 import { EstimateExportModal } from "@/components/EstimateExportModal";
-import { EstimateFamilyAnalyticsDashboard } from "@/components/EstimateFamilyAnalyticsDashboard";
+import EstimateFinancialAnalyticsDashboard from "@/components/EstimateFinancialAnalyticsDashboard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -532,7 +532,7 @@ const EstimatesPage = () => {
           </TabsContent>
           
           <TabsContent value="analytics">
-            <EstimateFamilyAnalyticsDashboard />
+            <EstimateFinancialAnalyticsDashboard />
           </TabsContent>
         </Tabs>
       ) : (
