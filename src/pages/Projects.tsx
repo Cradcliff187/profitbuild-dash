@@ -240,166 +240,14 @@ const Projects = () => {
     try {
       console.log('Deleting project:', projectId);
       
-      // Get estimate IDs for proper deletion order
-      const { data: estimates } = await supabase
-        .from('estimates')
-        .select('id')
-        .eq('project_id', projectId);
+      // Use the secure RPC function for atomic deletion
+      const { error } = await supabase.rpc('delete_project_cascade', {
+        p_project_id: projectId
+      });
 
-      const estimateIds = estimates?.map(e => e.id) || [];
-
-      // 1. Delete expense_line_item_correlations (must come first)
-      const { data: expenses } = await supabase
-        .from('expenses')
-        .select('id')
-        .eq('project_id', projectId);
-      
-      const expenseIds = expenses?.map(e => e.id) || [];
-      
-      if (expenseIds.length > 0) {
-        const { error: correlationsError } = await supabase
-          .from('expense_line_item_correlations')
-          .delete()
-          .in('expense_id', expenseIds);
-
-        if (correlationsError) {
-          console.error('Error deleting expense correlations:', correlationsError);
-          throw correlationsError;
-        }
-      }
-
-      // 2. Delete quote line items (references estimate_line_items)
-      if (estimateIds.length > 0) {
-        const { data: estimateLineItems } = await supabase
-          .from('estimate_line_items')
-          .select('id')
-          .in('estimate_id', estimateIds);
-          
-        const estimateLineItemIds = estimateLineItems?.map(eli => eli.id) || [];
-        
-        if (estimateLineItemIds.length > 0) {
-          const { error: quoteLineItemsError } = await supabase
-            .from('quote_line_items')
-            .delete()
-            .in('estimate_line_item_id', estimateLineItemIds);
-
-          if (quoteLineItemsError) {
-            console.error('Error deleting quote line items:', quoteLineItemsError);
-            throw quoteLineItemsError;
-          }
-        }
-      }
-
-      // 3. Delete quotes
-      const { error: quotesError } = await supabase
-        .from('quotes')
-        .delete()
-        .eq('project_id', projectId);
-
-      if (quotesError) {
-        console.error('Error deleting quotes:', quotesError);
-        throw quotesError;
-      }
-
-      // 4. Delete estimate line items
-      if (estimateIds.length > 0) {
-        const { error: estimateLineItemsError } = await supabase
-          .from('estimate_line_items')
-          .delete()
-          .in('estimate_id', estimateIds);
-
-        if (estimateLineItemsError) {
-          console.error('Error deleting estimate line items:', estimateLineItemsError);
-          throw estimateLineItemsError;
-        }
-      }
-
-      // 5. Delete estimates
-      const { error: estimatesError } = await supabase
-        .from('estimates')
-        .delete()
-        .eq('project_id', projectId);
-
-      if (estimatesError) {
-        console.error('Error deleting estimates:', estimatesError);
-        throw estimatesError;
-      }
-
-      // 6. Delete expenses
-      const { error: expensesError } = await supabase
-        .from('expenses')
-        .delete()
-        .eq('project_id', projectId);
-
-      if (expensesError) {
-        console.error('Error deleting expenses:', expensesError);
-        throw expensesError;
-      }
-
-      // 7. Delete change orders
-      const { error: changeOrdersError } = await supabase
-        .from('change_orders')
-        .delete()
-        .eq('project_id', projectId);
-
-      if (changeOrdersError) {
-        console.error('Error deleting change orders:', changeOrdersError);
-        throw changeOrdersError;
-      }
-
-      // 8. Delete project revenues (invoices)
-      const { error: revenuesError } = await supabase
-        .from('project_revenues')
-        .delete()
-        .eq('project_id', projectId);
-
-      if (revenuesError) {
-        console.error('Error deleting project revenues:', revenuesError);
-        throw revenuesError;
-      }
-
-      // 9. Delete project media (photos/videos)
-      const { error: mediaError } = await supabase
-        .from('project_media')
-        .delete()
-        .eq('project_id', projectId);
-
-      if (mediaError) {
-        console.error('Error deleting project media:', mediaError);
-        throw mediaError;
-      }
-
-      // 10. Delete project assignments (field workers)
-      const { error: assignmentsError } = await supabase
-        .from('project_assignments')
-        .delete()
-        .eq('project_id', projectId);
-
-      if (assignmentsError) {
-        console.error('Error deleting project assignments:', assignmentsError);
-        throw assignmentsError;
-      }
-
-      // 11. Update receipts to remove project reference (has SET NULL constraint)
-      const { error: receiptsError } = await supabase
-        .from('receipts')
-        .update({ project_id: null })
-        .eq('project_id', projectId);
-
-      if (receiptsError) {
-        console.error('Error updating receipts:', receiptsError);
-        throw receiptsError;
-      }
-
-      // 12. Finally delete the project
-      const { error: projectError } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', projectId);
-
-      if (projectError) {
-        console.error('Error deleting project:', projectError);
-        throw projectError;
+      if (error) {
+        console.error('Error deleting project:', error);
+        throw error;
       }
 
       // Update local state
@@ -411,11 +259,11 @@ const Projects = () => {
         title: "Success",
         description: "Project and all related data deleted successfully",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete project:', error);
       toast({
         title: "Error",
-        description: "Failed to delete project. Please try again.",
+        description: error?.message || "Failed to delete project. Please try again.",
         variant: "destructive",
       });
     }

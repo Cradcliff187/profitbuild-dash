@@ -1520,6 +1520,10 @@ export type Database = {
         Args: { new_version_number?: number; source_estimate_id: string }
         Returns: string
       }
+      delete_project_cascade: {
+        Args: { p_project_id: string }
+        Returns: undefined
+      }
       generate_estimate_number: {
         Args: { project_id_param: string; project_number_param: string }
         Returns: string
