@@ -298,6 +298,66 @@ export type Database = {
           },
         ]
       }
+      estimate_line_items_backup_20251030: {
+        Row: {
+          category: Database["public"]["Enums"]["expense_category"] | null
+          cost_per_unit: number | null
+          created_at: string | null
+          description: string | null
+          estimate_id: string | null
+          id: string | null
+          markup_amount: number | null
+          markup_percent: number | null
+          price_per_unit: number | null
+          quantity: number | null
+          quickbooks_item_id: string | null
+          rate: number | null
+          sort_order: number | null
+          total: number | null
+          total_cost: number | null
+          total_markup: number | null
+          unit: string | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["expense_category"] | null
+          cost_per_unit?: number | null
+          created_at?: string | null
+          description?: string | null
+          estimate_id?: string | null
+          id?: string | null
+          markup_amount?: number | null
+          markup_percent?: number | null
+          price_per_unit?: number | null
+          quantity?: number | null
+          quickbooks_item_id?: string | null
+          rate?: number | null
+          sort_order?: number | null
+          total?: number | null
+          total_cost?: number | null
+          total_markup?: number | null
+          unit?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["expense_category"] | null
+          cost_per_unit?: number | null
+          created_at?: string | null
+          description?: string | null
+          estimate_id?: string | null
+          id?: string | null
+          markup_amount?: number | null
+          markup_percent?: number | null
+          price_per_unit?: number | null
+          quantity?: number | null
+          quickbooks_item_id?: string | null
+          rate?: number | null
+          sort_order?: number | null
+          total?: number | null
+          total_cost?: number | null
+          total_markup?: number | null
+          unit?: string | null
+        }
+        Relationships: []
+      }
       estimates: {
         Row: {
           contingency_amount: number | null
