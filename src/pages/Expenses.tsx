@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Receipt, Plus, Upload, BarChart3, List, FileDown, Target, Clock, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { BrandedLoader } from "@/components/ui/branded-loader";
 import { ExpenseDashboard } from "@/components/ExpenseDashboard";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpensesList } from "@/components/ExpensesList";
@@ -124,13 +124,7 @@ const Expenses = () => {
   };
 
   if (loading) {
-    return (
-      <LoadingSpinner 
-        variant="spinner" 
-        size="full" 
-        message="Loading expenses..." 
-      />
-    );
+    return <BrandedLoader message="Loading expenses..." />;
   }
 
   return (

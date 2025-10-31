@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 
 const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState('');
@@ -127,7 +127,7 @@ const ResetPassword = () => {
   };
 
   if (!hasToken) {
-    return <LoadingSpinner variant="page" message="Validating reset link..." />;
+    return <BrandedLoader message="Validating reset link..." />;
   }
 
   return (

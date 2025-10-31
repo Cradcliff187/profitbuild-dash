@@ -10,7 +10,7 @@ import { RoleProvider } from "@/contexts/RoleContext";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { BrandedLoader } from "@/components/ui/branded-loader";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import ChangePassword from "./pages/ChangePassword";
@@ -39,7 +39,7 @@ const FieldMedia = lazy(() => import("./pages/FieldMedia"));
 const queryClient = new QueryClient();
 
 const LazyRoute = ({ component: Component }: { component: React.ComponentType }) => (
-  <Suspense fallback={<LoadingSpinner variant="page" />}>
+  <Suspense fallback={<BrandedLoader message="Loading..." />}>
     <Component />
   </Suspense>
 );

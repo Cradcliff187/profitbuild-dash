@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from "@/types/project";
 import WorkOrderCard from "./WorkOrderCard";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { BrandedLoader } from "@/components/ui/branded-loader";
 
 interface WorkOrderWithDetails extends Project {
   has_estimate: boolean;
@@ -76,7 +76,7 @@ const WorkOrdersList = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner variant="spinner" message="Loading work orders..." />;
+    return <BrandedLoader message="Loading work orders..." />;
   }
 
   if (workOrders.length === 0) {

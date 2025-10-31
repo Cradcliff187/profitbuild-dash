@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { LoadingSpinner } from './ui/loading-spinner';
+import { BrandedLoader } from "@/components/ui/branded-loader";
 import { AlertCircle } from 'lucide-react';
 
 interface FieldProjectSelectorProps {
@@ -38,7 +38,7 @@ export function FieldProjectSelector({ selectedProjectId, onProjectSelect }: Fie
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-4">
-        <LoadingSpinner variant="spinner" />
+        <BrandedLoader message="Loading projects..." />
       </div>
     );
   }

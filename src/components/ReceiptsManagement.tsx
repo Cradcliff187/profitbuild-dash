@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { ReceiptPreviewModal } from '@/components/ReceiptPreviewModal';
 import { downloadSingleReceipt, downloadReceiptsAsZip } from '@/utils/receiptDownloadUtils';
 import { RejectTimeEntryDialog } from '@/components/RejectTimeEntryDialog';
@@ -651,11 +651,7 @@ export const ReceiptsManagement: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingSpinner variant="spinner" size="lg" />
-      </div>
-    );
+    return <BrandedLoader message="Loading receipts..." />;
   }
 
   return (

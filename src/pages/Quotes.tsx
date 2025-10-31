@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { BrandedLoader } from "@/components/ui/branded-loader";
 
 const Quotes = () => {
   const { toast } = useToast();
@@ -580,14 +581,7 @@ const Quotes = () => {
     estimates.find(est => est.project_id === selectedQuote.project_id) : undefined;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading quotes...</p>
-        </div>
-      </div>
-    );
+    return <BrandedLoader message="Loading quotes..." />;
   }
 
   return (

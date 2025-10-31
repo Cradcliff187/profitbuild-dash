@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Camera, Calendar, Clock, X, Plus } from 'lucide-react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { AddReceiptModal } from './AddReceiptModal';
@@ -94,7 +94,7 @@ export const ReceiptsGallery: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
-        <LoadingSpinner variant="spinner" message="Loading receipts..." />
+        <BrandedLoader message="Loading receipts..." />
       </div>
     );
   }

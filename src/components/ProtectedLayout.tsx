@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRoles } from '@/contexts/RoleContext';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import Navigation from './Navigation';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -52,7 +52,7 @@ export default function ProtectedLayout() {
   }, [user, authLoading, rolesLoading, isFieldWorker, location.pathname, navigate]);
 
   if (authLoading || rolesLoading) {
-    return <LoadingSpinner variant="page" message="Loading..." />;
+    return <BrandedLoader message="Loading..." />;
   }
 
   if (!user) {

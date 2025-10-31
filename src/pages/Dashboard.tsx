@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { BrandedLoader } from "@/components/ui/branded-loader";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import WorkOrdersList from "@/components/WorkOrdersList";
@@ -345,48 +345,7 @@ const Dashboard = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="dense-spacing">
-        {/* Header Skeleton */}
-        <div className="flex justify-between items-center">
-          <div className="space-y-1">
-            <div className="h-7 w-32 bg-muted animate-pulse rounded" />
-            <div className="h-4 w-64 bg-muted animate-pulse rounded" />
-          </div>
-          <div className="h-btn-compact w-28 bg-muted animate-pulse rounded" />
-        </div>
-
-        {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          {[1, 2, 3].map(i => (
-            <Card key={i} className="compact-card">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-compact pb-1">
-                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                <div className="h-3 w-3 bg-muted animate-pulse rounded" />
-              </CardHeader>
-              <CardContent className="p-compact pt-0">
-                <div className="h-8 w-20 bg-muted animate-pulse rounded mb-1" />
-                <div className="h-3 w-32 bg-muted animate-pulse rounded" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Table Skeleton */}
-        <Card className="compact-card">
-          <CardHeader className="p-compact">
-            <div className="h-5 w-40 bg-muted animate-pulse rounded" />
-          </CardHeader>
-          <CardContent className="p-compact">
-            <div className="space-y-1">
-              {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="h-9 w-full bg-muted animate-pulse rounded" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <BrandedLoader message="Loading dashboard..." />;
   }
 
   return (

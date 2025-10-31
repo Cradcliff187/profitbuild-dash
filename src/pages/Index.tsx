@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -20,7 +20,7 @@ const Index = () => {
   }, [user, loading, navigate]);
 
   // Show loading while determining auth state
-  return <LoadingSpinner variant="page" message="Loading..." />;
+  return <BrandedLoader message="Loading..." />;
 };
 
 export default Index;

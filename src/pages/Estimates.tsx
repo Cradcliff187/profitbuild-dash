@@ -7,7 +7,7 @@ import { EstimateExportModal } from "@/components/EstimateExportModal";
 import EstimateFinancialAnalyticsDashboard from "@/components/EstimateFinancialAnalyticsDashboard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { BrandedLoader } from "@/components/ui/branded-loader";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -449,43 +449,7 @@ const EstimatesPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="space-y-4">
-        {/* Header Skeleton */}
-        <div className="flex justify-between items-center">
-          <div className="space-y-1">
-            <div className="h-7 w-32 bg-muted animate-pulse rounded" />
-            <div className="h-4 w-64 bg-muted animate-pulse rounded" />
-          </div>
-          <div className="flex gap-2">
-            <div className="h-9 w-20 bg-muted animate-pulse rounded" />
-            <div className="h-9 w-32 bg-muted animate-pulse rounded" />
-          </div>
-        </div>
-
-        {/* Filters Skeleton */}
-        <Card className="compact-card">
-          <CardContent className="p-compact">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <div className="h-10 bg-muted animate-pulse rounded" />
-              <div className="h-10 bg-muted animate-pulse rounded" />
-              <div className="h-10 bg-muted animate-pulse rounded" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Table Skeleton */}
-        <Card className="compact-card">
-          <CardContent className="p-compact">
-            <div className="space-y-1">
-              {[1, 2, 3, 4, 5, 6, 7].map(i => (
-                <div key={i} className="h-9 w-full bg-muted animate-pulse rounded" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <BrandedLoader message="Loading estimates..." />;
   }
 
   return (

@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { NativeSelect } from '@/components/ui/native-select';
 import { toast } from 'sonner';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 
 interface ReceiptData {
@@ -202,7 +202,7 @@ export const ReceiptsList = () => {
     return (
       <MobilePageWrapper>
         <div className="flex justify-center items-center h-64">
-          <LoadingSpinner />
+          <BrandedLoader message="Loading receipts..." />
         </div>
       </MobilePageWrapper>
     );

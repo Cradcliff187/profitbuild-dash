@@ -8,7 +8,7 @@ import { ProjectMediaGallery } from '@/components/ProjectMediaGallery';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 export default function FieldMedia() {
@@ -73,7 +73,7 @@ export default function FieldMedia() {
         {/* Media Gallery or Empty State */}
         {selectedProjectId ? (
           isLoading ? (
-            <LoadingSpinner variant="spinner" message="Loading project..." />
+            <BrandedLoader message="Loading project..." />
           ) : project ? (
             <>
               {/* Project Info */}
