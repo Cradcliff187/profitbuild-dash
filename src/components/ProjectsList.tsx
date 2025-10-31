@@ -265,7 +265,7 @@ export const ProjectsList = ({
               })()}
 
               <div className="flex items-center gap-1 flex-wrap">
-                {isProjectAtRisk((project as any).currentContractAmount > 0 ? ((project as any).projected_margin / (project as any).currentContractAmount) * 100 : 0) && (
+                {isProjectAtRisk(project.margin_percentage) && (
                   <Badge className="compact-badge bg-destructive text-destructive-foreground flex items-center gap-1">
                     <AlertTriangle className="h-2 w-2" />
                     RISK
@@ -274,35 +274,35 @@ export const ProjectsList = ({
                 <Badge className={`compact-badge ${getStatusColor(project.status)}`}>
                   {project.status.replace('_', ' ').toUpperCase()}
                 </Badge>
-                {(project as any).projected_margin !== null && (project as any).currentContractAmount > 0 && (
-                  <Badge className={`compact-badge ${getMarginColor(((project as any).projected_margin / (project as any).currentContractAmount) * 100)}`}>
-                    {(((project as any).projected_margin / (project as any).currentContractAmount) * 100).toFixed(1)}%
+                {project.margin_percentage !== null && project.margin_percentage !== undefined && (
+                  <Badge className={`compact-badge ${getMarginColor(project.margin_percentage)}`}>
+                    {project.margin_percentage.toFixed(1)}%
                   </Badge>
                 )}
               </div>
 
               {/* Financial Summary - Compact Three-Tier */}
-              {((project as any).currentContractAmount || (project as any).projected_margin !== null) && (
+              {(project.contracted_amount || project.projected_margin !== null) && (
                 <div className="compact-card-section bg-muted/10 space-y-2">
                   {/* Contract Value */}
                   <div className="flex justify-between text-data">
                     <span className="text-label text-muted-foreground">Contract</span>
-                    <span className="font-mono font-medium">{formatCurrency((project as any).currentContractAmount)}</span>
+                    <span className="font-mono font-medium">{formatCurrency(project.contracted_amount)}</span>
                   </div>
                   
                   {/* Three-Tier Margins - Compact Grid */}
                   <div className="grid grid-cols-3 gap-2 text-data pt-1 border-t border-border/50">
                     <div>
                       <p className="text-[10px] text-muted-foreground leading-tight">Original</p>
-                      <p className="font-mono text-xs font-medium">{formatCurrency((project as any).original_margin)}</p>
+                      <p className="font-mono text-xs font-medium">{formatCurrency(project.original_margin)}</p>
                     </div>
                     <div>
                       <p className="text-[10px] text-muted-foreground leading-tight">Projected</p>
-                      <p className="font-mono text-xs font-medium">{formatCurrency((project as any).projected_margin)}</p>
+                      <p className="font-mono text-xs font-medium">{formatCurrency(project.projected_margin)}</p>
                     </div>
                     <div>
                       <p className="text-[10px] text-muted-foreground leading-tight">Actual</p>
-                      <p className="font-mono text-xs font-medium">{formatCurrency((project as any).actual_margin)}</p>
+                      <p className="font-mono text-xs font-medium">{formatCurrency(project.actual_margin)}</p>
                     </div>
                   </div>
                   
