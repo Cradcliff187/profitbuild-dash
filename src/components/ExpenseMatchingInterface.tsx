@@ -22,6 +22,7 @@ import { ExpenseCategory, EXPENSE_CATEGORY_DISPLAY } from '@/types/expense';
 import { LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { format } from 'date-fns';
 import { cn, formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 
 interface ExpenseMatchingInterfaceProps {
   projectId: string;
@@ -236,7 +237,7 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
   };
 
   if (isLoading) {
-    return <div className="animate-pulse">Loading matching interface...</div>;
+    return <BrandedLoader message="Loading matching interface..." />;
   }
 
   return (

@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Estimate } from "@/types/estimate";
 import { formatCurrency } from "@/lib/utils";
+import { BrandedLoader } from "@/components/ui/branded-loader";
 
 interface EstimateVersionComparisonProps {
   projectId: string;
@@ -115,17 +116,7 @@ export const EstimateVersionComparison = ({ projectId, onClose }: EstimateVersio
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-6 bg-muted rounded w-1/2"></div>
-            <div className="h-4 bg-muted rounded w-1/3"></div>
-            <div className="h-32 bg-muted rounded"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <BrandedLoader message="Loading version comparison..." />;
   }
 
   if (estimates.length < 2) {

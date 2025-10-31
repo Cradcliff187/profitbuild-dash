@@ -6,6 +6,7 @@ import { ProjectEditForm } from "@/components/ProjectEditForm";
 import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { BrandedLoader } from "@/components/ui/branded-loader";
 
 export default function ProjectEdit() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -75,12 +76,7 @@ export default function ProjectEdit() {
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-8 bg-muted rounded w-1/3"></div>
-        <div className="h-96 bg-muted rounded"></div>
-      </div>
-    );
+    return <BrandedLoader message="Loading project..." />;
   }
 
   if (!project) {

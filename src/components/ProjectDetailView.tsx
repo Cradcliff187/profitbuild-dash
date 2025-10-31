@@ -30,6 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { calculateMultipleProjectFinancials, ProjectWithFinancials } from "@/utils/projectFinancials";
 import type { Database } from "@/integrations/supabase/types";
+import { BrandedLoader } from "@/components/ui/branded-loader";
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 
@@ -217,45 +218,7 @@ export const ProjectDetailView = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background p-3 space-y-3">
-        {/* Header Skeleton */}
-        <div className="flex items-center gap-3 border-b pb-3">
-          <div className="h-8 w-8 bg-muted animate-pulse rounded" />
-          <div className="h-6 w-px bg-border" />
-          <div className="h-8 w-20 bg-muted animate-pulse rounded" />
-          <div className="flex-1 space-y-1">
-            <div className="h-4 w-48 bg-muted animate-pulse rounded" />
-            <div className="h-3 w-64 bg-muted animate-pulse rounded" />
-          </div>
-          <div className="h-6 w-20 bg-muted animate-pulse rounded" />
-        </div>
-
-        {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {[1, 2, 3, 4].map(i => (
-            <Card key={i} className="compact-card">
-              <CardContent className="p-compact">
-                <div className="h-3 w-20 bg-muted animate-pulse rounded mb-1" />
-                <div className="h-6 w-16 bg-muted animate-pulse rounded" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Main Content Skeleton */}
-        <Card className="compact-card">
-          <CardHeader className="p-compact">
-            <div className="h-5 w-32 bg-muted animate-pulse rounded" />
-          </CardHeader>
-          <CardContent className="p-compact space-y-1">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="h-9 w-full bg-muted animate-pulse rounded" />
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <BrandedLoader message="Loading project details..." />;
   }
 
   if (!project) {

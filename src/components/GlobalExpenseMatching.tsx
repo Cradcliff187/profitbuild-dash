@@ -25,6 +25,7 @@ import { ExpenseCategory, EXPENSE_CATEGORY_DISPLAY } from '@/types/expense';
 import { LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 
 interface GlobalExpenseMatchingProps {
   onClose: () => void;
@@ -470,7 +471,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
   };
 
   if (isLoading) {
-    return <div className="animate-pulse p-6">Loading expense matching interface...</div>;
+    return <BrandedLoader message="Loading expense matching..." />;
   }
 
   return (

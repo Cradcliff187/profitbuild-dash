@@ -8,7 +8,6 @@ import { format } from 'date-fns';
 import { checkTimeOverlap, validateTimeEntryHours, checkStaleTimer } from '@/utils/timeEntryValidation';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { AddReceiptModal } from './AddReceiptModal';
 import { WeekView } from './WeekView';
