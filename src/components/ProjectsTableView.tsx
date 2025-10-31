@@ -668,6 +668,35 @@ export const ProjectsTableView = ({
       },
     },
     {
+      key: 'totalBudget',
+      label: 'Total Budget',
+      align: 'right' as const,
+      sortable: true,
+      getSortValue: (project) => (project.contracted_amount || 0) + (project.contingency_remaining || 0),
+      render: (project: ProjectWithFinancials) => {
+        const contractValue = project.contracted_amount || 0;
+        const contingency = project.contingency_remaining || 0;
+        const totalBudget = contractValue + contingency;
+        
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className="font-medium text-xs font-mono tabular-nums">{formatCurrency(totalBudget)}</div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-xs space-y-1">
+                <p><strong>Contract Value:</strong> {formatCurrency(contractValue)}</p>
+                <p><strong>Contingency Available:</strong> {formatCurrency(contingency)}</p>
+                <p><strong>Total Budget:</strong> {formatCurrency(totalBudget)}</p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
+    },
+    {
       key: 'originalContract',
       label: 'Original Contract',
       align: 'right' as const,
@@ -714,13 +743,8 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className={cn(
-                  "font-medium text-xs font-mono tabular-nums",
-                  netImpact > 0 && "text-green-600 dark:text-green-400",
-                  netImpact < 0 && "text-red-600 dark:text-red-400",
-                  netImpact === 0 && "text-muted-foreground"
-                )}>
-                  {formatCurrency(netImpact)}
+                <div className="font-medium text-xs font-mono tabular-nums">
+                  {formatCurrency(changeOrderRevenue)}
                 </div>
               </div>
             </TooltipTrigger>
