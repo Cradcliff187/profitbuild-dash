@@ -29,14 +29,12 @@ export function ProjectOverviewCompact({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground">Contract Value</p>
-            <p className="text-xl font-bold">{formatCurrency(marginData?.currentContractAmount || 0)}</p>
+            <p className="text-xl font-bold">{formatCurrency(project.contracted_amount || 0)}</p>
           </div>
           <div className="text-right">
             <p className="text-xs text-muted-foreground">Current Margin</p>
             <p className="text-xl font-bold">
-              {marginData?.currentContractAmount > 0 
-                ? ((marginData.projected_margin / marginData.currentContractAmount) * 100).toFixed(1)
-                : 0}%
+              {project.margin_percentage?.toFixed(1) || 0}%
             </p>
           </div>
         </div>
@@ -49,8 +47,8 @@ export function ProjectOverviewCompact({
             <p className="text-xs font-medium text-muted-foreground mb-1">Original</p>
             <p className="text-sm font-bold">{formatCurrency(marginData?.original_margin || 0)}</p>
             <p className="text-xs text-muted-foreground">
-              {marginData?.currentContractAmount > 0
-                ? ((marginData.original_margin / marginData.currentContractAmount) * 100).toFixed(1)
+              {project.contracted_amount > 0
+                ? (((project.original_margin || 0) / project.contracted_amount) * 100).toFixed(1)
                 : 0}%
             </p>
           </div>
@@ -58,17 +56,15 @@ export function ProjectOverviewCompact({
             <p className="text-xs font-medium text-muted-foreground mb-1">Projected</p>
             <p className="text-sm font-bold">{formatCurrency(marginData?.projected_margin || 0)}</p>
             <p className="text-xs text-muted-foreground">
-              {marginData?.currentContractAmount > 0
-                ? ((marginData.projected_margin / marginData.currentContractAmount) * 100).toFixed(1)
-                : 0}%
+              {project.margin_percentage?.toFixed(1) || 0}%
             </p>
           </div>
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Actual</p>
             <p className="text-sm font-bold">{formatCurrency(marginData?.actual_margin || 0)}</p>
             <p className="text-xs text-muted-foreground">
-              {marginData?.currentContractAmount > 0
-                ? ((marginData.actual_margin / marginData.currentContractAmount) * 100).toFixed(1)
+              {project.contracted_amount > 0
+                ? (((project.actual_margin || 0) / project.contracted_amount) * 100).toFixed(1)
                 : 0}%
             </p>
           </div>
