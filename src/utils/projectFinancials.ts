@@ -191,9 +191,9 @@ export async function calculateProjectFinancials(
           changeOrderNetMargin = changeOrderRevenue - changeOrderCosts;
         }
         
-        // Calculate contract amounts
-        currentContractAmount = originalContractAmount + changeOrderRevenue;
-        projectedRevenue = currentContractAmount;
+        // Calculate contract amounts - use database value if available
+        currentContractAmount = project.contracted_amount || (originalContractAmount + changeOrderRevenue);
+        projectedRevenue = project.contracted_amount || currentContractAmount;
         
         // Calculate quote analysis metrics
         if (acceptedQuotes) {
@@ -246,13 +246,13 @@ export async function calculateProjectFinancials(
     .filter(e => e.project_id === project.id)
     .reduce((sum, expense) => sum + expense.amount, 0);
 
-  // Calculate projected margin (revenue minus all projected costs including internal labor)
+  // Use database-calculated projected margin and contract amount
   const validatedAdjustedCosts = validateCostNotPrice(
     project.adjusted_est_costs || 0,
     'Adjusted Costs',
-    projectedRevenue
+    project.contracted_amount || projectedRevenue
   );
-  const projectedMargin = projectedRevenue - validatedAdjustedCosts;
+  const projectedMargin = project.projected_margin || 0;
 
   // Calculate current margin (revenue - actual expenses so far)
   const currentMargin = projectedRevenue - actualExpenses;
@@ -270,10 +270,10 @@ export async function calculateProjectFinancials(
   // Use contingency_remaining from the project record (calculated by database functions)
   const contingencyRemaining = project.contingency_remaining || 0;
 
-  // Calculate three-tier margins
+  // Calculate three-tier margins - use database values for projected_margin and contracted_amount
   const originalMargin = originalContractAmount - (approvedEstimateInternalLaborCost + approvedEstimateExternalCosts);
-  const projectedMarginValue = currentContractAmount - projectedCosts;
-  const actualMargin = currentContractAmount - actualExpenses;
+  const projectedMarginValue = project.projected_margin || 0;
+  const actualMargin = (project.contracted_amount || currentContractAmount) - actualExpenses;
 
   // Add margin percentage validation
   if (projectedMargin < 0) {

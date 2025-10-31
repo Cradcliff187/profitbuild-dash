@@ -661,7 +661,7 @@ export const ProjectsTableView = ({
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Total from approved estimate plus approved change orders</p>
+              <p>Total from approved estimate plus approved change orders (includes billed contingency)</p>
             </TooltipContent>
           </Tooltip>
         );
@@ -915,9 +915,9 @@ export const ProjectsTableView = ({
       label: 'Projected Margin ($)',
       align: 'right' as const,
       sortable: true,
-      getSortValue: (project) => project.projectedMargin || 0,
+      getSortValue: (project) => project.projected_margin || 0,
       render: (project: ProjectWithFinancials) => {
-        const projectedMargin = project.projectedMargin || 0;
+        const projectedMargin = project.projected_margin || 0;
         const isPositive = projectedMargin >= 0;
         
         return (
@@ -934,9 +934,9 @@ export const ProjectsTableView = ({
             <TooltipContent>
               <div>
                 <p><strong>Projected Margin:</strong> {formatCurrency(projectedMargin)}</p>
-                <p>Calculation: Contract Value - (Internal Costs + External Costs)</p>
+                <p>Server-calculated value from database</p>
+                <p>Calculation: Contract Value - (Internal Costs + External Costs + Change Order Costs)</p>
                 <p>Uses actual quote costs for external work when available, estimated costs otherwise</p>
-                <p>Internal costs include labor and management; external costs include subcontractors, materials, etc.</p>
               </div>
             </TooltipContent>
           </Tooltip>
@@ -948,17 +948,11 @@ export const ProjectsTableView = ({
       label: 'Projected Margin %',
       align: 'right' as const,
       sortable: true,
-      getSortValue: (project) => {
-        return project.currentContractAmount > 0 
-          ? ((project.projectedMargin || 0) / project.currentContractAmount) * 100 
-          : 0;
-      },
+      getSortValue: (project) => project.margin_percentage || 0,
       render: (project: ProjectWithFinancials) => {
-        const projectedMarginPct = project.currentContractAmount > 0 
-          ? ((project.projectedMargin || 0) / project.currentContractAmount) * 100 
-          : 0;
+        const projectedMarginPct = project.margin_percentage || 0;
         
-        const tooltipContent = `Projected Margin Percentage: ${projectedMarginPct.toFixed(1)}%. Calculated as Projected Margin ÷ Contract Value × 100.`;
+        const tooltipContent = `Projected Margin Percentage: ${projectedMarginPct.toFixed(1)}%. Server-calculated value from database. Calculated as Projected Margin ÷ Contract Value × 100.`;
         
         return (
           <Tooltip>
