@@ -45,7 +45,7 @@ export function ProjectOverviewCompact({
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Original</p>
-            <p className="text-sm font-bold">{formatCurrency(marginData?.original_margin || 0)}</p>
+            <p className="text-sm font-bold">{formatCurrency(project.original_margin || 0)}</p>
             <p className="text-xs text-muted-foreground">
               {project.contracted_amount > 0
                 ? (((project.original_margin || 0) / project.contracted_amount) * 100).toFixed(1)
@@ -54,14 +54,14 @@ export function ProjectOverviewCompact({
           </div>
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Projected</p>
-            <p className="text-sm font-bold">{formatCurrency(marginData?.projected_margin || 0)}</p>
+            <p className="text-sm font-bold">{formatCurrency(project.projected_margin || 0)}</p>
             <p className="text-xs text-muted-foreground">
               {project.margin_percentage?.toFixed(1) || 0}%
             </p>
           </div>
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Actual</p>
-            <p className="text-sm font-bold">{formatCurrency(marginData?.actual_margin || 0)}</p>
+            <p className="text-sm font-bold">{formatCurrency(project.actual_margin || 0)}</p>
             <p className="text-xs text-muted-foreground">
               {project.contracted_amount > 0
                 ? (((project.actual_margin || 0) / project.contracted_amount) * 100).toFixed(1)

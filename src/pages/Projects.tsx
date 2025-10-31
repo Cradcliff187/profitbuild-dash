@@ -350,12 +350,8 @@ const Projects = () => {
         case 'status':
           return a.status.localeCompare(b.status) * modifier;
         case 'margin':
-          const aMarginPct = (a as any).currentContractAmount > 0 
-            ? ((a as any).projected_margin / (a as any).currentContractAmount) * 100 
-            : -999;
-          const bMarginPct = (b as any).currentContractAmount > 0 
-            ? ((b as any).projected_margin / (b as any).currentContractAmount) * 100 
-            : -999;
+          const aMarginPct = a.margin_percentage ?? -999;
+          const bMarginPct = b.margin_percentage ?? -999;
           return (aMarginPct - bMarginPct) * modifier;
         default:
           return 0;

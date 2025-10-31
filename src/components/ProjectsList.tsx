@@ -309,7 +309,7 @@ export const ProjectsList = ({
                   {/* Expenses Total */}
                   <div className="flex justify-between text-data pt-1 border-t border-border/50">
                     <span className="text-label text-muted-foreground">Expenses</span>
-                    <span className="font-mono font-medium">{formatCurrency((project as any).actualExpenses)}</span>
+                    <span className="font-mono font-medium">{formatCurrency((project.contracted_amount || 0) - (project.current_margin || 0))}</span>
                   </div>
                 </div>
               )}
