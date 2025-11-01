@@ -43,10 +43,32 @@ if ('serviceWorker' in navigator) {
       });
     },
     onRegisteredSW(_, registration) {
-      // Check for updates every minute while app is open
       if (registration) {
-        setInterval(() => registration.update(), 60 * 1000);
+        // Check immediately on app open
+        registration.update().catch(err => {
+          console.log('Initial update check failed:', err);
+        });
+        
+        // Then check for updates every minute while app is open
+        setInterval(() => {
+          registration.update().catch(err => {
+            console.log('Periodic update check failed:', err);
+          });
+        }, 60 * 1000);
       }
     },
+  });
+
+  // Check for updates when user returns to the app
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      navigator.serviceWorker.getRegistration().then(reg => {
+        if (reg) {
+          reg.update().catch(err => {
+            console.log('Visibility update check failed:', err);
+          });
+        }
+      });
+    }
   });
 }
