@@ -117,6 +117,70 @@ export function ProjectOverviewCompact({
         </div>
       </Card>
 
+      {/* Change Orders */}
+      {changeOrders && changeOrders.length > 0 && (
+        <Card className="p-3">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium">Change Orders</h3>
+            <Badge variant="outline" className="text-xs">{changeOrders.length}</Badge>
+          </div>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Revenue:</span>
+              <span className="font-medium text-green-600">
+                +{formatCurrency(project.changeOrderRevenue || 0)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Additional Costs:</span>
+              <span className="font-medium">
+                {formatCurrency(project.changeOrderCosts || 0)}
+              </span>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Contingency */}
+      {project.contingency_remaining > 0 && (
+        <Card className="p-3">
+          <h3 className="text-sm font-medium mb-2">Contingency</h3>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Remaining:</span>
+              <span className="font-medium">{formatCurrency(project.contingency_remaining)}</span>
+            </div>
+            {project.contracted_amount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">% of Contract:</span>
+                <span className="font-medium">
+                  {((project.contingency_remaining / project.contracted_amount) * 100).toFixed(1)}%
+                </span>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* Cost Breakdown */}
+      <Card className="p-3">
+        <h3 className="text-sm font-medium mb-2">Cost Summary</h3>
+        <div className="space-y-1 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Original Est. Costs:</span>
+            <span className="font-medium">{formatCurrency(project.original_est_costs || 0)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Adjusted Est. Costs:</span>
+            <span className="font-medium">{formatCurrency(project.adjusted_est_costs || 0)}</span>
+          </div>
+          <div className="flex justify-between pt-1 border-t">
+            <span className="text-muted-foreground">Total Expenses:</span>
+            <span className="font-medium">{formatCurrency(totalExpenses)}</span>
+          </div>
+        </div>
+      </Card>
+
       {/* Recent Expenses */}
       {expenses && expenses.length > 0 && (
         <Card className="p-3">
