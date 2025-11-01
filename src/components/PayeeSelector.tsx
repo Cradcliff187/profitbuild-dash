@@ -8,24 +8,31 @@ import {
   SelectTrigger,
   SelectValue,
   SelectGroup,
-  SelectLabel,
+  SelectLabel as SelectGroupLabel,
   SelectSeparator,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PayeeForm } from '@/components/PayeeForm';
-import { PayeeType } from '@/types/payee';
+import { PayeeType, Payee } from '@/types/payee';
 import { Plus } from 'lucide-react';
 
 interface PayeeSelectorProps {
   value: string;
-  onValueChange: (value: string | null) => void;
+  onValueChange: (payeeId: string, payeeName?: string, payee?: Payee) => void;
   placeholder?: string;
   compact?: boolean;
   filterInternal?: boolean;
   filterLabor?: boolean;
   defaultPayeeType?: PayeeType;
   defaultProvidesLabor?: boolean;
+  defaultIsInternal?: boolean;
+  label?: string;
+  showLabel?: boolean;
+  required?: boolean;
+  error?: string;
+  onBlur?: () => void;
 }
 
 export function PayeeSelector({
@@ -37,6 +44,12 @@ export function PayeeSelector({
   filterLabor,
   defaultPayeeType,
   defaultProvidesLabor,
+  defaultIsInternal,
+  label,
+  showLabel,
+  required,
+  error,
+  onBlur,
 }: PayeeSelectorProps) {
   const [showPayeeForm, setShowPayeeForm] = useState(false);
   const queryClient = useQueryClient();
@@ -91,19 +104,32 @@ export function PayeeSelector({
   const selectedPayee = payees?.find(p => p.id === value);
   const groupedPayees = groupPayeesByType();
 
+  const handleValueChange = (val: string) => {
+    if (val === '__add_new__') {
+      setShowPayeeForm(true);
+    } else {
+      const payee = payees?.find(p => p.id === val);
+      onValueChange(val, payee?.payee_name, payee as Payee);
+    }
+  };
+
   return (
-    <>
+    <div className="space-y-1">
+      {label && (showLabel !== false) && (
+        <Label className={compact ? 'text-xs' : 'text-sm'}>
+          {label}
+          {required && <span className="text-destructive ml-1">*</span>}
+        </Label>
+      )}
+      
       <Select
         value={value}
-        onValueChange={(val) => {
-          if (val === '__add_new__') {
-            setShowPayeeForm(true);
-          } else {
-            onValueChange(val);
-          }
-        }}
+        onValueChange={handleValueChange}
       >
-        <SelectTrigger className={compact ? 'h-8 text-xs' : 'h-9 text-sm'}>
+        <SelectTrigger 
+          className={compact ? 'h-8 text-xs' : 'h-9 text-sm'}
+          onBlur={onBlur}
+        >
           <SelectValue placeholder={placeholder}>
             {selectedPayee && (
               <div className="flex items-center gap-1.5">
@@ -126,9 +152,9 @@ export function PayeeSelector({
                 <div key={type}>
                   {idx > 0 && <SelectSeparator />}
                   <SelectGroup>
-                    <SelectLabel className={compact ? 'text-[10px] py-1' : 'text-xs'}>
+                    <SelectGroupLabel className={compact ? 'text-[10px] py-1' : 'text-xs'}>
                       {formatPayeeType(type as PayeeType)}
-                    </SelectLabel>
+                    </SelectGroupLabel>
                     {payeeList.map((payee) => (
                       <SelectItem 
                         key={payee.id} 
@@ -158,6 +184,10 @@ export function PayeeSelector({
         </SelectContent>
       </Select>
 
+      {error && (
+        <p className="text-xs text-destructive mt-1">{error}</p>
+      )}
+
       <Dialog open={showPayeeForm} onOpenChange={setShowPayeeForm}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -171,9 +201,10 @@ export function PayeeSelector({
             onCancel={() => setShowPayeeForm(false)}
             defaultPayeeType={defaultPayeeType}
             defaultProvidesLabor={defaultProvidesLabor}
+            defaultIsInternal={defaultIsInternal}
           />
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
