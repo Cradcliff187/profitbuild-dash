@@ -18,7 +18,7 @@ import { PayeeSelector } from "./PayeeSelector";
 import { PdfUpload } from "./PdfUpload";
 import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 import { Quote, QuoteLineItem, QuoteStatus } from "@/types/quote";
-import { Payee } from "@/types/payee";
+import { Payee, PayeeType } from "@/types/payee";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateQuoteFinancials, calculateQuoteTotalProfit, calculateQuoteProfitMargin, getProfitStatus } from "@/utils/quoteFinancials";
@@ -737,12 +737,15 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
         <CardContent className="p-3">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <PayeeSelector
-              value={selectedPayee?.id}
+              value={selectedPayee?.id || ''}
               onValueChange={(payeeId, payeeName, payee) => {
                 if (payee) setSelectedPayee(payee);
               }}
-              placeholder="Select vendor/payee..."
+              placeholder="Select vendor/subcontractor..."
               label="Vendor/Payee"
+              filterInternal={false}
+              defaultPayeeType={PayeeType.SUBCONTRACTOR}
+              defaultIsInternal={false}
             />
             
             <div className="space-y-2">

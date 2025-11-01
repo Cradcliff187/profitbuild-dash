@@ -10,6 +10,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Camera as CameraIcon, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PayeeSelector } from '@/components/PayeeSelector';
+import { PayeeType } from '@/types/payee';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { isIOSPWA } from '@/utils/platform';
@@ -259,13 +260,14 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
       {/* Payee (Required) */}
       <div className="space-y-2">
         <PayeeSelector
-          value={selectedPayeeId}
-          onValueChange={setSelectedPayeeId}
+          value={selectedPayeeId || ''}
+          onValueChange={(payeeId) => setSelectedPayeeId(payeeId)}
           filterInternal={false}
-          filterLabor={false}
           label="Vendor / Supplier"
           placeholder="Select a vendor or supplier"
           required
+          defaultPayeeType={PayeeType.MATERIAL_SUPPLIER}
+          defaultIsInternal={false}
         />
       </div>
 

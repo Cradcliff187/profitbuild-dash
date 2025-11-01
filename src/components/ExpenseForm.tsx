@@ -15,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { PayeeSelector } from '@/components/PayeeSelector';
 import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from '@/types/expense';
 import { Project } from '@/types/project';
-import { Payee } from '@/types/payee';
+import { Payee, PayeeType } from '@/types/payee';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
@@ -488,24 +488,33 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
               <FormField
                 control={form.control}
                 name="payee_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payee</FormLabel>
-                     <FormControl>
-                       <PayeeSelector
-                         value={field.value || ''}
-                         onValueChange={(payeeId, payeeName, payee) => {
-                           field.onChange(payeeId);
-                           setSelectedPayee(payee || null);
-                         }}
-                         placeholder="Select payee"
-                         error={form.formState.errors.payee_id?.message}
-                         showLabel={false}
-                       />
-                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const category = form.watch('category');
+                  const isInternalLabor = category === ExpenseCategory.LABOR;
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Payee</FormLabel>
+                       <FormControl>
+                         <PayeeSelector
+                           value={field.value || ''}
+                           onValueChange={(payeeId, payeeName, payee) => {
+                             field.onChange(payeeId);
+                             setSelectedPayee(payee || null);
+                           }}
+                           placeholder={isInternalLabor ? "Select employee" : "Select payee"}
+                           error={form.formState.errors.payee_id?.message}
+                           showLabel={false}
+                           filterInternal={isInternalLabor ? true : false}
+                           filterLabor={isInternalLabor ? true : undefined}
+                           defaultPayeeType={isInternalLabor ? PayeeType.INTERNAL_LABOR : undefined}
+                           defaultIsInternal={isInternalLabor ? true : false}
+                         />
+                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField

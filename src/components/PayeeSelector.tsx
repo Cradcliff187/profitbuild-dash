@@ -25,6 +25,7 @@ interface PayeeSelectorProps {
   compact?: boolean;
   filterInternal?: boolean;
   filterLabor?: boolean;
+  filterPayeeTypes?: PayeeType[]; // NEW: Filter by specific payee types
   defaultPayeeType?: PayeeType;
   defaultProvidesLabor?: boolean;
   defaultIsInternal?: boolean;
@@ -42,6 +43,7 @@ export function PayeeSelector({
   compact = false,
   filterInternal,
   filterLabor,
+  filterPayeeTypes,
   defaultPayeeType,
   defaultProvidesLabor,
   defaultIsInternal,
@@ -55,7 +57,7 @@ export function PayeeSelector({
   const queryClient = useQueryClient();
 
   const { data: payees, isLoading } = useQuery({
-    queryKey: ['payees', filterInternal, filterLabor],
+    queryKey: ['payees', filterInternal, filterLabor, filterPayeeTypes],
     queryFn: async () => {
       let query = supabase
         .from('payees')
@@ -63,11 +65,22 @@ export function PayeeSelector({
         .eq('is_active', true)
         .order('payee_name');
 
-      if (filterInternal !== undefined) {
-        query = query.eq('is_internal', filterInternal);
+      // Handle internal/external filtering
+      if (filterInternal === true) {
+        // Only internal labor
+        query = query.eq('is_internal', true).eq('provides_labor', true);
+      } else if (filterInternal === false) {
+        // Only external payees
+        query = query.eq('is_internal', false);
       }
+      
       if (filterLabor !== undefined) {
         query = query.eq('provides_labor', filterLabor);
+      }
+
+      // Filter by specific payee types
+      if (filterPayeeTypes && filterPayeeTypes.length > 0) {
+        query = query.in('payee_type', filterPayeeTypes);
       }
 
       const { data, error } = await query;
