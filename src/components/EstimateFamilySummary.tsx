@@ -215,6 +215,32 @@ export const EstimateFamilySummary = ({
           </div>
         </div>
 
+        {/* Margin Breakdown - Only show if estimate is approved */}
+        {currentVersion.status === 'approved' && (
+          <div className="border rounded-lg p-3 bg-muted/10">
+            <h5 className="font-medium text-sm mb-2">Estimated Margin</h5>
+            <div className="space-y-1 text-xs font-mono tabular-nums">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Amount:</span>
+                <span>{formatCurrency(currentVersion.total_amount, { showCents: false })}</span>
+              </div>
+              <div className="flex justify-between text-orange-600 dark:text-orange-400">
+                <span>− Est. Costs:</span>
+                <span>{formatCurrency((currentVersion.total_amount || 0) * 0.7, { showCents: false })}</span>
+              </div>
+              <div className="flex justify-between border-t pt-1 font-semibold">
+                <span>= Est. Margin:</span>
+                <span className="text-green-600 dark:text-green-400">
+                  {formatCurrency((currentVersion.total_amount || 0) * 0.3, { showCents: false })}
+                </span>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2 italic">
+              Actual margin will be calculated after quotes are received and change orders processed.
+            </p>
+          </div>
+        )}
+
         {/* Version Evolution */}
         {totalVersions > 1 && (
           <div className="space-y-2">

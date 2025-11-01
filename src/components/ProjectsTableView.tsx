@@ -957,26 +957,75 @@ export const ProjectsTableView = ({
       sortable: true,
       getSortValue: (project) => project.projected_margin || 0,
       render: (project: ProjectWithFinancials) => {
-        const projectedMargin = project.projected_margin || 0;
-        const isPositive = projectedMargin >= 0;
+        // Compute inline for transparency
+        const contract = project.contracted_amount || 0;
+        const adjustedCosts = project.adjusted_est_costs || 0;
+        const derivedMargin = contract - adjustedCosts;
+        
+        // Use database value
+        const dbMargin = project.projected_margin || 0;
+        const isPositive = derivedMargin >= 0;
+        
+        // Check for sync discrepancy
+        const hasSyncIssue = Math.abs(derivedMargin - dbMargin) > 1;
+        
+        // Calculate breakdown for tooltip
+        const originalContract = project.originalContractAmount || 0;
+        const originalCosts = project.original_est_costs || 0;
+        const originalMargin = originalContract - originalCosts;
+        
+        const changeOrderRevenue = project.changeOrderRevenue || 0;
+        const changeOrderCosts = project.changeOrderCosts || 0;
+        const changeOrderNetMargin = changeOrderRevenue - changeOrderCosts;
+        
+        const quoteVariance = (adjustedCosts - originalCosts) - changeOrderCosts;
         
         return (
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className={`font-medium text-xs font-mono tabular-nums ${
+                <div className={`font-medium text-xs font-mono tabular-nums flex items-center justify-end gap-1 ${
                   isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`}>
-                  {formatCurrency(projectedMargin)}
+                  {formatCurrency(derivedMargin)}
+                  {hasSyncIssue && (
+                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-orange-300 text-orange-600">
+                      sync
+                    </Badge>
+                  )}
                 </div>
               </div>
             </TooltipTrigger>
-            <TooltipContent>
-              <div>
-                <p><strong>Projected Margin:</strong> {formatCurrency(projectedMargin)}</p>
-                <p>Server-calculated value from database</p>
-                <p>Calculation: Contract Value - (Internal Costs + External Costs + Change Order Costs)</p>
-                <p>Uses actual quote costs for external work when available, estimated costs otherwise</p>
+            <TooltipContent className="max-w-xs">
+              <div className="space-y-2 text-xs">
+                <p className="font-semibold border-b pb-1">Margin Breakdown</p>
+                <div className="space-y-1 font-mono tabular-nums">
+                  <div className="flex justify-between gap-4">
+                    <span>Original Margin:</span>
+                    <span>{formatCurrency(originalMargin)}</span>
+                  </div>
+                  {changeOrderNetMargin !== 0 && (
+                    <div className="flex justify-between gap-4 text-blue-600 dark:text-blue-400">
+                      <span>+ Change Orders:</span>
+                      <span>{formatCurrency(changeOrderNetMargin)}</span>
+                    </div>
+                  )}
+                  {quoteVariance !== 0 && (
+                    <div className="flex justify-between gap-4 text-orange-600 dark:text-orange-400">
+                      <span>{quoteVariance > 0 ? '−' : '+'} Quote Variance:</span>
+                      <span>{formatCurrency(Math.abs(quoteVariance))}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between gap-4 border-t pt-1 font-semibold">
+                    <span>= Projected Margin:</span>
+                    <span>{formatCurrency(derivedMargin)}</span>
+                  </div>
+                </div>
+                {hasSyncIssue && (
+                  <p className="text-orange-600 dark:text-orange-400 text-[10px] mt-2 border-t pt-1">
+                    ⚠ DB value ({formatCurrency(dbMargin)}) differs from calculation. Refresh may be needed.
+                  </p>
+                )}
               </div>
             </TooltipContent>
           </Tooltip>

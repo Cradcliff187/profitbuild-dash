@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText } from "lucide-react";
+import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText, Info } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -292,6 +293,10 @@ export const ProjectsList = ({
                 const currentMargin = contract - adjustedCosts;
                 const derivedMarginPct = contract > 0 ? (currentMargin / contract) * 100 : 0;
                 const marginPctToShow = project.margin_percentage ?? derivedMarginPct;
+                const changeOrderRevenue = project.changeOrderRevenue || 0;
+                const changeOrderCosts = project.changeOrderCosts || 0;
+                const originalCosts = project.original_est_costs || 0;
+                const quoteVariance = (adjustedCosts - originalCosts) - changeOrderCosts;
 
                 return (
                   <div className="compact-card-section bg-muted/10 space-y-2">
@@ -302,24 +307,72 @@ export const ProjectsList = ({
                     </div>
 
                     {/* Change Orders */}
-                    {project.changeOrderRevenue > 0 && (
+                    {changeOrderRevenue > 0 && (
                       <div className="flex justify-between text-data">
                         <span className="text-label text-muted-foreground">Change Orders</span>
                         <span className="font-mono font-medium text-green-600">
-                          +{formatCurrency(project.changeOrderRevenue)}
+                          +{formatCurrency(changeOrderRevenue)}
                         </span>
                       </div>
                     )}
                     
-                    {/* Two-Tier Margins - Original & Current */}
+                    {/* Two-Tier Margins - Original & Current with Breakdown Popover */}
                     <div className="grid grid-cols-2 gap-3 text-data pt-1 border-t border-border/50">
                       <div>
                         <p className="text-[10px] text-muted-foreground leading-tight">Original Margin</p>
                         <p className="font-mono text-xs font-medium">{formatCurrency(project.original_margin)}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-muted-foreground leading-tight">Current Margin</p>
-                        <p className="font-mono text-xs font-semibold text-primary">{formatCurrency(currentMargin)}</p>
+                        <div className="flex items-center gap-1">
+                          <p className="text-[10px] text-muted-foreground leading-tight">Current Margin</p>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className="p-0 h-3 w-3 hover:bg-muted/50 rounded inline-flex items-center justify-center">
+                                <Info className="h-2.5 w-2.5 text-muted-foreground" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-56 text-xs p-3" align="start">
+                              <div className="space-y-1.5">
+                                <p className="font-semibold text-[11px] border-b pb-1">Margin Breakdown</p>
+                                <div className="space-y-1 font-mono tabular-nums text-[10px]">
+                                  <div className="flex justify-between gap-2">
+                                    <span className="text-muted-foreground">Original:</span>
+                                    <span>{formatCurrency(project.original_margin || 0)}</span>
+                                  </div>
+                                  {changeOrderRevenue > 0 && (
+                                    <>
+                                      <div className="flex justify-between gap-2 text-blue-600 dark:text-blue-400">
+                                        <span>+ CO Revenue:</span>
+                                        <span>{formatCurrency(changeOrderRevenue)}</span>
+                                      </div>
+                                      <div className="flex justify-between gap-2 text-orange-600 dark:text-orange-400">
+                                        <span>− CO Costs:</span>
+                                        <span>{formatCurrency(changeOrderCosts)}</span>
+                                      </div>
+                                    </>
+                                  )}
+                                  {quoteVariance !== 0 && (
+                                    <div className="flex justify-between gap-2 text-orange-600 dark:text-orange-400">
+                                      <span>{quoteVariance > 0 ? '−' : '+'} Quote Δ:</span>
+                                      <span>{formatCurrency(Math.abs(quoteVariance))}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between gap-2 border-t pt-1 font-semibold">
+                                    <span>= Current:</span>
+                                    <span>{formatCurrency(currentMargin)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <p className={`font-mono text-xs font-semibold ${
+                          currentMargin < 0 ? 'text-red-600 dark:text-red-400' :
+                          currentMargin >= (project.target_margin || 20) * contract / 100 ? 'text-green-600 dark:text-green-400' :
+                          'text-orange-600 dark:text-orange-400'
+                        }`}>
+                          {formatCurrency(currentMargin)}
+                        </p>
                       </div>
                     </div>
 
