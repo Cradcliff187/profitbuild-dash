@@ -129,7 +129,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
       
       toast({
         title: "Change Order Approved",
-        description: `Change Order ${changeOrder.change_order_number} has been approved.`,
+        description: `${changeOrder.change_order_number} approved. Use "Match Expenses" to track actual costs.`,
       });
     } catch (error) {
       console.error('Error approving change order:', error);
@@ -242,6 +242,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                   <TableHead className="text-right text-xs font-medium">Margin %</TableHead>
                   <TableHead className="text-right text-xs font-medium">Contingency Billed</TableHead>
                   <TableHead className="text-xs font-medium">Status</TableHead>
+                  <TableHead className="text-center text-xs font-medium">Matched</TableHead>
                   <TableHead className="text-xs font-medium">Date</TableHead>
                   <TableHead className="w-10"></TableHead>
                   </TableRow>
@@ -309,6 +310,13 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                       </TableCell>
                       <TableCell>
                         <ChangeOrderStatusBadge status={changeOrder.status as ChangeOrderStatus} />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {changeOrder.status === 'approved' ? (
+                          <Badge variant="outline" className="text-xs">0%</Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-xs">
                         {changeOrder.requested_date ? 

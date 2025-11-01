@@ -369,9 +369,14 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             {/* Line Items Section */}
             <div className="space-y-2">
               <FormLabel className="text-sm font-semibold">Line Items</FormLabel>
-              <p className="text-xs text-muted-foreground">
-                Add line items to document the work, materials, or services for this change order
-              </p>
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2 mb-2">
+                <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">📋 Expense Tracking Workflow</p>
+                <p className="text-xs text-blue-800 dark:text-blue-200">
+                  1. Add line items and assign vendors/workers<br />
+                  2. Approve the change order<br />
+                  3. Use "Match Expenses" to link actual costs to these line items
+                </p>
+              </div>
               <ChangeOrderLineItemTable
                 lineItems={lineItems}
                 onUpdateLineItem={handleUpdateLineItem}
