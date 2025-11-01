@@ -266,6 +266,7 @@ const EstimatesPage = () => {
         estimate_number: est.estimate_number,
         date_created: new Date(est.date_created),
         total_amount: est.total_amount,
+        total_cost: est.total_cost || 0,
         status: est.status,
         notes: est.notes,
         valid_until: est.valid_until ? new Date(est.valid_until) : undefined,
