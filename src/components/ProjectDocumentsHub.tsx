@@ -7,6 +7,7 @@ import { ProjectReceiptsView } from './ProjectReceiptsView';
 import { ProjectQuotePDFsList } from './ProjectQuotePDFsList';
 import { ProjectDocumentsTable } from './ProjectDocumentsTable';
 import { DocumentUpload } from './DocumentUpload';
+import { ProjectDocumentsTimeline } from './ProjectDocumentsTimeline';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { DocumentType } from '@/types/document';
 import { useNavigate } from 'react-router-dom';
@@ -76,16 +77,14 @@ export function ProjectDocumentsHub({
           <TabsTrigger value="all" className="text-xs h-7">All</TabsTrigger>
           <TabsTrigger value="media" className="text-xs h-7">Photos & Videos</TabsTrigger>
           <TabsTrigger value="receipts" className="text-xs h-7">Receipts</TabsTrigger>
-          <TabsTrigger value="quotes" className="text-xs h-7">Quotes</TabsTrigger>
+          <TabsTrigger value="quotes" className="text-xs h-7">Quote PDFs</TabsTrigger>
           <TabsTrigger value="drawings" className="text-xs h-7">Drawings</TabsTrigger>
           <TabsTrigger value="permits" className="text-xs h-7">Permits</TabsTrigger>
           <TabsTrigger value="licenses" className="text-xs h-7">Licenses</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="mt-4">
-          <div className="text-sm text-muted-foreground text-center py-8">
-            Combined timeline view coming soon
-          </div>
+          <ProjectDocumentsTimeline projectId={projectId} />
         </TabsContent>
 
         <TabsContent value="media" className="mt-4">
