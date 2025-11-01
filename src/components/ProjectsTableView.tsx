@@ -789,15 +789,9 @@ export const ProjectsTableView = ({
       label: 'Original Est. Margin ($)',
       align: 'right' as const,
       sortable: true,
-      getSortValue: (project) => {
-        const contractValue = project.contracted_amount || 0;
-        const originalCosts = project.originalEstimatedCosts || 0;
-        return contractValue - originalCosts;
-      },
+      getSortValue: (project) => project.original_margin || 0,
       render: (project: ProjectWithFinancials) => {
-        const contractValue = project.contracted_amount || 0;
-        const originalCosts = project.originalEstimatedCosts || 0;
-        const originalMargin = contractValue - originalCosts;
+        const originalMargin = project.original_margin || 0;
         const isPositive = originalMargin >= 0;
         
         return (
@@ -814,8 +808,7 @@ export const ProjectsTableView = ({
             <TooltipContent>
               <div>
                 <p><strong>Original Est. Margin:</strong> {formatCurrency(originalMargin)}</p>
-                <p>Calculation: Contract Value - Original Est. Costs</p>
-                <p>Shows initial profit expectation from original approved estimate</p>
+                <p>Initial profit from original approved estimate</p>
               </div>
             </TooltipContent>
           </Tooltip>

@@ -302,15 +302,12 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       align: 'right',
       width: '110px',
       sortable: true,
-      getSortValue: (estimate) => calculateEstimateFinancials(estimate.lineItems).totalCost,
-      render: (estimate) => {
-        const financials = calculateEstimateFinancials(estimate.lineItems);
-        return (
-          <div className="text-xs font-mono tabular-nums text-foreground/80">
-            {formatCurrency(financials.totalCost, { showCents: false })}
-          </div>
-        );
-      },
+      getSortValue: (estimate) => estimate.total_cost || 0,
+      render: (estimate) => (
+        <div className="text-xs font-mono tabular-nums text-foreground/80">
+          {formatCurrency(estimate.total_cost || 0, { showCents: false })}
+        </div>
+      ),
     },
     {
       key: 'gross_profit',
@@ -318,15 +315,15 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       align: 'right',
       width: '110px',
       sortable: true,
-      getSortValue: (estimate) => calculateEstimateFinancials(estimate.lineItems).grossProfit,
+      getSortValue: (estimate) => (estimate.total_amount || 0) - (estimate.total_cost || 0),
       render: (estimate) => {
-        const financials = calculateEstimateFinancials(estimate.lineItems);
+        const grossProfit = (estimate.total_amount || 0) - (estimate.total_cost || 0);
         return (
           <div className={cn(
             "text-xs font-mono tabular-nums font-medium",
-            financials.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'
+            grossProfit >= 0 ? 'text-green-700' : 'text-red-700'
           )}>
-            {formatCurrency(financials.grossProfit, { showCents: false })}
+            {formatCurrency(grossProfit, { showCents: false })}
           </div>
         );
       },
@@ -337,10 +334,16 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       align: 'right',
       width: '90px',
       sortable: true,
-      getSortValue: (estimate) => calculateEstimateFinancials(estimate.lineItems).grossMarginPercent,
+      getSortValue: (estimate) => {
+        const totalAmount = estimate.total_amount || 0;
+        if (totalAmount === 0) return 0;
+        const grossProfit = totalAmount - (estimate.total_cost || 0);
+        return (grossProfit / totalAmount) * 100;
+      },
       render: (estimate) => {
-        const financials = calculateEstimateFinancials(estimate.lineItems);
-        const status = getMarginPerformanceStatus(financials.grossMarginPercent);
+        const totalAmount = estimate.total_amount || 0;
+        const grossMarginPercent = totalAmount === 0 ? 0 : ((totalAmount - (estimate.total_cost || 0)) / totalAmount) * 100;
+        const status = getMarginPerformanceStatus(grossMarginPercent);
         
         return (
           <div className={cn(
@@ -350,7 +353,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
             status === 'poor' && 'text-yellow-700',
             status === 'critical' && 'text-red-700'
           )}>
-            {financials.grossMarginPercent.toFixed(1)}%
+            {grossMarginPercent.toFixed(1)}%
           </div>
         );
       },
@@ -361,10 +364,16 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       align: 'right',
       width: '90px',
       sortable: true,
-      getSortValue: (estimate) => calculateEstimateFinancials(estimate.lineItems).averageMarkupPercent,
+      getSortValue: (estimate) => {
+        const totalCost = estimate.total_cost || 0;
+        if (totalCost === 0) return 0;
+        const totalMarkup = (estimate.total_amount || 0) - totalCost;
+        return (totalMarkup / totalCost) * 100;
+      },
       render: (estimate) => {
-        const financials = calculateEstimateFinancials(estimate.lineItems);
-        const status = getMarkupPerformanceStatus(financials.averageMarkupPercent);
+        const totalCost = estimate.total_cost || 0;
+        const averageMarkupPercent = totalCost === 0 ? 0 : (((estimate.total_amount || 0) - totalCost) / totalCost) * 100;
+        const status = getMarkupPerformanceStatus(averageMarkupPercent);
         
         return (
           <div className={cn(
@@ -374,7 +383,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
             status === 'poor' && 'text-yellow-700',
             status === 'critical' && 'text-red-700'
           )}>
-            {financials.averageMarkupPercent.toFixed(1)}%
+            {averageMarkupPercent.toFixed(1)}%
           </div>
         );
       },
@@ -385,12 +394,12 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       align: 'right',
       width: '100px',
       sortable: true,
-      getSortValue: (estimate) => calculateEstimateFinancials(estimate.lineItems).totalMarkupAmount,
+      getSortValue: (estimate) => (estimate.total_amount || 0) - (estimate.total_cost || 0),
       render: (estimate) => {
-        const financials = calculateEstimateFinancials(estimate.lineItems);
+        const totalMarkupAmount = (estimate.total_amount || 0) - (estimate.total_cost || 0);
         return (
           <div className="text-xs font-mono tabular-nums text-foreground/80">
-            {formatCurrency(financials.totalMarkupAmount, { showCents: false })}
+            {formatCurrency(totalMarkupAmount, { showCents: false })}
           </div>
         );
       },

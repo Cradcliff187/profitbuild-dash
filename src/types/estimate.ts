@@ -24,6 +24,7 @@ export interface Estimate {
   estimate_number: string;
   date_created: Date;
   total_amount: number;
+  total_cost?: number; // Total cost from database (stored/calculated) - optional for backward compatibility
   status: EstimateStatus;
   notes?: string;
   valid_until?: Date;
