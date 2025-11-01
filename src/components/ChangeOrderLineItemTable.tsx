@@ -11,7 +11,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ChangeOrderLineItemInput } from '@/types/changeOrder';
 import { CATEGORY_DISPLAY_MAP } from '@/types/estimate';
-import { PayeeSelectorMobile } from '@/components/PayeeSelectorMobile';
+import { PayeeSelector } from '@/components/PayeeSelector';
 
 interface ChangeOrderLineItemTableProps {
   lineItems: ChangeOrderLineItemInput[];
@@ -226,12 +226,10 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
                       </div>
                     </TableCell>
                     <TableCell className="p-2">
-                      <PayeeSelectorMobile
+                      <PayeeSelector
                         value={item.payee_id || ''}
                         onValueChange={(value) => onUpdateLineItem(index, 'payee_id', value || null)}
                         placeholder="Select..."
-                        required={false}
-                        showLabel={false}
                         compact={true}
                       />
                     </TableCell>

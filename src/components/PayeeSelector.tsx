@@ -1,377 +1,179 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import type { Payee, PayeeType } from "@/types/payee";
-import { PayeeForm } from "./PayeeForm";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectGroup,
+  SelectLabel,
+  SelectSeparator,
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PayeeForm } from '@/components/PayeeForm';
+import { PayeeType } from '@/types/payee';
+import { Plus } from 'lucide-react';
 
 interface PayeeSelectorProps {
-  value?: string;
-  onValueChange: (payeeId: string, payeeName?: string, payee?: Payee) => void;
-  onBlur?: () => void;
+  value: string;
+  onValueChange: (value: string | null) => void;
   placeholder?: string;
-  required?: boolean;
-  error?: string;
-  label?: string;
-  showLabel?: boolean;
+  compact?: boolean;
   filterInternal?: boolean;
   filterLabor?: boolean;
   defaultPayeeType?: PayeeType;
-  defaultIsInternal?: boolean;
   defaultProvidesLabor?: boolean;
 }
 
-export const PayeeSelector = ({ 
-  value, 
+export function PayeeSelector({
+  value,
   onValueChange,
-  onBlur,
-  placeholder = "Select a payee...",
-  required = false,
-  error = "",
-  label = "Payee",
-  showLabel = true,
-  filterInternal = false,
-  filterLabor = false,
+  placeholder = 'Select payee',
+  compact = false,
+  filterInternal,
+  filterLabor,
   defaultPayeeType,
-  defaultIsInternal,
-  defaultProvidesLabor
-}: PayeeSelectorProps) => {
-  const isMobile = useIsMobile();
-  const [open, setOpen] = useState(false);
+  defaultProvidesLabor,
+}: PayeeSelectorProps) {
   const [showPayeeForm, setShowPayeeForm] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
-  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!open) setSearchValue("");
-  }, [open]);
-
-  const { data: payees = [], refetch } = useQuery({
-    queryKey: ["payees", filterInternal, filterLabor],
+  const { data: payees, isLoading } = useQuery({
+    queryKey: ['payees', filterInternal, filterLabor],
     queryFn: async () => {
       let query = supabase
-        .from("payees")
-        .select("*")
-        .eq("is_active", true)
-        .order("payee_name");
+        .from('payees')
+        .select('*')
+        .eq('is_active', true)
+        .order('payee_name');
 
       if (filterInternal !== undefined) {
-        query = query.eq("is_internal", filterInternal);
+        query = query.eq('is_internal', filterInternal);
       }
-
       if (filterLabor !== undefined) {
-        query = query.eq("provides_labor", filterLabor);
+        query = query.eq('provides_labor', filterLabor);
       }
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as Payee[];
+      return data;
     },
   });
 
-  // Prevent hydration mismatch while detecting screen size
-  if (isMobile === undefined) {
-    return null;
-  }
-
-  // Helper function to format payee type display name
-  const formatPayeeType = (payeeType?: PayeeType) => {
-    if (!payeeType) return 'Other';
-    return payeeType.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+  const formatPayeeType = (type?: PayeeType): string => {
+    if (!type) return 'Other';
+    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
-  // Helper function to get badge variant for payee type
-  const getPayeeTypeBadgeVariant = (payeeType?: PayeeType) => {
-    switch (payeeType) {
-      case 'subcontractor':
-        return 'default';
-      case 'material_supplier':
-        return 'secondary';
-      case 'equipment_rental':
-        return 'outline';
-      case 'internal_labor':
-        return 'default';
-      case 'management':
-        return 'secondary';
-      case 'permit_authority':
-        return 'destructive';
-      case 'other':
-      default:
-        return 'outline';
+  const getPayeeTypeBadgeVariant = (type?: PayeeType) => {
+    switch (type) {
+      case PayeeType.SUBCONTRACTOR: return 'default';
+      case PayeeType.MATERIAL_SUPPLIER: return 'secondary';
+      case PayeeType.EQUIPMENT_RENTAL: return 'outline';
+      case PayeeType.INTERNAL_LABOR: return 'default';
+      default: return 'outline';
     }
   };
 
-  // Helper function to group payees by type
-  const groupPayeesByType = (payees: Payee[]) => {
-    const groups = payees.reduce((acc, payee) => {
-      const type = payee.payee_type || 'other';
-      if (!acc[type]) {
-        acc[type] = [];
-      }
+  const groupPayeesByType = () => {
+    if (!payees) return {};
+    return payees.reduce((acc, payee) => {
+      const type = payee.payee_type || PayeeType.OTHER;
+      if (!acc[type]) acc[type] = [];
       acc[type].push(payee);
       return acc;
-    }, {} as Record<PayeeType | 'other', Payee[]>);
-
-    // Sort groups - Internal Labor first, then alphabetically
-    const sortedGroups = Object.entries(groups).sort(([a], [b]) => {
-      if (a === 'internal_labor') return -1;
-      if (b === 'internal_labor') return 1;
-      return formatPayeeType(a as PayeeType).localeCompare(formatPayeeType(b as PayeeType));
-    });
-
-    return sortedGroups;
+    }, {} as Record<PayeeType, typeof payees>);
   };
 
-  // Helper function to format payee display name
-  const formatPayeeDisplayName = (payee: Payee) => {
-    let name = payee.payee_name;
-    if (payee.payee_type === 'internal_labor') {
-      name += ' (Internal)';
-    }
-    return name;
-  };
-
-  const selectedPayee = payees.find(payee => payee.id === value);
-
-  const handlePayeeCreated = async () => {
-    setShowPayeeForm(false);
-    const { data: updatedPayees } = await refetch();
-    if (updatedPayees && updatedPayees.length > 0) {
-      const sortedPayees = [...updatedPayees].sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-      const newestPayee = sortedPayees[0];
-      onValueChange(newestPayee.id, newestPayee.payee_name, newestPayee);
-    }
-  };
-
-  // Mobile: Use native select
-  if (isMobile) {
-    return (
-      <div className="space-y-2">
-        {showLabel && (
-          <Label className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
-            {label}
-          </Label>
-        )}
-        
-        <select
-          value={value || ''}
-          onChange={(e) => {
-            const selectedPayee = payees.find(p => p.id === e.target.value);
-            if (selectedPayee) {
-              onValueChange(selectedPayee.id, selectedPayee.payee_name, selectedPayee);
-            } else {
-              onValueChange('', undefined, undefined);
-            }
-          }}
-          onBlur={onBlur}
-          className={cn(
-            "flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-            error && "border-destructive"
-          )}
-        >
-          <option value="">{placeholder}</option>
-          {groupPayeesByType(payees).map(([type, groupPayees]) => (
-            <optgroup key={type} label={formatPayeeType(type as PayeeType)}>
-              {groupPayees
-                .sort((a, b) => a.payee_name.localeCompare(b.payee_name))
-                .map((payee) => (
-                  <option key={payee.id} value={payee.id}>
-                    {formatPayeeDisplayName(payee)}
-                  </option>
-                ))
-              }
-            </optgroup>
-          ))}
-        </select>
-
-        <Button
-          variant="outline"
-          onClick={() => setShowPayeeForm(true)}
-          className="w-full h-12 text-base"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Payee
-        </Button>
-
-        {error && (
-          <p className="text-sm font-medium text-destructive">{error}</p>
-        )}
-
-        {showPayeeForm && (
-          <PayeeForm
-            onSuccess={handlePayeeCreated}
-            onCancel={() => setShowPayeeForm(false)}
-            defaultPayeeType={defaultPayeeType}
-            defaultIsInternal={defaultIsInternal}
-            defaultProvidesLabor={defaultProvidesLabor}
-          />
-        )}
-      </div>
-    );
-  }
-
-  // Desktop: Use popover with command
-  const handlePayeeCreatedDesktop = async () => {
-    setShowPayeeForm(false);
-    const { data: updatedPayees } = await refetch();
-    if (updatedPayees && updatedPayees.length > 0) {
-      const sortedPayees = [...updatedPayees].sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-      const newestPayee = sortedPayees[0];
-      onValueChange(newestPayee.id, newestPayee.payee_name, newestPayee);
-    }
-  };
+  const selectedPayee = payees?.find(p => p.id === value);
+  const groupedPayees = groupPayeesByType();
 
   return (
-    <div className="space-y-2">
-      {showLabel && (
-        <Label className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
-          {label}
-        </Label>
-      )}
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            onBlur={onBlur}
-            className={cn(
-              "w-full justify-between",
-              error && "border-destructive"
-            )}
-          >
-            {selectedPayee ? (
-              <div className="flex items-center gap-2 truncate">
-                <span className="truncate">
-                  {formatPayeeDisplayName(selectedPayee)}
-                </span>
-                <Badge 
-                  variant={getPayeeTypeBadgeVariant(selectedPayee.payee_type)}
-                  className="text-xs"
-                >
-                  {formatPayeeType(selectedPayee.payee_type)}
+    <>
+      <Select
+        value={value}
+        onValueChange={(val) => {
+          if (val === '__add_new__') {
+            setShowPayeeForm(true);
+          } else {
+            onValueChange(val);
+          }
+        }}
+      >
+        <SelectTrigger className={compact ? 'h-8 text-xs' : 'h-9 text-sm'}>
+          <SelectValue placeholder={placeholder}>
+            {selectedPayee && (
+              <div className="flex items-center gap-1.5">
+                <span className="truncate">{selectedPayee.payee_name}</span>
+                <Badge variant={getPayeeTypeBadgeVariant(selectedPayee.payee_type as PayeeType)} className="h-4 text-[10px] px-1">
+                  {formatPayeeType(selectedPayee.payee_type as PayeeType)}
                 </Badge>
               </div>
-            ) : (
-              placeholder
             )}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-[--radix-popper-anchor-width] p-0 z-50">
-          <Command>
-            <CommandInput 
-              placeholder="Search payees..." 
-              value={searchValue}
-              onValueChange={setSearchValue}
-            />
-            <CommandList>
-              <CommandEmpty>
-                <div className="p-2">
-                  <p className="text-sm text-muted-foreground mb-2">No payees found.</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setShowPayeeForm(true);
-                      setOpen(false);
-                    }}
-                    className="w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add New Payee
-                  </Button>
-                </div>
-              </CommandEmpty>
-              <CommandItem
-                onSelect={() => {
-                  setShowPayeeForm(true);
-                  setOpen(false);
-                }}
-                className="font-medium"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add New Payee
-              </CommandItem>
-              {groupPayeesByType(payees).map(([type, groupPayees]) => (
-                <CommandGroup key={type} heading={formatPayeeType(type as PayeeType)}>
-                  {groupPayees
-                    .sort((a, b) => a.payee_name.localeCompare(b.payee_name))
-                    .map((payee) => (
-                      <CommandItem
-                        key={payee.id}
-                        value={`${payee.payee_name} ${payee.email ?? ''} ${formatPayeeType(payee.payee_type)} ${payee.hourly_rate ?? ''}`}
-                        onSelect={() => {
-                          onValueChange(payee.id, payee.payee_name, payee);
-                          setOpen(false);
-                        }}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent className={compact ? 'text-xs' : 'text-sm'}>
+          {isLoading ? (
+            <SelectItem value="__loading__" disabled>Loading...</SelectItem>
+          ) : Object.keys(groupedPayees).length === 0 ? (
+            <SelectItem value="__empty__" disabled>No payees found</SelectItem>
+          ) : (
+            <>
+              {(Object.entries(groupedPayees) as Array<[string, any[]]>).map(([type, payeeList], idx) => (
+                <div key={type}>
+                  {idx > 0 && <SelectSeparator />}
+                  <SelectGroup>
+                    <SelectLabel className={compact ? 'text-[10px] py-1' : 'text-xs'}>
+                      {formatPayeeType(type as PayeeType)}
+                    </SelectLabel>
+                    {payeeList.map((payee) => (
+                      <SelectItem 
+                        key={payee.id} 
+                        value={payee.id}
+                        className={compact ? 'text-xs py-1.5' : 'text-sm'}
                       >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            value === payee.id ? "opacity-100" : "opacity-0"
+                        <div className="flex items-center gap-1.5">
+                          <span>{payee.payee_name}</span>
+                          {payee.is_internal && (
+                            <span className="text-[10px] text-muted-foreground">(Internal)</span>
                           )}
-                        />
-                        <div className="flex-1 truncate">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium">
-                              {formatPayeeDisplayName(payee)}
-                            </span>
-                            <Badge 
-                              variant={getPayeeTypeBadgeVariant(payee.payee_type)}
-                              className="text-xs"
-                            >
-                              {formatPayeeType(payee.payee_type)}
-                            </Badge>
-                          </div>
-                          <div className="flex flex-col text-xs text-muted-foreground">
-                            {payee.payee_type === 'internal_labor' && payee.hourly_rate && (
-                              <span className="text-primary font-medium">
-                                ${payee.hourly_rate}/hr
-                              </span>
-                            )}
-                            {payee.email && payee.payee_type !== 'internal_labor' && (
-                              <span>{payee.email}</span>
-                            )}
-                          </div>
                         </div>
-                      </CommandItem>
-                    ))
-                  }
-                </CommandGroup>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </div>
               ))}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+              <SelectSeparator />
+              <SelectItem value="__add_new__" className={compact ? 'text-xs py-1.5' : 'text-sm'}>
+                <div className="flex items-center gap-1.5">
+                  <Plus className="h-3 w-3" />
+                  <span>Add New Payee</span>
+                </div>
+              </SelectItem>
+            </>
+          )}
+        </SelectContent>
+      </Select>
 
-      {error && (
-        <p className="text-sm font-medium text-destructive">{error}</p>
-      )}
-
-      {showPayeeForm && (
-        <PayeeForm
-          onSuccess={handlePayeeCreatedDesktop}
-          onCancel={() => setShowPayeeForm(false)}
-          defaultPayeeType={defaultPayeeType}
-          defaultIsInternal={defaultIsInternal}
-          defaultProvidesLabor={defaultProvidesLabor}
-        />
-      )}
-    </div>
+      <Dialog open={showPayeeForm} onOpenChange={setShowPayeeForm}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Payee</DialogTitle>
+          </DialogHeader>
+          <PayeeForm
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['payees'] });
+              setShowPayeeForm(false);
+            }}
+            onCancel={() => setShowPayeeForm(false)}
+            defaultPayeeType={defaultPayeeType}
+            defaultProvidesLabor={defaultProvidesLabor}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
-};
+}
