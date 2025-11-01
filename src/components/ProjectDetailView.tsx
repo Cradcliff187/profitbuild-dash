@@ -329,6 +329,7 @@ export const ProjectDetailView = () => {
               <Route path="changes" element={
                 <ChangeOrdersList 
                   projectId={project.id}
+                  projectContingencyRemaining={project.contingency_remaining || 0}
                   onEdit={(co) => {
                     setEditingChangeOrder(co);
                     setShowChangeOrderModal(true);

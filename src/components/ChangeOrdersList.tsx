@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, Search, CheckCircle, X, MoreHorizontal } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, X, MoreHorizontal } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 
 interface ChangeOrdersListProps {
   projectId: string;
+  projectContingencyRemaining?: number;
   onEdit?: (changeOrder: ChangeOrder) => void;
   onCreateNew?: () => void;
   enablePagination?: boolean;
@@ -28,7 +29,8 @@ interface ChangeOrdersListProps {
 }
 
 export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({ 
-  projectId, 
+  projectId,
+  projectContingencyRemaining = 0,
   onEdit, 
   onCreateNew,
   enablePagination = false,
@@ -36,7 +38,6 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
 }) => {
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -71,12 +72,6 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
       fetchChangeOrders();
     }
   }, [projectId]);
-
-  const filteredChangeOrders = changeOrders.filter(changeOrder => 
-    changeOrder.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    changeOrder.change_order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    changeOrder.reason_for_change?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const handleDelete = async (id: string) => {
     try {
@@ -178,7 +173,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
   };
 
   // Calculate totals for approved changes
-  const approvedChangeOrders = filteredChangeOrders.filter(co => co.status === 'approved');
+  const approvedChangeOrders = changeOrders.filter(co => co.status === 'approved');
   const totalClientAmount = approvedChangeOrders.reduce((sum, co) => sum + (co.client_amount || 0), 0);
   const totalCostImpact = approvedChangeOrders.reduce((sum, co) => sum + (co.cost_impact || 0), 0);
   const totalMarginImpact = approvedChangeOrders.reduce((sum, co) => sum + (co.margin_impact || 0), 0);
@@ -193,14 +188,14 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
     endIndex,
     goToPage,
   } = usePagination({
-    totalItems: filteredChangeOrders.length,
+    totalItems: changeOrders.length,
     pageSize,
     initialPage: 1,
   });
 
   const paginatedChangeOrders = enablePagination 
-    ? filteredChangeOrders.slice(startIndex, endIndex)
-    : filteredChangeOrders;
+    ? changeOrders.slice(startIndex, endIndex)
+    : changeOrders;
 
   if (loading) {
     return (
@@ -226,29 +221,11 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
           </div>
         </CardHeader>
         <CardContent className="p-3">
-          {/* Search */}
-          <div className="mb-4">
-            <div className="relative max-w-md">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search change orders..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-8 text-sm"
-              />
-            </div>
-          </div>
-
           {/* Change Orders Table */}
-          {filteredChangeOrders.length === 0 ? (
+          {changeOrders.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <h3 className="text-lg font-semibold mb-2">No change orders found</h3>
-              <p>
-                {changeOrders.length === 0 
-                  ? "No change orders have been created for this project yet."
-                  : "No change orders match your search criteria."
-                }
-              </p>
+              <p>No change orders have been created for this project yet.</p>
             </div>
           ) : (
             <div className="border rounded-md">
@@ -438,13 +415,13 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
           )}
 
           {/* Enhanced Change Orders Summary */}
-          {filteredChangeOrders.length > 0 && (
+          {changeOrders.length > 0 && (
             <Card className="mt-4">
               <CardHeader className="p-3">
                 <CardTitle className="text-sm font-medium">Change Orders Profit Summary</CardTitle>
               </CardHeader>
               <CardContent className="p-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
                   <div className="text-center p-3 border rounded-lg">
                     <p className="text-xs text-muted-foreground mb-0.5">Total Client Amount</p>
                     <p className="text-lg font-bold text-green-600 font-mono tabular-nums">
@@ -472,10 +449,19 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                       {overallMarginPercentage.toFixed(1)}% margin
                     </p>
                   </div>
+                  <div className="text-center p-3 border rounded-lg bg-blue-50">
+                    <p className="text-xs text-muted-foreground mb-0.5">Remaining Contingency</p>
+                    <p className="text-lg font-bold text-blue-700 font-mono tabular-nums">
+                      {formatCurrency(projectContingencyRemaining - totalContingencyBilled, { showCents: false })}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Available for future COs
+                    </p>
+                  </div>
                 </div>
                 <div className="flex justify-between items-center text-xs text-muted-foreground pt-3 border-t">
                   <span>
-                    {approvedChangeOrders.length} of {filteredChangeOrders.length} change orders approved
+                    {approvedChangeOrders.length} of {changeOrders.length} change orders approved
                   </span>
                   {totalContingencyBilled > 0 && (
                     <span className="text-blue-600 font-medium">
@@ -488,7 +474,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
           )}
 
           {/* Pagination */}
-          {enablePagination && filteredChangeOrders.length > pageSize && (
+          {enablePagination && changeOrders.length > pageSize && (
             <div className="flex justify-center mt-4">
               <CompletePagination
                 currentPage={currentPage}
