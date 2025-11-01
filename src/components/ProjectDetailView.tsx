@@ -28,7 +28,7 @@ import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { calculateMultipleProjectFinancials, ProjectWithFinancials } from "@/utils/projectFinancials";
+import { ProjectWithFinancials } from "@/utils/projectFinancials";
 import type { Database } from "@/integrations/supabase/types";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 
@@ -177,12 +177,8 @@ export const ProjectDetailView = () => {
         category: expense.category as any
       }));
 
-      // Calculate project financials
-      const [projectWithFinancials] = await calculateMultipleProjectFinancials(
-        [formattedProject],
-        formattedEstimates,
-        formattedExpenses
-      );
+      // Project financials are already calculated by database functions
+      const projectWithFinancials = formattedProject as ProjectWithFinancials;
 
       setProject(projectWithFinancials);
       setEstimates(formattedEstimates);
