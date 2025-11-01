@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, Search, CheckCircle, X } from 'lucide-react';
+import { Edit, Trash2, Search, CheckCircle, X, MoreHorizontal } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ChangeOrderStatusBadge, ChangeOrderStatus } from './ChangeOrderStatusBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -204,36 +205,36 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
   if (loading) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="text-center">Loading change orders...</div>
+        <CardContent className="p-3">
+          <div className="text-center text-sm">Loading change orders...</div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <Card>
-        <CardHeader>
+        <CardHeader className="p-3">
           <div className="flex items-center justify-between">
-            <CardTitle>Change Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">Change Orders</CardTitle>
             {onCreateNew && (
-              <Button onClick={onCreateNew}>
+              <Button onClick={onCreateNew} size="sm">
                 Create New Change Order
               </Button>
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3">
           {/* Search */}
-          <div className="mb-6">
+          <div className="mb-4">
             <div className="relative max-w-md">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search change orders..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
+                className="pl-9 h-8 text-sm"
               />
             </div>
           </div>
@@ -254,163 +255,180 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
               <Table>
                 <TableHeader>
                   <TableRow>
-                  <TableHead>Change Order #</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Client Amount</TableHead>
-                  <TableHead>Cost Impact</TableHead>
-                  <TableHead>Margin Impact</TableHead>
-                  <TableHead>Contingency Billed</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Requested Date</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-xs font-medium">Change Order #</TableHead>
+                  <TableHead className="text-xs font-medium">Description</TableHead>
+                  <TableHead className="text-right text-xs font-medium">Client Amount</TableHead>
+                  <TableHead className="text-right text-xs font-medium">Cost Impact</TableHead>
+                  <TableHead className="text-right text-xs font-medium">Margin $</TableHead>
+                  <TableHead className="text-right text-xs font-medium">Margin %</TableHead>
+                  <TableHead className="text-right text-xs font-medium">Contingency Billed</TableHead>
+                  <TableHead className="text-xs font-medium">Status</TableHead>
+                  <TableHead className="text-xs font-medium">Date</TableHead>
+                  <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedChangeOrders.map((changeOrder) => (
                     <TableRow key={changeOrder.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="text-xs">
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium">
+                          <span className="font-medium">
                             {(changeOrder as any).projects?.project_number} / {changeOrder.change_order_number}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[10px] text-muted-foreground">
                             {(changeOrder as any).projects?.project_name}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs">
                         <div className="max-w-xs truncate" title={changeOrder.description}>
                           {changeOrder.description}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-right text-xs font-mono tabular-nums">
                         {changeOrder.client_amount ? 
                           formatCurrency(changeOrder.client_amount) : 
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground">—</span>
                         }
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-right text-xs font-mono tabular-nums">
                         {changeOrder.cost_impact ? 
                           formatCurrency(changeOrder.cost_impact) : 
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground">—</span>
                         }
                       </TableCell>
-                      <TableCell>
-                        {changeOrder.margin_impact !== null && changeOrder.margin_impact !== undefined && changeOrder.client_amount ? (
-                          <div className="space-y-1">
-                             <span className={`font-medium ${
-                               changeOrder.margin_impact >= 0 ? 'text-green-600' : 'text-red-600'
-                             }`}>
-                               {formatCurrency(changeOrder.margin_impact, { showCents: false })}
-                             </span>
-                            <div className={`text-xs ${
-                              changeOrder.margin_impact >= 0 ? 'text-green-500' : 'text-red-500'
-                            }`}>
-                              {((changeOrder.margin_impact / changeOrder.client_amount) * 100).toFixed(1)}%
-                            </div>
-                          </div>
+                      <TableCell className="text-right">
+                        {changeOrder.margin_impact !== null && changeOrder.margin_impact !== undefined ? (
+                          <span className={`font-medium text-xs font-mono tabular-nums ${
+                            changeOrder.margin_impact >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {formatCurrency(changeOrder.margin_impact, { showCents: false })}
+                          </span>
                         ) : (
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground text-xs">—</span>
                         )}
                       </TableCell>
-                      <TableCell>
-                        {changeOrder.contingency_billed_to_client && changeOrder.contingency_billed_to_client > 0 ? (
-                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                            {formatCurrency(changeOrder.contingency_billed_to_client)}
-                          </Badge>
+                      <TableCell className="text-right">
+                        {changeOrder.client_amount > 0 && changeOrder.margin_impact !== null && changeOrder.margin_impact !== undefined ? (
+                          <span className={`font-medium text-xs font-mono tabular-nums ${
+                            changeOrder.margin_impact >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {((changeOrder.margin_impact / changeOrder.client_amount) * 100).toFixed(1)}%
+                          </span>
                         ) : (
-                          <span className="text-muted-foreground text-xs">$0</span>
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {changeOrder.contingency_billed_to_client && changeOrder.contingency_billed_to_client > 0 ? (
+                          <span className="text-xs font-mono tabular-nums text-blue-700">
+                            {formatCurrency(changeOrder.contingency_billed_to_client, { showCents: false })}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
                         )}
                       </TableCell>
                       <TableCell>
                         <ChangeOrderStatusBadge status={changeOrder.status as ChangeOrderStatus} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs">
                         {changeOrder.requested_date ? 
-                          format(new Date(changeOrder.requested_date), 'MMM dd, yyyy') : 
+                          format(new Date(changeOrder.requested_date), 'MMM dd') : 
                           'N/A'
                         }
                       </TableCell>
                       <TableCell>
-                        <div className="flex space-x-2">
-                          {changeOrder.status === 'pending' && (
-                            <>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="outline" size="sm" className="text-green-600 border-green-200 hover:bg-green-50">
-                                    <CheckCircle className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Approve Change Order</AlertDialogTitle>
-                                   <AlertDialogDescription>
-                                     Are you sure you want to approve change order {changeOrder.change_order_number} for {formatCurrency(changeOrder.client_amount || 0, { showCents: true })}?
-                                   </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleApprove(changeOrder)}>
-                                      Approve
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50">
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Reject Change Order</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to reject change order {changeOrder.change_order_number}? This action can be reversed later if needed.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleReject(changeOrder)} className="bg-red-600 hover:bg-red-700">
-                                      Reject
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </>
-                          )}
-                          {onEdit && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => onEdit(changeOrder)}
-                            >
-                              <Edit className="h-4 w-4" />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
                             </Button>
-                          )}
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Change Order</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete change order {changeOrder.change_order_number}? 
-                                  This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(changeOrder.id)}>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            {changeOrder.status === 'pending' && (
+                              <>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                      <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                      Approve
+                                    </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Approve Change Order</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to approve change order {changeOrder.change_order_number} for {formatCurrency(changeOrder.client_amount || 0, { showCents: true })}?
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleApprove(changeOrder)}>
+                                        Approve
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                      <X className="h-4 w-4 mr-2 text-red-600" />
+                                      Reject
+                                    </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Reject Change Order</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to reject change order {changeOrder.change_order_number}? This action can be reversed later if needed.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleReject(changeOrder)} className="bg-red-600 hover:bg-red-700">
+                                        Reject
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                                <DropdownMenuSeparator />
+                              </>
+                            )}
+                            {onEdit && (
+                              <DropdownMenuItem onClick={() => onEdit(changeOrder)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem 
+                                  onSelect={(e) => e.preventDefault()}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
                                   Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Change Order</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete change order {changeOrder.change_order_number}? 
+                                    This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(changeOrder.id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -421,32 +439,32 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
 
           {/* Enhanced Change Orders Summary */}
           {filteredChangeOrders.length > 0 && (
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-lg">Change Orders Profit Summary</CardTitle>
+            <Card className="mt-4">
+              <CardHeader className="p-3">
+                <CardTitle className="text-sm font-medium">Change Orders Profit Summary</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">Total Client Amount</p>
-                    <p className="text-xl font-bold text-green-600">
+              <CardContent className="p-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                  <div className="text-center p-3 border rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-0.5">Total Client Amount</p>
+                    <p className="text-lg font-bold text-green-600 font-mono tabular-nums">
                       {formatCurrency(totalClientAmount, { showCents: false })}
                     </p>
-                    <p className="text-xs text-muted-foreground">Approved change orders</p>
+                    <p className="text-[10px] text-muted-foreground">Approved change orders</p>
                   </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">Total Cost Impact</p>
-                    <p className="text-xl font-bold text-orange-600">
+                  <div className="text-center p-3 border rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-0.5">Total Cost Impact</p>
+                    <p className="text-lg font-bold text-orange-600 font-mono tabular-nums">
                       {formatCurrency(totalCostImpact, { showCents: false })}
                     </p>
-                    <p className="text-xs text-muted-foreground">Our costs</p>
+                    <p className="text-[10px] text-muted-foreground">Our costs</p>
                   </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">Net Profit Impact</p>
-                    <p className={`text-xl font-bold ${totalMarginImpact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className="text-center p-3 border rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-0.5">Net Profit Impact</p>
+                    <p className={`text-lg font-bold font-mono tabular-nums ${totalMarginImpact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {formatCurrency(totalMarginImpact, { showCents: false })}
                     </p>
-                    <p className={`text-sm font-medium ${
+                    <p className={`text-xs font-medium font-mono tabular-nums ${
                       overallMarginPercentage >= 20 ? 'text-green-600' : 
                       overallMarginPercentage >= 10 ? 'text-green-500' : 
                       overallMarginPercentage >= 0 ? 'text-yellow-600' : 'text-red-600'
@@ -455,13 +473,13 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                     </p>
                   </div>
                 </div>
-                <div className="flex justify-between items-center text-sm text-muted-foreground pt-4 border-t">
+                <div className="flex justify-between items-center text-xs text-muted-foreground pt-3 border-t">
                   <span>
                     {approvedChangeOrders.length} of {filteredChangeOrders.length} change orders approved
                   </span>
                   {totalContingencyBilled > 0 && (
                     <span className="text-blue-600 font-medium">
-                      {formatCurrency(totalContingencyBilled)} contingency billed to client
+                      {formatCurrency(totalContingencyBilled, { showCents: false })} contingency billed
                     </span>
                   )}
                 </div>
@@ -471,7 +489,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
 
           {/* Pagination */}
           {enablePagination && filteredChangeOrders.length > pageSize && (
-            <div className="flex justify-center mt-6">
+            <div className="flex justify-center mt-4">
               <CompletePagination
                 currentPage={currentPage}
                 totalPages={totalPages}
