@@ -15,7 +15,6 @@ export interface ProjectWithFinancials extends Project {
   // Three-Tier Margin Analysis
   original_margin: number; // Revenue from approved estimate minus estimated costs only
   projected_margin: number; // Current contract amount minus projected costs (quotes/estimates + change orders)
-  actual_margin: number; // Current contract amount minus allocated actual expenses
   
   // Original Approved Estimate Measurements
   estimatedCost: number; // Internal labor cost from approved estimate only
@@ -279,7 +278,6 @@ export async function calculateProjectFinancials(
   // Calculate three-tier margins - use database values for projected_margin and contracted_amount
   const originalMargin = originalContractAmount - (approvedEstimateInternalLaborCost + approvedEstimateExternalCosts);
   const projectedMarginValue = project.projected_margin || 0;
-  const actualMargin = (project.contracted_amount || currentContractAmount) - actualExpenses;
 
   // Add margin percentage validation
   if (projectedMargin < 0) {
@@ -288,16 +286,12 @@ export async function calculateProjectFinancials(
   if (projectedMarginValue < 0) {
     console.error('CRITICAL: Negative projected margin detected - costs may be using prices');
   }
-  if (actualMargin < 0) {
-    console.error('CRITICAL: Negative actual margin detected - costs may be using prices');
-  }
 
   return {
     ...project,
     // Three-tier margin analysis
     original_margin: originalMargin,
     projected_margin: projectedMarginValue,
-    actual_margin: actualMargin,
     
     // Original approved estimate measurements
     estimatedCost,
@@ -595,7 +589,6 @@ export async function calculateMultipleProjectFinancials(
     // Calculate three-tier margins
     const originalMargin = originalContractAmount - (approvedEstimateInternalLaborCost + approvedEstimateExternalCosts);
     const projectedMarginValue = currentContractAmount - projectedCosts;
-    const actualMargin = currentContractAmount - actualExpenses;
 
     // Add margin percentage validation
     if (projectedMargin < 0) {
@@ -604,16 +597,12 @@ export async function calculateMultipleProjectFinancials(
     if (projectedMarginValue < 0) {
       console.error('CRITICAL: Negative projected margin detected - costs may be using prices');
     }
-    if (actualMargin < 0) {
-      console.error('CRITICAL: Negative actual margin detected - costs may be using prices');
-    }
 
     return {
       ...project,
       // Three-tier margin analysis
       original_margin: originalMargin,
       projected_margin: projectedMarginValue,
-      actual_margin: actualMargin,
       
       // Original approved estimate measurements
       estimatedCost,
