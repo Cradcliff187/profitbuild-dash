@@ -15,7 +15,7 @@ import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ProjectWithFinancials } from "@/utils/projectFinancials";
+import { ProjectWithFinancials, calculateMultipleProjectFinancials } from "@/utils/projectFinancials";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -194,8 +194,14 @@ const Projects = () => {
         updated_at: new Date(expense.updated_at)
       })) || [];
 
-      // Projects already have financials calculated by database functions
-      setProjects(formattedProjects as ProjectWithFinancials[]);
+      // Enrich projects with line item counts (estimate + change order line items)
+      const enrichedProjects = await calculateMultipleProjectFinancials(
+        formattedProjects as any[],
+        formattedEstimates,
+        formattedExpenses
+      );
+
+      setProjects(enrichedProjects);
       setEstimates(formattedEstimates);
       setQuotes(formattedQuotes);
       setExpenses(formattedExpenses);

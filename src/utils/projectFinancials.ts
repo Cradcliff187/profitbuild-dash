@@ -395,6 +395,7 @@ export async function calculateMultipleProjectFinancials(
   let allQuotes: any[] = [];
   let allQuoteLineItems: any[] = [];
   let allChangeOrders: any[] = [];
+  let allChangeOrderLineItems: any[] = [];
   
   if (currentEstimateIds.length > 0) {
     try {
@@ -422,13 +423,20 @@ export async function calculateMultipleProjectFinancials(
       // Get approved change orders for all projects
       const { data: changeOrders } = await supabase
         .from('change_orders')
-        .select('project_id, cost_impact, client_amount, margin_impact')
+        .select('id, project_id, cost_impact, client_amount, margin_impact')
         .in('project_id', projects.map(p => p.id))
         .eq('status', 'approved');
+      
+      // Get change order line items for all change orders
+      const { data: changeOrderLineItems } = await supabase
+        .from('change_order_line_items')
+        .select('id, change_order_id, category')
+        .in('change_order_id', (changeOrders || []).map(co => co.id));
       
       allQuotes = quotes || [];
       allQuoteLineItems = quoteLineItems || [];
       allChangeOrders = changeOrders || [];
+      allChangeOrderLineItems = changeOrderLineItems || [];
     } catch (error) {
       console.error('Error fetching line items and quotes:', error);
     }
@@ -510,16 +518,27 @@ export async function calculateMultipleProjectFinancials(
       const totalApprovedCosts = approvedEstimateInternalLaborCost + approvedEstimateExternalCosts;
       approvedEstimateMargin = approvedEstimateTotal - totalApprovedCosts;
 
+      // Get change orders for this project
+      const projectChangeOrders = allChangeOrders.filter(co => co.project_id === project.id);
+      
+      // Get change order line items for this project's change orders
+      const projectCOIds = projectChangeOrders.map(co => co.id);
+      const projectCOLineItems = allChangeOrderLineItems.filter(li => 
+        projectCOIds.includes(li.change_order_id)
+      );
+      
+      // Calculate line item counts including change orders
+      const changeOrderExternalCount = projectCOLineItems.filter(item =>
+        item.category !== 'labor_internal' && item.category !== 'management'
+      ).length;
+      
       // Legacy calculations for compatibility
-      nonInternalLineItemCount = externalItems.length;
-      totalLineItemCount = projectLineItems.length;
+      nonInternalLineItemCount = externalItems.length + changeOrderExternalCount;
+      totalLineItemCount = projectLineItems.length + projectCOLineItems.length;
       originalEstimatedCosts = projectLineItems.reduce((sum, item) => {
         const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
         return sum + itemCost;
       }, 0);
-
-      // Get change orders for this project
-      const projectChangeOrders = allChangeOrders.filter(co => co.project_id === project.id);
       
       // Calculate change order impacts first (needed for revenue calculation)
       if (projectChangeOrders.length > 0) {

@@ -1092,9 +1092,9 @@ export const ProjectsTableView = ({
       label: 'Line Items',
       align: 'center' as const,
       sortable: true,
-      getSortValue: (project) => project.nonInternalLineItemCount || 0,
+      getSortValue: (project) => project.totalLineItemCount || 0,
       render: (project: ProjectWithFinancials) => {
-        const count = project.nonInternalLineItemCount || 0;
+        const count = project.totalLineItemCount || 0;
         
         return (
           <TooltipProvider>
@@ -1107,7 +1107,7 @@ export const ProjectsTableView = ({
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Non-labor line items in approved estimate</p>
+                <p>Total line items (estimate + approved change orders)</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
