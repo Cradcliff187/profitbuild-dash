@@ -50,7 +50,7 @@ export default defineConfig(({ mode }) => ({
         name: 'ProfitBuild - Construction Profit Tracker',
         short_name: 'ProfitBuild',
         description: 'Professional construction project management app to track profits, estimates, quotes, and expenses for construction businesses.',
-        theme_color: '#1e40af',
+        theme_color: '#1b2b43',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',

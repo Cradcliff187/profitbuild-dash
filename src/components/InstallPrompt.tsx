@@ -24,6 +24,16 @@ export const InstallPrompt = () => {
     // Listen for install prompt
     const handler = (e: Event) => {
       e.preventDefault();
+      
+      // Only show on mobile devices
+      const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent) ||
+                       (window.innerWidth < 768);
+      
+      if (!isMobile) {
+        console.log('Desktop detected - install prompt suppressed');
+        return;
+      }
+      
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       
       // Check if user previously dismissed
