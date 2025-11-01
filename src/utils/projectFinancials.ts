@@ -64,6 +64,12 @@ export interface ProjectWithFinancials extends Project {
 
 /**
  * Calculate financial data for a project based on estimates and expenses
+ * 
+ * @deprecated This function is deprecated. Use database fields directly instead.
+ * Financial metrics are now calculated by database functions and stored in project fields.
+ * Fetch projects with financial fields directly from the database using Supabase queries.
+ * This function should only be used for legacy data formatting during the transition period.
+ * See src/docs/financial-calculations.md for details on the database-driven approach.
  */
 export async function calculateProjectFinancials(
   project: Project,
@@ -345,6 +351,12 @@ export async function calculateProjectFinancials(
 
 /**
  * Calculate financial data for multiple projects efficiently
+ * 
+ * @deprecated This function is deprecated. Use database fields directly instead.
+ * Financial metrics are now calculated by database functions and stored in project fields.
+ * Fetch projects with financial fields directly from the database using Supabase queries.
+ * This function should only be used for legacy data formatting during the transition period.
+ * See src/docs/financial-calculations.md for details on the database-driven approach.
  */
 export async function calculateMultipleProjectFinancials(
   projects: Project[],
