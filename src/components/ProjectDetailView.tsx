@@ -177,8 +177,17 @@ export const ProjectDetailView = () => {
         category: expense.category as any
       }));
 
+      // Calculate change order totals from approved change orders
+      const approvedChangeOrders = (changeOrdersData || []).filter(co => co.status === 'approved');
+      const changeOrderRevenue = approvedChangeOrders.reduce((sum, co) => sum + (co.client_amount || 0), 0);
+      const changeOrderCosts = approvedChangeOrders.reduce((sum, co) => sum + (co.cost_impact || 0), 0);
+
       // Project financials are already calculated by database functions
-      const projectWithFinancials = formattedProject as ProjectWithFinancials;
+      const projectWithFinancials = {
+        ...formattedProject,
+        changeOrderRevenue,
+        changeOrderCosts
+      } as ProjectWithFinancials;
 
       setProject(projectWithFinancials);
       setEstimates(formattedEstimates);
