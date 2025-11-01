@@ -88,7 +88,7 @@ export const ProjectsTableView = ({
     { key: 'margin_percentage', label: 'Projected Margin %', required: false },
     { key: 'actual_expenses', label: 'Actual Expenses', required: false },
     { key: 'line_items', label: 'Line Items', required: false },
-    { key: 'contingency_remaining', label: 'Contingency', required: false },
+    { key: 'contingency_remaining', label: 'Contingency Remaining', required: false },
     { key: 'actions', label: 'Actions', required: true },
   ];
 
@@ -768,7 +768,7 @@ export const ProjectsTableView = ({
     },
     {
       key: 'contingency_remaining',
-      label: 'Contingency',
+      label: 'Contingency Remaining',
       align: 'right' as const,
       sortable: true,
       getSortValue: (project) => project.contingency_remaining || 0,
@@ -1113,27 +1113,6 @@ export const ProjectsTableView = ({
           </TooltipProvider>
         );
       }
-    },
-    {
-      key: 'contingency_remaining',
-      label: 'Contingency',
-      align: 'right',
-      render: (project) => (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="cursor-help text-right">
-              <span className="font-mono tabular-nums">{formatCurrency(project.contingencyRemaining)}</span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <div>
-              <p><strong>Remaining Contingency:</strong> {formatCurrency(project.contingencyRemaining)}</p>
-              <p>From approved estimate contingency allocation minus usage by change orders</p>
-              <p>Budget buffer available for unexpected costs or scope changes</p>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      ),
     },
     {
       key: 'actions',

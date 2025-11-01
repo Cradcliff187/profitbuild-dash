@@ -146,10 +146,15 @@ export async function calculateProjectFinancials(
         .select('quote_id, category, total_cost, estimate_line_item_id')
         .in('quote_id', (acceptedQuotes || []).map(q => q.id));
 
-      // Get approved change orders for this project
+      // Get approved change orders for this project WITH line items
       const { data: approvedChangeOrders } = await supabase
         .from('change_orders')
-        .select('cost_impact, client_amount, margin_impact')
+        .select(`
+          cost_impact, 
+          client_amount, 
+          margin_impact,
+          line_items:change_order_line_items(id, category)
+        `)
         .eq('project_id', project.id)
         .eq('status', 'approved');
 
@@ -180,9 +185,20 @@ export async function calculateProjectFinancials(
         const totalApprovedCosts = approvedEstimateInternalLaborCost + approvedEstimateExternalCosts;
         approvedEstimateMargin = approvedEstimateTotal - totalApprovedCosts;
 
+        // Calculate line item counts including change orders
+        const changeOrderLineItemCount = approvedChangeOrders?.reduce((sum, co) => 
+          sum + (co.line_items?.length || 0), 0
+        ) || 0;
+        
+        const changeOrderExternalCount = approvedChangeOrders?.reduce((sum, co) => 
+          sum + (co.line_items?.filter(item => 
+            item.category !== 'labor_internal' && item.category !== 'management'
+          ).length || 0), 0
+        ) || 0;
+        
         // Legacy calculations for compatibility
-        nonInternalLineItemCount = externalItems.length;
-        totalLineItemCount = lineItems.length;
+        nonInternalLineItemCount = externalItems.length + changeOrderExternalCount;
+        totalLineItemCount = lineItems.length + changeOrderLineItemCount;
         originalEstimatedCosts = lineItems.reduce((sum, item) => {
           const itemCost = item.total_cost || (item.cost_per_unit || 0) * (item.quantity || 0);
           return sum + itemCost;
