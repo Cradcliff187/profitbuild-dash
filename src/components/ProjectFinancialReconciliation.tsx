@@ -97,7 +97,7 @@ export const ProjectFinancialReconciliation: React.FC<ProjectFinancialReconcilia
   };
 
   const renderOverviewCards = (project: ProjectFinancialSummary) => {
-    const marginStatus = getMarginStatus(project.actual_margin_percentage);
+    const marginStatus = getMarginStatus(project.current_margin_percentage);
     const MarginIcon = marginStatus.icon;
 
     return (
@@ -157,9 +157,9 @@ export const ProjectFinancialReconciliation: React.FC<ProjectFinancialReconcilia
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Margin</p>
+                <p className="text-sm text-muted-foreground">Current Margin %</p>
                 <p className={`text-2xl font-bold ${marginStatus.color}`}>
-                  {project.actual_margin_percentage.toFixed(1)}%
+                  {project.current_margin_percentage.toFixed(1)}%
                 </p>
                 <p className={`text-xs ${marginStatus.color}`}>
                   {marginStatus.status}
@@ -243,8 +243,8 @@ export const ProjectFinancialReconciliation: React.FC<ProjectFinancialReconcilia
             </TableRow>
           </TableHeader>
           <TableBody>
-            {financialData.map((project) => {
-              const marginStatus = getMarginStatus(project.actual_margin_percentage);
+          {financialData.map((project) => {
+              const marginStatus = getMarginStatus(project.current_margin_percentage);
               return (
                 <TableRow key={project.project_id}>
                   <TableCell>
@@ -264,7 +264,7 @@ export const ProjectFinancialReconciliation: React.FC<ProjectFinancialReconcilia
                   </TableCell>
                   <TableCell>
                     <span className={marginStatus.color}>
-                      {project.actual_margin_percentage.toFixed(1)}%
+                      {project.current_margin_percentage.toFixed(1)}%
                     </span>
                   </TableCell>
                   <TableCell>

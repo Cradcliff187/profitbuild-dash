@@ -41,6 +41,65 @@ export type Database = {
         }
         Relationships: []
       }
+      change_order_line_items: {
+        Row: {
+          category: Database["public"]["Enums"]["expense_category"]
+          change_order_id: string
+          cost_per_unit: number | null
+          created_at: string | null
+          description: string
+          id: string
+          markup_amount: number | null
+          price_per_unit: number | null
+          quantity: number | null
+          sort_order: number | null
+          total_cost: number | null
+          total_price: number | null
+          unit: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["expense_category"]
+          change_order_id: string
+          cost_per_unit?: number | null
+          created_at?: string | null
+          description: string
+          id?: string
+          markup_amount?: number | null
+          price_per_unit?: number | null
+          quantity?: number | null
+          sort_order?: number | null
+          total_cost?: number | null
+          total_price?: number | null
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["expense_category"]
+          change_order_id?: string
+          cost_per_unit?: number | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          markup_amount?: number | null
+          price_per_unit?: number | null
+          quantity?: number | null
+          sort_order?: number | null
+          total_cost?: number | null
+          total_price?: number | null
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_order_line_items_change_order_id_fkey"
+            columns: ["change_order_id"]
+            isOneToOne: false
+            referencedRelation: "change_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       change_orders: {
         Row: {
           amount: number | null
@@ -1080,7 +1139,6 @@ export type Database = {
       }
       projects: {
         Row: {
-          actual_margin: number | null
           address: string | null
           adjusted_est_costs: number | null
           client_id: string | null
@@ -1114,7 +1172,6 @@ export type Database = {
           work_order_counter: number | null
         }
         Insert: {
-          actual_margin?: number | null
           address?: string | null
           adjusted_est_costs?: number | null
           client_id?: string | null
@@ -1148,7 +1205,6 @@ export type Database = {
           work_order_counter?: number | null
         }
         Update: {
-          actual_margin?: number | null
           address?: string | null
           adjusted_est_costs?: number | null
           client_id?: string | null
@@ -1552,14 +1608,13 @@ export type Database = {
     Views: {
       project_financial_summary: {
         Row: {
-          accepted_quote_count: number | null
-          actual_margin_percentage: number | null
           actual_profit: number | null
           change_order_costs: number | null
           change_order_revenue: number | null
           client_name: string | null
-          contingency_amount: number | null
+          contracted_amount: number | null
           cost_variance: number | null
+          current_margin_percentage: number | null
           expense_count: number | null
           invoice_count: number | null
           project_id: string | null
@@ -1570,7 +1625,6 @@ export type Database = {
           total_estimated: number | null
           total_expenses: number | null
           total_invoiced: number | null
-          total_quoted: number | null
         }
         Relationships: []
       }

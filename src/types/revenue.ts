@@ -47,10 +47,10 @@ export interface ProjectFinancialSummary {
   project_number: string;
   client_name: string;
   status: string;
+  contracted_amount: number;
   
   // Estimate totals
   total_estimated: number;
-  contingency_amount: number;
   
   // Revenue totals
   total_invoiced: number;
@@ -60,17 +60,13 @@ export interface ProjectFinancialSummary {
   total_expenses: number;
   expense_count: number;
   
-  // Quote totals
-  total_quoted: number;
-  accepted_quote_count: number;
-  
   // Change order impact
   change_order_revenue: number;
   change_order_costs: number;
   
   // Calculated margins
   actual_profit: number;
-  actual_margin_percentage: number;
+  current_margin_percentage: number;
   
   // Variance calculations
   cost_variance: number;

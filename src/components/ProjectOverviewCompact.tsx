@@ -60,11 +60,11 @@ export function ProjectOverviewCompact({
             </p>
           </div>
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1">Actual</p>
-            <p className="text-sm font-bold">{formatCurrency(project.actual_margin || 0)}</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Current</p>
+            <p className="text-sm font-bold">{formatCurrency(project.current_margin || 0)}</p>
             <p className="text-xs text-muted-foreground">
               {project.contracted_amount > 0
-                ? (((project.actual_margin || 0) / project.contracted_amount) * 100).toFixed(1)
+                ? (((project.current_margin || 0) / project.contracted_amount) * 100).toFixed(1)
                 : 0}%
             </p>
           </div>
