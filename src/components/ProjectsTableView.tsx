@@ -122,6 +122,7 @@ export const ProjectsTableView = ({
       'duration',
       'contracted_amount',
       'changeOrders',
+      'contingency_remaining',
       'originalEstimatedMargin',
       'projected_margin',
       'margin_percentage',
@@ -758,6 +759,52 @@ export const ProjectsTableView = ({
                   {netImpact > 0 ? 'Positive impact on project profitability' :
                    netImpact < 0 ? 'Negative impact on project profitability' :
                    'Neutral impact on project profitability'}
+                </p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        );
+      }
+    },
+    {
+      key: 'contingency_remaining',
+      label: 'Contingency',
+      align: 'right' as const,
+      sortable: true,
+      getSortValue: (project) => project.contingency_remaining || 0,
+      render: (project: ProjectWithFinancials) => {
+        const contingency = project.contingency_remaining || 0;
+        const contractValue = project.contracted_amount || 0;
+        const contingencyPercent = contractValue > 0 
+          ? (contingency / contractValue) * 100 
+          : 0;
+        
+        if (contingency === 0) {
+          return (
+            <div className="text-right">
+              <span className="text-muted-foreground text-[11px] font-mono tabular-nums">—</span>
+            </div>
+          );
+        }
+        
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className="font-medium text-xs font-mono tabular-nums">
+                  {formatCurrency(contingency)}
+                </div>
+                <div className="text-[10px] text-muted-foreground tabular-nums">
+                  {contingencyPercent.toFixed(1)}% of contract
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-xs space-y-1">
+                <p><strong>Contingency Remaining:</strong> {formatCurrency(contingency)}</p>
+                <p><strong>Percentage:</strong> {contingencyPercent.toFixed(1)}% of contract value</p>
+                <p className="text-muted-foreground mt-1">
+                  Available for unforeseen costs or can be billed via change orders
                 </p>
               </div>
             </TooltipContent>
