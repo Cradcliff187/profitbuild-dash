@@ -177,17 +177,17 @@ export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimeline
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-12">
-        <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-        <p className="text-sm text-muted-foreground">No documents or media found for this project</p>
+      <div className="text-center py-8">
+        <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+        <p className="text-xs text-muted-foreground">No documents or media found for this project</p>
       </div>
     );
   }
@@ -195,15 +195,16 @@ export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimeline
   const grouped = groupByDate(items);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {Object.entries(grouped).map(([dateGroup, groupItems]) => (
         <div key={dateGroup}>
-          <h3 className="text-sm font-medium mb-3">{dateGroup}</h3>
-          <div className="space-y-2">
+          <h3 className="text-xs font-medium text-muted-foreground mb-1.5">{dateGroup.replace('📅 ', '')}</h3>
+          <div className="space-y-1.5">
             {groupItems.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                className="flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                onClick={() => window.open(item.fileUrl, '_blank')}
               >
                 {/* Icon/Thumbnail */}
                 <div className="flex-shrink-0">
@@ -211,10 +212,10 @@ export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimeline
                     <img
                       src={item.thumbnailUrl}
                       alt={item.title}
-                      className="w-12 h-12 object-cover rounded"
+                      className="w-10 h-10 object-cover rounded"
                     />
                   ) : (
-                    <div className="w-12 h-12 flex items-center justify-center bg-muted rounded">
+                    <div className="w-10 h-10 flex items-center justify-center bg-muted rounded">
                       {getIcon(item.type)}
                     </div>
                   )}
@@ -222,18 +223,18 @@ export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimeline
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm font-medium truncate">{item.title}</p>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="text-xs font-medium truncate">{item.title}</p>
                     {getTypeBadge(item.type)}
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span>{format(item.timestamp, 'h:mm a')}</span>
                     {item.amount !== undefined && (
                       <span className="font-medium">${item.amount.toFixed(2)}</span>
                     )}
                   </div>
                   {item.subtitle && (
-                    <p className="text-xs text-muted-foreground mt-1 truncate">{item.subtitle}</p>
+                    <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
                   )}
                 </div>
 
@@ -241,10 +242,13 @@ export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimeline
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => window.open(item.fileUrl, '_blank')}
-                  className="h-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(item.fileUrl, '_blank');
+                  }}
+                  className="h-7 w-7 p-0 shrink-0"
                 >
-                  View
+                  <FileText className="h-3 w-3" />
                 </Button>
               </div>
             ))}

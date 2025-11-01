@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, Download, Trash2, Search, Filter } from 'lucide-react';
+import { Eye, Download, Trash2, Search, Filter, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -126,24 +126,24 @@ export function ProjectDocumentsTable({
   };
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground p-4">Loading documents...</div>;
+    return <div className="text-xs text-muted-foreground p-2">Loading documents...</div>;
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-2 top-2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2 top-2 h-3 w-3 text-muted-foreground" />
           <Input
             placeholder="Search documents..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 h-8 text-sm"
+            className="pl-7 h-7 text-xs"
           />
         </div>
         {!documentType && (
           <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as DocumentType | 'all')}>
-            <SelectTrigger className="w-[150px] h-8 text-sm">
+            <SelectTrigger className="w-[150px] h-7 text-xs">
               <Filter className="w-3 h-3 mr-1" />
               <SelectValue />
             </SelectTrigger>
@@ -158,19 +158,20 @@ export function ProjectDocumentsTable({
       </div>
 
       {filteredDocuments.length === 0 ? (
-        <div className="text-center py-8 text-sm text-muted-foreground">
-          No documents found
+        <div className="text-center py-8">
+          <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+          <p className="text-xs text-muted-foreground">No documents found</p>
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
+          <table className="w-full text-xs">
             <thead className="bg-muted/50 border-b">
               <tr>
-                <th className="text-left p-2 font-medium">Document</th>
-                <th className="text-left p-2 font-medium">Version</th>
-                <th className="text-left p-2 font-medium">Size</th>
-                <th className="text-left p-2 font-medium">Uploaded</th>
-                <th className="text-right p-2 font-medium">Actions</th>
+                <th className="text-left p-2 font-medium text-xs">Document</th>
+                <th className="text-left p-2 font-medium text-xs">Version</th>
+                <th className="text-left p-2 font-medium text-xs">Size</th>
+                <th className="text-left p-2 font-medium text-xs">Uploaded</th>
+                <th className="text-right p-2 font-medium text-xs">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -178,9 +179,9 @@ export function ProjectDocumentsTable({
                 <tr key={doc.id} className="hover:bg-muted/30 transition-colors">
                   <td className="p-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">{DOCUMENT_TYPE_ICONS[doc.document_type]}</span>
+                      <span className="text-base">{DOCUMENT_TYPE_ICONS[doc.document_type]}</span>
                       <div className="min-w-0">
-                        <p className="font-medium truncate">{doc.file_name}</p>
+                        <p className="font-medium truncate text-xs">{doc.file_name}</p>
                         {doc.description && (
                           <p className="text-xs text-muted-foreground truncate">{doc.description}</p>
                         )}
@@ -190,12 +191,12 @@ export function ProjectDocumentsTable({
                   <td className="p-2">
                     <Badge variant="outline" className="text-xs">v{doc.version_number}</Badge>
                   </td>
-                  <td className="p-2 text-muted-foreground">
+                  <td className="p-2 text-muted-foreground text-xs">
                     {formatFileSize(doc.file_size)}
                   </td>
                   <td className="p-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">
+                      <span className="text-muted-foreground text-xs">
                         {formatDistanceToNow(parseISO(doc.created_at), { addSuffix: true })}
                       </span>
                       {getExpirationWarning(doc.expires_at)}

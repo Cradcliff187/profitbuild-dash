@@ -322,63 +322,59 @@ export function ProjectMediaGallery({
 
   if (allMedia.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-        <ImageIcon className="h-12 w-12 text-muted-foreground mb-3" />
-        <p className="text-sm font-medium text-muted-foreground">No media yet</p>
+      <div className="flex flex-col items-center justify-center py-8 text-center px-4">
+        <ImageIcon className="h-10 w-10 text-muted-foreground mb-2" />
+        <p className="text-xs font-medium text-muted-foreground">No media yet</p>
         <p className="text-xs text-muted-foreground mt-1">
           Use the camera buttons to capture photos and videos
-        </p>
-        <p className="text-xs text-muted-foreground mt-3 max-w-md">
-          Once you have media, you can generate professional PDF reports with 
-          captions, GPS locations, and timestamps
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as MediaTab)}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all" className="text-xs">
+        <TabsList className="grid w-full grid-cols-4 h-8">
+          <TabsTrigger value="all" className="text-xs h-6">
             All ({stats.photoCount + stats.videoCount})
           </TabsTrigger>
-          <TabsTrigger value="photos" className="text-xs">
+          <TabsTrigger value="photos" className="text-xs h-6">
             <FileImage className="h-3 w-3 mr-1" />
             Photos ({stats.photoCount})
           </TabsTrigger>
-          <TabsTrigger value="videos" className="text-xs">
+          <TabsTrigger value="videos" className="text-xs h-6">
             <FileVideo className="h-3 w-3 mr-1" />
             Videos ({stats.videoCount})
           </TabsTrigger>
-          <TabsTrigger value="timeline" className="text-xs">
+          <TabsTrigger value="timeline" className="text-xs h-6">
             <Clock4 className="h-3 w-3 mr-1" />
             Timeline
           </TabsTrigger>
         </TabsList>
 
         {/* Gallery Tab Content */}
-        <TabsContent value={activeTab === 'timeline' ? 'all' : activeTab} className="space-y-3 mt-3" hidden={activeTab === 'timeline'}>
-          {/* Statistics Card */}
-          <Card className="hidden md:block p-3">
-            <div className="grid grid-cols-4 gap-3 text-center">
+        <TabsContent value={activeTab === 'timeline' ? 'all' : activeTab} className="space-y-2 mt-2" hidden={activeTab === 'timeline'}>
+          {/* Statistics Card - Compact */}
+          <Card className="hidden md:block p-2">
+            <div className="grid grid-cols-4 gap-2 text-center">
               <div>
-                <div className="text-lg font-semibold">{stats.totalCount}</div>
+                <div className="text-sm font-semibold">{stats.totalCount}</div>
                 <div className="text-xs text-muted-foreground">Items</div>
               </div>
               {activeTab !== 'photos' && stats.videoCount > 0 && (
                 <div>
-                  <div className="text-lg font-semibold">{formatDuration(stats.totalDuration)}</div>
+                  <div className="text-sm font-semibold">{formatDuration(stats.totalDuration)}</div>
                   <div className="text-xs text-muted-foreground">Duration</div>
                 </div>
               )}
               <div>
-                <div className="text-lg font-semibold">{formatFileSize(stats.totalSize)}</div>
+                <div className="text-sm font-semibold">{formatFileSize(stats.totalSize)}</div>
                 <div className="text-xs text-muted-foreground">Storage</div>
               </div>
               <div>
-                <div className="text-lg font-semibold">{stats.gpsPercentage}%</div>
+                <div className="text-sm font-semibold">{stats.gpsPercentage}%</div>
                 <div className="text-xs text-muted-foreground">GPS Tagged</div>
               </div>
             </div>
@@ -386,42 +382,38 @@ export function ProjectMediaGallery({
 
           {/* Queue Status Banner */}
           {queueCount && queueCount > 0 && (
-            <Alert className="border-primary/50 bg-primary/5">
-              <CloudUpload className="h-4 w-4" />
+            <Alert className="border-primary/50 bg-primary/5 py-2">
+              <CloudUpload className="h-3 w-3" />
               <AlertDescription className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm font-medium">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span className="text-xs font-medium">
                   {queueCount} media {queueCount === 1 ? 'item' : 'items'} pending upload
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Will upload automatically when connection is restored
                 </span>
               </AlertDescription>
             </Alert>
           )}
 
-          {/* First-Time User Guidance */}
+          {/* First-Time User Guidance - Compact */}
           {showTip && allMedia.length > 0 && (
-            <Alert className="border-primary/50 bg-primary/5">
-              <FileText className="h-4 w-4" />
-              <AlertDescription className="flex items-start justify-between gap-3">
+            <Alert className="border-primary/50 bg-primary/5 py-2">
+              <FileText className="h-3 w-3" />
+              <AlertDescription className="flex items-start justify-between gap-2">
                 <div className="flex-1">
-                  <p className="text-sm font-medium">Generate Professional Reports</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Select photos/videos using the checkboxes, then click "Generate Report" 
-                    to create a PDF with captions, GPS data, and timestamps.
+                  <p className="text-xs font-medium">Generate Professional Reports</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Select items, then click "Generate Report" to create a PDF.
                   </p>
                 </div>
                 <Button
                   variant="ghost"
-                  size="xs"
+                  size="sm"
                   onClick={() => {
                     setShowTip(false);
                     localStorage.setItem('media-report-tip-dismissed', 'true');
                   }}
-                  className="shrink-0"
+                  className="shrink-0 h-6 w-6 p-0"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3 w-3" />
                 </Button>
               </AlertDescription>
             </Alert>
@@ -431,12 +423,12 @@ export function ProjectMediaGallery({
           <TooltipProvider>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                 <Input
                   placeholder="Search media..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-8"
+                  className="pl-7 h-7 text-xs"
                 />
               </div>
 
@@ -449,11 +441,11 @@ export function ProjectMediaGallery({
                         variant="outline"
                         size="sm"
                         onClick={selectAll}
-                        className="h-8"
+                        className="h-7"
                       >
-                        <CheckSquare className="h-4 w-4 mr-1" />
-                        <span className="hidden sm:inline">Select All</span>
-                        <span className="sm:hidden">All</span>
+                        <CheckSquare className="h-3 w-3 mr-1" />
+                        <span className="hidden sm:inline text-xs">Select All</span>
+                        <span className="sm:hidden text-xs">All</span>
                         <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
                           {filteredAndSortedMedia.length}
                         </Badge>

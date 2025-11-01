@@ -51,41 +51,42 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
   };
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground p-4">Loading quote PDFs...</div>;
+    return <div className="text-xs text-muted-foreground p-2">Loading quote PDFs...</div>;
   }
 
   if (quotes.length === 0) {
     return (
-      <div className="text-center py-8 text-sm text-muted-foreground">
-        No quote PDFs uploaded yet
+      <div className="text-center py-8">
+        <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+        <p className="text-xs text-muted-foreground">No quote PDFs found for this project</p>
       </div>
     );
   }
 
   return (
     <div className="border rounded-lg overflow-hidden">
-      <table className="w-full text-sm">
+      <table className="w-full text-xs">
         <thead className="bg-muted/50 border-b">
           <tr>
-            <th className="text-left p-2 font-medium">Quote Number</th>
-            <th className="text-left p-2 font-medium">Payee</th>
-            <th className="text-right p-2 font-medium">Amount</th>
-            <th className="text-left p-2 font-medium">Date</th>
-            <th className="text-left p-2 font-medium">Status</th>
-            <th className="text-right p-2 font-medium">PDF</th>
+            <th className="text-left p-2 font-medium text-xs">Quote Number</th>
+            <th className="text-left p-2 font-medium text-xs">Payee</th>
+            <th className="text-right p-2 font-medium text-xs">Amount</th>
+            <th className="text-left p-2 font-medium text-xs">Date</th>
+            <th className="text-left p-2 font-medium text-xs">Status</th>
+            <th className="text-right p-2 font-medium text-xs">PDF</th>
           </tr>
         </thead>
         <tbody className="divide-y">
           {quotes.map((quote) => (
             <tr key={quote.id} className="hover:bg-muted/30 transition-colors">
-              <td className="p-2 font-medium">{quote.quote_number}</td>
-              <td className="p-2 text-muted-foreground">
+              <td className="p-2 font-medium text-xs">{quote.quote_number}</td>
+              <td className="p-2 text-muted-foreground text-xs">
                 {quote.payees?.payee_name || 'Unknown'}
               </td>
-              <td className="p-2 text-right font-medium">
+              <td className="p-2 text-right font-medium text-xs">
                 ${quote.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </td>
-              <td className="p-2 text-muted-foreground">
+              <td className="p-2 text-muted-foreground text-xs">
                 {formatDistanceToNow(parseISO(quote.date_received), { addSuffix: true })}
               </td>
               <td className="p-2">
@@ -97,9 +98,8 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => window.open(quote.attachment_url!, '_blank')}
-                    className="h-7 gap-1"
+                    className="h-7 w-7 p-0"
                   >
-                    <FileText className="h-3 w-3" />
                     <ExternalLink className="h-3 w-3" />
                   </Button>
                 </div>

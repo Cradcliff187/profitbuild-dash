@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow, parseISO } from 'date-fns';
+import { Receipt } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface Receipt {
@@ -69,20 +70,21 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
   };
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground p-4">Loading receipts...</div>;
+    return <div className="text-xs text-muted-foreground p-2">Loading receipts...</div>;
   }
 
   if (receipts.length === 0) {
     return (
-      <div className="text-center py-8 text-sm text-muted-foreground">
-        No receipts for this project yet
+      <div className="text-center py-8">
+        <Receipt className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+        <p className="text-xs text-muted-foreground">No receipts found for this project</p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
         {receipts.map((receipt) => (
           <div
             key={receipt.id}
