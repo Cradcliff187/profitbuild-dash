@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, CheckCircle, X, MoreHorizontal } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, X, MoreHorizontal, Link as LinkIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const fetchChangeOrders = async () => {
     try {
@@ -375,6 +377,12 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                               <DropdownMenuItem onClick={() => onEdit(changeOrder)}>
                                 <Edit className="h-4 w-4 mr-2" />
                                 Edit
+                              </DropdownMenuItem>
+                            )}
+                            {changeOrder.status === 'approved' && (
+                              <DropdownMenuItem onClick={() => navigate('/expenses?tab=matching')}>
+                                <LinkIcon className="h-4 w-4 mr-2" />
+                                Match Expenses
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />

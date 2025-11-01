@@ -50,15 +50,17 @@ interface EnhancedExpense {
 
 interface LineItemForMatching {
   id: string;
-  type: 'estimate' | 'quote';
-  source_id: string; // estimate_id or quote_id
+  type: 'estimate' | 'quote' | 'change_order';
+  source_id: string; // estimate_id, quote_id, or change_order_id
   project_id: string;
   project_name: string;
   category: LineItemCategory;
   description: string;
   total: number;
   matched_amount: number;
-  payee_name?: string; // For quotes
+  payee_name?: string; // For quotes and change orders
+  change_order_number?: string;
+  change_order_status?: string;
 }
 
 export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
@@ -71,6 +73,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('unaccounted');
+  const [matchingSource, setMatchingSource] = useState<'estimates' | 'quotes' | 'change_orders'>('estimates');
   const [selectedExpenses, setSelectedExpenses] = useState<Set<string>>(new Set());
   const [projects, setProjects] = useState<any[]>([]);
   const { toast } = useToast();
@@ -86,7 +89,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
     setIsLoading(true);
     try {
       // Load all expenses with their current correlations
-      const [expensesResult, projectsResult, estimatesResult, quotesResult, correlationsResult] = await Promise.all([
+      const [expensesResult, projectsResult, estimatesResult, quotesResult, changeOrdersResult, correlationsResult] = await Promise.all([
         projectId 
           ? supabase
               .from('expenses')
@@ -151,6 +154,44 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
                 quote_line_items (*)
               `)
               .eq('status', 'accepted'),
+        projectId
+          ? supabase
+              .from('change_orders')
+              .select(`
+                id,
+                change_order_number,
+                status,
+                project_id,
+                projects (project_name),
+                change_order_line_items (
+                  id,
+                  category,
+                  description,
+                  total_cost,
+                  payee_id,
+                  payees (payee_name)
+                )
+              `)
+              .eq('status', 'approved')
+              .eq('project_id', projectId)
+          : supabase
+              .from('change_orders')
+              .select(`
+                id,
+                change_order_number,
+                status,
+                project_id,
+                projects (project_name),
+                change_order_line_items (
+                  id,
+                  category,
+                  description,
+                  total_cost,
+                  payee_id,
+                  payees (payee_name)
+                )
+              `)
+              .eq('status', 'approved'),
         supabase
           .from('expense_line_item_correlations')
           .select('*')
@@ -161,6 +202,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
       const projects = projectsResult.data || [];
       const estimates = estimatesResult.data || [];
       const quotes = quotesResult.data || [];
+      const changeOrders = changeOrdersResult.data || [];
 
       // Create line items from estimates and quotes
       // First, filter to only accepted quotes
@@ -207,14 +249,33 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
         }))
       );
 
-      const allLineItems = [...estimateLineItems, ...quoteLineItems];
+      // Include all approved change orders
+      const changeOrderLineItems: LineItemForMatching[] = changeOrders.flatMap(co => 
+        (co.change_order_line_items || []).map(item => ({
+          id: item.id,
+          type: 'change_order' as const,
+          source_id: co.id,
+          project_id: co.project_id,
+          project_name: co.projects?.project_name || 'Unknown',
+          category: item.category as LineItemCategory,
+          description: item.description,
+          total: item.total_cost || 0,
+          matched_amount: 0, // Will be calculated below
+          payee_name: item.payees?.payee_name,
+          change_order_number: co.change_order_number,
+          change_order_status: co.status
+        }))
+      );
+
+      const allLineItems = [...estimateLineItems, ...quoteLineItems, ...changeOrderLineItems];
 
       // Calculate matched amounts
       correlations.forEach(correlation => {
         const expense = rawExpenses.find(e => e.id === correlation.expense_id);
         const lineItem = allLineItems.find(li => 
           li.id === correlation.estimate_line_item_id || 
-          (correlation.quote_id && li.source_id === correlation.quote_id)
+          (correlation.quote_id && li.source_id === correlation.quote_id) ||
+          li.id === correlation.change_order_line_item_id
         );
         
         if (expense && lineItem) {
@@ -346,7 +407,8 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
         expense_id: expenseId,
         estimate_line_item_id: lineItem.type === 'estimate' ? lineItem.id : null,
         quote_id: lineItem.type === 'quote' ? lineItem.source_id : null,
-        correlation_type: lineItem.type === 'estimate' ? 'estimated' : 'quoted',
+        change_order_line_item_id: lineItem.type === 'change_order' ? lineItem.id : null,
+        correlation_type: lineItem.type === 'estimate' ? 'estimated' : lineItem.type === 'quote' ? 'quoted' : 'change_order',
         auto_correlated: false,
         notes: 'Manually assigned via Global Expense Matching'
       }));
@@ -359,7 +421,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
 
       toast({
         title: "Expenses Assigned",
-        description: `Assigned ${expenseIds.length} expenses to ${lineItem.type === 'estimate' ? 'estimate' : 'quote'} line item.`
+        description: `Assigned ${expenseIds.length} expenses to ${lineItem.type === 'estimate' ? 'estimate' : lineItem.type === 'quote' ? 'quote' : 'change order'} line item.`
       });
       
       setSelectedExpenses(new Set());
@@ -397,6 +459,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
           expense_id: expense.id,
           estimate_line_item_id: lineItem?.type === 'estimate' ? lineItem.id : null,
           quote_id: lineItem?.type === 'quote' ? lineItem.source_id : null,
+          change_order_line_item_id: lineItem?.type === 'change_order' ? lineItem.id : null,
           correlation_type: 'auto_match',
           auto_correlated: true,
           confidence_score: expense.confidence_score,
@@ -482,8 +545,8 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
           <h2 className="text-2xl font-bold">Global Expense Matching</h2>
           <p className="text-muted-foreground">
             {projectId 
-              ? "Match expenses to estimate and quote line items for this project"
-              : "Match expenses to estimate and quote line items across all projects"}
+              ? "Match expenses to estimate, quote, and change order line items for this project"
+              : "Match expenses to estimate, quote, and change order line items across all projects"}
           </p>
         </div>
         
@@ -659,9 +722,10 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
           </CardHeader>
           <CardContent className="space-y-3 max-h-96 overflow-y-auto">
             <Tabs defaultValue="estimates">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="estimates">Estimates</TabsTrigger>
                 <TabsTrigger value="quotes">Quotes</TabsTrigger>
+                <TabsTrigger value="change_orders">Change Orders</TabsTrigger>
               </TabsList>
               
               <TabsContent value="estimates" className="space-y-3 mt-4">
@@ -720,6 +784,50 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {CATEGORY_DISPLAY_MAP[item.category]} • Quote
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold">{formatCurrency(item.total)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatCurrency(item.matched_amount)} matched
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {selectedExpenses.size > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full mt-2"
+                        onClick={() => handleBulkAssign(item.id)}
+                      >
+                        Assign {selectedExpenses.size} expense{selectedExpenses.size === 1 ? '' : 's'}
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </TabsContent>
+              
+              <TabsContent value="change_orders" className="space-y-3 mt-4">
+                {lineItems.filter(li => li.type === 'change_order').map(item => (
+                  <div key={item.id} className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-950/10">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{item.description}</div>
+                        {!projectId && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Building className="h-3 w-3" />
+                            {item.project_name}
+                          </div>
+                        )}
+                        {item.payee_name && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {item.payee_name}
+                          </div>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          {CATEGORY_DISPLAY_MAP[item.category]} • CO {item.change_order_number}
                         </div>
                       </div>
                       <div className="text-right">
