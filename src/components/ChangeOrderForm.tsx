@@ -364,7 +364,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
                         <p className="font-medium">💰 Billing Impact:</p>
                         <p>• Adds {formatCurrency(billedAmount)} to client invoice</p>
                         <p>• Reduces available contingency to {formatCurrency(Math.max(contingencyAfterBilling, 0))}</p>
-                        <p>• Pure profit (no associated cost)</p>
+                        <p>• Contingency billing is pure profit (no associated cost)</p>
                         {showWarning && (
                           <p className="font-semibold">⚠️ Exceeds available contingency!</p>
                         )}
