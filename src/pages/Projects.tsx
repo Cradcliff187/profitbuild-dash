@@ -15,7 +15,7 @@ import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { calculateMultipleProjectFinancials, ProjectWithFinancials } from "@/utils/projectFinancials";
+import { ProjectWithFinancials } from "@/utils/projectFinancials";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -83,31 +83,9 @@ const Projects = () => {
       if (expensesRes.error) throw expensesRes.error;
 
       const formattedProjects = projectsRes.data?.map((project: any) => ({
-        id: project.id,
-        project_name: project.project_name,
-        project_number: project.project_number,
-        qb_formatted_number: project.qb_formatted_number,
-        client_name: project.client_name,
-        address: project.address,
-        project_type: project.project_type,
-        job_type: project.job_type,
-        status: project.status,
+        ...project, // Keep all database fields including calculated financials
         start_date: project.start_date ? new Date(project.start_date) : undefined,
         end_date: project.end_date ? new Date(project.end_date) : undefined,
-        company_id: project.company_id,
-        quickbooks_job_id: project.quickbooks_job_id,
-        sync_status: project.sync_status,
-        last_synced_at: project.last_synced_at,
-        contracted_amount: project.contracted_amount,
-        total_accepted_quotes: project.total_accepted_quotes,
-        current_margin: project.current_margin,
-        margin_percentage: project.margin_percentage,
-        contingency_remaining: project.contingency_remaining,
-        payment_terms: project.payment_terms,
-        minimum_margin_threshold: project.minimum_margin_threshold,
-        target_margin: project.target_margin,
-        adjusted_est_costs: project.adjusted_est_costs,
-        original_est_costs: project.original_est_costs,
         created_at: new Date(project.created_at),
         updated_at: new Date(project.updated_at)
       })) || [];
@@ -190,14 +168,8 @@ const Projects = () => {
         updated_at: new Date(expense.updated_at)
       })) || [];
 
-      // Calculate financial data for all projects
-      const projectsWithFinancials = await calculateMultipleProjectFinancials(
-        formattedProjects,
-        formattedEstimates,
-        formattedExpenses
-      );
-
-      setProjects(projectsWithFinancials);
+      // Projects already have financials calculated by database functions
+      setProjects(formattedProjects as ProjectWithFinancials[]);
       setEstimates(formattedEstimates);
       setQuotes(formattedQuotes);
       setExpenses(formattedExpenses);
@@ -214,17 +186,10 @@ const Projects = () => {
   };
 
   const handleSaveProject = async (project: Project) => {
-    // Calculate financial data for the saved project
-    const projectWithFinancials = await calculateMultipleProjectFinancials(
-      [project],
-      estimates,
-      expenses
-    );
-    
     // Creating new project - editing is now handled by dedicated edit page
-    setProjects(prev => [projectWithFinancials[0], ...prev]);
+    setProjects(prev => [project as ProjectWithFinancials, ...prev]);
     setViewMode('list');
-    loadProjects(); // Refresh the list
+    loadProjects(); // Refresh the list to get DB-calculated financials
   };
 
   const handleCreateNew = () => {
