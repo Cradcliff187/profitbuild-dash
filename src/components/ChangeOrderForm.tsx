@@ -86,7 +86,13 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
         // Load existing line items if editing
         const { data: existingLineItems } = await supabase
           .from('change_order_line_items')
-          .select('*')
+          .select(`
+            *,
+            payees (
+              id,
+              payee_name
+            )
+          `)
           .eq('change_order_id', changeOrder.id)
           .order('sort_order', { ascending: true });
         
@@ -100,6 +106,8 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             cost_per_unit: Number(item.cost_per_unit),
             price_per_unit: Number(item.price_per_unit),
             sort_order: item.sort_order,
+            payee_id: item.payee_id,
+            payee_name: item.payees?.payee_name,
           })));
         } else {
           // If editing but no line items, add one to get started
@@ -217,6 +225,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
           cost_per_unit: item.cost_per_unit,
           price_per_unit: item.price_per_unit,
           sort_order: index,
+          payee_id: item.payee_id,
         }));
 
         const { error: liError } = await supabase
@@ -260,6 +269,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
           cost_per_unit: item.cost_per_unit,
           price_per_unit: item.price_per_unit,
           sort_order: index,
+          payee_id: item.payee_id,
         }));
 
         const { error: liError } = await supabase

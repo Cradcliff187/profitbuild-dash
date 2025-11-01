@@ -12,6 +12,8 @@ export interface ChangeOrderLineItemInput {
   cost_per_unit: number;
   price_per_unit: number;
   sort_order?: number;
+  payee_id?: string | null;
+  payee_name?: string;
 }
 
 export const CHANGE_ORDER_LINE_ITEM_TEMPLATE: ChangeOrderLineItemInput = {
@@ -22,4 +24,5 @@ export const CHANGE_ORDER_LINE_ITEM_TEMPLATE: ChangeOrderLineItemInput = {
   cost_per_unit: 0,
   price_per_unit: 0,
   sort_order: 0,
+  payee_id: null,
 };

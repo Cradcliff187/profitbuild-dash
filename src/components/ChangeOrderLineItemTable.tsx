@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit, Trash2, Plus, MoreHorizontal } from 'lucide-react';
+import { Edit, Trash2, Plus, MoreHorizontal, Info } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ChangeOrderLineItemInput } from '@/types/changeOrder';
 import { CATEGORY_DISPLAY_MAP } from '@/types/estimate';
+import { PayeeSelectorMobile } from '@/components/PayeeSelectorMobile';
 
 interface ChangeOrderLineItemTableProps {
   lineItems: ChangeOrderLineItemInput[];
@@ -153,6 +154,19 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
 
   return (
     <div className="space-y-3">
+      <div className="text-xs p-2 rounded bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+        <div className="flex items-start gap-2">
+          <Info className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium text-blue-700 dark:text-blue-300">Expense Tracking</p>
+            <p className="text-blue-600 dark:text-blue-400 mt-1">
+              Assign payees to each line item. After approval, use the <strong>Expense Matching</strong> interface 
+              to correlate actual expenses and track quoted vs. actual costs.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {showContingencyGuidance && (
         <div className="text-xs p-2 rounded bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
           <p className="font-medium text-blue-700 dark:text-blue-300">💡 Using Contingency</p>
@@ -175,7 +189,8 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
               <TableHeader>
                 <TableRow className={cn("h-8", isMobile ? "bg-muted/30" : "sticky top-0 bg-background z-10")}>
                   <TableHead className="p-2 font-medium text-[11px] w-[70px]">Cat</TableHead>
-                  <TableHead className="p-2 font-medium text-[11px] min-w-[180px]">Description</TableHead>
+                  <TableHead className="p-2 font-medium text-[11px] w-[130px]">Payee</TableHead>
+                  <TableHead className="p-2 font-medium text-[11px] min-w-[150px]">Description</TableHead>
                   <TableHead className="p-2 font-medium text-[11px] text-right w-[60px]">Qty</TableHead>
                   <TableHead className="p-2 font-medium text-[11px] w-[50px]">Unit</TableHead>
                   <TableHead className="p-2 font-medium text-[11px] text-right w-[80px]">Cost/Unit</TableHead>
@@ -209,6 +224,14 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
                           </SelectContent>
                         </Select>
                       </div>
+                    </TableCell>
+                    <TableCell className="p-2">
+                      <PayeeSelectorMobile
+                        value={item.payee_id || ''}
+                        onValueChange={(value) => onUpdateLineItem(index, 'payee_id', value || null)}
+                        placeholder="Select..."
+                        required={false}
+                      />
                     </TableCell>
                     <TableCell className="p-2">
                       <EditableCell
@@ -307,7 +330,7 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
 
                 {/* Totals Row */}
                 <TableRow className="bg-muted/50 border-t-2 font-semibold">
-                  <TableCell colSpan={4} className="p-2 text-right text-xs">
+                  <TableCell colSpan={5} className="p-2 text-right text-xs">
                     Totals:
                   </TableCell>
                   <TableCell className="p-2 text-right font-mono text-xs">
