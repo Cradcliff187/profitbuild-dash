@@ -791,12 +791,9 @@ export const ProjectsTableView = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className="font-medium text-xs font-mono tabular-nums">
-                  {formatCurrency(contingency)}
-                </div>
-                <div className="text-[10px] text-muted-foreground tabular-nums">
-                  {contingencyPercent.toFixed(1)}% of contract
-                </div>
+              <div className="font-medium text-xs font-mono tabular-nums">
+                {formatCurrency(contingency)}
+              </div>
               </div>
             </TooltipTrigger>
             <TooltipContent>
@@ -1095,9 +1092,9 @@ export const ProjectsTableView = ({
       label: 'Line Items',
       align: 'center' as const,
       sortable: true,
-      getSortValue: (project) => project.totalLineItemCount || 0,
+      getSortValue: (project) => project.nonInternalLineItemCount || 0,
       render: (project: ProjectWithFinancials) => {
-        const count = project.totalLineItemCount || 0;
+        const count = project.nonInternalLineItemCount || 0;
         
         return (
           <TooltipProvider>
@@ -1110,7 +1107,7 @@ export const ProjectsTableView = ({
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Total line items in approved estimate</p>
+                <p>Non-labor line items in approved estimate</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
