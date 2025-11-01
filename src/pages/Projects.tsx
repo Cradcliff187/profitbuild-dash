@@ -70,25 +70,51 @@ const Projects = () => {
       setIsLoading(true);
       
       // Load all related data (exclude unassigned project)
-      const [projectsRes, estimatesRes, quotesRes, expensesRes] = await Promise.all([
+      const [projectsRes, estimatesRes, quotesRes, expensesRes, changeOrdersRes] = await Promise.all([
         supabase.from('projects').select('*').neq('project_number', 'SYS-000').neq('project_number', '000-UNASSIGNED').order('created_at', { ascending: false }),
         supabase.from('estimates').select('*'),
         supabase.from('quotes').select('*'),
-        supabase.from('expenses').select('*')
+        supabase.from('expenses').select('*'),
+        supabase.from('change_orders').select('project_id, client_amount, cost_impact, status').eq('status', 'approved')
       ]);
 
       if (projectsRes.error) throw projectsRes.error;
       if (estimatesRes.error) throw estimatesRes.error;
       if (quotesRes.error) throw quotesRes.error;
       if (expensesRes.error) throw expensesRes.error;
+      if (changeOrdersRes.error) throw changeOrdersRes.error;
 
-      const formattedProjects = projectsRes.data?.map((project: any) => ({
-        ...project, // Keep all database fields including calculated financials
-        start_date: project.start_date ? new Date(project.start_date) : undefined,
-        end_date: project.end_date ? new Date(project.end_date) : undefined,
-        created_at: new Date(project.created_at),
-        updated_at: new Date(project.updated_at)
-      })) || [];
+      const formattedProjects = projectsRes.data?.map((project: any) => {
+        // Calculate change order aggregates for this project
+        const projectChangeOrders = (changeOrdersRes.data || []).filter(co => co.project_id === project.id);
+        const changeOrderCount = projectChangeOrders.length;
+        const changeOrderRevenue = projectChangeOrders.reduce((sum, co) => sum + (co.client_amount || 0), 0);
+        const changeOrderCosts = projectChangeOrders.reduce((sum, co) => sum + (co.cost_impact || 0), 0);
+        
+        // Get original contract amount (estimate total before change orders)
+        const approvedEstimate = estimatesRes.data?.find(e => 
+          e.project_id === project.id && e.status === 'approved'
+        );
+        const originalContractAmount = approvedEstimate?.total_amount || 0;
+
+        return {
+          ...project, // Keep all database fields including calculated financials
+          start_date: project.start_date ? new Date(project.start_date) : undefined,
+          end_date: project.end_date ? new Date(project.end_date) : undefined,
+          created_at: new Date(project.created_at),
+          updated_at: new Date(project.updated_at),
+          
+          // Map database fields to ProjectWithFinancials interface
+          originalContractAmount,
+          changeOrderRevenue,
+          changeOrderCount,
+          changeOrderCosts,
+          changeOrderNetMargin: changeOrderRevenue - changeOrderCosts,
+          originalEstimatedCosts: project.original_est_costs || 0,
+          adjustedEstCosts: project.adjusted_est_costs || 0,
+          costVariance: (project.adjusted_est_costs || 0) - (project.original_est_costs || 0),
+        };
+      }) || [];
 
       const formattedEstimates = estimatesRes.data?.map((estimate: any) => ({
         id: estimate.id,
