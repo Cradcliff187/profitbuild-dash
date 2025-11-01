@@ -85,8 +85,11 @@ export function useLineItemControl(projectId: string): UseLineItemControlReturn 
       setIsLoading(true);
       setError(null);
 
-      // Fetch current estimate with line items
-      const { data: estimates, error: estimateError } = await supabase
+      // Fetch estimate with line items - prioritize approved, then current version, then latest
+      let estimates: any = null;
+      
+      // 1. Try approved estimate first (latest by date)
+      const { data: approvedEstimate, error: approvedError } = await supabase
         .from('estimates')
         .select(`
           id,
@@ -103,10 +106,84 @@ export function useLineItemControl(projectId: string): UseLineItemControlReturn 
           )
         `)
         .eq('project_id', projectId)
-        .eq('is_current_version', true)
+        .eq('status', 'approved')
+        .order('date_created', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
-      if (estimateError) throw estimateError;
+      if (approvedError) console.warn('[LineItemControl] Error fetching approved estimate:', approvedError);
+      
+      if (approvedEstimate) {
+        estimates = approvedEstimate;
+        console.debug('[LineItemControl] Using approved estimate', estimates.id, 'items:', estimates.estimate_line_items?.length ?? 0);
+      }
+
+      // 2. Fallback to current version if no approved estimate
+      if (!estimates) {
+        const { data: currentEstimate, error: currentError } = await supabase
+          .from('estimates')
+          .select(`
+            id,
+            estimate_line_items (
+              id,
+              category,
+              description,
+              quantity,
+              rate,
+              total,
+              cost_per_unit,
+              markup_percent,
+              markup_amount
+            )
+          `)
+          .eq('project_id', projectId)
+          .eq('is_current_version', true)
+          .order('date_created', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (currentError) console.warn('[LineItemControl] Error fetching current estimate:', currentError);
+        
+        if (currentEstimate) {
+          estimates = currentEstimate;
+          console.debug('[LineItemControl] Using current version estimate', estimates.id, 'items:', estimates.estimate_line_items?.length ?? 0);
+        }
+      }
+
+      // 3. Final fallback to latest estimate by date
+      if (!estimates) {
+        const { data: latestEstimate, error: latestError } = await supabase
+          .from('estimates')
+          .select(`
+            id,
+            estimate_line_items (
+              id,
+              category,
+              description,
+              quantity,
+              rate,
+              total,
+              cost_per_unit,
+              markup_percent,
+              markup_amount
+            )
+          `)
+          .eq('project_id', projectId)
+          .order('date_created', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latestError) console.warn('[LineItemControl] Error fetching latest estimate:', latestError);
+        
+        if (latestEstimate) {
+          estimates = latestEstimate;
+          console.debug('[LineItemControl] Using latest estimate', estimates.id, 'items:', estimates.estimate_line_items?.length ?? 0);
+        }
+      }
+
+      if (!estimates) {
+        console.debug('[LineItemControl] No estimate found for project', projectId);
+      }
 
       // Fetch ALL quotes with line items and payee info
       const { data: quotes, error: quotesError } = await supabase
@@ -153,24 +230,33 @@ export function useLineItemControl(projectId: string): UseLineItemControlReturn 
 
       // Fetch correlated expenses (explicitly matched)
       const estimateLineItemIds = (estimates?.estimate_line_items || []).map((li: any) => li.id);
-      const { data: correlatedExpensesData, error: correlationsError } = await supabase
-        .from('expense_line_item_correlations')
-        .select(`
-          estimate_line_item_id,
-          expense_id,
-          expenses (
-            id,
-            amount,
-            description,
-            expense_date,
-            category,
-            payee_id,
-            payees (payee_name)
-          )
-        `)
-        .in('estimate_line_item_id', estimateLineItemIds);
+      let correlatedExpensesData: any[] = [];
+      
+      // Only query correlations if we have line items
+      if (estimateLineItemIds.length > 0) {
+        const { data, error: correlationsError } = await supabase
+          .from('expense_line_item_correlations')
+          .select(`
+            estimate_line_item_id,
+            expense_id,
+            expenses (
+              id,
+              amount,
+              description,
+              expense_date,
+              category,
+              payee_id,
+              payees (payee_name)
+            )
+          `)
+          .in('estimate_line_item_id', estimateLineItemIds);
 
-      if (correlationsError) throw correlationsError;
+        if (correlationsError) {
+          console.warn('[LineItemControl] Error fetching correlations:', correlationsError);
+        } else {
+          correlatedExpensesData = data || [];
+        }
+      }
 
       // Group correlated expenses by line item
       const correlationsByLineItem = new Map();
