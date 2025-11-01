@@ -285,58 +285,68 @@ export const ProjectsList = ({
                 )}
               </div>
 
-              {/* Financial Summary - Compact Three-Tier */}
-              {(project.contracted_amount || project.projected_margin !== null) && (
-                <div className="compact-card-section bg-muted/10 space-y-2">
-                  {/* Contract Value */}
-                  <div className="flex justify-between text-data">
-                    <span className="text-label text-muted-foreground">
-                      {project.changeOrderRevenue > 0 ? 'Total Contract' : 'Contract'}
-                    </span>
-                    <span className="font-mono font-medium">{formatCurrency(project.contracted_amount)}</span>
-                  </div>
+              {/* Financial Summary - Two-Tier Margins */}
+              {(project.contracted_amount || project.original_margin !== null) && (() => {
+                const contract = project.contracted_amount ?? 0;
+                const adjustedCosts = project.adjusted_est_costs ?? 0;
+                const currentMargin = contract - adjustedCosts;
+                const derivedMarginPct = contract > 0 ? (currentMargin / contract) * 100 : 0;
+                const marginPctToShow = project.margin_percentage ?? derivedMarginPct;
 
-                  {/* Change Orders */}
-                  {project.changeOrderRevenue > 0 && (
+                return (
+                  <div className="compact-card-section bg-muted/10 space-y-2">
+                    {/* Contract Value */}
                     <div className="flex justify-between text-data">
-                      <span className="text-label text-muted-foreground">Change Orders</span>
-                      <span className="font-mono font-medium text-green-600">
-                        +{formatCurrency(project.changeOrderRevenue)}
-                      </span>
+                      <span className="text-label text-muted-foreground">Contract</span>
+                      <span className="font-mono font-medium">{formatCurrency(contract)}</span>
                     </div>
-                  )}
-                  
-                  {/* Three-Tier Margins - Compact Grid */}
-                  <div className="grid grid-cols-3 gap-2 text-data pt-1 border-t border-border/50">
-                    <div>
-                      <p className="text-[10px] text-muted-foreground leading-tight">Original</p>
-                      <p className="font-mono text-xs font-medium">{formatCurrency(project.original_margin)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground leading-tight">Projected</p>
-                      <p className="font-mono text-xs font-medium">{formatCurrency(project.projected_margin)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground leading-tight">Actual</p>
-                      <p className="font-mono text-xs font-medium">{formatCurrency(project.actual_margin)}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Adjusted Estimated Costs */}
-                  <div className="flex justify-between text-data pt-1 border-t border-border/50">
-                    <span className="text-label text-muted-foreground">Est. Costs</span>
-                    <span className="font-mono font-medium">{formatCurrency(project.adjusted_est_costs)}</span>
-                  </div>
 
-                  {/* Contingency Remaining */}
-                  {project.contingency_remaining > 0 && (
-                    <div className="flex justify-between text-data">
-                      <span className="text-label text-muted-foreground">Contingency</span>
-                      <span className="font-mono font-medium">{formatCurrency(project.contingency_remaining)}</span>
+                    {/* Change Orders */}
+                    {project.changeOrderRevenue > 0 && (
+                      <div className="flex justify-between text-data">
+                        <span className="text-label text-muted-foreground">Change Orders</span>
+                        <span className="font-mono font-medium text-green-600">
+                          +{formatCurrency(project.changeOrderRevenue)}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Two-Tier Margins - Original & Current */}
+                    <div className="grid grid-cols-2 gap-3 text-data pt-1 border-t border-border/50">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground leading-tight">Original Margin</p>
+                        <p className="font-mono text-xs font-medium">{formatCurrency(project.original_margin)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground leading-tight">Current Margin</p>
+                        <p className="font-mono text-xs font-semibold text-primary">{formatCurrency(currentMargin)}</p>
+                      </div>
                     </div>
-                  )}
-                </div>
-              )}
+
+                    {/* Margin Percentage */}
+                    <div className="flex justify-between text-data">
+                      <span className="text-label text-muted-foreground">Margin %</span>
+                      <Badge className={`compact-badge ${getMarginColor(marginPctToShow)} font-mono`}>
+                        {marginPctToShow.toFixed(1)}%
+                      </Badge>
+                    </div>
+                    
+                    {/* Adjusted Estimated Costs */}
+                    <div className="flex justify-between text-data pt-1 border-t border-border/50">
+                      <span className="text-label text-muted-foreground">Est. Costs</span>
+                      <span className="font-mono font-medium">{formatCurrency(adjustedCosts)}</span>
+                    </div>
+
+                    {/* Contingency Remaining */}
+                    {project.contingency_remaining > 0 && (
+                      <div className="flex justify-between text-data">
+                        <span className="text-label text-muted-foreground">Contingency</span>
+                        <span className="font-mono font-medium text-blue-600">{formatCurrency(project.contingency_remaining)}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="grid grid-cols-2 gap-2 text-label">
                 <div>
