@@ -25,6 +25,7 @@ interface PayeeSelectorMobileProps {
   defaultPayeeType?: PayeeType;
   defaultIsInternal?: boolean;
   defaultProvidesLabor?: boolean;
+  compact?: boolean;
 }
 
 export const PayeeSelectorMobile = ({ 
@@ -40,7 +41,8 @@ export const PayeeSelectorMobile = ({
   filterLabor = false,
   defaultPayeeType,
   defaultIsInternal,
-  defaultProvidesLabor
+  defaultProvidesLabor,
+  compact = false
 }: PayeeSelectorMobileProps) => {
   const [open, setOpen] = useState(false);
   const [showPayeeForm, setShowPayeeForm] = useState(false);
@@ -156,7 +158,8 @@ export const PayeeSelectorMobile = ({
         onClick={() => setOpen(true)}
         onBlur={onBlur}
         className={cn(
-          "w-full justify-between h-12 text-base",
+          "w-full justify-between",
+          compact ? "h-8 text-xs" : "h-12 text-base",
           error && "border-destructive"
         )}
       >
@@ -165,12 +168,14 @@ export const PayeeSelectorMobile = ({
             <span className="truncate">
               {formatPayeeDisplayName(selectedPayee)}
             </span>
-            <Badge 
-              variant={getPayeeTypeBadgeVariant(selectedPayee.payee_type)}
-              className="text-xs"
-            >
-              {formatPayeeType(selectedPayee.payee_type)}
-            </Badge>
+            {!compact && (
+              <Badge 
+                variant={getPayeeTypeBadgeVariant(selectedPayee.payee_type)}
+                className="text-xs"
+              >
+                {formatPayeeType(selectedPayee.payee_type)}
+              </Badge>
+            )}
           </div>
         ) : (
           placeholder

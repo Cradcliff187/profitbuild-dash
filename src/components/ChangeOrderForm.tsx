@@ -335,11 +335,13 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm">Description</FormLabel>
+                  <FormLabel className="text-xs font-medium">
+                    Description <span className="text-destructive">*</span>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Enter change order description"
-                      className="h-9 text-sm"
+                      className="h-8 text-xs"
                       {...field}
                     />
                   </FormControl>
@@ -353,11 +355,13 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
               name="reason_for_change"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm">Reason for Change</FormLabel>
+                  <FormLabel className="text-xs font-medium">
+                    Reason for Change <span className="text-destructive">*</span>
+                  </FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Explain the reason for this change order"
-                      className="min-h-[80px] text-sm"
+                      className="min-h-[60px] text-xs"
                       {...field}
                     />
                   </FormControl>
@@ -368,10 +372,10 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
 
             {/* Line Items Section */}
             <div className="space-y-2">
-              <FormLabel className="text-sm font-semibold">Line Items</FormLabel>
-              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2 mb-2">
-                <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">📋 Expense Tracking Workflow</p>
-                <p className="text-xs text-blue-800 dark:text-blue-200">
+              <FormLabel className="text-xs font-semibold">Line Items <span className="text-destructive">*</span></FormLabel>
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2">
+                <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-0.5">📋 Expense Tracking Workflow</p>
+                <p className="text-[11px] leading-tight text-blue-800 dark:text-blue-200">
                   1. Add line items and assign vendors/workers<br />
                   2. Approve the change order<br />
                   3. Use "Match Expenses" to link actual costs to these line items
@@ -388,9 +392,9 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             </div>
 
             {/* Auto-calculated Totals Display */}
-            <Card className="p-3 bg-muted/30">
-              <h4 className="text-sm font-medium mb-2">Change Order Totals</h4>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+            <Card className="p-2 bg-muted/30">
+              <h4 className="text-xs font-medium mb-1.5">Change Order Totals</h4>
+              <div className="grid grid-cols-2 gap-1.5 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Cost:</span>
                   <span className="font-mono font-semibold">
@@ -423,23 +427,23 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
               control={form.control}
               name="contingency_billed_to_client"
               render={({ field }) => (
-                <div className="space-y-2 border rounded-lg p-3 bg-blue-50 dark:bg-blue-950/20">
+                <div className="space-y-1.5 border rounded-lg p-2 bg-blue-50 dark:bg-blue-950/20">
                   <div className="flex items-center justify-between">
-                    <FormLabel className="text-sm font-semibold">Bill Contingency to Client (Optional)</FormLabel>
-                    <span className="text-xs text-muted-foreground">
+                    <FormLabel className="text-xs font-semibold">Bill Contingency to Client (Optional)</FormLabel>
+                    <span className="text-[11px] text-muted-foreground">
                       Available: {formatCurrency(contingencyRemaining)}
                     </span>
                   </div>
 
                   <FormItem>
-                    <FormLabel className="text-xs">Amount to Bill</FormLabel>
-                    <div className="flex gap-2">
+                    <FormLabel className="text-[11px]">Amount to Bill</FormLabel>
+                    <div className="flex gap-1.5">
                       <FormControl>
                         <Input
                           type="number"
                           step="0.01"
                           placeholder="0.00"
-                          className="h-9 text-sm"
+                          className="h-8 text-xs"
                           {...field}
                           onChange={(e) => {
                             const value = parseFloat(e.target.value) || 0;
@@ -453,20 +457,20 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
                           variant="outline"
                           size="sm"
                           onClick={() => field.onChange(contingencyRemaining)}
-                          className="h-9 text-xs"
+                          className="h-8 text-xs px-2"
                         >
                           Bill All
                         </Button>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground">
                       Convert unused contingency to earned revenue
                     </p>
                     <FormMessage />
                   </FormItem>
 
                   {billedAmount > 0 && (
-                    <div className={`text-xs space-y-1 p-2 rounded ${showWarning ? 'bg-destructive/10 text-destructive' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
+                    <div className={`text-[11px] space-y-0.5 p-1.5 rounded ${showWarning ? 'bg-destructive/10 text-destructive' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
                       <p className="font-medium">💰 Billing Impact:</p>
                       <p>• Converts {formatCurrency(billedAmount)} from reserved → earned revenue</p>
                       <p>• Reduces available contingency to {formatCurrency(Math.max(contingencyAfterBilling, 0))}</p>
@@ -494,9 +498,9 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
       </div>
       
       {/* Sticky Footer with Action Buttons */}
-      <div className="sticky bottom-0 bg-background border-t pt-3 pb-2 -mx-6 px-6 mt-4 flex-shrink-0">
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onCancel} size="sm">
+      <div className="sticky bottom-0 bg-background border-t pt-2 pb-2 -mx-6 px-6 mt-2 flex-shrink-0">
+        <div className="flex justify-end gap-1.5">
+          <Button type="button" variant="outline" onClick={onCancel} size="sm" className="h-8 text-xs">
             Cancel
           </Button>
           <Button 
@@ -504,6 +508,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             type="submit" 
             disabled={isSubmitting} 
             size="sm"
+            className="h-8 text-xs"
           >
             {isSubmitting
               ? "Saving..."

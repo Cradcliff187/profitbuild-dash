@@ -231,6 +231,8 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
                         onValueChange={(value) => onUpdateLineItem(index, 'payee_id', value || null)}
                         placeholder="Select..."
                         required={false}
+                        showLabel={false}
+                        compact={true}
                       />
                     </TableCell>
                     <TableCell className="p-2">
