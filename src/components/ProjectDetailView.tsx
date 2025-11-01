@@ -391,29 +391,31 @@ export const ProjectDetailView = () => {
 
         {/* Change Order Modal */}
         <Dialog open={showChangeOrderModal} onOpenChange={setShowChangeOrderModal}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
+          <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0">
+            <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
               <DialogTitle className="text-sm">
                 {editingChangeOrder ? 'Edit Change Order' : 'Create New Change Order'}
               </DialogTitle>
             </DialogHeader>
-            <ChangeOrderForm
-              projectId={project.id}
-              changeOrder={editingChangeOrder || undefined}
-              onSuccess={() => {
-                setShowChangeOrderModal(false);
-                setEditingChangeOrder(null);
-                loadProjectData();
-                toast({
-                  title: "Success",
-                  description: `Change order ${editingChangeOrder ? 'updated' : 'created'} successfully.`
-                });
-              }}
-              onCancel={() => {
-                setShowChangeOrderModal(false);
-                setEditingChangeOrder(null);
-              }}
-            />
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <ChangeOrderForm
+                projectId={project.id}
+                changeOrder={editingChangeOrder || undefined}
+                onSuccess={() => {
+                  setShowChangeOrderModal(false);
+                  setEditingChangeOrder(null);
+                  loadProjectData();
+                  toast({
+                    title: "Success",
+                    description: `Change order ${editingChangeOrder ? 'updated' : 'created'} successfully.`
+                  });
+                }}
+                onCancel={() => {
+                  setShowChangeOrderModal(false);
+                  setEditingChangeOrder(null);
+                }}
+              />
+            </div>
           </DialogContent>
         </Dialog>
       </div>

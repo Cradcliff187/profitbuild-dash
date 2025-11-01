@@ -300,15 +300,10 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
   const showWarning = billedAmount > contingencyRemaining;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">
-          {changeOrder ? "Edit Change Order" : "Create Change Order"}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="flex flex-col h-full">
+      <div className="flex-1 space-y-3">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3" id="change-order-form">
             <div className="flex items-center gap-2">
               <FormLabel className="text-sm">Change Order Number:</FormLabel>
               <span className="font-mono font-medium text-sm">{changeOrderNumber}</span>
@@ -479,21 +474,30 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
               )}
             />
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={onCancel} size="sm">
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting} size="sm">
-                {isSubmitting
-                  ? "Saving..."
-                  : changeOrder
-                  ? "Update Change Order"
-                  : "Create Change Order"}
-              </Button>
-            </div>
           </form>
         </Form>
-      </CardContent>
-    </Card>
+      </div>
+      
+      {/* Sticky Footer with Action Buttons */}
+      <div className="sticky bottom-0 bg-background border-t pt-3 pb-2 -mx-6 px-6 mt-4 flex-shrink-0">
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onCancel} size="sm">
+            Cancel
+          </Button>
+          <Button 
+            form="change-order-form"
+            type="submit" 
+            disabled={isSubmitting} 
+            size="sm"
+          >
+            {isSubmitting
+              ? "Saving..."
+              : changeOrder
+              ? "Update Change Order"
+              : "Create Change Order"}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
