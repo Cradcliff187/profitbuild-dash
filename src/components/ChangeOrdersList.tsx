@@ -182,6 +182,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
   const totalCostImpact = approvedChangeOrders.reduce((sum, co) => sum + (co.cost_impact || 0), 0);
   const totalMarginImpact = approvedChangeOrders.reduce((sum, co) => sum + (co.margin_impact || 0), 0);
   const overallMarginPercentage = totalClientAmount > 0 ? (totalMarginImpact / totalClientAmount) * 100 : 0;
+  const totalContingencyBilled = approvedChangeOrders.reduce((sum, co) => sum + (co.contingency_billed_to_client || 0), 0);
 
   // Pagination
   const {
@@ -258,7 +259,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                   <TableHead>Client Amount</TableHead>
                   <TableHead>Cost Impact</TableHead>
                   <TableHead>Margin Impact</TableHead>
-                  <TableHead>Contingency</TableHead>
+                  <TableHead>Contingency Billed</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Requested Date</TableHead>
                   <TableHead>Actions</TableHead>
@@ -313,12 +314,12 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                         )}
                       </TableCell>
                       <TableCell>
-                        {changeOrder.includes_contingency ? (
-                          <Badge variant="outline" className="text-xs">
-                            Uses Contingency
+                        {changeOrder.contingency_billed_to_client && changeOrder.contingency_billed_to_client > 0 ? (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            {formatCurrency(changeOrder.contingency_billed_to_client)}
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground text-xs">$0</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -458,9 +459,9 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                   <span>
                     {approvedChangeOrders.length} of {filteredChangeOrders.length} change orders approved
                   </span>
-                  {approvedChangeOrders.filter(co => co.includes_contingency).length > 0 && (
-                    <span className="text-blue-600">
-                      {approvedChangeOrders.filter(co => co.includes_contingency).length} using contingency
+                  {totalContingencyBilled > 0 && (
+                    <span className="text-blue-600 font-medium">
+                      {formatCurrency(totalContingencyBilled)} contingency billed to client
                     </span>
                   )}
                 </div>
