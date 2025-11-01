@@ -48,6 +48,7 @@ export type Database = {
           approved_date: string | null
           change_order_number: string
           client_amount: number | null
+          contingency_billed_to_client: number | null
           cost_impact: number | null
           created_at: string | null
           description: string
@@ -66,6 +67,7 @@ export type Database = {
           approved_date?: string | null
           change_order_number: string
           client_amount?: number | null
+          contingency_billed_to_client?: number | null
           cost_impact?: number | null
           created_at?: string | null
           description: string
@@ -84,6 +86,7 @@ export type Database = {
           approved_date?: string | null
           change_order_number?: string
           client_amount?: number | null
+          contingency_billed_to_client?: number | null
           cost_impact?: number | null
           created_at?: string | null
           description?: string

@@ -9,7 +9,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Database } from "@/integrations/supabase/types";
 import { formatCurrency } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ const changeOrderSchema = z.object({
   reason_for_change: z.string().min(1, "Reason for change is required"),
   client_amount: z.coerce.number().min(0, "Client amount must be positive").default(0),
   cost_impact: z.coerce.number().min(0, "Our cost must be positive").default(0),
-  includes_contingency: z.boolean().default(false),
+  contingency_billed_to_client: z.coerce.number().min(0, "Contingency amount must be positive").default(0),
 });
 
 type ChangeOrderFormData = z.infer<typeof changeOrderSchema>;
@@ -46,7 +46,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
       reason_for_change: changeOrder?.reason_for_change || "",
       client_amount: changeOrder?.client_amount || 0,
       cost_impact: changeOrder?.cost_impact || 0,
-      includes_contingency: changeOrder?.includes_contingency || false,
+      contingency_billed_to_client: changeOrder?.contingency_billed_to_client || 0,
     },
   });
 
@@ -133,7 +133,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             client_amount: data.client_amount,
             cost_impact: data.cost_impact,
             margin_impact: data.client_amount - data.cost_impact,
-            includes_contingency: data.includes_contingency,
+            contingency_billed_to_client: data.contingency_billed_to_client,
           })
           .eq('id', changeOrder.id);
 
@@ -155,7 +155,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             client_amount: data.client_amount,
             cost_impact: data.cost_impact,
             margin_impact: data.client_amount - data.cost_impact,
-            includes_contingency: data.includes_contingency,
+            contingency_billed_to_client: data.contingency_billed_to_client,
             status: 'pending',
             requested_date: new Date().toISOString().split('T')[0],
           });
@@ -312,44 +312,65 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
 
             <FormField
               control={form.control}
-              name="includes_contingency"
+              name="contingency_billed_to_client"
               render={({ field }) => {
-                const costImpactValue = form.watch("cost_impact") || 0;
-                const usesContingency = field.value;
-                const contingencyAfterUse = contingencyRemaining - (usesContingency ? costImpactValue : 0);
-                const showContingencyWarning = usesContingency && costImpactValue > contingencyRemaining;
+                const billedAmount = field.value || 0;
+                const contingencyAfterBilling = contingencyRemaining - billedAmount;
+                const showWarning = billedAmount > contingencyRemaining;
                 
                 return (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Use Contingency</FormLabel>
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p>This change order will be funded from project contingency</p>
+                  <div className="space-y-2 border rounded-lg p-3 bg-blue-50 dark:bg-blue-950/20">
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="text-sm font-semibold">Bill Contingency to Client</FormLabel>
+                      <span className="text-xs text-muted-foreground">
+                        Available: {formatCurrency(contingencyRemaining)}
+                      </span>
+                    </div>
+
+                    <FormItem>
+                      <FormLabel className="text-xs">Amount to Bill (Optional)</FormLabel>
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            {...field}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value) || 0;
+                              field.onChange(value);
+                            }}
+                          />
+                        </FormControl>
                         {contingencyRemaining > 0 && (
-                          <div className="space-y-1">
-                             <p>Remaining contingency: {formatCurrency(contingencyRemaining, { showCents: true })}</p>
-                             {usesContingency && costImpactValue > 0 && (
-                               <p className={`${showContingencyWarning ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                                 After this change: {formatCurrency(Math.max(contingencyAfterUse, 0), { showCents: true })}
-                                 {showContingencyWarning && " (Exceeds available contingency!)"}
-                               </p>
-                             )}
-                          </div>
-                        )}
-                        {usesContingency && (
-                          <p className="text-blue-600 text-xs">
-                            ℹ️ This cost won't directly impact project margin as it uses allocated contingency
-                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => field.onChange(contingencyRemaining)}
+                          >
+                            Bill All
+                          </Button>
                         )}
                       </div>
-                    </div>
-                  </FormItem>
+                      <p className="text-xs text-muted-foreground">
+                        Add unused contingency to contract value
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+
+                    {billedAmount > 0 && (
+                      <div className={`text-xs space-y-1 p-2 rounded ${showWarning ? 'bg-destructive/10 text-destructive' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
+                        <p className="font-medium">💰 Billing Impact:</p>
+                        <p>• Adds {formatCurrency(billedAmount)} to client invoice</p>
+                        <p>• Reduces available contingency to {formatCurrency(Math.max(contingencyAfterBilling, 0))}</p>
+                        <p>• Pure profit (no associated cost)</p>
+                        {showWarning && (
+                          <p className="font-semibold">⚠️ Exceeds available contingency!</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 );
               }}
             />
