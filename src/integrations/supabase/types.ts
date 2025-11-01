@@ -50,6 +50,7 @@ export type Database = {
           description: string
           id: string
           markup_amount: number | null
+          payee_id: string | null
           price_per_unit: number | null
           quantity: number | null
           sort_order: number | null
@@ -66,6 +67,7 @@ export type Database = {
           description: string
           id?: string
           markup_amount?: number | null
+          payee_id?: string | null
           price_per_unit?: number | null
           quantity?: number | null
           sort_order?: number | null
@@ -82,6 +84,7 @@ export type Database = {
           description?: string
           id?: string
           markup_amount?: number | null
+          payee_id?: string | null
           price_per_unit?: number | null
           quantity?: number | null
           sort_order?: number | null
@@ -96,6 +99,13 @@ export type Database = {
             columns: ["change_order_id"]
             isOneToOne: false
             referencedRelation: "change_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_order_line_items_payee_id_fkey"
+            columns: ["payee_id"]
+            isOneToOne: false
+            referencedRelation: "payees"
             referencedColumns: ["id"]
           },
         ]
@@ -526,6 +536,7 @@ export type Database = {
       expense_line_item_correlations: {
         Row: {
           auto_correlated: boolean | null
+          change_order_line_item_id: string | null
           confidence_score: number | null
           correlation_type: string
           created_at: string
@@ -538,6 +549,7 @@ export type Database = {
         }
         Insert: {
           auto_correlated?: boolean | null
+          change_order_line_item_id?: string | null
           confidence_score?: number | null
           correlation_type: string
           created_at?: string
@@ -550,6 +562,7 @@ export type Database = {
         }
         Update: {
           auto_correlated?: boolean | null
+          change_order_line_item_id?: string | null
           confidence_score?: number | null
           correlation_type?: string
           created_at?: string
@@ -561,6 +574,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "expense_line_item_correlations_change_order_line_item_id_fkey"
+            columns: ["change_order_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "change_order_line_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expense_line_item_correlations_estimate_line_item_id_fkey"
             columns: ["estimate_line_item_id"]
