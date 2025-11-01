@@ -194,7 +194,7 @@ export function FinancialTableTemplate<T>({
   };
 
   const renderTableHeader = () => (
-    <TableHeader className="sticky top-0 bg-card z-20 border-b shadow-sm">
+    <TableHeader className="sticky top-0 bg-card/95 backdrop-blur-sm z-30 border-b shadow-sm">
       <TableRow className="border-b border-border/50 hover:bg-transparent">
         {columns.map((column) => (
           <TableHead
@@ -360,8 +360,8 @@ export function FinancialTableTemplate<T>({
         {collapseAllButton}
       </div>
     )}
-    <div className="overflow-auto h-[calc(100vh-280px)] min-h-[600px] w-full">
-      <Table className="min-w-[800px] w-full relative">
+    <div className="relative overflow-auto h-[calc(100vh-280px)] min-h-[600px] w-full">
+      <Table className="min-w-[800px] w-full">
         {renderTableHeader()}
         <TableBody>
           {isGrouped ? renderGroupedData() : renderSimpleData()}
