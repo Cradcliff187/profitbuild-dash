@@ -123,9 +123,8 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
       render: (item) => (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="text-right cursor-help">
-              <div className="font-medium text-sm">{formatCurrency(item.estimatedPrice)}</div>
-              <div className="text-xs text-muted-foreground">Client price</div>
+            <div className="text-right cursor-help font-medium text-sm tabular-nums">
+              {formatCurrency(item.estimatedPrice)}
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -142,9 +141,8 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
       render: (item) => (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="text-right cursor-help">
-              <div className="font-medium text-sm">{formatCurrency(item.estimatedCost)}</div>
-              <div className="text-xs text-muted-foreground">Your expected cost</div>
+            <div className="text-right cursor-help font-medium text-sm tabular-nums">
+              {formatCurrency(item.estimatedCost)}
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -164,16 +162,8 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
         return (
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-right cursor-help">
-                <div className="font-medium text-sm">{formatCurrency(item.quotedCost)}</div>
-                {acceptedQuotes.length > 0 ? (
-                  <div className="text-xs text-muted-foreground truncate max-w-[120px]">
-                    {acceptedQuotes[0].quotedBy}
-                    {acceptedQuotes.length > 1 && ` +${acceptedQuotes.length - 1} more`}
-                  </div>
-                ) : (
-                  <div className="text-xs text-muted-foreground">No quotes</div>
-                )}
+              <div className="text-right cursor-help font-medium text-sm tabular-nums">
+                {formatCurrency(item.quotedCost)}
               </div>
             </TooltipTrigger>
             <TooltipContent>
@@ -204,13 +194,15 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
       render: (item) => (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="text-right cursor-help">
-              <div className="font-medium text-sm">{formatCurrency(item.actualAmount)}</div>
-              <div className="text-xs text-muted-foreground">{item.expenses.length} expense{item.expenses.length !== 1 ? 's' : ''}</div>
+            <div className="text-right cursor-help font-medium text-sm tabular-nums">
+              {formatCurrency(item.actualAmount)}
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Total actual expenses recorded (category-based)</p>
+            <div className="space-y-1">
+              <p>Total actual expenses recorded (category-based)</p>
+              <p className="text-xs text-muted-foreground">{item.expenses.length} expense{item.expenses.length !== 1 ? 's' : ''}</p>
+            </div>
           </TooltipContent>
         </Tooltip>
       ),
@@ -225,16 +217,13 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
           <TooltipTrigger asChild>
             <div className="text-right cursor-help">
               <div className={cn(
-                "font-medium text-sm",
+                "font-medium text-sm tabular-nums flex items-center justify-end gap-2",
                 item.costVariance > 0 ? "text-destructive" : "text-muted-foreground"
               )}>
-                {formatCurrency(item.costVariance)}
-              </div>
-              <div className={cn(
-                "text-xs",
-                item.costVariance > 0 ? "text-destructive" : "text-muted-foreground"
-              )}>
-                {item.costVariancePercent > 0 ? '+' : ''}{item.costVariancePercent.toFixed(1)}%
+                <span>{formatCurrency(item.costVariance)}</span>
+                <span className="text-xs">
+                  {item.costVariancePercent > 0 ? '+' : ''}{item.costVariancePercent.toFixed(1)}%
+                </span>
               </div>
             </div>
           </TooltipTrigger>
