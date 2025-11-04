@@ -1,0 +1,148 @@
+# PROMPT FOR CURSOR AI AGENT
+
+Copy and paste this entire prompt to Cursor AI:
+
+---
+
+**TASK: Safely merge the feature/gantt-schedule branch into main and push to GitHub**
+
+**CONTEXT:**
+I have a feature branch called `feature/gantt-schedule` that contains Gantt chart/project schedule functionality. This feature has been thoroughly reviewed and is safe to merge because:
+
+1. All new features are protected by feature flags that are OFF by default
+2. Database changes are 100% additive only (nullable columns, no destructive changes)
+3. No existing code was modified - only new components added
+4. Rollback scripts are in place
+5. See `MERGE_SAFETY_REPORT.md` and `QUICK_MERGE_DECISION.md` for full safety analysis
+
+**REPOSITORY INFORMATION:**
+- Remote: https://github.com/Cradcliff187/profitbuild-dash.git
+- Current branch: feature/gantt-schedule
+- Target branch: main
+- Working directory: C:\Dev\profitbuild-dash
+
+**REQUIREMENTS:**
+1. Verify current branch and repository status
+2. Fetch latest changes from remote
+3. Merge feature/gantt-schedule into main
+4. Resolve any merge conflicts (if any)
+5. Push the merged code to GitHub
+6. Verify the push was successful
+7. Provide confirmation of all steps
+
+**SAFETY CHECKS BEFORE MERGING:**
+- Confirm there are no uncommitted changes that would be lost
+- Verify we're connected to the correct remote repository
+- Check that main branch is up to date with remote
+- List any files that will be modified/added in the merge
+
+**STEP-BY-STEP INSTRUCTIONS:**
+
+Please execute the following git operations and report the results after each step:
+
+1. **Check current status:**
+   ```bash
+   git status
+   git remote -v
+   git branch -vv
+   ```
+
+2. **Ensure we're on the feature branch:**
+   ```bash
+   git checkout feature/gantt-schedule
+   ```
+
+3. **Fetch latest from remote:**
+   ```bash
+   git fetch origin
+   ```
+
+4. **Check out main branch:**
+   ```bash
+   git checkout main
+   ```
+
+5. **Pull latest main:**
+   ```bash
+   git pull origin main
+   ```
+
+6. **Merge feature branch into main:**
+   ```bash
+   git merge feature/gantt-schedule -m "Merge feature/gantt-schedule: Add Gantt chart and project scheduling functionality
+
+Features added:
+- Project schedule/timeline view with Gantt chart
+- Task dependencies and milestones
+- Schedule export functionality
+- Duration tracking and date calculations
+- Protected by feature flags (OFF by default)
+
+Database changes:
+- Added optional scheduling fields to estimate_line_items
+- Added optional scheduling fields to change_order_line_items
+- All changes are additive and backward compatible
+- Rollback migration included
+
+Safety:
+- Features disabled by default via feature flags
+- No modifications to existing functionality
+- Error boundaries and loading states implemented
+- Full documentation in docs/ directory"
+   ```
+
+7. **If merge conflicts occur:**
+   - List the conflicting files
+   - Ask me how to proceed before resolving
+   - DO NOT auto-resolve without my input
+
+8. **Verify the merge:**
+   ```bash
+   git log --oneline -5
+   git diff origin/main
+   ```
+
+9. **Push to GitHub:**
+   ```bash
+   git push origin main
+   ```
+
+10. **Verify push success:**
+    ```bash
+    git status
+    git log origin/main --oneline -3
+    ```
+
+11. **Optional: Delete feature branch (ask first):**
+    ```bash
+    # Only if I confirm
+    git branch -d feature/gantt-schedule
+    git push origin --delete feature/gantt-schedule
+    ```
+
+**AFTER MERGE VERIFICATION:**
+Please confirm:
+- ✅ Merge completed successfully
+- ✅ No conflicts or errors
+- ✅ Code pushed to GitHub main branch
+- ✅ Remote repository is up to date
+- ✅ Working directory is clean
+
+**IF SOMETHING GOES WRONG:**
+- Stop immediately and report the error
+- Do NOT force push (git push -f)
+- Do NOT delete branches without confirmation
+- Provide the exact error message for troubleshooting
+
+**IMPORTANT NOTES:**
+- The `.env.local` file should NOT be committed (it's in .gitignore)
+- Feature flags will be OFF in production by default
+- This merge is safe and will not break existing functionality
+- All database migrations are included in the supabase/migrations/ directory
+
+**EXPECTED OUTCOME:**
+After this merge, the main branch will contain all schedule/Gantt functionality, but features will remain hidden in production until environment variables are explicitly set to enable them.
+
+---
+
+**Please proceed with the merge using these instructions and report status after each step.**

@@ -31,6 +31,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ProjectWithFinancials } from "@/utils/projectFinancials";
 import type { Database } from "@/integrations/supabase/types";
 import { BrandedLoader } from "@/components/ui/branded-loader";
+import { isFeatureEnabled } from "@/lib/featureFlags";
+import ProjectScheduleView from "@/components/schedule/ProjectScheduleView";
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 
@@ -364,6 +366,16 @@ export const ProjectDetailView = () => {
                   clientName={project.client_name}
                 />
               } />
+              
+              {isFeatureEnabled('scheduleView') && (
+                <Route path="schedule" element={
+                  <ProjectScheduleView
+                    projectId={project.id}
+                    projectStartDate={project.start_date}
+                    projectEndDate={project.end_date}
+                  />
+                } />
+              )}
               
               <Route path="edit" element={
                 <ProjectEditForm 

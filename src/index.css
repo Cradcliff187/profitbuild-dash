@@ -553,3 +553,357 @@ textarea:focus-visible {
   box-shadow: 0 2px 10px rgba(255, 255, 0, 0.5);
 }
 
+/* =================================
+   GANTT CHART CUSTOM STYLES
+   ================================= */
+
+/* Gantt Chart Container */
+.gantt-container {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: visible;
+  width: 100%;
+  min-width: 100%;
+}
+
+/* Ensure Gantt chart is interactive */
+.gantt-container .gantt {
+  position: relative;
+  width: 100%;
+}
+
+/* Make sure bars are draggable */
+.gantt-container .bar-wrapper {
+  cursor: move;
+  pointer-events: all;
+}
+
+.gantt-container .bar-wrapper .bar {
+  pointer-events: all;
+  cursor: move;
+}
+
+.gantt-container .handle {
+  pointer-events: all;
+  cursor: ew-resize;
+}
+
+.gantt .bar {
+  cursor: move;
+  transition: opacity 0.2s;
+}
+
+.gantt .bar-wrapper:hover .bar {
+  opacity: 0.9;
+}
+
+.gantt .bar-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.gantt .arrow {
+  stroke: #94a3b8;
+  stroke-width: 1.5;
+}
+
+/* Category Colors */
+.gantt .bar[data-category="labor_internal"] {
+  fill: #3b82f6;
+}
+
+.gantt .bar[data-category="subcontractors"] {
+  fill: #8b5cf6;
+}
+
+.gantt .bar[data-category="materials"] {
+  fill: #10b981;
+}
+
+.gantt .bar[data-category="equipment"] {
+  fill: #f59e0b;
+}
+
+.gantt .bar[data-category="permits"] {
+  fill: #ef4444;
+}
+
+.gantt .bar[data-category="management"] {
+  fill: #6366f1;
+}
+
+.gantt .bar[data-category="other"] {
+  fill: #64748b;
+}
+
+.gantt .bar.change-order-bar {
+  fill: url(#diagonal-stripe);
+  stroke: #ec4899;
+  stroke-width: 2;
+}
+
+/* Gantt Popup - Lower z-index so it doesn't overlap edit panel */
+.gantt-container .popup-wrapper {
+  z-index: 30 !important;
+}
+
+.gantt-popup {
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 300px;
+  z-index: 30 !important;
+}
+
+/* Ensure Gantt chart container doesn't overlap sheet */
+.gantt-container {
+  position: relative;
+  z-index: 1;
+}
+
+.gantt-popup h5 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #0f172a;
+}
+
+.gantt-popup p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #475569;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .gantt-container {
+    font-size: 11px;
+  }
+  
+  .gantt .bar-label {
+    font-size: 10px;
+  }
+  
+  .gantt-popup {
+    max-width: 250px;
+    padding: 10px;
+  }
+  
+  .gantt .bar {
+    cursor: grab;
+  }
+  
+  .gantt .bar:active {
+    cursor: grabbing;
+  }
+  
+  /* Larger touch targets on mobile */
+  .gantt-container .bar-wrapper {
+    padding: 4px 0;
+  }
+  
+  .gantt-container .bar {
+    min-height: 32px !important;
+  }
+  
+  /* Hide resize handles on mobile */
+  .gantt-container .handle {
+    display: none;
+  }
+}
+
+/* ========================================
+   Enhanced Gantt Styles - Construction Management
+   ======================================== */
+
+/* Better cursor feedback for dragging */
+.gantt-container .bar-wrapper {
+  cursor: grab;
+}
+
+.gantt-container .bar-wrapper:active {
+  cursor: grabbing;
+}
+
+.gantt-container .bar-wrapper:hover {
+  transform: translateY(-1px);
+  transition: transform 0.15s ease;
+}
+
+/* Visual feedback on hover */
+.gantt .bar-wrapper:hover .bar {
+  filter: brightness(1.05);
+}
+
+/* Critical path highlighting */
+.gantt .bar.has-dependencies {
+  stroke: #f59e0b;
+  stroke-width: 1.5;
+  stroke-dasharray: 2, 2;
+}
+
+/* Completed tasks appear muted */
+.gantt .bar[data-progress="100"] {
+  opacity: 0.7;
+  filter: saturate(0.7);
+}
+
+/* Dark mode support for popups */
+.dark .gantt-popup {
+  background: #1f2937;
+  color: #f3f4f6;
+  border: 1px solid #374151;
+}
+
+.dark .gantt-popup h5 {
+  color: #f3f4f6;
+}
+
+.dark .gantt-popup p {
+  color: #d1d5db;
+}
+
+.dark .gantt-popup strong {
+  color: #e5e7eb;
+}
+
+/* Loading state */
+.gantt-container.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.gantt-container.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Smooth scrolling on all devices */
+.gantt-container {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Accessibility - Focus styles */
+.gantt-container:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.gantt .bar:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .gantt-container,
+  .gantt .bar,
+  .gantt .bar-wrapper,
+  .gantt-container .popup-wrapper {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Gantt Task React Styles */
+.gantt-container {
+  font-family: inherit;
+}
+
+.gantt-task-react .task-list-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.gantt-task-react .task-list-table {
+  border-right: 1px solid #e2e8f0;
+}
+
+.gantt-task-react .task-item {
+  border-radius: 4px;
+}
+
+/* Make task list more compact and readable */
+.gantt-task-react .task-list-header-default {
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 8px 12px;
+}
+
+.gantt-task-react .task-list-cell {
+  font-size: 0.875rem;
+  padding: 8px 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Hide From and To columns since dates are now in task names */
+.gantt-task-react .task-list-cell:nth-child(2),
+.gantt-task-react .task-list-cell:nth-child(3),
+.gantt-task-react .task-list-header-default:nth-child(2),
+.gantt-task-react .task-list-header-default:nth-child(3) {
+  display: none !important;
+}
+
+/* Better task name display with dates embedded */
+.gantt-task-react .task-list-cell:first-child,
+.gantt-task-react .task-list-header-default:first-child {
+  min-width: 280px !important;
+  max-width: 350px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+}
+
+/* Hover effect for better interactivity */
+.gantt-task-react .task-list-row:hover {
+  background-color: #f8fafc;
+}
+
+/* Better bar styling */
+.gantt-task-react .bar {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gantt-task-react .bar:hover {
+  opacity: 0.9;
+  filter: brightness(1.1);
+}
+
+/* Fix overlapping calendar header dates */
+.gantt-task-react .calendar .bottom {
+  font-size: 11px;
+  padding: 2px;
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.gantt-task-react .calendar .top {
+  font-weight: 600;
+  font-size: 13px;
+  background: #f9fafb;
+}
+
+/* Category-specific colors are handled inline via Task.styles */

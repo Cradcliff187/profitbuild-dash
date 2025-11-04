@@ -8,7 +8,8 @@ import {
   Camera, 
   Video,
   Edit,
-  Play
+  Play,
+  Calendar
 } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
@@ -22,8 +23,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 
-const sections = [
+const baseSections = [
   { title: "Overview", url: "", icon: Building2 },
   { title: "Estimates & Quotes", url: "estimates", icon: FileText },
   { title: "Expenses", url: "expenses", icon: DollarSign },
@@ -32,6 +34,8 @@ const sections = [
   { title: "Change Orders", url: "changes", icon: FileEdit },
   { title: "Documents", url: "documents", icon: FileText },
 ];
+
+const scheduleSection = { title: "Schedule", url: "schedule", icon: Calendar };
 
 const actions = [
   { title: "Edit Project", url: "edit", icon: Edit },
@@ -60,6 +64,11 @@ export function ProjectSidebar() {
       setOpenMobile(false);
     }
   };
+
+  // Conditionally include schedule section based on feature flag
+  const sections = isFeatureEnabled('scheduleView')
+    ? [...baseSections.slice(0, 3), scheduleSection, ...baseSections.slice(3)]
+    : baseSections;
 
   return (
     <Sidebar collapsible="icon">
