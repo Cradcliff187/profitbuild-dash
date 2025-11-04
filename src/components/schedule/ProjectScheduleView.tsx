@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Gantt, Task, ViewMode } from 'gantt-task-react';
 import 'gantt-task-react/dist/index.css';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, Download } from 'lucide-react';
+import { AlertCircle, Download, ArrowUpDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import TaskEditPanel from './TaskEditPanel';
 import ScheduleWarningBanner from './ScheduleWarningBanner';
 import ScheduleStats from './ScheduleStats';
+import TaskReorderPanel from './TaskReorderPanel';
 import { useProgressTracking } from './hooks/useProgressTracking';
 import { ScheduleTask, ScheduleWarning } from '@/types/schedule';
 import { ScheduleExportModal } from './ScheduleExportModal';
@@ -33,7 +34,9 @@ export default function ProjectScheduleView({
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Week);
   const [isLoading, setIsLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showReorderPanel, setShowReorderPanel] = useState(false);
   const [projectName, setProjectName] = useState<string>('Project');
+  const [taskOrder, setTaskOrder] = useState<string[]>([]);
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { getTaskProgress, isLoading: progressLoading } = useProgressTracking(projectId);
@@ -158,6 +161,9 @@ export default function ProjectScheduleView({
 
       const allScheduleTasks = [...estimateTasks, ...changeOrderTasks];
       setScheduleTasks(allScheduleTasks);
+      
+      // Initialize task order with task IDs
+      setTaskOrder(allScheduleTasks.map(t => t.id));
 
       // Convert to Gantt Task format
       const ganttTasks = convertToGanttTasks(allScheduleTasks);
@@ -386,6 +392,34 @@ export default function ProjectScheduleView({
     setWarnings(newWarnings);
   };
 
+  // Sort tasks based on taskOrder
+  const orderedTasks = useMemo(() => {
+    if (taskOrder.length === 0) return scheduleTasks;
+    return [...scheduleTasks].sort((a, b) => 
+      taskOrder.indexOf(a.id) - taskOrder.indexOf(b.id)
+    );
+  }, [scheduleTasks, taskOrder]);
+
+  // Move task up or down in the order
+  const moveTask = (taskId: string, direction: 'up' | 'down') => {
+    const currentIndex = taskOrder.indexOf(taskId);
+    if (currentIndex === -1) return;
+    
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= taskOrder.length) return;
+    
+    const newOrder = [...taskOrder];
+    [newOrder[currentIndex], newOrder[newIndex]] = [newOrder[newIndex], newOrder[currentIndex]];
+    setTaskOrder(newOrder);
+    
+    // Update Gantt tasks immediately
+    const reorderedScheduleTasks = [...scheduleTasks].sort((a, b) => 
+      newOrder.indexOf(a.id) - newOrder.indexOf(b.id)
+    );
+    const ganttTasks = convertToGanttTasks(reorderedScheduleTasks);
+    setTasks(ganttTasks);
+  };
+
   if (isLoading || progressLoading) {
     return (
       <LoadingSpinner 
@@ -467,18 +501,40 @@ export default function ProjectScheduleView({
             </Button>
           </div>
 
-          {/* Export Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowExportModal(true)}
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Export Schedule
-          </Button>
+          <div className="flex gap-2">
+            {/* Reorder Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowReorderPanel(!showReorderPanel)}
+              className="flex items-center gap-2"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+              Reorder
+            </Button>
+            
+            {/* Export Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          </div>
         </div>
       </Card>
+
+      {/* Reorder Panel */}
+      <TaskReorderPanel
+        tasks={orderedTasks}
+        onMoveUp={(taskId) => moveTask(taskId, 'up')}
+        onMoveDown={(taskId) => moveTask(taskId, 'down')}
+        isOpen={showReorderPanel}
+        onToggle={() => setShowReorderPanel(!showReorderPanel)}
+      />
 
       {/* Gantt Chart */}
       <Card className="p-6 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -506,7 +562,7 @@ export default function ProjectScheduleView({
       {selectedTask && (
         <TaskEditPanel
           task={selectedTask}
-          allTasks={scheduleTasks}
+          allTasks={orderedTasks}
           onClose={() => setSelectedTask(null)}
           onSave={async (updatedTask) => {
             try {
@@ -578,7 +634,7 @@ export default function ProjectScheduleView({
       <ScheduleExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
-        tasks={scheduleTasks}
+        tasks={orderedTasks}
         projectName={projectName}
       />
     </div>
