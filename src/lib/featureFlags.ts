@@ -11,17 +11,17 @@ export interface FeatureFlags {
 
 // Default flags - all OFF initially
 const defaultFlags: FeatureFlags = {
-  scheduleView: false,
-  scheduleWarnings: false,
-  scheduleDependencies: false,
+  scheduleView: true,
+  scheduleWarnings: true,
+  scheduleDependencies: true,
 };
 
 // Check environment variables
 const getEnvFlags = (): Partial<FeatureFlags> => {
   return {
-    scheduleView: import.meta.env.VITE_FEATURE_SCHEDULE === 'true',
-    scheduleWarnings: import.meta.env.VITE_FEATURE_SCHEDULE_WARNINGS === 'true',
-    scheduleDependencies: import.meta.env.VITE_FEATURE_SCHEDULE_DEPS === 'true',
+    scheduleView: import.meta.env.VITE_FEATURE_SCHEDULE === "true",
+    scheduleWarnings: import.meta.env.VITE_FEATURE_SCHEDULE_WARNINGS === "true",
+    scheduleDependencies: import.meta.env.VITE_FEATURE_SCHEDULE_DEPS === "true",
   };
 };
 
@@ -57,4 +57,3 @@ export const disableScheduleFeatures = () => {
   featureFlags.scheduleWarnings = false;
   featureFlags.scheduleDependencies = false;
 };
-
