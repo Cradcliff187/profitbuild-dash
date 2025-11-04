@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ColumnSelector } from '@/components/ui/column-selector';
-import { Search, ArrowUpDown } from 'lucide-react';
+import { Search, ArrowUpDown, ChevronDown, ChevronRight } from 'lucide-react';
 import { ScheduleTask } from '@/types/schedule';
 import { useScheduleTableColumns } from '@/hooks/useScheduleTableColumns';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface ScheduleTableViewProps {
   tasks: ScheduleTask[];
@@ -36,6 +37,7 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('start');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -230,25 +232,56 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                 filteredAndSortedTasks.map((task) => {
                   const variance = task.actual_cost - task.estimated_cost;
                   const duration = calculateDuration(task.start, task.end);
+                  const isExpanded = expandedTasks.has(task.id);
                   
                   return (
-                    <TableRow
-                      key={task.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => onTaskClick(task)}
-                    >
-                      {visibleColumns.includes('name') && (
-                        <TableCell className="sticky left-0 bg-background font-medium">
-                          <div className="flex items-center gap-2">
-                            {task.isChangeOrder && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-pink-50 text-pink-700 border-pink-200">
-                                CO
-                              </Badge>
-                            )}
-                            <span className="truncate">{task.name}</span>
-                          </div>
-                        </TableCell>
-                      )}
+                    <React.Fragment key={task.id}>
+                      <TableRow
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => onTaskClick(task)}
+                      >
+                        {visibleColumns.includes('name') && (
+                          <TableCell className="sticky left-0 bg-background font-medium">
+                            <div className="flex items-center gap-2">
+                              {task.has_multiple_phases && task.phases && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 w-5 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedTasks(prev => {
+                                      const next = new Set(prev);
+                                      if (next.has(task.id)) {
+                                        next.delete(task.id);
+                                      } else {
+                                        next.add(task.id);
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-3 w-3" />
+                                  ) : (
+                                    <ChevronRight className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              )}
+                              {task.isChangeOrder && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-pink-50 text-pink-700 border-pink-200">
+                                  CO
+                                </Badge>
+                              )}
+                              <span className="truncate">{task.name}</span>
+                              {task.has_multiple_phases && (
+                                <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
+                                  {task.phases?.length} Phases
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                        )}
                       {visibleColumns.includes('category') && (
                         <TableCell>
                           <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5", getCategoryColor(task.category))}>
@@ -306,7 +339,7 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       )}
                       {visibleColumns.includes('notes') && (
                         <TableCell className="max-w-[200px]">
-                          {task.schedule_notes ? (
+                          {task.schedule_notes && !task.has_multiple_phases ? (
                             <div className="truncate text-xs text-muted-foreground">{task.schedule_notes}</div>
                           ) : (
                             <span className="text-muted-foreground text-xs">—</span>
@@ -314,6 +347,42 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                         </TableCell>
                       )}
                     </TableRow>
+                    
+                    {/* Phase Details Row */}
+                    {isExpanded && task.has_multiple_phases && task.phases && (
+                      <TableRow>
+                        <TableCell colSpan={visibleColumns.length} className="bg-muted/30 p-0">
+                          <div className="p-3 space-y-2">
+                            {task.phases.map((phase, idx) => (
+                              <div key={idx} className="flex items-center gap-3 text-xs py-1.5 px-2 bg-background rounded border">
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
+                                  Phase {phase.phase_number}
+                                </Badge>
+                                {phase.description && (
+                                  <span className="font-medium">{phase.description}</span>
+                                )}
+                                <span className="text-muted-foreground">
+                                  {formatDate(phase.start_date)}
+                                </span>
+                                <span className="text-muted-foreground">→</span>
+                                <span className="text-muted-foreground">
+                                  {formatDate(phase.end_date)}
+                                </span>
+                                <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
+                                  {phase.duration_days}d
+                                </Badge>
+                                {phase.notes && (
+                                  <span className="text-muted-foreground ml-auto italic">
+                                    {phase.notes}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                   );
                 })
               )}

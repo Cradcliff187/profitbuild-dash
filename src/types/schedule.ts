@@ -5,17 +5,30 @@ export interface TaskDependency {
   type: 'finish-to-start'; // Can extend later: 'start-to-start', 'finish-to-finish'
 }
 
+export interface SchedulePhase {
+  phase_number: number;
+  description?: string;
+  start_date: string; // ISO date string
+  end_date: string;
+  duration_days: number;
+  notes?: string;
+}
+
 export interface ScheduleTask {
   id: string;
   name: string; // description field
   category: string;
-  start: string; // ISO date string
-  end: string; // ISO date string
+  start: string; // ISO date string - First phase start OR single scheduled_start_date
+  end: string; // ISO date string - Last phase end OR single scheduled_end_date
   progress: number; // 0-100, calculated from expenses
   dependencies: TaskDependency[];
   custom_class: string; // for Gantt styling
   isChangeOrder: boolean;
   schedule_notes?: string;
+  
+  // Multi-phase support
+  phases?: SchedulePhase[]; // Parsed from schedule_notes JSON
+  has_multiple_phases: boolean;
   
   // Additional metadata
   estimated_cost: number;

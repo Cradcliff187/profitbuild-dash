@@ -204,15 +204,40 @@ export default function ProjectScheduleView({
         ? `CO-${coNumber}: ${item.description}`
         : item.description;
 
-      const startDate = item.scheduled_start_date 
-        ? new Date(item.scheduled_start_date)
-        : projectStartDate 
-        ? new Date(projectStartDate)
-        : new Date();
+      // Parse schedule phases from schedule_notes
+      let phases: any[] | undefined;
+      let hasMultiplePhases = false;
+      
+      try {
+        if (item.schedule_notes) {
+          const parsed = JSON.parse(item.schedule_notes);
+          if (parsed.phases && Array.isArray(parsed.phases)) {
+            phases = parsed.phases;
+            hasMultiplePhases = phases.length > 1;
+          }
+        }
+      } catch (e) {
+        // Not JSON or no phases
+      }
 
-      const endDate = item.scheduled_end_date
-        ? new Date(item.scheduled_end_date)
-        : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+      // Calculate overall start/end from phases OR use scheduled dates
+      let startDate: Date;
+      let endDate: Date;
+      
+      if (phases && phases.length > 0) {
+        startDate = new Date(phases[0].start_date);
+        endDate = new Date(phases[phases.length - 1].end_date);
+      } else {
+        startDate = item.scheduled_start_date 
+          ? new Date(item.scheduled_start_date)
+          : projectStartDate 
+          ? new Date(projectStartDate)
+          : new Date();
+
+        endDate = item.scheduled_end_date
+          ? new Date(item.scheduled_end_date)
+          : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+      }
 
       return {
         id: item.id,
@@ -224,7 +249,9 @@ export default function ProjectScheduleView({
         dependencies: item.dependencies || [],
         custom_class: isChangeOrder ? 'change-order' : item.category,
         isChangeOrder,
-        notes: item.schedule_notes,
+        schedule_notes: item.schedule_notes,
+        phases: phases,
+        has_multiple_phases: hasMultiplePhases,
         estimated_cost: item.total_cost || 0,
         actual_cost: 0,
       };
@@ -240,28 +267,54 @@ export default function ProjectScheduleView({
       });
     };
 
-    return scheduleTasks.map((task, index) => {
-      const start = new Date(task.start);
-      const end = new Date(task.end);
+    // Flatten multi-phase tasks into multiple Gantt bars
+    return scheduleTasks.flatMap((task, index) => {
+      if (task.has_multiple_phases && task.phases) {
+        // Create sub-tasks for each phase
+        return task.phases.map((phase: any, phaseIdx: number) => {
+          const start = new Date(phase.start_date);
+          const end = new Date(phase.end_date);
+          const phaseName = `${task.name} - Phase ${phase.phase_number}${phase.description ? `: ${phase.description}` : ''}`;
+          const taskNameWithDates = `${phaseName} (${formatShortDate(phase.start_date)} - ${formatShortDate(phase.end_date)})`;
 
-      // Add date range to task name for display
-      const taskNameWithDates = `${task.name} (${formatShortDate(task.start)} - ${formatShortDate(task.end)})`;
+          return {
+            start,
+            end,
+            name: taskNameWithDates,
+            id: `${task.id}_phase_${phase.phase_number}`,
+            type: 'task' as const,
+            progress: task.progress,
+            isDisabled: false,
+            styles: {
+              backgroundColor: getCategoryColor(task.category),
+              backgroundSelectedColor: getCategoryColor(task.category),
+              progressColor: '#4ade80',
+              progressSelectedColor: '#22c55e'
+            }
+          };
+        });
+      } else {
+        // Single phase - render normally
+        const start = new Date(task.start);
+        const end = new Date(task.end);
+        const taskNameWithDates = `${task.name} (${formatShortDate(task.start)} - ${formatShortDate(task.end)})`;
 
-      return {
-        start,
-        end,
-        name: taskNameWithDates,  // Shows: "Flooring (Nov 8 - Nov 16)"
-        id: task.id,
-        type: 'task',
-        progress: task.progress,
-        isDisabled: false,
-        styles: {
-          backgroundColor: getCategoryColor(task.category),
-          backgroundSelectedColor: getCategoryColor(task.category),
-          progressColor: '#4ade80',
-          progressSelectedColor: '#22c55e'
-        }
-      };
+        return [{
+          start,
+          end,
+          name: taskNameWithDates,
+          id: task.id,
+          type: 'task' as const,
+          progress: task.progress,
+          isDisabled: false,
+          styles: {
+            backgroundColor: getCategoryColor(task.category),
+            backgroundSelectedColor: getCategoryColor(task.category),
+            progressColor: '#4ade80',
+            progressSelectedColor: '#22c55e'
+          }
+        }];
+      }
     });
   };
 
@@ -364,8 +417,12 @@ export default function ProjectScheduleView({
       return;
     }
 
-    // FIX 4: Find the updated task with latest dates
-    const scheduleTask = scheduleTasks.find(t => t.id === task.id);
+    // Handle multi-phase tasks (strip phase suffix from ID)
+    const taskId = task.id.includes('_phase_') 
+      ? task.id.split('_phase_')[0] 
+      : task.id;
+
+    const scheduleTask = scheduleTasks.find(t => t.id === taskId);
     if (scheduleTask) {
       setSelectedTask(scheduleTask);
     }

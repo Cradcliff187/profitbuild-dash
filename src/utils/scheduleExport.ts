@@ -62,20 +62,68 @@ export const exportScheduleToCSV = (
     headers.push('Notes');
   }
 
-  // Build rows
-  const rows = sortedTasks.map(task => {
-    const startDate = new Date(task.start);
-    const endDate = new Date(task.end);
-    const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    
-    const row = [
-      task.name.replace(/,/g, ';'), // Escape commas
-      formatCategory(task.category),
-      format(startDate, 'yyyy-MM-dd'),
-      format(endDate, 'yyyy-MM-dd'),
-      duration.toString(),
-      task.isChangeOrder ? 'Change Order' : 'Original Estimate'
-    ];
+  // Build rows - expand multi-phase tasks
+  const rows = sortedTasks.flatMap(task => {
+    if (task.has_multiple_phases && task.phases) {
+      // Export each phase as a separate row
+      return task.phases.map((phase: any) => {
+        const startDate = new Date(phase.start_date);
+        const endDate = new Date(phase.end_date);
+        const phaseName = `${task.name} - Phase ${phase.phase_number}${phase.description ? `: ${phase.description}` : ''}`;
+        
+        const row = [
+          phaseName.replace(/,/g, ';'),
+          formatCategory(task.category),
+          format(startDate, 'yyyy-MM-dd'),
+          format(endDate, 'yyyy-MM-dd'),
+          phase.duration_days.toString(),
+          task.isChangeOrder ? 'Change Order' : 'Original Estimate'
+        ];
+
+        if (options.includeProgress) {
+          row.push(
+            task.progress.toString(),
+            getStatusFromProgress(task.progress)
+          );
+        }
+
+        if (options.includeCosts) {
+          const variance = (task.actual_cost || 0) - (task.estimated_cost || 0);
+          row.push(
+            formatCurrency(task.estimated_cost || 0),
+            formatCurrency(task.actual_cost || 0),
+            formatCurrency(variance)
+          );
+        }
+
+        if (options.includeDependencies) {
+          const deps = Array.isArray(task.dependencies) ? task.dependencies : [];
+          const depNames = deps
+            .map(dep => dep.task_name || dep.task_id)
+            .join('; ');
+          row.push(depNames || 'None', 'None');
+        }
+
+        if (options.includeNotes) {
+          row.push((phase.notes || '').replace(/,/g, ';').replace(/\n/g, ' '));
+        }
+
+        return row;
+      });
+    } else {
+      // Single phase task
+      const startDate = new Date(task.start);
+      const endDate = new Date(task.end);
+      const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      const row = [
+        task.name.replace(/,/g, ';'),
+        formatCategory(task.category),
+        format(startDate, 'yyyy-MM-dd'),
+        format(endDate, 'yyyy-MM-dd'),
+        duration.toString(),
+        task.isChangeOrder ? 'Change Order' : 'Original Estimate'
+      ];
 
     if (options.includeProgress) {
       row.push(
@@ -93,32 +141,33 @@ export const exportScheduleToCSV = (
       );
     }
 
-    if (options.includeDependencies) {
-      const deps = Array.isArray(task.dependencies) ? task.dependencies : [];
-      const depNames = deps
-        .map(dep => dep.task_name || dep.task_id)
-        .join('; ');
-      
-      const dependents = sortedTasks
-        .filter(t => {
-          const tDeps = Array.isArray(t.dependencies) ? t.dependencies : [];
-          return tDeps.some(dep => dep.task_id === task.id);
-        })
-        .map(t => t.name)
-        .join('; ');
+      if (options.includeDependencies) {
+        const deps = Array.isArray(task.dependencies) ? task.dependencies : [];
+        const depNames = deps
+          .map(dep => dep.task_name || dep.task_id)
+          .join('; ');
+        
+        const dependents = sortedTasks
+          .filter(t => {
+            const tDeps = Array.isArray(t.dependencies) ? t.dependencies : [];
+            return tDeps.some(dep => dep.task_id === task.id);
+          })
+          .map(t => t.name)
+          .join('; ');
 
-      row.push(
-        depNames || 'None',
-        dependents || 'None'
-      );
+        row.push(
+          depNames || 'None',
+          dependents || 'None'
+        );
+      }
+
+      if (options.includeNotes) {
+        row.push((task.schedule_notes || '').replace(/,/g, ';').replace(/\n/g, ' '));
+      }
+
+      return [row];
     }
-
-    if (options.includeNotes) {
-      row.push((task.schedule_notes || '').replace(/,/g, ';').replace(/\n/g, ' '));
-    }
-
-    return row;
-  });
+  }).flat();
 
   // Combine headers and rows
   const csvContent = [
@@ -357,6 +406,7 @@ async function loadProjectScheduleTasks(projectId: string): Promise<{ tasks: Sch
             dependencies: [],
             custom_class: 'estimate-task',
             isChangeOrder: false,
+            has_multiple_phases: false,
             estimated_cost: item.total_cost || 0,
             actual_cost: 0
           });
@@ -380,6 +430,7 @@ async function loadProjectScheduleTasks(projectId: string): Promise<{ tasks: Sch
                 dependencies: [],
                 custom_class: 'change-order-task',
                 isChangeOrder: true,
+                has_multiple_phases: false,
                 change_order_number: co.change_order_number,
                 estimated_cost: item.total_cost || 0,
                 actual_cost: 0

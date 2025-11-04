@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScheduleTask, TaskDependency } from '@/types/schedule';
+import { ScheduleTask, TaskDependency, SchedulePhase } from '@/types/schedule';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { Plus, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface TaskEditPanelProps {
   task: ScheduleTask;
@@ -17,23 +20,84 @@ interface TaskEditPanelProps {
 
 export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskEditPanelProps) {
   const [editedTask, setEditedTask] = useState<ScheduleTask>(task);
-  const [startDate, setStartDate] = useState(task.start);
-  const [duration, setDuration] = useState(
+  const [phases, setPhases] = useState<SchedulePhase[]>([]);
+  const [singleStartDate, setSingleStartDate] = useState(task.start);
+  const [singleDuration, setSingleDuration] = useState(
     Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24)) + 1
   );
+  const { toast } = useToast();
 
+  // Initialize phases from task
   useEffect(() => {
-    // Calculate end date when start or duration changes
-    const start = new Date(startDate);
-    const end = new Date(start);
-    end.setDate(end.getDate() + duration - 1);
+    if (task.phases && task.phases.length > 0) {
+      setPhases(task.phases);
+    } else {
+      // Single phase - show as single date inputs
+      setPhases([]);
+    }
+  }, [task]);
+
+  // Update end date when single start/duration changes
+  useEffect(() => {
+    if (phases.length === 0) {
+      const start = new Date(singleStartDate);
+      const end = new Date(start);
+      end.setDate(end.getDate() + singleDuration - 1);
+      
+      setEditedTask(prev => ({
+        ...prev,
+        start: singleStartDate,
+        end: end.toISOString().split('T')[0]
+      }));
+    }
+  }, [singleStartDate, singleDuration, phases.length]);
+
+  const addPhase = () => {
+    const lastPhase = phases[phases.length - 1];
+    const newPhaseNumber = phases.length + 1;
     
-    setEditedTask(prev => ({
-      ...prev,
-      start: startDate,
-      end: end.toISOString().split('T')[0]
-    }));
-  }, [startDate, duration]);
+    // Default to starting after last phase
+    let startDate: string;
+    if (lastPhase) {
+      const lastEnd = new Date(lastPhase.end_date);
+      lastEnd.setDate(lastEnd.getDate() + 1);
+      startDate = lastEnd.toISOString().split('T')[0];
+    } else {
+      startDate = singleStartDate;
+    }
+    
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 6); // 7 days default
+    
+    setPhases([...phases, {
+      phase_number: newPhaseNumber,
+      start_date: startDate,
+      end_date: endDate.toISOString().split('T')[0],
+      duration_days: 7,
+      description: ''
+    }]);
+  };
+
+  const removePhase = (index: number) => {
+    const updated = phases.filter((_, i) => i !== index);
+    // Renumber phases
+    const renumbered = updated.map((p, i) => ({ ...p, phase_number: i + 1 }));
+    setPhases(renumbered);
+  };
+
+  const updatePhase = (index: number, field: keyof SchedulePhase, value: any) => {
+    const updated = [...phases];
+    updated[index] = { ...updated[index], [field]: value };
+    
+    // Recalculate duration if dates change
+    if (field === 'start_date' || field === 'end_date') {
+      const start = new Date(updated[index].start_date);
+      const end = new Date(updated[index].end_date);
+      updated[index].duration_days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    }
+    
+    setPhases(updated);
+  };
 
   const handleDependencyToggle = (taskId: string) => {
     const dependencyTask = allTasks.find(t => t.id === taskId);
@@ -61,75 +125,223 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
   };
 
   const handleSave = () => {
-    onSave(editedTask);
+    try {
+      let finalTask = { ...editedTask };
+      
+      if (phases.length > 0) {
+        // Multi-phase: Calculate overall dates and serialize phases
+        const sortedPhases = [...phases].sort((a, b) => a.phase_number - b.phase_number);
+        finalTask.start = sortedPhases[0].start_date;
+        finalTask.end = sortedPhases[sortedPhases.length - 1].end_date;
+        finalTask.phases = sortedPhases;
+        finalTask.has_multiple_phases = phases.length > 1;
+        
+        // Serialize phases to schedule_notes as JSON
+        finalTask.schedule_notes = JSON.stringify({ phases: sortedPhases });
+      } else {
+        // Single phase: Clear phases and use simple dates
+        finalTask.phases = undefined;
+        finalTask.has_multiple_phases = false;
+        
+        // Keep existing notes if not JSON phases
+        try {
+          const parsed = JSON.parse(finalTask.schedule_notes || '{}');
+          if (!parsed.phases) {
+            // Keep as-is
+          } else {
+            // Clear phase data
+            finalTask.schedule_notes = '';
+          }
+        } catch {
+          // Not JSON, keep as-is
+        }
+      }
+      
+      onSave(finalTask);
+      toast({
+        title: 'Schedule Updated',
+        description: phases.length > 1 
+          ? `Task scheduled with ${phases.length} phases`
+          : 'Task schedule updated',
+      });
+    } catch (error) {
+      console.error('Error saving task:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save task schedule',
+        variant: 'destructive'
+      });
+    }
   };
 
   return (
     <Sheet open={true} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:w-[400px] overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:w-[500px] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Edit Task</SheetTitle>
+          <SheetTitle className="text-base">Edit Task Schedule</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-6 py-6">
+        <div className="space-y-4 py-4">
           {/* Task Name */}
           <div>
-            <Label>Task Name</Label>
-            <Input value={editedTask.name} disabled className="bg-muted" />
+            <Label className="text-xs">Task Name</Label>
+            <Input value={editedTask.name} disabled className="bg-muted h-8 text-xs" />
           </div>
 
           {/* Category */}
           <div>
-            <Label>Category</Label>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant={editedTask.isChangeOrder ? "destructive" : "secondary"}>
+            <Label className="text-xs">Category</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant={editedTask.isChangeOrder ? "destructive" : "secondary"} className="text-[10px]">
                 {editedTask.isChangeOrder ? 'Change Order' : editedTask.category}
               </Badge>
             </div>
           </div>
 
-          {/* Start Date */}
-          <div>
-            <Label htmlFor="start-date">Start Date</Label>
-            <Input
-              id="start-date"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="mt-2"
-            />
+          {/* Schedule Type Toggle */}
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-xs font-medium">Multiple Phases?</Label>
+              <Button
+                size="sm"
+                variant={phases.length > 0 ? "default" : "outline"}
+                onClick={() => {
+                  if (phases.length === 0) {
+                    addPhase();
+                  } else {
+                    setPhases([]);
+                  }
+                }}
+                className="h-7 text-xs"
+              >
+                {phases.length > 0 ? 'Use Single Schedule' : 'Add Phases'}
+              </Button>
+            </div>
+            <p className="text-xs text-blue-900">
+              {phases.length > 0 
+                ? `Task has ${phases.length} phase(s). Workers will return multiple times.`
+                : 'Task scheduled for one continuous period.'
+              }
+            </p>
           </div>
 
-          {/* Duration */}
-          <div>
-            <Label htmlFor="duration">Duration (days)</Label>
-            <Input
-              id="duration"
-              type="number"
-              min="1"
-              value={duration}
-              onChange={(e) => setDuration(parseInt(e.target.value) || 1)}
-              className="mt-2"
-            />
-          </div>
+          {/* Single Phase Inputs */}
+          {phases.length === 0 && (
+            <>
+              <div>
+                <Label htmlFor="start-date" className="text-xs">Start Date</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={singleStartDate}
+                  onChange={(e) => setSingleStartDate(e.target.value)}
+                  className="mt-1 h-8 text-xs"
+                />
+              </div>
 
-          {/* End Date (Read-only) */}
-          <div>
-            <Label>End Date</Label>
-            <Input 
-              value={editedTask.end} 
-              disabled 
-              className="bg-muted mt-2"
-            />
-          </div>
+              <div>
+                <Label htmlFor="duration" className="text-xs">Duration (days)</Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  min="1"
+                  value={singleDuration}
+                  onChange={(e) => setSingleDuration(parseInt(e.target.value) || 1)}
+                  className="mt-1 h-8 text-xs"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs">End Date</Label>
+                <Input 
+                  value={editedTask.end} 
+                  disabled 
+                  className="bg-muted mt-1 h-8 text-xs"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Multi-Phase Inputs */}
+          {phases.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Schedule Phases</Label>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={addPhase}
+                  className="h-7 text-xs"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add Phase
+                </Button>
+              </div>
+              
+              {phases.map((phase, idx) => (
+                <Card key={idx} className="p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant="secondary" className="text-[10px]">Phase {phase.phase_number}</Badge>
+                    {phases.length > 1 && (
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => removePhase(idx)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-xs">Description (Optional)</Label>
+                      <Input 
+                        placeholder="e.g., Primer coat"
+                        value={phase.description || ''}
+                        onChange={(e) => updatePhase(idx, 'description', e.target.value)}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Start Date</Label>
+                        <Input 
+                          type="date"
+                          value={phase.start_date}
+                          onChange={(e) => updatePhase(idx, 'start_date', e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">End Date</Label>
+                        <Input 
+                          type="date"
+                          value={phase.end_date}
+                          onChange={(e) => updatePhase(idx, 'end_date', e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="text-xs text-muted-foreground">
+                      Duration: {phase.duration_days} days
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* Dependencies */}
           <div>
-            <Label>Dependencies (Optional)</Label>
-            <p className="text-sm text-muted-foreground mt-1 mb-3">
+            <Label className="text-xs">Dependencies (Optional)</Label>
+            <p className="text-xs text-muted-foreground mt-1 mb-2">
               Select tasks that must finish before this one can start
             </p>
-            <div className="border rounded-md max-h-60 overflow-y-auto">
+            <div className="border rounded-md max-h-48 overflow-y-auto">
               {allTasks
                 .filter(t => t.id !== task.id)
                 .map(t => {
@@ -137,16 +349,16 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
                   return (
                     <div
                       key={t.id}
-                      className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                      className="flex items-center gap-2 p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
                       onClick={() => handleDependencyToggle(t.id)}
                     >
-                      <Checkbox checked={isChecked} />
-                      <div className="flex-1 text-sm">
+                      <Checkbox checked={isChecked} className="h-3 w-3" />
+                      <div className="flex-1 text-xs truncate">
                         {t.name}
                       </div>
                       <Badge 
                         variant={t.isChangeOrder ? "outline" : "secondary"}
-                        className="text-xs"
+                        className="text-[9px] px-1 py-0 h-4"
                       >
                         {t.isChangeOrder ? 'CO' : t.category.substring(0, 3).toUpperCase()}
                       </Badge>
@@ -156,33 +368,27 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
             </div>
           </div>
 
-          {/* Hint Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-900">
-              <strong>💡 Tips:</strong> Dependencies are optional and flexible. 
-              We'll show warnings for unusual sequences, but you're free to schedule however you need.
-            </p>
-          </div>
-
           {/* Notes */}
-          <div>
-            <Label htmlFor="notes">Schedule Notes (Optional)</Label>
-            <Textarea
-              id="notes"
-              value={editedTask.schedule_notes || ''}
-              onChange={(e) => setEditedTask(prev => ({ ...prev, schedule_notes: e.target.value }))}
-              placeholder="Any special scheduling considerations..."
-              className="mt-2"
-              rows={3}
-            />
-          </div>
+          {phases.length === 0 && (
+            <div>
+              <Label htmlFor="notes" className="text-xs">Schedule Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                value={editedTask.schedule_notes || ''}
+                onChange={(e) => setEditedTask(prev => ({ ...prev, schedule_notes: e.target.value }))}
+                placeholder="Any special scheduling considerations..."
+                className="mt-1 text-xs"
+                rows={2}
+              />
+            </div>
+          )}
         </div>
 
         <SheetFooter className="gap-2">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} size="sm">
             Cancel
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} size="sm">
             Save Changes
           </Button>
         </SheetFooter>
@@ -190,4 +396,3 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
     </Sheet>
   );
 }
-

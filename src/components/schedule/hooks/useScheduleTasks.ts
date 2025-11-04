@@ -132,16 +132,40 @@ export function useScheduleTasks({
         ? `CO-${coNumber}: ${item.description}`
         : item.description;
       
-      // Use scheduled dates if available, otherwise use project dates as defaults
-      const startDate = item.scheduled_start_date 
-        ? new Date(item.scheduled_start_date)
-        : projectStartDate 
-        ? new Date(projectStartDate)
-        : new Date();
+      // Parse schedule phases from schedule_notes
+      let phases: any[] | undefined;
+      let hasMultiplePhases = false;
       
-      const endDate = item.scheduled_end_date
-        ? new Date(item.scheduled_end_date)
-        : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000); // Default 7 days
+      try {
+        if (item.schedule_notes) {
+          const parsed = JSON.parse(item.schedule_notes);
+          if (parsed.phases && Array.isArray(parsed.phases)) {
+            phases = parsed.phases;
+            hasMultiplePhases = phases.length > 1;
+          }
+        }
+      } catch (e) {
+        // Not JSON or no phases - treat as single phase
+      }
+      
+      // Calculate overall start/end from phases OR use scheduled dates
+      let startDate: Date;
+      let endDate: Date;
+      
+      if (phases && phases.length > 0) {
+        startDate = new Date(phases[0].start_date);
+        endDate = new Date(phases[phases.length - 1].end_date);
+      } else {
+        startDate = item.scheduled_start_date 
+          ? new Date(item.scheduled_start_date)
+          : projectStartDate 
+          ? new Date(projectStartDate)
+          : new Date();
+        
+        endDate = item.scheduled_end_date
+          ? new Date(item.scheduled_end_date)
+          : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+      }
       
       // Parse dependencies from JSONB
       let dependencies: TaskDependency[] = [];
@@ -163,13 +187,15 @@ export function useScheduleTasks({
         category: item.category,
         start: startDate.toISOString().split('T')[0],
         end: endDate.toISOString().split('T')[0],
-        progress: getTaskProgress(item.id), // Get from expenses
+        progress: getTaskProgress(item.id),
         dependencies: dependencies,
         custom_class: isChangeOrder ? 'change-order' : item.category,
         isChangeOrder,
         schedule_notes: item.schedule_notes,
+        phases: phases,
+        has_multiple_phases: hasMultiplePhases,
         estimated_cost: item.total_cost || 0,
-        actual_cost: getTaskActualCost(item.id), // Get from expenses
+        actual_cost: getTaskActualCost(item.id),
         payee_id: undefined,
         payee_name: undefined,
         change_order_number: coNumber
