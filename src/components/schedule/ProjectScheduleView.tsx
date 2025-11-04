@@ -4,7 +4,7 @@ import 'gantt-task-react/dist/index.css';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, Download, ArrowUpDown } from 'lucide-react';
+import { AlertCircle, Download, ArrowUpDown, BarChart3, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -12,6 +12,7 @@ import TaskEditPanel from './TaskEditPanel';
 import ScheduleWarningBanner from './ScheduleWarningBanner';
 import ScheduleStats from './ScheduleStats';
 import TaskReorderPanel from './TaskReorderPanel';
+import { ScheduleTableView } from './ScheduleTableView';
 import { useProgressTracking } from './hooks/useProgressTracking';
 import { ScheduleTask, ScheduleWarning } from '@/types/schedule';
 import { ScheduleExportModal } from './ScheduleExportModal';
@@ -32,6 +33,10 @@ export default function ProjectScheduleView({
   const [selectedTask, setSelectedTask] = useState<ScheduleTask | null>(null);
   const [warnings, setWarnings] = useState<ScheduleWarning[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Week);
+  const [displayMode, setDisplayMode] = useState<'gantt' | 'table'>(() => {
+    const saved = localStorage.getItem(`schedule_view_mode_${projectId}`);
+    return (saved === 'table' || saved === 'gantt') ? saved : 'gantt';
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showReorderPanel, setShowReorderPanel] = useState(false);
@@ -40,6 +45,11 @@ export default function ProjectScheduleView({
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { getTaskProgress, isLoading: progressLoading } = useProgressTracking(projectId);
+
+  // Save display mode preference
+  useEffect(() => {
+    localStorage.setItem(`schedule_view_mode_${projectId}`, displayMode);
+  }, [displayMode, projectId]);
 
   // Helper functions for task name date formatting
   const formatShortDate = (date: Date | string): string => {
@@ -477,28 +487,58 @@ export default function ProjectScheduleView({
       {/* Controls */}
       <Card className="p-4">
         <div className="flex justify-between items-center flex-wrap gap-4">
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === ViewMode.Day ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode(ViewMode.Day)}
-            >
-              Day
-            </Button>
-            <Button
-              variant={viewMode === ViewMode.Week ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode(ViewMode.Week)}
-            >
-              Week
-            </Button>
-            <Button
-              variant={viewMode === ViewMode.Month ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode(ViewMode.Month)}
-            >
-              Month
-            </Button>
+          <div className="flex gap-2 flex-wrap">
+            {/* Display Mode Toggle */}
+            <div className="flex gap-1 border rounded-md p-0.5">
+              <Button
+                variant={displayMode === 'gantt' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setDisplayMode('gantt')}
+                className="h-7 px-2"
+              >
+                <Calendar className="h-4 w-4 mr-1" />
+                Gantt
+              </Button>
+              <Button
+                variant={displayMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setDisplayMode('table')}
+                className="h-7 px-2"
+              >
+                <BarChart3 className="h-4 w-4 mr-1" />
+                Table
+              </Button>
+            </div>
+
+            {/* Gantt View Mode Controls (only show in Gantt mode) */}
+            {displayMode === 'gantt' && (
+              <div className="flex gap-1 border rounded-md p-0.5">
+                <Button
+                  variant={viewMode === ViewMode.Day ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode(ViewMode.Day)}
+                  className="h-7 px-2"
+                >
+                  Day
+                </Button>
+                <Button
+                  variant={viewMode === ViewMode.Week ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode(ViewMode.Week)}
+                  className="h-7 px-2"
+                >
+                  Week
+                </Button>
+                <Button
+                  variant={viewMode === ViewMode.Month ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode(ViewMode.Month)}
+                  className="h-7 px-2"
+                >
+                  Month
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2">
@@ -536,27 +576,35 @@ export default function ProjectScheduleView({
         onToggle={() => setShowReorderPanel(!showReorderPanel)}
       />
 
-      {/* Gantt Chart */}
-      <Card className="p-6 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <Gantt
-          tasks={tasks}
-          viewMode={viewMode}
-          onDateChange={handleTaskChange}
-          onDoubleClick={handleTaskClick}
-          listCellWidth=""
-          columnWidth={
-            viewMode === ViewMode.Day ? 80 : 
-            viewMode === ViewMode.Week ? 65 : 
-            viewMode === ViewMode.Month ? 300 : 65
-          }
-          headerHeight={60}
-          rowHeight={45}
-          barCornerRadius={4}
-          handleWidth={8}
-          todayColor="rgba(59, 130, 246, 0.1)"
-          locale="en-US"
+      {/* Conditional Rendering: Gantt or Table */}
+      {displayMode === 'gantt' ? (
+        <Card className="p-6 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <Gantt
+            tasks={tasks}
+            viewMode={viewMode}
+            onDateChange={handleTaskChange}
+            onDoubleClick={handleTaskClick}
+            listCellWidth=""
+            columnWidth={
+              viewMode === ViewMode.Day ? 80 : 
+              viewMode === ViewMode.Week ? 65 : 
+              viewMode === ViewMode.Month ? 300 : 65
+            }
+            headerHeight={60}
+            rowHeight={45}
+            barCornerRadius={4}
+            handleWidth={8}
+            todayColor="rgba(59, 130, 246, 0.1)"
+            locale="en-US"
+          />
+        </Card>
+      ) : (
+        <ScheduleTableView
+          tasks={orderedTasks}
+          projectId={projectId}
+          onTaskClick={(task) => setSelectedTask(task)}
         />
-      </Card>
+      )}
 
       {/* Task Edit Panel */}
       {selectedTask && (
