@@ -11,9 +11,9 @@ export interface FeatureFlags {
 
 // Default flags - all OFF initially
 const defaultFlags: FeatureFlags = {
-  scheduleView: true,
-  scheduleWarnings: true,
-  scheduleDependencies: true,
+  scheduleView: false,
+  scheduleWarnings: false,
+  scheduleDependencies: false,
 };
 
 // Check environment variables
