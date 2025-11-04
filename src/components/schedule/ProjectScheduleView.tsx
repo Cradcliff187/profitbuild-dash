@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { AlertCircle, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import TaskEditPanel from './TaskEditPanel';
 import ScheduleWarningBanner from './ScheduleWarningBanner';
@@ -34,6 +35,7 @@ export default function ProjectScheduleView({
   const [showExportModal, setShowExportModal] = useState(false);
   const [projectName, setProjectName] = useState<string>('Project');
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const { getTaskProgress, isLoading: progressLoading } = useProgressTracking(projectId);
 
   // Helper functions for task name date formatting
@@ -414,8 +416,12 @@ export default function ProjectScheduleView({
       {/* Info Banner */}
       <Card className="p-4 bg-blue-50 border-blue-200">
         <p className="text-sm text-blue-900">
-          <strong>📊 Interactive Schedule:</strong> Drag tasks to adjust dates. 
-          Double-click tasks to edit details and dependencies.
+          <strong>📊 Interactive Schedule:</strong> 
+          {isMobile ? (
+            ' Swipe horizontally to scroll. Touch and drag tasks to adjust dates.'
+          ) : (
+            ' Drag tasks to adjust dates. Double-click tasks to edit details and dependencies.'
+          )}
         </p>
       </Card>
 
@@ -475,7 +481,7 @@ export default function ProjectScheduleView({
       </Card>
 
       {/* Gantt Chart */}
-      <Card className="p-6 overflow-x-auto">
+      <Card className="p-6 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         <Gantt
           tasks={tasks}
           viewMode={viewMode}
