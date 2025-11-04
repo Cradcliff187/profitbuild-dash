@@ -920,3 +920,56 @@ textarea:focus-visible {
 }
 
 /* Category-specific colors are handled inline via Task.styles */
+
+/* ========================================
+   MOBILE GANTT & TABLE SCROLL FIX
+   ======================================== */
+
+/* Ensure gantt library container scrolls properly on mobile */
+@media (max-width: 768px) {
+  /* Gantt wrapper - single scroll container */
+  .gantt-wrapper {
+    width: 100%;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: none;
+  }
+  
+  /* Remove any conflicting overflow from library */
+  .gantt-task-react .gantt-container {
+    overflow: visible !important;
+  }
+  
+  /* Make sure SVG is sized correctly */
+  .gantt-wrapper svg {
+    display: block;
+    min-width: 100%;
+  }
+  
+  /* Compact task list on mobile */
+  .gantt-task-react .task-list-cell:first-child,
+  .gantt-task-react .task-list-header-default:first-child {
+    min-width: 120px !important;
+    max-width: 140px !important;
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  
+  /* Better touch feedback */
+  .gantt-task-react .bar:active {
+    background-color: rgba(59, 130, 246, 0.05);
+  }
+  
+  /* Visible scrollbar for better UX */
+  .gantt-wrapper::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .gantt-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+}

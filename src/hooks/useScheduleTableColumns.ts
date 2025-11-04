@@ -39,8 +39,8 @@ export const useScheduleTableColumns = (projectId: string) => {
   function getDefaultColumns(): string[] {
     const isMobile = window.innerWidth < 768;
     if (isMobile) {
-      // Mobile: name, start, end, duration
-      return ['name', 'start', 'end', 'duration'];
+      // Mobile: Show only 3 essential columns for better horizontal space
+      return ['name', 'start', 'duration'];
     }
     // Desktop: name, category, start, end, duration, progress, dependencies
     return ['name', 'category', 'start', 'end', 'duration', 'progress', 'dependencies'];

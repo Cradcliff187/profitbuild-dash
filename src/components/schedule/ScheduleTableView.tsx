@@ -8,6 +8,7 @@ import { ColumnSelector } from '@/components/ui/column-selector';
 import { Search, ArrowUpDown } from 'lucide-react';
 import { ScheduleTask } from '@/types/schedule';
 import { useScheduleTableColumns } from '@/hooks/useScheduleTableColumns';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import {
   Table,
@@ -32,6 +33,7 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   projectId,
   onTaskClick,
 }) => {
+  const isMobile = useIsMobile();
   const { columnDefinitions, visibleColumns, setVisibleColumns } = useScheduleTableColumns(projectId);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('start');
@@ -163,12 +165,22 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
 
       {/* Table */}
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        <div 
+          className="overflow-x-auto"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-x pan-y',
+            msOverflowStyle: '-ms-autohiding-scrollbar'
+          }}
+        >
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 {visibleColumns.includes('name') && (
-                  <TableHead className="sticky left-0 bg-background z-10 min-w-[200px]">
+                  <TableHead className={cn(
+                    "bg-background z-10",
+                    isMobile ? "min-w-[120px] max-w-[140px]" : "sticky left-0 min-w-[200px]"
+                  )}>
                     <SortableHeader field="name" label="Task Name" />
                   </TableHead>
                 )}
@@ -224,7 +236,10 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       onClick={() => onTaskClick(task)}
                     >
                       {visibleColumns.includes('name') && (
-                        <TableCell className="sticky left-0 bg-background font-medium">
+                        <TableCell className={cn(
+                          "font-medium bg-background",
+                          isMobile ? "min-w-[120px] max-w-[140px]" : "sticky left-0"
+                        )}>
                           <div className="flex items-center gap-2">
                             {task.isChangeOrder && (
                               <Badge 
