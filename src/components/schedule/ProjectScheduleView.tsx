@@ -4,8 +4,9 @@ import 'gantt-task-react/dist/index.css';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, Calendar, Download } from 'lucide-react';
+import { AlertCircle, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import TaskEditPanel from './TaskEditPanel';
 import ScheduleWarningBanner from './ScheduleWarningBanner';
 import ScheduleStats from './ScheduleStats';
@@ -385,12 +386,11 @@ export default function ProjectScheduleView({
 
   if (isLoading || progressLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground animate-pulse" />
-          <p className="text-muted-foreground">Loading project schedule...</p>
-        </div>
-      </div>
+      <LoadingSpinner 
+        variant="page" 
+        size="lg" 
+        message="Loading project schedule..." 
+      />
     );
   }
 
