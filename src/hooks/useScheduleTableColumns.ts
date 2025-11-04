@@ -12,12 +12,9 @@ export const useScheduleTableColumns = (projectId: string) => {
     { key: 'name', label: 'Task Name', required: true, mobileDefault: true },
     { key: 'category', label: 'Category', required: false, mobileDefault: false },
     { key: 'start', label: 'Start Date', required: false, mobileDefault: true },
-    { key: 'end', label: 'End Date', required: false, mobileDefault: false },
+    { key: 'end', label: 'End Date', required: false, mobileDefault: true },
     { key: 'duration', label: 'Duration', required: false, mobileDefault: true },
-    { key: 'progress', label: 'Progress', required: false, mobileDefault: true },
-    { key: 'estimated_cost', label: 'Est. Cost', required: false, mobileDefault: false },
-    { key: 'actual_cost', label: 'Actual Cost', required: false, mobileDefault: false },
-    { key: 'variance', label: 'Variance', required: false, mobileDefault: false },
+    { key: 'progress', label: 'Progress', required: false, mobileDefault: false },
     { key: 'dependencies', label: 'Dependencies', required: false, mobileDefault: false },
     { key: 'notes', label: 'Notes', required: false, mobileDefault: false },
   ];
@@ -40,17 +37,13 @@ export const useScheduleTableColumns = (projectId: string) => {
   });
 
   function getDefaultColumns(): string[] {
-    // Check if mobile
     const isMobile = window.innerWidth < 768;
     if (isMobile) {
-      return columnDefinitions
-        .filter(col => col.required || col.mobileDefault)
-        .map(col => col.key);
+      // Mobile: name, start, end, duration
+      return ['name', 'start', 'end', 'duration'];
     }
-    // Desktop: show all except dependencies and notes by default
-    return columnDefinitions
-      .filter(col => !['dependencies', 'notes'].includes(col.key))
-      .map(col => col.key);
+    // Desktop: name, category, start, end, duration, progress, dependencies
+    return ['name', 'category', 'start', 'end', 'duration', 'progress', 'dependencies'];
   }
 
   useEffect(() => {
