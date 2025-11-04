@@ -785,10 +785,10 @@ textarea:focus-visible {
   border: 3px solid #e5e7eb;
   border-top-color: #3b82f6;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin-centered 0.8s linear infinite;
 }
 
-@keyframes spin {
+@keyframes spin-centered {
   to {
     transform: translate(-50%, -50%) rotate(360deg);
   }
