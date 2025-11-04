@@ -7,7 +7,6 @@ import { Card } from '@/components/ui/card';
 import { AlertCircle, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { useIsMobile } from '@/hooks/use-mobile';
 import TaskEditPanel from './TaskEditPanel';
 import ScheduleWarningBanner from './ScheduleWarningBanner';
 import ScheduleStats from './ScheduleStats';
@@ -36,7 +35,6 @@ export default function ProjectScheduleView({
   const [projectName, setProjectName] = useState<string>('Project');
   const { toast } = useToast();
   const { getTaskProgress, isLoading: progressLoading } = useProgressTracking(projectId);
-  const isMobile = useIsMobile();
 
   // Helper functions for task name date formatting
   const formatShortDate = (date: Date | string): string => {
@@ -416,12 +414,8 @@ export default function ProjectScheduleView({
       {/* Info Banner */}
       <Card className="p-4 bg-blue-50 border-blue-200">
         <p className="text-sm text-blue-900">
-          <strong>📊 Interactive Schedule:</strong> 
-          {isMobile ? (
-            ' Swipe horizontally to scroll timeline. Tap and drag tasks to adjust dates.'
-          ) : (
-            ' Drag tasks to adjust dates. Double-click tasks to edit details and dependencies.'
-          )}
+          <strong>📊 Interactive Schedule:</strong> Drag tasks to adjust dates. 
+          Double-click tasks to edit details and dependencies.
         </p>
       </Card>
 
@@ -481,30 +475,26 @@ export default function ProjectScheduleView({
       </Card>
 
       {/* Gantt Chart */}
-      <div className="gantt-container -mx-3 md:mx-0">
-        <Card className="p-3 md:p-6 overflow-hidden">
-          <div className="overflow-x-auto gantt-scroll-wrapper">
-            <Gantt
-              tasks={tasks}
-              viewMode={viewMode}
-              onDateChange={handleTaskChange}
-              onDoubleClick={handleTaskClick}
-              listCellWidth={isMobile ? "200px" : "280px"}
-              columnWidth={
-                viewMode === ViewMode.Day ? (isMobile ? 60 : 80) : 
-                viewMode === ViewMode.Week ? (isMobile ? 50 : 65) : 
-                viewMode === ViewMode.Month ? 300 : 65
-              }
-              headerHeight={isMobile ? 50 : 60}
-              rowHeight={isMobile ? 50 : 45}
-              barCornerRadius={4}
-              handleWidth={isMobile ? 12 : 8}
-              todayColor="rgba(59, 130, 246, 0.1)"
-              locale="en-US"
-            />
-          </div>
-        </Card>
-      </div>
+      <Card className="p-6 overflow-x-auto">
+        <Gantt
+          tasks={tasks}
+          viewMode={viewMode}
+          onDateChange={handleTaskChange}
+          onDoubleClick={handleTaskClick}
+          listCellWidth=""
+          columnWidth={
+            viewMode === ViewMode.Day ? 80 : 
+            viewMode === ViewMode.Week ? 65 : 
+            viewMode === ViewMode.Month ? 300 : 65
+          }
+          headerHeight={60}
+          rowHeight={45}
+          barCornerRadius={4}
+          handleWidth={8}
+          todayColor="rgba(59, 130, 246, 0.1)"
+          locale="en-US"
+        />
+      </Card>
 
       {/* Task Edit Panel */}
       {selectedTask && (
