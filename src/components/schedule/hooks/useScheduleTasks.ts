@@ -27,18 +27,11 @@ export function useScheduleTasks({
   
   // Track progress from expenses
   const {
-    getProgress,
-    getActualCost,
+    getTaskProgress,
+    getTaskActualCost,
     isLoading: progressLoading,
-    refreshProgress
-  } = useProgressTracking(
-    projectId,
-    tasks.map(t => ({
-      id: t.id,
-      estimated_cost: t.estimated_cost,
-      isChangeOrder: t.isChangeOrder
-    }))
-  );
+    refetch: refreshProgress
+  } = useProgressTracking(projectId);
   
   /**
    * Load tasks from database
@@ -170,13 +163,13 @@ export function useScheduleTasks({
         category: item.category,
         start: startDate.toISOString().split('T')[0],
         end: endDate.toISOString().split('T')[0],
-        progress: getProgress(item.id), // Get from expenses
+        progress: getTaskProgress(item.id), // Get from expenses
         dependencies: dependencies,
         custom_class: isChangeOrder ? 'change-order' : item.category,
         isChangeOrder,
-        notes: item.schedule_notes,
+        schedule_notes: item.schedule_notes,
         estimated_cost: item.total_cost || 0,
-        actual_cost: getActualCost(item.id), // Get from expenses
+        actual_cost: getTaskActualCost(item.id), // Get from expenses
         payee_id: undefined,
         payee_name: undefined,
         change_order_number: coNumber
@@ -203,7 +196,7 @@ export function useScheduleTasks({
         scheduled_end_date: updatedTask.end,
         duration_days: duration,
         dependencies: updatedTask.dependencies,
-        schedule_notes: updatedTask.notes
+        schedule_notes: updatedTask.schedule_notes
       })
       .eq('id', updatedTask.id);
     

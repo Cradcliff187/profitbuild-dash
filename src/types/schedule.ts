@@ -15,7 +15,7 @@ export interface ScheduleTask {
   dependencies: TaskDependency[];
   custom_class: string; // for Gantt styling
   isChangeOrder: boolean;
-  notes?: string;
+  schedule_notes?: string;
   
   // Additional metadata
   estimated_cost: number;

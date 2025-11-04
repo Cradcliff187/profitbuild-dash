@@ -169,8 +169,8 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
             <Label htmlFor="notes">Schedule Notes (Optional)</Label>
             <Textarea
               id="notes"
-              value={editedTask.notes || ''}
-              onChange={(e) => setEditedTask(prev => ({ ...prev, notes: e.target.value }))}
+              value={editedTask.schedule_notes || ''}
+              onChange={(e) => setEditedTask(prev => ({ ...prev, schedule_notes: e.target.value }))}
               placeholder="Any special scheduling considerations..."
               className="mt-2"
               rows={3}

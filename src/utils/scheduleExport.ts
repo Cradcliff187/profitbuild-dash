@@ -114,7 +114,7 @@ export const exportScheduleToCSV = (
     }
 
     if (options.includeNotes) {
-      row.push((task.notes || '').replace(/,/g, ';').replace(/\n/g, ' '));
+      row.push((task.schedule_notes || '').replace(/,/g, ';').replace(/\n/g, ' '));
     }
 
     return row;
