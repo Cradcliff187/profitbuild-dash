@@ -42,6 +42,7 @@ export default function ProjectScheduleView({
   const [showReorderPanel, setShowReorderPanel] = useState(false);
   const [projectName, setProjectName] = useState<string>('Project');
   const [taskOrder, setTaskOrder] = useState<string[]>([]);
+  const [isRealtimeSynced, setIsRealtimeSynced] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { getTaskProgress, isLoading: progressLoading } = useProgressTracking(projectId);
@@ -68,6 +69,23 @@ export default function ProjectScheduleView({
   useEffect(() => {
     loadScheduleTasks();
     loadProjectName();
+    
+    // Set up realtime subscription
+    const channel = supabase
+      .channel(`schedule-updates-${projectId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'estimate_line_items' }, 
+        () => loadScheduleTasks()
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'change_order_line_items' }, 
+        () => loadScheduleTasks()
+      )
+      .subscribe((status) => {
+        setIsRealtimeSynced(status === 'SUBSCRIBED');
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [projectId]);
 
   // FIX 1: Cleanup timeout on unmount
@@ -598,7 +616,15 @@ export default function ProjectScheduleView({
             )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            {/* Real-time Sync Indicator */}
+            {isRealtimeSynced && (
+              <div className="flex items-center gap-2 text-xs text-green-600">
+                <div className="h-2 w-2 rounded-full bg-green-600 animate-pulse" />
+                <span>Live</span>
+              </div>
+            )}
+            
             {/* Reorder Button */}
             <Button
               variant="outline"

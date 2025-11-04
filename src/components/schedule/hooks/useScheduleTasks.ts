@@ -2,7 +2,7 @@
  * Hook for loading and managing schedule tasks
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ScheduleTask, TaskDependency } from '@/types/schedule';
 import { useProgressTracking } from './useProgressTracking';
@@ -32,6 +32,46 @@ export function useScheduleTasks({
     isLoading: progressLoading,
     refetch: refreshProgress
   } = useProgressTracking(projectId);
+  
+  // Real-time subscription for schedule updates
+  useEffect(() => {
+    console.log('[Realtime] Setting up subscription for project:', projectId);
+    
+    const channel = supabase
+      .channel('schedule-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'estimate_line_items'
+        },
+        (payload) => {
+          console.log('[Realtime] Estimate line item changed:', payload);
+          loadTasks();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'change_order_line_items'
+        },
+        (payload) => {
+          console.log('[Realtime] Change order line item changed:', payload);
+          loadTasks();
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Realtime] Subscription status:', status);
+      });
+
+    return () => {
+      console.log('[Realtime] Cleaning up subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [projectId]);
   
   /**
    * Load tasks from database
