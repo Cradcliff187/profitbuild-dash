@@ -168,9 +168,8 @@ export function useScheduleTasks({
     coNumber?: string
   ): ScheduleTask[] => {
     return lineItems.map((item) => {
-      const taskName = isChangeOrder 
-        ? `CO-${coNumber}: ${item.description}`
-        : item.description;
+      // Use description only - badge indicates it's a change order
+      const taskName = item.description;
       
       // Parse schedule phases from schedule_notes
       let phases: any[] | undefined;

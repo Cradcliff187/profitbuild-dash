@@ -218,9 +218,8 @@ export default function ProjectScheduleView({
     coNumber?: string
   ): ScheduleTask[] => {
     return lineItems.map((item) => {
-      const taskName = isChangeOrder 
-        ? `CO-${coNumber}: ${item.description}`
-        : item.description;
+      // Use description only - badge indicates it's a change order
+      const taskName = item.description;
 
       // Parse schedule phases from schedule_notes
       let phases: any[] | undefined;
@@ -272,6 +271,7 @@ export default function ProjectScheduleView({
         has_multiple_phases: hasMultiplePhases,
         estimated_cost: item.total_cost || 0,
         actual_cost: 0,
+        change_order_number: coNumber,
       };
     });
   };

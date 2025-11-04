@@ -269,7 +269,11 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                                 </Button>
                               )}
                               {task.isChangeOrder && (
-                                <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-pink-50 text-pink-700 border-pink-200">
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-[10px] px-1 py-0 h-4 bg-pink-50 text-pink-700 border-pink-200"
+                                  title={task.change_order_number ? `Change Order: ${task.change_order_number}` : 'Change Order'}
+                                >
                                   CO
                                 </Badge>
                               )}
