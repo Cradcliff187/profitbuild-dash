@@ -662,17 +662,7 @@ export default function ProjectScheduleView({
       {/* Conditional Rendering: Gantt or Table */}
       {displayMode === 'gantt' ? (
         <Card className={isMobile ? "p-2 overflow-hidden" : "p-6 overflow-hidden"}>
-          <div 
-            className="gantt-wrapper"
-            style={{ 
-              width: '100%',
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              WebkitOverflowScrolling: 'touch',
-              touchAction: 'pan-x pan-y',
-              msOverflowStyle: '-ms-autohiding-scrollbar'
-            }}
-          >
+          <div className="gantt-scroll-container">
             <Gantt
               tasks={tasks}
               viewMode={viewMode}
