@@ -47,12 +47,18 @@ export type Database = {
           change_order_id: string
           cost_per_unit: number | null
           created_at: string | null
+          dependencies: Json | null
           description: string
+          duration_days: number | null
           id: string
+          is_milestone: boolean | null
           markup_amount: number | null
           payee_id: string | null
           price_per_unit: number | null
           quantity: number | null
+          schedule_notes: string | null
+          scheduled_end_date: string | null
+          scheduled_start_date: string | null
           sort_order: number | null
           total_cost: number | null
           total_price: number | null
@@ -64,12 +70,18 @@ export type Database = {
           change_order_id: string
           cost_per_unit?: number | null
           created_at?: string | null
+          dependencies?: Json | null
           description: string
+          duration_days?: number | null
           id?: string
+          is_milestone?: boolean | null
           markup_amount?: number | null
           payee_id?: string | null
           price_per_unit?: number | null
           quantity?: number | null
+          schedule_notes?: string | null
+          scheduled_end_date?: string | null
+          scheduled_start_date?: string | null
           sort_order?: number | null
           total_cost?: number | null
           total_price?: number | null
@@ -81,12 +93,18 @@ export type Database = {
           change_order_id?: string
           cost_per_unit?: number | null
           created_at?: string | null
+          dependencies?: Json | null
           description?: string
+          duration_days?: number | null
           id?: string
+          is_milestone?: boolean | null
           markup_amount?: number | null
           payee_id?: string | null
           price_per_unit?: number | null
           quantity?: number | null
+          schedule_notes?: string | null
+          scheduled_end_date?: string | null
+          scheduled_start_date?: string | null
           sort_order?: number | null
           total_cost?: number | null
           total_price?: number | null
@@ -307,15 +325,21 @@ export type Database = {
           category: Database["public"]["Enums"]["expense_category"]
           cost_per_unit: number | null
           created_at: string | null
+          dependencies: Json | null
           description: string
+          duration_days: number | null
           estimate_id: string
           id: string
+          is_milestone: boolean | null
           markup_amount: number | null
           markup_percent: number | null
           price_per_unit: number | null
           quantity: number | null
           quickbooks_item_id: string | null
           rate: number | null
+          schedule_notes: string | null
+          scheduled_end_date: string | null
+          scheduled_start_date: string | null
           sort_order: number | null
           total: number | null
           total_cost: number | null
@@ -326,15 +350,21 @@ export type Database = {
           category: Database["public"]["Enums"]["expense_category"]
           cost_per_unit?: number | null
           created_at?: string | null
+          dependencies?: Json | null
           description: string
+          duration_days?: number | null
           estimate_id: string
           id?: string
+          is_milestone?: boolean | null
           markup_amount?: number | null
           markup_percent?: number | null
           price_per_unit?: number | null
           quantity?: number | null
           quickbooks_item_id?: string | null
           rate?: number | null
+          schedule_notes?: string | null
+          scheduled_end_date?: string | null
+          scheduled_start_date?: string | null
           sort_order?: number | null
           total?: number | null
           total_cost?: number | null
@@ -345,15 +375,21 @@ export type Database = {
           category?: Database["public"]["Enums"]["expense_category"]
           cost_per_unit?: number | null
           created_at?: string | null
+          dependencies?: Json | null
           description?: string
+          duration_days?: number | null
           estimate_id?: string
           id?: string
+          is_milestone?: boolean | null
           markup_amount?: number | null
           markup_percent?: number | null
           price_per_unit?: number | null
           quantity?: number | null
           quickbooks_item_id?: string | null
           rate?: number | null
+          schedule_notes?: string | null
+          scheduled_end_date?: string | null
+          scheduled_start_date?: string | null
           sort_order?: number | null
           total?: number | null
           total_cost?: number | null
