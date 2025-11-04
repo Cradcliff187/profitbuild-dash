@@ -822,6 +822,19 @@ textarea:focus-visible {
   }
 }
 
+/* =================================
+   BRANDED LOADER SPIN (ISOLATED)
+   ================================= */
+.branded-spin {
+  animation: branded-spin 0.8s linear infinite;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+@keyframes branded-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Gantt Task React Styles */
 .gantt-container {
   font-family: inherit;

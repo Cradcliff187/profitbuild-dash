@@ -22,7 +22,7 @@ export const BrandedLoader: React.FC<BrandedLoaderProps> = ({
     <div className="flex flex-col items-center justify-center gap-4 py-8">
       <div className="relative w-20 h-20">
         {/* Outer spinning ring */}
-        <div className="absolute inset-0 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <div className="absolute inset-0 border-4 border-primary/20 border-t-primary rounded-full branded-spin" />
         
         {/* Logo in center */}
         {logoIcon && (
