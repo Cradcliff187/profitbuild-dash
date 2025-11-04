@@ -195,7 +195,7 @@ export function useScheduleTasks({
         scheduled_start_date: updatedTask.start,
         scheduled_end_date: updatedTask.end,
         duration_days: duration,
-        dependencies: updatedTask.dependencies,
+        dependencies: updatedTask.dependencies as any,
         schedule_notes: updatedTask.schedule_notes
       })
       .eq('id', updatedTask.id);

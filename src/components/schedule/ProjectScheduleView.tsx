@@ -536,7 +536,7 @@ export default function ProjectScheduleView({
                   scheduled_start_date: updatedTask.start,
                   scheduled_end_date: updatedTask.end,
                   duration_days: Math.ceil((new Date(updatedTask.end).getTime() - new Date(updatedTask.start).getTime()) / (1000 * 60 * 60 * 24)) + 1,
-                  dependencies: updatedTask.dependencies,
+                  dependencies: updatedTask.dependencies as any,
                   schedule_notes: updatedTask.schedule_notes
                 })
                 .eq('id', updatedTask.id);
