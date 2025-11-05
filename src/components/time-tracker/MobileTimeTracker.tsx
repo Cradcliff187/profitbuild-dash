@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check, AlertTriangle } from 'lucide-react';
+import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check, AlertTriangle, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { getCompanyBranding } from '@/utils/companyBranding';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { checkTimeOverlap, validateTimeEntryHours, checkStaleTimer } from '@/utils/timeEntryValidation';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import { CreateTimeEntryDialog } from './CreateTimeEntryDialog';
 import { BulkActionsBar } from './BulkActionsBar';
 import { SyncStatusBanner } from './SyncStatusBanner';
 import { ReceiptsList } from './ReceiptsList';
+import { ProjectScheduleSelector } from './ProjectScheduleSelector';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,6 +74,7 @@ interface ActiveTimer {
 
 export const MobileTimeTracker: React.FC = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin, isManager } = useRoles();
   const { isOnline } = useOnlineStatus();
@@ -102,6 +105,7 @@ export const MobileTimeTracker: React.FC = () => {
   const [logoIcon] = useState<string>("https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/all%20white%20logo%20only.png");
   const [showSuccess, setShowSuccess] = useState(false);
   const [showStaleTimerWarning, setShowStaleTimerWarning] = useState(false);
+  const [showScheduleSelector, setShowScheduleSelector] = useState(false);
 
   // Prevent body scroll when custom dropdowns are open
   useEffect(() => {
@@ -1269,6 +1273,15 @@ export const MobileTimeTracker: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Schedule FAB - Bottom Left */}
+          <button
+            onClick={() => setShowScheduleSelector(true)}
+            className="fixed bottom-6 left-6 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 z-20"
+            aria-label="View project schedule"
+          >
+            <BarChart3 className="w-6 h-6" />
+          </button>
         </div>
       )}
 
@@ -1386,6 +1399,15 @@ export const MobileTimeTracker: React.FC = () => {
                 aria-label="Add time entry manually"
               >
                 <Edit2 className="w-6 h-6" />
+              </button>
+
+              {/* Schedule FAB - Bottom Left */}
+              <button
+                onClick={() => setShowScheduleSelector(true)}
+                className="fixed bottom-6 left-6 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 z-20"
+                aria-label="View project schedule"
+              >
+                <BarChart3 className="w-6 h-6" />
               </button>
             </div>
           ) : (
@@ -1515,6 +1537,21 @@ export const MobileTimeTracker: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Project Schedule Selector */}
+      <ProjectScheduleSelector
+        open={showScheduleSelector}
+        projects={projects}
+        onSelectProject={(projectId) => {
+          // Set table view preference
+          localStorage.setItem(`schedule_view_mode_${projectId}`, 'table');
+          // Navigate to schedule
+          navigate(`/projects/${projectId}/schedule`);
+          // Close modal
+          setShowScheduleSelector(false);
+        }}
+        onClose={() => setShowScheduleSelector(false)}
+      />
     </div>
   );
 };
