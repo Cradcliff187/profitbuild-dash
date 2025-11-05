@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Upload, FileText, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Upload, FileText, AlertCircle, CheckCircle, X, CheckCircle2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,7 +17,7 @@ import {
   RevenueImportData
 } from '@/utils/enhancedTransactionImporter';
 import { ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from '@/types/expense';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 
 interface ExpenseImportModalProps {
   open: boolean;
@@ -48,6 +48,14 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     errors: string[];
     successCount: number;
   } | null>(null);
+  const [validationResults, setValidationResults] = useState<{
+    matchedProjects: number;
+    unmatchedProjects: number;
+    matchedPayees: number;
+    unmatchedPayees: number;
+    unmatchedProjectNumbers: string[];
+    unmatchedPayeeNames: string[];
+  } | null>(null);
   const { toast } = useToast();
 
   const resetState = () => {
@@ -59,11 +67,67 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     setIsImporting(false);
     setStep('upload');
     setImportResults(null);
+    setValidationResults(null);
   };
 
   const handleClose = () => {
     resetState();
     onClose();
+  };
+
+  const validateMatches = async (data: TransactionCSVRow[]) => {
+    // Fetch all projects and payees for matching
+    const { data: projects } = await supabase.from('projects').select('project_number, project_name, id');
+    const { data: payees } = await supabase.from('payees').select('payee_name, full_name, id');
+    
+    const projectNumbers = new Set(projects?.map(p => p.project_number.toLowerCase().trim()) || []);
+    const payeeNames = new Set(payees?.flatMap(p => [
+      p.payee_name.toLowerCase().trim(),
+      ...(p.full_name ? [p.full_name.toLowerCase().trim()] : [])
+    ]) || []);
+    
+    let matchedProjects = 0;
+    let unmatchedProjects = 0;
+    let matchedPayees = 0;
+    let unmatchedPayees = 0;
+    const unmatchedProjectNumbers = new Set<string>();
+    const unmatchedPayeeNames = new Set<string>();
+    
+    data.forEach(row => {
+      const projectWO = row['Project/WO #']?.trim().toLowerCase();
+      const name = row['Name']?.trim().toLowerCase();
+      
+      // Check project match
+      if (projectWO) {
+        if (projectNumbers.has(projectWO)) {
+          matchedProjects++;
+        } else {
+          unmatchedProjects++;
+          unmatchedProjectNumbers.add(row['Project/WO #']?.trim() || '');
+        }
+      } else {
+        unmatchedProjects++;
+      }
+      
+      // Check payee match (only for non-invoice transactions)
+      if (row['Transaction type'] !== 'Invoice' && name) {
+        if (payeeNames.has(name)) {
+          matchedPayees++;
+        } else {
+          unmatchedPayees++;
+          unmatchedPayeeNames.add(row['Name']?.trim() || '');
+        }
+      }
+    });
+    
+    return {
+      matchedProjects,
+      unmatchedProjects,
+      matchedPayees,
+      unmatchedPayees,
+      unmatchedProjectNumbers: Array.from(unmatchedProjectNumbers),
+      unmatchedPayeeNames: Array.from(unmatchedPayeeNames)
+    };
   };
 
   const handleFileSelect = async (file: File) => {
@@ -78,6 +142,11 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       } else {
         setCsvData(result.data);
         setHeaders(result.headers);
+        
+        // Run validation to check matches
+        const validation = await validateMatches(result.data);
+        setValidationResults(validation);
+        
         setStep('preview');
         setErrors([]);
       }
@@ -256,29 +325,99 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
               </p>
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">Import Summary</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Total Transactions:</span> {csvData.length}
-                </div>
-                <div>
-                  <span className="font-medium">Revenues (Invoice):</span> {csvData.filter(row => row['Transaction type'] === 'Invoice').length}
-                </div>
-                <div>
-                  <span className="font-medium">Expenses (Bill/Check/Expense):</span> {csvData.filter(row => row['Transaction type'] !== 'Invoice').length}
-                </div>
-                <div>
-                  <span className="font-medium">Will be Unassigned:</span> {csvData.filter(row => !row['Project/WO #'] || row['Project/WO #'].trim() === '').length}
+            <div className="space-y-3">
+              {/* Basic Stats */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">Import Summary</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Total Transactions:</span> {csvData.length}
+                  </div>
+                  <div>
+                    <span className="font-medium">Revenues (Invoice):</span> {csvData.filter(row => row['Transaction type'] === 'Invoice').length}
+                  </div>
+                  <div>
+                    <span className="font-medium">Expenses (Bill/Check/Expense):</span> {csvData.filter(row => row['Transaction type'] !== 'Invoice').length}
+                  </div>
                 </div>
               </div>
               
-              {csvData.filter(row => !row['Project/WO #'] || row['Project/WO #'].trim() === '').length > 0 && (
-                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <p className="text-sm text-yellow-800">
-                    Transactions without Project/WO # will be imported to the "000-UNASSIGNED" project and can be reassigned later.
-                  </p>
-                </div>
+              {/* Matching Results */}
+              {validationResults && (
+                <>
+                  {/* Project Matching */}
+                  <div className={cn(
+                    "p-4 rounded-lg border",
+                    validationResults.unmatchedProjects === 0 
+                      ? "bg-green-50 border-green-200" 
+                      : "bg-amber-50 border-amber-200"
+                  )}>
+                    <div className="flex items-start gap-2 mb-2">
+                      {validationResults.unmatchedProjects === 0 ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      )}
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm">Project Matching</h4>
+                        <p className="text-sm mt-1">
+                          <span className="font-medium text-green-700">{validationResults.matchedProjects} matched</span>
+                          {validationResults.unmatchedProjects > 0 && (
+                            <span className="font-medium text-amber-700"> • {validationResults.unmatchedProjects} unmatched</span>
+                          )}
+                        </p>
+                        {validationResults.unmatchedProjectNumbers.length > 0 && (
+                          <div className="mt-2 p-2 bg-white rounded border border-amber-300">
+                            <p className="text-xs font-medium mb-1">Unmatched Project Numbers:</p>
+                            <p className="text-xs text-amber-800">
+                              {validationResults.unmatchedProjectNumbers.join(', ')}
+                            </p>
+                            <p className="text-xs text-amber-700 mt-1 italic">
+                              These will be imported to "000-UNASSIGNED" project
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Payee Matching */}
+                  <div className={cn(
+                    "p-4 rounded-lg border",
+                    validationResults.unmatchedPayees === 0 
+                      ? "bg-green-50 border-green-200" 
+                      : "bg-blue-50 border-blue-200"
+                  )}>
+                    <div className="flex items-start gap-2 mb-2">
+                      {validationResults.unmatchedPayees === 0 ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      )}
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm">Payee Matching</h4>
+                        <p className="text-sm mt-1">
+                          <span className="font-medium text-green-700">{validationResults.matchedPayees} matched</span>
+                          {validationResults.unmatchedPayees > 0 && (
+                            <span className="font-medium text-blue-700"> • {validationResults.unmatchedPayees} unmatched</span>
+                          )}
+                        </p>
+                        {validationResults.unmatchedPayeeNames.length > 0 && (
+                          <div className="mt-2 p-2 bg-white rounded border border-blue-300">
+                            <p className="text-xs font-medium mb-1">Unmatched Payee Names:</p>
+                            <p className="text-xs text-blue-800">
+                              {validationResults.unmatchedPayeeNames.slice(0, 5).join(', ')}
+                              {validationResults.unmatchedPayeeNames.length > 5 && ` +${validationResults.unmatchedPayeeNames.length - 5} more`}
+                            </p>
+                            <p className="text-xs text-blue-700 mt-1 italic">
+                              These expenses will import without payee assignment
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
             
