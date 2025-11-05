@@ -58,8 +58,8 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
       'Remaining to Allocate',
       'Allocation Status',
       'Actual (Category Match)',
-      'Cost Variance',
-      'Cost Variance %',
+      'Est vs Quote',
+      'Est vs Quote %',
       'Quote Status'
     ];
 
@@ -219,29 +219,50 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
     },
     {
       key: 'costVariance',
-      label: 'Cost Variance',
+      label: 'Est vs Quote',
       align: 'right',
       sortable: true,
-      render: (item) => (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="text-right cursor-help">
-              <div className={cn(
-                "font-medium text-sm tabular-nums flex items-center justify-end gap-2",
-                item.costVariance > 0 ? "text-destructive" : "text-muted-foreground"
-              )}>
-                <span>{formatCurrency(item.costVariance)}</span>
-                <span className="text-xs">
-                  {item.costVariancePercent > 0 ? '+' : ''}{item.costVariancePercent.toFixed(1)}%
-                </span>
-              </div>
+      render: (item) => {
+        // Don't show cost variance for internal work (no quotes to compare)
+        if (item.quoteStatus === 'internal') {
+          return (
+            <div className="text-right text-xs text-muted-foreground italic">
+              Internal
             </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Quoted Cost − Estimated Cost (positive = over estimate)</p>
-          </TooltipContent>
-        </Tooltip>
-      ),
+          );
+        }
+
+        // Don't show variance if no quotes exist yet
+        if (item.quoteStatus === 'none') {
+          return (
+            <div className="text-right text-xs text-muted-foreground">
+              —
+            </div>
+          );
+        }
+
+        // Show variance for items with quotes
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-right cursor-help">
+                <div className={cn(
+                  "font-medium text-sm tabular-nums flex items-center justify-end gap-2",
+                  item.costVariance > 0 ? "text-destructive" : "text-muted-foreground"
+                )}>
+                  <span>{formatCurrency(item.costVariance)}</span>
+                  <span className="text-xs">
+                    {item.costVariancePercent > 0 ? '+' : ''}{item.costVariancePercent.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Quoted Cost − Estimated Cost (positive = quote came in higher than estimate)</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'quoteStatus',
