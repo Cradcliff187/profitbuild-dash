@@ -53,6 +53,7 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
       'Est. Price',
       'Est. Cost',
       'Quoted Cost',
+      'Payee Name',
       'Allocated Expenses',
       'Remaining to Allocate',
       'Allocation Status',
@@ -64,20 +65,29 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
 
     const csvContent = [
       headers.join(','),
-      ...lineItems.map(item => [
-        CATEGORY_DISPLAY_MAP[item.category as keyof typeof CATEGORY_DISPLAY_MAP] || item.category,
-        `"${item.description}"`,
-        item.estimatedPrice,
-        item.estimatedCost,
-        item.quotedCost,
-        item.allocatedAmount,
-        item.remainingToAllocate,
-        item.allocationStatus,
-        item.actualAmount,
-        item.costVariance,
-        item.costVariancePercent.toFixed(1) + '%',
-        item.quoteStatus
-      ].join(','))
+      ...lineItems.map(item => {
+        const acceptedQuotes = item.quotes.filter(q => q.status === 'accepted');
+        const payeeNames = acceptedQuotes.map(q => q.quotedBy).join('; ');
+        const payeeNameValue = item.quoteStatus === 'internal' 
+          ? 'Internal' 
+          : payeeNames || '—';
+        
+        return [
+          CATEGORY_DISPLAY_MAP[item.category as keyof typeof CATEGORY_DISPLAY_MAP] || item.category,
+          `"${item.description}"`,
+          item.estimatedPrice,
+          item.estimatedCost,
+          item.quotedCost,
+          `"${payeeNameValue}"`,
+          item.allocatedAmount,
+          item.remainingToAllocate,
+          item.allocationStatus,
+          item.actualAmount,
+          item.costVariance,
+          item.costVariancePercent.toFixed(1) + '%',
+          item.quoteStatus
+        ].join(',');
+      })
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -263,6 +273,67 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
           </TooltipContent>
         </Tooltip>
       ),
+    },
+    {
+      key: 'payeeName',
+      label: 'Payee Name',
+      align: 'left',
+      render: (item) => {
+        if (item.quoteStatus === 'internal') {
+          return (
+            <div className="text-xs text-muted-foreground italic">
+              Internal
+            </div>
+          );
+        }
+
+        const acceptedQuotes = item.quotes.filter(q => q.status === 'accepted');
+        
+        if (acceptedQuotes.length === 0) {
+          return (
+            <div className="text-xs text-muted-foreground">
+              —
+            </div>
+          );
+        }
+
+        const payeeNames = [...new Set(acceptedQuotes.map(q => q.quotedBy))];
+
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="cursor-help">
+                {payeeNames.length === 1 ? (
+                  <div className="font-medium text-sm">
+                    {payeeNames[0]}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="font-medium text-sm">
+                      {payeeNames[0]}
+                    </div>
+                    {payeeNames.length > 1 && (
+                      <div className="text-xs text-muted-foreground">
+                        +{payeeNames.length - 1} more
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="space-y-1">
+                <p className="font-semibold">Accepted Quote Vendors:</p>
+                {acceptedQuotes.map(q => (
+                  <div key={q.id} className="text-xs">
+                    • {q.quotedBy} - {formatCurrency(q.total)} ({q.quoteNumber})
+                  </div>
+                ))}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'allocationStatus',
