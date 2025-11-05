@@ -175,19 +175,16 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
 
       // Step 6: Create quote line items from change order line items
       if (lineItems && lineItems.length > 0) {
-        const quoteLineItems = lineItems.map((item, index) => ({
-          quote_id: newQuote.id,
-          change_order_line_item_id: item.id,
-          category: item.category,
-          description: item.description,
-          quantity: item.quantity || 1,
-          unit: item.unit,
-          cost_per_unit: item.cost_per_unit || 0,
-          rate: item.price_per_unit || 0,
-          total: item.total_price || 0,
-          total_cost: item.total_cost || 0,
-          sort_order: item.sort_order || index,
-        }));
+      const quoteLineItems = lineItems.map((item, index) => ({
+        quote_id: newQuote.id,
+        change_order_line_item_id: item.id,
+        category: item.category,
+        description: item.description,
+        quantity: item.quantity || 1,
+        unit: item.unit,
+        rate: item.price_per_unit || 0,
+        sort_order: item.sort_order || index,
+      }));
 
         const { error: lineItemsInsertError } = await supabase
           .from('quote_line_items')
