@@ -77,6 +77,39 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
 
   const handleDelete = async (id: string) => {
     try {
+      // Step 1: Get change order line items
+      const { data: coLineItems, error: coLineItemsError } = await supabase
+        .from('change_order_line_items')
+        .select('id')
+        .eq('change_order_id', id);
+
+      if (coLineItemsError) throw coLineItemsError;
+
+      // Step 2: Find quotes that reference these line items
+      if (coLineItems && coLineItems.length > 0) {
+        const lineItemIds = coLineItems.map(item => item.id);
+        
+        const { data: quoteLineItems, error: quoteLineItemsError } = await supabase
+          .from('quote_line_items')
+          .select('quote_id')
+          .in('change_order_line_item_id', lineItemIds);
+
+        if (quoteLineItemsError) throw quoteLineItemsError;
+
+        // Step 3: Delete auto-generated quotes (cascades to quote_line_items)
+        if (quoteLineItems && quoteLineItems.length > 0) {
+          const quoteIds = [...new Set(quoteLineItems.map(item => item.quote_id))];
+          
+          const { error: quoteDeleteError } = await supabase
+            .from('quotes')
+            .delete()
+            .in('id', quoteIds);
+
+          if (quoteDeleteError) throw quoteDeleteError;
+        }
+      }
+
+      // Step 4: Delete the change order (cascades to change_order_line_items)
       const { error } = await supabase
         .from('change_orders')
         .delete()
@@ -87,7 +120,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
       setChangeOrders(prev => prev.filter(co => co.id !== id));
       toast({
         title: "Change Order Deleted",
-        description: "The change order has been successfully deleted.",
+        description: "The change order and related quotes have been successfully deleted.",
       });
     } catch (error) {
       console.error('Error deleting change order:', error);
