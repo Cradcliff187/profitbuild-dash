@@ -47,7 +47,7 @@ export const useVarianceCalculation = (projectId: string): UseVarianceCalculatio
       setError(null);
 
       // Fetch all data in parallel for better performance
-      const [estimateResult, quoteResult, expenseResult] = await Promise.all([
+      const [estimateResult, quoteResult, expenseResult, changeOrderResult] = await Promise.all([
         // Fetch current estimate line items with descriptions
         supabase
           .from('estimate_line_items')
@@ -82,16 +82,40 @@ export const useVarianceCalculation = (projectId: string): UseVarianceCalculatio
         supabase
           .from('expenses')
           .select('category, description, amount')
+          .eq('project_id', projectId),
+
+        // Fetch approved change orders with line items
+        supabase
+          .from('change_orders')
+          .select(`
+            id,
+            change_order_number,
+            description,
+            status,
+            change_order_line_items (
+              id,
+              category,
+              description,
+              quantity,
+              cost_per_unit,
+              price_per_unit,
+              total_cost,
+              total_price
+            )
+          `)
           .eq('project_id', projectId)
+          .eq('status', 'approved')
       ]);
 
       const { data: estimateData, error: estimateError } = estimateResult;
       const { data: quoteData, error: quoteError } = quoteResult;
       const { data: expenseData, error: expenseError } = expenseResult;
+      const { data: changeOrderData, error: changeOrderError } = changeOrderResult;
 
       if (estimateError) throw estimateError;
       if (quoteError) throw quoteError;
       if (expenseError) throw expenseError;
+      if (changeOrderError) console.warn('[VarianceCalculation] Error fetching change orders:', changeOrderError);
 
       // Process data to create category groups with line item details
       const categoryMap = new Map<LineItemCategory, {
@@ -132,6 +156,34 @@ export const useVarianceCalculation = (projectId: string): UseVarianceCalculatio
           categoryData.lineItemsMap.set(description, { estimated: 0, quoted: 0, actual: 0 });
         }
         categoryData.lineItemsMap.get(description)!.estimated += amount;
+      });
+
+      // Process approved change orders as additional "estimated" amounts
+      (changeOrderData || []).forEach(co => {
+        (co.change_order_line_items || []).forEach((item: any) => {
+          const category = item.category as LineItemCategory;
+          const description = item.description || 'Unnamed Item';
+          const amount = Number(item.total_price) || 0;
+          
+          allCategories.add(category);
+          
+          if (!categoryMap.has(category)) {
+            categoryMap.set(category, {
+              estimated: 0,
+              quoted: 0,
+              actual: 0,
+              lineItemsMap: new Map()
+            });
+          }
+          
+          const categoryData = categoryMap.get(category)!;
+          categoryData.estimated += amount;
+          
+          if (!categoryData.lineItemsMap.has(description)) {
+            categoryData.lineItemsMap.set(description, { estimated: 0, quoted: 0, actual: 0 });
+          }
+          categoryData.lineItemsMap.get(description)!.estimated += amount;
+        });
       });
 
       // Process quotes

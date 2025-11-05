@@ -216,6 +216,9 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
         quantity: item.quantity || 1,
         unit: item.unit,
         rate: item.price_per_unit || 0,
+        cost_per_unit: item.cost_per_unit || 0,
+        total: item.total_price || 0,
+        total_cost: item.total_cost || 0,
         sort_order: item.sort_order || index,
       }));
 

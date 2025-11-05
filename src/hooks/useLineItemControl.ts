@@ -213,6 +213,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
             rate,
             total,
             estimate_line_item_id,
+            change_order_line_item_id,
             cost_per_unit,
             total_cost
           ),
@@ -386,15 +387,26 @@ function processLineItemData(
     // Cost (internal)
     const estimatedCost = qty * costPerUnit;
 
-    // Quotes strictly linked to this estimate line item
-    const relatedQuotes = (quotes || []).filter((q: any) =>
-      q.estimate_line_item_id === lineItem.id ||
-      (q.quote_line_items || []).some((qli: any) => qli.estimate_line_item_id === lineItem.id)
-    );
+    // Quotes strictly linked to this estimate or change order line item
+    const relatedQuotes = (quotes || []).filter((q: any) => {
+      return (q.quote_line_items || []).some((qli: any) => {
+        if (lineItem.source === 'change_order') {
+          return qli.change_order_line_item_id === lineItem.id;
+        } else {
+          return qli.estimate_line_item_id === lineItem.id;
+        }
+      });
+    });
 
     // Build per-quote data limited to this line item only
     const quoteRowsForUi: QuoteData[] = relatedQuotes.map((q: any) => {
-      const itemsForLine = (q.quote_line_items || []).filter((qli: any) => qli.estimate_line_item_id === lineItem.id);
+      const itemsForLine = (q.quote_line_items || []).filter((qli: any) => {
+        if (lineItem.source === 'change_order') {
+          return qli.change_order_line_item_id === lineItem.id;
+        } else {
+          return qli.estimate_line_item_id === lineItem.id;
+        }
+      });
       const quoteTotalForThisLine = itemsForLine.reduce((s: number, li: any) => {
         const linePrice = Number(li.total ?? (Number(li.rate ?? 0) * Number(li.quantity ?? 0)));
         return s + linePrice;
@@ -414,13 +426,25 @@ function processLineItemData(
 
     // Quoted costs and prices for this specific line item only
     const quotedCost = acceptedQuotes.reduce((sum: number, q: any) => {
-      const itemsForLine = (q.quote_line_items || []).filter((qli: any) => qli.estimate_line_item_id === lineItem.id);
+      const itemsForLine = (q.quote_line_items || []).filter((qli: any) => {
+        if (lineItem.source === 'change_order') {
+          return qli.change_order_line_item_id === lineItem.id;
+        } else {
+          return qli.estimate_line_item_id === lineItem.id;
+        }
+      });
       const cost = itemsForLine.reduce((s: number, li: any) => s + (Number(li.cost_per_unit ?? 0) * Number(li.quantity ?? 0)), 0);
       return sum + cost;
     }, 0);
 
     const quotedPrice = acceptedQuotes.reduce((sum: number, q: any) => {
-      const itemsForLine = (q.quote_line_items || []).filter((qli: any) => qli.estimate_line_item_id === lineItem.id);
+      const itemsForLine = (q.quote_line_items || []).filter((qli: any) => {
+        if (lineItem.source === 'change_order') {
+          return qli.change_order_line_item_id === lineItem.id;
+        } else {
+          return qli.estimate_line_item_id === lineItem.id;
+        }
+      });
       const price = itemsForLine.reduce((s: number, li: any) => s + Number(li.total ?? (Number(li.rate ?? 0) * Number(li.quantity ?? 0))), 0);
       return sum + price;
     }, 0);
