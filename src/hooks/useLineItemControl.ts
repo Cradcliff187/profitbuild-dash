@@ -45,6 +45,10 @@ export interface LineItemControlData {
   // Legacy fields for backward compatibility
   estimatedAmount: number; // alias of estimatedPrice
   quotedAmount: number; // alias of quotedPrice
+  // Change Order tracking
+  source?: 'estimate' | 'change_order';
+  change_order_number?: string;
+  change_order_id?: string;
 }
 
 export interface LineItemControlSummary {
@@ -220,6 +224,35 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
 
       if (quotesError) throw quotesError;
 
+      // Fetch approved change orders with line items
+      const { data: changeOrders, error: changeOrdersError } = await supabase
+        .from('change_orders')
+        .select(`
+          id,
+          change_order_number,
+          description,
+          status,
+          client_amount,
+          cost_impact,
+          change_order_line_items (
+            id,
+            category,
+            description,
+            quantity,
+            cost_per_unit,
+            price_per_unit,
+            total_cost,
+            total_price,
+            payee_id
+          )
+        `)
+        .eq('project_id', projectId)
+        .eq('status', 'approved');
+
+      if (changeOrdersError) {
+        console.warn('[LineItemControl] Error fetching change orders:', changeOrdersError);
+      }
+
       // Fetch expenses grouped by category with payee info
       const { data: expenses, error: expensesError } = await supabase
         .from('expenses')
@@ -279,7 +312,8 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
         estimates?.estimate_line_items || [],
         quotes || [],
         expenses || [],
-        correlationsByLineItem
+        correlationsByLineItem,
+        changeOrders || []
       );
 
       setLineItems(processedLineItems);
@@ -321,9 +355,27 @@ function processLineItemData(
   estimateLineItems: any[],
   quotes: any[],
   expenses: any[],
-  correlationsByLineItem: Map<string, any[]>
+  correlationsByLineItem: Map<string, any[]>,
+  changeOrders: any[]
 ): LineItemControlData[] {
-  return estimateLineItems.map(lineItem => {
+  // Combine estimate line items with change order line items
+  const allLineItems = [
+    ...estimateLineItems.map(item => ({ ...item, source: 'estimate' as const })),
+    ...changeOrders.flatMap(co => 
+      (co.change_order_line_items || []).map((item: any) => ({
+        ...item,
+        source: 'change_order' as const,
+        change_order_number: co.change_order_number,
+        change_order_id: co.id,
+        // Map change order fields to estimate line item structure
+        rate: item.price_per_unit || 0,
+        total: item.total_price || 0,
+        cost_per_unit: item.cost_per_unit || 0,
+      }))
+    )
+  ];
+
+  return allLineItems.map(lineItem => {
     const qty = Number(lineItem.quantity ?? 0);
     const rate = Number(lineItem.rate ?? 0);
     const total = Number(lineItem.total ?? 0);
@@ -486,6 +538,10 @@ function processLineItemData(
       quotes: quoteRowsForUi,
       expenses: matchingExpenses,
       estimateLineItemId: lineItem.id,
+      // Change order tracking
+      source: lineItem.source,
+      change_order_number: lineItem.change_order_number,
+      change_order_id: lineItem.change_order_id,
     } as LineItemControlData;
   });
 }

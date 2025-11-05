@@ -110,8 +110,15 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="space-y-1 cursor-help">
-              <div className="font-medium text-sm">
-                {CATEGORY_DISPLAY_MAP[item.category as keyof typeof CATEGORY_DISPLAY_MAP] || item.category}
+              <div className="flex items-center gap-2">
+                <div className="font-medium text-sm">
+                  {CATEGORY_DISPLAY_MAP[item.category as keyof typeof CATEGORY_DISPLAY_MAP] || item.category}
+                </div>
+                {item.source === 'change_order' && (
+                  <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4 leading-none">
+                    CO
+                  </Badge>
+                )}
               </div>
               <div className="text-xs text-muted-foreground truncate max-w-[200px]">
                 {item.description}
@@ -119,9 +126,16 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <div>
+            <div className="space-y-1">
               <p><strong>Category:</strong> {CATEGORY_DISPLAY_MAP[item.category as keyof typeof CATEGORY_DISPLAY_MAP] || item.category}</p>
               <p><strong>Description:</strong> {item.description}</p>
+              {item.source === 'change_order' && (
+                <>
+                  <p className="text-xs text-muted-foreground pt-1 border-t mt-1">
+                    <strong>Change Order:</strong> {item.change_order_number}
+                  </p>
+                </>
+              )}
             </div>
           </TooltipContent>
         </Tooltip>
