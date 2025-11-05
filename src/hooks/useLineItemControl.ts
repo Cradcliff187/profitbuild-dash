@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LineItem, LineItemCategory } from '@/types/estimate';
 import { Expense, ExpenseCategory } from '@/types/expense';
+import { Project } from '@/types/project';
 
 export interface QuoteData {
   id: string;
@@ -47,10 +48,11 @@ export interface LineItemControlData {
 }
 
 export interface LineItemControlSummary {
-  totalEstimated: number;
-  totalQuoted: number;
-  totalActual: number;
-  totalVariance: number;
+  totalContractValue: number;      // from project.contracted_amount
+  totalQuotedWithInternal: number; // quoted costs + internal labor costs
+  totalEstimatedCost: number;      // all estimated costs
+  totalActual: number;             // actual expenses
+  totalVariance: number;           // totalQuotedWithInternal - totalEstimatedCost
   lineItemsWithQuotes: number;
   lineItemsOverBudget: number;
   completionPercentage: number;
@@ -64,11 +66,12 @@ interface UseLineItemControlReturn {
   refetch: () => void;
 }
 
-export function useLineItemControl(projectId: string): UseLineItemControlReturn {
+export function useLineItemControl(projectId: string, project: Project): UseLineItemControlReturn {
   const [lineItems, setLineItems] = useState<LineItemControlData[]>([]);
   const [summary, setSummary] = useState<LineItemControlSummary>({
-    totalEstimated: 0,
-    totalQuoted: 0,
+    totalContractValue: 0,
+    totalQuotedWithInternal: 0,
+    totalEstimatedCost: 0,
     totalActual: 0,
     totalVariance: 0,
     lineItemsWithQuotes: 0,
@@ -278,7 +281,7 @@ export function useLineItemControl(projectId: string): UseLineItemControlReturn 
       );
 
       setLineItems(processedLineItems);
-      setSummary(calculateSummary(processedLineItems));
+      setSummary(calculateSummary(processedLineItems, project));
 
     } catch (err) {
       console.error('Error fetching line item control data:', err);
@@ -485,20 +488,50 @@ function processLineItemData(
   });
 }
 
-function calculateSummary(lineItems: LineItemControlData[]): LineItemControlSummary {
-  const totalEstimated = lineItems.reduce((sum, item) => sum + item.estimatedAmount, 0);
-  const totalQuoted = lineItems.reduce((sum, item) => sum + item.quotedCost, 0);
+function calculateSummary(lineItems: LineItemControlData[], project: Project): LineItemControlSummary {
+  // Total Estimated Cost: sum of all estimated costs (internal + external)
+  const totalEstimatedCost = lineItems.reduce((sum, item) => sum + item.estimatedCost, 0);
+  
+  // Total Quoted + Internal Labor: 
+  // - For internal categories: use estimated cost
+  // - For external categories: use quoted cost
+  const totalQuotedWithInternal = lineItems.reduce((sum, item) => {
+    if (isInternalCategory(item.category)) {
+      return sum + item.estimatedCost; // Use estimate for internal
+    } else {
+      return sum + item.quotedCost; // Use quote for external
+    }
+  }, 0);
+  
+  // Total Actual: expenses recorded (unchanged)
   const totalActual = lineItems.reduce((sum, item) => sum + item.actualAmount, 0);
-  const totalVariance = totalActual - totalEstimated;
   
-  const lineItemsWithQuotes = lineItems.filter(item => item.quotes.length > 0).length;
-  const lineItemsOverBudget = lineItems.filter(item => item.variance > 0).length;
+  // Total Variance: (Quoted + Internal) vs Estimated Cost
+  // Positive = over budget (quotes came in higher than estimated)
+  // Negative = under budget (quotes came in lower than estimated)
+  const totalVariance = totalQuotedWithInternal - totalEstimatedCost;
   
-  const completionPercentage = totalEstimated > 0 ? Math.min((totalActual / totalEstimated) * 100, 100) : 0;
+  // Contract Value: from project table
+  const totalContractValue = project.contracted_amount || 0;
+  
+  const lineItemsWithQuotes = lineItems.filter(item => 
+    item.quotes.filter(q => q.status === 'accepted').length > 0
+  ).length;
+  
+  // Items over budget: where quoted cost > estimated cost (for external items)
+  const lineItemsOverBudget = lineItems.filter(item => 
+    !isInternalCategory(item.category) && item.costVariance > 0
+  ).length;
+  
+  // Completion %: actual vs quoted+internal (more meaningful baseline)
+  const completionPercentage = totalQuotedWithInternal > 0 
+    ? Math.min((totalActual / totalQuotedWithInternal) * 100, 100) 
+    : 0;
 
   return {
-    totalEstimated,
-    totalQuoted,
+    totalContractValue,
+    totalQuotedWithInternal,
+    totalEstimatedCost,
     totalActual,
     totalVariance,
     lineItemsWithQuotes,

@@ -324,7 +324,7 @@ export const ProjectDetailView = () => {
               } />
               
               <Route path="control" element={
-                <LineItemControlDashboard projectId={project.id} />
+                <LineItemControlDashboard projectId={project.id} project={project} />
               } />
               
               <Route path="matching" element={

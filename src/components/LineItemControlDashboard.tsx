@@ -20,13 +20,15 @@ import { CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { FinancialTableTemplate, FinancialTableColumn } from '@/components/FinancialTableTemplate';
 import { cn, formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Project } from '@/types/project';
 
 interface LineItemControlDashboardProps {
   projectId: string;
+  project: Project;
 }
 
-export function LineItemControlDashboard({ projectId }: LineItemControlDashboardProps) {
-  const { lineItems, summary, isLoading, error, refetch } = useLineItemControl(projectId);
+export function LineItemControlDashboard({ projectId, project }: LineItemControlDashboardProps) {
+  const { lineItems, summary, isLoading, error, refetch } = useLineItemControl(projectId, project);
   const [selectedLineItem, setSelectedLineItem] = useState<LineItemControlData | null>(null);
 
   const getQuoteStatusBadge = (status: LineItemControlData['quoteStatus']) => {
@@ -568,77 +570,98 @@ export function LineItemControlDashboard({ projectId }: LineItemControlDashboard
     <TooltipProvider>
       <div className="space-y-6">
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Target className="h-4 w-4" />
-                Total Estimated
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(summary.totalEstimated)}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {lineItems.length} line items
-              </div>
-            </CardContent>
-          </Card>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Total Contract Value
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(summary.totalContractValue)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Client contract amount
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                Total Quoted
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(summary.totalQuoted)}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {summary.lineItemsWithQuotes} items quoted
-              </div>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Total Quoted + Internal Labor
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(summary.totalQuotedWithInternal)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {summary.lineItemsWithQuotes} items quoted
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                Total Actual
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(summary.totalActual)}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {summary.completionPercentage.toFixed(1)}% of estimate
-              </div>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Total Estimated Cost
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(summary.totalEstimatedCost)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Baseline cost estimate
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Total Variance
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={cn(
-                "text-2xl font-bold",
-                summary.totalVariance > 0 ? "text-destructive" : "text-muted-foreground"
-              )}>
-                {formatCurrency(summary.totalVariance)}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {summary.lineItemsOverBudget} items over budget
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Total Actual Cost to Date
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(summary.totalActual)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {summary.completionPercentage.toFixed(1)}% of quoted + internal
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Total Variance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={cn(
+                  "text-2xl font-bold",
+                  summary.totalVariance > 0 ? "text-destructive" : "text-green-600"
+                )}>
+                  {formatCurrency(summary.totalVariance)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {summary.lineItemsOverBudget} items over budget
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Main Table */}
