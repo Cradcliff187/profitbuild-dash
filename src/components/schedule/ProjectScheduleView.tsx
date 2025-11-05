@@ -661,27 +661,25 @@ export default function ProjectScheduleView({
 
       {/* Conditional Rendering: Gantt or Table */}
       {displayMode === 'gantt' ? (
-        <Card className={isMobile ? "p-2 overflow-hidden" : "p-6 overflow-hidden"}>
-          <div className="gantt-scroll-container">
-            <Gantt
-              tasks={tasks}
-              viewMode={viewMode}
-              onDateChange={handleTaskChange}
-              onDoubleClick={handleTaskClick}
-              listCellWidth={isMobile ? "120px" : ""}
-              columnWidth={
-                isMobile 
-                  ? (viewMode === ViewMode.Day ? 60 : viewMode === ViewMode.Week ? 50 : 200)
-                  : (viewMode === ViewMode.Day ? 80 : viewMode === ViewMode.Week ? 65 : 300)
-              }
-              headerHeight={isMobile ? 50 : 60}
-              rowHeight={isMobile ? 40 : 45}
-              barCornerRadius={4}
-              handleWidth={8}
-              todayColor="rgba(59, 130, 246, 0.1)"
-              locale="en-US"
-            />
-          </div>
+        <Card className="p-6 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <Gantt
+            tasks={tasks}
+            viewMode={viewMode}
+            onDateChange={handleTaskChange}
+            onDoubleClick={handleTaskClick}
+            listCellWidth=""
+            columnWidth={
+              viewMode === ViewMode.Day ? 80 : 
+              viewMode === ViewMode.Week ? 65 : 
+              viewMode === ViewMode.Month ? 300 : 65
+            }
+            headerHeight={60}
+            rowHeight={45}
+            barCornerRadius={4}
+            handleWidth={8}
+            todayColor="rgba(59, 130, 246, 0.1)"
+            locale="en-US"
+          />
         </Card>
       ) : (
         <ScheduleTableView
