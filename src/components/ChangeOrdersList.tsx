@@ -110,7 +110,8 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
         return;
       }
 
-      const { error } = await supabase
+      // Step 1: Approve the change order
+      const { error: updateError } = await supabase
         .from('change_orders')
         .update({
           status: 'approved',
@@ -119,7 +120,81 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
         })
         .eq('id', changeOrder.id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // Step 2: Fetch change order line items
+      const { data: lineItems, error: lineItemsError } = await supabase
+        .from('change_order_line_items')
+        .select('*')
+        .eq('change_order_id', changeOrder.id)
+        .order('sort_order');
+
+      if (lineItemsError) throw lineItemsError;
+
+      // Step 3: Get project data for quote number generation
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('project_number')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError) throw projectError;
+
+      // Step 4: Generate quote number (PROJECT-QTE-00-XX for change orders)
+      const { data: existingQuotes, error: quotesError } = await supabase
+        .from('quotes')
+        .select('quote_number')
+        .eq('project_id', projectId)
+        .like('quote_number', `${project.project_number}-QTE-00-%`);
+
+      if (quotesError) throw quotesError;
+
+      const nextSequence = (existingQuotes?.length || 0) + 1;
+      const quoteNumber = `${project.project_number}-QTE-00-${String(nextSequence).padStart(2, '0')}`;
+
+      // Step 5: Create quote entry
+      const { data: newQuote, error: quoteError } = await supabase
+        .from('quotes')
+        .insert({
+          project_id: projectId,
+          estimate_id: null,
+          payee_id: lineItems?.[0]?.payee_id || null,
+          quote_number: quoteNumber,
+          status: 'accepted',
+          date_received: new Date().toISOString().split('T')[0],
+          accepted_date: new Date().toISOString(),
+          total_amount: changeOrder.client_amount || 0,
+          notes: `Auto-generated quote for ${changeOrder.change_order_number}`,
+          includes_labor: true,
+          includes_materials: true,
+        })
+        .select()
+        .single();
+
+      if (quoteError) throw quoteError;
+
+      // Step 6: Create quote line items from change order line items
+      if (lineItems && lineItems.length > 0) {
+        const quoteLineItems = lineItems.map((item, index) => ({
+          quote_id: newQuote.id,
+          change_order_line_item_id: item.id,
+          category: item.category,
+          description: item.description,
+          quantity: item.quantity || 1,
+          unit: item.unit,
+          cost_per_unit: item.cost_per_unit || 0,
+          rate: item.price_per_unit || 0,
+          total: item.total_price || 0,
+          total_cost: item.total_cost || 0,
+          sort_order: item.sort_order || index,
+        }));
+
+        const { error: lineItemsInsertError } = await supabase
+          .from('quote_line_items')
+          .insert(quoteLineItems);
+
+        if (lineItemsInsertError) throw lineItemsInsertError;
+      }
 
       setChangeOrders(prev => prev.map(co => 
         co.id === changeOrder.id 
@@ -129,7 +204,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
       
       toast({
         title: "Change Order Approved",
-        description: `${changeOrder.change_order_number} approved. Use "Match Expenses" to track actual costs.`,
+        description: `${changeOrder.change_order_number} approved and quote ${quoteNumber} created automatically.`,
       });
     } catch (error) {
       console.error('Error approving change order:', error);
