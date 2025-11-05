@@ -14,7 +14,7 @@ export const useScheduleTableColumns = (projectId: string) => {
     { key: 'start', label: 'Start Date', required: false, mobileDefault: true },
     { key: 'end', label: 'End Date', required: false, mobileDefault: true },
     { key: 'duration', label: 'Duration', required: false, mobileDefault: true },
-    { key: 'progress', label: 'Progress', required: false, mobileDefault: false },
+    { key: 'status', label: 'Status', required: false, mobileDefault: true },
     { key: 'dependencies', label: 'Dependencies', required: false, mobileDefault: false },
     { key: 'notes', label: 'Notes', required: false, mobileDefault: false },
   ];
@@ -39,11 +39,11 @@ export const useScheduleTableColumns = (projectId: string) => {
   function getDefaultColumns(): string[] {
     const isMobile = window.innerWidth < 768;
     if (isMobile) {
-      // Mobile: name, start, end, duration
-      return ['name', 'start', 'end', 'duration'];
+      // Mobile: name, start, end, status
+      return ['name', 'start', 'end', 'status'];
     }
-    // Desktop: name, category, start, end, duration, progress, dependencies
-    return ['name', 'category', 'start', 'end', 'duration', 'progress', 'dependencies'];
+    // Desktop: name, category, start, end, duration, status, dependencies
+    return ['name', 'category', 'start', 'end', 'duration', 'status', 'dependencies'];
   }
 
   useEffect(() => {

@@ -3,10 +3,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { ColumnSelector } from '@/components/ui/column-selector';
-import { Search, ArrowUpDown } from 'lucide-react';
-import { ScheduleTask } from '@/types/schedule';
+import { Search, ArrowUpDown, CheckCircle2 } from 'lucide-react';
+import { ScheduleTask, TaskDependency } from '@/types/schedule';
 import { useScheduleTableColumns } from '@/hooks/useScheduleTableColumns';
 import { cn } from '@/lib/utils';
 import {
@@ -24,7 +23,25 @@ interface ScheduleTableViewProps {
   onTaskClick: (task: ScheduleTask) => void;
 }
 
-type SortField = 'name' | 'start' | 'end' | 'category' | 'progress' | 'estimated_cost' | 'actual_cost';
+interface ScheduleTableRow {
+  id: string;
+  taskId: string;
+  taskName: string;
+  phaseNumber?: number;
+  phaseDescription?: string;
+  category: string;
+  start: string;
+  end: string;
+  duration: number;
+  isComplete: boolean;
+  isChangeOrder: boolean;
+  change_order_number?: string;
+  dependencies?: TaskDependency[];
+  notes?: string;
+  originalTask: ScheduleTask;
+}
+
+type SortField = 'name' | 'start' | 'end' | 'category' | 'duration';
 type SortDirection = 'asc' | 'desc';
 
 export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
@@ -47,29 +64,84 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   };
 
   const filteredAndSortedTasks = useMemo(() => {
-    let filtered = tasks;
+    // Expand tasks into phase rows
+    const expandedRows: ScheduleTableRow[] = [];
+    
+    tasks.forEach(task => {
+      if (task.has_multiple_phases && task.phases && task.phases.length > 0) {
+        // Create one row per phase
+        task.phases.forEach((phase, idx) => {
+          expandedRows.push({
+            id: `${task.id}-phase-${phase.phase_number}`,
+            taskId: task.id,
+            taskName: task.name,
+            phaseNumber: phase.phase_number,
+            phaseDescription: phase.description,
+            category: task.category,
+            start: phase.start_date,
+            end: phase.end_date,
+            duration: phase.duration_days,
+            isComplete: phase.completed || false,
+            isChangeOrder: task.isChangeOrder,
+            change_order_number: task.change_order_number,
+            dependencies: idx === 0 ? task.dependencies : undefined, // Only show dependencies on first phase
+            notes: phase.notes,
+            originalTask: task,
+          });
+        });
+      } else {
+        // Single row for non-phased tasks
+        const duration = calculateDuration(task.start, task.end);
+        expandedRows.push({
+          id: task.id,
+          taskId: task.id,
+          taskName: task.name,
+          category: task.category,
+          start: task.start,
+          end: task.end,
+          duration,
+          isComplete: false, // No manual completion for single-phase
+          isChangeOrder: task.isChangeOrder,
+          change_order_number: task.change_order_number,
+          dependencies: task.dependencies,
+          notes: task.schedule_notes,
+          originalTask: task,
+        });
+      }
+    });
 
     // Apply search filter
+    let filtered = expandedRows;
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = tasks.filter(task =>
-        task.name.toLowerCase().includes(query) ||
-        task.category.toLowerCase().includes(query) ||
-        task.schedule_notes?.toLowerCase().includes(query)
+      filtered = expandedRows.filter(row =>
+        row.taskName.toLowerCase().includes(query) ||
+        row.category.toLowerCase().includes(query) ||
+        row.phaseDescription?.toLowerCase().includes(query) ||
+        row.notes?.toLowerCase().includes(query)
       );
     }
 
     // Apply sorting
     const sorted = [...filtered].sort((a, b) => {
-      let aVal: any = a[sortField];
-      let bVal: any = b[sortField];
+      let aVal: any;
+      let bVal: any;
 
-      if (sortField === 'start' || sortField === 'end') {
-        aVal = new Date(aVal).getTime();
-        bVal = new Date(bVal).getTime();
-      } else if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase();
-        bVal = bVal.toLowerCase();
+      if (sortField === 'name') {
+        aVal = a.taskName.toLowerCase();
+        bVal = b.taskName.toLowerCase();
+      } else if (sortField === 'start' || sortField === 'end') {
+        aVal = new Date(a[sortField]).getTime();
+        bVal = new Date(b[sortField]).getTime();
+      } else if (sortField === 'category') {
+        aVal = a.category.toLowerCase();
+        bVal = b.category.toLowerCase();
+      } else if (sortField === 'duration') {
+        aVal = a.duration;
+        bVal = b.duration;
+      } else {
+        aVal = a[sortField as keyof ScheduleTableRow];
+        bVal = b[sortField as keyof ScheduleTableRow];
       }
 
       if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
@@ -115,11 +187,6 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   };
 
-  const getProgressStatus = (progress: number): string => {
-    if (progress === 0) return 'Not Started';
-    if (progress === 100) return 'Complete';
-    return 'In Progress';
-  };
 
   const SortableHeader = ({ field, label }: { field: SortField; label: string }) => (
     <Button
@@ -190,10 +257,8 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                 {visibleColumns.includes('duration') && (
                   <TableHead className="text-right">Duration</TableHead>
                 )}
-                {visibleColumns.includes('progress') && (
-                  <TableHead>
-                    <SortableHeader field="progress" label="Progress" />
-                  </TableHead>
+                {visibleColumns.includes('status') && (
+                  <TableHead>Status</TableHead>
                 )}
                 {visibleColumns.includes('dependencies') && (
                   <TableHead>Dependencies</TableHead>
@@ -210,97 +275,98 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                     colSpan={visibleColumns.length}
                     className="text-center py-8 text-muted-foreground"
                   >
-                    {searchQuery ? 'No tasks match your search' : 'No tasks scheduled'}
+                    {searchQuery ? 'No phases match your search' : 'No tasks scheduled'}
                   </TableCell>
                 </TableRow>
               ) : (
-                 filteredAndSortedTasks.map((task) => {
-                  const duration = calculateDuration(task.start, task.end);
-                  
-                  return (
+                 filteredAndSortedTasks.map((row) => (
                     <TableRow
-                      key={task.id}
+                      key={row.id}
                       className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => onTaskClick(task)}
+                      onClick={() => onTaskClick(row.originalTask)}
                     >
                       {visibleColumns.includes('name') && (
                         <TableCell className="sticky left-0 bg-background font-medium">
                           <div className="flex items-center gap-2">
-                            {task.isChangeOrder && (
+                            {row.isChangeOrder && (
                               <Badge 
                                 variant="outline" 
                                 className="text-[10px] px-1 py-0 h-4 bg-pink-50 text-pink-700 border-pink-200"
-                                title={task.change_order_number ? `Change Order: ${task.change_order_number}` : 'Change Order'}
+                                title={row.change_order_number ? `Change Order: ${row.change_order_number}` : 'Change Order'}
                               >
                                 CO
                               </Badge>
                             )}
-                            <span className="truncate">{task.name}</span>
-                            {task.has_multiple_phases && task.phases && (
-                              <Badge 
-                                variant="secondary" 
-                                className="text-[9px] px-1 py-0 h-4"
-                                title={task.phases.map(p => 
-                                  `Phase ${p.phase_number}: ${formatDate(p.start_date)} - ${formatDate(p.end_date)} (${p.duration_days}d)`
-                                ).join('\n')}
-                              >
-                                {task.phases.length} Phases
-                              </Badge>
-                            )}
+                            <span className="truncate">
+                              {row.taskName}
+                              {row.phaseNumber !== undefined && (
+                                <span className="text-muted-foreground ml-1">
+                                  - Phase {row.phaseNumber}
+                                  {row.phaseDescription && `: ${row.phaseDescription}`}
+                                </span>
+                              )}
+                            </span>
                           </div>
                         </TableCell>
                       )}
                       {visibleColumns.includes('category') && (
                         <TableCell>
-                          <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5", getCategoryColor(task.category))}>
-                            {task.category.replace('_', ' ')}
+                          <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5", getCategoryColor(row.category))}>
+                            {row.category.replace('_', ' ')}
                           </Badge>
                         </TableCell>
                       )}
                       {visibleColumns.includes('start') && (
-                        <TableCell className="whitespace-nowrap">{formatDate(task.start)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(row.start)}</TableCell>
                       )}
                       {visibleColumns.includes('end') && (
-                        <TableCell className="whitespace-nowrap">{formatDate(task.end)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(row.end)}</TableCell>
                       )}
                       {visibleColumns.includes('duration') && (
-                        <TableCell className="text-right tabular-nums">{duration} days</TableCell>
+                        <TableCell className="text-right tabular-nums">{row.duration} days</TableCell>
                       )}
-                      {visibleColumns.includes('progress') && (
+                      {visibleColumns.includes('status') && (
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Progress value={task.progress} className="h-1.5 flex-1" />
-                            <span className="text-xs tabular-nums w-10 text-right">{task.progress}%</span>
-                          </div>
+                          {row.phaseNumber !== undefined ? (
+                            row.isComplete ? (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-green-50 text-green-700 border-green-200">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Complete
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Incomplete</span>
+                            )
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                       )}
                       {visibleColumns.includes('dependencies') && (
                         <TableCell>
-                          {task.dependencies && task.dependencies.length > 0 ? (
+                          {row.dependencies && row.dependencies.length > 0 ? (
                             <div className="flex gap-1 flex-wrap">
-                              {task.dependencies.map((dep, idx) => (
+                              {row.dependencies.map((dep, idx) => (
                                 <Badge key={idx} variant="outline" className="text-[10px] px-1 py-0 h-4">
                                   {dep.task_name}
                                 </Badge>
                               ))}
                             </div>
                           ) : (
-                            <span className="text-muted-foreground text-xs">None</span>
+                            <span className="text-muted-foreground text-xs">—</span>
                           )}
                         </TableCell>
                       )}
                       {visibleColumns.includes('notes') && (
                         <TableCell className="max-w-[200px]">
-                          {task.schedule_notes && !task.has_multiple_phases ? (
-                            <div className="truncate text-xs text-muted-foreground">{task.schedule_notes}</div>
+                          {row.notes ? (
+                            <div className="truncate text-xs text-muted-foreground">{row.notes}</div>
                           ) : (
                             <span className="text-muted-foreground text-xs">—</span>
                           )}
                         </TableCell>
                       )}
                     </TableRow>
-                  );
-                })
+                  ))
               )}
             </TableBody>
           </Table>
