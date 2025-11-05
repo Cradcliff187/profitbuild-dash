@@ -63,6 +63,12 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     }
   };
 
+  const calculateDuration = (start: string, end: string): number => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  };
+
   const filteredAndSortedTasks = useMemo(() => {
     // Expand tasks into phase rows
     const expandedRows: ScheduleTableRow[] = [];
@@ -180,13 +186,6 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
       year: 'numeric',
     });
   };
-
-  const calculateDuration = (start: string, end: string): number => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  };
-
 
   const SortableHeader = ({ field, label }: { field: SortField; label: string }) => (
     <Button
