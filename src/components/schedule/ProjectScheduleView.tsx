@@ -32,7 +32,7 @@ export default function ProjectScheduleView({
   const [scheduleTasks, setScheduleTasks] = useState<ScheduleTask[]>([]);
   const [selectedTask, setSelectedTask] = useState<ScheduleTask | null>(null);
   const [warnings, setWarnings] = useState<ScheduleWarning[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Week);
+  const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Day);
   const [displayMode, setDisplayMode] = useState<'gantt' | 'table'>(() => {
     const saved = localStorage.getItem(`schedule_view_mode_${projectId}`);
     return (saved === 'table' || saved === 'gantt') ? saved : 'gantt';
