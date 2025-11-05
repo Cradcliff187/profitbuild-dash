@@ -143,18 +143,12 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
         finalTask.phases = undefined;
         finalTask.has_multiple_phases = false;
         
-        // Keep existing notes if not JSON phases
-        try {
-          const parsed = JSON.parse(finalTask.schedule_notes || '{}');
-          if (!parsed.phases) {
-            // Keep as-is
-          } else {
-            // Clear phase data
-            finalTask.schedule_notes = '';
-          }
-        } catch {
-          // Not JSON, keep as-is
-        }
+        // Store completion status in schedule_notes
+        const scheduleNotes = editedTask.completed !== undefined 
+          ? JSON.stringify({ completed: editedTask.completed })
+          : undefined;
+        
+        finalTask.schedule_notes = scheduleNotes;
       }
       
       onSave(finalTask);
@@ -258,6 +252,17 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
                   disabled 
                   className="bg-muted mt-1 h-8 text-xs"
                 />
+              </div>
+              
+              {/* Completion checkbox for single-phase tasks */}
+              <div 
+                className="flex items-center gap-2 cursor-pointer" 
+                onClick={() => {
+                  setEditedTask(prev => ({ ...prev, completed: !prev.completed }));
+                }}
+              >
+                <Checkbox checked={editedTask.completed || false} className="h-3 w-3" />
+                <Label className="text-xs cursor-pointer">Mark as Complete</Label>
               </div>
             </>
           )}

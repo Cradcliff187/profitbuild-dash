@@ -174,6 +174,7 @@ export function useScheduleTasks({
       // Parse schedule phases from schedule_notes
       let phases: any[] | undefined;
       let hasMultiplePhases = false;
+      let completed: boolean | undefined = undefined;
       
       try {
         if (item.schedule_notes) {
@@ -181,6 +182,9 @@ export function useScheduleTasks({
           if (parsed.phases && Array.isArray(parsed.phases)) {
             phases = parsed.phases;
             hasMultiplePhases = phases.length > 1;
+          } else if (typeof parsed.completed === 'boolean') {
+            // Single-phase task with completion status
+            completed = parsed.completed;
           }
         }
       } catch (e) {
@@ -233,6 +237,7 @@ export function useScheduleTasks({
         schedule_notes: item.schedule_notes,
         phases: phases,
         has_multiple_phases: hasMultiplePhases,
+        completed: completed,
         estimated_cost: item.total_cost || 0,
         actual_cost: getTaskActualCost(item.id),
         payee_id: undefined,

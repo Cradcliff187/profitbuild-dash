@@ -21,7 +21,10 @@ export default function ScheduleStats({ tasks }: ScheduleStatsProps) {
         completedPhases += task.phases.filter(p => p.completed === true).length;
       } else {
         totalPhases += 1;
-        // Single-phase tasks don't have manual completion, count as incomplete
+        // Single-phase tasks use completed field
+        if (task.completed === true) {
+          completedPhases += 1;
+        }
       }
     });
 

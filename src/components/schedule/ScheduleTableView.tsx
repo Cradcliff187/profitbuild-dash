@@ -106,7 +106,7 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
           start: task.start,
           end: task.end,
           duration,
-          isComplete: false, // No manual completion for single-phase
+          isComplete: task.completed || false,
           isChangeOrder: task.isChangeOrder,
           change_order_number: task.change_order_number,
           dependencies: task.dependencies,
@@ -326,17 +326,13 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       )}
                       {visibleColumns.includes('status') && (
                         <TableCell>
-                          {row.phaseNumber !== undefined ? (
-                            row.isComplete ? (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-green-50 text-green-700 border-green-200">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Complete
-                              </Badge>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Incomplete</span>
-                            )
+                          {row.isComplete ? (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-green-50 text-green-700 border-green-200">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Complete
+                            </Badge>
                           ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
+                            <span className="text-xs text-muted-foreground">Incomplete</span>
                           )}
                         </TableCell>
                       )}

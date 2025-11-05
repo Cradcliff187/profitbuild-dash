@@ -96,6 +96,9 @@ export function useProgressTracking(projectId: string) {
             if (totalPhases > 0) {
               manualProgress = Math.round((completedPhases / totalPhases) * 100);
             }
+          } else if (scheduleData.completed === true) {
+            // Single-phase task marked as complete
+            manualProgress = 100;
           }
         } catch {
           // Not JSON or no phases, continue with expense-based calculation
@@ -135,6 +138,9 @@ export function useProgressTracking(projectId: string) {
             if (totalPhases > 0) {
               manualProgress = Math.round((completedPhases / totalPhases) * 100);
             }
+          } else if (scheduleData.completed === true) {
+            // Single-phase task marked as complete
+            manualProgress = 100;
           }
         } catch {
           // Not JSON or no phases, continue with expense-based calculation

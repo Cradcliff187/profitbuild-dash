@@ -31,6 +31,9 @@ export interface ScheduleTask {
   phases?: SchedulePhase[]; // Parsed from schedule_notes JSON
   has_multiple_phases: boolean;
   
+  // Single-phase completion
+  completed?: boolean; // For single-phase tasks only
+  
   // Additional metadata
   estimated_cost: number;
   actual_cost: number;
