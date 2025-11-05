@@ -702,25 +702,15 @@ export default function ProjectScheduleView({
                 : 'estimate_line_items';
 
               // OPTIMISTIC UPDATE: Update UI immediately
-              setScheduleTasks(prev => prev.map(t => 
+              const updatedScheduleTasks = scheduleTasks.map(t => 
                 t.id === updatedTask.id ? updatedTask : t
-              ));
+              );
+              setScheduleTasks(updatedScheduleTasks);
 
-              // Update tasks for Gantt re-render
-              setTasks(prev => prev.map(t => {
-                if (t.id === updatedTask.id) {
-                  const baseName = getBaseTaskName(updatedTask.name);
-                  const newName = `${baseName} (${formatShortDate(updatedTask.start)} - ${formatShortDate(updatedTask.end)})`;
-                  return {
-                    ...t,
-                    start: new Date(updatedTask.start),
-                    end: new Date(updatedTask.end),
-                    name: newName,
-                    progress: updatedTask.progress
-                  };
-                }
-                return t;
-              }));
+              // IMPORTANT: Re-convert all tasks to properly handle new phases
+              // This will flatten multi-phase tasks and create new Gantt entries
+              const updatedGanttTasks = convertToGanttTasks(updatedScheduleTasks);
+              setTasks(updatedGanttTasks);
 
               // NOW save to database in background
               const { error } = await supabase
