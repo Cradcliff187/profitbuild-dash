@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Calendar, Search, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,14 @@ export const ProjectScheduleSelector: React.FC<ProjectScheduleSelectorProps> = (
   onSelectProject,
   onClose,
 }) => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSelectProject = (projectId: string) => {
+    navigate(`/field-schedule/${projectId}`);
+    onSelectProject(projectId);
+    onClose();
+  };
 
   const filteredProjects = useMemo(() => {
     if (!searchQuery.trim()) return projects;
@@ -96,7 +104,7 @@ export const ProjectScheduleSelector: React.FC<ProjectScheduleSelectorProps> = (
                 {filteredProjects.map((project) => (
                   <button
                     key={project.id}
-                    onClick={() => onSelectProject(project.id)}
+                    onClick={() => handleSelectProject(project.id)}
                     className={cn(
                       "w-full px-4 py-3 flex items-center gap-3",
                       "hover:bg-accent/50 active:bg-accent transition-colors",

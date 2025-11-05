@@ -35,6 +35,7 @@ const FieldPhotoCapture = lazy(() => import("./pages/FieldPhotoCapture"));
 const FieldVideoCapture = lazy(() => import("./pages/FieldVideoCapture"));
 const RoleManagement = lazy(() => import("./pages/RoleManagement"));
 const FieldMedia = lazy(() => import("./pages/FieldMedia"));
+const FieldSchedule = lazy(() => import("./pages/FieldSchedule"));
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,7 @@ const App = () => (
                   <Route path="work-orders" element={<LazyRoute component={WorkOrders} />} />
                   <Route path="time-tracker" element={<LazyRoute component={TimeTracker} />} />
                   <Route path="time-entries" element={<LazyRoute component={TimeEntries} />} />
+                  <Route path="field-schedule/:projectId" element={<LazyRoute component={FieldSchedule} />} />
                   {/* Admin/Manager Project Routes - use :id parameter for consistency with existing routes */}
                   <Route path="projects" element={<Projects />} />
                   <Route path="projects/:id/*" element={<LazyRoute component={ProjectDetail} />} />
