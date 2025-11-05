@@ -55,6 +55,7 @@ export interface LineItemControlSummary {
   totalVariance: number;           // totalQuotedWithInternal - totalEstimatedCost
   lineItemsWithQuotes: number;
   lineItemsOverBudget: number;
+  lineItemsUnderBudget: number;
   completionPercentage: number;
 }
 
@@ -76,6 +77,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
     totalVariance: 0,
     lineItemsWithQuotes: 0,
     lineItemsOverBudget: 0,
+    lineItemsUnderBudget: 0,
     completionPercentage: 0
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -523,6 +525,11 @@ function calculateSummary(lineItems: LineItemControlData[], project: Project): L
     !isInternalCategory(item.category) && item.costVariance > 0
   ).length;
   
+  // Items under budget: where quoted cost < estimated cost (for external items)
+  const lineItemsUnderBudget = lineItems.filter(item => 
+    !isInternalCategory(item.category) && item.costVariance < 0
+  ).length;
+  
   // Completion %: actual vs quoted+internal (more meaningful baseline)
   const completionPercentage = totalQuotedWithInternal > 0 
     ? Math.min((totalActual / totalQuotedWithInternal) * 100, 100) 
@@ -536,6 +543,7 @@ function calculateSummary(lineItems: LineItemControlData[], project: Project): L
     totalVariance,
     lineItemsWithQuotes,
     lineItemsOverBudget,
+    lineItemsUnderBudget,
     completionPercentage
   };
 }
