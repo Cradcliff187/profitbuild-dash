@@ -1457,7 +1457,7 @@ export type Database = {
           attachment_url: string | null
           created_at: string | null
           date_received: string | null
-          estimate_id: string
+          estimate_id: string | null
           id: string
           includes_labor: boolean
           includes_materials: boolean
@@ -1477,7 +1477,7 @@ export type Database = {
           attachment_url?: string | null
           created_at?: string | null
           date_received?: string | null
-          estimate_id: string
+          estimate_id?: string | null
           id?: string
           includes_labor?: boolean
           includes_materials?: boolean
@@ -1497,7 +1497,7 @@ export type Database = {
           attachment_url?: string | null
           created_at?: string | null
           date_received?: string | null
-          estimate_id?: string
+          estimate_id?: string | null
           id?: string
           includes_labor?: boolean
           includes_materials?: boolean
@@ -1726,7 +1726,7 @@ export type Database = {
       }
       generate_quote_number: {
         Args: {
-          estimate_id_param: string
+          estimate_id_param?: string
           project_id_param: string
           project_number_param: string
         }
