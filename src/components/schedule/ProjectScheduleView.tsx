@@ -16,6 +16,7 @@ import { ScheduleTableView } from './ScheduleTableView';
 import { useProgressTracking } from './hooks/useProgressTracking';
 import { ScheduleTask, ScheduleWarning } from '@/types/schedule';
 import { ScheduleExportModal } from './ScheduleExportModal';
+import { getCategoryHexColor } from '@/utils/categoryColors';
 
 interface ProjectScheduleViewProps {
   projectId: string;
@@ -337,16 +338,11 @@ export default function ProjectScheduleView({
   };
 
   const getCategoryColor = (category: string): string => {
-    const colors: Record<string, string> = {
-      'labor_internal': '#3b82f6',
-      'subcontractors': '#8b5cf6',
-      'materials': '#10b981',
-      'equipment': '#f59e0b',
-      'permits': '#ef4444',
-      'management': '#6366f1',
-      'change-order': '#ec4899'
-    };
-    return colors[category] || '#64748b';
+    // Use standardized theme-based colors
+    if (category === 'change-order') {
+      return '#ec4899'; // pink-500 for change orders
+    }
+    return getCategoryHexColor(category);
   };
 
   const handleTaskChange = async (task: Task) => {

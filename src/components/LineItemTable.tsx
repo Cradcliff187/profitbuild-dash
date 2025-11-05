@@ -11,6 +11,7 @@ import { LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estima
 import { formatQuantityWithUnit } from '@/utils/units';
 import { formatCurrency, cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getCategoryDotClasses } from '@/utils/categoryColors';
 
 interface LineItemTableProps {
   lineItems: LineItem[];
@@ -21,19 +22,6 @@ interface LineItemTableProps {
   onDuplicateLineItem?: (lineItem: LineItem) => void;
   readOnly?: boolean;
 }
-
-const getCategoryColor = (category: LineItemCategory): string => {
-  switch (category) {
-    case LineItemCategory.LABOR: return 'bg-primary';
-    case LineItemCategory.SUBCONTRACTOR: return 'bg-accent';
-    case LineItemCategory.MATERIALS: return 'bg-secondary';
-    case LineItemCategory.EQUIPMENT: return 'bg-muted';
-    case LineItemCategory.PERMITS: return 'bg-destructive';
-    case LineItemCategory.MANAGEMENT: return 'bg-success';
-    case LineItemCategory.OTHER: return 'bg-muted-foreground';
-    default: return 'bg-muted-foreground';
-  }
-};
 
 const getCategoryAbbrev = (category: LineItemCategory): string => {
   switch (category) {
@@ -262,7 +250,7 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                 <TableRow key={lineItem.id} className={cn("hover:bg-muted/20", isMobile ? "h-[36px]" : "h-[32px]")}>
                   <TableCell className="p-2">
                     <div className="flex items-center gap-1">
-                      <div className={`w-1.5 h-1.5 rounded-full ${getCategoryColor(lineItem.category)}`} />
+                      <div className={`w-1.5 h-1.5 rounded-full ${getCategoryDotClasses(lineItem.category)}`} />
                       {readOnly ? (
                         <Badge variant="outline" className="text-[10px] px-1 py-0 h-3.5">
                           {getCategoryAbbrev(lineItem.category)}

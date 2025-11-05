@@ -8,6 +8,7 @@ import { Search, ArrowUpDown, CheckCircle2 } from 'lucide-react';
 import { ScheduleTask, TaskDependency } from '@/types/schedule';
 import { useScheduleTableColumns } from '@/hooks/useScheduleTableColumns';
 import { cn } from '@/lib/utils';
+import { getCategoryBadgeClasses } from '@/utils/categoryColors';
 import {
   Table,
   TableBody,
@@ -158,17 +159,6 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     return sorted;
   }, [tasks, searchQuery, sortField, sortDirection]);
 
-  const getCategoryColor = (category: string): string => {
-    const colors: Record<string, string> = {
-      labor_internal: 'bg-blue-100 text-blue-800 border-blue-200',
-      subcontractors: 'bg-purple-100 text-purple-800 border-purple-200',
-      materials: 'bg-green-100 text-green-800 border-green-200',
-      equipment: 'bg-amber-100 text-amber-800 border-amber-200',
-      permits: 'bg-red-100 text-red-800 border-red-200',
-      management: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    };
-    return colors[category] || 'bg-slate-100 text-slate-800 border-slate-200';
-  };
 
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-US', {
@@ -310,7 +300,7 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
                       )}
                       {visibleColumns.includes('category') && (
                         <TableCell>
-                          <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5", getCategoryColor(row.category))}>
+                          <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5", getCategoryBadgeClasses(row.category))}>
                             {row.category.replace('_', ' ')}
                           </Badge>
                         </TableCell>

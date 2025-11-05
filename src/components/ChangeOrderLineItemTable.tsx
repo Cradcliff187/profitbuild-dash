@@ -12,6 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { ChangeOrderLineItemInput } from '@/types/changeOrder';
 import { CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { PayeeSelector } from '@/components/PayeeSelector';
+import { getCategoryDotClasses } from '@/utils/categoryColors';
 
 interface ChangeOrderLineItemTableProps {
   lineItems: ChangeOrderLineItemInput[];
@@ -21,18 +22,6 @@ interface ChangeOrderLineItemTableProps {
   contingencyRemaining: number;
   showContingencyGuidance: boolean;
 }
-
-const getCategoryColor = (category: string): string => {
-  switch (category) {
-    case 'labor_internal': return 'bg-primary';
-    case 'subcontractors': return 'bg-accent';
-    case 'materials': return 'bg-secondary';
-    case 'equipment': return 'bg-muted';
-    case 'permits': return 'bg-destructive';
-    case 'management': return 'bg-success';
-    default: return 'bg-muted-foreground';
-  }
-};
 
 const getCategoryAbbrev = (category: string): string => {
   switch (category) {
@@ -205,7 +194,7 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
                   <TableRow key={index} className="hover:bg-muted/20 h-8">
                     <TableCell className="p-2">
                       <div className="flex items-center gap-1">
-                        <div className={`w-1.5 h-1.5 rounded-full ${getCategoryColor(item.category)}`} />
+                        <div className={`w-1.5 h-1.5 rounded-full ${getCategoryDotClasses(item.category)}`} />
                         <Select
                           value={item.category}
                           onValueChange={(value) => onUpdateLineItem(index, 'category', value)}

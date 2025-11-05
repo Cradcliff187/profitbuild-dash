@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Search, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 import { ScheduleTask, SchedulePhase } from '@/types/schedule';
 import { cn } from '@/lib/utils';
+import { getCategoryBadgeClasses } from '@/utils/categoryColors';
 
 interface FieldScheduleTableProps {
   tasks: ScheduleTask[];
@@ -123,17 +124,6 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
     onTaskUpdate(updatedTask);
   };
 
-  const getCategoryColor = (category: string): string => {
-    const colors: Record<string, string> = {
-      labor_internal: 'bg-blue-100 text-blue-800 border-blue-200',
-      subcontractors: 'bg-purple-100 text-purple-800 border-purple-200',
-      materials: 'bg-green-100 text-green-800 border-green-200',
-      equipment: 'bg-amber-100 text-amber-800 border-amber-200',
-      permits: 'bg-red-100 text-red-800 border-red-200',
-      management: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    };
-    return colors[category] || 'bg-slate-100 text-slate-800 border-slate-200';
-  };
 
   const formatDate = (dateStr: string): string => {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -225,7 +215,7 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
                       <div className="flex items-center gap-2 mb-2">
                         <Badge 
                           variant="outline" 
-                          className={cn('text-xs px-2 py-0 h-5', getCategoryColor(row.category))}
+                          className={cn('text-xs px-2 py-0 h-5', getCategoryBadgeClasses(row.category))}
                         >
                           {row.category.replace('_', ' ')}
                         </Badge>
