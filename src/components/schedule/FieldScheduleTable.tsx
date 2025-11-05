@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, CheckCircle2, Circle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Search, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 import { ScheduleTask, SchedulePhase } from '@/types/schedule';
 import { cn } from '@/lib/utils';
 
@@ -288,9 +288,14 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
                               {formatDate(phase.start_date)} - {formatDate(phase.end_date)} ({phase.duration_days} days)
                             </p>
                             {phase.notes && (
-                              <p className="text-xs text-muted-foreground mt-1 italic">
-                                {phase.notes}
-                              </p>
+                              <div className="mt-2 p-2.5 rounded-md bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/50">
+                                <div className="flex items-start gap-2">
+                                  <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+                                  <p className="text-xs text-amber-900 dark:text-amber-100 font-medium leading-relaxed">
+                                    {phase.notes}
+                                  </p>
+                                </div>
+                              </div>
                             )}
                           </div>
                         </div>
