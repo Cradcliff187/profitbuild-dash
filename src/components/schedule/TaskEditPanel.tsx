@@ -326,8 +326,20 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
                       </div>
                     </div>
                     
-                    <div className="text-xs text-muted-foreground">
-                      Duration: {phase.duration_days} days
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs text-muted-foreground">
+                        Duration: {phase.duration_days} days
+                      </div>
+                      <div 
+                        className="flex items-center gap-2 cursor-pointer"
+                        onClick={() => updatePhase(idx, 'completed', !phase.completed)}
+                      >
+                        <Checkbox 
+                          checked={phase.completed || false}
+                          className="h-3 w-3"
+                        />
+                        <Label className="text-xs cursor-pointer">Complete</Label>
+                      </div>
                     </div>
                   </div>
                 </Card>

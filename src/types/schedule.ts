@@ -12,6 +12,7 @@ export interface SchedulePhase {
   end_date: string;
   duration_days: number;
   notes?: string;
+  completed?: boolean; // Manual completion override
 }
 
 export interface ScheduleTask {

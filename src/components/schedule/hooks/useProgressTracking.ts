@@ -32,6 +32,7 @@ export function useProgressTracking(projectId: string) {
         .select(`
           id,
           total_cost,
+          schedule_notes,
           estimate_id,
           estimates!inner (
             project_id,
@@ -49,6 +50,7 @@ export function useProgressTracking(projectId: string) {
         .select(`
           id,
           total_cost,
+          schedule_notes,
           change_order_id,
           change_orders!inner (
             project_id,
@@ -84,14 +86,32 @@ export function useProgressTracking(projectId: string) {
       (estimateItems || []).forEach(item => {
         const estimatedCost = item.total_cost || 0;
         
-        // Sum up expense amounts for this line item
+        // Check for manual completion in schedule_notes
+        let manualProgress: number | null = null;
+        try {
+          const scheduleData = JSON.parse(item.schedule_notes || '{}');
+          if (scheduleData.phases && Array.isArray(scheduleData.phases)) {
+            const totalPhases = scheduleData.phases.length;
+            const completedPhases = scheduleData.phases.filter((p: any) => p.completed === true).length;
+            if (totalPhases > 0) {
+              manualProgress = Math.round((completedPhases / totalPhases) * 100);
+            }
+          }
+        } catch {
+          // Not JSON or no phases, continue with expense-based calculation
+        }
+        
+        // Sum up expense amounts for this line item (fallback calculation)
         const actualCost = (correlations || [])
           .filter(c => c.estimate_line_item_id === item.id)
           .reduce((sum, c) => sum + (c.expenses?.amount || 0), 0);
 
-        const progress = estimatedCost > 0 
-          ? Math.min(100, Math.round((actualCost / estimatedCost) * 100))
-          : 0;
+        // Prioritize manual completion over expense-based calculation
+        const progress = manualProgress !== null 
+          ? manualProgress
+          : (estimatedCost > 0 
+              ? Math.min(100, Math.round((actualCost / estimatedCost) * 100))
+              : 0);
 
         progressMap.set(item.id, {
           taskId: item.id,
@@ -105,13 +125,31 @@ export function useProgressTracking(projectId: string) {
       (coItems || []).forEach(item => {
         const estimatedCost = item.total_cost || 0;
         
+        // Check for manual completion in schedule_notes
+        let manualProgress: number | null = null;
+        try {
+          const scheduleData = JSON.parse(item.schedule_notes || '{}');
+          if (scheduleData.phases && Array.isArray(scheduleData.phases)) {
+            const totalPhases = scheduleData.phases.length;
+            const completedPhases = scheduleData.phases.filter((p: any) => p.completed === true).length;
+            if (totalPhases > 0) {
+              manualProgress = Math.round((completedPhases / totalPhases) * 100);
+            }
+          }
+        } catch {
+          // Not JSON or no phases, continue with expense-based calculation
+        }
+        
         const actualCost = (correlations || [])
           .filter(c => c.change_order_line_item_id === item.id)
           .reduce((sum, c) => sum + (c.expenses?.amount || 0), 0);
 
-        const progress = estimatedCost > 0 
-          ? Math.min(100, Math.round((actualCost / estimatedCost) * 100))
-          : 0;
+        // Prioritize manual completion over expense-based calculation
+        const progress = manualProgress !== null 
+          ? manualProgress
+          : (estimatedCost > 0 
+              ? Math.min(100, Math.round((actualCost / estimatedCost) * 100))
+              : 0);
 
         progressMap.set(item.id, {
           taskId: item.id,
