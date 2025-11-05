@@ -21,20 +21,36 @@ interface TaskEditPanelProps {
 export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskEditPanelProps) {
   const [editedTask, setEditedTask] = useState<ScheduleTask>(task);
   const [phases, setPhases] = useState<SchedulePhase[]>([]);
+  const [taskNotes, setTaskNotes] = useState('');
   const [singleStartDate, setSingleStartDate] = useState(task.start);
   const [singleDuration, setSingleDuration] = useState(
     Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24)) + 1
   );
   const { toast } = useToast();
 
-  // Initialize phases from task
+  // Initialize phases and notes from task
   useEffect(() => {
-    if (task.phases && task.phases.length > 0) {
-      setPhases(task.phases);
-    } else {
-      // Single phase - show as single date inputs
-      setPhases([]);
+    // Parse schedule_notes to extract phases and task-level notes
+    let extractedPhases: any[] = [];
+    let extractedNotes = '';
+    
+    if (task.schedule_notes) {
+      try {
+        const parsed = JSON.parse(task.schedule_notes);
+        if (parsed.phases && Array.isArray(parsed.phases)) {
+          extractedPhases = parsed.phases;
+        }
+        if (typeof parsed.notes === 'string') {
+          extractedNotes = parsed.notes;
+        }
+      } catch (e) {
+        // Not JSON - treat as plain text notes
+        extractedNotes = task.schedule_notes;
+      }
     }
+    
+    setPhases(extractedPhases);
+    setTaskNotes(extractedNotes);
   }, [task]);
 
   // Update end date when single start/duration changes
@@ -129,26 +145,28 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
       let finalTask = { ...editedTask };
       
       if (phases.length > 0) {
-        // Multi-phase: Calculate overall dates and serialize phases
+        // Multi-phase: Calculate overall dates and serialize phases with notes
         const sortedPhases = [...phases].sort((a, b) => a.phase_number - b.phase_number);
         finalTask.start = sortedPhases[0].start_date;
         finalTask.end = sortedPhases[sortedPhases.length - 1].end_date;
         finalTask.phases = sortedPhases;
         finalTask.has_multiple_phases = phases.length > 1;
         
-        // Serialize phases to schedule_notes as JSON
-        finalTask.schedule_notes = JSON.stringify({ phases: sortedPhases });
+        // Serialize phases AND task-level notes to schedule_notes as JSON
+        finalTask.schedule_notes = JSON.stringify({ 
+          phases: sortedPhases,
+          notes: taskNotes || undefined
+        });
       } else {
         // Single phase: Clear phases and use simple dates
         finalTask.phases = undefined;
         finalTask.has_multiple_phases = false;
         
-        // Store completion status in schedule_notes
-        const scheduleNotes = editedTask.completed !== undefined 
-          ? JSON.stringify({ completed: editedTask.completed })
-          : undefined;
-        
-        finalTask.schedule_notes = scheduleNotes;
+        // Store completion status AND task-level notes in schedule_notes
+        finalTask.schedule_notes = JSON.stringify({ 
+          completed: editedTask.completed || false,
+          notes: taskNotes || undefined
+        });
       }
       
       onSave(finalTask);
@@ -385,20 +403,18 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
             </div>
           </div>
 
-          {/* Notes */}
-          {phases.length === 0 && (
-            <div>
-              <Label htmlFor="notes" className="text-xs">Schedule Notes (Optional)</Label>
-              <Textarea
-                id="notes"
-                value={editedTask.schedule_notes || ''}
-                onChange={(e) => setEditedTask(prev => ({ ...prev, schedule_notes: e.target.value }))}
-                placeholder="Any special scheduling considerations..."
-                className="mt-1 text-xs"
-                rows={2}
-              />
-            </div>
-          )}
+          {/* Task-Level Notes (available for both single and multi-phase) */}
+          <div>
+            <Label htmlFor="notes" className="text-xs">Task Notes (Optional)</Label>
+            <Textarea
+              id="notes"
+              value={taskNotes}
+              onChange={(e) => setTaskNotes(e.target.value)}
+              placeholder="Any special scheduling considerations or general notes about this task..."
+              className="mt-1 text-xs"
+              rows={2}
+            />
+          </div>
         </div>
 
         <SheetFooter className="gap-2">

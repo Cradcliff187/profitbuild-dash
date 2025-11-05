@@ -177,24 +177,35 @@ export function useScheduleTasks({
       // Use description only - badge indicates it's a change order
       const taskName = item.description;
       
-      // Parse schedule phases from schedule_notes
+      // Parse schedule phases, completion, and notes from schedule_notes
       let phases: any[] | undefined;
       let hasMultiplePhases = false;
       let completed: boolean | undefined = undefined;
+      let taskLevelNotes: string | undefined = undefined;
       
       try {
         if (item.schedule_notes) {
           const parsed = JSON.parse(item.schedule_notes);
+          
+          // Extract phases if present
           if (parsed.phases && Array.isArray(parsed.phases)) {
             phases = parsed.phases;
             hasMultiplePhases = phases.length > 1;
-          } else if (typeof parsed.completed === 'boolean') {
-            // Single-phase task with completion status
+          }
+          
+          // Extract completion status if present
+          if (typeof parsed.completed === 'boolean') {
             completed = parsed.completed;
+          }
+          
+          // Extract task-level notes if present
+          if (typeof parsed.notes === 'string') {
+            taskLevelNotes = parsed.notes;
           }
         }
       } catch (e) {
-        // Not JSON or no phases - treat as single phase
+        // Not JSON - treat as plain text notes
+        taskLevelNotes = item.schedule_notes;
       }
       
       // Calculate overall start/end from phases OR use scheduled dates
@@ -265,17 +276,37 @@ export function useScheduleTasks({
     const endDate = new Date(updatedTask.end);
     const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
-    // Serialize phases or completion status back to schedule_notes JSON
+    // Serialize phases, completion status, and notes back to schedule_notes JSON
     let scheduleNotesJson: string | undefined;
     
+    // Extract task-level notes from existing schedule_notes if present
+    let taskNotes: string | undefined;
+    try {
+      if (updatedTask.schedule_notes) {
+        const parsed = JSON.parse(updatedTask.schedule_notes);
+        if (typeof parsed.notes === 'string') {
+          taskNotes = parsed.notes;
+        }
+      }
+    } catch (e) {
+      // If not JSON, treat entire schedule_notes as plain notes
+      taskNotes = updatedTask.schedule_notes;
+    }
+    
     if (updatedTask.has_multiple_phases && updatedTask.phases) {
-      // Multi-phase task: serialize phases array
-      scheduleNotesJson = JSON.stringify({ phases: updatedTask.phases });
+      // Multi-phase task: serialize phases array and notes
+      scheduleNotesJson = JSON.stringify({ 
+        phases: updatedTask.phases,
+        notes: taskNotes || undefined
+      });
     } else if (typeof updatedTask.completed === 'boolean') {
-      // Single-phase task: serialize completion status
-      scheduleNotesJson = JSON.stringify({ completed: updatedTask.completed });
+      // Single-phase task: serialize completion status and notes
+      scheduleNotesJson = JSON.stringify({ 
+        completed: updatedTask.completed,
+        notes: taskNotes || undefined
+      });
     } else {
-      // No phase data to serialize
+      // Fallback: preserve original schedule_notes
       scheduleNotesJson = updatedTask.schedule_notes;
     }
     
