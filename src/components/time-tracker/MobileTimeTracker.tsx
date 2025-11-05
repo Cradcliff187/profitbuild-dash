@@ -1543,10 +1543,8 @@ export const MobileTimeTracker: React.FC = () => {
         open={showScheduleSelector}
         projects={projects}
         onSelectProject={(projectId) => {
-          // Set table view preference
-          localStorage.setItem(`schedule_view_mode_${projectId}`, 'table');
-          // Navigate to schedule
-          navigate(`/projects/${projectId}/schedule`);
+          // Navigate to field schedule
+          navigate(`/field-schedule/${projectId}`);
           // Close modal
           setShowScheduleSelector(false);
         }}
