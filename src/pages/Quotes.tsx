@@ -195,15 +195,19 @@ const Quotes = () => {
             return isNaN(date.getTime()) ? new Date() : date;
           };
 
+          // Handle nested Supabase response (could be object, array, or null)
+          const projectData = Array.isArray(quote.projects) ? quote.projects[0] : quote.projects;
+          const payeeData = Array.isArray(quote.payees) ? quote.payees[0] : quote.payees;
+
           return {
             id: quote.id || '',
             project_id: quote.project_id || '',
             estimate_id: quote.estimate_id || '',
-            project_number: quote.projects?.project_number || '',
-            projectName: quote.projects?.project_name || '',
-            client: quote.projects?.client_name || '',
+            project_number: projectData?.project_number || '',
+            projectName: projectData?.project_name || '',
+            client: projectData?.client_name || '',
             payee_id: quote.payee_id || '',
-            quotedBy: quote.payees?.payee_name || '',
+            quotedBy: payeeData?.payee_name || '',
             dateReceived: safeDate(quote.date_received),
             quoteNumber: quote.quote_number || '',
             status: (quote.status as QuoteStatus) || QuoteStatus.PENDING,
