@@ -625,23 +625,6 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
         <Card>
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium flex items-center gap-1">
-              <DollarSign className="h-3 w-3" />
-              Actual Cost to Date
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-2">
-            <div className="text-lg font-bold">
-              {formatCurrency(summary.totalActual)}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {summary.completionPercentage.toFixed(1)}% complete
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium flex items-center gap-1">
               <TrendingUp className="h-3 w-3" />
               Est vs Quote Variance
             </CardTitle>
@@ -667,6 +650,23 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
               ) : (
                 'All match'
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-1">
+            <CardTitle className="text-xs font-medium flex items-center gap-1">
+              <DollarSign className="h-3 w-3" />
+              Actual Cost to Date
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-2">
+            <div className="text-lg font-bold">
+              {formatCurrency(summary.totalActual)}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {summary.completionPercentage.toFixed(1)}% complete
             </div>
           </CardContent>
         </Card>
