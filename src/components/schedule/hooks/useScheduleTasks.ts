@@ -159,11 +159,11 @@ export function useScheduleTasks({
     }
   }, [projectId, projectStartDate, projectEndDate]);
   
-  // Load tasks on mount and when dependencies change
+  // Load tasks on mount and when project changes
   useEffect(() => {
     console.log('[useScheduleTasks] Loading tasks for project:', projectId);
     loadTasks();
-  }, [loadTasks]);
+  }, [projectId]);
   
   /**
    * Convert line items to ScheduleTask format

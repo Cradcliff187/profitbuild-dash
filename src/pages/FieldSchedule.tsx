@@ -113,7 +113,7 @@ export default function FieldSchedule() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/time-tracker')}
           className="mb-3 -ml-2"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
