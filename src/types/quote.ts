@@ -3,6 +3,8 @@ import { LineItemCategory } from "./estimate";
 export interface QuoteLineItem {
   id: string;
   estimateLineItemId?: string; // Optional link to original estimate line
+  changeOrderLineItemId?: string; // Optional link to change order line item
+  changeOrderNumber?: string; // Display CO number for reference
   category: LineItemCategory;
   description: string;
   quantity: number;

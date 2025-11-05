@@ -79,6 +79,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   const [lineItems, setLineItems] = useState<QuoteLineItem[]>([]);
   const [validationErrors, setValidationErrors] = useState<Record<string, QuoteValidationResult>>({});
   const [estimateSearchQuery, setEstimateSearchQuery] = useState('');
+  const [changeOrderLineItems, setChangeOrderLineItems] = useState<any[]>([]);
 
   const generateQuoteNumber = async (projectId: string, projectNumber: string, estimateId: string) => {
     try {
@@ -102,18 +103,22 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     }
   };
 
-  const createQuoteLineItemFromEstimate = (estimateItem: LineItem): QuoteLineItem => ({
+  const createQuoteLineItemFromSource = (item: any, source: 'estimate' | 'change_order'): QuoteLineItem => ({
     id: Date.now().toString() + Math.random(),
-    estimateLineItemId: estimateItem.id,
-    category: estimateItem.category,
-    description: estimateItem.description,
-    quantity: estimateItem.quantity,
-    pricePerUnit: estimateItem.pricePerUnit, // Locked to estimate price
-    total: estimateItem.total, // Based on estimate price
-    costPerUnit: estimateItem.costPerUnit, // Start with estimate cost for vendor input
+    estimateLineItemId: source === 'estimate' ? item.id : undefined,
+    changeOrderLineItemId: source === 'change_order' ? item.id : undefined,
+    changeOrderNumber: source === 'change_order' ? item.change_order_number : undefined,
+    category: item.category,
+    description: source === 'change_order' 
+      ? `[${item.change_order_number}] ${item.description}`
+      : item.description,
+    quantity: item.quantity,
+    pricePerUnit: source === 'change_order' ? item.pricePerUnit : item.pricePerUnit,
+    total: source === 'change_order' ? item.total : item.total,
+    costPerUnit: source === 'change_order' ? item.costPerUnit : item.costPerUnit,
     markupPercent: null,
     markupAmount: null,
-    totalCost: estimateItem.totalCost,
+    totalCost: source === 'change_order' ? item.totalCost : item.totalCost,
     totalMarkup: 0
   });
 
@@ -146,7 +151,49 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
 
   useEffect(() => {
     if (selectedEstimate && !initialQuote) {
-      // Show line item selection instead of auto-importing
+      // Fetch approved change orders for the same project
+      const fetchChangeOrders = async () => {
+        const { data, error } = await supabase
+          .from('change_orders')
+          .select(`
+            id,
+            change_order_number,
+            description,
+            change_order_line_items (
+              id,
+              category,
+              description,
+              quantity,
+              cost_per_unit,
+              price_per_unit,
+              total_cost,
+              total_price,
+              payee_id,
+              unit
+            )
+          `)
+          .eq('project_id', selectedEstimate.project_id)
+          .eq('status', 'approved');
+        
+        if (!error && data) {
+          const allCOLineItems = data.flatMap(co => 
+            co.change_order_line_items.map(item => ({
+              ...item,
+              source: 'change_order',
+              change_order_number: co.change_order_number,
+              change_order_id: co.id,
+              // Map to estimate line item structure
+              pricePerUnit: item.price_per_unit,
+              costPerUnit: item.cost_per_unit,
+              totalCost: item.total_cost,
+              total: item.total_price,
+            }))
+          );
+          setChangeOrderLineItems(allCOLineItems);
+        }
+      };
+      
+      fetchChangeOrders();
       setShowLineItemSelection(true);
       
       // Set default valid until date
@@ -176,14 +223,22 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       return;
     }
 
-    const selectedEstimateItems = selectedEstimate!.lineItems.filter(item => 
+    // Combine all sources
+    const allItems = [
+      ...selectedEstimate!.lineItems.map(item => ({ ...item, source: 'estimate' as const })),
+      ...changeOrderLineItems
+    ];
+    
+    const selectedItems = allItems.filter(item => 
       selectedLineItemIds.includes(item.id)
     );
 
-    // Validate: prevent internal labor categories from being quoted
-    const internalItems = selectedEstimateItems.filter(item => 
-      item.category === LineItemCategory.LABOR || 
-      item.category === LineItemCategory.MANAGEMENT
+    // Validate: prevent internal labor from being quoted
+    const internalItems = selectedItems.filter(item => 
+      item.source === 'estimate' && (
+        item.category === LineItemCategory.LABOR || 
+        item.category === LineItemCategory.MANAGEMENT
+      )
     );
 
     if (internalItems.length > 0) {
@@ -196,7 +251,9 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       return;
     }
 
-    const quoteLineItems = selectedEstimateItems.map(createQuoteLineItemFromEstimate);
+    const quoteLineItems = selectedItems.map(item => 
+      createQuoteLineItemFromSource(item, item.source)
+    );
     setLineItems(quoteLineItems);
     setShowLineItemSelection(false);
   };
@@ -210,7 +267,11 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   };
 
   const selectAllLineItems = () => {
-    setSelectedLineItemIds(selectedEstimate?.lineItems.map(item => item.id) || []);
+    const allIds = [
+      ...(selectedEstimate?.lineItems.map(item => item.id) || []),
+      ...changeOrderLineItems.map(item => item.id)
+    ];
+    setSelectedLineItemIds(allIds);
   };
 
   const clearAllLineItems = () => {
@@ -592,10 +653,10 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
           </div>
         </CardHeader>
         <CardContent>
-          {selectedEstimate.lineItems.length === 0 ? (
+          {selectedEstimate.lineItems.length === 0 && changeOrderLineItems.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>This estimate has no line items.</p>
-              <p className="text-sm">Add line items to the estimate first.</p>
+              <p>This estimate has no line items and there are no approved change orders.</p>
+              <p className="text-sm">Add line items to the estimate or create change orders first.</p>
               <div className="mt-4">
                 <Button variant="outline" onClick={() => setSelectedEstimate(undefined)}>
                   Select Different Estimate
@@ -603,7 +664,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
                   Select the line items you want to include in this quote ({selectedLineItemIds.length} selected)
@@ -618,58 +679,117 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                 </div>
               </div>
               
-              <div className="space-y-3">
-                {selectedEstimate.lineItems.map((item) => {
-                  const isInternalCategory = item.category === LineItemCategory.LABOR || 
-                                            item.category === LineItemCategory.MANAGEMENT;
-                  
-                  return (
-                    <div 
-                      key={item.id} 
-                      className={cn(
-                        "flex items-center space-x-3 p-3 border rounded-lg",
-                        isInternalCategory && "opacity-50 bg-muted/30"
-                      )}
-                    >
-                      <Checkbox
-                        checked={selectedLineItemIds.includes(item.id)}
-                        onCheckedChange={() => toggleLineItemSelection(item.id)}
-                        disabled={isInternalCategory}
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-medium">{item.description}</div>
-                            <div className="text-sm text-muted-foreground">
-                              <span className="inline-flex items-center gap-1">
-                                <Badge 
-                                  variant="outline" 
-                                  className={cn(
-                                    "text-xs",
-                                    isInternalCategory && "border-amber-500 text-amber-700 bg-amber-50"
+              {/* Estimate Line Items Section */}
+              {selectedEstimate.lineItems.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 px-1">
+                    <Badge variant="outline" className="text-xs">Estimate</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {selectedEstimate.lineItems.length} item{selectedEstimate.lineItems.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {selectedEstimate.lineItems.map((item) => {
+                      const isInternalCategory = item.category === LineItemCategory.LABOR || 
+                                                item.category === LineItemCategory.MANAGEMENT;
+                      
+                      return (
+                        <div 
+                          key={item.id} 
+                          className={cn(
+                            "flex items-center space-x-3 p-3 border rounded-lg",
+                            isInternalCategory && "opacity-50 bg-muted/30"
+                          )}
+                        >
+                          <Checkbox
+                            checked={selectedLineItemIds.includes(item.id)}
+                            onCheckedChange={() => toggleLineItemSelection(item.id)}
+                            disabled={isInternalCategory}
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium">{item.description}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  <span className="inline-flex items-center gap-1">
+                                    <Badge 
+                                      variant="outline" 
+                                      className={cn(
+                                        "text-xs",
+                                        isInternalCategory && "border-amber-500 text-amber-700 bg-amber-50"
+                                      )}
+                                    >
+                                      {CATEGORY_DISPLAY_MAP[item.category]}
+                                    </Badge>
+                                    {item.quantity} {item.unit || 'units'} × {formatCurrency(item.pricePerUnit)}
+                                  </span>
+                                  {isInternalCategory && (
+                                    <span className="block text-xs text-amber-700 mt-1">
+                                      Cannot quote internal labor - use time entries instead
+                                    </span>
                                   )}
-                                >
-                                  {CATEGORY_DISPLAY_MAP[item.category]}
-                                </Badge>
-                                {item.quantity} {item.unit || 'units'} × {formatCurrency(item.pricePerUnit)}
-                              </span>
-                              {isInternalCategory && (
-                                <span className="block text-xs text-amber-700 mt-1">
-                                  Cannot quote internal labor - use time entries instead
-                                </span>
-                              )}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-medium">{formatCurrency(item.total)}</div>
+                              </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="font-medium">{formatCurrency(item.total)}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {/* Change Order Line Items Section */}
+              {changeOrderLineItems.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 px-1">
+                    <Badge variant="secondary" className="text-xs">Change Orders</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {changeOrderLineItems.length} item{changeOrderLineItems.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {changeOrderLineItems.map((item) => (
+                      <div 
+                        key={item.id} 
+                        className="flex items-center space-x-3 p-3 border rounded-lg"
+                      >
+                        <Checkbox
+                          checked={selectedLineItemIds.includes(item.id)}
+                          onCheckedChange={() => toggleLineItemSelection(item.id)}
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <div className="font-medium">{item.description}</div>
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                                  {item.change_order_number}
+                                </Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                <span className="inline-flex items-center gap-1">
+                                  <Badge variant="outline" className="text-xs">
+                                    {CATEGORY_DISPLAY_MAP[item.category]}
+                                  </Badge>
+                                  {item.quantity} {item.unit || 'units'} × {formatCurrency(item.pricePerUnit)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium">{formatCurrency(item.total)}</div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <div className="flex justify-between pt-4">
                 <Button variant="outline" onClick={onCancel}>Cancel</Button>
                 <div className="flex gap-2">

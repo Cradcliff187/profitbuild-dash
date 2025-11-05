@@ -1372,6 +1372,7 @@ export type Database = {
       quote_line_items: {
         Row: {
           category: Database["public"]["Enums"]["expense_category"]
+          change_order_line_item_id: string | null
           cost_per_unit: number | null
           created_at: string | null
           description: string | null
@@ -1390,6 +1391,7 @@ export type Database = {
         }
         Insert: {
           category: Database["public"]["Enums"]["expense_category"]
+          change_order_line_item_id?: string | null
           cost_per_unit?: number | null
           created_at?: string | null
           description?: string | null
@@ -1408,6 +1410,7 @@ export type Database = {
         }
         Update: {
           category?: Database["public"]["Enums"]["expense_category"]
+          change_order_line_item_id?: string | null
           cost_per_unit?: number | null
           created_at?: string | null
           description?: string | null
@@ -1425,6 +1428,13 @@ export type Database = {
           unit?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "quote_line_items_change_order_line_item_id_fkey"
+            columns: ["change_order_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "change_order_line_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quote_line_items_estimate_line_item_id_fkey"
             columns: ["estimate_line_item_id"]
