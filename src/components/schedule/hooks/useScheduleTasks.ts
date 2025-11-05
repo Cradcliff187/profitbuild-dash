@@ -265,6 +265,20 @@ export function useScheduleTasks({
     const endDate = new Date(updatedTask.end);
     const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
+    // Serialize phases or completion status back to schedule_notes JSON
+    let scheduleNotesJson: string | undefined;
+    
+    if (updatedTask.has_multiple_phases && updatedTask.phases) {
+      // Multi-phase task: serialize phases array
+      scheduleNotesJson = JSON.stringify({ phases: updatedTask.phases });
+    } else if (typeof updatedTask.completed === 'boolean') {
+      // Single-phase task: serialize completion status
+      scheduleNotesJson = JSON.stringify({ completed: updatedTask.completed });
+    } else {
+      // No phase data to serialize
+      scheduleNotesJson = updatedTask.schedule_notes;
+    }
+    
     const { error } = await supabase
       .from(table)
       .update({
@@ -272,7 +286,7 @@ export function useScheduleTasks({
         scheduled_end_date: updatedTask.end,
         duration_days: duration,
         dependencies: updatedTask.dependencies as any,
-        schedule_notes: updatedTask.schedule_notes
+        schedule_notes: scheduleNotesJson
       })
       .eq('id', updatedTask.id);
     
