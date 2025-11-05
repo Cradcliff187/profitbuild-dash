@@ -549,11 +549,11 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
+              <CardContent className="p-3">
                 <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
                 <div className="h-8 bg-muted rounded w-1/2"></div>
               </CardContent>
@@ -567,7 +567,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
   if (error) {
     return (
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-3">
           <div className="text-center text-destructive">
             <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
             <p>Error loading line item data: {error}</p>
@@ -582,109 +582,98 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
+      <div className="space-y-3">
       {/* Summary Cards - Compact Design */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-        <Card>
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium flex items-center gap-1">
-              <Target className="h-3 w-3" />
-              Contract Value
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-2">
-            <div className="text-lg font-bold">
-              {formatCurrency(summary.totalContractValue)}
+      <Card>
+        <CardContent className="p-3">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            {/* Contract Value */}
+            <div className="border rounded-lg p-3">
+              <div className="text-xs font-medium flex items-center gap-1 text-muted-foreground mb-2">
+                <Target className="h-3 w-3" />
+                Contract Value
+              </div>
+              <div className="text-lg font-bold">
+                {formatCurrency(summary.totalContractValue)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Client contract
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              Client contract
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium flex items-center gap-1">
-              <CheckCircle className="h-3 w-3" />
-              Quoted + Internal
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-2">
-            <div className="text-lg font-bold">
-              {formatCurrency(summary.totalQuotedWithInternal)}
+            {/* Quoted + Internal */}
+            <div className="border rounded-lg p-3">
+              <div className="text-xs font-medium flex items-center gap-1 text-muted-foreground mb-2">
+                <CheckCircle className="h-3 w-3" />
+                Quoted + Internal
+              </div>
+              <div className="text-lg font-bold">
+                {formatCurrency(summary.totalQuotedWithInternal)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {summary.lineItemsWithQuotes} quoted
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              {summary.lineItemsWithQuotes} quoted
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium flex items-center gap-1">
-              <Target className="h-3 w-3" />
-              Estimated Cost
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-2">
-            <div className="text-lg font-bold">
-              {formatCurrency(summary.totalEstimatedCost)}
+            {/* Estimated Cost */}
+            <div className="border rounded-lg p-3">
+              <div className="text-xs font-medium flex items-center gap-1 text-muted-foreground mb-2">
+                <Target className="h-3 w-3" />
+                Estimated Cost
+              </div>
+              <div className="text-lg font-bold">
+                {formatCurrency(summary.totalEstimatedCost)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Baseline estimate
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              Baseline estimate
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" />
-              Est vs Quote Variance
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-2">
-            <div className={cn(
-              "text-lg font-bold",
-              summary.totalVariance > 0 ? "text-destructive" : "text-green-600"
-            )}>
-              {formatCurrency(summary.totalVariance)}
+            {/* Est vs Quote Variance */}
+            <div className="border rounded-lg p-3">
+              <div className="text-xs font-medium flex items-center gap-1 text-muted-foreground mb-2">
+                <TrendingUp className="h-3 w-3" />
+                Est vs Quote Variance
+              </div>
+              <div className={cn(
+                "text-lg font-bold",
+                summary.totalVariance > 0 ? "text-destructive" : "text-green-600"
+              )}>
+                {formatCurrency(summary.totalVariance)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {summary.lineItemsUnderBudget > 0 || summary.lineItemsOverBudget > 0 ? (
+                  <>
+                    {summary.lineItemsUnderBudget > 0 && (
+                      <span className="text-green-600">{summary.lineItemsUnderBudget} lower</span>
+                    )}
+                    {summary.lineItemsUnderBudget > 0 && summary.lineItemsOverBudget > 0 && ', '}
+                    {summary.lineItemsOverBudget > 0 && (
+                      <span className="text-destructive">{summary.lineItemsOverBudget} higher</span>
+                    )}
+                  </>
+                ) : (
+                  'All match'
+                )}
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              {summary.lineItemsUnderBudget > 0 || summary.lineItemsOverBudget > 0 ? (
-                <>
-                  {summary.lineItemsUnderBudget > 0 && (
-                    <span className="text-green-600">{summary.lineItemsUnderBudget} lower</span>
-                  )}
-                  {summary.lineItemsUnderBudget > 0 && summary.lineItemsOverBudget > 0 && ', '}
-                  {summary.lineItemsOverBudget > 0 && (
-                    <span className="text-destructive">{summary.lineItemsOverBudget} higher</span>
-                  )}
-                </>
-              ) : (
-                'All match'
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium flex items-center gap-1">
-              <DollarSign className="h-3 w-3" />
-              Actual Cost to Date
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-2">
-            <div className="text-lg font-bold">
-              {formatCurrency(summary.totalActual)}
+            {/* Actual Cost to Date */}
+            <div className="border rounded-lg p-3">
+              <div className="text-xs font-medium flex items-center gap-1 text-muted-foreground mb-2">
+                <DollarSign className="h-3 w-3" />
+                Actual Cost to Date
+              </div>
+              <div className="text-lg font-bold">
+                {formatCurrency(summary.totalActual)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {summary.completionPercentage.toFixed(1)}% complete
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              {summary.completionPercentage.toFixed(1)}% complete
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
         {/* Main Table */}
         <div className="flex items-center justify-between mb-4">
