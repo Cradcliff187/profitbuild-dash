@@ -444,10 +444,16 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       label: 'Date',
       sortable: true,
       render: (row: DisplayRow) => {
-        if (row._isSplitRow) return null;
+        if (row._isSplitRow && row._splitData) {
+          return (
+            <div className="text-xs font-mono text-muted-foreground">
+              {row._splitData.split_percentage?.toFixed(1)}%
+            </div>
+          );
+        }
         
         return (
-          <div className="text-data font-mono">
+          <div className="text-sm font-mono">
             {row.expense_date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
           </div>
         );
@@ -460,17 +466,14 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       render: (row: DisplayRow) => {
         if (row._isSplitRow && row._splitData) {
           return (
-            <div className="pl-6 flex items-center gap-2 bg-muted/30 -mx-2 px-2 py-1 rounded">
-              <Badge variant="outline" className="compact-badge text-xs">
-                {row._splitData.split_percentage?.toFixed(1)}%
-              </Badge>
-              <span className="text-sm">{row._splitData.project_name}</span>
+            <div className="text-sm text-muted-foreground">
+              {row._splitData.project_name}
             </div>
           );
         }
         
         return (
-          <div className={row.project_name?.includes("Unassigned") ? "text-muted-foreground italic" : ""}>
+          <div className={row.project_name?.includes("Unassigned") ? "text-muted-foreground italic text-sm" : "text-sm"}>
             {row.project_name}
           </div>
         );
@@ -481,7 +484,13 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       label: 'Project Assignment',
       sortable: false,
       render: (row: DisplayRow) => {
-        if (row._isSplitRow) return null;
+        if (row._isSplitRow) {
+          return (
+            <Badge variant="outline" className="text-xs bg-muted/50 border-muted-foreground/30">
+              Split
+            </Badge>
+          );
+        }
         
         const isPlaceholder = row.project_id === "000-UNASSIGNED" || 
                              row.project_name?.includes("Unassigned") ||
@@ -489,7 +498,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         
         if (isPlaceholder) {
           return (
-            <Badge variant="outline" className="compact-badge text-warning border-warning/50">
+            <Badge variant="outline" className="text-xs text-warning border-warning/50">
               <AlertTriangle className="h-3 w-3 mr-1" />
               Needs Assignment
             </Badge>
@@ -497,7 +506,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         }
         
         return (
-          <Badge variant="outline" className="compact-badge text-success border-success/50">
+          <Badge variant="outline" className="text-xs text-success border-success/50">
             <CheckCircle2 className="h-3 w-3 mr-1" />
             Assigned
           </Badge>
@@ -509,15 +518,17 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       label: 'Payee',
       sortable: true,
       render: (row: DisplayRow) => {
-        if (row._isSplitRow && row._splitData?.notes) {
-          return (
-            <div className="pl-6 text-xs text-muted-foreground italic">
-              {row._splitData.notes}
-            </div>
-          );
+        if (row._isSplitRow) {
+          if (row._splitData?.notes) {
+            return (
+              <div className="text-xs text-muted-foreground italic">
+                {row._splitData.notes}
+              </div>
+            );
+          }
+          return <div className="text-xs text-muted-foreground">{row.payee_name}</div>;
         }
-        if (row._isSplitRow) return null;
-        return row.payee_name;
+        return <div className="text-sm">{row.payee_name}</div>;
       }
     },
     {
@@ -527,14 +538,14 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       render: (row: DisplayRow) => {
         if (row._isSplitRow && row._splitData) {
           return (
-            <div className="text-right text-data font-mono font-medium pl-6">
+            <div className="text-right text-sm font-mono font-medium text-muted-foreground">
               {formatCurrency(row._splitData.split_amount, { showCents: true })}
             </div>
           );
         }
         
         return (
-          <div className="text-right text-data font-mono font-medium">
+          <div className="text-right text-sm font-mono font-medium">
             {formatCurrency(row.amount, { showCents: true })}
           </div>
         );
@@ -545,10 +556,16 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       label: 'Category',
       sortable: true,
       render: (row: DisplayRow) => {
-        if (row._isSplitRow) return null;
+        if (row._isSplitRow) {
+          return (
+            <Badge variant={getCategoryBadgeVariant(row.category)} className="text-xs opacity-60">
+              {EXPENSE_CATEGORY_DISPLAY[row.category]}
+            </Badge>
+          );
+        }
         
         return (
-          <Badge variant={getCategoryBadgeVariant(row.category)} className="compact-badge">
+          <Badge variant={getCategoryBadgeVariant(row.category)} className="text-xs">
             {EXPENSE_CATEGORY_DISPLAY[row.category]}
           </Badge>
         );
@@ -559,10 +576,16 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       label: 'Type',
       sortable: true,
       render: (row: DisplayRow) => {
-        if (row._isSplitRow) return null;
+        if (row._isSplitRow) {
+          return (
+            <Badge variant={getTypeBadgeVariant(row.transaction_type)} className="text-xs opacity-60">
+              {TRANSACTION_TYPE_DISPLAY[row.transaction_type]}
+            </Badge>
+          );
+        }
         
         return (
-          <Badge variant={getTypeBadgeVariant(row.transaction_type)} className="compact-badge">
+          <Badge variant={getTypeBadgeVariant(row.transaction_type)} className="text-xs">
             {TRANSACTION_TYPE_DISPLAY[row.transaction_type]}
           </Badge>
         );
@@ -573,12 +596,19 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       label: 'Status',
       sortable: true,
       render: (row: DisplayRow) => {
-        if (row._isSplitRow) return null;
-        
         const status = row.approval_status || 'pending';
         const variant = status === 'approved' ? 'default' : status === 'rejected' ? 'destructive' : status === 'pending' ? 'secondary' : 'outline';
+        
+        if (row._isSplitRow) {
+          return (
+            <Badge variant={variant} className="text-xs opacity-60">
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Badge>
+          );
+        }
+        
         return (
-          <Badge variant={variant} className="compact-badge">
+          <Badge variant={variant} className="text-xs">
             {status.charAt(0).toUpperCase() + status.slice(1)}
           </Badge>
         );
@@ -589,7 +619,11 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       label: 'Line Item Allocation',
       sortable: false,
       render: (row: DisplayRow) => {
-        if (row._isSplitRow) return null;
+        if (row._isSplitRow) {
+          return (
+            <span className="text-xs text-muted-foreground">—</span>
+          );
+        }
         
         const isPlaceholder = row.project_id === "000-UNASSIGNED" || 
                              row.project_name?.includes("Unassigned") ||
@@ -608,7 +642,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                             : 'Change Order';
           
           return (
-            <Badge variant="outline" className="compact-badge text-success border-success/50">
+            <Badge variant="outline" className="text-xs text-success border-success/50">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               → {displayType}
             </Badge>
@@ -616,7 +650,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         }
         
         return (
-          <Badge variant="outline" className="compact-badge text-warning border-warning/50">
+          <Badge variant="outline" className="text-xs text-warning border-warning/50">
             <AlertTriangle className="h-3 w-3 mr-1" />
             Unallocated
           </Badge>
