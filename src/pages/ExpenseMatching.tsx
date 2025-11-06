@@ -1,6 +1,7 @@
 import React from 'react';
 import { Target, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { GlobalExpenseAllocation } from "@/components/GlobalExpenseMatching";
 import { useNavigate } from "react-router-dom";
 
@@ -13,8 +14,8 @@ const ExpenseMatching = () => {
         <div className="flex items-center space-x-3">
           <Target className="h-5 w-5 text-primary" />
           <div>
-            <h1 className="text-xl font-bold text-foreground">Match Expenses</h1>
-            <p className="text-muted-foreground">Allocate expenses to estimates, quotes, and change orders</p>
+            <h1 className="text-xl font-bold text-foreground">Match Expenses to Line Items</h1>
+            <p className="text-muted-foreground text-sm">Allocate expenses to specific estimate, quote, or change order line items</p>
           </div>
         </div>
         <Button 
@@ -26,6 +27,26 @@ const ExpenseMatching = () => {
           <span>Back to Expenses</span>
         </Button>
       </div>
+
+      {/* Allocation Instructions */}
+      <Alert className="border-muted">
+        <Target className="h-3 w-3" />
+        <AlertTitle className="text-xs font-medium">About Line Item Allocation</AlertTitle>
+        <AlertDescription className="text-xs space-y-1 mt-1">
+          <p>
+            <strong>What is allocation?</strong> Matching expenses to specific line items in your 
+            estimates, quotes, or change orders for detailed cost tracking.
+          </p>
+          <p>
+            <strong>When to use:</strong> After expenses are assigned to projects, allocate them 
+            here to see which line items are over/under budget.
+          </p>
+          <p className="text-muted-foreground">
+            <strong>Note:</strong> Only expenses assigned to real projects (not "000-UNASSIGNED") 
+            can be allocated to line items.
+          </p>
+        </AlertDescription>
+      </Alert>
 
       <GlobalExpenseAllocation onClose={() => navigate('/expenses')} />
     </div>

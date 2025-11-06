@@ -1,7 +1,8 @@
 import React from 'react';
-import { Calendar, DollarSign, AlertTriangle, FileText } from 'lucide-react';
+import { Calendar, DollarSign, AlertTriangle, FileText, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Expense } from '@/types/expense';
 import { Estimate } from '@/types/estimate';
 import { formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
@@ -60,7 +61,23 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
   }, {} as Record<string, number>);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
+      {/* Workflow Instructions */}
+      <Alert className="border-muted">
+        <Info className="h-3 w-3" />
+        <AlertTitle className="text-xs font-medium">How Expense Tracking Works</AlertTitle>
+        <AlertDescription className="text-xs space-y-1 mt-1">
+          <div>
+            <strong>Step 1: Project Assignment</strong> - Assign each expense to a project. 
+            This determines which project budget is affected.
+          </div>
+          <div>
+            <strong>Step 2: Line Item Allocation (Optional)</strong> - Match expenses to specific 
+            estimate/quote line items for detailed cost tracking and variance analysis.
+          </div>
+        </AlertDescription>
+      </Alert>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <Card>

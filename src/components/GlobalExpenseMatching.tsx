@@ -97,6 +97,10 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     confidence: number;
   }>>([]);
   const { toast } = useToast();
+  
+  // Calculate allocation statistics
+  const allocatedCount = expenses.filter(e => e.match_status !== 'unallocated').length;
+  const unallocatedCount = expenses.filter(e => e.match_status === 'unallocated').length;
 
   // Auto-highlight expense if URL parameter is present
   useEffect(() => {
@@ -787,31 +791,30 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Allocation Status Summary - Compact */}
+      <div className="grid grid-cols-3 gap-3 mb-3">
         <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600">{summaryStats.unallocated}</div>
-            <p className="text-sm text-muted-foreground">Unallocated</p>
-            <p className="text-xs text-muted-foreground">{formatCurrency(summaryStats.unallocatedAmount)}</p>
+          <CardContent className="p-2">
+            <div className="text-center">
+              <div className="text-lg font-bold">{expenses.length}</div>
+              <div className="text-xs text-muted-foreground">Total Expenses</div>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">{summaryStats.allocatedToEstimate}</div>
-            <p className="text-sm text-muted-foreground">Allocated to Estimates</p>
+          <CardContent className="p-2">
+            <div className="text-center">
+              <div className="text-lg font-bold text-success">{allocatedCount}</div>
+              <div className="text-xs text-muted-foreground">Allocated</div>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">{summaryStats.allocatedToQuote}</div>
-            <p className="text-sm text-muted-foreground">Allocated to Quotes</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{summaryStats.total}</div>
-            <p className="text-sm text-muted-foreground">Total Expenses</p>
+          <CardContent className="p-2">
+            <div className="text-center">
+              <div className="text-lg font-bold text-warning">{unallocatedCount}</div>
+              <div className="text-xs text-muted-foreground">Needs Allocation</div>
+            </div>
           </CardContent>
         </Card>
       </div>

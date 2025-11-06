@@ -4,7 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, FileDown, MoreHorizontal, Edit2, Trash2, ExternalLink, AlertTriangle, CheckCircle2, Target, FolderOpen } from "lucide-react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Search, FileDown, MoreHorizontal, Edit2, Trash2, ExternalLink, AlertTriangle, CheckCircle2, Target, FolderOpen, Info, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EntityTableTemplate } from "./EntityTableTemplate";
@@ -503,6 +505,65 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
 
   return (
     <div className="dense-spacing">
+      {/* Help Section - Collapsible */}
+      <Collapsible defaultOpen={false} className="mb-2">
+        <Card>
+          <CardHeader className="p-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Info className="h-3 w-3 text-muted-foreground" />
+                <CardTitle className="text-xs font-medium">
+                  Understanding Project Assignment & Line Item Allocation
+                </CardTitle>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="p-2 pt-0 space-y-2 text-xs">
+              <div className="grid md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default" className="text-xs h-4 px-1.5">Assigned</Badge>
+                    <span className="font-medium">Project Assignment</span>
+                  </div>
+                  <ul className="space-y-0.5 text-muted-foreground ml-2 text-xs">
+                    <li>• Which project does this expense belong to?</li>
+                    <li>• Required for all expenses</li>
+                    <li>• Affects project-level budgets and reports</li>
+                    <li>• Use "Reassign Project" action to change</li>
+                  </ul>
+                </div>
+                
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default" className="text-xs h-4 px-1.5">Allocated</Badge>
+                    <span className="font-medium">Line Item Allocation</span>
+                  </div>
+                  <ul className="space-y-0.5 text-muted-foreground ml-2 text-xs">
+                    <li>• Which estimate/quote line items does this match?</li>
+                    <li>• Optional but recommended for detailed tracking</li>
+                    <li>• Enables cost variance analysis by line item</li>
+                    <li>• Use "Match to Line Items" action to allocate</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="pt-1.5 border-t">
+                <p className="text-xs text-muted-foreground">
+                  <strong>Workflow:</strong> First assign expenses to projects, then optionally allocate 
+                  them to specific line items for detailed cost tracking.
+                </p>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
       {/* Filters - Compact */}
       <div className="flex flex-wrap gap-2 items-center">
         <div className="flex items-center space-x-1">
