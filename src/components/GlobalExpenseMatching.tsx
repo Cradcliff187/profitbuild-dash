@@ -483,7 +483,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
         change_order_line_item_id: lineItem.type === 'change_order' ? lineItem.id : null,
         correlation_type: lineItem.type === 'estimate' ? 'estimated' : lineItem.type === 'quote' ? 'quoted' : 'change_order',
         auto_correlated: false,
-        notes: 'Manually assigned via Global Expense Matching'
+        notes: 'Manually assigned via Global Expense Allocation'
       }));
 
       const { error: correlationError } = await supabase
@@ -952,7 +952,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                         className="w-full mt-2"
                         onClick={() => handleBulkAssign(item.id)}
                       >
-                        Assign {selectedExpenses.size} expense{selectedExpenses.size === 1 ? '' : 's'}
+                        Allocate {selectedExpenses.size} expense{selectedExpenses.size === 1 ? '' : 's'}
                       </Button>
                     )}
                   </div>
