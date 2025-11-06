@@ -48,6 +48,26 @@ export async function createExpenseSplits(
     
     if (insertError) throw insertError;
     
+    // Update parent expense to be a split container
+    const { error: updateError } = await supabase
+      .from('expenses')
+      .update({
+        project_id: 'SYS-000',
+        is_split: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', expenseId);
+
+    if (updateError) {
+      // Rollback: delete the splits we just created
+      await supabase
+        .from('expense_splits')
+        .delete()
+        .eq('expense_id', expenseId);
+      
+      throw new Error(`Failed to update parent expense: ${updateError.message}`);
+    }
+    
     return { success: true };
   } catch (error) {
     console.error('Error creating expense splits:', error);
@@ -124,15 +144,42 @@ export async function updateExpenseSplits(
 /**
  * Delete all splits for an expense
  * This converts the expense back to a single-project expense
+ * Reverts parent expense to first split's project (or 000-UNASSIGNED if no splits found)
  */
 export async function deleteExpenseSplits(expenseId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabase
+    // Get existing splits to determine which project to revert to
+    const { data: existingSplits, error: fetchError } = await supabase
+      .from('expense_splits')
+      .select('project_id')
+      .eq('expense_id', expenseId)
+      .order('created_at')
+      .limit(1);
+    
+    if (fetchError) throw fetchError;
+    
+    // Determine revert project: use first split's project, or UNASSIGNED if no splits
+    const revertProjectId = existingSplits?.[0]?.project_id || '000-UNASSIGNED';
+    
+    // Update parent expense first (before deleting splits)
+    const { error: updateError } = await supabase
+      .from('expenses')
+      .update({
+        project_id: revertProjectId,
+        is_split: false,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', expenseId);
+    
+    if (updateError) throw updateError;
+    
+    // Now delete all splits
+    const { error: deleteError } = await supabase
       .from('expense_splits')
       .delete()
       .eq('expense_id', expenseId);
     
-    if (error) throw error;
+    if (deleteError) throw deleteError;
     
     return { success: true };
   } catch (error) {
@@ -175,8 +222,8 @@ export function calculateSplitPercentage(splitAmount: number, totalAmount: numbe
 
 /**
  * Calculate the actual expense amount for a project, handling splits correctly
- * - If expense is split, only count the split amount for this project
- * - If expense is not split, count the full amount
+ * - If expense is split (project_id = SYS-000), only count split amounts for this project
+ * - If expense is not split, only count if project_id matches
  * 
  * @param projectId - The project ID to calculate expenses for
  * @param expenses - Array of expenses to process
@@ -186,20 +233,19 @@ export async function calculateProjectExpenses(
   projectId: string, 
   expenses: Expense[]
 ): Promise<number> {
-  const projectExpenses = expenses.filter(e => e.project_id === projectId);
-  
   let total = 0;
-  for (const expense of projectExpenses) {
-    if (expense.is_split && expense.id) {
-      // Get splits for this expense
+  
+  for (const expense of expenses) {
+    if (expense.project_id === 'SYS-000' && expense.is_split && expense.id) {
+      // This is a split expense - get splits for this project only
       const splits = await getExpenseSplits(expense.id);
-      // Only sum splits that belong to this project
       const projectSplits = splits.filter(s => s.project_id === projectId);
       total += projectSplits.reduce((sum, split) => sum + split.split_amount, 0);
-    } else {
-      // Not split, count full amount
+    } else if (expense.project_id === projectId) {
+      // Regular expense assigned to this project
       total += expense.amount;
     }
+    // Skip expenses that don't match (different project or split without matching split)
   }
   
   return total;
