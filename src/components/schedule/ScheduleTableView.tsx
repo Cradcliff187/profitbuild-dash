@@ -70,6 +70,17 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
     return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   };
 
+  const extractNotesFromScheduleNotes = (scheduleNotes?: string): string | undefined => {
+    if (!scheduleNotes) return undefined;
+    
+    try {
+      const parsed = JSON.parse(scheduleNotes);
+      return parsed.notes || undefined;
+    } catch {
+      return scheduleNotes;
+    }
+  };
+
   const filteredAndSortedTasks = useMemo(() => {
     // Expand tasks into phase rows
     const expandedRows: ScheduleTableRow[] = [];
@@ -111,7 +122,7 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
           isChangeOrder: task.isChangeOrder,
           change_order_number: task.change_order_number,
           dependencies: task.dependencies,
-          notes: task.schedule_notes,
+          notes: extractNotesFromScheduleNotes(task.schedule_notes),
           originalTask: task,
         });
       }
