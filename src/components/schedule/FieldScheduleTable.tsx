@@ -132,6 +132,17 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
     });
   };
 
+  const extractNotesFromScheduleNotes = (scheduleNotes?: string): string | undefined => {
+    if (!scheduleNotes) return undefined;
+    
+    try {
+      const parsed = JSON.parse(scheduleNotes);
+      return parsed.notes || undefined;
+    } catch {
+      return scheduleNotes;
+    }
+  };
+
   return (
     <div className="space-y-3">
       {/* Search Bar */}
@@ -234,6 +245,17 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
                         <span>•</span>
                         <span>{row.duration} days</span>
                       </div>
+
+                      {!row.hasPhases && extractNotesFromScheduleNotes(row.originalTask.schedule_notes) && (
+                        <div className="mt-2 p-2.5 rounded-md bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/50">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+                            <p className="text-xs text-amber-900 dark:text-amber-100 font-medium leading-relaxed">
+                              {extractNotesFromScheduleNotes(row.originalTask.schedule_notes)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
                       {startsToday && (
                         <div className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 font-medium">
