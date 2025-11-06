@@ -938,12 +938,35 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     }).format(amount);
   };
 
+  // Calculate unallocated amount correctly:
+  // - Non-split expenses: count full amount if unallocated
+  // - Split expenses: count only unallocated split amounts
   const summaryStats = {
     total: expenses.length,
     unallocated: expenses.filter(e => e.match_status === 'unallocated').length,
     allocatedToEstimate: expenses.filter(e => e.match_status === 'allocated_to_estimate').length,
     allocatedToQuote: expenses.filter(e => e.match_status === 'allocated_to_quote').length,
-    unallocatedAmount: expenses.filter(e => e.match_status === 'unallocated').reduce((sum, e) => sum + e.amount, 0)
+    unallocatedAmount: (() => {
+      let total = 0;
+      
+      // Sum non-split unallocated expenses (full amount)
+      const nonSplitUnallocated = expenses.filter(e => 
+        e.match_status === 'unallocated' && !e.is_split
+      );
+      total += nonSplitUnallocated.reduce((sum, e) => sum + e.amount, 0);
+      
+      // Sum split unallocated amounts (only unallocated splits)
+      const splitExpenseIds = new Set(
+        expenses.filter(e => e.is_split).map(e => e.id)
+      );
+      const unallocatedSplits = expenseSplits.filter(split => 
+        splitExpenseIds.has(split.expense_id) && 
+        split.match_status === 'unallocated'
+      );
+      total += unallocatedSplits.reduce((sum, split) => sum + split.split_amount, 0);
+      
+      return total;
+    })()
   };
 
   if (isLoading) {
