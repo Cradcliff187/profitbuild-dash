@@ -259,22 +259,11 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       const changeOrders = changeOrdersResult.data || [];
 
       // Create line items from estimates and quotes
-      // First, filter to only accepted quotes
       const acceptedQuotes = quotes.filter(quote => quote.status === 'accepted');
-      
-      // Create a set of project+category combinations that have accepted quotes
-      const coveredCategories = new Set<string>();
-      acceptedQuotes.forEach(quote => {
-        (quote.quote_line_items || []).forEach(item => {
-          coveredCategories.add(`${quote.project_id}-${item.category}`);
-        });
-      });
 
-      // Filter estimate line items to exclude those covered by accepted quotes
+      // Include ALL estimate line items (don't filter based on accepted quotes)
       const estimateLineItems: LineItemForMatching[] = estimates.flatMap(estimate => 
-        (estimate.estimate_line_items || [])
-          .filter(item => !coveredCategories.has(`${estimate.project_id}-${item.category}`))
-          .map(item => ({
+        (estimate.estimate_line_items || []).map(item => ({
             id: item.id,
             type: 'estimate' as const,
             source_id: estimate.id,
@@ -342,10 +331,10 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
         const correlation = correlations.find(c => c.expense_id === expense.id);
         let matchStatus: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' = 'unallocated';
         
+        // Simplified: if ANY correlation exists, it's allocated
         if (correlation) {
           if (correlation.estimate_line_item_id) {
-            const lineItem = estimateLineItems.find(li => li.id === correlation.estimate_line_item_id);
-            matchStatus = lineItem ? 'allocated_to_estimate' : 'unallocated';
+            matchStatus = 'allocated_to_estimate';
           } else if (correlation.quote_id) {
             matchStatus = 'allocated_to_quote';
           }
