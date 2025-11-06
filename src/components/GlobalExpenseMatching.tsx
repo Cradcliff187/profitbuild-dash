@@ -476,6 +476,8 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
           expense_category: parentExpense?.category as ExpenseCategory,
           expense_date: new Date(parentExpense?.expense_date || new Date()),
           payee_name: parentExpense?.payees?.payee_name,
+          project_name: split.projects?.project_name,
+          project_number: split.projects?.project_number,
           match_status: matchStatus,
           suggested_line_item_id: suggestLineItemAllocation(tempExpense, allLineItems),
           confidence_score: calculateMatchConfidence(tempExpense, allLineItems)
