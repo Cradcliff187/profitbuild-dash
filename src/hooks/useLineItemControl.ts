@@ -645,11 +645,11 @@ function calculateSummary(lineItems: LineItemControlData[], project: Project, al
     0
   );
   
-  // Total Actual = explicitly allocated expenses only
-  const totalActual = lineItems.reduce((sum, item) => sum + item.allocatedAmount, 0);
+  // Total Actual = ALL expenses assigned to this project (allocated + unallocated)
+  const totalActual = totalProjectExpenses;
   
   // Total Allocated = same as totalActual (explicitly correlated expenses)
-  const totalAllocated = totalActual;
+  const totalAllocated = lineItems.reduce((sum, item) => sum + item.allocatedAmount, 0);
   
   // Unallocated = project expenses not yet matched to any line item
   const totalUnallocated = Math.max(0, totalProjectExpenses - totalAllocated);
