@@ -969,7 +969,10 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                 {filteredLineItems.filter(li => li.type === 'quote').map(item => {
                   const showFuzzyMatchDetails = item.payee_name;
                   const unallocatedExpenses = expenses
-                    .filter(exp => exp.match_status === 'unaccounted')
+                    .filter(exp => 
+                      exp.match_status === 'unaccounted' && 
+                      (projectFilter === 'all' || exp.project_id === projectFilter)
+                    )
                     .map(exp => ({
                       id: exp.id,
                       amount: exp.amount,
