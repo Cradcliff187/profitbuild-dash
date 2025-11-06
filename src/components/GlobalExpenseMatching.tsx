@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Target, 
   AlertTriangle, 
@@ -77,6 +78,12 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
   const [allocationSource, setAllocationSource] = useState<'estimates' | 'quotes' | 'change_orders'>('estimates');
   const [selectedExpenses, setSelectedExpenses] = useState<Set<string>>(new Set());
   const [projects, setProjects] = useState<any[]>([]);
+  const [showAutoAllocateDialog, setShowAutoAllocateDialog] = useState(false);
+  const [previewAllocations, setPreviewAllocations] = useState<Array<{
+    expense: EnhancedExpense;
+    lineItem: LineItemForMatching;
+    confidence: number;
+  }>>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -510,11 +517,11 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     }
   };
 
-  const handleAutoAllocate = async () => {
+  const prepareAutoAllocate = () => {
     const highConfidenceExpenses = expenses.filter(exp => 
       exp.match_status === 'unaccounted' && 
       exp.confidence_score && 
-      exp.confidence_score >= 80 &&
+      exp.confidence_score >= 75 &&
       exp.suggested_line_item_id
     );
 
@@ -526,20 +533,36 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       return;
     }
 
+    // Build preview list
+    const previews = highConfidenceExpenses.map(expense => {
+      const lineItem = lineItems.find(li => li.id === expense.suggested_line_item_id);
+      return {
+        expense,
+        lineItem: lineItem!,
+        confidence: expense.confidence_score!
+      };
+    }).filter(preview => preview.lineItem); // Remove any with missing line items
+
+    setPreviewAllocations(previews);
+    setShowAutoAllocateDialog(true);
+  };
+
+  const confirmAutoAllocate = async () => {
+    setShowAutoAllocateDialog(false);
+    
+    if (previewAllocations.length === 0) return;
+
     try {
-      const correlations = highConfidenceExpenses.map(expense => {
-        const lineItem = lineItems.find(li => li.id === expense.suggested_line_item_id);
-        return {
-          expense_id: expense.id,
-          estimate_line_item_id: lineItem?.type === 'estimate' ? lineItem.id : null,
-          quote_id: lineItem?.type === 'quote' ? lineItem.source_id : null,
-          change_order_line_item_id: lineItem?.type === 'change_order' ? lineItem.id : null,
-          correlation_type: 'auto_match',
-          auto_correlated: true,
-          confidence_score: expense.confidence_score,
-          notes: 'Auto-matched via Global Expense Matching'
-        };
-      });
+      const correlations = previewAllocations.map(({ expense, lineItem }) => ({
+        expense_id: expense.id,
+        estimate_line_item_id: lineItem.type === 'estimate' ? lineItem.id : null,
+        quote_id: lineItem.type === 'quote' ? lineItem.source_id : null,
+        change_order_line_item_id: lineItem.type === 'change_order' ? lineItem.id : null,
+        correlation_type: 'auto_match',
+        auto_correlated: true,
+        confidence_score: expense.confidence_score,
+        notes: 'Auto-allocated via Global Expense Allocation'
+      }));
 
       const { error: correlationError } = await supabase
         .from('expense_line_item_correlations')
@@ -548,7 +571,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       if (correlationError) throw correlationError;
 
       // Update expenses to mark them as planned
-      const expenseIds = highConfidenceExpenses.map(e => e.id);
+      const expenseIds = previewAllocations.map(p => p.expense.id);
       const { error: updateError } = await supabase
         .from('expenses')
         .update({ is_planned: true })
@@ -558,9 +581,10 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
 
       toast({
         title: "Auto-Allocation Complete",
-        description: `Automatically allocated ${highConfidenceExpenses.length} high-confidence expenses.`
+        description: `Automatically allocated ${previewAllocations.length} high-confidence expenses.`
       });
       
+      setPreviewAllocations([]);
       loadAllocationData();
     } catch (error) {
       console.error('Error auto-allocating:', error);
@@ -634,7 +658,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
         </div>
         
         <div className="flex gap-2">
-          <Button onClick={handleAutoAllocate} className="flex items-center gap-2">
+          <Button onClick={prepareAutoAllocate} className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
             Auto-Allocate High Confidence
           </Button>
@@ -949,6 +973,81 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
           </AlertDescription>
         </Alert>
       )}
+
+      {/* Auto-Allocation Review Dialog */}
+      <Dialog open={showAutoAllocateDialog} onOpenChange={setShowAutoAllocateDialog}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Review Auto-Allocations</DialogTitle>
+            <DialogDescription>
+              The following {previewAllocations.length} expense{previewAllocations.length === 1 ? '' : 's'} will be automatically allocated. Review and confirm to proceed.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+            {previewAllocations.map(({ expense, lineItem, confidence }) => (
+              <div key={expense.id} className="p-3 border rounded-lg bg-muted/30">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <DollarSign className="h-4 w-4 text-green-600" />
+                      <span className="font-semibold">{formatCurrency(expense.amount)}</span>
+                      {getConfidenceBadge(confidence)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {expense.description || 'No description'}
+                    </div>
+                    {expense.payee_name && (
+                      <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                        <User className="h-3 w-3" />
+                        {expense.payee_name}
+                      </div>
+                    )}
+                    {expense.project_name && (
+                      <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                        <Building className="h-3 w-3" />
+                        {expense.project_name}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {format(new Date(expense.expense_date), 'MMM dd, yyyy')}
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2 text-sm mt-2 pt-2 border-t">
+                  <Target className="h-4 w-4 text-blue-500" />
+                  <div className="flex-1">
+                    <div className="font-medium">{lineItem.description}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {CATEGORY_DISPLAY_MAP[lineItem.category as LineItemCategory]} • 
+                      {lineItem.type === 'estimate' ? 'Estimate' : lineItem.type === 'quote' ? 'Quote' : 'Change Order'} •
+                      Total: {formatCurrency(lineItem.total)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <DialogFooter className="mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowAutoAllocateDialog(false);
+                setPreviewAllocations([]);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={confirmAutoAllocate} className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              Confirm Allocation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
