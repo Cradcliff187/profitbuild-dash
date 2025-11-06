@@ -246,29 +246,60 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     }
   };
 
-  const exportToCsv = () => {
-    const headers = ['Date', 'Project', 'Project Assignment', 'Payee', 'Category', 'Transaction Type', 'Amount', 'Approval Status', 'Line Item Allocation'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredExpenses.map(expense => {
-        const isPlaceholder = expense.project_id === "000-UNASSIGNED" || 
-                             expense.project_name?.includes("Unassigned") ||
-                             expense.project_id === "SYS-000";
-        return [
-          expense.expense_date.toLocaleDateString(),
-          `"${expense.project_name || ''}"`,
-          isPlaceholder ? 'Needs Assignment' : 'Assigned',
-          `"${expense.payee_name || ''}"`,
-          `"${EXPENSE_CATEGORY_DISPLAY[expense.category] || expense.category}"`,
-          `"${TRANSACTION_TYPE_DISPLAY[expense.transaction_type] || expense.transaction_type}"`,
-          expense.amount,
-          (expense.approval_status || 'pending').charAt(0).toUpperCase() + (expense.approval_status || 'pending').slice(1),
-          isPlaceholder ? '—' : (expenseMatches[expense.id]?.matched 
-            ? `Allocated (${expenseMatches[expense.id].type})` 
-            : 'Unallocated')
-        ].join(',');
-      })
-    ].join('\n');
+  const exportToCsv = async () => {
+    const headers = ['Date', 'Project', 'Project Assignment', 'Payee', 'Category', 'Transaction Type', 'Amount', 'Approval Status', 'Line Item Allocation', 'Is Split', 'Split Type', 'Split Notes'];
+    
+    const csvRows: string[] = [];
+    let totalRows = 0;
+    
+    for (const expense of filteredExpenses) {
+      const isPlaceholder = expense.project_id === "000-UNASSIGNED" || 
+                           expense.project_name?.includes("Unassigned") ||
+                           expense.project_id === "SYS-000";
+      
+      // Add parent expense row
+      csvRows.push([
+        expense.expense_date.toLocaleDateString(),
+        `"${expense.project_name || ''}"`,
+        isPlaceholder ? 'Needs Assignment' : 'Assigned',
+        `"${expense.payee_name || ''}"`,
+        `"${EXPENSE_CATEGORY_DISPLAY[expense.category] || expense.category}"`,
+        `"${TRANSACTION_TYPE_DISPLAY[expense.transaction_type] || expense.transaction_type}"`,
+        expense.amount,
+        (expense.approval_status || 'pending').charAt(0).toUpperCase() + (expense.approval_status || 'pending').slice(1),
+        isPlaceholder ? '—' : (expenseMatches[expense.id]?.matched 
+          ? `Allocated (${expenseMatches[expense.id].type})` 
+          : 'Unallocated'),
+        expense.is_split ? 'Yes' : 'No',
+        expense.is_split ? 'Parent' : 'Single',
+        ''
+      ].join(','));
+      totalRows++;
+      
+      // If expense is split, add child split rows
+      if (expense.is_split && expense.id) {
+        const splits = expenseSplits[expense.id] || [];
+        for (const split of splits) {
+          csvRows.push([
+            expense.expense_date.toLocaleDateString(),
+            `"${split.project_name || ''}"`,
+            'Split Allocation',
+            `"${expense.payee_name || ''}"`,
+            `"${EXPENSE_CATEGORY_DISPLAY[expense.category] || expense.category}"`,
+            `"${TRANSACTION_TYPE_DISPLAY[expense.transaction_type] || expense.transaction_type}"`,
+            split.split_amount.toFixed(2),
+            (expense.approval_status || 'pending').charAt(0).toUpperCase() + (expense.approval_status || 'pending').slice(1),
+            '—',
+            'Yes',
+            `Split (${split.split_percentage?.toFixed(1)}%)`,
+            `"${split.notes || ''}"`
+          ].join(','));
+          totalRows++;
+        }
+      }
+    }
+    
+    const csvContent = [headers.join(','), ...csvRows].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -279,6 +310,11 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    toast({
+      title: "Export successful",
+      description: `${filteredExpenses.length} expenses (${totalRows} total rows including splits) exported to CSV`,
+    });
   };
 
   const handleSelectAll = () => {
