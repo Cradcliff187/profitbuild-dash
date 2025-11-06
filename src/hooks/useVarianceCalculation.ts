@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
+import { getExpenseSplits } from "@/utils/expenseSplits";
 
 export interface LineItemDetail {
   description: string;
@@ -78,10 +79,10 @@ export const useVarianceCalculation = (projectId: string): UseVarianceCalculatio
           .eq('quotes.project_id', projectId)
           .eq('quotes.status', 'accepted'),
 
-        // Fetch actual expenses with descriptions
+        // Fetch actual expenses with descriptions (include id and is_split for split handling)
         supabase
           .from('expenses')
-          .select('category, description, amount')
+          .select('id, category, description, amount, is_split, project_id')
           .eq('project_id', projectId),
 
         // Fetch approved change orders with line items
@@ -212,11 +213,22 @@ export const useVarianceCalculation = (projectId: string): UseVarianceCalculatio
         categoryData.lineItemsMap.get(description)!.quoted += amount;
       });
 
-      // Process expenses
-      (expenseData || []).forEach(item => {
+      // Process expenses (with split-aware calculation)
+      for (const item of expenseData || []) {
         const category = item.category as LineItemCategory;
         const description = item.description || 'Unnamed Item';
-        const amount = Number(item.amount) || 0;
+        
+        // Calculate split-aware amount
+        let amount = 0;
+        if (item.is_split && item.id) {
+          // Get splits for this expense and sum only those for this project
+          const splits = await getExpenseSplits(item.id);
+          const projectSplits = splits.filter(s => s.project_id === projectId);
+          amount = projectSplits.reduce((sum, split) => sum + split.split_amount, 0);
+        } else {
+          // Not split, use full amount
+          amount = Number(item.amount) || 0;
+        }
         
         allCategories.add(category);
         
@@ -236,7 +248,7 @@ export const useVarianceCalculation = (projectId: string): UseVarianceCalculatio
           categoryData.lineItemsMap.set(description, { estimated: 0, quoted: 0, actual: 0 });
         }
         categoryData.lineItemsMap.get(description)!.actual += amount;
-      });
+      }
 
       // Convert to CategoryVariance array
       const categoryVariances: CategoryVariance[] = Array.from(allCategories).map(category => {
