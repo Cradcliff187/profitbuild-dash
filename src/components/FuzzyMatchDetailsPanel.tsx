@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Calendar, TrendingUp, AlertCircle } from 'lucide-react';
+import { DollarSign, Calendar, TrendingUp, AlertCircle, Building } from 'lucide-react';
 import { fuzzyMatchPayee, type PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,7 @@ interface UnallocatedExpense {
   category: string;
   payee_name?: string;
   project_name?: string;
+  project_number?: string;
 }
 
 interface FuzzyMatchDetailsPanelProps {
@@ -146,6 +147,13 @@ export const FuzzyMatchDetailsPanel: React.FC<FuzzyMatchDetailsPanelProps> = ({
               <div className="flex items-center gap-1 text-muted-foreground">
                 <span className="font-medium">Payee:</span> {result.expense!.payee_name}
               </div>
+
+              {result.expense!.project_name && (
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Building className="h-2.5 w-2.5" />
+                  <span className="font-medium">Project:</span> {result.expense!.project_number && `${result.expense!.project_number} - `}{result.expense!.project_name}
+                </div>
+              )}
 
               <div className="text-muted-foreground">
                 {EXPENSE_CATEGORY_DISPLAY[result.expense!.category as keyof typeof EXPENSE_CATEGORY_DISPLAY]}

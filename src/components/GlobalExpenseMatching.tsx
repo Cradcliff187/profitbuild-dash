@@ -50,6 +50,7 @@ interface EnhancedExpense {
   payee_name?: string;
   project_id: string;
   project_name?: string;
+  project_number?: string;
   match_status: 'unaccounted' | 'accounted_in_estimate' | 'accounted_in_quote';
   suggested_line_item_id?: string;
   suggested_quote_id?: string;
@@ -110,7 +111,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
               .select(`
                 *,
                 payees (payee_name),
-                projects (project_name)
+                projects (project_name, project_number)
               `)
               .eq('project_id', projectId)
           : supabase
@@ -118,11 +119,11 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
               .select(`
                 *,
                 payees (payee_name),
-                projects (project_name)
+                projects (project_name, project_number)
               `),
         supabase
           .from('projects')
-          .select('id, project_name')
+          .select('id, project_name, project_number')
           .order('project_name'),
         projectId
           ? supabase
@@ -321,6 +322,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
           payee_name: expense.payees?.payee_name,
           project_id: expense.project_id,
           project_name: expense.projects?.project_name,
+          project_number: expense.projects?.project_number,
           match_status: matchStatus,
           suggested_line_item_id: suggestLineItemAllocation(expense, allLineItems),
           confidence_score: calculateMatchConfidence(expense, allLineItems)
@@ -575,12 +577,32 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
   };
 
   const prepareAutoAllocate = () => {
-    const highConfidenceExpenses = expenses.filter(exp => 
-      exp.match_status === 'unaccounted' && 
-      exp.confidence_score && 
-      exp.confidence_score >= 75 &&
-      exp.suggested_line_item_id
-    );
+    console.log('🔍 Auto-allocate check - All expenses:', expenses.map(e => ({
+      payee: e.payee_name,
+      confidence: e.confidence_score,
+      suggested: e.suggested_line_item_id,
+      status: e.match_status
+    })));
+    
+    const highConfidenceExpenses = expenses.filter(exp => {
+      const passes = exp.match_status === 'unaccounted' && 
+        exp.confidence_score && 
+        exp.confidence_score >= 75 &&
+        exp.suggested_line_item_id;
+      
+      if (!passes && exp.confidence_score && exp.confidence_score >= 75) {
+        console.log('❌ High confidence but missing suggested_line_item_id:', {
+          payee: exp.payee_name,
+          confidence: exp.confidence_score,
+          suggested: exp.suggested_line_item_id,
+          status: exp.match_status
+        });
+      }
+      
+      return passes;
+    });
+
+    console.log('✅ High confidence expenses found:', highConfidenceExpenses.length);
 
     if (highConfidenceExpenses.length === 0) {
       toast({
@@ -663,6 +685,11 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     const matchesStatus = statusFilter === 'all' || expense.match_status === statusFilter;
     
     return matchesSearch && matchesProject && matchesStatus;
+  });
+
+  const filteredLineItems = lineItems.filter(item => {
+    const matchesProject = projectFilter === 'all' || item.project_id === projectFilter;
+    return matchesProject;
   });
 
   const getStatusBadge = (status: string) => {
@@ -775,13 +802,21 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
             <Label>Project Filter</Label>
             <Select value={projectFilter} onValueChange={setProjectFilter}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>
+                  {projectFilter === 'all' 
+                    ? 'All Projects' 
+                    : (() => {
+                        const proj = projects.find(p => p.id === projectFilter);
+                        return proj ? `${proj.project_number} - ${proj.project_name}` : 'Select Project';
+                      })()
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Projects</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
-                    {project.project_name}
+                    {project.project_number} - {project.project_name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -893,7 +928,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
               </TabsList>
               
               <TabsContent value="estimates" className="space-y-3 mt-4">
-                {lineItems.filter(li => li.type === 'estimate').map(item => (
+                {filteredLineItems.filter(li => li.type === 'estimate').map(item => (
                   <div key={item.id} className="p-3 border rounded-lg">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
@@ -931,7 +966,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
               </TabsContent>
               
               <TabsContent value="quotes" className="space-y-3 mt-4">
-                {lineItems.filter(li => li.type === 'quote').map(item => {
+                {filteredLineItems.filter(li => li.type === 'quote').map(item => {
                   const showFuzzyMatchDetails = item.payee_name;
                   const unallocatedExpenses = expenses
                     .filter(exp => exp.match_status === 'unaccounted')
@@ -942,7 +977,8 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                       description: exp.description,
                       category: exp.category,
                       payee_name: exp.payee_name,
-                      project_name: exp.project_name
+                      project_name: exp.project_name,
+                      project_number: exp.project_number
                     }));
 
                   const lineItemContent = (
@@ -1027,7 +1063,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
               </TabsContent>
               
               <TabsContent value="change_orders" className="space-y-3 mt-4">
-                {lineItems.filter(li => li.type === 'change_order').map(item => (
+                {filteredLineItems.filter(li => li.type === 'change_order').map(item => (
                   <div key={item.id} className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-950/10">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
