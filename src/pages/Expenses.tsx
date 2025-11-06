@@ -15,6 +15,15 @@ import { useToast } from "@/hooks/use-toast";
 
 type ViewMode = 'overview' | 'form' | 'list';
 
+// Helper to filter out SYS-000 split parent expenses
+const filterDisplayableExpenses = (expenses: Expense[]): Expense[] => {
+  return expenses.filter(expense => {
+    // Hide split parent containers (SYS-000 project with is_split=true)
+    const isSplitParent = expense.is_split && expense.project_id === 'SYS-000';
+    return !isSplitParent;
+  });
+};
+
 const Expenses = () => {
   const navigate = useNavigate();
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -69,7 +78,10 @@ const Expenses = () => {
         project_name: expense.projects?.project_name,
       }));
 
-      setExpenses(transformedExpenses);
+      // Filter out split parent containers before setting state
+      const displayableExpenses = filterDisplayableExpenses(transformedExpenses);
+      
+      setExpenses(displayableExpenses);
       setEstimates(estimatesResult.data || []);
     } catch (error) {
       console.error('Error loading data:', error);

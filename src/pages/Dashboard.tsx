@@ -174,17 +174,24 @@ const Dashboard = () => {
         account_name: expense.account_name,
         account_full_name: expense.account_full_name,
         is_planned: expense.is_planned,
+        is_split: expense.is_split,
         attachment_url: expense.attachment_url,
         quickbooks_transaction_id: expense.quickbooks_transaction_id,
         created_at: new Date(expense.created_at),
         updated_at: new Date(expense.updated_at)
       }));
 
+      // Filter out SYS-000 split parent expenses
+      const displayableExpenses = formattedExpenses.filter(expense => {
+        const isSplitParent = expense.is_split && expense.project_id === 'SYS-000';
+        return !isSplitParent;
+      });
+
       // Calculate profit data and identify over-budget projects
       const projectsWithProfitData: ProjectWithProfit[] = formattedProjects.map(project => {
         const projectEstimates = formattedEstimates.filter(e => e.project_id === project.id);
         const projectQuotes = formattedQuotes.filter(q => q.project_id === project.id);
-        const projectExpenses = formattedExpenses.filter(e => e.project_id === project.id);
+        const projectExpenses = displayableExpenses.filter(e => e.project_id === project.id);
         
         if (projectEstimates.length === 0) {
           return {
@@ -250,7 +257,7 @@ const Dashboard = () => {
       setProjectsWithProfit(projectsWithProfitData);
       setEstimates(formattedEstimates);
       setQuotes(formattedQuotes);
-      setExpenses(formattedExpenses);
+      setExpenses(displayableExpenses);
       setOverBudgetProjects(overBudget);
       
     } catch (error) {

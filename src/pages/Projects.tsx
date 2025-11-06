@@ -188,23 +188,30 @@ const Projects = () => {
         account_name: expense.account_name,
         account_full_name: expense.account_full_name,
         is_planned: expense.is_planned,
+        is_split: expense.is_split,
         attachment_url: expense.attachment_url,
         quickbooks_transaction_id: expense.quickbooks_transaction_id,
         created_at: new Date(expense.created_at),
         updated_at: new Date(expense.updated_at)
       })) || [];
 
+      // Filter out SYS-000 split parent expenses
+      const displayableExpenses = formattedExpenses.filter(expense => {
+        const isSplitParent = expense.is_split && expense.project_id === 'SYS-000';
+        return !isSplitParent;
+      });
+
       // Enrich projects with line item counts (estimate + change order line items)
       const enrichedProjects = await calculateMultipleProjectFinancials(
         formattedProjects as any[],
         formattedEstimates,
-        formattedExpenses
+        displayableExpenses
       );
 
       setProjects(enrichedProjects);
       setEstimates(formattedEstimates);
       setQuotes(formattedQuotes);
-      setExpenses(formattedExpenses);
+      setExpenses(displayableExpenses);
     } catch (error) {
       console.error('Error loading projects:', error);
       toast({

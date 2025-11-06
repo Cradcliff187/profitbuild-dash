@@ -151,9 +151,17 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     fetchExpenseSplits();
   }, [expenses]);
 
+  // Defensive filter: Remove any SYS-000 split parents that might slip through
+  const displayableExpenses = useMemo(() => {
+    return expenses.filter(expense => {
+      const isSplitParent = expense.is_split && expense.project_id === 'SYS-000';
+      return !isSplitParent;
+    });
+  }, [expenses]);
+
   // Filter expenses based on search term and filters
   const filteredExpenses = useMemo(() => {
-    return expenses.filter(expense => {
+    return displayableExpenses.filter(expense => {
       const matchesSearch = 
         expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         expense.payee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -261,9 +269,14 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     let totalRows = 0;
     
     for (const expense of filteredExpenses) {
-      const isPlaceholder = expense.project_id === "000-UNASSIGNED" || 
-                           expense.project_name?.includes("Unassigned") ||
-                           expense.project_id === "SYS-000";
+      const splits = expenseSplits[expense.id] || [];
+      const isSplitParent = expense.is_split && expense.project_id === 'SYS-000';
+      const isUnassigned = expense.project_id === "000-UNASSIGNED" || 
+                           expense.project_name?.includes("Unassigned");
+      const isPlaceholder = isUnassigned;
+      
+      // Skip split parent containers entirely in export
+      if (isSplitParent) continue;
       
       // Add parent expense row
       csvRows.push([

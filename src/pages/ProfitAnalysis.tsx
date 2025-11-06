@@ -133,6 +133,7 @@ export default function ProfitAnalysisPage() {
         invoice_number: expense.invoice_number,
         attachment_url: expense.attachment_url,
         is_planned: expense.is_planned,
+        is_split: expense.is_split,
         account_name: expense.account_name,
         account_full_name: expense.account_full_name,
         quickbooks_transaction_id: expense.quickbooks_transaction_id,
@@ -142,6 +143,12 @@ export default function ProfitAnalysisPage() {
         payee_name: expense.payees?.payee_name,
         project_name: expense.projects?.project_name
       }));
+
+      // Filter out SYS-000 split parent expenses
+      const displayableExpenses = transformedExpenses.filter(expense => {
+        const isSplitParent = expense.is_split && expense.project_id === 'SYS-000';
+        return !isSplitParent;
+      });
 
       // Transform projects
       const transformedProjects: Project[] = (projectsResult.data || []).map(project => ({
@@ -169,7 +176,7 @@ export default function ProfitAnalysisPage() {
 
       setEstimates(transformedEstimates);
       setQuotes(transformedQuotes);
-      setExpenses(transformedExpenses);
+      setExpenses(displayableExpenses);
       setProjects(transformedProjects);
     } catch (error) {
       console.error('Error loading data:', error);
