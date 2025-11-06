@@ -664,11 +664,32 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
                 <DollarSign className="h-3 w-3" />
                 Actual Cost to Date
               </div>
-              <div className="text-lg font-bold">
-                {formatCurrency(summary.totalActual)}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {summary.completionPercentage.toFixed(1)}% complete
+              <div className="space-y-2">
+                <div className="text-lg font-bold">
+                  {formatCurrency(summary.totalActual)}
+                </div>
+                
+                {/* Breakdown of allocated vs unallocated */}
+                <div className="text-xs space-y-1">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Allocated to line items:</span>
+                    <span className="font-medium text-foreground">
+                      {formatCurrency(summary.totalAllocated)}
+                    </span>
+                  </div>
+                  {summary.totalUnallocated > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-warning">Unallocated expenses:</span>
+                      <span className="font-medium text-warning">
+                        {formatCurrency(summary.totalUnallocated)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="text-xs text-muted-foreground">
+                  {summary.completionPercentage.toFixed(1)}% complete
+                </div>
               </div>
             </div>
           </div>

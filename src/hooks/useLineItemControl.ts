@@ -55,7 +55,9 @@ export interface LineItemControlSummary {
   totalContractValue: number;      // from project.contracted_amount
   totalQuotedWithInternal: number; // quoted costs + internal labor costs
   totalEstimatedCost: number;      // all estimated costs
-  totalActual: number;             // actual expenses
+  totalActual: number;             // actual expenses (all category-matched)
+  totalAllocated: number;          // explicitly allocated expenses only
+  totalUnallocated: number;        // assigned but not allocated
   totalVariance: number;           // totalQuotedWithInternal - totalEstimatedCost
   lineItemsWithQuotes: number;
   lineItemsOverBudget: number;
@@ -78,6 +80,8 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
     totalQuotedWithInternal: 0,
     totalEstimatedCost: 0,
     totalActual: 0,
+    totalAllocated: 0,
+    totalUnallocated: 0,
     totalVariance: 0,
     lineItemsWithQuotes: 0,
     lineItemsOverBudget: 0,
@@ -318,7 +322,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
       );
 
       setLineItems(processedLineItems);
-      setSummary(calculateSummary(processedLineItems, project));
+      setSummary(calculateSummary(processedLineItems, project, expenses || []));
 
     } catch (err) {
       console.error('Error fetching line item control data:', err);
@@ -456,8 +460,15 @@ function processLineItemData(
       0
     );
 
-    // Actual amount is ONLY explicitly allocated expenses (no category matching)
-    const actualAmount = allocatedAmount;
+    // Calculate actual amount from ALL expenses matching this category
+    const categoryMatchedExpenses = expenses.filter((exp: any) => 
+      exp.category === lineItem.category
+    );
+
+    const actualAmount = categoryMatchedExpenses.reduce(
+      (sum: number, exp: any) => sum + Number(exp.amount ?? 0),
+      0
+    );
 
     // Legacy variance (price-based actual vs estimate)
     const variance = actualAmount - estimatedPrice;
@@ -546,7 +557,7 @@ function processLineItemData(
   });
 }
 
-function calculateSummary(lineItems: LineItemControlData[], project: Project): LineItemControlSummary {
+function calculateSummary(lineItems: LineItemControlData[], project: Project, allProjectExpenses: any[]): LineItemControlSummary {
   // Total Estimated Cost: sum of all estimated costs (internal + external)
   const totalEstimatedCost = lineItems.reduce((sum, item) => sum + item.estimatedCost, 0);
   
@@ -561,8 +572,18 @@ function calculateSummary(lineItems: LineItemControlData[], project: Project): L
     }
   }, 0);
   
-  // Total Actual: expenses recorded (unchanged)
+  // Total Actual: ALL expenses for the project (category-matched)
   const totalActual = lineItems.reduce((sum, item) => sum + item.actualAmount, 0);
+  
+  // Total Allocated: explicitly allocated expenses only
+  const totalAllocated = lineItems.reduce((sum, item) => sum + item.allocatedAmount, 0);
+  
+  // Calculate unallocated from ALL project expenses
+  const totalProjectExpenses = allProjectExpenses.reduce(
+    (sum: number, exp: any) => sum + Number(exp.amount ?? 0),
+    0
+  );
+  const totalUnallocated = totalProjectExpenses - totalAllocated;
   
   // Total Variance: (Quoted + Internal) vs Estimated Cost
   // Positive = over budget (quotes came in higher than estimated)
@@ -596,6 +617,8 @@ function calculateSummary(lineItems: LineItemControlData[], project: Project): L
     totalQuotedWithInternal,
     totalEstimatedCost,
     totalActual,
+    totalAllocated,
+    totalUnallocated,
     totalVariance,
     lineItemsWithQuotes,
     lineItemsOverBudget,
