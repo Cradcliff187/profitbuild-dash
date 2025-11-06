@@ -789,14 +789,14 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
                 <div className="grid grid-cols-4 gap-4">
                   <Card>
                     <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">Estimated</div>
-                      <div className="text-lg font-bold">{formatCurrency(selectedLineItem.estimatedAmount)}</div>
+                      <div className="text-sm text-muted-foreground">Est. Cost</div>
+                      <div className="text-lg font-bold">{formatCurrency(selectedLineItem.estimatedCost)}</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">Quoted</div>
-                      <div className="text-lg font-bold">{formatCurrency(selectedLineItem.quotedAmount)}</div>
+                      <div className="text-sm text-muted-foreground">Quoted Cost</div>
+                      <div className="text-lg font-bold">{formatCurrency(selectedLineItem.quotedCost)}</div>
                     </CardContent>
                   </Card>
                   <Card>
@@ -810,9 +810,9 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
                       <div className="text-sm text-muted-foreground">Variance</div>
                       <div className={cn(
                         "text-lg font-bold",
-                        selectedLineItem.variance > 0 ? "text-destructive" : "text-muted-foreground"
+                        selectedLineItem.actualAmount - selectedLineItem.quotedCost > 0 ? "text-destructive" : "text-muted-foreground"
                       )}>
-                        {formatCurrency(selectedLineItem.variance)}
+                        {formatCurrency(selectedLineItem.actualAmount - selectedLineItem.quotedCost)}
                       </div>
                     </CardContent>
                   </Card>
@@ -823,15 +823,15 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
                   <div className="flex items-center justify-between text-sm mb-2">
                     <span className="text-muted-foreground">Completion Progress</span>
                     <span className="font-medium">
-                      {selectedLineItem.actualAmount > 0 && selectedLineItem.estimatedAmount > 0
-                        ? `${Math.min(Math.round((selectedLineItem.actualAmount / selectedLineItem.estimatedAmount) * 100), 100)}% of estimate`
+                      {selectedLineItem.actualAmount > 0 && selectedLineItem.quotedCost > 0
+                        ? `${Math.min(Math.round((selectedLineItem.actualAmount / selectedLineItem.quotedCost) * 100), 100)}% of quoted cost`
                         : 'Not started'
                       }
                     </span>
                   </div>
                   <Progress 
-                    value={selectedLineItem.actualAmount > 0 && selectedLineItem.estimatedAmount > 0 
-                      ? Math.min((selectedLineItem.actualAmount / selectedLineItem.estimatedAmount) * 100, 100) 
+                    value={selectedLineItem.actualAmount > 0 && selectedLineItem.quotedCost > 0 
+                      ? Math.min((selectedLineItem.actualAmount / selectedLineItem.quotedCost) * 100, 100) 
                       : 0
                     } 
                     className="h-3" 
