@@ -23,7 +23,8 @@ import {
   User,
   Search,
   FileText,
-  Building
+  Building,
+  X
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -92,6 +93,22 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     confidence: number;
   }>>([]);
   const { toast } = useToast();
+
+  const clearAllFilters = useCallback(() => {
+    setSearchTerm('');
+    setProjectFilter('all');
+    setStatusFilter('unaccounted');
+    toast({
+      title: "Filters Cleared",
+      description: "All filters have been reset to defaults."
+    });
+  }, [toast]);
+
+  const hasActiveFilters = useCallback(() => {
+    return searchTerm !== '' || 
+           projectFilter !== 'all' || 
+           statusFilter !== 'unaccounted';
+  }, [searchTerm, projectFilter, statusFilter]);
 
   useEffect(() => {
     loadAllocationData();
@@ -838,6 +855,20 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
             </SelectContent>
           </Select>
         </div>
+
+        {hasActiveFilters() && (
+          <div className="w-full sm:w-auto flex items-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAllFilters}
+              className="w-full sm:w-auto h-10"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Main Interface */}
