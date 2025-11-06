@@ -957,9 +957,37 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     return matchesProject && matchesStatus && matchesSplitStatus;
   });
 
+  // Determine which projects to show based on selected expenses
+  const getActiveProjectFilters = (): Set<string> => {
+    // If no expenses are selected, use the manual project filter
+    if (selectedExpenses.size === 0 && selectedSplits.size === 0) {
+      return projectFilter === 'all' 
+        ? new Set(projects.map(p => p.id)) 
+        : new Set([projectFilter]);
+    }
+    
+    // If expenses are selected, auto-filter to their projects
+    const projectIds = new Set<string>();
+    
+    expenses.forEach(exp => {
+      if (selectedExpenses.has(exp.id)) {
+        projectIds.add(exp.project_id);
+      }
+    });
+    
+    expenseSplits.forEach(split => {
+      if (selectedSplits.has(split.id)) {
+        projectIds.add(split.project_id);
+      }
+    });
+    
+    return projectIds;
+  };
+
+  const activeProjectFilters = getActiveProjectFilters();
+
   const filteredLineItems = lineItems.filter(item => {
-    const matchesProject = projectFilter === 'all' || item.project_id === projectFilter;
-    return matchesProject;
+    return activeProjectFilters.has(item.project_id);
   });
 
   const getStatusBadge = (status: string) => {
@@ -1060,7 +1088,11 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
         {!projectId && (
           <div className="w-full sm:w-48">
             <Label>Project Filter</Label>
-            <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <Select 
+              value={projectFilter} 
+              onValueChange={setProjectFilter}
+              disabled={selectedExpenses.size > 0 || selectedSplits.size > 0}
+            >
               <SelectTrigger>
                 <SelectValue>
                   {projectFilter === 'all' 
@@ -1081,6 +1113,11 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                 ))}
               </SelectContent>
             </Select>
+            {(selectedExpenses.size > 0 || selectedSplits.size > 0) && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Auto-filtering by selected expenses
+              </p>
+            )}
           </div>
         )}
 
@@ -1321,6 +1358,29 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 max-h-96 overflow-y-auto">
+            {(selectedExpenses.size > 0 || selectedSplits.size > 0) && (
+              <Alert className="mb-3">
+                <Target className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span className="text-sm">
+                    Showing line items from {activeProjectFilters.size === 1 
+                      ? 'the selected expense\'s project' 
+                      : `${activeProjectFilters.size} projects with selected expenses`}
+                  </span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      setSelectedExpenses(new Set());
+                      setSelectedSplits(new Set());
+                    }}
+                    className="h-7 px-2 text-xs ml-2"
+                  >
+                    Clear selection
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
             <Tabs defaultValue="estimates">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="estimates">Estimates</TabsTrigger>
