@@ -460,15 +460,8 @@ function processLineItemData(
       0
     );
 
-    // Calculate actual amount from ALL expenses matching this category
-    const categoryMatchedExpenses = expenses.filter((exp: any) => 
-      exp.category === lineItem.category
-    );
-
-    const actualAmount = categoryMatchedExpenses.reduce(
-      (sum: number, exp: any) => sum + Number(exp.amount ?? 0),
-      0
-    );
+    // Actual amount = explicitly allocated expenses only (no category matching)
+    const actualAmount = allocatedAmount;
 
     // Legacy variance (price-based actual vs estimate)
     const variance = actualAmount - estimatedPrice;
@@ -572,18 +565,20 @@ function calculateSummary(lineItems: LineItemControlData[], project: Project, al
     }
   }, 0);
   
-  // Total Actual: ALL expenses for the project (category-matched)
-  const totalActual = lineItems.reduce((sum, item) => sum + item.actualAmount, 0);
-  
-  // Total Allocated: explicitly allocated expenses only
-  const totalAllocated = lineItems.reduce((sum, item) => sum + item.allocatedAmount, 0);
-  
-  // Calculate unallocated from ALL project expenses
+  // Calculate total project expenses
   const totalProjectExpenses = allProjectExpenses.reduce(
     (sum: number, exp: any) => sum + Number(exp.amount ?? 0),
     0
   );
-  const totalUnallocated = totalProjectExpenses - totalAllocated;
+  
+  // Total Actual = explicitly allocated expenses only
+  const totalActual = lineItems.reduce((sum, item) => sum + item.allocatedAmount, 0);
+  
+  // Total Allocated = same as totalActual (explicitly correlated expenses)
+  const totalAllocated = totalActual;
+  
+  // Unallocated = project expenses not yet matched to any line item
+  const totalUnallocated = Math.max(0, totalProjectExpenses - totalAllocated);
   
   // Total Variance: (Quoted + Internal) vs Estimated Cost
   // Positive = over budget (quotes came in higher than estimated)
