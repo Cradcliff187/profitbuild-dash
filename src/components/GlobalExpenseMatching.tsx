@@ -9,6 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger 
+} from '@/components/ui/hover-card';
+import { 
   Target, 
   AlertTriangle, 
   CheckCircle, 
@@ -28,6 +33,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { fuzzyMatchPayee, type PartialPayee } from '@/utils/fuzzyPayeeMatcher';
+import { FuzzyMatchDetailsPanel } from '@/components/FuzzyMatchDetailsPanel';
 
 interface GlobalExpenseAllocationProps {
   onClose: () => void;
@@ -468,9 +474,18 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     return Math.min(confidence, 100);
   };
 
-  const handleBulkAssign = async (lineItemId: string) => {
-    const expenseIds = Array.from(selectedExpenses);
+  const handleBulkAssign = async (lineItemId: string, expenseIdsOverride?: string[]) => {
+    const expenseIds = expenseIdsOverride || Array.from(selectedExpenses);
     const lineItem = lineItems.find(li => li.id === lineItemId);
+    
+    if (expenseIds.length === 0) {
+      toast({
+        title: "No expenses selected",
+        description: "Please select at least one expense to allocate",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (!lineItem) return;
 
@@ -874,45 +889,99 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
               </TabsContent>
               
               <TabsContent value="quotes" className="space-y-3 mt-4">
-                {lineItems.filter(li => li.type === 'quote').map(item => (
-                  <div key={item.id} className="p-3 border rounded-lg">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{item.description}</div>
-                        {!projectId && (
-                          <div className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Building className="h-3 w-3" />
-                            {item.project_name}
+                {lineItems.filter(li => li.type === 'quote').map(item => {
+                  const showFuzzyMatchDetails = item.payee_name;
+                  const unallocatedExpenses = expenses
+                    .filter(exp => exp.match_status === 'unaccounted')
+                    .map(exp => ({
+                      id: exp.id,
+                      amount: exp.amount,
+                      expense_date: exp.expense_date,
+                      description: exp.description,
+                      category: exp.category,
+                      payee_name: exp.payee_name,
+                      project_name: exp.project_name
+                    }));
+
+                  const lineItemContent = (
+                    <div 
+                      className={cn(
+                        "p-3 border rounded-lg transition-all",
+                        showFuzzyMatchDetails && "hover:border-primary hover:shadow-sm cursor-help"
+                      )}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="font-medium text-sm">{item.description}</div>
+                            {showFuzzyMatchDetails && (
+                              <Badge variant="outline" className="text-[10px] h-4 px-1">
+                                Hover for matches
+                              </Badge>
+                            )}
                           </div>
-                        )}
-                        <div className="text-xs text-muted-foreground flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {item.payee_name}
+                          {!projectId && (
+                            <div className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Building className="h-3 w-3" />
+                              {item.project_name}
+                            </div>
+                          )}
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {item.payee_name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {CATEGORY_DISPLAY_MAP[item.category]} • Quote
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {CATEGORY_DISPLAY_MAP[item.category]} • Quote
+                        <div className="text-right">
+                          <div className="text-sm font-semibold">{formatCurrency(item.total)}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatCurrency(item.allocated_amount)} allocated
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold">{formatCurrency(item.total)}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatCurrency(item.allocated_amount)} allocated
-                        </div>
-                      </div>
+                      
+                      {selectedExpenses.size > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full mt-2"
+                          onClick={() => handleBulkAssign(item.id)}
+                        >
+                          Assign {selectedExpenses.size} expense{selectedExpenses.size === 1 ? '' : 's'}
+                        </Button>
+                      )}
                     </div>
-                    
-                    {selectedExpenses.size > 0 && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full mt-2"
-                        onClick={() => handleBulkAssign(item.id)}
-                      >
-                        Assign {selectedExpenses.size} expense{selectedExpenses.size === 1 ? '' : 's'}
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                  );
+
+                  if (showFuzzyMatchDetails) {
+                    return (
+                      <HoverCard key={item.id} openDelay={200} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                          {lineItemContent}
+                        </HoverCardTrigger>
+                        <HoverCardContent 
+                          side="left" 
+                          align="start" 
+                          className="w-96 p-3"
+                          sideOffset={10}
+                        >
+                          <FuzzyMatchDetailsPanel
+                            payeeName={item.payee_name!}
+                            unallocatedExpenses={unallocatedExpenses}
+                            onAllocateExpense={(expenseId) => {
+                              handleBulkAssign(item.id, [expenseId]);
+                            }}
+                            showAllocateButtons={true}
+                          />
+                        </HoverCardContent>
+                      </HoverCard>
+                    );
+                  }
+
+                  return <div key={item.id}>{lineItemContent}</div>;
+                })}
               </TabsContent>
               
               <TabsContent value="change_orders" className="space-y-3 mt-4">
