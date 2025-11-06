@@ -942,41 +942,6 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
                     )}
                   </div>
 
-                  {/* Expenses Section (Category Match) */}
-                  <div>
-                    <div className="font-medium mb-4 flex items-center gap-2">
-                      <DollarSign className="h-4 w-4" />
-                      Category-Matched Expenses ({selectedLineItem.expenses.length})
-                    </div>
-                    {selectedLineItem.expenses.length > 0 ? (
-                      <div className="space-y-3">
-                        {selectedLineItem.expenses.map((expense) => (
-                          <Card key={expense.id}>
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <div className="font-medium">{getExpensePayeeLabel(expense)}</div>
-                                  <div className="text-muted-foreground text-sm">
-                                    {format(new Date(expense.expense_date), 'MMM d, yyyy')}
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="font-medium">{formatCurrency(expense.amount)}</div>
-                                  <div className="text-xs text-muted-foreground capitalize">
-                                    {expense.transaction_type.replace(/_/g, ' ')}
-                                  </div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-muted-foreground italic text-center p-8 border-2 border-dashed border-muted rounded-lg">
-                        No expenses recorded for this category
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             )}
