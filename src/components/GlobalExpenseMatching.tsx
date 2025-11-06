@@ -38,6 +38,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { fuzzyMatchPayee, type PartialPayee } from '@/utils/fuzzyPayeeMatcher';
+import { canCorrelateExpense, validateExpensesForCorrelation } from '@/utils/expenseValidation';
 import { FuzzyMatchDetailsPanel } from '@/components/FuzzyMatchDetailsPanel';
 
 interface GlobalExpenseAllocationProps {
@@ -675,7 +676,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
   };
 
   const handleBulkAssign = async (lineItemId: string, expenseIdsOverride?: string[], splitIdsOverride?: string[]) => {
-    const expenseIds = expenseIdsOverride || Array.from(selectedExpenses);
+    let expenseIds = expenseIdsOverride || Array.from(selectedExpenses);
     const splitIds = splitIdsOverride || Array.from(selectedSplits);
     const lineItem = lineItems.find(li => li.id === lineItemId);
     
@@ -691,6 +692,32 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     if (!lineItem) return;
 
     try {
+      // Validate expenses before allocation - prevent correlating split parents
+      if (expenseIds.length > 0) {
+        const expensesToValidate = expenses.filter(e => expenseIds.includes(e.id));
+        const { valid, invalid } = validateExpensesForCorrelation(expensesToValidate);
+        
+        if (invalid.length > 0) {
+          toast({
+            title: "Some expenses skipped",
+            description: `${invalid.length} split parent expense(s) cannot be correlated. Only individual splits can be assigned.`,
+            variant: "destructive"
+          });
+          
+          // If all expenses are invalid, stop here
+          if (valid.length === 0 && splitIds.length === 0) {
+            toast({
+              title: "No valid expenses",
+              description: "All selected expenses are split parents. Please select individual split records instead.",
+              variant: "destructive"
+            });
+            return;
+          }
+        }
+        
+        // Update expenseIds to only include valid ones
+        expenseIds = valid.map(e => e.id);
+      }
       // Validate split allocations - splits can only be allocated to line items in the same project
       if (splitIds.length > 0) {
         const invalidSplits = expenseSplits.filter(split => 
@@ -1137,6 +1164,18 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                       }
                       setExpandedExpenses(newExpanded);
                     } else {
+                      // Validate before allowing selection
+                      const validation = canCorrelateExpense(expense);
+                      if (!validation.isValid) {
+                        toast({
+                          title: "Cannot select",
+                          description: validation.error,
+                          variant: "destructive",
+                          duration: 2000
+                        });
+                        return;
+                      }
+                      
                       const newSelected = new Set(selectedExpenses);
                       if (newSelected.has(expense.id)) {
                         newSelected.delete(expense.id);
