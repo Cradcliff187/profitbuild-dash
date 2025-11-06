@@ -543,12 +543,8 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
         return (
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="space-y-1 cursor-help w-20">
-                <Progress 
-                  value={completionPercent} 
-                  className="h-2" 
-                />
-                <div className="text-xs text-center text-muted-foreground">
+              <div className="cursor-help">
+                <div className="text-xs text-center text-muted-foreground font-medium">
                   {completionPercent}%
                 </div>
               </div>
