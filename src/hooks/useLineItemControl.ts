@@ -572,11 +572,21 @@ function processLineItemData(
     let remainingToAllocate = 0;
 
     if (isInternalCategory(lineItem.category)) {
-      allocationStatus = 'internal';
+      // Internal work: track allocation against ESTIMATED COST (no quotes needed)
+      remainingToAllocate = estimatedCost - allocatedAmount;
+      
+      if (allocatedAmount >= estimatedCost * 0.95) { // 95% threshold for "full"
+        allocationStatus = 'full';
+      } else if (allocatedAmount > 0) {
+        allocationStatus = 'partial';
+      } else {
+        allocationStatus = 'none';
+      }
     } else if (acceptedQuotes.length === 0) {
+      // External work without quotes yet
       allocationStatus = 'not_quoted';
     } else {
-      // Have accepted quotes - check if expenses are allocated
+      // External work with accepted quotes: track allocation against QUOTED COST
       remainingToAllocate = quotedCost - allocatedAmount;
       
       if (allocatedAmount >= quotedCost * 0.95) { // 95% threshold for "full"
