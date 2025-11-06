@@ -17,7 +17,7 @@ INSERT INTO projects (
 )
 VALUES (
   'SYS-000', 
-  'System - Split Parent Container',
+  'Multiple Projects',
   'System',
   'in_progress',
   'construction_project',
@@ -26,7 +26,7 @@ VALUES (
 )
 ON CONFLICT (project_number) DO UPDATE
 SET 
-  project_name = 'System - Split Parent Container',
+  project_name = 'Multiple Projects',
   updated_at = NOW();
 
 -- ============================================================================
