@@ -9,6 +9,7 @@ import { Estimate } from '@/types/estimate';
 import { VarianceBadge } from '@/components/ui/variance-badge';
 import { Database } from '@/integrations/supabase/types';
 import { formatCurrency } from '@/lib/utils';
+import { calculateProjectExpenses } from '@/utils/expenseSplits';
 
 interface ProjectExpenseTrackerProps {
   expenses: Expense[];
@@ -17,11 +18,19 @@ interface ProjectExpenseTrackerProps {
 }
 
 export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ expenses, estimates, changeOrders = [] }) => {
-  const calculateProjectSummary = (estimate: Estimate): ProjectExpenseSummary => {
+  const calculateProjectSummary = async (estimate: Estimate): Promise<ProjectExpenseSummary> => {
     const projectExpenses = expenses.filter(e => e.project_id === estimate.project_id);
-    const actualExpenses = projectExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const plannedExpenses = projectExpenses.filter(e => e.is_planned === true).reduce((sum, e) => sum + e.amount, 0);
-    const unplannedExpenses = projectExpenses.filter(e => e.is_planned === false).reduce((sum, e) => sum + e.amount, 0);
+    const actualExpenses = await calculateProjectExpenses(estimate.project_id, expenses);
+    
+    // Calculate planned/unplanned using split-aware logic
+    const plannedExpenses = await calculateProjectExpenses(
+      estimate.project_id, 
+      expenses.filter(e => e.is_planned === true)
+    );
+    const unplannedExpenses = await calculateProjectExpenses(
+      estimate.project_id, 
+      expenses.filter(e => e.is_planned === false)
+    );
     
     // Calculate estimated costs from line items
     const estimateLineItems = (estimate as any).estimate_line_items || [];
@@ -63,53 +72,75 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
     const percentageSpent = revisedContractTotal > 0 ? (actualExpenses / revisedContractTotal) * 100 : 0;
     const costUtilizationPercentage = estimatedTotalCost > 0 ? (actualExpenses / estimatedTotalCost) * 100 : 0;
 
+    // Calculate category breakdown with split-aware calculations
     const categoryBreakdown = {
       labor_internal: {
         estimated: 0,
         estimated_cost: categoryTotalsFromLineItems.labor_internal?.estimated_cost || 0,
-        actual: projectExpenses.filter(e => e.category === 'labor_internal').reduce((sum, e) => sum + e.amount, 0),
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'labor_internal')
+        ),
         variance: 0,
         cost_overrun: 0
       },
       subcontractors: {
         estimated: 0,
         estimated_cost: categoryTotalsFromLineItems.subcontractors?.estimated_cost || 0,
-        actual: projectExpenses.filter(e => e.category === 'subcontractors').reduce((sum, e) => sum + e.amount, 0),
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'subcontractors')
+        ),
         variance: 0,
         cost_overrun: 0
       },
       materials: {
         estimated: 0,
         estimated_cost: categoryTotalsFromLineItems.materials?.estimated_cost || 0,
-        actual: projectExpenses.filter(e => e.category === 'materials').reduce((sum, e) => sum + e.amount, 0),
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'materials')
+        ),
         variance: 0,
         cost_overrun: 0
       },
       equipment: {
         estimated: 0,
         estimated_cost: categoryTotalsFromLineItems.equipment?.estimated_cost || 0,
-        actual: projectExpenses.filter(e => e.category === 'equipment').reduce((sum, e) => sum + e.amount, 0),
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'equipment')
+        ),
         variance: 0,
         cost_overrun: 0
       },
       permits: {
         estimated: 0,
         estimated_cost: categoryTotalsFromLineItems.permits?.estimated_cost || 0,
-        actual: projectExpenses.filter(e => e.category === 'permits').reduce((sum, e) => sum + e.amount, 0),
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'permits')
+        ),
         variance: 0,
         cost_overrun: 0
       },
       management: {
         estimated: 0,
         estimated_cost: categoryTotalsFromLineItems.management?.estimated_cost || 0,
-        actual: projectExpenses.filter(e => e.category === 'management').reduce((sum, e) => sum + e.amount, 0),
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'management')
+        ),
         variance: 0,
         cost_overrun: 0
       },
       other: {
         estimated: 0,
         estimated_cost: categoryTotalsFromLineItems.other?.estimated_cost || 0,
-        actual: projectExpenses.filter(e => e.category === 'other').reduce((sum, e) => sum + e.amount, 0),
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'other')
+        ),
         variance: 0,
         cost_overrun: 0
       }
@@ -142,7 +173,15 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
     };
   };
 
-  const projectSummaries = estimates.map(calculateProjectSummary);
+  const [projectSummaries, setProjectSummaries] = React.useState<ProjectExpenseSummary[]>([]);
+
+  React.useEffect(() => {
+    const calculateSummaries = async () => {
+      const summaries = await Promise.all(estimates.map(calculateProjectSummary));
+      setProjectSummaries(summaries);
+    };
+    calculateSummaries();
+  }, [estimates, expenses, changeOrders]);
   const totalEstimated = projectSummaries.reduce((sum, p) => sum + p.estimate_total, 0);
   const totalEstimatedCosts = projectSummaries.reduce((sum, p) => sum + p.estimated_total_cost, 0);
   const totalApprovedChanges = projectSummaries.reduce((sum, p) => sum + p.approved_change_orders, 0);
