@@ -25,11 +25,14 @@ import {
   Search,
   FileText,
   Building,
-  X
+  X,
+  ChevronDown,
+  ChevronRight,
+  Split
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ExpenseCategory, EXPENSE_CATEGORY_DISPLAY } from '@/types/expense';
+import { ExpenseCategory, EXPENSE_CATEGORY_DISPLAY, type ExpenseSplit } from '@/types/expense';
 import { LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -57,6 +60,19 @@ interface EnhancedExpense {
   suggested_line_item_id?: string;
   suggested_quote_id?: string;
   confidence_score?: number;
+  is_split?: boolean;
+  splits?: ExpenseSplit[];
+}
+
+interface EnhancedExpenseSplit extends ExpenseSplit {
+  expense_amount: number;
+  expense_description?: string;
+  expense_category: ExpenseCategory;
+  expense_date: Date;
+  payee_name?: string;
+  match_status: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote';
+  suggested_line_item_id?: string;
+  confidence_score?: number;
 }
 
 interface LineItemForMatching {
@@ -82,14 +98,18 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
   const highlightExpenseId = searchParams.get('highlight');
   
   const [expenses, setExpenses] = useState<EnhancedExpense[]>([]);
+  const [expenseSplits, setExpenseSplits] = useState<EnhancedExpenseSplit[]>([]);
+  const [expandedExpenses, setExpandedExpenses] = useState<Set<string>>(new Set());
   const [lineItems, setLineItems] = useState<LineItemForMatching[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('unallocated');
+  const [splitStatusFilter, setSplitStatusFilter] = useState<string>('all');
   const [projectAssignmentFilter, setProjectAssignmentFilter] = useState<string>('all');
   const [allocationSource, setAllocationSource] = useState<'estimates' | 'quotes' | 'change_orders'>('estimates');
   const [selectedExpenses, setSelectedExpenses] = useState<Set<string>>(new Set());
+  const [selectedSplits, setSelectedSplits] = useState<Set<string>>(new Set());
   const [projects, setProjects] = useState<any[]>([]);
   const [showAutoAllocateDialog, setShowAutoAllocateDialog] = useState(false);
   const [previewAllocations, setPreviewAllocations] = useState<Array<{
@@ -121,6 +141,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     setSearchTerm('');
     setProjectFilter('all');
     setStatusFilter('unallocated');
+    setSplitStatusFilter('all');
     setProjectAssignmentFilter('all');
     toast({
       title: "Filters Cleared",
@@ -132,8 +153,9 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     return searchTerm !== '' || 
            projectFilter !== 'all' || 
            statusFilter !== 'unallocated' ||
+           splitStatusFilter !== 'all' ||
            projectAssignmentFilter !== 'all';
-  }, [searchTerm, projectFilter, statusFilter, projectAssignmentFilter]);
+  }, [searchTerm, projectFilter, statusFilter, splitStatusFilter, projectAssignmentFilter]);
 
   useEffect(() => {
     loadAllocationData();
@@ -145,8 +167,8 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
   const loadAllocationData = async () => {
     setIsLoading(true);
     try {
-      // Load all expenses with their current correlations
-      const [expensesResult, projectsResult, estimatesResult, quotesResult, changeOrdersResult, correlationsResult] = await Promise.all([
+      // Load all expenses with their current correlations and splits
+      const [expensesResult, splitsResult, projectsResult, estimatesResult, quotesResult, changeOrdersResult, correlationsResult] = await Promise.all([
         projectId 
           ? supabase
               .from('expenses')
@@ -158,10 +180,43 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
               .eq('project_id', projectId)
           : supabase
               .from('expenses')
+               .select(`
+                 *,
+                 payees (payee_name),
+                 projects (project_name, project_number)
+               `),
+        // Load expense splits with project information
+        projectId
+          ? supabase
+              .from('expense_splits')
               .select(`
                 *,
-                payees (payee_name),
-                projects (project_name, project_number)
+                projects (project_name, project_number),
+                expenses!inner (
+                  amount,
+                  description,
+                  category,
+                  expense_date,
+                  payee_id,
+                  project_id,
+                  payees (payee_name)
+                )
+              `)
+              .eq('expenses.project_id', projectId)
+          : supabase
+              .from('expense_splits')
+              .select(`
+                *,
+                projects (project_name, project_number),
+                expenses!inner (
+                  amount,
+                  description,
+                  category,
+                  expense_date,
+                  payee_id,
+                  project_id,
+                  payees (payee_name)
+                )
               `),
         supabase
           .from('projects')
@@ -255,6 +310,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       ]);
 
       const rawExpenses = expensesResult.data || [];
+      const rawSplits = splitsResult.data || [];
       const correlations = correlationsResult.data || [];
       const projects = projectsResult.data || [];
       const estimates = estimatesResult.data || [];
@@ -315,26 +371,41 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
 
       const allLineItems = [...estimateLineItems, ...quoteLineItems, ...changeOrderLineItems];
 
-      // Calculate allocated amounts
+      // Calculate allocated amounts (from both full expenses and splits)
       correlations.forEach(correlation => {
-        const expense = rawExpenses.find(e => e.id === correlation.expense_id);
+        let allocatedAmount = 0;
+        
+        // Check if it's a split allocation
+        if (correlation.expense_split_id) {
+          const split = rawSplits.find(s => s.id === correlation.expense_split_id);
+          if (split) {
+            allocatedAmount = split.split_amount;
+          }
+        } else {
+          // Regular expense allocation
+          const expense = rawExpenses.find(e => e.id === correlation.expense_id);
+          if (expense) {
+            allocatedAmount = expense.amount;
+          }
+        }
+        
         const lineItem = allLineItems.find(li => 
           li.id === correlation.estimate_line_item_id || 
           (correlation.quote_id && li.source_id === correlation.quote_id) ||
           li.id === correlation.change_order_line_item_id
         );
         
-        if (expense && lineItem) {
-          lineItem.allocated_amount += expense.amount;
+        if (lineItem) {
+          lineItem.allocated_amount += allocatedAmount;
         }
       });
 
-      // Process expenses with match status
+      // Process expenses with match status and splits
       const enhancedExpenses: EnhancedExpense[] = rawExpenses.map(expense => {
-        const correlation = correlations.find(c => c.expense_id === expense.id);
+        const correlation = correlations.find(c => c.expense_id === expense.id && !c.expense_split_id);
         let matchStatus: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' = 'unallocated';
         
-        // Simplified: if ANY correlation exists, it's allocated
+        // Check if ANY non-split correlation exists for this expense
         if (correlation) {
           if (correlation.estimate_line_item_id) {
             matchStatus = 'allocated_to_estimate';
@@ -342,6 +413,15 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
             matchStatus = 'allocated_to_quote';
           }
         }
+
+        // Get splits for this expense and convert dates
+        const expenseSplits = rawSplits
+          .filter(s => s.expense_id === expense.id)
+          .map(s => ({
+            ...s,
+            created_at: new Date(s.created_at),
+            updated_at: new Date(s.updated_at)
+          }));
 
         return {
           id: expense.id,
@@ -356,11 +436,54 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
           project_number: expense.projects?.project_number,
           match_status: matchStatus,
           suggested_line_item_id: suggestLineItemAllocation(expense, allLineItems),
-          confidence_score: calculateMatchConfidence(expense, allLineItems)
+          confidence_score: calculateMatchConfidence(expense, allLineItems),
+          is_split: expense.is_split || false,
+          splits: expenseSplits
+        };
+      });
+
+      // Process expense splits as allocatable items
+      const enhancedSplits: EnhancedExpenseSplit[] = rawSplits.map(split => {
+        const parentExpense = rawExpenses.find(e => e.id === split.expense_id);
+        const correlation = correlations.find(c => c.expense_split_id === split.id);
+        let matchStatus: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' = 'unallocated';
+        
+        if (correlation) {
+          if (correlation.estimate_line_item_id) {
+            matchStatus = 'allocated_to_estimate';
+          } else if (correlation.quote_id) {
+            matchStatus = 'allocated_to_quote';
+          }
+        }
+
+        // Create a temporary expense object for suggestion logic
+        const tempExpense = {
+          ...split,
+          amount: split.split_amount,
+          category: parentExpense?.category,
+          payee_id: parentExpense?.payee_id,
+          payee_name: parentExpense?.payees?.payee_name,
+          description: parentExpense?.description,
+          expense_date: parentExpense?.expense_date
+        };
+
+        return {
+          ...split,
+          created_at: new Date(split.created_at),
+          updated_at: new Date(split.updated_at),
+          expense_amount: parentExpense?.amount || 0,
+          expense_description: parentExpense?.description,
+          expense_category: parentExpense?.category as ExpenseCategory,
+          expense_date: new Date(parentExpense?.expense_date || new Date()),
+          payee_name: parentExpense?.payees?.payee_name,
+          match_status: matchStatus,
+          suggested_line_item_id: suggestLineItemAllocation(tempExpense, allLineItems),
+          confidence_score: calculateMatchConfidence(tempExpense, allLineItems)
         };
       });
 
       setExpenses(enhancedExpenses);
+      setExpenseSplits(enhancedSplits);
       setLineItems(allLineItems);
       setProjects(projects);
     } catch (error) {
@@ -549,14 +672,15 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     return Math.min(confidence, 100);
   };
 
-  const handleBulkAssign = async (lineItemId: string, expenseIdsOverride?: string[]) => {
+  const handleBulkAssign = async (lineItemId: string, expenseIdsOverride?: string[], splitIdsOverride?: string[]) => {
     const expenseIds = expenseIdsOverride || Array.from(selectedExpenses);
+    const splitIds = splitIdsOverride || Array.from(selectedSplits);
     const lineItem = lineItems.find(li => li.id === lineItemId);
     
-    if (expenseIds.length === 0) {
+    if (expenseIds.length === 0 && splitIds.length === 0) {
       toast({
-        title: "No expenses selected",
-        description: "Please select at least one expense to allocate",
+        title: "No expenses or splits selected",
+        description: "Please select at least one expense or split to allocate",
         variant: "destructive"
       });
       return;
@@ -565,16 +689,53 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     if (!lineItem) return;
 
     try {
-      // Create correlations for selected expenses
-      const correlations = expenseIds.map(expenseId => ({
-        expense_id: expenseId,
-        estimate_line_item_id: lineItem.type === 'estimate' ? lineItem.id : null,
-        quote_id: lineItem.type === 'quote' ? lineItem.source_id : null,
-        change_order_line_item_id: lineItem.type === 'change_order' ? lineItem.id : null,
-        correlation_type: lineItem.type === 'estimate' ? 'estimated' : lineItem.type === 'quote' ? 'quoted' : 'change_order',
-        auto_correlated: false,
-        notes: 'Manually assigned via Global Expense Allocation'
-      }));
+      // Validate split allocations - splits can only be allocated to line items in the same project
+      if (splitIds.length > 0) {
+        const invalidSplits = expenseSplits.filter(split => 
+          splitIds.includes(split.id) && split.project_id !== lineItem.project_id
+        );
+        
+        if (invalidSplits.length > 0) {
+          toast({
+            title: "Invalid Split Allocation",
+            description: `Cannot allocate splits to line items in different projects. ${invalidSplits.length} split(s) belong to different projects.`,
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
+      const correlations = [];
+
+      // Create correlations for regular expenses
+      if (expenseIds.length > 0) {
+        correlations.push(...expenseIds.map(expenseId => ({
+          expense_id: expenseId,
+          estimate_line_item_id: lineItem.type === 'estimate' ? lineItem.id : null,
+          quote_id: lineItem.type === 'quote' ? lineItem.source_id : null,
+          change_order_line_item_id: lineItem.type === 'change_order' ? lineItem.id : null,
+          correlation_type: lineItem.type === 'estimate' ? 'estimated' : lineItem.type === 'quote' ? 'quoted' : 'change_order',
+          auto_correlated: false,
+          notes: 'Manually assigned via Global Expense Allocation'
+        })));
+      }
+
+      // Create correlations for expense splits
+      if (splitIds.length > 0) {
+        correlations.push(...splitIds.map(splitId => {
+          const split = expenseSplits.find(s => s.id === splitId);
+          return {
+            expense_id: split?.expense_id,
+            expense_split_id: splitId,
+            estimate_line_item_id: lineItem.type === 'estimate' ? lineItem.id : null,
+            quote_id: lineItem.type === 'quote' ? lineItem.source_id : null,
+            change_order_line_item_id: lineItem.type === 'change_order' ? lineItem.id : null,
+            correlation_type: lineItem.type === 'estimate' ? 'estimated' : lineItem.type === 'quote' ? 'quoted' : 'change_order',
+            auto_correlated: false,
+            notes: 'Manually assigned split via Global Expense Allocation'
+          };
+        }));
+      }
 
       const { error: correlationError } = await supabase
         .from('expense_line_item_correlations')
@@ -582,20 +743,24 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
 
       if (correlationError) throw correlationError;
 
-      // Update expenses to mark them as planned
-      const { error: updateError } = await supabase
-        .from('expenses')
-        .update({ is_planned: true })
-        .in('id', expenseIds);
+      // Update expenses to mark them as planned (only for non-split expenses)
+      if (expenseIds.length > 0) {
+        const { error: updateError } = await supabase
+          .from('expenses')
+          .update({ is_planned: true })
+          .in('id', expenseIds);
 
-      if (updateError) throw updateError;
+        if (updateError) throw updateError;
+      }
 
+      const totalAllocated = expenseIds.length + splitIds.length;
       toast({
-        title: "Expenses Allocated",
-        description: `Allocated ${expenseIds.length} expense${expenseIds.length === 1 ? '' : 's'} to ${lineItem.type === 'estimate' ? 'estimate' : lineItem.type === 'quote' ? 'quote' : 'change order'} line item.`
+        title: "Allocation Complete",
+        description: `Allocated ${totalAllocated} item${totalAllocated === 1 ? '' : 's'} (${expenseIds.length} expense${expenseIds.length === 1 ? '' : 's'}, ${splitIds.length} split${splitIds.length === 1 ? '' : 's'}) to ${lineItem.type} line item.`
       });
       
       setSelectedExpenses(new Set());
+      setSelectedSplits(new Set());
       loadAllocationData();
     } catch (error) {
       console.error('Error allocating expenses:', error);
@@ -715,6 +880,12 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     const matchesProject = projectFilter === 'all' || expense.project_id === projectFilter;
     const matchesStatus = statusFilter === 'all' || expense.match_status === statusFilter;
     
+    // Split status filter
+    const matchesSplitStatus = 
+      splitStatusFilter === 'all' ||
+      (splitStatusFilter === 'split' && expense.is_split) ||
+      (splitStatusFilter === 'unsplit' && !expense.is_split);
+    
     // Project assignment filter
     const isSystemProject = expense.project_number === 'SYS-000' || expense.project_number === '000-UNASSIGNED';
     const matchesProjectAssignment = 
@@ -722,7 +893,20 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       (projectAssignmentFilter === 'real_projects' && !isSystemProject) ||
       (projectAssignmentFilter === 'system_projects' && isSystemProject);
     
-    return matchesSearch && matchesProject && matchesStatus && matchesProjectAssignment;
+    return matchesSearch && matchesProject && matchesStatus && matchesSplitStatus && matchesProjectAssignment;
+  });
+
+  const filteredSplits = expenseSplits.filter(split => {
+    const matchesProject = projectFilter === 'all' || split.project_id === projectFilter;
+    const matchesStatus = statusFilter === 'all' || split.match_status === statusFilter;
+    
+    // Only show splits if the parent expense passes the split filter
+    const parentExpense = expenses.find(e => e.id === split.expense_id);
+    const matchesSplitStatus = 
+      splitStatusFilter === 'all' ||
+      (splitStatusFilter === 'split' && parentExpense?.is_split);
+    
+    return matchesProject && matchesStatus && matchesSplitStatus;
   });
 
   const filteredLineItems = lineItems.filter(item => {
@@ -845,6 +1029,20 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
         </div>
 
         <div className="w-full sm:w-48">
+          <Label>Split Status</Label>
+          <Select value={splitStatusFilter} onValueChange={setSplitStatusFilter}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="split">Split Only</SelectItem>
+              <SelectItem value="unsplit">Unsplit Only</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="w-full sm:w-48">
           <Label>Assignment Status</Label>
           <Select value={projectAssignmentFilter} onValueChange={setProjectAssignmentFilter}>
             <SelectTrigger>
@@ -886,66 +1084,137 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
               Expenses ({filteredExpenses.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 max-h-96 overflow-y-auto">
+          <CardContent className="space-y-2 max-h-96 overflow-y-auto">
             {filteredExpenses.map(expense => (
-              <div
-                key={expense.id}
-                id={`expense-${expense.id}`}
-                className={cn(
-                  "p-3 border rounded-lg cursor-pointer transition-colors",
-                  selectedExpenses.has(expense.id) ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50",
-                  highlightExpenseId === expense.id && "ring-2 ring-primary ring-offset-2"
-                )}
-                onClick={() => {
-                  const newSelected = new Set(selectedExpenses);
-                  if (newSelected.has(expense.id)) {
-                    newSelected.delete(expense.id);
-                  } else {
-                    newSelected.add(expense.id);
-                  }
-                  setSelectedExpenses(newSelected);
-                }}
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold">{formatCurrency(expense.amount)}</span>
-                    {getStatusBadge(expense.match_status)}
-                    <Badge
-                      variant={
-                        expense.project_id === "000-UNASSIGNED" || 
-                        expense.project_name === "000-UNASSIGNED"
-                          ? "secondary"
-                          : "default"
-                      }
-                      className="text-xs"
-                    >
-                      {expense.project_id === "000-UNASSIGNED" || 
-                       expense.project_name === "000-UNASSIGNED"
-                        ? "Needs Assignment"
-                        : "Assigned"
-                      }
-                    </Badge>
-                  </div>
-                  <div className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {format(expense.expense_date, 'MMM dd')}
-                  </div>
-                </div>
-                
-                <div className="text-sm mb-1 font-medium">{expense.payee_name || 'No payee'}</div>
-                
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  {!projectId && expense.project_name && (
-                    <div className="flex items-center gap-1">
-                      <Building className="h-3 w-3" />
-                      {expense.project_name}
-                    </div>
+              <div key={expense.id}>
+                {/* Parent Expense Row */}
+                <div
+                  id={`expense-${expense.id}`}
+                  className={cn(
+                    "p-3 border rounded-lg transition-colors",
+                    expense.is_split ? "cursor-default" : "cursor-pointer",
+                    !expense.is_split && selectedExpenses.has(expense.id) && "border-primary bg-primary/5",
+                    !expense.is_split && "hover:bg-muted/50",
+                    highlightExpenseId === expense.id && "ring-2 ring-primary ring-offset-2"
                   )}
-                  <div className="flex items-center gap-1">
-                    <FileText className="h-3 w-3" />
-                    {EXPENSE_CATEGORY_DISPLAY[expense.category]}
+                  onClick={() => {
+                    if (expense.is_split) {
+                      const newExpanded = new Set(expandedExpenses);
+                      if (newExpanded.has(expense.id)) {
+                        newExpanded.delete(expense.id);
+                      } else {
+                        newExpanded.add(expense.id);
+                      }
+                      setExpandedExpenses(newExpanded);
+                    } else {
+                      const newSelected = new Set(selectedExpenses);
+                      if (newSelected.has(expense.id)) {
+                        newSelected.delete(expense.id);
+                      } else {
+                        newSelected.add(expense.id);
+                      }
+                      setSelectedExpenses(newSelected);
+                    }
+                  }}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {expense.is_split && (
+                        expandedExpenses.has(expense.id) 
+                          ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <span className="font-semibold">{formatCurrency(expense.amount)}</span>
+                      {expense.is_split && (
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <Split className="h-3 w-3" />
+                          Split ({expense.splits?.length || 0})
+                        </Badge>
+                      )}
+                      {!expense.is_split && getStatusBadge(expense.match_status)}
+                      <Badge
+                        variant={
+                          expense.project_id === "000-UNASSIGNED" || 
+                          expense.project_name === "000-UNASSIGNED"
+                            ? "secondary"
+                            : "default"
+                        }
+                        className="text-xs"
+                      >
+                        {expense.project_id === "000-UNASSIGNED" || 
+                         expense.project_name === "000-UNASSIGNED"
+                          ? "Needs Assignment"
+                          : "Assigned"
+                        }
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {format(expense.expense_date, 'MMM dd')}
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm mb-1 font-medium">{expense.payee_name || 'No payee'}</div>
+                  
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    {!projectId && expense.project_name && (
+                      <div className="flex items-center gap-1">
+                        <Building className="h-3 w-3" />
+                        {expense.project_name}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <FileText className="h-3 w-3" />
+                      {EXPENSE_CATEGORY_DISPLAY[expense.category]}
+                    </div>
                   </div>
                 </div>
+
+                {/* Split Rows (Expandable) */}
+                {expense.is_split && expandedExpenses.has(expense.id) && (
+                  <div className="ml-6 mt-2 space-y-2 border-l-2 border-muted pl-3">
+                    {filteredSplits
+                      .filter(split => split.expense_id === expense.id)
+                      .map(split => (
+                        <div
+                          key={split.id}
+                          className={cn(
+                            "p-2 border rounded-lg cursor-pointer transition-colors bg-muted/30",
+                            selectedSplits.has(split.id) ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const newSelected = new Set(selectedSplits);
+                            if (newSelected.has(split.id)) {
+                              newSelected.delete(split.id);
+                            } else {
+                              newSelected.add(split.id);
+                            }
+                            setSelectedSplits(newSelected);
+                          }}
+                        >
+                          <div className="flex justify-between items-start mb-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-sm">{formatCurrency(split.split_amount)}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ({((split.split_amount / expense.amount) * 100).toFixed(1)}%)
+                              </span>
+                              {getStatusBadge(split.match_status)}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Building className="h-3 w-3" />
+                            {split.project_name || 'Unknown Project'}
+                          </div>
+                          {split.notes && (
+                            <div className="text-xs text-muted-foreground mt-1 italic">
+                              {split.notes}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
             ))}
             
@@ -998,16 +1267,16 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                       </div>
                     </div>
                     
-                    {selectedExpenses.size > 0 && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full mt-2"
-                        onClick={() => handleBulkAssign(item.id)}
-                      >
-                        Assign {selectedExpenses.size} expense{selectedExpenses.size === 1 ? '' : 's'}
-                      </Button>
-                    )}
+                      {(selectedExpenses.size > 0 || selectedSplits.size > 0) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full mt-2"
+                          onClick={() => handleBulkAssign(item.id)}
+                        >
+                          Assign {selectedExpenses.size + selectedSplits.size} item{selectedExpenses.size + selectedSplits.size === 1 ? '' : 's'}
+                        </Button>
+                      )}
                   </div>
                 ))}
               </TabsContent>
@@ -1070,16 +1339,16 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                         </div>
                       </div>
                       
-                      {selectedExpenses.size > 0 && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="w-full mt-2"
-                          onClick={() => handleBulkAssign(item.id)}
-                        >
-                          Assign {selectedExpenses.size} expense{selectedExpenses.size === 1 ? '' : 's'}
-                        </Button>
-                      )}
+                    {(selectedExpenses.size > 0 || selectedSplits.size > 0) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full mt-2"
+                        onClick={() => handleBulkAssign(item.id)}
+                      >
+                        Assign {selectedExpenses.size + selectedSplits.size} item{selectedExpenses.size + selectedSplits.size === 1 ? '' : 's'}
+                      </Button>
+                    )}
                     </div>
                   );
 
@@ -1142,14 +1411,14 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                       </div>
                     </div>
                     
-                    {selectedExpenses.size > 0 && (
+                    {(selectedExpenses.size > 0 || selectedSplits.size > 0) && (
                       <Button
                         size="sm"
                         variant="outline"
                         className="w-full mt-2"
                         onClick={() => handleBulkAssign(item.id)}
                       >
-                        Allocate {selectedExpenses.size} expense{selectedExpenses.size === 1 ? '' : 's'}
+                        Allocate {selectedExpenses.size + selectedSplits.size} item{selectedExpenses.size + selectedSplits.size === 1 ? '' : 's'}
                       </Button>
                     )}
                   </div>
