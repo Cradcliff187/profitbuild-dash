@@ -87,6 +87,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
   const [searchTerm, setSearchTerm] = useState('');
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('unallocated');
+  const [projectAssignmentFilter, setProjectAssignmentFilter] = useState<string>('all');
   const [allocationSource, setAllocationSource] = useState<'estimates' | 'quotes' | 'change_orders'>('estimates');
   const [selectedExpenses, setSelectedExpenses] = useState<Set<string>>(new Set());
   const [projects, setProjects] = useState<any[]>([]);
@@ -120,6 +121,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     setSearchTerm('');
     setProjectFilter('all');
     setStatusFilter('unallocated');
+    setProjectAssignmentFilter('all');
     toast({
       title: "Filters Cleared",
       description: "All filters have been reset to defaults."
@@ -129,8 +131,9 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
   const hasActiveFilters = useCallback(() => {
     return searchTerm !== '' || 
            projectFilter !== 'all' || 
-           statusFilter !== 'unallocated';
-  }, [searchTerm, projectFilter, statusFilter]);
+           statusFilter !== 'unallocated' ||
+           projectAssignmentFilter !== 'all';
+  }, [searchTerm, projectFilter, statusFilter, projectAssignmentFilter]);
 
   useEffect(() => {
     loadAllocationData();
@@ -712,7 +715,14 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     const matchesProject = projectFilter === 'all' || expense.project_id === projectFilter;
     const matchesStatus = statusFilter === 'all' || expense.match_status === statusFilter;
     
-    return matchesSearch && matchesProject && matchesStatus;
+    // Project assignment filter
+    const isSystemProject = expense.project_number === 'SYS-000' || expense.project_number === '000-UNASSIGNED';
+    const matchesProjectAssignment = 
+      projectAssignmentFilter === 'all' ||
+      (projectAssignmentFilter === 'real_projects' && !isSystemProject) ||
+      (projectAssignmentFilter === 'system_projects' && isSystemProject);
+    
+    return matchesSearch && matchesProject && matchesStatus && matchesProjectAssignment;
   });
 
   const filteredLineItems = lineItems.filter(item => {
@@ -830,6 +840,20 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
               <SelectItem value="unallocated">Unallocated</SelectItem>
               <SelectItem value="allocated_to_estimate">Allocated to Estimate</SelectItem>
               <SelectItem value="allocated_to_quote">Allocated to Quote</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="w-full sm:w-48">
+          <Label>Assignment Status</Label>
+          <Select value={projectAssignmentFilter} onValueChange={setProjectAssignmentFilter}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Expenses</SelectItem>
+              <SelectItem value="real_projects">Real Projects Only</SelectItem>
+              <SelectItem value="system_projects">System Projects Only</SelectItem>
             </SelectContent>
           </Select>
         </div>
