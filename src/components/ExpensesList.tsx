@@ -43,7 +43,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   const [filterApprovalStatus, setFilterApprovalStatus] = useState<string>("all");
   const [selectedExpenses, setSelectedExpenses] = useState<string[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
-  const [expenseMatches, setExpenseMatches] = useState<Record<string, boolean>>({});
+  const [expenseMatches, setExpenseMatches] = useState<Record<string, { matched: boolean; type?: 'estimate' | 'quote' | 'change_order' }>>({});
   const { toast } = useToast();
 
   // Load projects for filter dropdown
@@ -73,14 +73,28 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       try {
         const { data, error } = await supabase
           .from("expense_line_item_correlations")
-          .select("expense_id")
+          .select("expense_id, correlation_type, estimate_line_item_id, quote_id, change_order_line_item_id")
           .in("expense_id", expenses.map(e => e.id));
         
         if (error) throw error;
         
-        const matches: Record<string, boolean> = {};
+        const matches: Record<string, { matched: boolean; type?: 'estimate' | 'quote' | 'change_order' }> = {};
         expenses.forEach(expense => {
-          matches[expense.id] = data?.some(correlation => correlation.expense_id === expense.id) || false;
+          const correlation = data?.find(c => c.expense_id === expense.id);
+          if (correlation) {
+            // Determine type based on which ID field is populated
+            let type: 'estimate' | 'quote' | 'change_order' = 'estimate';
+            if (correlation.quote_id) {
+              type = 'quote';
+            } else if (correlation.change_order_line_item_id) {
+              type = 'change_order';
+            } else if (correlation.estimate_line_item_id) {
+              type = 'estimate';
+            }
+            matches[expense.id] = { matched: true, type };
+          } else {
+            matches[expense.id] = { matched: false };
+          }
         });
         
         setExpenseMatches(matches);
@@ -108,9 +122,9 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       
       let matchesMatchStatus = true;
       if (filterMatchStatus === "matched") {
-        matchesMatchStatus = expenseMatches[expense.id] === true;
+        matchesMatchStatus = expenseMatches[expense.id]?.matched === true;
       } else if (filterMatchStatus === "unmatched") {
-        matchesMatchStatus = expenseMatches[expense.id] === false;
+        matchesMatchStatus = expenseMatches[expense.id]?.matched === false;
       } else if (filterMatchStatus === "unassigned") {
         matchesMatchStatus = expense.project_id === "000-UNASSIGNED" || expense.project_name?.includes("Unassigned");
       }
@@ -205,7 +219,9 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           `"${TRANSACTION_TYPE_DISPLAY[expense.transaction_type] || expense.transaction_type}"`,
           expense.amount,
           (expense.approval_status || 'pending').charAt(0).toUpperCase() + (expense.approval_status || 'pending').slice(1),
-          isPlaceholder ? '—' : (expenseMatches[expense.id] ? 'Allocated' : 'Unallocated')
+          isPlaceholder ? '—' : (expenseMatches[expense.id]?.matched 
+            ? `Allocated (${expenseMatches[expense.id].type})` 
+            : 'Unallocated')
         ].join(',');
       })
     ].join('\n');
@@ -384,11 +400,16 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         }
         
         // Show allocation status for real projects
-        if (expenseMatches[expense.id]) {
+        const match = expenseMatches[expense.id];
+        if (match?.matched) {
+          const displayType = match.type === 'estimate' ? 'Estimate' 
+                            : match.type === 'quote' ? 'Quote'
+                            : 'Change Order';
+          
           return (
             <Badge variant="outline" className="compact-badge text-success border-success/50">
               <CheckCircle2 className="h-3 w-3 mr-1" />
-              → Estimate
+              → {displayType}
             </Badge>
           );
         }
