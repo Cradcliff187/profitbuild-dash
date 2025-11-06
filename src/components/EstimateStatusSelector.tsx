@@ -199,11 +199,6 @@ export const EstimateStatusSelector = ({
           description: `${estimateNumber} status changed to ${newStatus}`,
         });
       } else {
-        toast({
-          title: "Status Updated",
-          description: `${estimateNumber} status changed to ${newStatus}`,
-        });
-      } else {
         // For all other status changes (not involving approval)
         const { error: updateError } = await supabase
           .from('estimates')
