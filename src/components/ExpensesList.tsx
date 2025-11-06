@@ -313,7 +313,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         }
         
         return (
-          <Badge variant="default" className="compact-badge text-success border-success/50">
+          <Badge variant="outline" className="compact-badge text-success border-success/50">
             <CheckCircle2 className="h-3 w-3 mr-1" />
             Assigned
           </Badge>
@@ -386,7 +386,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         // Show allocation status for real projects
         if (expenseMatches[expense.id]) {
           return (
-            <Badge variant="default" className="compact-badge text-success">
+            <Badge variant="outline" className="compact-badge text-success border-success/50">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               → Estimate
             </Badge>
