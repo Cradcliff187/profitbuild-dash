@@ -30,15 +30,43 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
 
   const allocatedExpenseIds = new Set(correlations.map(c => c.expense_id));
   
-  // Calculate summary statistics
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const allocatedExpenses = expenses.filter(e => allocatedExpenseIds.has(e.id)).reduce((sum, e) => sum + e.amount, 0);
-  const unallocatedExpenses = expenses.filter(e => !allocatedExpenseIds.has(e.id)).reduce((sum, e) => sum + e.amount, 0);
+  // Fetch expense splits for accurate calculations
+  const { data: expenseSplits = [] } = useQuery({
+    queryKey: ['expense-splits-dashboard'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('expense_splits')
+        .select('expense_id, split_amount');
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Group splits by expense_id
+  const splitsByExpense = expenseSplits.reduce((acc, split) => {
+    if (!acc[split.expense_id]) acc[split.expense_id] = [];
+    acc[split.expense_id].push(split);
+    return acc;
+  }, {} as Record<string, typeof expenseSplits>);
+
+  // Helper function to get the actual expense amount (considering splits)
+  const getExpenseAmount = (expense: Expense) => {
+    if (expense.is_split && expense.id && splitsByExpense[expense.id]) {
+      // For split expenses, sum all split amounts
+      return splitsByExpense[expense.id].reduce((sum, s) => sum + s.split_amount, 0);
+    }
+    return expense.amount;
+  };
+  
+  // Calculate summary statistics (using split-aware amounts)
+  const totalExpenses = expenses.reduce((sum, expense) => sum + getExpenseAmount(expense), 0);
+  const allocatedExpenses = expenses.filter(e => allocatedExpenseIds.has(e.id)).reduce((sum, e) => sum + getExpenseAmount(e), 0);
+  const unallocatedExpenses = expenses.filter(e => !allocatedExpenseIds.has(e.id)).reduce((sum, e) => sum + getExpenseAmount(e), 0);
   const thisMonthExpenses = expenses.filter(e => {
     const now = new Date();
     const expenseDate = new Date(e.expense_date);
     return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear();
-  }).reduce((sum, e) => sum + e.amount, 0);
+  }).reduce((sum, e) => sum + getExpenseAmount(e), 0);
 
   // Calculate unassigned expenses
   const unassignedExpenses = expenses.filter(e => 
@@ -50,9 +78,9 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
   // Count of unallocated expenses
   const unallocatedCount = expenses.filter(e => !allocatedExpenseIds.has(e.id)).length;
 
-  // Calculate split expense metrics
+  // Calculate split expense metrics (show original amounts before splitting)
   const splitExpenses = expenses.filter(e => e.is_split);
-  const splitExpenseAmount = splitExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const splitExpenseAmount = splitExpenses.reduce((sum, e) => sum + e.amount, 0); // Original amount
   const splitExpenseCount = splitExpenses.length;
 
   // Recent expenses (last 5)
@@ -60,9 +88,9 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
-  // Category breakdown
+  // Category breakdown (using split-aware amounts)
   const categoryTotals = expenses.reduce((acc, expense) => {
-    acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+    acc[expense.category] = (acc[expense.category] || 0) + getExpenseAmount(expense);
     return acc;
   }, {} as Record<string, number>);
 

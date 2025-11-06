@@ -262,10 +262,9 @@ export async function calculateProjectFinancials(
     }
   }
 
-  // Calculate actual expenses for this project
-  const actualExpenses = expenses
-    .filter(e => e.project_id === project.id)
-    .reduce((sum, expense) => sum + expense.amount, 0);
+  // Calculate actual expenses for this project (handling splits correctly)
+  const { calculateProjectExpenses } = await import('./expenseSplits');
+  const actualExpenses = await calculateProjectExpenses(project.id, expenses);
 
   // Use database-calculated projected margin and contract amount
   const validatedAdjustedCosts = validateCostNotPrice(
@@ -443,7 +442,7 @@ export async function calculateMultipleProjectFinancials(
   }
 
   // Calculate financials for each project
-  return projects.map(project => {
+  const financialsPromises = projects.map(async (project) => {
     // Prioritized estimate selection: approved current version, then latest approved
     const projectEstimates = estimates.filter(e => e.project_id === project.id);
     const approvedCurrentEstimate = projectEstimates.find(e => e.is_current_version && e.status === 'approved');
@@ -592,10 +591,9 @@ export async function calculateMultipleProjectFinancials(
       projectedCosts = validateCostNotPrice(projectedCosts, 'Projected Costs', fullContractAmount);
     }
 
-    // Calculate actual expenses for this project
-    const actualExpenses = expenses
-      .filter(e => e.project_id === project.id)
-      .reduce((sum, expense) => sum + expense.amount, 0);
+    // Calculate actual expenses for this project (handling splits correctly)
+    const { calculateProjectExpenses } = await import('./expenseSplits');
+    const actualExpenses = await calculateProjectExpenses(project.id, expenses);
 
     // Calculate projected margin (revenue minus all projected costs including internal labor)
     const validatedAdjustedCosts = validateCostNotPrice(
@@ -688,4 +686,6 @@ export async function calculateMultipleProjectFinancials(
       costVariance: validatedAdjustedCosts - (project.original_est_costs || originalEstimatedCosts),
     };
   });
+  
+  return Promise.all(financialsPromises);
 }

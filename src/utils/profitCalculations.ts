@@ -22,9 +22,69 @@ export function calculateProjectProfit(
     projectQuotes[0] || { total: 0, quotedBy: 'No Quote', dateReceived: new Date() }
   );
   
-  // Calculate actual expenses for this project
-  const projectExpenses = expenses.filter(e => e.project_id === estimate.project_id);
-  const actualExpenses = projectExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  // NOTE: This function uses pre-calculated values from stored project data
+  // For accurate split-aware calculations, use calculateProjectProfitAsync
+  const actualExpenses = storedProjectData?.current_margin 
+    ? ((storedProjectData.contracted_amount || 0) - storedProjectData.current_margin)
+    : expenses.filter(e => e.project_id === estimate.project_id).reduce((sum, e) => sum + e.amount, 0);
+  
+  // Use stored data if available, otherwise calculate
+  const quoteTotal = storedProjectData?.contracted_amount ?? bestQuote?.total ?? 0;
+  const estimatedProfit = quoteTotal - estimate.total_amount;
+  const actualProfit = storedProjectData?.current_margin ?? (quoteTotal - actualExpenses);
+  const profitMargin = storedProjectData?.margin_percentage ?? (quoteTotal > 0 ? (actualProfit / quoteTotal) * 100 : 0);
+  const profitVariance = actualProfit - estimatedProfit;
+  
+  // Determine project status
+  let status: 'Estimating' | 'In Progress' | 'Complete' = 'Estimating';
+  if (projectQuotes.length > 0 && actualExpenses > 0) {
+    status = actualExpenses >= quoteTotal * 0.8 ? 'Complete' : 'In Progress';
+  } else if (projectQuotes.length > 0) {
+    status = 'In Progress';
+  }
+  
+  return {
+    projectId: estimate.project_id,
+    projectName: estimate.project_name || `Project for ${estimate.estimate_number}`,
+    client: estimate.client_name || 'Unknown Client',
+    estimateTotal: estimate.total_amount,
+    quoteTotal,
+    actualExpenses,
+    estimatedProfit,
+    actualProfit,
+    profitMargin,
+    profitVariance,
+    projectStartDate: estimate.date_created,
+    projectEndDate: status === 'Complete' ? new Date() : undefined,
+    status
+  };
+}
+
+/**
+ * Async version of calculateProjectProfit that correctly handles split expenses
+ * Use this version when you need accurate expense calculations
+ */
+export async function calculateProjectProfitAsync(
+  estimate: Estimate,
+  quotes: Quote[],
+  expenses: Expense[],
+  storedProjectData?: {
+    contracted_amount?: number | null;
+    current_margin?: number | null;
+    margin_percentage?: number | null;
+    total_accepted_quotes?: number | null;
+  }
+): Promise<ProjectProfitData> {
+  // Find the best quote for this project (lowest total)
+  const projectQuotes = quotes.filter(q => q.project_id === estimate.project_id);
+  const bestQuote = projectQuotes.reduce((best, current) => 
+    current.total < best.total ? current : best, 
+    projectQuotes[0] || { total: 0, quotedBy: 'No Quote', dateReceived: new Date() }
+  );
+  
+  // Calculate actual expenses for this project (handling splits correctly)
+  const { calculateProjectExpenses } = await import('./expenseSplits');
+  const actualExpenses = await calculateProjectExpenses(estimate.project_id, expenses);
   
   // Use stored data if available, otherwise calculate
   const quoteTotal = storedProjectData?.contracted_amount ?? bestQuote?.total ?? 0;

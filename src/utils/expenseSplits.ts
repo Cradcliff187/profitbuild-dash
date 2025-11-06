@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { ExpenseSplit } from '@/types/expense';
+import { ExpenseSplit, Expense } from '@/types/expense';
 
 export interface CreateSplitInput {
   project_id: string;
@@ -171,6 +171,69 @@ export function validateSplitTotal(
 export function calculateSplitPercentage(splitAmount: number, totalAmount: number): number {
   if (totalAmount === 0) return 0;
   return (splitAmount / totalAmount) * 100;
+}
+
+/**
+ * Calculate the actual expense amount for a project, handling splits correctly
+ * - If expense is split, only count the split amount for this project
+ * - If expense is not split, count the full amount
+ * 
+ * @param projectId - The project ID to calculate expenses for
+ * @param expenses - Array of expenses to process
+ * @returns The total expense amount for the project, correctly handling splits
+ */
+export async function calculateProjectExpenses(
+  projectId: string, 
+  expenses: Expense[]
+): Promise<number> {
+  const projectExpenses = expenses.filter(e => e.project_id === projectId);
+  
+  let total = 0;
+  for (const expense of projectExpenses) {
+    if (expense.is_split && expense.id) {
+      // Get splits for this expense
+      const splits = await getExpenseSplits(expense.id);
+      // Only sum splits that belong to this project
+      const projectSplits = splits.filter(s => s.project_id === projectId);
+      total += projectSplits.reduce((sum, split) => sum + split.split_amount, 0);
+    } else {
+      // Not split, count full amount
+      total += expense.amount;
+    }
+  }
+  
+  return total;
+}
+
+/**
+ * Calculate total expenses across all projects, handling splits correctly
+ * @param expenses - Array of expenses to process
+ * @returns Object with total expenses and split-adjusted total
+ */
+export async function calculateTotalExpenses(
+  expenses: Expense[]
+): Promise<{ total: number; splitAdjustedTotal: number }> {
+  let total = 0;
+  let splitAdjustedTotal = 0;
+  
+  const processedSplitExpenses = new Set<string>();
+  
+  for (const expense of expenses) {
+    total += expense.amount; // Always count full amount for total
+    
+    if (expense.is_split && expense.id && !processedSplitExpenses.has(expense.id)) {
+      // Get splits for this expense
+      const splits = await getExpenseSplits(expense.id);
+      // For split-adjusted, sum all split amounts (should equal original, but use actual splits)
+      splitAdjustedTotal += splits.reduce((sum, split) => sum + split.split_amount, 0);
+      processedSplitExpenses.add(expense.id);
+    } else if (!expense.is_split) {
+      // Not split, count full amount
+      splitAdjustedTotal += expense.amount;
+    }
+  }
+  
+  return { total, splitAdjustedTotal };
 }
 
 /**

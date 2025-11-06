@@ -897,7 +897,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
 
       <EntityTableTemplate
         title="All Expenses"
-        description={`Manage your project expenses (${filteredExpenses.length} total) • Total: ${formatCurrency(filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0), { showCents: true })}`}
+        description={`Manage your project expenses (${filteredExpenses.length} total) • Total: ${formatCurrency(filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0), { showCents: true })} • Note: Split expenses show original amount`}
         data={displayData}
         columns={columns}
         isLoading={false}
