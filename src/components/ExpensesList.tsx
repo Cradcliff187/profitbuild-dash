@@ -6,14 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Search, FileDown, MoreHorizontal, Edit2, Trash2, ExternalLink, AlertTriangle, CheckCircle2, Target, FolderOpen, Info, ChevronDown } from "lucide-react";
+import { Search, FileDown, MoreHorizontal, Edit2, Trash2, ExternalLink, AlertTriangle, CheckCircle2, Target, FolderOpen, Info, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EntityTableTemplate } from "./EntityTableTemplate";
 import { ExpenseBulkActions } from "./ExpenseBulkActions";
 import { ReassignExpenseProjectDialog } from "./ReassignExpenseProjectDialog";
 import { ExpenseSplitDialog } from "./ExpenseSplitDialog";
-import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from "@/types/expense";
+import { Expense, ExpenseCategory, TransactionType, ExpenseSplit, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from "@/types/expense";
 import { formatCurrency } from "@/lib/utils";
 import { getExpenseSplits } from "@/utils/expenseSplits";
 import {
@@ -56,6 +56,8 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   const [expenseToReassign, setExpenseToReassign] = useState<Expense | null>(null);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [expenseToSplit, setExpenseToSplit] = useState<Expense | null>(null);
+  const [expandedExpenses, setExpandedExpenses] = useState<Set<string>>(new Set());
+  const [expenseSplits, setExpenseSplits] = useState<Record<string, ExpenseSplit[]>>({});
   const { toast } = useToast();
 
   // Load projects for filter dropdown
@@ -77,7 +79,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     fetchProjects();
   }, []);
 
-  // Load expense line item matches
+  // Load expense line item matches and splits
   useEffect(() => {
     const fetchExpenseMatches = async () => {
       if (expenses.length === 0) return;
@@ -115,7 +117,30 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       }
     };
 
+    const fetchExpenseSplits = async () => {
+      if (expenses.length === 0) return;
+      
+      const splitExpenses = expenses.filter(e => e.is_split);
+      if (splitExpenses.length === 0) return;
+      
+      try {
+        const splitsData: Record<string, ExpenseSplit[]> = {};
+        
+        await Promise.all(
+          splitExpenses.map(async (expense) => {
+            const splits = await getExpenseSplits(expense.id);
+            splitsData[expense.id] = splits;
+          })
+        );
+        
+        setExpenseSplits(splitsData);
+      } catch (error) {
+        console.error("Error fetching expense splits:", error);
+      }
+    };
+
     fetchExpenseMatches();
+    fetchExpenseSplits();
   }, [expenses]);
 
   // Filter expenses based on search term and filters
@@ -308,47 +333,123 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     }
   };
 
+  const toggleExpanded = (expenseId: string) => {
+    setExpandedExpenses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(expenseId)) {
+        newSet.delete(expenseId);
+      } else {
+        newSet.add(expenseId);
+      }
+      return newSet;
+    });
+  };
+
+  // Create display data that includes split rows
+  type DisplayRow = Expense & { _isSplitRow?: boolean; _splitData?: ExpenseSplit; _parentExpenseId?: string };
+  
+  const displayData = useMemo((): DisplayRow[] => {
+    const result: DisplayRow[] = [];
+    
+    filteredExpenses.forEach(expense => {
+      result.push(expense as DisplayRow);
+      
+      // If expense is split and expanded, add split rows
+      if (expense.is_split && expandedExpenses.has(expense.id)) {
+        const splits = expenseSplits[expense.id] || [];
+        splits.forEach(split => {
+          result.push({
+            ...expense,
+            _isSplitRow: true,
+            _splitData: split,
+            _parentExpenseId: expense.id,
+            id: `${expense.id}_split_${split.id}`, // Unique ID for rendering
+          } as DisplayRow);
+        });
+      }
+    });
+    
+    return result;
+  }, [filteredExpenses, expandedExpenses, expenseSplits]);
+
   const columns = [
     {
       key: 'split_indicator',
       label: '',
       sortable: false,
-      render: (expense: Expense) => (
-        expense.is_split ? (
-          <Badge variant="secondary" className="compact-badge">
-            Split
-          </Badge>
-        ) : null
-      )
+      render: (row: DisplayRow) => {
+        if (row._isSplitRow) {
+          return <div className="pl-6" />; // Indent for split rows
+        }
+        
+        if (!row.is_split) return null;
+        
+        const isExpanded = expandedExpenses.has(row.id);
+        const splits = expenseSplits[row.id] || [];
+        
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0"
+            onClick={() => toggleExpanded(row.id)}
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+          </Button>
+        );
+      }
     },
     {
       key: 'expense_date',
       label: 'Date',
       sortable: true,
-      render: (expense: Expense) => (
-        <div className="text-data font-mono">
-          {expense.expense_date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
-        </div>
-      )
+      render: (row: DisplayRow) => {
+        if (row._isSplitRow) return null;
+        
+        return (
+          <div className="text-data font-mono">
+            {row.expense_date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+          </div>
+        );
+      }
     },
     {
       key: 'project_name',
       label: 'Project',
       sortable: true,
-      render: (expense: Expense) => (
-        <div className={expense.project_name?.includes("Unassigned") ? "text-muted-foreground italic" : ""}>
-          {expense.project_name}
-        </div>
-      )
+      render: (row: DisplayRow) => {
+        if (row._isSplitRow && row._splitData) {
+          return (
+            <div className="pl-6 flex items-center gap-2 bg-muted/30 -mx-2 px-2 py-1 rounded">
+              <Badge variant="outline" className="compact-badge text-xs">
+                {row._splitData.split_percentage?.toFixed(1)}%
+              </Badge>
+              <span className="text-sm">{row._splitData.project_name}</span>
+            </div>
+          );
+        }
+        
+        return (
+          <div className={row.project_name?.includes("Unassigned") ? "text-muted-foreground italic" : ""}>
+            {row.project_name}
+          </div>
+        );
+      }
     },
     {
       key: 'project_status',
       label: 'Project Assignment',
       sortable: false,
-      render: (expense: Expense) => {
-        const isPlaceholder = expense.project_id === "000-UNASSIGNED" || 
-                             expense.project_name?.includes("Unassigned") ||
-                             expense.project_id === "SYS-000";
+      render: (row: DisplayRow) => {
+        if (row._isSplitRow) return null;
+        
+        const isPlaceholder = row.project_id === "000-UNASSIGNED" || 
+                             row.project_name?.includes("Unassigned") ||
+                             row.project_id === "SYS-000";
         
         if (isPlaceholder) {
           return (
@@ -371,43 +472,74 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       key: 'payee_name',
       label: 'Payee',
       sortable: true,
+      render: (row: DisplayRow) => {
+        if (row._isSplitRow && row._splitData?.notes) {
+          return (
+            <div className="pl-6 text-xs text-muted-foreground italic">
+              {row._splitData.notes}
+            </div>
+          );
+        }
+        if (row._isSplitRow) return null;
+        return row.payee_name;
+      }
     },
     {
       key: 'amount',
       label: 'Amount',
       sortable: true,
-      render: (expense: Expense) => (
-        <div className="text-right text-data font-mono font-medium">
-          {formatCurrency(expense.amount, { showCents: true })}
-        </div>
-      )
+      render: (row: DisplayRow) => {
+        if (row._isSplitRow && row._splitData) {
+          return (
+            <div className="text-right text-data font-mono font-medium pl-6">
+              {formatCurrency(row._splitData.split_amount, { showCents: true })}
+            </div>
+          );
+        }
+        
+        return (
+          <div className="text-right text-data font-mono font-medium">
+            {formatCurrency(row.amount, { showCents: true })}
+          </div>
+        );
+      }
     },
     {
       key: 'category',
       label: 'Category',
       sortable: true,
-      render: (expense: Expense) => (
-        <Badge variant={getCategoryBadgeVariant(expense.category)} className="compact-badge">
-          {EXPENSE_CATEGORY_DISPLAY[expense.category]}
-        </Badge>
-      )
+      render: (row: DisplayRow) => {
+        if (row._isSplitRow) return null;
+        
+        return (
+          <Badge variant={getCategoryBadgeVariant(row.category)} className="compact-badge">
+            {EXPENSE_CATEGORY_DISPLAY[row.category]}
+          </Badge>
+        );
+      }
     },
     {
       key: 'transaction_type',
       label: 'Type',
       sortable: true,
-      render: (expense: Expense) => (
-        <Badge variant={getTypeBadgeVariant(expense.transaction_type)} className="compact-badge">
-          {TRANSACTION_TYPE_DISPLAY[expense.transaction_type]}
-        </Badge>
-      )
+      render: (row: DisplayRow) => {
+        if (row._isSplitRow) return null;
+        
+        return (
+          <Badge variant={getTypeBadgeVariant(row.transaction_type)} className="compact-badge">
+            {TRANSACTION_TYPE_DISPLAY[row.transaction_type]}
+          </Badge>
+        );
+      }
     },
     {
       key: 'approval_status',
       label: 'Status',
       sortable: true,
-      render: (expense: Expense) => {
-        const status = expense.approval_status || 'pending';
+      render: (row: DisplayRow) => {
+        if (row._isSplitRow) return null;
+        
+        const status = row.approval_status || 'pending';
         const variant = status === 'approved' ? 'default' : status === 'rejected' ? 'destructive' : status === 'pending' ? 'secondary' : 'outline';
         return (
           <Badge variant={variant} className="compact-badge">
@@ -420,10 +552,12 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       key: 'line_item_allocation',
       label: 'Line Item Allocation',
       sortable: false,
-      render: (expense: Expense) => {
-        const isPlaceholder = expense.project_id === "000-UNASSIGNED" || 
-                             expense.project_name?.includes("Unassigned") ||
-                             expense.project_id === "SYS-000";
+      render: (row: DisplayRow) => {
+        if (row._isSplitRow) return null;
+        
+        const isPlaceholder = row.project_id === "000-UNASSIGNED" || 
+                             row.project_name?.includes("Unassigned") ||
+                             row.project_id === "SYS-000";
         
         // Show dash for placeholder projects
         if (isPlaceholder) {
@@ -431,7 +565,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         }
         
         // Show allocation status for real projects
-        const match = expenseMatches[expense.id];
+        const match = expenseMatches[row.id];
         if (match?.matched) {
           const displayType = match.type === 'estimate' ? 'Estimate' 
                             : match.type === 'quote' ? 'Quote'
@@ -455,12 +589,15 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     }
   ];
 
-  const renderActions = (expense: Expense) => {
-    const status = expense.approval_status || 'pending';
-    const isAllocated = expenseMatches[expense.id]?.matched;
-    const canSplit = expense.project_id !== "000-UNASSIGNED" && 
-                     expense.project_id !== "SYS-000" &&
-                     !expense.project_name?.includes("Unassigned");
+  const renderActions = (row: DisplayRow) => {
+    // Don't show actions for split rows
+    if (row._isSplitRow) return null;
+    
+    const status = row.approval_status || 'pending';
+    const isAllocated = expenseMatches[row.id]?.matched;
+    const canSplit = row.project_id !== "000-UNASSIGNED" && 
+                     row.project_id !== "SYS-000" &&
+                     !row.project_name?.includes("Unassigned");
     
     return (
       <DropdownMenu>
@@ -475,22 +612,22 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuItem onClick={() => onEdit(expense)}>
+          <DropdownMenuItem onClick={() => onEdit(row)}>
             <Edit2 className="h-3 w-3 mr-2" />
             Edit Expense
           </DropdownMenuItem>
 
           <DropdownMenuItem onClick={() => {
-            setExpenseToReassign(expense);
+            setExpenseToReassign(row);
             setReassignDialogOpen(true);
           }}>
             <FolderOpen className="h-3 w-3 mr-2" />
             Reassign Project
           </DropdownMenuItem>
 
-          {canSplit && !expense.is_split && (
+          {canSplit && !row.is_split && (
             <DropdownMenuItem onClick={() => {
-              setExpenseToSplit(expense);
+              setExpenseToSplit(row);
               setSplitDialogOpen(true);
             }}>
               <Target className="h-3 w-3 mr-2" />
@@ -498,9 +635,9 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
             </DropdownMenuItem>
           )}
 
-          {expense.is_split && (
+          {row.is_split && (
             <DropdownMenuItem onClick={() => {
-              setExpenseToSplit(expense);
+              setExpenseToSplit(row);
               setSplitDialogOpen(true);
             }}>
               <Edit2 className="h-3 w-3 mr-2" />
@@ -509,14 +646,14 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           )}
 
           {!isAllocated && (
-            <DropdownMenuItem onClick={() => navigate(`/expenses/matching?highlight=${expense.id}`)}>
+            <DropdownMenuItem onClick={() => navigate(`/expenses/matching?highlight=${row.id}`)}>
               <Target className="h-3 w-3 mr-2" />
               Match to Line Items
             </DropdownMenuItem>
           )}
           
           <DropdownMenuItem 
-            onClick={() => handleDelete(expense.id)}
+            onClick={() => handleDelete(row.id)}
             className="text-destructive focus:text-destructive"
           >
             <Trash2 className="h-3 w-3 mr-2" />
@@ -527,19 +664,19 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
 
           {status === 'pending' && (
             <>
-              <DropdownMenuItem onClick={() => handleApprovalAction(expense.id, 'approve')}>
+              <DropdownMenuItem onClick={() => handleApprovalAction(row.id, 'approve')}>
                 Approve
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleApprovalAction(expense.id, 'reject')}>
+              <DropdownMenuItem onClick={() => handleApprovalAction(row.id, 'reject')}>
                 Reject
               </DropdownMenuItem>
             </>
           )}
 
-          {expense.project_id && (
+          {row.project_id && (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => window.location.href = `/projects/${expense.project_id}`}>
+              <DropdownMenuItem onClick={() => window.location.href = `/projects/${row.project_id}`}>
                 <ExternalLink className="h-3 w-3 mr-2" />
                 View Project
               </DropdownMenuItem>
@@ -725,11 +862,17 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       <EntityTableTemplate
         title="All Expenses"
         description={`Manage your project expenses (${filteredExpenses.length} total) • Total: ${formatCurrency(filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0), { showCents: true })}`}
-        data={filteredExpenses}
+        data={displayData}
         columns={columns}
         isLoading={false}
         selectedItems={selectedExpenses}
-        onSelectItem={handleSelectExpense}
+        onSelectItem={(itemId) => {
+          // Only allow selection of parent expenses, not split rows
+          const row = displayData.find(d => d.id === itemId);
+          if (!row?._isSplitRow) {
+            handleSelectExpense(itemId);
+          }
+        }}
         onSelectAll={handleSelectAll}
         renderActions={renderActions}
         enablePagination={enablePagination}
