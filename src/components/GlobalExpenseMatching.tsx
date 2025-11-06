@@ -791,32 +791,20 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
         </div>
       </div>
 
-      {/* Allocation Status Summary - Compact */}
-      <div className="grid grid-cols-3 gap-3 mb-3">
-        <Card>
-          <CardContent className="p-2">
-            <div className="text-center">
-              <div className="text-lg font-bold">{expenses.length}</div>
-              <div className="text-xs text-muted-foreground">Total Expenses</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-2">
-            <div className="text-center">
-              <div className="text-lg font-bold text-success">{allocatedCount}</div>
-              <div className="text-xs text-muted-foreground">Allocated</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-2">
-            <div className="text-center">
-              <div className="text-lg font-bold text-warning">{unallocatedCount}</div>
-              <div className="text-xs text-muted-foreground">Needs Allocation</div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Ultra-Compact Allocation Metrics */}
+      <div className="flex gap-2 mb-2 text-xs">
+        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded">
+          <span className="text-muted-foreground">Total:</span>
+          <span className="font-bold">{expenses.length}</span>
+        </div>
+        <div className="flex items-center gap-1 px-2 py-1 bg-success/10 rounded">
+          <span className="text-muted-foreground">Allocated:</span>
+          <span className="font-bold text-success">{allocatedCount}</span>
+        </div>
+        <div className="flex items-center gap-1 px-2 py-1 bg-warning/10 rounded">
+          <span className="text-muted-foreground">Unallocated:</span>
+          <span className="font-bold text-warning">{unallocatedCount}</span>
+        </div>
       </div>
 
       {/* Filters */}

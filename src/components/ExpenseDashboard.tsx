@@ -2,7 +2,8 @@ import React from 'react';
 import { Calendar, DollarSign, AlertTriangle, FileText, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Expense } from '@/types/expense';
 import { Estimate } from '@/types/estimate';
 import { formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
@@ -62,21 +63,28 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
 
   return (
     <div className="space-y-3">
-      {/* Workflow Instructions */}
-      <Alert className="border-muted">
+      {/* Compact Workflow Help */}
+      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2 border-b pb-2">
         <Info className="h-3 w-3" />
-        <AlertTitle className="text-xs font-medium">How Expense Tracking Works</AlertTitle>
-        <AlertDescription className="text-xs space-y-1 mt-1">
-          <div>
-            <strong>Step 1: Project Assignment</strong> - Assign each expense to a project. 
-            This determines which project budget is affected.
-          </div>
-          <div>
-            <strong>Step 2: Line Item Allocation (Optional)</strong> - Match expenses to specific 
-            estimate/quote line items for detailed cost tracking and variance analysis.
-          </div>
-        </AlertDescription>
-      </Alert>
+        <span>
+          <strong>Workflow:</strong> First assign expenses to projects, then optionally allocate to line items for detailed tracking.
+        </span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-5 px-2 text-xs">
+                Learn more
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-sm">
+              <div className="space-y-1 text-xs">
+                <div><strong>Step 1: Project Assignment</strong> - Assign each expense to a project to affect project budgets.</div>
+                <div><strong>Step 2: Line Item Allocation</strong> - Match to specific line items for variance analysis.</div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
