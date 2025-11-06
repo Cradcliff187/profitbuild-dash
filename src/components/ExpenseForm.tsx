@@ -267,7 +267,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Project *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                    disabled={expense?.is_split}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a project" />
@@ -281,6 +285,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                       ))}
                     </SelectContent>
                   </Select>
+                  {expense?.is_split && (
+                    <p className="text-xs text-warning">
+                      ⚠️ Cannot change project for split expenses. Manage splits to update project allocation.
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -356,31 +365,36 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
             />
 
             <div className="grid grid-cols-2 gap-2">
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Amount *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        {...field}
-                        readOnly={isInternalLabor && !!hoursWorked}
-                      />
-                    </FormControl>
-                    {isInternalLabor && selectedPayee?.hourly_rate && (
-                      <p className="text-xs text-muted-foreground">
-                        💡 Rate: {formatCurrency(selectedPayee.hourly_rate)}/hr
-                        {hoursWorked && ` × ${hoursWorked} hrs = ${formatCurrency(parseFloat(hoursWorked) * selectedPayee.hourly_rate)}`}
-                      </p>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount *</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      {...field}
+                      readOnly={expense?.is_split || (isInternalLabor && !!hoursWorked)}
+                    />
+                  </FormControl>
+                  {expense?.is_split && (
+                    <p className="text-xs text-warning">
+                      ⚠️ This expense is split across multiple projects. Amount is read-only.
+                    </p>
+                  )}
+                  {isInternalLabor && selectedPayee?.hourly_rate && (
+                    <p className="text-xs text-muted-foreground">
+                      💡 Rate: {formatCurrency(selectedPayee.hourly_rate)}/hr
+                      {hoursWorked && ` × ${hoursWorked} hrs = ${formatCurrency(parseFloat(hoursWorked) * selectedPayee.hourly_rate)}`}
+                    </p>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
               {isInternalLabor ? (
                 <FormItem>

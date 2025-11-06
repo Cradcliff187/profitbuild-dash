@@ -12,8 +12,10 @@ import { useToast } from "@/hooks/use-toast";
 import { EntityTableTemplate } from "./EntityTableTemplate";
 import { ExpenseBulkActions } from "./ExpenseBulkActions";
 import { ReassignExpenseProjectDialog } from "./ReassignExpenseProjectDialog";
+import { ExpenseSplitDialog } from "./ExpenseSplitDialog";
 import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from "@/types/expense";
 import { formatCurrency } from "@/lib/utils";
+import { getExpenseSplits } from "@/utils/expenseSplits";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,11 +48,14 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   const [filterProject, setFilterProject] = useState<string>("all");
   const [filterMatchStatus, setFilterMatchStatus] = useState<string>("all");
   const [filterApprovalStatus, setFilterApprovalStatus] = useState<string>("all");
+  const [filterSplitStatus, setFilterSplitStatus] = useState<string>("all");
   const [selectedExpenses, setSelectedExpenses] = useState<string[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [expenseMatches, setExpenseMatches] = useState<Record<string, { matched: boolean; type?: 'estimate' | 'quote' | 'change_order' }>>({});
   const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
   const [expenseToReassign, setExpenseToReassign] = useState<Expense | null>(null);
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+  const [expenseToSplit, setExpenseToSplit] = useState<Expense | null>(null);
   const { toast } = useToast();
 
   // Load projects for filter dropdown
@@ -136,9 +141,16 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         matchesMatchStatus = expense.project_id === "000-UNASSIGNED" || expense.project_name?.includes("Unassigned");
       }
 
-      return matchesSearch && matchesCategory && matchesType && matchesProject && matchesMatchStatus && matchesApprovalStatus;
+      let matchesSplitStatus = true;
+      if (filterSplitStatus === "split") {
+        matchesSplitStatus = expense.is_split === true;
+      } else if (filterSplitStatus === "unsplit") {
+        matchesSplitStatus = !expense.is_split;
+      }
+
+      return matchesSearch && matchesCategory && matchesType && matchesProject && matchesMatchStatus && matchesApprovalStatus && matchesSplitStatus;
     });
-  }, [expenses, searchTerm, filterCategory, filterTransactionType, filterProject, filterMatchStatus, filterApprovalStatus, expenseMatches]);
+  }, [expenses, searchTerm, filterCategory, filterTransactionType, filterProject, filterMatchStatus, filterApprovalStatus, filterSplitStatus, expenseMatches]);
 
   const handleDelete = async (expenseId: string) => {
     try {
@@ -298,6 +310,18 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
 
   const columns = [
     {
+      key: 'split_indicator',
+      label: '',
+      sortable: false,
+      render: (expense: Expense) => (
+        expense.is_split ? (
+          <Badge variant="secondary" className="compact-badge">
+            Split
+          </Badge>
+        ) : null
+      )
+    },
+    {
       key: 'expense_date',
       label: 'Date',
       sortable: true,
@@ -434,6 +458,9 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   const renderActions = (expense: Expense) => {
     const status = expense.approval_status || 'pending';
     const isAllocated = expenseMatches[expense.id]?.matched;
+    const canSplit = expense.project_id !== "000-UNASSIGNED" && 
+                     expense.project_id !== "SYS-000" &&
+                     !expense.project_name?.includes("Unassigned");
     
     return (
       <DropdownMenu>
@@ -460,6 +487,26 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
             <FolderOpen className="h-3 w-3 mr-2" />
             Reassign Project
           </DropdownMenuItem>
+
+          {canSplit && !expense.is_split && (
+            <DropdownMenuItem onClick={() => {
+              setExpenseToSplit(expense);
+              setSplitDialogOpen(true);
+            }}>
+              <Target className="h-3 w-3 mr-2" />
+              Split Expense
+            </DropdownMenuItem>
+          )}
+
+          {expense.is_split && (
+            <DropdownMenuItem onClick={() => {
+              setExpenseToSplit(expense);
+              setSplitDialogOpen(true);
+            }}>
+              <Edit2 className="h-3 w-3 mr-2" />
+              Manage Splits
+            </DropdownMenuItem>
+          )}
 
           {!isAllocated && (
             <DropdownMenuItem onClick={() => navigate(`/expenses/matching?highlight=${expense.id}`)}>
@@ -658,6 +705,17 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           </SelectContent>
         </Select>
 
+        <Select value={filterSplitStatus} onValueChange={setFilterSplitStatus}>
+          <SelectTrigger className="w-32 h-input-compact text-label">
+            <SelectValue placeholder="Split Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="split">Split</SelectItem>
+            <SelectItem value="unsplit">Not Split</SelectItem>
+          </SelectContent>
+        </Select>
+
         <Button onClick={exportToCsv} variant="outline" size="sm" className="h-input-compact text-label">
           <FileDown className="h-3 w-3 mr-1" />
           Export
@@ -708,6 +766,20 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         }}
         expenseIds={expenseToReassign ? [expenseToReassign.id] : []}
         currentProjectName={expenseToReassign?.project_name}
+      />
+
+      <ExpenseSplitDialog
+        open={splitDialogOpen}
+        onClose={() => {
+          setSplitDialogOpen(false);
+          setExpenseToSplit(null);
+        }}
+        expense={expenseToSplit}
+        onSuccess={() => {
+          setSplitDialogOpen(false);
+          setExpenseToSplit(null);
+          onRefresh();
+        }}
       />
     </div>
   );

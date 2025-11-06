@@ -50,6 +50,11 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
   // Count of unallocated expenses
   const unallocatedCount = expenses.filter(e => !allocatedExpenseIds.has(e.id)).length;
 
+  // Calculate split expense metrics
+  const splitExpenses = expenses.filter(e => e.is_split);
+  const splitExpenseAmount = splitExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const splitExpenseCount = splitExpenses.length;
+
   // Recent expenses (last 5)
   const recentExpenses = expenses
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -91,7 +96,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
@@ -143,6 +148,19 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
             </p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Split Expenses</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{formatCurrency(splitExpenseAmount)}</div>
+            <p className="text-xs text-muted-foreground">
+              {splitExpenseCount} {splitExpenseCount === 1 ? 'expense is' : 'expenses are'} split • {totalExpenses > 0 ? ((splitExpenseAmount / totalExpenses) * 100).toFixed(1) : '0'}% of total
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
@@ -162,7 +180,12 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
                 {recentExpenses.map((expense) => (
                   <div key={expense.id} className="flex items-center justify-between border-b pb-2">
                     <div className="flex-1">
-                      <p className="font-medium text-sm">{getExpensePayeeLabel(expense)}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">{getExpensePayeeLabel(expense)}</p>
+                        {expense.is_split && (
+                          <Badge variant="secondary" className="text-xs">Split</Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {expense.project_name || 'Unknown Project'} • {new Date(expense.expense_date).toLocaleDateString()}
                       </p>
