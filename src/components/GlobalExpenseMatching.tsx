@@ -420,8 +420,8 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
       if (error) throw error;
 
       toast({
-        title: "Expenses Assigned",
-        description: `Assigned ${expenseIds.length} expenses to ${lineItem.type === 'estimate' ? 'estimate' : lineItem.type === 'quote' ? 'quote' : 'change order'} line item.`
+        title: "Expenses Matched",
+        description: `Matched ${expenseIds.length} expense${expenseIds.length === 1 ? '' : 's'} to ${lineItem.type === 'estimate' ? 'estimate' : lineItem.type === 'quote' ? 'quote' : 'change order'} line item.`
       });
       
       setSelectedExpenses(new Set());

@@ -359,16 +359,16 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                         <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                       )}
                       <div className="flex-1">
-                        <h4 className="font-medium text-sm">Project Matching</h4>
+                        <h4 className="font-medium text-sm">Project Assignment</h4>
                         <p className="text-sm mt-1">
-                          <span className="font-medium text-green-700">{validationResults.matchedProjects} matched</span>
+                          <span className="font-medium text-green-700">{validationResults.matchedProjects} assigned</span>
                           {validationResults.unmatchedProjects > 0 && (
-                            <span className="font-medium text-amber-700"> • {validationResults.unmatchedProjects} unmatched</span>
+                            <span className="font-medium text-amber-700"> • {validationResults.unmatchedProjects} unassigned</span>
                           )}
                         </p>
                         {validationResults.unmatchedProjectNumbers.length > 0 && (
                           <div className="mt-2 p-2 bg-white rounded border border-amber-300">
-                            <p className="text-xs font-medium mb-1">Unmatched Project Numbers:</p>
+                            <p className="text-xs font-medium mb-1">Unassigned Project Numbers:</p>
                             <p className="text-xs text-amber-800">
                               {validationResults.unmatchedProjectNumbers.join(', ')}
                             </p>
@@ -395,16 +395,16 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                         <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                       )}
                       <div className="flex-1">
-                        <h4 className="font-medium text-sm">Payee Matching</h4>
+                        <h4 className="font-medium text-sm">Payee Assignment</h4>
                         <p className="text-sm mt-1">
-                          <span className="font-medium text-green-700">{validationResults.matchedPayees} matched</span>
+                          <span className="font-medium text-green-700">{validationResults.matchedPayees} assigned</span>
                           {validationResults.unmatchedPayees > 0 && (
-                            <span className="font-medium text-blue-700"> • {validationResults.unmatchedPayees} unmatched</span>
+                            <span className="font-medium text-blue-700"> • {validationResults.unmatchedPayees} unassigned</span>
                           )}
                         </p>
                         {validationResults.unmatchedPayeeNames.length > 0 && (
                           <div className="mt-2 p-2 bg-white rounded border border-blue-300">
-                            <p className="text-xs font-medium mb-1">Unmatched Payee Names:</p>
+                            <p className="text-xs font-medium mb-1">Unassigned Payee Names:</p>
                             <p className="text-xs text-blue-800">
                               {validationResults.unmatchedPayeeNames.slice(0, 5).join(', ')}
                               {validationResults.unmatchedPayeeNames.length > 5 && ` +${validationResults.unmatchedPayeeNames.length - 5} more`}

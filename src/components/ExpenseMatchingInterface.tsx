@@ -205,8 +205,8 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
     const expenses = Array.from(selectedExpenses);
     // Implement bulk assignment logic
     toast({
-      title: "Expenses Assigned",
-      description: `Assigned ${expenses.length} expenses to line item.`
+      title: "Expenses Matched",
+      description: `Matched ${expenses.length} expense${expenses.length === 1 ? '' : 's'} to line item.`
     });
     setSelectedExpenses(new Set());
   };
@@ -351,7 +351,7 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
             {filteredExpenses.length === 0 && (
               <div className="text-center py-6 text-muted-foreground">
                 <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
-                <p>No unmatched expenses found</p>
+                <p>All expenses matched to line items</p>
               </div>
             )}
           </CardContent>
@@ -392,7 +392,7 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
                     className="w-full mt-2"
                     onClick={() => handleBulkAssign(item.id)}
                   >
-                    Assign {selectedExpenses.size} expense{selectedExpenses.size === 1 ? '' : 's'}
+                    Match {selectedExpenses.size} expense{selectedExpenses.size === 1 ? '' : 's'}
                   </Button>
                 )}
               </div>
