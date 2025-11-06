@@ -22,9 +22,17 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
     return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear();
   }).reduce((sum, e) => sum + e.amount, 0);
 
-  const totalEstimated = estimates.reduce((sum, estimate) => sum + estimate.total_amount, 0);
-  const budgetVariance = totalExpenses - totalEstimated;
-  const budgetUtilization = totalEstimated > 0 ? (totalExpenses / totalEstimated) * 100 : 0;
+  // Calculate total estimated costs (not revenue) from line items
+  const totalEstimatedCosts = estimates.reduce((sum, estimate) => {
+    // Sum the total_cost of all line items, or fallback to quantity * cost_per_unit
+    const estimateCost = (estimate as any).estimate_line_items?.reduce((lineSum: number, item: any) => {
+      return lineSum + (item.total_cost || (item.quantity || 1) * (item.cost_per_unit || 0));
+    }, 0) || 0;
+    return sum + estimateCost;
+  }, 0);
+  
+  const budgetVariance = totalExpenses - totalEstimatedCosts;
+  const budgetUtilization = totalEstimatedCosts > 0 ? (totalExpenses / totalEstimatedCosts) * 100 : 0;
 
   // Recent expenses (last 5)
   const recentExpenses = expenses

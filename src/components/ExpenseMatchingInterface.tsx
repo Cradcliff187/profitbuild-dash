@@ -201,23 +201,106 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
     return Math.min(confidence, 100);
   };
 
-  const handleBulkAssign = (lineItemId: string) => {
-    const expenses = Array.from(selectedExpenses);
-    // Implement bulk assignment logic
-    toast({
-      title: "Expenses Matched",
-      description: `Matched ${expenses.length} expense${expenses.length === 1 ? '' : 's'} to line item.`
-    });
-    setSelectedExpenses(new Set());
+  const handleBulkAssign = async (lineItemId: string) => {
+    const expenseIds = Array.from(selectedExpenses);
+    
+    if (expenseIds.length === 0) return;
+
+    try {
+      // Create correlations for selected expenses
+      const correlations = expenseIds.map(expenseId => ({
+        expense_id: expenseId,
+        estimate_line_item_id: lineItemId,
+        correlation_type: 'estimate',
+        auto_correlated: false,
+        notes: 'Manually assigned via Expense Matching Interface'
+      }));
+
+      const { error: correlationError } = await supabase
+        .from('expense_line_item_correlations')
+        .insert(correlations);
+
+      if (correlationError) throw correlationError;
+
+      // Update expenses to mark them as planned
+      const { error: updateError } = await supabase
+        .from('expenses')
+        .update({ is_planned: true })
+        .in('id', expenseIds);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Expenses Matched",
+        description: `Matched ${expenseIds.length} expense${expenseIds.length === 1 ? '' : 's'} to line item.`
+      });
+      
+      setSelectedExpenses(new Set());
+      loadMatchingData();
+    } catch (error) {
+      console.error('Error assigning expenses:', error);
+      toast({
+        title: "Error",
+        description: "Failed to assign expenses.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleAutoMatch = async () => {
-    // Implement auto-matching logic
-    toast({
-      title: "Auto-matching Complete",
-      description: "High-confidence matches have been applied."
-    });
-    loadMatchingData();
+    const highConfidenceExpenses = unmatchedExpenses.filter(exp => 
+      exp.confidence_score && 
+      exp.confidence_score >= 80 &&
+      exp.suggested_line_item_id
+    );
+
+    if (highConfidenceExpenses.length === 0) {
+      toast({
+        title: "No High-Confidence Matches",
+        description: "No expenses found with high confidence matches for auto-assignment."
+      });
+      return;
+    }
+
+    try {
+      const correlations = highConfidenceExpenses.map(expense => ({
+        expense_id: expense.id,
+        estimate_line_item_id: expense.suggested_line_item_id,
+        correlation_type: 'estimate',
+        auto_correlated: true,
+        confidence_score: expense.confidence_score,
+        notes: 'Auto-matched via Expense Matching Interface'
+      }));
+
+      const { error: correlationError } = await supabase
+        .from('expense_line_item_correlations')
+        .insert(correlations);
+
+      if (correlationError) throw correlationError;
+
+      // Update expenses to mark them as planned
+      const expenseIds = highConfidenceExpenses.map(e => e.id);
+      const { error: updateError } = await supabase
+        .from('expenses')
+        .update({ is_planned: true })
+        .in('id', expenseIds);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Auto-matching Complete",
+        description: `Automatically matched ${highConfidenceExpenses.length} high-confidence expenses.`
+      });
+      
+      loadMatchingData();
+    } catch (error) {
+      console.error('Error auto-matching:', error);
+      toast({
+        title: "Error",
+        description: "Failed to auto-match expenses.",
+        variant: "destructive"
+      });
+    }
   };
 
   const filteredExpenses = unmatchedExpenses.filter(expense => {

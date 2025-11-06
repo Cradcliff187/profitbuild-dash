@@ -413,11 +413,19 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
         notes: 'Manually assigned via Global Expense Matching'
       }));
 
-      const { error } = await supabase
+      const { error: correlationError } = await supabase
         .from('expense_line_item_correlations')
         .insert(correlations);
 
-      if (error) throw error;
+      if (correlationError) throw correlationError;
+
+      // Update expenses to mark them as planned
+      const { error: updateError } = await supabase
+        .from('expenses')
+        .update({ is_planned: true })
+        .in('id', expenseIds);
+
+      if (updateError) throw updateError;
 
       toast({
         title: "Expenses Matched",
@@ -467,11 +475,20 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
         };
       });
 
-      const { error } = await supabase
+      const { error: correlationError } = await supabase
         .from('expense_line_item_correlations')
         .insert(correlations);
 
-      if (error) throw error;
+      if (correlationError) throw correlationError;
+
+      // Update expenses to mark them as planned
+      const expenseIds = highConfidenceExpenses.map(e => e.id);
+      const { error: updateError } = await supabase
+        .from('expenses')
+        .update({ is_planned: true })
+        .in('id', expenseIds);
+
+      if (updateError) throw updateError;
 
       toast({
         title: "Auto-matching Complete",
