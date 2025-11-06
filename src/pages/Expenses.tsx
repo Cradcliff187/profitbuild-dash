@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Receipt, Plus, Upload, BarChart3, List, Target, Clock } from "lucide-react";
+import React, { useState, useEffect, useRef } from 'react';
+import { Receipt, Plus, Upload, BarChart3, List, Target, Clock, FileDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { ExpenseDashboard } from "@/components/ExpenseDashboard";
 import { ExpenseForm } from "@/components/ExpenseForm";
-import { ExpensesList } from "@/components/ExpensesList";
+import { ExpensesList, ExpensesListRef } from "@/components/ExpensesList";
 import { ExpenseImportModal } from "@/components/ExpenseImportModal";
 import { TimesheetGridView } from "@/components/TimesheetGridView";
 import { Expense, ExpenseCategory } from "@/types/expense";
@@ -24,6 +24,7 @@ const Expenses = () => {
   const [loading, setLoading] = useState(true);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showTimesheetModal, setShowTimesheetModal] = useState(false);
+  const expensesListRef = useRef<ExpensesListRef>(null);
   const { toast } = useToast();
 
   // Load expenses from Supabase
@@ -153,6 +154,14 @@ const Expenses = () => {
             <span>Import</span>
           </Button>
           <Button 
+            onClick={() => expensesListRef.current?.exportToCsv()} 
+            variant="outline"
+            size="sm"
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            <span>Export</span>
+          </Button>
+          <Button 
             onClick={() => setShowTimesheetModal(true)} 
             variant="outline"
             size="sm"
@@ -188,6 +197,7 @@ const Expenses = () => {
 
           <TabsContent value="list">
             <ExpensesList
+              ref={expensesListRef}
               expenses={expenses}
               onEdit={handleEditExpense}
               onDelete={handleDeleteExpense}

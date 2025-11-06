@@ -33,14 +33,18 @@ interface ExpensesListProps {
   pageSize?: number;
 }
 
-export const ExpensesList: React.FC<ExpensesListProps> = ({
+export interface ExpensesListRef {
+  exportToCsv: () => void;
+}
+
+export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>(({
   expenses,
   onEdit,
   onDelete,
   onRefresh,
   enablePagination = true,
   pageSize = 25,
-}) => {
+}, ref) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
@@ -59,6 +63,10 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   const [expandedExpenses, setExpandedExpenses] = useState<Set<string>>(new Set());
   const [expenseSplits, setExpenseSplits] = useState<Record<string, ExpenseSplit[]>>({});
   const { toast } = useToast();
+
+  React.useImperativeHandle(ref, () => ({
+    exportToCsv
+  }));
 
   // Load projects for filter dropdown
   useEffect(() => {
@@ -922,11 +930,6 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
             <SelectItem value="unsplit">Not Split</SelectItem>
           </SelectContent>
         </Select>
-
-        <Button onClick={exportToCsv} variant="outline" size="sm" className="h-input-compact text-label">
-          <FileDown className="h-3 w-3 mr-1" />
-          Export
-        </Button>
       </div>
 
       <EntityTableTemplate
@@ -996,4 +999,6 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       />
     </div>
   );
-};
+});
+
+ExpensesList.displayName = 'ExpensesList';

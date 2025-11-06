@@ -214,59 +214,59 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{expense.is_split ? 'Manage' : 'Split'} Expense</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-sm font-semibold">{expense.is_split ? 'Manage' : 'Split'} Expense</DialogTitle>
+          <DialogDescription className="text-xs">
             Allocate this {formatCurrency(expense.amount)} expense across multiple projects
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Expense Details */}
-          <div className="rounded-md bg-muted p-3 space-y-1">
-            <div className="text-sm font-medium">Expense Details</div>
-            <div className="text-xs text-muted-foreground">
+          <div className="rounded-md bg-muted p-2 space-y-0.5">
+            <div className="text-xs font-medium">Expense Details</div>
+            <div className="text-xs text-muted-foreground truncate">
               {expense.description || 'No description'}
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Badge variant="outline">{expense.category}</Badge>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">{expense.category}</span>
               <span className="font-mono font-medium">{formatCurrency(expense.amount)}</span>
             </div>
           </div>
 
           {/* Splits */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             {splits.map((split, index) => (
-              <div key={index} className="border rounded-md p-3 space-y-3">
+              <div key={index} className="border rounded-md p-2 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Split {index + 1}</span>
+                  <span className="text-xs font-medium">Split {index + 1}</span>
                   {splits.length > 1 && (
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => removeSplit(index)}
-                      className="h-6 w-6 p-0"
+                      className="h-5 w-5 p-0"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3 w-3" />
                     </Button>
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label htmlFor={`project-${index}`}>Project *</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-0.5">
+                    <Label htmlFor={`project-${index}`} className="text-xs">Project *</Label>
                     <Select
                       value={split.project_id}
                       onValueChange={(value) => updateSplit(index, 'project_id', value)}
                     >
-                      <SelectTrigger id={`project-${index}`}>
+                      <SelectTrigger id={`project-${index}`} className="h-8 text-xs">
                         <SelectValue placeholder="Select project" />
                       </SelectTrigger>
                       <SelectContent>
                         {getAvailableProjects(index).map(project => (
-                          <SelectItem key={project.id} value={project.id}>
+                          <SelectItem key={project.id} value={project.id} className="text-xs">
                             {project.project_number} - {project.project_name}
                           </SelectItem>
                         ))}
@@ -274,8 +274,8 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
                     </Select>
                   </div>
 
-                  <div className="space-y-1">
-                    <Label htmlFor={`amount-${index}`}>Amount *</Label>
+                  <div className="space-y-0.5">
+                    <Label htmlFor={`amount-${index}`} className="text-xs">Amount *</Label>
                     <Input
                       id={`amount-${index}`}
                       type="number"
@@ -284,6 +284,7 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
                       placeholder="0.00"
                       value={split.split_amount}
                       onChange={(e) => updateSplit(index, 'split_amount', e.target.value)}
+                      className="h-8 text-xs"
                     />
                     {split.split_amount && (
                       <div className="text-xs text-muted-foreground">
@@ -293,15 +294,15 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <Label htmlFor={`notes-${index}`}>Notes (optional)</Label>
+                <div className="space-y-0.5">
+                  <Label htmlFor={`notes-${index}`} className="text-xs">Notes (optional)</Label>
                   <Textarea
                     id={`notes-${index}`}
-                    placeholder="Add notes about this split..."
+                    placeholder="Add notes..."
                     value={split.notes}
                     onChange={(e) => updateSplit(index, 'notes', e.target.value)}
-                    rows={2}
-                    className="text-sm"
+                    rows={1}
+                    className="text-xs resize-none"
                   />
                 </div>
               </div>
@@ -312,22 +313,22 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
               variant="outline"
               size="sm"
               onClick={addSplit}
-              className="w-full"
+              className="w-full h-8 text-xs"
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-3 w-3 mr-1" />
               Add Another Split
             </Button>
           </div>
 
           {/* Remaining Amount Indicator */}
-          <div className={`rounded-md p-3 ${
+          <div className={`rounded-md p-2 ${
             Math.abs(remaining) <= 0.01 
               ? 'bg-success/10 border border-success/20' 
               : remaining > 0 
                 ? 'bg-warning/10 border border-warning/20'
-                : 'bg-destructive/10 border border-destructive/20'
+              : 'bg-destructive/10 border border-destructive/20'
           }`}>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs">
               <span className="font-medium">Remaining to allocate:</span>
               <span className={`font-mono font-bold ${
                 Math.abs(remaining) <= 0.01 
@@ -340,7 +341,7 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
               </span>
             </div>
             {Math.abs(remaining) <= 0.01 && (
-              <div className="text-xs text-success mt-1">
+              <div className="text-xs text-success mt-0.5">
                 ✓ Split amounts match expense total
               </div>
             )}
@@ -356,10 +357,10 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
+          <Button variant="outline" onClick={onClose} disabled={loading} size="sm" className="text-xs">
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!isValid || loading}>
+          <Button onClick={handleSubmit} disabled={!isValid || loading} size="sm" className="text-xs">
             {loading ? 'Saving...' : expense.is_split ? 'Update Splits' : 'Create Splits'}
           </Button>
         </DialogFooter>
