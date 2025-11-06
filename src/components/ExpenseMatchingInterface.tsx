@@ -23,6 +23,7 @@ import { LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { format } from 'date-fns';
 import { cn, formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
 import { BrandedLoader } from '@/components/ui/branded-loader';
+import { fuzzyMatchPayee, type PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 
 interface ExpenseMatchingInterfaceProps {
   projectId: string;
@@ -174,10 +175,9 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
   };
 
   const calculateMatchConfidence = (expense: UnmatchedExpense, lineItems: LineItemWithExpenses[]): number => {
-    // Calculate confidence score based on various factors
     let confidence = 0;
     
-    // Category match - map expense categories to line item categories  
+    // Category match - map expense categories to line item categories (40 points max)
     const categoryMap: Record<ExpenseCategory, LineItemCategory[]> = {
       [ExpenseCategory.LABOR]: [LineItemCategory.LABOR],
       [ExpenseCategory.SUBCONTRACTOR]: [LineItemCategory.SUBCONTRACTOR],
@@ -189,14 +189,61 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
     };
 
     const matchingCategories = categoryMap[expense.category] || [];
-    const hasCategory = lineItems.some(item => matchingCategories.includes(item.category));
-    if (hasCategory) confidence += 40;
+    const matchingLineItems = lineItems.filter(item => matchingCategories.includes(item.category));
     
-    // Payee specialization (if we have payee data)
-    if (expense.payee_id) confidence += 30;
+    if (matchingLineItems.length > 0) {
+      confidence += 40;
+    }
     
-    // Description keywords (placeholder)
-    confidence += 20;
+    // Payee fuzzy matching (0-30 points) - Note: Will enhance when payee data available on line items
+    if (expense.payee_name && matchingLineItems.length > 0) {
+      // Future enhancement: Load quote payee names and perform fuzzy matching
+      // For now, placeholder for basic payee presence
+      confidence += 0; // Will be 0-30 when quote payees are loaded
+    }
+    
+    // Amount similarity (0-20 points)
+    if (matchingLineItems.length > 0) {
+      const closestAmountMatch = matchingLineItems.reduce((best, item) => {
+        const itemCost = item.totalCost || 0;
+        if (itemCost === 0) return best;
+        
+        const percentDiff = Math.abs((expense.amount - itemCost) / itemCost) * 100;
+        
+        if (percentDiff < best.percentDiff) {
+          return { item, percentDiff };
+        }
+        return best;
+      }, { item: null as LineItemWithExpenses | null, percentDiff: Infinity });
+      
+      if (closestAmountMatch.item) {
+        if (closestAmountMatch.percentDiff <= 5) confidence += 20;
+        else if (closestAmountMatch.percentDiff <= 10) confidence += 15;
+        else if (closestAmountMatch.percentDiff <= 20) confidence += 10;
+      }
+    }
+    
+    // Description keyword matching (0-10 points)
+    if (expense.description && matchingLineItems.length > 0) {
+      const expenseWords = new Set(
+        expense.description
+          .toLowerCase()
+          .split(/\s+/)
+          .filter(word => word.length > 3 && !['the', 'and', 'for', 'with', 'from'].includes(word))
+      );
+      
+      const hasDescriptionMatch = matchingLineItems.some(item => {
+        const itemWords = item.description
+          .toLowerCase()
+          .split(/\s+/)
+          .filter(word => word.length > 3);
+        
+        const commonWords = itemWords.filter(word => expenseWords.has(word));
+        return commonWords.length > 0;
+      });
+      
+      if (hasDescriptionMatch) confidence += 10;
+    }
     
     return Math.min(confidence, 100);
   };

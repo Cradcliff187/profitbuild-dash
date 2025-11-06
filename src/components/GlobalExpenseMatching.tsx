@@ -26,6 +26,7 @@ import { LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { BrandedLoader } from '@/components/ui/branded-loader';
+import { fuzzyMatchPayee, type PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 
 interface GlobalExpenseMatchingProps {
   onClose: () => void;
@@ -374,23 +375,88 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
 
     const matchingCategories = categoryMap[expense.category] || [];
     
-    // Same project + same category = high confidence
-    const projectCategoryMatch = lineItems.some(item => 
+    // Filter to matching category line items in same project
+    const projectMatchingItems = lineItems.filter(item => 
       item.project_id === expense.project_id && 
       matchingCategories.includes(item.category)
     );
-    if (projectCategoryMatch) confidence += 60;
     
-    // Same payee (for quotes) = medium confidence
-    const payeeMatch = lineItems.some(item => 
-      item.type === 'quote' && 
-      item.payee_name === expense.payee_name
-    );
-    if (payeeMatch) confidence += 30;
+    // Same project + same category (50 points)
+    if (projectMatchingItems.length > 0) {
+      confidence += 50;
+    }
     
-    // Category match anywhere = low confidence
-    const categoryMatch = lineItems.some(item => matchingCategories.includes(item.category));
-    if (categoryMatch && !projectCategoryMatch) confidence += 20;
+    // Payee fuzzy matching (0-30 points) - only for quotes/change orders
+    if (expense.payee_name && projectMatchingItems.length > 0) {
+      const payeeLineItems = projectMatchingItems.filter(item => 
+        item.type === 'quote' || item.type === 'change_order'
+      );
+      
+      if (payeeLineItems.length > 0) {
+        // Build list of payees from line items
+        const lineItemPayees: PartialPayee[] = payeeLineItems
+          .filter(item => item.payee_name)
+          .map(item => ({
+            id: item.id,
+            payee_name: item.payee_name!,
+            full_name: item.payee_name
+          }));
+        
+        if (lineItemPayees.length > 0) {
+          const fuzzyResult = fuzzyMatchPayee(expense.payee_name, lineItemPayees);
+          
+          if (fuzzyResult.bestMatch) {
+            const matchConfidence = fuzzyResult.bestMatch.confidence;
+            if (matchConfidence >= 90) confidence += 30;
+            else if (matchConfidence >= 75) confidence += 20;
+            else if (matchConfidence >= 60) confidence += 10;
+          }
+        }
+      }
+    }
+    
+    // Amount similarity (0-15 points)
+    if (projectMatchingItems.length > 0) {
+      const closestAmountMatch = projectMatchingItems.reduce((best, item) => {
+        const itemTotal = item.total || 0;
+        if (itemTotal === 0) return best;
+        
+        const percentDiff = Math.abs((expense.amount - itemTotal) / itemTotal) * 100;
+        
+        if (percentDiff < best.percentDiff) {
+          return { item, percentDiff };
+        }
+        return best;
+      }, { item: null as LineItemForMatching | null, percentDiff: Infinity });
+      
+      if (closestAmountMatch.item) {
+        if (closestAmountMatch.percentDiff <= 5) confidence += 15;
+        else if (closestAmountMatch.percentDiff <= 10) confidence += 10;
+        else if (closestAmountMatch.percentDiff <= 20) confidence += 5;
+      }
+    }
+    
+    // Description keyword matching (0-5 points)
+    if (expense.description && projectMatchingItems.length > 0) {
+      const expenseWords = new Set(
+        expense.description
+          .toLowerCase()
+          .split(/\s+/)
+          .filter((word: string) => word.length > 3 && !['the', 'and', 'for', 'with', 'from'].includes(word))
+      );
+      
+      const hasDescriptionMatch = projectMatchingItems.some(item => {
+        const itemWords = item.description
+          .toLowerCase()
+          .split(/\s+/)
+          .filter((word: string) => word.length > 3);
+        
+        const commonWords = itemWords.filter((word: string) => expenseWords.has(word));
+        return commonWords.length > 0;
+      });
+      
+      if (hasDescriptionMatch) confidence += 5;
+    }
     
     return Math.min(confidence, 100);
   };
