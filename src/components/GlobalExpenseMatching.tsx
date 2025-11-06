@@ -852,8 +852,8 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Expenses</SelectItem>
-              <SelectItem value="real_projects">Real Projects Only</SelectItem>
-              <SelectItem value="system_projects">System Projects Only</SelectItem>
+              <SelectItem value="real_projects">Ready to Allocate</SelectItem>
+              <SelectItem value="system_projects">Needs Project Assignment</SelectItem>
             </SelectContent>
           </Select>
         </div>
