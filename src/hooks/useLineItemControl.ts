@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { LineItem, LineItemCategory } from '@/types/estimate';
 import { Expense, ExpenseCategory } from '@/types/expense';
 import { Project } from '@/types/project';
+import { getExpenseSplits, calculateProjectExpenses } from '@/utils/expenseSplits';
 
 export interface QuoteData {
   id: string;
@@ -287,7 +288,17 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
               description,
               expense_date,
               category,
+              is_split,
               payees (payee_name)
+            ),
+            expense_splits (
+              id,
+              split_amount,
+              project_id,
+              projects (
+                project_name,
+                project_number
+              )
             )
           `)
           .in('expense_id', expenseIds);
@@ -315,7 +326,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
 
       // Build correlation map by line item (supporting estimate, quote, and change order allocations)
       const correlationsByLineItem = new Map<string, any[]>();
-      const seenExpenses = new Map<string, Set<string>>(); // Track expense_id per line_item to avoid dupes
+      const seenExpenses = new Map<string, Set<string>>(); // Track expense_id or split_id per line_item to avoid dupes
       
       if (correlationData) {
         for (const corr of correlationData) {
@@ -365,20 +376,40 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
             }
           }
           
+          // Determine which expense data to use (split or parent)
+          let expenseDataToUse: any;
+          let trackingId: string;
+          
+          if (corr.expense_split_id && corr.expense_splits) {
+            // Split allocation - use split data
+            expenseDataToUse = {
+              id: corr.expense_splits.id,
+              amount: corr.expense_splits.split_amount,  // Use split amount!
+              description: `${corr.expenses?.description || 'Split'} (${corr.expense_splits.projects?.project_name || 'Unknown'})`,
+              expense_date: corr.expenses?.expense_date,
+              category: corr.expenses?.category,
+              payees: corr.expenses?.payees,
+              is_split: true,
+              split_id: corr.expense_split_id,
+              parent_expense_id: corr.expense_id
+            };
+            trackingId = corr.expense_split_id;
+          } else if (corr.expenses) {
+            // Non-split allocation - use parent expense data
+            expenseDataToUse = corr.expenses;
+            trackingId = corr.expense_id;
+          }
+          
           // Add to map with deduplication
           for (const lineItemId of targetLineItemIds) {
             if (!seenExpenses.has(lineItemId)) {
               seenExpenses.set(lineItemId, new Set());
             }
             
-            const expenseId = corr.expense_id;
-            if (!seenExpenses.get(lineItemId)!.has(expenseId)) {
+            if (expenseDataToUse && !seenExpenses.get(lineItemId)!.has(trackingId)) {
               const existing = correlationsByLineItem.get(lineItemId) || [];
-              const expenseData = corr.expenses;
-              if (expenseData) {
-                correlationsByLineItem.set(lineItemId, [...existing, expenseData]);
-                seenExpenses.get(lineItemId)!.add(expenseId);
-              }
+              correlationsByLineItem.set(lineItemId, [...existing, expenseDataToUse]);
+              seenExpenses.get(lineItemId)!.add(trackingId);
             }
           }
         }
@@ -396,7 +427,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
       );
 
       setLineItems(processedLineItems);
-      setSummary(calculateSummary(processedLineItems, project, expenses || []));
+      setSummary(await calculateSummary(processedLineItems, project, expenses || []));
 
     } catch (err) {
       console.error('Error fetching line item control data:', err);
@@ -634,7 +665,7 @@ function processLineItemData(
   });
 }
 
-function calculateSummary(lineItems: LineItemControlData[], project: Project, allProjectExpenses: any[]): LineItemControlSummary {
+async function calculateSummary(lineItems: LineItemControlData[], project: Project, allProjectExpenses: any[]): Promise<LineItemControlSummary> {
   // Total Estimated Cost: sum of all estimated costs (internal + external)
   const totalEstimatedCost = lineItems.reduce((sum, item) => sum + item.estimatedCost, 0);
   
@@ -649,10 +680,10 @@ function calculateSummary(lineItems: LineItemControlData[], project: Project, al
     }
   }, 0);
   
-  // Calculate total project expenses
-  const totalProjectExpenses = allProjectExpenses.reduce(
-    (sum: number, exp: any) => sum + Number(exp.amount ?? 0),
-    0
+  // Calculate total project expenses (split-aware)
+  const totalProjectExpenses = await calculateProjectExpenses(
+    project.id!,
+    allProjectExpenses
   );
   
   // Total Actual = ALL expenses assigned to this project (allocated + unallocated)
