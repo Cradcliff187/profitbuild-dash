@@ -1,26 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, Plus, Upload, BarChart3, List, FileDown, Target, Clock, Link as LinkIcon } from "lucide-react";
+import { Receipt, Plus, Upload, BarChart3, List, Target, Clock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { ExpenseDashboard } from "@/components/ExpenseDashboard";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpensesList } from "@/components/ExpensesList";
-import { ProjectExpenseTracker } from "@/components/ProjectExpenseTracker";
 import { ExpenseImportModal } from "@/components/ExpenseImportModal";
-import { GlobalExpenseAllocation } from "@/components/GlobalExpenseMatching";
 import { TimesheetGridView } from "@/components/TimesheetGridView";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-type ViewMode = 'dashboard' | 'form' | 'list' | 'tracker' | 'matching';
+type ViewMode = 'overview' | 'form' | 'list';
 
 const Expenses = () => {
+  const navigate = useNavigate();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [estimates, setEstimates] = useState<any[]>([]);
-  const [changeOrders, setChangeOrders] = useState<any[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
+  const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
   const [loading, setLoading] = useState(true);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -34,7 +33,7 @@ const Expenses = () => {
 
   const fetchData = async () => {
     try {
-      const [expensesResult, estimatesResult, changeOrdersResult] = await Promise.all([
+      const [expensesResult, estimatesResult] = await Promise.all([
         supabase.from('expenses')
           .select(`
             *,
@@ -53,18 +52,15 @@ const Expenses = () => {
               quantity,
               description
             )
-          `),
-        supabase.from('change_orders')
-          .select('*')
+          `)
       ]);
 
       if (expensesResult.error) throw expensesResult.error;
       if (estimatesResult.error) throw estimatesResult.error;
-      if (changeOrdersResult.error) throw changeOrdersResult.error;
 
       const transformedExpenses: Expense[] = (expensesResult.data || []).map(expense => ({
         ...expense,
-        category: expense.category as ExpenseCategory, // Cast database value to enum
+        category: expense.category as ExpenseCategory,
         expense_date: new Date(expense.expense_date),
         created_at: new Date(expense.created_at),
         updated_at: new Date(expense.updated_at),
@@ -74,7 +70,6 @@ const Expenses = () => {
 
       setExpenses(transformedExpenses);
       setEstimates(estimatesResult.data || []);
-      setChangeOrders(changeOrdersResult.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
@@ -120,7 +115,7 @@ const Expenses = () => {
 
   const handleCancel = () => {
     setSelectedExpense(undefined);
-    setViewMode('dashboard');
+    setViewMode('overview');
   };
 
   if (loading) {
@@ -139,21 +134,15 @@ const Expenses = () => {
         </div>
         <div className="flex items-center space-x-2">
           <Button 
-            onClick={() => setViewMode('matching')} 
-            variant="outline"
+            onClick={() => navigate('/expenses/matching')} 
             size="sm"
-            className="flex items-center space-x-2"
           >
-            <Target className="h-4 w-4" />
+            <Target className="h-4 w-4 mr-2" />
             <span>Match Expenses</span>
           </Button>
-          <Button 
-            onClick={() => setShowTimesheetModal(true)} 
-            variant="outline"
-            size="sm"
-          >
-            <Clock className="h-4 w-4 mr-2" />
-            <span>Timesheet</span>
+          <Button onClick={handleCreateNew} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            <span>Add Expense</span>
           </Button>
           <Button 
             onClick={() => setShowImportModal(true)} 
@@ -163,9 +152,13 @@ const Expenses = () => {
             <Upload className="h-4 w-4 mr-2" />
             <span>Import</span>
           </Button>
-          <Button onClick={handleCreateNew} size="sm" className="flex items-center space-x-2">
-            <Plus className="h-4 w-4" />
-            <span>Add Expense</span>
+          <Button 
+            onClick={() => setShowTimesheetModal(true)} 
+            variant="outline"
+            size="sm"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            <span>Timesheet</span>
           </Button>
         </div>
       </div>
@@ -176,32 +169,20 @@ const Expenses = () => {
           onSave={handleSaveExpense}
           onCancel={handleCancel}
         />
-      ) : viewMode === 'matching' ? (
-        <GlobalExpenseAllocation
-          onClose={() => setViewMode('dashboard')}
-        />
       ) : (
         <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="dashboard" className="flex items-center space-x-2">
-              <BarChart3 className="h-4 w-4" />
-              <span>Dashboard</span>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="overview">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              <span>Overview</span>
             </TabsTrigger>
-            <TabsTrigger value="list" className="flex items-center space-x-2">
-              <List className="h-4 w-4" />
+            <TabsTrigger value="list">
+              <List className="h-4 w-4 mr-2" />
               <span>All Expenses</span>
-            </TabsTrigger>
-            <TabsTrigger value="tracker" className="flex items-center space-x-2">
-              <Receipt className="h-4 w-4" />
-              <span>Project Tracking</span>
-            </TabsTrigger>
-            <TabsTrigger value="matching" className="flex items-center space-x-2">
-              <Target className="h-4 w-4" />
-              <span>Match Expenses</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard">
+          <TabsContent value="overview">
             <ExpenseDashboard expenses={expenses} estimates={estimates} />
           </TabsContent>
 
@@ -212,14 +193,6 @@ const Expenses = () => {
               onDelete={handleDeleteExpense}
               onRefresh={fetchData}
             />
-          </TabsContent>
-
-          <TabsContent value="tracker">
-            <ProjectExpenseTracker expenses={expenses} estimates={estimates} changeOrders={changeOrders} />
-          </TabsContent>
-
-          <TabsContent value="matching">
-            <GlobalExpenseAllocation onClose={() => setViewMode('dashboard')} />
           </TabsContent>
         </Tabs>
       )}
