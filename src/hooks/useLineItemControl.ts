@@ -271,46 +271,120 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
 
       if (expensesError) throw expensesError;
 
-      // Fetch correlated expenses (explicitly matched)
-      const estimateLineItemIds = (estimates?.estimate_line_items || []).map((li: any) => li.id);
-      let correlatedExpensesData: any[] = [];
+      // Fetch expense correlations for ALL types (estimate, quote, change order)
+      // Get all expense IDs from this project
+      const expenseIds = (expenses || []).map((exp: any) => exp.id);
       
-      // Only query correlations if we have line items
-      if (estimateLineItemIds.length > 0) {
+      let correlationData: any[] = [];
+      if (expenseIds.length > 0) {
         const { data, error: correlationsError } = await supabase
           .from('expense_line_item_correlations')
           .select(`
-            estimate_line_item_id,
-            expense_id,
+            *,
             expenses (
               id,
               amount,
               description,
               expense_date,
               category,
-              payee_id,
               payees (payee_name)
             )
           `)
-          .in('estimate_line_item_id', estimateLineItemIds);
+          .in('expense_id', expenseIds);
 
         if (correlationsError) {
           console.warn('[LineItemControl] Error fetching correlations:', correlationsError);
         } else {
-          correlatedExpensesData = data || [];
+          correlationData = data || [];
         }
       }
 
-      // Group correlated expenses by line item
-      const correlationsByLineItem = new Map();
-      (correlatedExpensesData || []).forEach((corr: any) => {
-        if (!correlationsByLineItem.has(corr.estimate_line_item_id)) {
-          correlationsByLineItem.set(corr.estimate_line_item_id, []);
+      // Build quote-to-estimate mapping from quotes
+      const quoteToEstimate = new Map<string, Array<{ estimate_line_item_id: string, total_cost: number }>>();
+      for (const quote of (quotes || [])) {
+        const { data: qliData } = await supabase
+          .from('quote_line_items')
+          .select('estimate_line_item_id, total_cost')
+          .eq('quote_id', quote.id)
+          .not('estimate_line_item_id', 'is', null);
+        
+        if (qliData && qliData.length > 0) {
+          quoteToEstimate.set(quote.id, qliData as any[]);
         }
-        if (corr.expenses) {
-          correlationsByLineItem.get(corr.estimate_line_item_id).push(corr.expenses);
+      }
+
+      // Build correlation map by line item (supporting estimate, quote, and change order allocations)
+      const correlationsByLineItem = new Map<string, any[]>();
+      const seenExpenses = new Map<string, Set<string>>(); // Track expense_id per line_item to avoid dupes
+      
+      if (correlationData) {
+        for (const corr of correlationData) {
+          let targetLineItemIds: string[] = [];
+          
+          // Direct estimate line item allocation
+          if (corr.estimate_line_item_id) {
+            targetLineItemIds.push(corr.estimate_line_item_id);
+          }
+          
+          // Direct change order line item allocation
+          if (corr.change_order_line_item_id) {
+            targetLineItemIds.push(corr.change_order_line_item_id);
+          }
+          
+          // Quote allocation - map to estimate line items
+          if (corr.quote_id && quoteToEstimate.has(corr.quote_id)) {
+            const candidates = quoteToEstimate.get(corr.quote_id)!;
+            
+            if (candidates.length === 1) {
+              // Single candidate - straightforward mapping
+              targetLineItemIds.push(candidates[0].estimate_line_item_id);
+            } else if (candidates.length > 1) {
+              // Multiple candidates - use heuristic
+              const expenseAmount = corr.expenses?.amount || 0;
+              
+              if (expenseAmount > 0) {
+                // Find closest match by cost
+                let closestCandidate = candidates[0];
+                let smallestDiff = Math.abs(candidates[0].total_cost - expenseAmount);
+                
+                for (let i = 1; i < candidates.length; i++) {
+                  const diff = Math.abs(candidates[i].total_cost - expenseAmount);
+                  if (diff < smallestDiff) {
+                    smallestDiff = diff;
+                    closestCandidate = candidates[i];
+                  }
+                }
+                
+                targetLineItemIds.push(closestCandidate.estimate_line_item_id);
+                console.warn(`[LineItemControl] Quote ${corr.quote_id} has ${candidates.length} estimate line items. Mapped expense $${expenseAmount} to closest match (cost diff: $${smallestDiff.toFixed(2)})`);
+              } else {
+                // No expense amount - use first candidate
+                targetLineItemIds.push(candidates[0].estimate_line_item_id);
+                console.warn(`[LineItemControl] Quote ${corr.quote_id} has ${candidates.length} estimate line items. Using first candidate (no expense amount available).`);
+              }
+            }
+          }
+          
+          // Add to map with deduplication
+          for (const lineItemId of targetLineItemIds) {
+            if (!seenExpenses.has(lineItemId)) {
+              seenExpenses.set(lineItemId, new Set());
+            }
+            
+            const expenseId = corr.expense_id;
+            if (!seenExpenses.get(lineItemId)!.has(expenseId)) {
+              const existing = correlationsByLineItem.get(lineItemId) || [];
+              const expenseData = corr.expenses;
+              if (expenseData) {
+                correlationsByLineItem.set(lineItemId, [...existing, expenseData]);
+                seenExpenses.get(lineItemId)!.add(expenseId);
+              }
+            }
+          }
         }
-      });
+      }
+      
+      console.log(`[LineItemControl] Loaded ${correlationData?.length || 0} correlations, mapped to ${correlationsByLineItem.size} line items`);
 
       // Process and match data
       const processedLineItems = processLineItemData(
@@ -606,6 +680,25 @@ function calculateSummary(lineItems: LineItemControlData[], project: Project, al
   const completionPercentage = totalQuotedWithInternal > 0 
     ? Math.min((totalActual / totalQuotedWithInternal) * 100, 100) 
     : 0;
+
+  console.log('[LineItemControl] Summary:', {
+    totalEstimatedCost,
+    totalQuotedWithInternal,
+    totalProjectExpenses,
+    totalAllocated,
+    totalUnallocated
+  });
+  
+  // Debug first 3 line items
+  if (lineItems.length > 0) {
+    console.log('[LineItemControl] First 3 line items allocated/actual:', 
+      lineItems.slice(0, 3).map(li => ({
+        desc: li.description.substring(0, 30),
+        allocated: li.allocatedAmount,
+        actual: li.actualAmount
+      }))
+    );
+  }
 
   return {
     totalContractValue,

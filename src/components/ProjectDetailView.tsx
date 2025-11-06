@@ -113,7 +113,10 @@ export const ProjectDetailView = () => {
           .order('date_received', { ascending: false }),
         supabase
           .from('expenses')
-          .select('*')
+          .select(`
+            *,
+            payees (payee_name)
+          `)
           .eq('project_id', projectId)
           .order('expense_date', { ascending: false }),
         supabase
@@ -171,12 +174,13 @@ export const ProjectDetailView = () => {
       })) as unknown as Quote[];
 
       // Format expenses with proper typing
-      const formattedExpenses: Expense[] = (expensesData || []).map(expense => ({
+      const formattedExpenses: Expense[] = (expensesData || []).map((expense: any) => ({
         ...expense,
         expense_date: new Date(expense.expense_date),
         created_at: new Date(expense.created_at),
         updated_at: new Date(expense.updated_at),
-        category: expense.category as any
+        category: expense.category as any,
+        payee_name: expense.payees?.payee_name
       }));
 
       // Calculate change order totals from approved change orders
