@@ -774,16 +774,6 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
             <span className="font-bold text-warning">{unallocatedCount}</span>
           </div>
         </div>
-        
-        <div className="flex gap-2">
-          <Button onClick={prepareAutoAllocate} size="sm" className="flex items-center gap-2">
-            <Zap className="h-4 w-4" />
-            Auto-Allocate High Confidence
-          </Button>
-          <Button variant="outline" size="sm" onClick={onClose}>
-            Done
-          </Button>
-        </div>
       </div>
 
       {/* Filters */}
