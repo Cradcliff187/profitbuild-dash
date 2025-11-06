@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, FileDown, MoreHorizontal, Edit2, Trash2, ExternalLink } from "lucide-react";
+import { Search, FileDown, MoreHorizontal, Edit2, Trash2, ExternalLink, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EntityTableTemplate } from "./EntityTableTemplate";
@@ -189,21 +189,25 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   };
 
   const exportToCsv = () => {
-    const headers = ['Date', 'Project', 'Payee', 'Category', 'Transaction Type', 'Amount', 'Approval Status', 'Line Item Match'];
+    const headers = ['Date', 'Project', 'Project Status', 'Payee', 'Category', 'Transaction Type', 'Amount', 'Approval Status', 'Line Item Allocation'];
     const csvContent = [
       headers.join(','),
-      ...filteredExpenses.map(expense =>
-        [
+      ...filteredExpenses.map(expense => {
+        const isPlaceholder = expense.project_id === "000-UNASSIGNED" || 
+                             expense.project_name?.includes("Unassigned") ||
+                             expense.project_id === "SYS-000";
+        return [
           expense.expense_date.toLocaleDateString(),
           `"${expense.project_name || ''}"`,
+          isPlaceholder ? 'Needs Assignment' : 'Assigned',
           `"${expense.payee_name || ''}"`,
           `"${EXPENSE_CATEGORY_DISPLAY[expense.category] || expense.category}"`,
           `"${TRANSACTION_TYPE_DISPLAY[expense.transaction_type] || expense.transaction_type}"`,
           expense.amount,
           (expense.approval_status || 'pending').charAt(0).toUpperCase() + (expense.approval_status || 'pending').slice(1),
-          expenseMatches[expense.id] ? 'Matched' : 'Unmatched'
-        ].join(',')
-      )
+          isPlaceholder ? '—' : (expenseMatches[expense.id] ? 'Allocated' : 'Unallocated')
+        ].join(',');
+      })
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -291,6 +295,32 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       )
     },
     {
+      key: 'project_status',
+      label: 'Project Status',
+      sortable: false,
+      render: (expense: Expense) => {
+        const isPlaceholder = expense.project_id === "000-UNASSIGNED" || 
+                             expense.project_name?.includes("Unassigned") ||
+                             expense.project_id === "SYS-000";
+        
+        if (isPlaceholder) {
+          return (
+            <Badge variant="outline" className="compact-badge text-warning border-warning/50">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              Needs Assignment
+            </Badge>
+          );
+        }
+        
+        return (
+          <Badge variant="default" className="compact-badge text-success border-success/50">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Assigned
+          </Badge>
+        );
+      }
+    },
+    {
       key: 'payee_name',
       label: 'Payee',
       sortable: true,
@@ -340,14 +370,36 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       }
     },
     {
-      key: 'line_item_match',
-      label: 'Line Item Match',
+      key: 'line_item_allocation',
+      label: 'Line Item Allocation',
       sortable: false,
-      render: (expense: Expense) => (
-        <Badge variant={expenseMatches[expense.id] ? 'default' : 'outline'} className="compact-badge">
-          {expenseMatches[expense.id] ? 'Matched' : 'Unmatched'}
-        </Badge>
-      )
+      render: (expense: Expense) => {
+        const isPlaceholder = expense.project_id === "000-UNASSIGNED" || 
+                             expense.project_name?.includes("Unassigned") ||
+                             expense.project_id === "SYS-000";
+        
+        // Show dash for placeholder projects
+        if (isPlaceholder) {
+          return <span className="text-muted-foreground">—</span>;
+        }
+        
+        // Show allocation status for real projects
+        if (expenseMatches[expense.id]) {
+          return (
+            <Badge variant="default" className="compact-badge text-success">
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              → Estimate
+            </Badge>
+          );
+        }
+        
+        return (
+          <Badge variant="outline" className="compact-badge text-warning border-warning/50">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Unallocated
+          </Badge>
+        );
+      }
     }
   ];
 
@@ -464,14 +516,14 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         </Select>
 
         <Select value={filterMatchStatus} onValueChange={setFilterMatchStatus}>
-          <SelectTrigger className="w-32 h-input-compact text-label">
-            <SelectValue placeholder="Match Status" />
+          <SelectTrigger className="w-48 h-input-compact text-label">
+            <SelectValue placeholder="Allocation Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Expenses</SelectItem>
-            <SelectItem value="matched">Matched</SelectItem>
-            <SelectItem value="unmatched">Unmatched</SelectItem>
-            <SelectItem value="unassigned">Unassigned</SelectItem>
+            <SelectItem value="unassigned">⚠️ Needs Project Assignment</SelectItem>
+            <SelectItem value="unmatched">⚠️ Unallocated (No Line Item)</SelectItem>
+            <SelectItem value="matched">✅ Allocated to Line Items</SelectItem>
           </SelectContent>
         </Select>
 
