@@ -769,41 +769,31 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Global Expense Allocation</h2>
-          <p className="text-muted-foreground">
-            {projectId 
-              ? "Allocate expenses to estimate, quote, and change order line items for this project"
-              : "Allocate expenses to estimate, quote, and change order line items across all projects"}
-          </p>
+      {/* Compact Metrics + Actions Row */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex gap-2 text-xs">
+          <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded">
+            <span className="text-muted-foreground">Total:</span>
+            <span className="font-bold">{expenses.length}</span>
+          </div>
+          <div className="flex items-center gap-1 px-2 py-1 bg-success/10 rounded">
+            <span className="text-muted-foreground">Allocated:</span>
+            <span className="font-bold text-success">{allocatedCount}</span>
+          </div>
+          <div className="flex items-center gap-1 px-2 py-1 bg-warning/10 rounded">
+            <span className="text-muted-foreground">Unallocated:</span>
+            <span className="font-bold text-warning">{unallocatedCount}</span>
+          </div>
         </div>
         
         <div className="flex gap-2">
-          <Button onClick={prepareAutoAllocate} className="flex items-center gap-2">
+          <Button onClick={prepareAutoAllocate} size="sm" className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
             Auto-Allocate High Confidence
           </Button>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" size="sm" onClick={onClose}>
             Done
           </Button>
-        </div>
-      </div>
-
-      {/* Ultra-Compact Allocation Metrics */}
-      <div className="flex gap-2 mb-2 text-xs">
-        <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded">
-          <span className="text-muted-foreground">Total:</span>
-          <span className="font-bold">{expenses.length}</span>
-        </div>
-        <div className="flex items-center gap-1 px-2 py-1 bg-success/10 rounded">
-          <span className="text-muted-foreground">Allocated:</span>
-          <span className="font-bold text-success">{allocatedCount}</span>
-        </div>
-        <div className="flex items-center gap-1 px-2 py-1 bg-warning/10 rounded">
-          <span className="text-muted-foreground">Unallocated:</span>
-          <span className="font-bold text-warning">{unallocatedCount}</span>
         </div>
       </div>
 
