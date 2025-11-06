@@ -11,7 +11,7 @@ import { EstimateVersionComparison } from "@/components/EstimateVersionCompariso
 import { QuotesList } from "@/components/QuotesList";
 import { ExpensesList } from "@/components/ExpensesList";
 import { LineItemControlDashboard } from "@/components/LineItemControlDashboard";
-import { GlobalExpenseMatching } from "@/components/GlobalExpenseMatching";
+import { GlobalExpenseAllocation } from "@/components/GlobalExpenseMatching";
 import { ChangeOrdersList } from "@/components/ChangeOrdersList";
 import { ChangeOrderForm } from "@/components/ChangeOrderForm";
 import { ProjectMediaGallery } from "@/components/ProjectMediaGallery";
@@ -328,7 +328,7 @@ export const ProjectDetailView = () => {
               } />
               
               <Route path="matching" element={
-                <GlobalExpenseMatching 
+                <GlobalExpenseAllocation 
                   projectId={project.id} 
                   onClose={() => {
                     navigate(`/projects/${projectId}`);

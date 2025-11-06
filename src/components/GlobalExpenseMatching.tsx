@@ -28,7 +28,7 @@ import { cn } from '@/lib/utils';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { fuzzyMatchPayee, type PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 
-interface GlobalExpenseMatchingProps {
+interface GlobalExpenseAllocationProps {
   onClose: () => void;
   projectId?: string; // Optional - if provided, filter to single project
 }
@@ -58,13 +58,13 @@ interface LineItemForMatching {
   category: LineItemCategory;
   description: string;
   total: number;
-  matched_amount: number;
+  allocated_amount: number;
   payee_name?: string; // For quotes and change orders
   change_order_number?: string;
   change_order_status?: string;
 }
 
-export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
+export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = ({
   onClose,
   projectId
 }) => {
@@ -74,19 +74,19 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('unaccounted');
-  const [matchingSource, setMatchingSource] = useState<'estimates' | 'quotes' | 'change_orders'>('estimates');
+  const [allocationSource, setAllocationSource] = useState<'estimates' | 'quotes' | 'change_orders'>('estimates');
   const [selectedExpenses, setSelectedExpenses] = useState<Set<string>>(new Set());
   const [projects, setProjects] = useState<any[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
-    loadMatchingData();
+    loadAllocationData();
     if (projectId) {
       setProjectFilter(projectId);
     }
   }, [projectId]);
 
-  const loadMatchingData = async () => {
+  const loadAllocationData = async () => {
     setIsLoading(true);
     try {
       // Load all expenses with their current correlations
@@ -230,7 +230,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
             category: item.category as LineItemCategory,
             description: item.description,
             total: item.total_cost || (item.cost_per_unit * item.quantity) || 0,
-            matched_amount: 0 // Will be calculated below
+            allocated_amount: 0 // Will be calculated below
           }))
       );
 
@@ -242,12 +242,12 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
           source_id: quote.id,
           project_id: quote.project_id,
           project_name: quote.projects?.project_name || 'Unknown',
-          category: item.category as LineItemCategory,
-          description: item.description,
-          total: item.total_cost || (item.cost_per_unit * item.quantity) || 0,
-          matched_amount: 0, // Will be calculated below
-          payee_name: quote.payees?.payee_name
-        }))
+            category: item.category as LineItemCategory,
+            description: item.description,
+            total: item.total_cost || (item.cost_per_unit * item.quantity) || 0,
+            allocated_amount: 0, // Will be calculated below
+            payee_name: quote.payees?.payee_name
+          }))
       );
 
       // Include all approved change orders
@@ -258,19 +258,19 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
           source_id: co.id,
           project_id: co.project_id,
           project_name: co.projects?.project_name || 'Unknown',
-          category: item.category as LineItemCategory,
-          description: item.description,
-          total: item.total_cost || 0,
-          matched_amount: 0, // Will be calculated below
-          payee_name: item.payees?.payee_name,
-          change_order_number: co.change_order_number,
-          change_order_status: co.status
-        }))
+            category: item.category as LineItemCategory,
+            description: item.description,
+            total: item.total_cost || 0,
+            allocated_amount: 0, // Will be calculated below
+            payee_name: item.payees?.payee_name,
+            change_order_number: co.change_order_number,
+            change_order_status: co.status
+          }))
       );
 
       const allLineItems = [...estimateLineItems, ...quoteLineItems, ...changeOrderLineItems];
 
-      // Calculate matched amounts
+      // Calculate allocated amounts
       correlations.forEach(correlation => {
         const expense = rawExpenses.find(e => e.id === correlation.expense_id);
         const lineItem = allLineItems.find(li => 
@@ -280,7 +280,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
         );
         
         if (expense && lineItem) {
-          lineItem.matched_amount += expense.amount;
+          lineItem.allocated_amount += expense.amount;
         }
       });
 
@@ -309,7 +309,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
           project_id: expense.project_id,
           project_name: expense.projects?.project_name,
           match_status: matchStatus,
-          suggested_line_item_id: suggestLineItemMatch(expense, allLineItems),
+          suggested_line_item_id: suggestLineItemAllocation(expense, allLineItems),
           confidence_score: calculateMatchConfidence(expense, allLineItems)
         };
       });
@@ -321,7 +321,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
       console.error('Error loading matching data:', error);
       toast({
         title: "Error",
-        description: "Failed to load expense matching data.",
+        description: "Failed to load expense allocation data.",
         variant: "destructive"
       });
     } finally {
@@ -329,7 +329,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
     }
   };
 
-  const suggestLineItemMatch = (expense: any, lineItems: LineItemForMatching[]): string | undefined => {
+  const suggestLineItemAllocation = (expense: any, lineItems: LineItemForMatching[]): string | undefined => {
     const categoryMap: Record<ExpenseCategory, LineItemCategory[]> = {
       [ExpenseCategory.LABOR]: [LineItemCategory.LABOR],
       [ExpenseCategory.SUBCONTRACTOR]: [LineItemCategory.SUBCONTRACTOR],
@@ -494,23 +494,23 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
       if (updateError) throw updateError;
 
       toast({
-        title: "Expenses Matched",
-        description: `Matched ${expenseIds.length} expense${expenseIds.length === 1 ? '' : 's'} to ${lineItem.type === 'estimate' ? 'estimate' : lineItem.type === 'quote' ? 'quote' : 'change order'} line item.`
+        title: "Expenses Allocated",
+        description: `Allocated ${expenseIds.length} expense${expenseIds.length === 1 ? '' : 's'} to ${lineItem.type === 'estimate' ? 'estimate' : lineItem.type === 'quote' ? 'quote' : 'change order'} line item.`
       });
       
       setSelectedExpenses(new Set());
-      loadMatchingData();
+      loadAllocationData();
     } catch (error) {
-      console.error('Error assigning expenses:', error);
+      console.error('Error allocating expenses:', error);
       toast({
         title: "Error",
-        description: "Failed to assign expenses.",
+        description: "Failed to allocate expenses.",
         variant: "destructive"
       });
     }
   };
 
-  const handleAutoMatch = async () => {
+  const handleAutoAllocate = async () => {
     const highConfidenceExpenses = expenses.filter(exp => 
       exp.match_status === 'unaccounted' && 
       exp.confidence_score && 
@@ -520,8 +520,8 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
 
     if (highConfidenceExpenses.length === 0) {
       toast({
-        title: "No High-Confidence Matches",
-        description: "No expenses found with high confidence matches for auto-assignment."
+        title: "No High-Confidence Allocations",
+        description: "No expenses found with high confidence allocations for auto-assignment."
       });
       return;
     }
@@ -557,16 +557,16 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
       if (updateError) throw updateError;
 
       toast({
-        title: "Auto-matching Complete",
-        description: `Automatically matched ${highConfidenceExpenses.length} high-confidence expenses.`
+        title: "Auto-Allocation Complete",
+        description: `Automatically allocated ${highConfidenceExpenses.length} high-confidence expenses.`
       });
       
-      loadMatchingData();
+      loadAllocationData();
     } catch (error) {
-      console.error('Error auto-matching:', error);
+      console.error('Error auto-allocating:', error);
       toast({
         title: "Error",
-        description: "Failed to auto-match expenses.",
+        description: "Failed to auto-allocate expenses.",
         variant: "destructive"
       });
     }
@@ -617,7 +617,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
   };
 
   if (isLoading) {
-    return <BrandedLoader message="Loading expense matching..." />;
+    return <BrandedLoader message="Loading expense allocation..." />;
   }
 
   return (
@@ -625,18 +625,18 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Global Expense Matching</h2>
+          <h2 className="text-2xl font-bold">Global Expense Allocation</h2>
           <p className="text-muted-foreground">
             {projectId 
-              ? "Match expenses to estimate, quote, and change order line items for this project"
-              : "Match expenses to estimate, quote, and change order line items across all projects"}
+              ? "Allocate expenses to estimate, quote, and change order line items for this project"
+              : "Allocate expenses to estimate, quote, and change order line items across all projects"}
           </p>
         </div>
         
         <div className="flex gap-2">
-          <Button onClick={handleAutoMatch} className="flex items-center gap-2">
+          <Button onClick={handleAutoAllocate} className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
-            Auto-Match High Confidence
+            Auto-Allocate High Confidence
           </Button>
           <Button variant="outline" onClick={onClose}>
             Done
@@ -830,7 +830,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
                       <div className="text-right">
                         <div className="text-sm font-semibold">{formatCurrency(item.total)}</div>
                         <div className="text-xs text-muted-foreground">
-                          {formatCurrency(item.matched_amount)} matched
+                          {formatCurrency(item.allocated_amount)} allocated
                         </div>
                       </div>
                     </div>
@@ -872,7 +872,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
                       <div className="text-right">
                         <div className="text-sm font-semibold">{formatCurrency(item.total)}</div>
                         <div className="text-xs text-muted-foreground">
-                          {formatCurrency(item.matched_amount)} matched
+                          {formatCurrency(item.allocated_amount)} allocated
                         </div>
                       </div>
                     </div>
@@ -916,7 +916,7 @@ export const GlobalExpenseMatching: React.FC<GlobalExpenseMatchingProps> = ({
                       <div className="text-right">
                         <div className="text-sm font-semibold">{formatCurrency(item.total)}</div>
                         <div className="text-xs text-muted-foreground">
-                          {formatCurrency(item.matched_amount)} matched
+                          {formatCurrency(item.allocated_amount)} allocated
                         </div>
                       </div>
                     </div>

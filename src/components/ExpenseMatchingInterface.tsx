@@ -25,15 +25,15 @@ import { cn, formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { fuzzyMatchPayee, type PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 
-interface ExpenseMatchingInterfaceProps {
+interface ExpenseAllocationInterfaceProps {
   projectId: string;
-  onMatchingComplete: () => void;
+  onAllocationComplete: () => void;
 }
 
 // Create a unified category type for matching
 type UnifiedCategory = ExpenseCategory | LineItemCategory;
 
-interface UnmatchedExpense {
+interface UnallocatedExpense {
   id: string;
   amount: number;
   expense_date: Date;
@@ -55,15 +55,15 @@ interface LineItemWithExpenses {
   costPerUnit: number;
   totalCost: number;
   totalMarkup: number;
-  matched_expenses: UnmatchedExpense[];
-  matched_amount: number;
+  allocated_expenses: UnallocatedExpense[];
+  allocated_amount: number;
 }
 
-export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> = ({
+export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProps> = ({
   projectId,
-  onMatchingComplete
+  onAllocationComplete
 }) => {
-  const [unmatchedExpenses, setUnmatchedExpenses] = useState<UnmatchedExpense[]>([]);
+  const [unallocatedExpenses, setUnallocatedExpenses] = useState<UnallocatedExpense[]>([]);
   const [lineItems, setLineItems] = useState<LineItemWithExpenses[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -72,10 +72,10 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
   const { toast } = useToast();
 
   useEffect(() => {
-    loadMatchingData();
+    loadAllocationData();
   }, [projectId]); // Include projectId in dependencies but handle null case
 
-  const loadMatchingData = async () => {
+  const loadAllocationData = async () => {
     setIsLoading(true);
     try {
       // Load unmatched expenses and line items
@@ -118,8 +118,8 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
         costPerUnit: item.cost_per_unit || 0,
         totalCost: (item.quantity || 1) * (item.cost_per_unit || 0),
         totalMarkup: (item.total || 0) - ((item.quantity || 1) * (item.cost_per_unit || 0)),
-        matched_expenses: [] as UnmatchedExpense[],
-        matched_amount: 0
+        allocated_expenses: [] as UnallocatedExpense[],
+        allocated_amount: 0
       }));
 
       // Check if expense has a correlation to a line item
@@ -128,24 +128,24 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
         .select('expense_id')
         .in('expense_id', expenses.map(e => e.id));
 
-      const unmatched: UnmatchedExpense[] = expenses.filter(expense => {
+      const unallocated: UnallocatedExpense[] = expenses.filter(expense => {
         return !correlations?.some(c => c.expense_id === expense.id);
       }).map(expense => ({
         ...expense,
-        suggested_line_item_id: suggestLineItemMatch(expense, lineItems),
+        suggested_line_item_id: suggestLineItemAllocation(expense, lineItems),
         confidence_score: calculateMatchConfidence(expense, lineItems)
       }));
 
-      // Calculate current matches for line items - they already have matched_expenses and matched_amount
-      const lineItemsWithMatches: LineItemWithExpenses[] = lineItems;
+      // Calculate current allocations for line items - they already have allocated_expenses and allocated_amount
+      const lineItemsWithAllocations: LineItemWithExpenses[] = lineItems;
 
-      setUnmatchedExpenses(unmatched);
-      setLineItems(lineItemsWithMatches);
+      setUnallocatedExpenses(unallocated);
+      setLineItems(lineItemsWithAllocations);
     } catch (error) {
       console.error('Error loading matching data:', error);
       toast({
         title: "Error",
-        description: "Failed to load expense matching data.",
+        description: "Failed to load expense allocation data.",
         variant: "destructive"
       });
     } finally {
@@ -153,8 +153,8 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
     }
   };
 
-  const suggestLineItemMatch = (expense: UnmatchedExpense, lineItems: LineItemWithExpenses[]): string | undefined => {
-    // Smart matching logic - map expense categories to line item categories
+  const suggestLineItemAllocation = (expense: UnallocatedExpense, lineItems: LineItemWithExpenses[]): string | undefined => {
+    // Smart allocation logic - map expense categories to line item categories
     const categoryMap: Record<ExpenseCategory, LineItemCategory[]> = {
       [ExpenseCategory.LABOR]: [LineItemCategory.LABOR],
       [ExpenseCategory.SUBCONTRACTOR]: [LineItemCategory.SUBCONTRACTOR],
@@ -174,7 +174,7 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
     return undefined;
   };
 
-  const calculateMatchConfidence = (expense: UnmatchedExpense, lineItems: LineItemWithExpenses[]): number => {
+  const calculateMatchConfidence = (expense: UnallocatedExpense, lineItems: LineItemWithExpenses[]): number => {
     let confidence = 0;
     
     // Category match - map expense categories to line item categories (40 points max)
@@ -260,7 +260,7 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
         estimate_line_item_id: lineItemId,
         correlation_type: 'estimate',
         auto_correlated: false,
-        notes: 'Manually assigned via Expense Matching Interface'
+        notes: 'Manually assigned via Expense Allocation Interface'
       }));
 
       const { error: correlationError } = await supabase
@@ -278,12 +278,12 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
       if (updateError) throw updateError;
 
       toast({
-        title: "Expenses Matched",
-        description: `Matched ${expenseIds.length} expense${expenseIds.length === 1 ? '' : 's'} to line item.`
+        title: "Expenses Allocated",
+        description: `Allocated ${expenseIds.length} expense${expenseIds.length === 1 ? '' : 's'} to line item.`
       });
       
       setSelectedExpenses(new Set());
-      loadMatchingData();
+      loadAllocationData();
     } catch (error) {
       console.error('Error assigning expenses:', error);
       toast({
@@ -294,8 +294,8 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
     }
   };
 
-  const handleAutoMatch = async () => {
-    const highConfidenceExpenses = unmatchedExpenses.filter(exp => 
+  const handleAutoAllocate = async () => {
+    const highConfidenceExpenses = unallocatedExpenses.filter(exp => 
       exp.confidence_score && 
       exp.confidence_score >= 80 &&
       exp.suggested_line_item_id
@@ -303,8 +303,8 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
 
     if (highConfidenceExpenses.length === 0) {
       toast({
-        title: "No High-Confidence Matches",
-        description: "No expenses found with high confidence matches for auto-assignment."
+        title: "No High-Confidence Allocations",
+        description: "No expenses found with high confidence allocations for auto-assignment."
       });
       return;
     }
@@ -316,7 +316,7 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
         correlation_type: 'estimate',
         auto_correlated: true,
         confidence_score: expense.confidence_score,
-        notes: 'Auto-matched via Expense Matching Interface'
+        notes: 'Auto-allocated via Expense Allocation Interface'
       }));
 
       const { error: correlationError } = await supabase
@@ -335,22 +335,22 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
       if (updateError) throw updateError;
 
       toast({
-        title: "Auto-matching Complete",
-        description: `Automatically matched ${highConfidenceExpenses.length} high-confidence expenses.`
+        title: "Auto-Allocation Complete",
+        description: `Automatically allocated ${highConfidenceExpenses.length} high-confidence expenses.`
       });
       
-      loadMatchingData();
+      loadAllocationData();
     } catch (error) {
-      console.error('Error auto-matching:', error);
+      console.error('Error auto-allocating:', error);
       toast({
         title: "Error",
-        description: "Failed to auto-match expenses.",
+        description: "Failed to auto-allocate expenses.",
         variant: "destructive"
       });
     }
   };
 
-  const filteredExpenses = unmatchedExpenses.filter(expense => {
+  const filteredExpenses = unallocatedExpenses.filter(expense => {
     const matchesSearch = !searchTerm || 
       expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       expense.payee_name?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -367,7 +367,7 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
   };
 
   if (isLoading) {
-    return <BrandedLoader message="Loading matching interface..." />;
+    return <BrandedLoader message="Loading allocation interface..." />;
   }
 
   return (
@@ -375,18 +375,18 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold">Expense Matching</h3>
+          <h3 className="text-lg font-semibold">Expense Allocation</h3>
           <Badge variant="outline">
-            {unmatchedExpenses.length} unmatched
+            {unallocatedExpenses.length} unallocated
           </Badge>
         </div>
         
         <div className="flex gap-2">
-          <Button onClick={handleAutoMatch} className="flex items-center gap-2">
+          <Button onClick={handleAutoAllocate} className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
-            Auto-Match
+            Auto-Allocate
           </Button>
-          <Button variant="outline" onClick={onMatchingComplete}>
+          <Button variant="outline" onClick={onAllocationComplete}>
             Done
           </Button>
         </div>
@@ -431,7 +431,7 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-orange-500" />
-              Unmatched Expenses ({filteredExpenses.length})
+              Unallocated Expenses ({filteredExpenses.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 max-h-96 overflow-y-auto">
@@ -510,7 +510,7 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
                       {formatCurrency(item.total || 0)}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {formatCurrency(item.matched_amount)} matched
+                      {formatCurrency(item.allocated_amount)} allocated
                     </div>
                   </div>
                 </div>
@@ -522,7 +522,7 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
                     className="w-full mt-2"
                     onClick={() => handleBulkAssign(item.id)}
                   >
-                    Match {selectedExpenses.size} expense{selectedExpenses.size === 1 ? '' : 's'}
+                    Allocate {selectedExpenses.size} expense{selectedExpenses.size === 1 ? '' : 's'}
                   </Button>
                 )}
               </div>
@@ -532,13 +532,13 @@ export const ExpenseMatchingInterface: React.FC<ExpenseMatchingInterfaceProps> =
       </div>
 
       {/* Summary */}
-      {unmatchedExpenses.length > 0 && (
+      {unallocatedExpenses.length > 0 && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            You have {unmatchedExpenses.length} unmatched expenses totaling{' '}
-            {formatCurrency(unmatchedExpenses.reduce((sum, exp) => sum + exp.amount, 0))}.
-            These expenses won't appear in your Line Item Control dashboard until matched.
+            You have {unallocatedExpenses.length} unallocated expenses totaling{' '}
+            {formatCurrency(unallocatedExpenses.reduce((sum, exp) => sum + exp.amount, 0))}.
+            These expenses won't appear in your Line Item Control dashboard until allocated.
           </AlertDescription>
         </Alert>
       )}

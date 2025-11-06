@@ -8,7 +8,7 @@ import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpensesList } from "@/components/ExpensesList";
 import { ProjectExpenseTracker } from "@/components/ProjectExpenseTracker";
 import { ExpenseImportModal } from "@/components/ExpenseImportModal";
-import { GlobalExpenseMatching } from "@/components/GlobalExpenseMatching";
+import { GlobalExpenseAllocation } from "@/components/GlobalExpenseMatching";
 import { TimesheetGridView } from "@/components/TimesheetGridView";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
@@ -177,7 +177,7 @@ const Expenses = () => {
           onCancel={handleCancel}
         />
       ) : viewMode === 'matching' ? (
-        <GlobalExpenseMatching
+        <GlobalExpenseAllocation
           onClose={() => setViewMode('dashboard')}
         />
       ) : (
@@ -219,7 +219,7 @@ const Expenses = () => {
           </TabsContent>
 
           <TabsContent value="matching">
-            <GlobalExpenseMatching onClose={() => setViewMode('dashboard')} />
+            <GlobalExpenseAllocation onClose={() => setViewMode('dashboard')} />
           </TabsContent>
         </Tabs>
       )}
