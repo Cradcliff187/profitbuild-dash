@@ -277,15 +277,16 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
                   <div className="space-y-1">
                     <Label htmlFor={`amount-${index}`}>Amount *</Label>
                     <div className="relative">
-                      <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                       <Input
                         id={`amount-${index}`}
                         type="number"
                         step="0.01"
+                        min="0"
                         placeholder="0.00"
                         value={split.split_amount}
                         onChange={(e) => updateSplit(index, 'split_amount', e.target.value)}
-                        className="pl-8"
+                        className="pl-9 text-sm"
                       />
                     </div>
                     {split.split_amount && (
