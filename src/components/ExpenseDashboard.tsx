@@ -3,7 +3,7 @@ import { Calendar, DollarSign, AlertTriangle, FileText, Info } from 'lucide-reac
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Expense } from '@/types/expense';
 import { Estimate } from '@/types/estimate';
 import { formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
@@ -69,21 +69,25 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
         <span>
           <strong>Workflow:</strong> First assign expenses to projects, then optionally allocate to line items for detailed tracking.
         </span>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-5 px-2 text-xs">
-                Learn more
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-sm">
-              <div className="space-y-1 text-xs">
-                <div><strong>Step 1: Project Assignment</strong> - Assign each expense to a project to affect project budgets.</div>
-                <div><strong>Step 2: Line Item Allocation</strong> - Match to specific line items for variance analysis.</div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-5 px-2 text-xs">
+              Learn more
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="max-w-sm text-xs" align="start">
+            <div className="space-y-2">
+              <div>
+                <strong>Step 1: Project Assignment</strong>
+                <p className="text-muted-foreground mt-0.5">Assign each expense to a project to affect project budgets.</p>
               </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+              <div>
+                <strong>Step 2: Line Item Allocation</strong>
+                <p className="text-muted-foreground mt-0.5">Match to specific line items for variance analysis.</p>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Summary Cards */}

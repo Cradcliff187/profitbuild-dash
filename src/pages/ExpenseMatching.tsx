@@ -1,7 +1,7 @@
 import React from 'react';
 import { Target, ArrowLeft, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { GlobalExpenseAllocation } from "@/components/GlobalExpenseMatching";
 import { useNavigate } from "react-router-dom";
 
@@ -18,22 +18,29 @@ const ExpenseMatching = () => {
               <h1 className="text-xl font-bold text-foreground">Match Expenses to Line Items</h1>
               <p className="text-muted-foreground text-sm">Allocate expenses to specific estimate, quote, or change order line items</p>
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <Info className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-sm" side="bottom">
-                  <div className="space-y-1 text-xs">
-                    <p><strong>What is allocation?</strong> Matching expenses to specific line items in your estimates, quotes, or change orders.</p>
-                    <p><strong>When to use:</strong> After expenses are assigned to projects, allocate them here to see which line items are over/under budget.</p>
-                    <p className="text-muted-foreground"><strong>Note:</strong> Only expenses assigned to real projects can be allocated.</p>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6">
+                  <Info className="h-3 w-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="max-w-sm text-xs" side="bottom" align="start">
+                <div className="space-y-2">
+                  <div>
+                    <strong>What is allocation?</strong>
+                    <p className="text-muted-foreground mt-0.5">Matching expenses to specific line items in your estimates, quotes, or change orders.</p>
                   </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                  <div>
+                    <strong>When to use:</strong>
+                    <p className="text-muted-foreground mt-0.5">After expenses are assigned to projects, allocate them here to see which line items are over/under budget.</p>
+                  </div>
+                  <div>
+                    <strong>Note:</strong>
+                    <p className="text-muted-foreground mt-0.5">Only expenses assigned to real projects can be allocated.</p>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
         <Button 
