@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Expense } from '@/types/expense';
 import { Estimate } from '@/types/estimate';
 import { formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 interface ExpenseDashboardProps {
   expenses: Expense[];
@@ -12,10 +14,24 @@ interface ExpenseDashboardProps {
 }
 
 export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, estimates }) => {
+  // Fetch expense correlations to determine allocation status
+  const { data: correlations = [] } = useQuery({
+    queryKey: ['expense-correlations'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('expense_line_item_correlations')
+        .select('expense_id');
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const allocatedExpenseIds = new Set(correlations.map(c => c.expense_id));
+  
   // Calculate summary statistics
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const plannedExpenses = expenses.filter(e => e.is_planned === true).reduce((sum, e) => sum + e.amount, 0);
-  const unplannedExpenses = expenses.filter(e => e.is_planned === false).reduce((sum, e) => sum + e.amount, 0);
+  const allocatedExpenses = expenses.filter(e => allocatedExpenseIds.has(e.id)).reduce((sum, e) => sum + e.amount, 0);
+  const unallocatedExpenses = expenses.filter(e => !allocatedExpenseIds.has(e.id)).reduce((sum, e) => sum + e.amount, 0);
   const thisMonthExpenses = expenses.filter(e => {
     const now = new Date();
     const expenseDate = new Date(e.expense_date);
@@ -104,13 +120,13 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unplanned Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">Unallocated Expenses</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{formatCurrency(unplannedExpenses)}</div>
+            <div className="text-2xl font-bold text-orange-600">{formatCurrency(unallocatedExpenses)}</div>
             <p className="text-xs text-muted-foreground">
-              {unplannedExpenses > 0 ? ((unplannedExpenses / totalExpenses) * 100).toFixed(1) : '0'}% of total
+              {unallocatedExpenses > 0 ? ((unallocatedExpenses / totalExpenses) * 100).toFixed(1) : '0'}% of total
             </p>
           </CardContent>
         </Card>
@@ -140,8 +156,8 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
                     </div>
                     <div className="text-right">
                       <p className="font-medium">{formatCurrency(expense.amount)}</p>
-                      <Badge variant={expense.is_planned ? 'default' : 'secondary'} className="text-xs">
-                        {expense.is_planned ? 'Planned' : 'Unplanned'}
+                      <Badge variant={allocatedExpenseIds.has(expense.id) ? 'default' : 'secondary'} className="text-xs">
+                        {allocatedExpenseIds.has(expense.id) ? 'Allocated' : 'Unallocated'}
                       </Badge>
                     </div>
                   </div>
