@@ -20,6 +20,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Split } from 'lucide-react';
+import { ExpenseSplitDialog } from '@/components/ExpenseSplitDialog';
 
 const expenseSchema = z.object({
   project_id: z.string().min(1, 'Project is required'),
@@ -53,7 +56,16 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
   } | null>(null);
   const [hoursWorked, setHoursWorked] = useState<string>('');
   const [isInternalLabor, setIsInternalLabor] = useState(false);
+  const [showSplitDialog, setShowSplitDialog] = useState(false);
   const { toast } = useToast();
+
+  const handleSplitsUpdated = () => {
+    setShowSplitDialog(false);
+    toast({
+      title: "Success",
+      description: "Expense splits updated successfully. The form will refresh with updated split data.",
+    });
+  };
 
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
@@ -267,24 +279,39 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Project *</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                    disabled={expense?.is_split}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a project" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.project_name} - {project.client_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                            disabled={expense?.is_split}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a project" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {projects.map((project) => (
+                                <SelectItem key={project.id} value={project.id}>
+                                  {project.project_name} - {project.client_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </TooltipTrigger>
+                      {expense?.is_split && (
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p className="text-xs">
+                            This expense is split across multiple projects. Use the "Manage Splits" button below to update project allocation.
+                          </p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                   {expense?.is_split && (
                     <p className="text-xs text-warning">
                       ⚠️ Cannot change project for split expenses. Manage splits to update project allocation.
@@ -395,6 +422,24 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                 </FormItem>
               )}
             />
+
+              {expense?.is_split && (
+                <div className="col-span-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSplitDialog(true)}
+                    className="w-full h-btn-compact"
+                  >
+                    <Split className="h-4 w-4 mr-2" />
+                    Manage Splits
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    View and edit how this {formatCurrency(expense.amount)} expense is allocated across projects
+                  </p>
+                </div>
+              )}
 
               {isInternalLabor ? (
                 <FormItem>
@@ -611,6 +656,15 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
             </div>
           </form>
         </Form>
+
+        {expense && expense.is_split && (
+          <ExpenseSplitDialog
+            expense={expense}
+            open={showSplitDialog}
+            onClose={() => setShowSplitDialog(false)}
+            onSuccess={handleSplitsUpdated}
+          />
+        )}
       </CardContent>
     </Card>
   );
