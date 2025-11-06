@@ -906,9 +906,6 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{formatCurrency(expense.amount)}</span>
                     {getStatusBadge(expense.match_status)}
-                    {expense.confidence_score && expense.match_status === 'unallocated' && 
-                      getConfidenceBadge(expense.confidence_score)
-                    }
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
