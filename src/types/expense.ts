@@ -30,6 +30,22 @@ export const TRANSACTION_TYPE_DISPLAY: Record<TransactionType, string> = {
   'cash': 'Cash'
 };
 
+// Split expense interface
+export interface ExpenseSplit {
+  id: string;
+  expense_id: string;
+  project_id: string;
+  split_amount: number;
+  split_percentage?: number;
+  notes?: string;
+  created_at: Date;
+  updated_at: Date;
+  created_by?: string;
+  // Join data for display
+  project_name?: string;
+  project_number?: string;
+}
+
 export interface Expense {
   id: string;
   project_id: string;
@@ -49,6 +65,9 @@ export interface Expense {
   approved_by?: string;
   approved_at?: string; // Changed to string for database compatibility
   rejection_reason?: string;
+  // Split expense fields
+  is_split?: boolean;
+  splits?: ExpenseSplit[]; // Populated when is_split = true
   // Additional fields for display (populated from joins)
   payee_name?: string;
   project_name?: string;

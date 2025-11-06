@@ -578,6 +578,7 @@ export type Database = {
           created_at: string
           estimate_line_item_id: string | null
           expense_id: string
+          expense_split_id: string | null
           id: string
           notes: string | null
           quote_id: string | null
@@ -591,6 +592,7 @@ export type Database = {
           created_at?: string
           estimate_line_item_id?: string | null
           expense_id: string
+          expense_split_id?: string | null
           id?: string
           notes?: string | null
           quote_id?: string | null
@@ -604,6 +606,7 @@ export type Database = {
           created_at?: string
           estimate_line_item_id?: string | null
           expense_id?: string
+          expense_split_id?: string | null
           id?: string
           notes?: string | null
           quote_id?: string | null
@@ -632,10 +635,82 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "expense_line_item_correlations_expense_split_id_fkey"
+            columns: ["expense_split_id"]
+            isOneToOne: false
+            referencedRelation: "expense_splits"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "expense_line_item_correlations_quote_id_fkey"
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_splits: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expense_id: string
+          id: string
+          notes: string | null
+          project_id: string
+          split_amount: number
+          split_percentage: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expense_id: string
+          id?: string
+          notes?: string | null
+          project_id: string
+          split_amount: number
+          split_percentage?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expense_id?: string
+          id?: string
+          notes?: string | null
+          project_id?: string
+          split_amount?: number
+          split_percentage?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_splits_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_splits_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_splits_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "expense_splits_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -659,6 +734,7 @@ export type Database = {
           invoice_number: string | null
           is_locked: boolean | null
           is_planned: boolean | null
+          is_split: boolean
           local_id: string | null
           payee_id: string | null
           project_id: string
@@ -691,6 +767,7 @@ export type Database = {
           invoice_number?: string | null
           is_locked?: boolean | null
           is_planned?: boolean | null
+          is_split?: boolean
           local_id?: string | null
           payee_id?: string | null
           project_id: string
@@ -723,6 +800,7 @@ export type Database = {
           invoice_number?: string | null
           is_locked?: boolean | null
           is_planned?: boolean | null
+          is_split?: boolean
           local_id?: string | null
           payee_id?: string | null
           project_id?: string
