@@ -156,9 +156,26 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
                     </div>
                     <div className="text-right">
                       <p className="font-medium">{formatCurrency(expense.amount)}</p>
-                      <Badge variant={allocatedExpenseIds.has(expense.id) ? 'default' : 'secondary'} className="text-xs">
-                        {allocatedExpenseIds.has(expense.id) ? 'Allocated' : 'Unallocated'}
-                      </Badge>
+                      <div className="flex gap-1 flex-wrap justify-end">
+                        <Badge 
+                          variant={
+                            expense.project_id === "000-UNASSIGNED" || 
+                            expense.project_name === "000-UNASSIGNED"
+                              ? "secondary"
+                              : "default"
+                          } 
+                          className="text-xs"
+                        >
+                          {expense.project_id === "000-UNASSIGNED" || 
+                           expense.project_name === "000-UNASSIGNED"
+                            ? "Needs Assignment"
+                            : "Assigned"
+                          }
+                        </Badge>
+                        <Badge variant={allocatedExpenseIds.has(expense.id) ? 'default' : 'secondary'} className="text-xs">
+                          {allocatedExpenseIds.has(expense.id) ? 'Allocated' : 'Unallocated'}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 ))}

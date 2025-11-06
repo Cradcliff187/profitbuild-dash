@@ -903,9 +903,24 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                 }}
               >
                 <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold">{formatCurrency(expense.amount)}</span>
                     {getStatusBadge(expense.match_status)}
+                    <Badge
+                      variant={
+                        expense.project_id === "000-UNASSIGNED" || 
+                        expense.project_name === "000-UNASSIGNED"
+                          ? "secondary"
+                          : "default"
+                      }
+                      className="text-xs"
+                    >
+                      {expense.project_id === "000-UNASSIGNED" || 
+                       expense.project_name === "000-UNASSIGNED"
+                        ? "Needs Assignment"
+                        : "Assigned"
+                      }
+                    </Badge>
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
