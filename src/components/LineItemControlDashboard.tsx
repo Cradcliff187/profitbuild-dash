@@ -59,7 +59,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
       'Allocated Expenses',
       'Remaining to Allocate',
       'Allocation Status',
-      'Actual (Category Match)',
+      'Actual',
       'Est vs Quote',
       'Est vs Quote %',
       'Quote Status'
@@ -226,8 +226,8 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
           </TooltipTrigger>
           <TooltipContent>
             <div className="space-y-1">
-              <p>Total actual expenses recorded (category-based)</p>
-              <p className="text-xs text-muted-foreground">{item.expenses.length} expense{item.expenses.length !== 1 ? 's' : ''}</p>
+              <p>Total actual expenses explicitly allocated to this line item</p>
+              <p className="text-xs text-muted-foreground">{item.expenses.length} expense{item.expenses.length !== 1 ? 's' : ''} allocated</p>
             </div>
           </TooltipContent>
         </Tooltip>
