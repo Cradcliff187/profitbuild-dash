@@ -127,23 +127,27 @@ export const EstimateStatusSelector = ({
   const updateStatus = async (newStatus: EstimateStatus) => {
     setIsLoading(true);
     try {
-      // Update the estimate status
-      const { error: updateError } = await supabase
-        .from('estimates')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', estimateId);
-
-      if (updateError) throw updateError;
-
       // Handle project contracted_amount and status updates
       if (newStatus === 'approved' as EstimateStatus) {
-        // Un-approve any other estimates for this project
+        // First, set THIS estimate as approved AND current version
+        const { error: currentVersionError } = await supabase
+          .from('estimates')
+          .update({ 
+            status: newStatus,
+            is_current_version: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', estimateId);
+
+        if (currentVersionError) throw currentVersionError;
+
+        // Then, un-approve any other estimates for this project and mark as not current
         const { error: unApproveError } = await supabase
           .from('estimates')
-          .update({ status: 'sent' })
+          .update({ 
+            status: 'sent',
+            is_current_version: false
+          })
           .eq('project_id', projectId)
           .eq('status', 'approved')
           .neq('id', estimateId);
@@ -167,7 +171,18 @@ export const EstimateStatusSelector = ({
           description: `${estimateNumber} approved and set as contract value`,
         });
       } else if (currentStatus === ('approved' as EstimateStatus) && newStatus !== ('approved' as EstimateStatus)) {
-        // When un-approving, clear the contract value
+        // When un-approving, clear the contract value and current version
+        const { error: estimateError } = await supabase
+          .from('estimates')
+          .update({
+            status: newStatus,
+            is_current_version: false,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', estimateId);
+
+        if (estimateError) throw estimateError;
+
         const { error: projectError } = await supabase
           .from('projects')
           .update({
@@ -184,6 +199,22 @@ export const EstimateStatusSelector = ({
           description: `${estimateNumber} status changed to ${newStatus}`,
         });
       } else {
+        toast({
+          title: "Status Updated",
+          description: `${estimateNumber} status changed to ${newStatus}`,
+        });
+      } else {
+        // For all other status changes (not involving approval)
+        const { error: updateError } = await supabase
+          .from('estimates')
+          .update({ 
+            status: newStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', estimateId);
+
+        if (updateError) throw updateError;
+
         toast({
           title: "Status Updated",
           description: `${estimateNumber} status changed to ${newStatus}`,
