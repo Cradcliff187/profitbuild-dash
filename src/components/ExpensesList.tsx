@@ -203,7 +203,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   };
 
   const exportToCsv = () => {
-    const headers = ['Date', 'Project', 'Project Status', 'Payee', 'Category', 'Transaction Type', 'Amount', 'Approval Status', 'Line Item Allocation'];
+    const headers = ['Date', 'Project', 'Project Assignment', 'Payee', 'Category', 'Transaction Type', 'Amount', 'Approval Status', 'Line Item Allocation'];
     const csvContent = [
       headers.join(','),
       ...filteredExpenses.map(expense => {
@@ -312,7 +312,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     },
     {
       key: 'project_status',
-      label: 'Project Status',
+      label: 'Project Assignment',
       sortable: false,
       render: (expense: Expense) => {
         const isPlaceholder = expense.project_id === "000-UNASSIGNED" || 
