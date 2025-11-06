@@ -1146,17 +1146,6 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
         </Card>
       </div>
 
-      {/* Summary Alert */}
-      {summaryStats.unallocated > 0 && (
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            You have {summaryStats.unallocated} unallocated expenses totaling{' '}
-            {formatCurrency(summaryStats.unallocatedAmount)}. These expenses may represent cost overruns or unexpected costs.
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Auto-Allocation Review Dialog */}
       <Dialog open={showAutoAllocateDialog} onOpenChange={setShowAutoAllocateDialog}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
