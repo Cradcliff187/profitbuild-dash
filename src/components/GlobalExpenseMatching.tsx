@@ -355,22 +355,64 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
 
     const matchingCategories = categoryMap[expense.category] || [];
     
-    // First try to match within the same project
-    const projectLineItems = lineItems.filter(li => li.project_id === expense.project_id);
-    for (const item of projectLineItems) {
-      if (matchingCategories.includes(item.category)) {
-        return item.id;
-      }
+    // Filter to same project + matching category
+    const projectMatchingItems = lineItems.filter(item => 
+      item.project_id === expense.project_id && 
+      matchingCategories.includes(item.category)
+    );
+    
+    if (projectMatchingItems.length === 0) {
+      return undefined;
     }
-
-    // If no project match, try any matching category
-    for (const item of lineItems) {
-      if (matchingCategories.includes(item.category)) {
-        return item.id;
+    
+    // PRIORITY 1: If expense has payee, try fuzzy match on quotes/change orders
+    if (expense.payee_name) {
+      const payeeLineItems = projectMatchingItems.filter(item => 
+        (item.type === 'quote' || item.type === 'change_order') && item.payee_name
+      );
+      
+      if (payeeLineItems.length > 0) {
+        const lineItemPayees: PartialPayee[] = payeeLineItems.map(item => ({
+          id: item.id,
+          payee_name: item.payee_name!,
+          full_name: item.payee_name
+        }));
+        
+        const fuzzyResult = fuzzyMatchPayee(expense.payee_name, lineItemPayees);
+        
+        // If high confidence payee match, suggest that quote/CO line item
+        if (fuzzyResult.bestMatch && fuzzyResult.bestMatch.confidence >= 75) {
+          return fuzzyResult.bestMatch.payee.id; // This is the line item ID
+        }
       }
     }
     
-    return undefined;
+    // PRIORITY 2: Try amount similarity within project matches
+    const closestAmountMatch = projectMatchingItems.reduce((best, item) => {
+      const itemTotal = item.total || 0;
+      if (itemTotal === 0) return best;
+      
+      const percentDiff = Math.abs((expense.amount - itemTotal) / itemTotal) * 100;
+      
+      if (percentDiff < best.percentDiff) {
+        return { item, percentDiff };
+      }
+      return best;
+    }, { item: null as LineItemForMatching | null, percentDiff: Infinity });
+    
+    // If amount is within 10%, suggest that one
+    if (closestAmountMatch.item && closestAmountMatch.percentDiff <= 10) {
+      return closestAmountMatch.item.id;
+    }
+    
+    // PRIORITY 3: Fallback to first category match (prefer quotes > change orders > estimates)
+    const quoteMatch = projectMatchingItems.find(item => item.type === 'quote');
+    if (quoteMatch) return quoteMatch.id;
+    
+    const coMatch = projectMatchingItems.find(item => item.type === 'change_order');
+    if (coMatch) return coMatch.id;
+    
+    return projectMatchingItems[0].id; // Estimate fallback
   };
 
   const calculateMatchConfidence = (expense: any, lineItems: LineItemForMatching[]): number => {
