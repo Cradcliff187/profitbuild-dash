@@ -48,6 +48,8 @@ interface UnallocatedExpense {
 
 interface LineItemWithExpenses {
   id: string;
+  type: 'estimate' | 'quote';
+  source_id: string;
   category: LineItemCategory;
   description: string;
   quantity: number;
@@ -58,6 +60,8 @@ interface LineItemWithExpenses {
   totalMarkup: number;
   allocated_expenses: UnallocatedExpense[];
   allocated_amount: number;
+  payee_name?: string;
+  quote_number?: string;
 }
 
 export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProps> = ({
@@ -85,8 +89,8 @@ export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProp
   const loadAllocationData = async () => {
     setIsLoading(true);
     try {
-      // Load unmatched expenses and line items
-      const [expensesResult, estimatesResult] = await Promise.all([
+      // Load expenses, estimates, and accepted quotes
+      const [expensesResult, estimatesResult, quotesResult] = await Promise.all([
         supabase
           .from('expenses')
           .select(`
@@ -102,7 +106,18 @@ export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProp
           `)
           .eq('project_id', projectId)
           .eq('is_current_version', true)
-          .maybeSingle()
+          .maybeSingle(),
+        supabase
+          .from('quotes')
+          .select(`
+            id,
+            quote_number,
+            status,
+            payees (payee_name),
+            quote_line_items (*)
+          `)
+          .eq('project_id', projectId)
+          .eq('status', 'accepted')
       ]);
 
       const expenses = (expensesResult.data || []).map(exp => ({
@@ -115,8 +130,11 @@ export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProp
         payee_name: exp.payees?.payee_name
       }));
 
-      const lineItems = (estimatesResult.data?.estimate_line_items || []).map(item => ({
+      // Process estimate line items
+      const estimateLineItems = (estimatesResult.data?.estimate_line_items || []).map(item => ({
         id: item.id,
+        type: 'estimate' as const,
+        source_id: estimatesResult.data?.id || '',
         category: item.category as LineItemCategory,
         description: item.description,
         quantity: item.quantity || 1,
@@ -129,6 +147,31 @@ export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProp
         allocated_amount: 0
       }));
 
+      // Process quote line items
+      const quotes = quotesResult.data || [];
+      const quoteLineItems = quotes.flatMap(quote => 
+        (quote.quote_line_items || []).map(item => ({
+          id: item.id,
+          type: 'quote' as const,
+          source_id: quote.id,
+          category: item.category as LineItemCategory,
+          description: item.description || 'Quote line item',
+          quantity: item.quantity || 1,
+          pricePerUnit: item.rate || 0,
+          total: item.total || 0,
+          costPerUnit: item.cost_per_unit || 0,
+          totalCost: item.total_cost || 0,
+          totalMarkup: item.total_markup || 0,
+          allocated_expenses: [] as UnallocatedExpense[],
+          allocated_amount: 0,
+          payee_name: quote.payees?.payee_name,
+          quote_number: quote.quote_number
+        }))
+      );
+
+      // Combine estimate and quote line items
+      const allLineItems = [...estimateLineItems, ...quoteLineItems];
+
       // Check if expense has a correlation to a line item
       const { data: correlations } = await supabase
         .from('expense_line_item_correlations')
@@ -139,15 +182,12 @@ export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProp
         return !correlations?.some(c => c.expense_id === expense.id);
       }).map(expense => ({
         ...expense,
-        suggested_line_item_id: suggestLineItemAllocation(expense, lineItems),
-        confidence_score: calculateMatchConfidence(expense, lineItems)
+        suggested_line_item_id: suggestLineItemAllocation(expense, allLineItems),
+        confidence_score: calculateMatchConfidence(expense, allLineItems)
       }));
 
-      // Calculate current allocations for line items - they already have allocated_expenses and allocated_amount
-      const lineItemsWithAllocations: LineItemWithExpenses[] = lineItems;
-
       setUnallocatedExpenses(unallocated);
-      setLineItems(lineItemsWithAllocations);
+      setLineItems(allLineItems);
     } catch (error) {
       console.error('Error loading matching data:', error);
       toast({
@@ -161,7 +201,6 @@ export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProp
   };
 
   const suggestLineItemAllocation = (expense: UnallocatedExpense, lineItems: LineItemWithExpenses[]): string | undefined => {
-    // Smart allocation logic - map expense categories to line item categories
     const categoryMap: Record<ExpenseCategory, LineItemCategory[]> = {
       [ExpenseCategory.LABOR]: [LineItemCategory.LABOR],
       [ExpenseCategory.SUBCONTRACTOR]: [LineItemCategory.SUBCONTRACTOR],
@@ -173,11 +212,35 @@ export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProp
     };
 
     const matchingCategories = categoryMap[expense.category] || [];
-    for (const item of lineItems) {
-      if (matchingCategories.includes(item.category)) {
-        return item.id;
+    const categoryMatches = lineItems.filter(item => matchingCategories.includes(item.category));
+    
+    // If expense has a payee, prioritize quote line items with matching payees
+    if (expense.payee_name && categoryMatches.length > 0) {
+      const quoteMatches = categoryMatches.filter(item => 
+        item.type === 'quote' && item.payee_name
+      );
+      
+      if (quoteMatches.length > 0) {
+        const lineItemPayees: PartialPayee[] = quoteMatches.map(item => ({
+          id: item.id,
+          payee_name: item.payee_name!,
+          full_name: item.payee_name
+        }));
+        
+        const fuzzyResult = fuzzyMatchPayee(expense.payee_name, lineItemPayees);
+        
+        // If high confidence match, suggest that quote line item
+        if (fuzzyResult.bestMatch && fuzzyResult.bestMatch.confidence >= 75) {
+          return fuzzyResult.bestMatch.payee.id;
+        }
       }
     }
+    
+    // Fallback to first category match
+    if (categoryMatches.length > 0) {
+      return categoryMatches[0].id;
+    }
+    
     return undefined;
   };
 
@@ -202,11 +265,33 @@ export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProp
       confidence += 40;
     }
     
-    // Payee fuzzy matching (0-30 points) - Note: Will enhance when payee data available on line items
+    // Payee fuzzy matching (0-30 points)
     if (expense.payee_name && matchingLineItems.length > 0) {
-      // Future enhancement: Load quote payee names and perform fuzzy matching
-      // For now, placeholder for basic payee presence
-      confidence += 0; // Will be 0-30 when quote payees are loaded
+      const payeeLineItems = matchingLineItems.filter(item => 
+        item.type === 'quote' && item.payee_name
+      );
+      
+      if (payeeLineItems.length > 0) {
+        const lineItemPayees: PartialPayee[] = payeeLineItems.map(item => ({
+          id: item.id,
+          payee_name: item.payee_name!,
+          full_name: item.payee_name
+        }));
+        
+        const fuzzyResult = fuzzyMatchPayee(expense.payee_name, lineItemPayees);
+        
+        if (fuzzyResult.bestMatch) {
+          const matchConfidence = fuzzyResult.bestMatch.confidence;
+          
+          if (matchConfidence >= 90) {
+            confidence += 30;
+          } else if (matchConfidence >= 75) {
+            confidence += 20;
+          } else if (matchConfidence >= 60) {
+            confidence += 10;
+          }
+        }
+      }
     }
     
     // Amount similarity (0-20 points)
@@ -262,12 +347,15 @@ export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProp
 
     try {
       // Create correlations for selected expenses
+      const lineItem = lineItems.find(li => li.id === lineItemId);
+      
       const correlations = expenseIds.map(expenseId => ({
         expense_id: expenseId,
-        estimate_line_item_id: lineItemId,
-        correlation_type: 'estimate',
+        estimate_line_item_id: lineItem?.type === 'estimate' ? lineItemId : null,
+        quote_id: lineItem?.type === 'quote' ? lineItem.source_id : null,
+        correlation_type: lineItem?.type === 'estimate' ? 'estimated' : 'quoted',
         auto_correlated: false,
-        notes: 'Manually assigned via Expense Allocation Interface'
+        notes: `Manually assigned via Expense Allocation Interface (${lineItem?.type || 'estimate'})`
       }));
 
       const { error: correlationError } = await supabase
@@ -336,13 +424,14 @@ export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProp
     if (previewAllocations.length === 0) return;
 
     try {
-      const correlations = previewAllocations.map(({ expense }) => ({
+      const correlations = previewAllocations.map(({ expense, lineItem }) => ({
         expense_id: expense.id,
-        estimate_line_item_id: expense.suggested_line_item_id,
-        correlation_type: 'estimate',
+        estimate_line_item_id: lineItem.type === 'estimate' ? expense.suggested_line_item_id : null,
+        quote_id: lineItem.type === 'quote' ? lineItem.source_id : null,
+        correlation_type: lineItem.type === 'estimate' ? 'estimated' : 'quoted',
         auto_correlated: true,
         confidence_score: expense.confidence_score,
-        notes: 'Auto-allocated via Expense Allocation Interface'
+        notes: `Auto-allocated via Expense Allocation Interface (${lineItem.type})`
       }));
 
       const { error: correlationError } = await supabase
@@ -519,7 +608,7 @@ export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProp
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5 text-blue-500" />
-              Estimate Line Items
+              Line Items ({lineItems.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 max-h-96 overflow-y-auto">
@@ -527,9 +616,19 @@ export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProp
               <div key={item.id} className="p-3 border rounded-lg">
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex-1">
-                    <div className="font-medium text-sm">{item.description}</div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="font-medium text-sm">{item.description}</div>
+                      {item.type === 'quote' && (
+                        <Badge variant="secondary" className="text-xs">
+                          Quote {item.quote_number || ''}
+                        </Badge>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {CATEGORY_DISPLAY_MAP[item.category as LineItemCategory]}
+                      {item.payee_name && (
+                        <span className="ml-2">• {item.payee_name}</span>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">
@@ -609,10 +708,18 @@ export const ExpenseAllocationInterface: React.FC<ExpenseAllocationInterfaceProp
                 <div className="flex items-center gap-2 text-sm mt-2 pt-2 border-t">
                   <Target className="h-4 w-4 text-blue-500" />
                   <div className="flex-1">
-                    <div className="font-medium">{lineItem.description}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium">{lineItem.description}</div>
+                      {lineItem.type === 'quote' && (
+                        <Badge variant="secondary" className="text-xs">Quote</Badge>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {CATEGORY_DISPLAY_MAP[lineItem.category as LineItemCategory]} • 
                       Cost: {formatCurrency(lineItem.totalCost)}
+                      {lineItem.payee_name && (
+                        <span className="ml-1">• Payee: {lineItem.payee_name}</span>
+                      )}
                     </div>
                   </div>
                 </div>
