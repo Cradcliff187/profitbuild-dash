@@ -874,6 +874,11 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
   };
 
   const filteredExpenses = expenses.filter(expense => {
+    // Filter out split parent containers - they shouldn't appear in allocation UI
+    if (expense.project_id === 'SYS-000') {
+      return false;
+    }
+    
     const matchesSearch = !searchTerm || 
       expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       expense.payee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1157,21 +1162,23 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                         </Badge>
                       )}
                       {!expense.is_split && getStatusBadge(expense.match_status)}
-                      <Badge
-                        variant={
-                          expense.project_id === "000-UNASSIGNED" || 
-                          expense.project_name === "000-UNASSIGNED"
-                            ? "secondary"
-                            : "default"
-                        }
-                        className="text-xs"
-                      >
-                        {expense.project_id === "000-UNASSIGNED" || 
-                         expense.project_name === "000-UNASSIGNED"
-                          ? "Needs Assignment"
-                          : "Assigned"
-                        }
-                      </Badge>
+                      {expense.project_id !== 'SYS-000' && (
+                        <Badge
+                          variant={
+                            expense.project_id === "000-UNASSIGNED" || 
+                            expense.project_name === "000-UNASSIGNED"
+                              ? "secondary"
+                              : "default"
+                          }
+                          className="text-xs"
+                        >
+                          {expense.project_id === "000-UNASSIGNED" || 
+                           expense.project_name === "000-UNASSIGNED"
+                            ? "Needs Assignment"
+                            : "Assigned"
+                          }
+                        </Badge>
+                      )}
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
@@ -1182,7 +1189,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                   <div className="text-sm mb-1 font-medium">{expense.payee_name || 'No payee'}</div>
                   
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    {!projectId && expense.project_name && (
+                    {!projectId && expense.project_name && expense.project_id !== 'SYS-000' && (
                       <div className="flex items-center gap-1">
                         <Building className="h-3 w-3" />
                         {expense.project_name}
