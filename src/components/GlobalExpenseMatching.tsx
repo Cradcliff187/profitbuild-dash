@@ -321,9 +321,23 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       // Create line items from estimates and quotes
       const acceptedQuotes = quotes.filter(quote => quote.status === 'accepted');
 
-      // Include ALL estimate line items (don't filter based on accepted quotes)
+      // Build a Set of estimate line item IDs that have accepted quotes
+      // These estimate lines should NOT be shown because we have actual quoted costs
+      const estimateLineItemsWithQuotes = new Set<string>();
+      acceptedQuotes.forEach(quote => {
+        (quote.quote_line_items || []).forEach((qli: any) => {
+          if (qli.estimate_line_item_id) {
+            estimateLineItemsWithQuotes.add(qli.estimate_line_item_id);
+          }
+        });
+      });
+
+      // Only include estimate line items that DON'T have accepted quotes
+      // If a quote exists, we'll show the quote instead (actual committed cost)
       const estimateLineItems: LineItemForMatching[] = estimates.flatMap(estimate => 
-        (estimate.estimate_line_items || []).map(item => ({
+        (estimate.estimate_line_items || [])
+          .filter(item => !estimateLineItemsWithQuotes.has(item.id))
+          .map(item => ({
             id: item.id,
             type: 'estimate' as const,
             source_id: estimate.id,
