@@ -83,6 +83,20 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
     );
   }, [taskRows, searchQuery]);
 
+  const sortedTasks = useMemo(() => {
+    return [...filteredTasks].sort((a, b) => {
+      // First, sort by completion status (incomplete first)
+      if (a.isComplete !== b.isComplete) {
+        return a.isComplete ? 1 : -1;
+      }
+      
+      // Within each group, sort by start date (earliest first)
+      const dateA = new Date(a.start).getTime();
+      const dateB = new Date(b.start).getTime();
+      return dateA - dateB;
+    });
+  }, [filteredTasks]);
+
   const toggleExpanded = (taskId: string) => {
     const newExpanded = new Set(expandedTasks);
     if (newExpanded.has(taskId)) {
@@ -156,23 +170,23 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
             className="pl-9 h-10 text-sm"
           />
         </div>
-        {filteredTasks.length > 0 && (
+        {sortedTasks.length > 0 && (
           <p className="text-xs text-muted-foreground mt-2">
-            {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
+            {sortedTasks.length} task{sortedTasks.length !== 1 ? 's' : ''}
           </p>
         )}
       </Card>
 
       {/* Task Cards */}
       <div className="space-y-2">
-        {filteredTasks.length === 0 ? (
+        {sortedTasks.length === 0 ? (
           <Card className="p-8 text-center">
             <p className="text-sm text-muted-foreground">
               {searchQuery ? 'No tasks match your search' : 'No tasks scheduled'}
             </p>
           </Card>
         ) : (
-          filteredTasks.map((row) => {
+          sortedTasks.map((row) => {
             const isExpanded = expandedTasks.has(row.id);
             const isActive = isDateInRange(row.start, row.end);
             const startsToday = isToday(row.start);
