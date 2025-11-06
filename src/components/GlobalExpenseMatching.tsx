@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -77,6 +78,9 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
   onClose,
   projectId
 }) => {
+  const [searchParams] = useSearchParams();
+  const highlightExpenseId = searchParams.get('highlight');
+  
   const [expenses, setExpenses] = useState<EnhancedExpense[]>([]);
   const [lineItems, setLineItems] = useState<LineItemForMatching[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,6 +97,20 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     confidence: number;
   }>>([]);
   const { toast } = useToast();
+
+  // Auto-highlight expense if URL parameter is present
+  useEffect(() => {
+    if (highlightExpenseId) {
+      setSelectedExpenses(new Set([highlightExpenseId]));
+      // Scroll to the expense after a short delay to ensure it's rendered
+      setTimeout(() => {
+        const element = document.getElementById(`expense-${highlightExpenseId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    }
+  }, [highlightExpenseId]);
 
   const clearAllFilters = useCallback(() => {
     setSearchTerm('');
@@ -888,9 +906,11 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
             {filteredExpenses.map(expense => (
               <div
                 key={expense.id}
+                id={`expense-${expense.id}`}
                 className={cn(
                   "p-3 border rounded-lg cursor-pointer transition-colors",
-                  selectedExpenses.has(expense.id) ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                  selectedExpenses.has(expense.id) ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50",
+                  highlightExpenseId === expense.id && "ring-2 ring-primary ring-offset-2"
                 )}
                 onClick={() => {
                   const newSelected = new Set(selectedExpenses);

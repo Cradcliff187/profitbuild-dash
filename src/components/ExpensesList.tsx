@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, FileDown, MoreHorizontal, Edit2, Trash2, ExternalLink, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Search, FileDown, MoreHorizontal, Edit2, Trash2, ExternalLink, AlertTriangle, CheckCircle2, Target, FolderOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EntityTableTemplate } from "./EntityTableTemplate";
 import { ExpenseBulkActions } from "./ExpenseBulkActions";
+import { ReassignExpenseProjectDialog } from "./ReassignExpenseProjectDialog";
 import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from "@/types/expense";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -35,6 +37,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   enablePagination = true,
   pageSize = 25,
 }) => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterTransactionType, setFilterTransactionType] = useState<string>("all");
@@ -44,6 +47,8 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
   const [selectedExpenses, setSelectedExpenses] = useState<string[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [expenseMatches, setExpenseMatches] = useState<Record<string, { matched: boolean; type?: 'estimate' | 'quote' | 'change_order' }>>({});
+  const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
+  const [expenseToReassign, setExpenseToReassign] = useState<Expense | null>(null);
   const { toast } = useToast();
 
   // Load projects for filter dropdown
@@ -426,6 +431,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
 
   const renderActions = (expense: Expense) => {
     const status = expense.approval_status || 'pending';
+    const isAllocated = expenseMatches[expense.id]?.matched;
     
     return (
       <DropdownMenu>
@@ -439,11 +445,26 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="w-52">
           <DropdownMenuItem onClick={() => onEdit(expense)}>
             <Edit2 className="h-3 w-3 mr-2" />
             Edit Expense
           </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={() => {
+            setExpenseToReassign(expense);
+            setReassignDialogOpen(true);
+          }}>
+            <FolderOpen className="h-3 w-3 mr-2" />
+            Reassign Project
+          </DropdownMenuItem>
+
+          {!isAllocated && (
+            <DropdownMenuItem onClick={() => navigate(`/expenses/matching?highlight=${expense.id}`)}>
+              <Target className="h-3 w-3 mr-2" />
+              Match to Line Items
+            </DropdownMenuItem>
+          )}
           
           <DropdownMenuItem 
             onClick={() => handleDelete(expense.id)}
@@ -493,6 +514,22 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
             className="w-48 h-input-compact text-label"
           />
         </div>
+
+        {/* Quick filter: Needs Allocation */}
+        <Button
+          variant={filterMatchStatus === 'unmatched' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilterMatchStatus(filterMatchStatus === 'unmatched' ? 'all' : 'unmatched')}
+          className="h-input-compact text-label"
+        >
+          <Target className="h-3 w-3 mr-1" />
+          Needs Allocation
+          {filterMatchStatus === 'unmatched' && (
+            <span className="ml-1 px-1.5 py-0.5 bg-background rounded text-xs">
+              {filteredExpenses.length}
+            </span>
+          )}
+        </Button>
         
         <Select value={filterProject} onValueChange={setFilterProject}>
           <SelectTrigger className="w-40 h-input-compact text-label">
@@ -595,6 +632,21 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         }
         emptyMessage="No expenses found. Add your first expense to get started."
         noResultsMessage="No expenses match your current filters."
+      />
+
+      <ReassignExpenseProjectDialog
+        open={reassignDialogOpen}
+        onClose={() => {
+          setReassignDialogOpen(false);
+          setExpenseToReassign(null);
+        }}
+        onSuccess={() => {
+          setReassignDialogOpen(false);
+          setExpenseToReassign(null);
+          onRefresh();
+        }}
+        expenseIds={expenseToReassign ? [expenseToReassign.id] : []}
+        currentProjectName={expenseToReassign?.project_name}
       />
     </div>
   );
