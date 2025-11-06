@@ -52,7 +52,7 @@ interface EnhancedExpense {
   project_id: string;
   project_name?: string;
   project_number?: string;
-  match_status: 'unaccounted' | 'accounted_in_estimate' | 'accounted_in_quote';
+  match_status: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote';
   suggested_line_item_id?: string;
   suggested_quote_id?: string;
   confidence_score?: number;
@@ -82,7 +82,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [projectFilter, setProjectFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('unaccounted');
+  const [statusFilter, setStatusFilter] = useState<string>('unallocated');
   const [allocationSource, setAllocationSource] = useState<'estimates' | 'quotes' | 'change_orders'>('estimates');
   const [selectedExpenses, setSelectedExpenses] = useState<Set<string>>(new Set());
   const [projects, setProjects] = useState<any[]>([]);
@@ -97,7 +97,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
   const clearAllFilters = useCallback(() => {
     setSearchTerm('');
     setProjectFilter('all');
-    setStatusFilter('unaccounted');
+    setStatusFilter('unallocated');
     toast({
       title: "Filters Cleared",
       description: "All filters have been reset to defaults."
@@ -107,7 +107,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
   const hasActiveFilters = useCallback(() => {
     return searchTerm !== '' || 
            projectFilter !== 'all' || 
-           statusFilter !== 'unaccounted';
+           statusFilter !== 'unallocated';
   }, [searchTerm, projectFilter, statusFilter]);
 
   useEffect(() => {
@@ -318,14 +318,14 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       // Process expenses with match status
       const enhancedExpenses: EnhancedExpense[] = rawExpenses.map(expense => {
         const correlation = correlations.find(c => c.expense_id === expense.id);
-        let matchStatus: 'unaccounted' | 'accounted_in_estimate' | 'accounted_in_quote' = 'unaccounted';
+        let matchStatus: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' = 'unallocated';
         
         if (correlation) {
           if (correlation.estimate_line_item_id) {
             const lineItem = estimateLineItems.find(li => li.id === correlation.estimate_line_item_id);
-            matchStatus = lineItem ? 'accounted_in_estimate' : 'unaccounted';
+            matchStatus = lineItem ? 'allocated_to_estimate' : 'unallocated';
           } else if (correlation.quote_id) {
-            matchStatus = 'accounted_in_quote';
+            matchStatus = 'allocated_to_quote';
           }
         }
 
@@ -602,7 +602,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     })));
     
     const highConfidenceExpenses = expenses.filter(exp => {
-      const passes = exp.match_status === 'unaccounted' && 
+      const passes = exp.match_status === 'unallocated' && 
         exp.confidence_score && 
         exp.confidence_score >= 75 &&
         exp.suggested_line_item_id;
@@ -711,12 +711,12 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'accounted_in_estimate':
-        return <Badge className="bg-blue-100 text-blue-800">Accounted in Estimate</Badge>;
-      case 'accounted_in_quote':
-        return <Badge className="bg-green-100 text-green-800">Accounted in Quote</Badge>;
+      case 'allocated_to_estimate':
+        return <Badge className="bg-blue-100 text-blue-800">Allocated to Estimate</Badge>;
+      case 'allocated_to_quote':
+        return <Badge className="bg-green-100 text-green-800">Allocated to Quote</Badge>;
       default:
-        return <Badge variant="destructive">Unaccounted</Badge>;
+        return <Badge variant="destructive">Unallocated</Badge>;
     }
   };
 
@@ -735,10 +735,10 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
 
   const summaryStats = {
     total: expenses.length,
-    unaccounted: expenses.filter(e => e.match_status === 'unaccounted').length,
-    accountedInEstimate: expenses.filter(e => e.match_status === 'accounted_in_estimate').length,
-    accountedInQuote: expenses.filter(e => e.match_status === 'accounted_in_quote').length,
-    unaccountedAmount: expenses.filter(e => e.match_status === 'unaccounted').reduce((sum, e) => sum + e.amount, 0)
+    unallocated: expenses.filter(e => e.match_status === 'unallocated').length,
+    allocatedToEstimate: expenses.filter(e => e.match_status === 'allocated_to_estimate').length,
+    allocatedToQuote: expenses.filter(e => e.match_status === 'allocated_to_quote').length,
+    unallocatedAmount: expenses.filter(e => e.match_status === 'unallocated').reduce((sum, e) => sum + e.amount, 0)
   };
 
   if (isLoading) {
@@ -773,21 +773,21 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600">{summaryStats.unaccounted}</div>
-            <p className="text-sm text-muted-foreground">Unaccounted</p>
-            <p className="text-xs text-muted-foreground">{formatCurrency(summaryStats.unaccountedAmount)}</p>
+            <div className="text-2xl font-bold text-red-600">{summaryStats.unallocated}</div>
+            <p className="text-sm text-muted-foreground">Unallocated</p>
+            <p className="text-xs text-muted-foreground">{formatCurrency(summaryStats.unallocatedAmount)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">{summaryStats.accountedInEstimate}</div>
-            <p className="text-sm text-muted-foreground">Accounted in Estimates</p>
+            <div className="text-2xl font-bold text-blue-600">{summaryStats.allocatedToEstimate}</div>
+            <p className="text-sm text-muted-foreground">Allocated to Estimates</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">{summaryStats.accountedInQuote}</div>
-            <p className="text-sm text-muted-foreground">Accounted in Quotes</p>
+            <div className="text-2xl font-bold text-green-600">{summaryStats.allocatedToQuote}</div>
+            <p className="text-sm text-muted-foreground">Allocated to Quotes</p>
           </CardContent>
         </Card>
         <Card>
@@ -849,9 +849,9 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="unaccounted">Unaccounted</SelectItem>
-              <SelectItem value="accounted_in_estimate">Accounted in Estimate</SelectItem>
-              <SelectItem value="accounted_in_quote">Accounted in Quote</SelectItem>
+              <SelectItem value="unallocated">Unallocated</SelectItem>
+              <SelectItem value="allocated_to_estimate">Allocated to Estimate</SelectItem>
+              <SelectItem value="allocated_to_quote">Allocated to Quote</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -906,7 +906,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{formatCurrency(expense.amount)}</span>
                     {getStatusBadge(expense.match_status)}
-                    {expense.confidence_score && expense.match_status === 'unaccounted' && 
+                    {expense.confidence_score && expense.match_status === 'unallocated' && 
                       getConfidenceBadge(expense.confidence_score)
                     }
                   </div>
@@ -1001,7 +1001,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                   const showFuzzyMatchDetails = item.payee_name;
                   const unallocatedExpenses = expenses
                     .filter(exp => 
-                      exp.match_status === 'unaccounted' && 
+                      exp.match_status === 'unallocated' && 
                       (projectFilter === 'all' || exp.project_id === projectFilter)
                     )
                     .map(exp => ({
@@ -1145,12 +1145,12 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       </div>
 
       {/* Summary Alert */}
-      {summaryStats.unaccounted > 0 && (
+      {summaryStats.unallocated > 0 && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            You have {summaryStats.unaccounted} unaccounted expenses totaling{' '}
-            {formatCurrency(summaryStats.unaccountedAmount)}. These expenses may represent cost overruns or unexpected costs.
+            You have {summaryStats.unallocated} unallocated expenses totaling{' '}
+            {formatCurrency(summaryStats.unallocatedAmount)}. These expenses may represent cost overruns or unexpected costs.
           </AlertDescription>
         </Alert>
       )}
