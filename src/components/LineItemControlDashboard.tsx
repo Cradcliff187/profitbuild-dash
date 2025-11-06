@@ -60,6 +60,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
       'Remaining to Allocate',
       'Allocation Status',
       'Actual',
+      'Expense Count',
       'Est vs Quote',
       'Est vs Quote %',
       'Quote Status'
@@ -85,6 +86,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
           item.remainingToAllocate,
           item.allocationStatus,
           item.actualAmount,
+          item.correlatedExpenses.length,
           item.costVariance,
           item.costVariancePercent.toFixed(1) + '%',
           item.quoteStatus
@@ -227,7 +229,52 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
           <TooltipContent>
             <div className="space-y-1">
               <p>Total actual expenses explicitly allocated to this line item</p>
-              <p className="text-xs text-muted-foreground">{item.expenses.length} expense{item.expenses.length !== 1 ? 's' : ''} allocated</p>
+              <p className="text-xs text-muted-foreground">{item.correlatedExpenses.length} expense{item.correlatedExpenses.length !== 1 ? 's' : ''} allocated</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      ),
+    },
+    {
+      key: 'expenseCount',
+      label: '# Expenses',
+      align: 'center',
+      sortable: true,
+      render: (item) => (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="text-center cursor-help">
+              {item.correlatedExpenses.length > 0 ? (
+                <span className="text-sm tabular-nums font-medium">
+                  {item.correlatedExpenses.length}
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">—</span>
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="space-y-1 max-w-xs">
+              <p className="font-semibold">
+                {item.correlatedExpenses.length} expense{item.correlatedExpenses.length !== 1 ? 's' : ''} allocated
+              </p>
+              {item.correlatedExpenses.length > 0 && (
+                <div className="text-xs pt-2 border-t max-h-40 overflow-y-auto">
+                  {item.correlatedExpenses.slice(0, 5).map((exp: any) => (
+                    <div key={exp.id} className="py-0.5">
+                      • {formatCurrency(exp.amount)} - {exp.description || 'No description'}
+                      <div className="text-muted-foreground pl-2">
+                        {format(new Date(exp.expense_date), 'MMM d, yyyy')} - {exp.payees?.payee_name || 'Unknown'}
+                      </div>
+                    </div>
+                  ))}
+                  {item.correlatedExpenses.length > 5 && (
+                    <p className="text-muted-foreground mt-1">
+                      ...and {item.correlatedExpenses.length - 5} more
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </TooltipContent>
         </Tooltip>
