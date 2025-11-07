@@ -111,14 +111,40 @@ export const ProjectDetailView = () => {
           .select('*')
           .eq('project_id', projectId)
           .order('date_received', { ascending: false }),
-        supabase
-          .from('expenses')
-          .select(`
-            *,
-            payees (payee_name)
-          `)
-          .eq('project_id', projectId)
-          .order('expense_date', { ascending: false }),
+        // Fetch direct expenses
+        (async () => {
+          const { data: directExpenses } = await supabase
+            .from('expenses')
+            .select('*, payees (payee_name)')
+            .eq('project_id', projectId);
+
+          // Fetch split parent expenses with splits for this project
+          const { data: splitExpenseIds } = await supabase
+            .from('expense_splits')
+            .select('expense_id')
+            .eq('project_id', projectId);
+
+          const splitExpenseIdsArray = (splitExpenseIds || []).map(s => s.expense_id);
+
+          // Fetch the parent split expenses
+          const { data: splitExpenses } = splitExpenseIdsArray.length > 0
+            ? await supabase
+                .from('expenses')
+                .select('*, payees (payee_name)')
+                .in('id', splitExpenseIdsArray)
+                .eq('is_split', true)
+            : { data: [] };
+
+          // Combine and deduplicate
+          const allExpenses = [...(directExpenses || []), ...(splitExpenses || [])];
+          const uniqueExpenses = Array.from(
+            new Map(allExpenses.map(e => [e.id, e])).values()
+          );
+
+          return { data: uniqueExpenses.sort((a, b) => 
+            new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime()
+          ) };
+        })(),
         supabase
           .from('change_orders')
           .select('*')
@@ -321,6 +347,7 @@ export const ProjectDetailView = () => {
               <Route path="expenses" element={
                 <ExpensesList 
                   expenses={expenses}
+                  projectId={project.id}
                   onEdit={() => loadProjectData()}
                   onDelete={() => loadProjectData()}
                   onRefresh={loadProjectData}

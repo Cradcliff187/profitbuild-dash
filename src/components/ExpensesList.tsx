@@ -15,7 +15,7 @@ import { ReassignExpenseProjectDialog } from "./ReassignExpenseProjectDialog";
 import { ExpenseSplitDialog } from "./ExpenseSplitDialog";
 import { Expense, ExpenseCategory, TransactionType, ExpenseSplit, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from "@/types/expense";
 import { formatCurrency } from "@/lib/utils";
-import { getExpenseSplits } from "@/utils/expenseSplits";
+import { getExpenseSplits, calculateProjectExpenses } from "@/utils/expenseSplits";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,7 @@ import {
 
 interface ExpensesListProps {
   expenses: Expense[];
+  projectId?: string;
   onEdit: (expense: Expense) => void;
   onDelete: (id: string) => void;
   onRefresh: () => void;
@@ -39,6 +40,7 @@ export interface ExpensesListRef {
 
 export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>(({
   expenses,
+  projectId,
   onEdit,
   onDelete,
   onRefresh,
@@ -62,6 +64,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
   const [expenseToSplit, setExpenseToSplit] = useState<Expense | null>(null);
   const [expandedExpenses, setExpandedExpenses] = useState<Set<string>>(new Set());
   const [expenseSplits, setExpenseSplits] = useState<Record<string, ExpenseSplit[]>>({});
+  const [calculatedTotal, setCalculatedTotal] = useState<number>(0);
   const { toast } = useToast();
 
   React.useImperativeHandle(ref, () => ({
@@ -192,6 +195,23 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       return matchesSearch && matchesCategory && matchesType && matchesProject && matchesMatchStatus && matchesApprovalStatus && matchesSplitStatus;
     });
   }, [expenses, searchTerm, filterCategory, filterTransactionType, filterProject, filterMatchStatus, filterApprovalStatus, filterSplitStatus, expenseMatches]);
+
+  // Calculate split-aware total for project context
+  useEffect(() => {
+    const calculateTotal = async () => {
+      if (!projectId) {
+        // If no project context, use simple sum
+        setCalculatedTotal(filteredExpenses.reduce((sum, e) => sum + e.amount, 0));
+        return;
+      }
+      
+      // Use split-aware calculation for project context
+      const total = await calculateProjectExpenses(projectId, filteredExpenses);
+      setCalculatedTotal(total);
+    };
+    
+    calculateTotal();
+  }, [filteredExpenses, projectId]);
 
   const handleDelete = async (expenseId: string) => {
     try {
@@ -493,9 +513,17 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           );
         }
         
+        // Check if this is a split expense from another project
+        const isSplitFromOtherProject = row.is_split && projectId && row.project_id !== projectId;
+        
         return (
           <div className={row.project_name?.includes("Unassigned") ? "text-muted-foreground italic text-sm" : "text-sm"}>
             {row.project_name}
+            {isSplitFromOtherProject && (
+              <Badge variant="outline" className="ml-2 text-xs">
+                Split From This
+              </Badge>
+            )}
           </div>
         );
       }
@@ -563,6 +591,26 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
               {formatCurrency(row._splitData.split_amount, { showCents: true })}
             </div>
           );
+        }
+        
+        // For split expenses in project view, show allocated amount
+        if (row.is_split && projectId && row.project_id !== projectId) {
+          const splitForThisProject = expenseSplits[row.id]?.find(
+            s => s.project_id === projectId
+          );
+          
+          if (splitForThisProject) {
+            return (
+              <div className="text-right">
+                <div className="text-sm font-mono font-medium">
+                  {formatCurrency(splitForThisProject.split_amount, { showCents: true })}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  of {formatCurrency(row.amount, { showCents: true })}
+                </div>
+              </div>
+            );
+          }
         }
         
         return (
@@ -946,8 +994,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       </div>
 
       <EntityTableTemplate
-        title="All Expenses"
-        description={`Manage your project expenses (${filteredExpenses.length} total) • Total: ${formatCurrency(filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0), { showCents: true })} • Note: Split expenses show original amount`}
+        title={projectId ? "Project Expenses" : "All Expenses"}
+        description={`${filteredExpenses.length} expense${filteredExpenses.length !== 1 ? 's' : ''} • Total: ${formatCurrency(calculatedTotal, { showCents: true })}${projectId && filteredExpenses.some(e => e.is_split && e.project_id !== projectId) ? ' • Split expenses show allocation for this project' : ''}`}
         data={displayData}
         columns={columns}
         isLoading={false}
