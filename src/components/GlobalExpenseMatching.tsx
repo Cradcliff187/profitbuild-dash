@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CollapsibleFilterSection } from '@/components/ui/collapsible-filter-section';
 import { 
   HoverCard,
   HoverCardContent,
@@ -138,25 +139,27 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     }
   }, [highlightExpenseId]);
 
-  const clearAllFilters = useCallback(() => {
-    setSearchTerm('');
-    setProjectFilter('all');
-    setStatusFilter('unallocated');
-    setSplitStatusFilter('all');
-    setProjectAssignmentFilter('all');
-    toast({
-      title: "Filters Cleared",
-      description: "All filters have been reset to defaults."
-    });
-  }, [toast]);
+  const getActiveFilterCount = (): number => {
+    let count = 0;
+    if (searchTerm) count++;
+    if (projectFilter !== 'all') count++;
+    if (statusFilter !== 'all') count++;
+    if (splitStatusFilter !== 'all') count++;
+    if (projectAssignmentFilter !== 'all') count++;
+    return count;
+  };
 
-  const hasActiveFilters = useCallback(() => {
-    return searchTerm !== '' || 
-           projectFilter !== 'all' || 
-           statusFilter !== 'unallocated' ||
-           splitStatusFilter !== 'all' ||
-           projectAssignmentFilter !== 'all';
-  }, [searchTerm, projectFilter, statusFilter, splitStatusFilter, projectAssignmentFilter]);
+  const hasActiveFilters = (): boolean => {
+    return getActiveFilterCount() > 0;
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setProjectFilter("all");
+    setStatusFilter("all");
+    setSplitStatusFilter("all");
+    setProjectAssignmentFilter("all");
+  };
 
   useEffect(() => {
     loadAllocationData();
@@ -1067,30 +1070,36 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <Label htmlFor="search">Search Expenses</Label>
-          <div className="relative">
-            <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
-            <Input
-              id="search"
-              placeholder="Search by payee, project, or description..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
+      <CollapsibleFilterSection
+        title="Filter Expenses"
+        hasActiveFilters={hasActiveFilters()}
+        activeFilterCount={getActiveFilterCount()}
+        onClearFilters={handleClearFilters}
+        resultCount={filteredExpenses.length}
+        defaultExpanded={hasActiveFilters()}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+          {/* Search - Full Width */}
+          <div className="md:col-span-4">
+            <div className="relative">
+              <Search className="h-4 w-4 absolute left-3 top-2.5 text-muted-foreground" />
+              <Input
+                placeholder="Search by payee, project, or description..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 h-9"
+              />
+            </div>
           </div>
-        </div>
-        
-        {!projectId && (
-          <div className="w-full sm:w-48">
-            <Label>Project Filter</Label>
+          
+          {/* Project Filter */}
+          {!projectId && (
             <Select 
               value={projectFilter} 
               onValueChange={setProjectFilter}
               disabled={selectedExpenses.size > 0 || selectedSplits.size > 0}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-9">
                 <SelectValue>
                   {projectFilter === 'all' 
                     ? 'All Projects' 
@@ -1110,71 +1119,55 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                 ))}
               </SelectContent>
             </Select>
-            {(selectedExpenses.size > 0 || selectedSplits.size > 0) && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Auto-filtering by selected expenses
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="w-full sm:w-48">
-          <Label>Status Filter</Label>
+          )}
+          
+          {/* Status Filter */}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger>
-              <SelectValue />
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Allocation Status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="unallocated">Unallocated</SelectItem>
-              <SelectItem value="allocated_to_estimate">Allocated to Estimate</SelectItem>
-              <SelectItem value="allocated_to_quote">Allocated to Quote</SelectItem>
+              <SelectItem value="unallocated">⚠️ Unallocated</SelectItem>
+              <SelectItem value="allocated_to_estimate">✅ Allocated to Estimate</SelectItem>
+              <SelectItem value="allocated_to_quote">✅ Allocated to Quote</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-
-        <div className="w-full sm:w-48">
-          <Label>Split Status</Label>
+          
+          {/* Split Status Filter */}
           <Select value={splitStatusFilter} onValueChange={setSplitStatusFilter}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="split">Split Only</SelectItem>
-              <SelectItem value="unsplit">Unsplit Only</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="w-full sm:w-48">
-          <Label>Assignment Status</Label>
-          <Select value={projectAssignmentFilter} onValueChange={setProjectAssignmentFilter}>
-            <SelectTrigger>
-              <SelectValue />
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Split Status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Expenses</SelectItem>
-              <SelectItem value="real_projects">Ready to Allocate</SelectItem>
-              <SelectItem value="system_projects">Needs Project Assignment</SelectItem>
+              <SelectItem value="split">Split Only</SelectItem>
+              <SelectItem value="unsplit">Single Project</SelectItem>
             </SelectContent>
           </Select>
+          
+          {/* Assignment Status Filter */}
+          <Select value={projectAssignmentFilter} onValueChange={setProjectAssignmentFilter}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Assignment Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Expenses</SelectItem>
+              <SelectItem value="real_projects">✅ Ready to Allocate</SelectItem>
+              <SelectItem value="system_projects">⚠️ Needs Assignment</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {/* Auto-filter notification */}
+          {(selectedExpenses.size > 0 || selectedSplits.size > 0) && (
+            <div className="md:col-span-4">
+              <p className="text-xs text-muted-foreground">
+                ℹ️ Auto-filtering line items by selected expense projects
+              </p>
+            </div>
+          )}
         </div>
-
-        {hasActiveFilters() && (
-          <div className="w-full sm:w-auto flex items-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearAllFilters}
-              className="w-full sm:w-auto h-10"
-            >
-              <X className="h-4 w-4 mr-1" />
-              Clear
-            </Button>
-          </div>
-        )}
-      </div>
+      </CollapsibleFilterSection>
 
       {/* Main Interface */}
       <div className={cn(
