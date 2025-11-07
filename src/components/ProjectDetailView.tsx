@@ -115,7 +115,7 @@ export const ProjectDetailView = () => {
         (async () => {
           const { data: directExpenses } = await supabase
             .from('expenses')
-            .select('*, payees (payee_name)')
+            .select('*, payees(payee_name), projects(project_name, project_number)')
             .eq('project_id', projectId);
 
           // Fetch split parent expenses with splits for this project
@@ -130,7 +130,7 @@ export const ProjectDetailView = () => {
           const { data: splitExpenses } = splitExpenseIdsArray.length > 0
             ? await supabase
                 .from('expenses')
-                .select('*, payees (payee_name)')
+                .select('*, payees(payee_name), projects(project_name, project_number)')
                 .in('id', splitExpenseIdsArray)
                 .eq('is_split', true)
             : { data: [] };
@@ -206,7 +206,9 @@ export const ProjectDetailView = () => {
         created_at: new Date(expense.created_at),
         updated_at: new Date(expense.updated_at),
         category: expense.category as any,
-        payee_name: expense.payees?.payee_name
+        payee_name: expense.payees?.payee_name,
+        project_name: expense.projects?.project_name,
+        project_number: expense.projects?.project_number,
       }));
 
       // Calculate change order totals from approved change orders

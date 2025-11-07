@@ -71,6 +71,7 @@ export interface Expense {
   // Additional fields for display (populated from joins)
   payee_name?: string;
   project_name?: string;
+  project_number?: string;
 }
 
 export interface ProjectExpenseSummary {

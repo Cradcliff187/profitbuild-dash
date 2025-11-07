@@ -48,7 +48,7 @@ const Expenses = () => {
           .select(`
             *,
             payees(payee_name),
-            projects(project_name)
+            projects(project_name, project_number)
           `),
         supabase.from('estimates')
           .select(`
@@ -76,6 +76,7 @@ const Expenses = () => {
         updated_at: new Date(expense.updated_at),
         payee_name: expense.payees?.payee_name,
         project_name: expense.projects?.project_name,
+        project_number: expense.projects?.project_number,
       }));
 
       // Filter out split parent containers before setting state

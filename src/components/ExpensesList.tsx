@@ -105,7 +105,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       try {
         const { data, error } = await supabase
           .from("projects")
-          .select("id, project_name")
+          .select("id, project_name, project_number")
           .order("project_name");
         
         if (error) throw error;
@@ -451,7 +451,14 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
   };
 
   // Create display data that includes split rows
-  type DisplayRow = Expense & { _isSplitRow?: boolean; _splitData?: ExpenseSplit; _parentExpenseId?: string };
+  type DisplayRow = Expense & { 
+    _isSplitRow?: boolean; 
+    _splitData?: ExpenseSplit & { 
+      project_name?: string; 
+      project_number?: string; 
+    }; 
+    _parentExpenseId?: string 
+  };
   
   const displayData = useMemo((): DisplayRow[] => {
     const result: DisplayRow[] = [];
@@ -536,22 +543,22 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         if (row._isSplitRow && row._splitData) {
           return (
             <div className="text-sm text-muted-foreground">
+              {row._splitData.project_number && (
+                <span className="font-mono">{row._splitData.project_number} • </span>
+              )}
               {row._splitData.project_name}
             </div>
           );
         }
         
         const isUnassigned = row.project_name?.includes("Unassigned");
-        const isSplitFromOtherProject = row.is_split && projectId && row.project_id !== projectId;
         
         return (
           <div className={cn("text-sm", isUnassigned && "text-muted-foreground italic")}>
-            {row.project_name}
-            {isSplitFromOtherProject && (
-              <Badge variant="outline" className="ml-2 text-xs">
-                Split From This
-              </Badge>
+            {row.project_number && (
+              <span className="font-mono">{row.project_number} • </span>
             )}
+            {row.project_name}
           </div>
         );
       }
