@@ -322,7 +322,7 @@ export const ProjectDetailView = () => {
         
         <SidebarInset className="flex-1 flex flex-col no-horizontal-scroll overflow-hidden">
           {/* Compact Header */}
-          <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b bg-background px-3">
+          <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 justify-start border-b bg-background px-3">
             <SidebarTrigger />
             <Separator orientation="vertical" className="h-6" />
             
@@ -350,7 +350,7 @@ export const ProjectDetailView = () => {
               </Button>
             )}
             
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 max-w-2xl">
               <h1 className="text-sm font-semibold truncate">{project.project_name}</h1>
               <p className="text-xs text-muted-foreground truncate">
                 #{project.project_number} • {project.client_name}
