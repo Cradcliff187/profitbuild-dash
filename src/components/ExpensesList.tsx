@@ -13,6 +13,8 @@ import { EntityTableTemplate } from "./EntityTableTemplate";
 import { ExpenseBulkActions } from "./ExpenseBulkActions";
 import { ReassignExpenseProjectDialog } from "./ReassignExpenseProjectDialog";
 import { ExpenseSplitDialog } from "./ExpenseSplitDialog";
+import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
+import { cn } from "@/lib/utils";
 import { Expense, ExpenseCategory, TransactionType, ExpenseSplit, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from "@/types/expense";
 import { formatCurrency } from "@/lib/utils";
 import { getExpenseSplits, calculateProjectExpenses } from "@/utils/expenseSplits";
@@ -66,6 +68,32 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
   const [expenseSplits, setExpenseSplits] = useState<Record<string, ExpenseSplit[]>>({});
   const [calculatedTotal, setCalculatedTotal] = useState<number>(0);
   const { toast } = useToast();
+
+  const getActiveFilterCount = (): number => {
+    let count = 0;
+    if (searchTerm) count++;
+    if (filterCategory !== "all") count++;
+    if (filterTransactionType !== "all") count++;
+    if (filterProject !== "all") count++;
+    if (filterMatchStatus !== "all") count++;
+    if (filterApprovalStatus !== "all") count++;
+    if (filterSplitStatus !== "all") count++;
+    return count;
+  };
+
+  const hasActiveFilters = (): boolean => {
+    return getActiveFilterCount() > 0;
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setFilterCategory("all");
+    setFilterTransactionType("all");
+    setFilterProject("all");
+    setFilterMatchStatus("all");
+    setFilterApprovalStatus("all");
+    setFilterSplitStatus("all");
+  };
 
   React.useImperativeHandle(ref, () => ({
     exportToCsv
@@ -194,7 +222,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
       return matchesSearch && matchesCategory && matchesType && matchesProject && matchesMatchStatus && matchesApprovalStatus && matchesSplitStatus;
     });
-  }, [expenses, searchTerm, filterCategory, filterTransactionType, filterProject, filterMatchStatus, filterApprovalStatus, filterSplitStatus, expenseMatches]);
+  }, [displayableExpenses, searchTerm, filterCategory, filterTransactionType, filterProject, filterMatchStatus, filterApprovalStatus, filterSplitStatus, expenseMatches]);
 
   // Calculate split-aware total for project context
   useEffect(() => {
@@ -513,11 +541,11 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           );
         }
         
-        // Check if this is a split expense from another project
+        const isUnassigned = row.project_name?.includes("Unassigned");
         const isSplitFromOtherProject = row.is_split && projectId && row.project_id !== projectId;
         
         return (
-          <div className={row.project_name?.includes("Unassigned") ? "text-muted-foreground italic text-sm" : "text-sm"}>
+          <div className={cn("text-sm", isUnassigned && "text-muted-foreground italic")}>
             {row.project_name}
             {isSplitFromOtherProject && (
               <Badge variant="outline" className="ml-2 text-xs">
@@ -888,110 +916,101 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       </Collapsible>
 
       {/* Filters - Compact */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <div className="flex items-center space-x-1">
-          <Search className="h-3 w-3 text-muted-foreground" />
-          <Input
-            placeholder="Search expenses..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-48 h-input-compact text-label"
-          />
-        </div>
-
-        {/* Quick filter: Needs Allocation */}
-        <Button
-          variant={filterMatchStatus === 'unmatched' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterMatchStatus(filterMatchStatus === 'unmatched' ? 'all' : 'unmatched')}
-          className="h-input-compact text-label"
-        >
-          <Target className="h-3 w-3 mr-1" />
-          Needs Allocation
-          {filterMatchStatus === 'unmatched' && (
-            <span className="ml-1 px-1.5 py-0.5 bg-background rounded text-xs">
-              {filteredExpenses.length}
-            </span>
+      <CollapsibleFilterSection
+        title="Filter Expenses"
+        hasActiveFilters={hasActiveFilters()}
+        activeFilterCount={getActiveFilterCount()}
+        onClearFilters={handleClearFilters}
+        resultCount={filteredExpenses.length}
+        defaultExpanded={false}
+        className="mb-4"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+          <div className="md:col-span-4">
+            <Input
+              placeholder="Search by payee, description, invoice, project..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-9"
+            />
+          </div>
+          
+          {!projectId && (
+            <Select value={filterProject} onValueChange={setFilterProject}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="All Projects" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Projects</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.project_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
-        </Button>
-        
-        <Select value={filterProject} onValueChange={setFilterProject}>
-          <SelectTrigger className="w-40 h-input-compact text-label">
-            <SelectValue placeholder="Project" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Projects</SelectItem>
-            {projects.map((project) => (
-              <SelectItem key={project.id} value={project.id}>
-                {project.project_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
-        <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-32 h-input-compact text-label">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {Object.entries(EXPENSE_CATEGORY_DISPLAY).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {Object.entries(EXPENSE_CATEGORY_DISPLAY).map(([value, label]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select value={filterTransactionType} onValueChange={setFilterTransactionType}>
-          <SelectTrigger className="w-28 h-input-compact text-label">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {Object.entries(TRANSACTION_TYPE_DISPLAY).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select value={filterTransactionType} onValueChange={setFilterTransactionType}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {Object.entries(TRANSACTION_TYPE_DISPLAY).map(([value, label]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select value={filterMatchStatus} onValueChange={setFilterMatchStatus}>
-          <SelectTrigger className="w-48 h-input-compact text-label">
-            <SelectValue placeholder="Allocation Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Expenses</SelectItem>
-            <SelectItem value="unassigned">⚠️ Needs Project Assignment</SelectItem>
-            <SelectItem value="unmatched">⚠️ Unallocated (No Line Item)</SelectItem>
-            <SelectItem value="matched">✅ Allocated to Line Items</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select value={filterMatchStatus} onValueChange={setFilterMatchStatus}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Allocation Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Expenses</SelectItem>
+              <SelectItem value="unassigned">⚠️ Needs Assignment</SelectItem>
+              <SelectItem value="unmatched">⚠️ Unallocated</SelectItem>
+              <SelectItem value="matched">✅ Allocated</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select value={filterApprovalStatus} onValueChange={setFilterApprovalStatus}>
-          <SelectTrigger className="w-32 h-input-compact text-label">
-            <SelectValue placeholder="Approval Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select value={filterApprovalStatus} onValueChange={setFilterApprovalStatus}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select value={filterSplitStatus} onValueChange={setFilterSplitStatus}>
-          <SelectTrigger className="w-32 h-input-compact text-label">
-            <SelectValue placeholder="Split Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="split">Split</SelectItem>
-            <SelectItem value="unsplit">Not Split</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          <Select value={filterSplitStatus} onValueChange={setFilterSplitStatus}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Split Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="split">Split Expenses</SelectItem>
+              <SelectItem value="unsplit">Single Project</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CollapsibleFilterSection>
 
       <EntityTableTemplate
         title={projectId ? "Project Expenses" : "All Expenses"}
