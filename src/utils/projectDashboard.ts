@@ -7,6 +7,7 @@ export interface BudgetStatus {
   remaining: number;
   percentSpent: number;
   status: 'good' | 'warning' | 'critical';
+  adjustedEstCosts?: number;
 }
 
 export interface ScheduleStatus {
@@ -81,9 +82,11 @@ export async function getProjectScheduleDates(
 
 export function calculateBudgetStatus(
   contracted: number | null | undefined,
-  expenses: Expense[]
+  expenses: Expense[],
+  adjustedEstCosts?: number | null
 ): BudgetStatus {
   const contractAmount = contracted || 0;
+  const estimatedCosts = adjustedEstCosts || 0;
   
   // Use display_amount if available (for split expenses), otherwise fall back to amount
   const totalSpent = expenses.reduce((sum, e) => {
@@ -91,8 +94,11 @@ export function calculateBudgetStatus(
     return sum + amount;
   }, 0);
   
-  const remaining = contractAmount - totalSpent;
-  const percentSpent = contractAmount > 0 ? (totalSpent / contractAmount) * 100 : 0;
+  // Calculate remaining based on adjusted estimated costs vs spent
+  const remaining = estimatedCosts - totalSpent;
+  
+  // Calculate percentage spent against adjusted estimated costs
+  const percentSpent = estimatedCosts > 0 ? (totalSpent / estimatedCosts) * 100 : 0;
   
   let status: 'good' | 'warning' | 'critical' = 'good';
   if (percentSpent > 90) {
@@ -105,7 +111,8 @@ export function calculateBudgetStatus(
     totalSpent,
     remaining,
     percentSpent,
-    status
+    status,
+    adjustedEstCosts: estimatedCosts
   };
 }
 

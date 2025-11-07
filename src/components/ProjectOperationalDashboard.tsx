@@ -126,8 +126,8 @@ export function ProjectOperationalDashboard({
   }, [pendingTimeEntries, pendingReceipts, changeOrders, quotes, project.id, navigate]);
 
   const budgetStatus = useMemo(() => 
-    calculateBudgetStatus(project.contracted_amount, expenses),
-    [project.contracted_amount, expenses]
+    calculateBudgetStatus(project.contracted_amount, expenses, project.adjusted_est_costs),
+    [project.contracted_amount, expenses, project.adjusted_est_costs]
   );
 
   const scheduleStatus = useMemo(() => 
@@ -207,10 +207,16 @@ export function ProjectOperationalDashboard({
           <h3 className="text-sm font-semibold">Financial Summary</h3>
         </CardHeader>
         <CardContent className="p-3 pt-0">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <div>
               <div className="text-xs text-muted-foreground mb-1">Contract Value</div>
               <div className="text-xl font-bold">{formatCurrency(project.contracted_amount)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Adjusted Est. Cost</div>
+              <div className="text-xl font-bold text-foreground">
+                {formatCurrency(project.adjusted_est_costs)}
+              </div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground mb-1">Original Margin</div>
@@ -264,8 +270,8 @@ export function ProjectOperationalDashboard({
           <CardContent className="p-3 pt-0">
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Contract:</span>
-                <span className="font-medium">{formatCurrency(project.contracted_amount)}</span>
+                <span className="text-muted-foreground">Adjusted Est. Cost:</span>
+                <span className="font-medium">{formatCurrency(project.adjusted_est_costs)}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Spent:</span>
