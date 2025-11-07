@@ -160,6 +160,7 @@ export default function FieldSchedule() {
         <FieldScheduleTable
           tasks={tasks}
           onTaskUpdate={handleTaskUpdate}
+          projectId={projectId}
         />
       )}
     </MobilePageWrapper>

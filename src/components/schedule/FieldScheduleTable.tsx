@@ -1,17 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 import { ScheduleTask, SchedulePhase } from '@/types/schedule';
 import { cn } from '@/lib/utils';
 import { getCategoryBadgeClasses } from '@/utils/categoryColors';
+import { ProjectNotesTimeline } from '@/components/ProjectNotesTimeline';
 
 interface FieldScheduleTableProps {
   tasks: ScheduleTask[];
   onTaskUpdate: (task: ScheduleTask) => void;
+  projectId: string;
 }
 
 interface TaskRow {
@@ -32,8 +33,8 @@ interface TaskRow {
 export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
   tasks,
   onTaskUpdate,
+  projectId,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
   const calculateDuration = (start: string, end: string): number => {
@@ -74,17 +75,8 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
     }));
   }, [tasks]);
 
-  const filteredTasks = useMemo(() => {
-    if (!searchQuery) return taskRows;
-    const query = searchQuery.toLowerCase();
-    return taskRows.filter(row =>
-      row.taskName.toLowerCase().includes(query) ||
-      row.category.toLowerCase().includes(query)
-    );
-  }, [taskRows, searchQuery]);
-
   const sortedTasks = useMemo(() => {
-    return [...filteredTasks].sort((a, b) => {
+    return [...taskRows].sort((a, b) => {
       // First, sort by completion status (incomplete first)
       if (a.isComplete !== b.isComplete) {
         return a.isComplete ? 1 : -1;
@@ -95,7 +87,7 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
       const dateB = new Date(b.start).getTime();
       return dateA - dateB;
     });
-  }, [filteredTasks]);
+  }, [taskRows]);
 
   const toggleExpanded = (taskId: string) => {
     const newExpanded = new Set(expandedTasks);
@@ -159,31 +151,17 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Search Bar */}
+      {/* Project Notes */}
       <Card className="p-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search tasks..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-10 text-sm"
-          />
-        </div>
-        {sortedTasks.length > 0 && (
-          <p className="text-xs text-muted-foreground mt-2">
-            {sortedTasks.length} task{sortedTasks.length !== 1 ? 's' : ''}
-          </p>
-        )}
+        <h3 className="text-sm font-semibold mb-3">Project Notes</h3>
+        <ProjectNotesTimeline projectId={projectId} />
       </Card>
 
       {/* Task Cards */}
       <div className="space-y-2">
         {sortedTasks.length === 0 ? (
           <Card className="p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              {searchQuery ? 'No tasks match your search' : 'No tasks scheduled'}
-            </p>
+            <p className="text-sm text-muted-foreground">No tasks scheduled</p>
           </Card>
         ) : (
           sortedTasks.map((row) => {
