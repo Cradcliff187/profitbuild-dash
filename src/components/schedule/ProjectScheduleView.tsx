@@ -346,71 +346,150 @@ export default function ProjectScheduleView({
   };
 
   const handleTaskChange = async (task: Task) => {
-    // FIX 1: Set dragging flag
     isDraggingRef.current = true;
     
-    // Clear any existing timeout
     if (dragTimeoutRef.current) {
       clearTimeout(dragTimeoutRef.current);
     }
 
     try {
-      const scheduleTask = scheduleTasks.find(t => t.id === task.id);
-      if (!scheduleTask) return;
+      // Check if this is a phase from a multi-phase task
+      const isPhase = task.id.includes('_phase_');
+      const baseTaskId = isPhase ? task.id.split('_phase_')[0] : task.id;
+      const phaseNumber = isPhase ? parseInt(task.id.split('_phase_')[1]) : null;
+
+      // Find the original schedule task using base ID
+      const scheduleTask = scheduleTasks.find(t => t.id === baseTaskId);
+      if (!scheduleTask) {
+        console.error('Schedule task not found:', baseTaskId);
+        return;
+      }
 
       const table = scheduleTask.isChangeOrder 
         ? 'change_order_line_items' 
         : 'estimate_line_items';
 
       const duration = Math.ceil((task.end.getTime() - task.start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const newStart = task.start.toISOString().split('T')[0];
+      const newEnd = task.end.toISOString().split('T')[0];
 
-      // OPTIMISTIC UPDATE: Update UI IMMEDIATELY (before database save)
-      setScheduleTasks(prev => prev.map(t => 
-        t.id === task.id 
-          ? { 
-              ...t, 
-              start: task.start.toISOString().split('T')[0],
-              end: task.end.toISOString().split('T')[0]
-            }
-          : t
-      ));
+      // Prepare update data
+      let updateData: any = {
+        duration_days: duration
+      };
 
-      // REALTIME FIX: Update tasks state for immediate Gantt re-render
-      setTasks(prev => prev.map(t => {
-        if (t.id === task.id) {
-          const baseName = getBaseTaskName(t.name);
-          const newName = `${baseName} (${formatShortDate(task.start)} - ${formatShortDate(task.end)})`;
-          return { ...t, start: task.start, end: task.end, name: newName };
+      if (isPhase && phaseNumber !== null && scheduleTask.phases) {
+        // Multi-phase task: Update specific phase in phases array
+        const updatedPhases = scheduleTask.phases.map((phase: any) => {
+          if (phase.phase_number === phaseNumber) {
+            return {
+              ...phase,
+              start_date: newStart,
+              end_date: newEnd,
+              duration_days: duration
+            };
+          }
+          return phase;
+        });
+
+        // Recalculate overall task start/end from all phases
+        const allStarts = updatedPhases.map((p: any) => new Date(p.start_date));
+        const allEnds = updatedPhases.map((p: any) => new Date(p.end_date));
+        const overallStart = new Date(Math.min(...allStarts.map(d => d.getTime())));
+        const overallEnd = new Date(Math.max(...allEnds.map(d => d.getTime())));
+
+        // Preserve existing notes if present
+        let existingNotes: string | undefined;
+        try {
+          if (scheduleTask.schedule_notes) {
+            const parsed = JSON.parse(scheduleTask.schedule_notes);
+            existingNotes = parsed.notes;
+          }
+        } catch (e) {
+          // Not JSON, treat as plain notes
+          existingNotes = scheduleTask.schedule_notes;
         }
-        return t;
-      }));
 
-      // NOW save to database (in background)
+        updateData.scheduled_start_date = overallStart.toISOString().split('T')[0];
+        updateData.scheduled_end_date = overallEnd.toISOString().split('T')[0];
+        updateData.schedule_notes = JSON.stringify({
+          phases: updatedPhases,
+          notes: existingNotes || undefined
+        });
+
+        // Optimistic UI update for phases
+        setScheduleTasks(prev => prev.map(t => 
+          t.id === baseTaskId 
+            ? { 
+                ...t, 
+                start: overallStart.toISOString().split('T')[0],
+                end: overallEnd.toISOString().split('T')[0],
+                phases: updatedPhases
+              }
+            : t
+        ));
+
+        // Update Gantt tasks for the specific phase
+        setTasks(prev => prev.map(t => {
+          if (t.id === task.id) {
+            const baseName = getBaseTaskName(t.name);
+            const newName = `${baseName} (${formatShortDate(task.start)} - ${formatShortDate(task.end)})`;
+            return { ...t, start: task.start, end: task.end, name: newName };
+          }
+          return t;
+        }));
+
+      } else {
+        // Single-phase task: Update task dates directly
+        updateData.scheduled_start_date = newStart;
+        updateData.scheduled_end_date = newEnd;
+
+        // Optimistic UI update
+        setScheduleTasks(prev => prev.map(t => 
+          t.id === baseTaskId 
+            ? { 
+                ...t, 
+                start: newStart,
+                end: newEnd
+              }
+            : t
+        ));
+
+        setTasks(prev => prev.map(t => {
+          if (t.id === task.id) {
+            const baseName = getBaseTaskName(t.name);
+            const newName = `${baseName} (${formatShortDate(task.start)} - ${formatShortDate(task.end)})`;
+            return { ...t, start: task.start, end: task.end, name: newName };
+          }
+          return t;
+        }));
+      }
+
+      // Save to database with base task ID
       const { error } = await supabase
         .from(table)
-        .update({
-          scheduled_start_date: task.start.toISOString().split('T')[0],
-          scheduled_end_date: task.end.toISOString().split('T')[0],
-          duration_days: duration
-        })
-        .eq('id', task.id);
+        .update(updateData)
+        .eq('id', baseTaskId); // Use base ID, not phase ID
 
       if (error) {
-        // If save fails, reload to revert the optimistic update
+        // Revert optimistic update on error
         await loadScheduleTasks();
         throw error;
       }
 
-      // FIX 2: Show success toast with auto-dismiss
+      // Success toast
+      const displayName = isPhase 
+        ? `${scheduleTask.name} - Phase ${phaseNumber}` 
+        : scheduleTask.name;
+      
       toast({
         title: '✓ Schedule Updated',
-        description: `${scheduleTask.name} moved to ${task.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
-        duration: 3000, // Auto-dismiss after 3 seconds
+        description: `${displayName} moved to ${task.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+        duration: 3000,
       });
 
     } catch (error) {
       console.error('Error updating task:', error);
-      // FIX 2: Error toast with duration
       toast({
         title: '✗ Update Failed',
         description: 'Could not save schedule changes. Please try again.',
@@ -418,7 +497,6 @@ export default function ProjectScheduleView({
         duration: 5000,
       });
     } finally {
-      // FIX 1: Reset dragging flag after 300ms to allow click events
       dragTimeoutRef.current = setTimeout(() => {
         isDraggingRef.current = false;
       }, 300);
