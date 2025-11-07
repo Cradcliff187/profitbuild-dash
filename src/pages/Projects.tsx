@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Building2, Table, Grid, Plus, ArrowUpAZ, ArrowDownZA } from "lucide-react";
+import { Building2, Table, Grid, Plus, ArrowUpAZ, ArrowDownZA, Download } from "lucide-react";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { ProjectFormSimple } from "@/components/ProjectFormSimple";
 import { ProjectsList } from "@/components/ProjectsList";
 import { ProjectsTableView } from "@/components/ProjectsTableView";
 import { ProjectFilters, ProjectSearchFilters } from "@/components/ProjectFilters";
+import { ProjectExportModal } from "@/components/ProjectExportModal";
 import { Project, ProjectStatus } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
@@ -33,6 +34,7 @@ const Projects = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isLoading, setIsLoading] = useState(true);
   const [displayMode, setDisplayMode] = useState<DisplayMode>(isMobile ? 'cards' : 'table');
+  const [showExportModal, setShowExportModal] = useState(false);
   const [filters, setFilters] = useState<ProjectSearchFilters>({
     searchText: "",
     status: [],
@@ -397,6 +399,14 @@ const Projects = () => {
         
         {viewMode === 'list' && (
           <div className="flex gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShowExportModal(true)}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
             <Button onClick={handleCreateNew} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               New Project
@@ -497,6 +507,12 @@ const Projects = () => {
           onCancel={handleCancel}
         />
       )}
+
+      <ProjectExportModal 
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        filters={filters}
+      />
     </div>
   );
 };
