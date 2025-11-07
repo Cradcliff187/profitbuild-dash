@@ -59,8 +59,31 @@ export default function ProjectScheduleView({
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const formatUSShort = (date: Date | string): string => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${mm}/${dd}/${yy}`;
+  };
+
   const getBaseTaskName = (taskName: string): string => {
     return taskName.replace(/\s*\([^)]+\)\s*$/, '').trim();
+  };
+
+  // Custom Tooltip for Gantt chart with US date format
+  const CustomTooltip: React.FC<{ task: Task; fontSize: string; fontFamily: string }> = ({ task }) => {
+    const start = task.start instanceof Date ? task.start : new Date(task.start);
+    const end = task.end instanceof Date ? task.end : new Date(task.end);
+    const durationDays = Math.ceil((end.getTime() - start.getTime()) / 86400000) + 1;
+
+    return (
+      <div style={{ padding: 8, lineHeight: 1.25 }}>
+        <div style={{ fontWeight: 600, marginBottom: 6 }}>{task.name}</div>
+        <div style={{ fontSize: 13 }}>{formatUSShort(start)} - {formatUSShort(end)}</div>
+        <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Duration: {durationDays} day(s)</div>
+      </div>
+    );
   };
 
   // Track if we're currently dragging to prevent click events
@@ -807,6 +830,7 @@ export default function ProjectScheduleView({
             handleWidth={8}
             todayColor="rgba(59, 130, 246, 0.1)"
             locale="en-US"
+            TooltipContent={CustomTooltip}
           />
         </Card>
       ) : (
