@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, FileText, Calendar, Activity, RefreshCw } from "lucide-react";
+import { Clock, FileText, Calendar, Activity, RefreshCw, Briefcase } from "lucide-react";
 import { ActivityFeedList } from "@/components/ActivityFeedList";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { Badge } from "@/components/ui/badge";
@@ -278,10 +278,28 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="container mx-auto p-4 space-y-4 max-w-[1600px]">
-      <div className="flex items-center justify-between mb-3">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
-        <div className="flex items-center gap-3">
+    <div className="container mx-auto p-3 space-y-3 max-w-[1600px]">
+      <div className="flex items-center justify-between mb-2">
+        <h1 className="text-lg font-semibold">Dashboard</h1>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigate('/projects/new')}
+            className="h-7 text-xs hidden md:flex"
+          >
+            <Briefcase className="h-3 w-3 mr-1" />
+            Project
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigate('/time-tracker')}
+            className="h-7 text-xs hidden md:flex"
+          >
+            <Clock className="h-3 w-3 mr-1" />
+            Time Entry
+          </Button>
           <div className="text-xs text-muted-foreground">
             Last updated: {format(lastRefresh, 'h:mm:ss a')}
           </div>
@@ -299,33 +317,33 @@ const Dashboard = () => {
       </div>
 
       {/* Projects by Status */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
         {projectStatusCounts.map(({ status, count }) => (
           <Card
             key={status}
             className={`border-l-4 ${getStatusColor(status)} cursor-pointer hover:shadow-md transition-shadow`}
             onClick={() => navigate('/projects')}
           >
-            <CardContent className="p-3">
-              <div className="text-xs text-muted-foreground mb-1">{getStatusLabel(status)}</div>
-              <div className="text-2xl font-bold">{count}</div>
+            <CardContent className="p-2">
+              <div className="text-xs text-muted-foreground mb-0.5">{getStatusLabel(status)}</div>
+              <div className="text-xl font-bold">{count}</div>
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Pending Approvals */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-orange-500"
           onClick={() => navigate('/time-entries')}
         >
-          <CardContent className="p-3 flex items-center justify-between">
+          <CardContent className="p-2 flex items-center justify-between">
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Pending Time Entries</div>
-              <div className="text-2xl font-bold">{pendingTimeEntries}</div>
+              <div className="text-xs text-muted-foreground mb-0.5">Pending Time Entries</div>
+              <div className="text-xl font-bold">{pendingTimeEntries}</div>
             </div>
-            <Clock className="h-8 w-8 text-orange-500" />
+            <Clock className="h-6 w-6 text-orange-500" />
           </CardContent>
         </Card>
 
@@ -333,82 +351,94 @@ const Dashboard = () => {
           className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-blue-500"
           onClick={() => navigate('/time-tracker')}
         >
-          <CardContent className="p-3 flex items-center justify-between">
+          <CardContent className="p-2 flex items-center justify-between">
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Pending Receipts</div>
-              <div className="text-2xl font-bold">{pendingReceipts}</div>
+              <div className="text-xs text-muted-foreground mb-0.5">Pending Receipts</div>
+              <div className="text-xl font-bold">{pendingReceipts}</div>
             </div>
-            <FileText className="h-8 w-8 text-blue-500" />
+            <FileText className="h-6 w-6 text-blue-500" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Upcoming Schedule */}
-      <Card>
-        <CardHeader className="p-3 pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Upcoming Schedule (Next 7 Days)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {upcomingTasks.length === 0 ? (
-            <div className="p-4 text-center text-xs text-muted-foreground">
-              No scheduled tasks in the next 7 days
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-              <thead className="border-b bg-muted/50">
-                <tr>
-                  <th className="text-left p-2 font-medium">Start Date</th>
-                  <th className="text-left p-2 font-medium">End Date</th>
-                  <th className="text-left p-2 font-medium">Project</th>
-                  <th className="text-left p-2 font-medium">Address</th>
-                  <th className="text-left p-2 font-medium">Description</th>
-                  <th className="text-left p-2 font-medium">Category</th>
-                  <th className="text-left p-2 font-medium">Type</th>
-                </tr>
-              </thead>
-              <tbody>
-                {upcomingTasks.map((task) => (
-                  <tr key={task.id} className="border-b hover:bg-muted/50 h-9">
-                    <td className="p-2">{format(new Date(task.scheduled_start_date), 'MMM d')}</td>
-                    <td className="p-2">{format(new Date(task.scheduled_end_date), 'MMM d')}</td>
-                    <td className="p-2 font-medium">{task.project_number} - {task.project_name}</td>
-                    <td className="p-2 text-muted-foreground">{task.address || 'N/A'}</td>
-                    <td className="p-2">{task.description}</td>
-                    <td className="p-2">
-                      <Badge variant="outline" className={`text-[10px] h-5 px-1.5 ${getCategoryBadgeColor(task.category)}`}>
-                        {task.category.replace('_', ' ')}
-                      </Badge>
-                    </td>
-                    <td className="p-2">
-                      <Badge variant="outline" className="text-[10px] h-5 px-1.5">
-                        {task.task_type === 'estimate' ? 'EST' : 'CO'}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Desktop: Two Column Layout | Mobile: Stacked */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+        {/* Left: Upcoming Schedule (60% width) */}
+        <div className="lg:col-span-3">
+          <Card>
+            <CardHeader className="p-3 pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Upcoming Schedule (Next 7 Days)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {upcomingTasks.length === 0 ? (
+                <div className="p-4 text-center text-xs text-muted-foreground">
+                  No scheduled tasks in the next 7 days
+                </div>
+              ) : (
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="border-b bg-muted/50 sticky top-0 z-10">
+                      <tr>
+                        <th className="text-left p-2 font-medium">Start</th>
+                        <th className="text-left p-2 font-medium">End</th>
+                        <th className="text-left p-2 font-medium">Project</th>
+                        <th className="text-left p-2 font-medium">Description</th>
+                        <th className="text-left p-2 font-medium">Category</th>
+                        <th className="text-left p-2 font-medium">Type</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {upcomingTasks.map((task) => (
+                        <tr key={task.id} className="border-b hover:bg-muted/50 h-8">
+                          <td className="p-2">{format(new Date(task.scheduled_start_date), 'MMM d')}</td>
+                          <td className="p-2">{format(new Date(task.scheduled_end_date), 'MMM d')}</td>
+                          <td className="p-2">
+                            <div className="flex items-center gap-1">
+                              <Badge variant="outline" className="text-[10px] h-5 px-1">
+                                {task.project_number}
+                              </Badge>
+                              <span className="text-xs truncate max-w-[120px]">{task.project_name}</span>
+                            </div>
+                          </td>
+                          <td className="p-2">{task.description}</td>
+                          <td className="p-2">
+                            <Badge variant="outline" className={`text-[10px] h-5 px-1.5 ${getCategoryBadgeColor(task.category)}`}>
+                              {task.category.replace('_', ' ')}
+                            </Badge>
+                          </td>
+                          <td className="p-2">
+                            <Badge variant="outline" className="text-[10px] h-5 px-1.5">
+                              {task.task_type === 'estimate' ? 'EST' : 'CO'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Activity Feed */}
-      <Card>
-        <CardHeader className="p-3 pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Recent Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3">
-          <ActivityFeedList limit={50} showFilters={true} />
-        </CardContent>
-      </Card>
+        {/* Right: Activity Feed (40% width) */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader className="p-3 pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3">
+              <ActivityFeedList limit={15} showFilters={true} />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };
