@@ -282,24 +282,6 @@ const Dashboard = () => {
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-lg font-semibold">Dashboard</h1>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate('/projects/new')}
-            className="h-7 text-xs hidden md:flex"
-          >
-            <Briefcase className="h-3 w-3 mr-1" />
-            Project
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate('/time-tracker')}
-            className="h-7 text-xs hidden md:flex"
-          >
-            <Clock className="h-3 w-3 mr-1" />
-            Time Entry
-          </Button>
           <div className="text-xs text-muted-foreground">
             Last updated: {format(lastRefresh, 'h:mm:ss a')}
           </div>
@@ -333,32 +315,28 @@ const Dashboard = () => {
       </div>
 
       {/* Pending Approvals */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-        <Card
-          className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-orange-500"
+      <div className="flex items-center gap-3">
+        <div 
+          className="flex items-center gap-2 p-2 rounded-lg border border-l-4 border-l-orange-500 cursor-pointer hover:bg-muted/50 transition-colors"
           onClick={() => navigate('/time-entries')}
         >
-          <CardContent className="p-2 flex items-center justify-between">
-            <div>
-              <div className="text-xs text-muted-foreground mb-0.5">Pending Time Entries</div>
-              <div className="text-xl font-bold">{pendingTimeEntries}</div>
-            </div>
-            <Clock className="h-6 w-6 text-orange-500" />
-          </CardContent>
-        </Card>
-
-        <Card
-          className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-blue-500"
+          <Clock className="h-4 w-4 text-orange-500" />
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Pending Time Entries:</span>
+            <span className="text-sm font-semibold">{pendingTimeEntries}</span>
+          </div>
+        </div>
+        
+        <div 
+          className="flex items-center gap-2 p-2 rounded-lg border border-l-4 border-l-blue-500 cursor-pointer hover:bg-muted/50 transition-colors"
           onClick={() => navigate('/time-tracker')}
         >
-          <CardContent className="p-2 flex items-center justify-between">
-            <div>
-              <div className="text-xs text-muted-foreground mb-0.5">Pending Receipts</div>
-              <div className="text-xl font-bold">{pendingReceipts}</div>
-            </div>
-            <FileText className="h-6 w-6 text-blue-500" />
-          </CardContent>
-        </Card>
+          <FileText className="h-4 w-4 text-blue-500" />
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Pending Receipts:</span>
+            <span className="text-sm font-semibold">{pendingReceipts}</span>
+          </div>
+        </div>
       </div>
 
       {/* Desktop: Two Column Layout | Mobile: Stacked */}
@@ -387,7 +365,6 @@ const Dashboard = () => {
                         <th className="text-left p-2 font-medium">Project</th>
                         <th className="text-left p-2 font-medium">Description</th>
                         <th className="text-left p-2 font-medium">Category</th>
-                        <th className="text-left p-2 font-medium">Type</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -407,11 +384,6 @@ const Dashboard = () => {
                           <td className="p-2">
                             <Badge variant="outline" className={`text-[10px] h-5 px-1.5 ${getCategoryBadgeColor(task.category)}`}>
                               {task.category.replace('_', ' ')}
-                            </Badge>
-                          </td>
-                          <td className="p-2">
-                            <Badge variant="outline" className="text-[10px] h-5 px-1.5">
-                              {task.task_type === 'estimate' ? 'EST' : 'CO'}
                             </Badge>
                           </td>
                         </tr>
