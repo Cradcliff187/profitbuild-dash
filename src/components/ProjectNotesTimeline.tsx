@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { Clock, PlusCircle } from "lucide-react";
 import { ProjectNote } from "@/types/projectNote";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ProjectNotesTimelineProps {
   projectId: string;
@@ -20,6 +21,7 @@ interface ProjectNotesTimelineProps {
 export function ProjectNotesTimeline({ projectId }: ProjectNotesTimelineProps) {
   const [noteText, setNoteText] = useState("");
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const formatTimestamp = (utcTimestamp: string) => {
     const estTime = toZonedTime(new Date(utcTimestamp), "America/New_York");
@@ -91,7 +93,77 @@ export function ProjectNotesTimeline({ projectId }: ProjectNotesTimelineProps) {
     return <div className="text-sm text-muted-foreground">Loading notes...</div>;
   }
 
-  return (
+  return isMobile ? (
+    // MOBILE: Compact vertical stack
+    <div className="border rounded-lg overflow-hidden">
+      {/* Quick Add Form - Top Priority */}
+      <div className="p-2 bg-muted/20 border-b">
+        <div className="flex gap-1">
+          <Textarea
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            placeholder="Add note..."
+            rows={2}
+            className="text-xs flex-1 min-h-0 resize-none"
+          />
+          <Button
+            onClick={handleAddNote}
+            disabled={addNoteMutation.isPending || !noteText.trim()}
+            size="sm"
+            className="px-2 h-auto self-end"
+          >
+            <PlusCircle className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Recent Notes - Compact List */}
+      <ScrollArea className="h-[200px]">
+        <div className="p-1.5 space-y-1.5">
+          {notes && notes.length > 0 ? (
+            notes.map((note) => {
+              const displayName =
+                note.profiles?.full_name ||
+                note.profiles?.email ||
+                "Unknown User";
+              const initials = getInitials(displayName);
+              const firstName = displayName.split(' ')[0];
+
+              return (
+                <div key={note.id} className="p-1.5 bg-card rounded border hover:bg-accent/30 transition-colors">
+                  <div className="flex items-start gap-1.5">
+                    <Avatar className="h-5 w-5 flex-shrink-0">
+                      <AvatarFallback className="text-[9px] font-medium bg-primary/10 text-primary">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <span className="text-[10px] font-semibold truncate">
+                          {firstName}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground flex-shrink-0">
+                          {format(toZonedTime(new Date(note.created_at), "America/New_York"), "MMM d h:mm a")}
+                        </span>
+                      </div>
+                      
+                      <p className="text-[11px] leading-tight text-foreground/90 whitespace-pre-wrap line-clamp-3">
+                        {note.note_text}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-center py-4 text-[10px] text-muted-foreground">No notes yet</p>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  ) : (
+    // DESKTOP: Side-by-side resizable layout
     <ResizablePanelGroup direction="horizontal" className="min-h-[300px] rounded-lg border">
       {/* Left Panel: Note History */}
       <ResizablePanel defaultSize={60} minSize={40}>
