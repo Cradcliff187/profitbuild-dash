@@ -34,6 +34,11 @@ const Dashboard = () => {
   const [expiringQuotes, setExpiringQuotes] = useState(0);
   const [draftEstimates, setDraftEstimates] = useState(0);
 
+  // Financial metrics
+  const [activeContractValue, setActiveContractValue] = useState(0);
+  const [activeEstimatedCosts, setActiveEstimatedCosts] = useState(0);
+  const [completedContractValue, setCompletedContractValue] = useState(0);
+
   useEffect(() => {
     loadDashboardData();
     
@@ -75,7 +80,8 @@ const Dashboard = () => {
         loadActiveProjectCount(),
         loadProjectStatusCounts(),
         loadPendingApprovals(),
-        loadNeedsAttentionData()
+        loadNeedsAttentionData(),
+        loadFinancialMetrics()
       ]);
       setLastUpdated(new Date());
     } catch (error) {
@@ -200,6 +206,45 @@ const Dashboard = () => {
     setDraftEstimates(estimatesCount || 0);
   };
 
+  const loadFinancialMetrics = async () => {
+    // Get active projects (approved + in_progress)
+    const { data: activeProjects, error: activeError } = await supabase
+      .from('projects')
+      .select('contracted_amount, adjusted_est_costs')
+      .in('status', ['approved', 'in_progress'])
+      .neq('project_number', 'SYS-000')
+      .neq('project_number', '000-UNASSIGNED');
+
+    if (activeError) {
+      console.error('Error loading active project financials:', activeError);
+    } else {
+      const totalContractValue = activeProjects?.reduce((sum, p) => 
+        sum + (p.contracted_amount || 0), 0) || 0;
+      const totalEstCosts = activeProjects?.reduce((sum, p) => 
+        sum + (p.adjusted_est_costs || 0), 0) || 0;
+      
+      setActiveContractValue(totalContractValue);
+      setActiveEstimatedCosts(totalEstCosts);
+    }
+
+    // Get completed projects
+    const { data: completedProjects, error: completedError } = await supabase
+      .from('projects')
+      .select('contracted_amount')
+      .eq('status', 'complete')
+      .neq('project_number', 'SYS-000')
+      .neq('project_number', '000-UNASSIGNED');
+
+    if (completedError) {
+      console.error('Error loading completed project financials:', completedError);
+    } else {
+      const totalCompleted = completedProjects?.reduce((sum, p) => 
+        sum + (p.contracted_amount || 0), 0) || 0;
+      
+      setCompletedContractValue(totalCompleted);
+    }
+  };
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await loadDashboardData();
@@ -247,7 +292,12 @@ const Dashboard = () => {
             draftEstimates={draftEstimates}
           />
           
-          <ProjectStatusCard statusCounts={projectStatusCounts} />
+          <ProjectStatusCard 
+            statusCounts={projectStatusCounts}
+            activeContractValue={activeContractValue}
+            activeEstimatedCosts={activeEstimatedCosts}
+            completedContractValue={completedContractValue}
+          />
           
           <QuickActionsCard />
         </div>
