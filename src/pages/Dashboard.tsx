@@ -1,417 +1,258 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { Clock, FileText, Calendar, Activity, RefreshCw, Briefcase } from "lucide-react";
-import { ActivityFeedList } from "@/components/ActivityFeedList";
-import { BrandedLoader } from "@/components/ui/branded-loader";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ActivityFeedList } from '@/components/ActivityFeedList';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { NeedsAttentionCard } from '@/components/dashboard/NeedsAttentionCard';
+import { ProjectStatusCard } from '@/components/dashboard/ProjectStatusCard';
+import { QuickActionsCard } from '@/components/dashboard/QuickActionsCard';
+import { BrandedLoader } from '@/components/ui/branded-loader';
+import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 
 interface ProjectStatusCount {
   status: string;
   count: number;
-}
-
-interface UpcomingTask {
-  id: string;
-  task_type: 'estimate' | 'change_order';
-  description: string;
-  project_name: string;
-  project_number: string;
-  address: string | null;
-  category: string;
-  scheduled_start_date: string;
-  scheduled_end_date: string;
+  label: string;
 }
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [projectStatusCounts, setProjectStatusCounts] = useState<ProjectStatusCount[]>([]);
-  const [upcomingTasks, setUpcomingTasks] = useState<UpcomingTask[]>([]);
-  const [pendingTimeEntries, setPendingTimeEntries] = useState(0);
-  const [pendingReceipts, setPendingReceipts] = useState(0);
 
-  // Auto-refresh with 30-second polling
+  // Operational metrics
+  const [activeProjectCount, setActiveProjectCount] = useState(0);
+  const [projectStatusCounts, setProjectStatusCounts] = useState<ProjectStatusCount[]>([]);
+  
+  // Needs Attention metrics
+  const [pendingApprovals, setPendingApprovals] = useState({
+    timeEntries: 0,
+    receipts: 0
+  });
+  const [pendingChangeOrders, setPendingChangeOrders] = useState(0);
+  const [expiringQuotes, setExpiringQuotes] = useState(0);
+  const [draftEstimates, setDraftEstimates] = useState(0);
+
   useEffect(() => {
     loadDashboardData();
     
-    const intervalId = setInterval(() => {
-      loadDashboardData();
-    }, 30000); // 30 seconds
-    
-    return () => clearInterval(intervalId);
-  }, []);
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      setRefreshKey(prev => prev + 1);
+    }, 30000);
 
-  // Realtime subscriptions for immediate updates
+    return () => clearInterval(interval);
+  }, [refreshKey]);
+
   useEffect(() => {
-    const channel = supabase
-      .channel('dashboard-updates')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'expenses',
-        filter: 'category=eq.labor_internal'
-      }, () => {
-        loadPendingApprovals();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'receipts'
-      }, () => {
-        loadPendingApprovals();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'estimate_line_items'
-      }, () => {
-        loadUpcomingTasks();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'change_order_line_items'
-      }, () => {
-        loadUpcomingTasks();
-      })
+    // Set up real-time subscriptions for pending approvals
+    const timeEntriesChannel = supabase
+      .channel('dashboard-time-entries')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'expenses',
+          filter: 'category=eq.labor_internal'
+        },
+        () => {
+          loadPendingApprovals();
+        }
+      )
       .subscribe();
-    
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(timeEntriesChannel);
     };
   }, []);
 
-  const loadProjectStatusCounts = async () => {
-    try {
-      const { data: projects, error: projectsError } = await supabase
-        .from('projects')
-        .select('status')
-        .not('project_number', 'in', '("SYS-000","000-UNASSIGNED")');
-
-      if (projectsError) throw projectsError;
-
-      const statusCounts = projects.reduce((acc: Record<string, number>, proj) => {
-        acc[proj.status] = (acc[proj.status] || 0) + 1;
-        return acc;
-      }, {});
-
-      setProjectStatusCounts(
-        Object.entries(statusCounts).map(([status, count]) => ({ status, count }))
-      );
-    } catch (error) {
-      console.error('Error loading project status counts:', error);
-    }
-  };
-
-  const loadUpcomingTasks = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-      const { data: estimateTasks, error: estimateError } = await supabase
-        .from('estimate_line_items')
-        .select(`
-          id,
-          description,
-          category,
-          scheduled_start_date,
-          scheduled_end_date,
-          estimate_id,
-          estimates!inner(project_id, projects!inner(project_name, project_number, address))
-        `)
-        .gte('scheduled_start_date', today)
-        .lte('scheduled_start_date', sevenDaysFromNow)
-        .not('scheduled_start_date', 'is', null)
-        .order('scheduled_start_date', { ascending: true })
-        .limit(10);
-
-      if (estimateError) throw estimateError;
-
-      const { data: changeOrderTasks, error: changeOrderError } = await supabase
-        .from('change_order_line_items')
-        .select(`
-          id,
-          description,
-          category,
-          scheduled_start_date,
-          scheduled_end_date,
-          change_order_id,
-          change_orders!inner(project_id, projects!inner(project_name, project_number, address))
-        `)
-        .gte('scheduled_start_date', today)
-        .lte('scheduled_start_date', sevenDaysFromNow)
-        .not('scheduled_start_date', 'is', null)
-        .order('scheduled_start_date', { ascending: true })
-        .limit(10);
-
-      if (changeOrderError) throw changeOrderError;
-
-    const formattedEstimateTasks: UpcomingTask[] = (estimateTasks || []).map((task: any) => ({
-      id: task.id,
-      task_type: 'estimate' as const,
-      description: task.description,
-      project_name: task.estimates.projects.project_name,
-      project_number: task.estimates.projects.project_number,
-      address: task.estimates.projects.address,
-      category: task.category,
-      scheduled_start_date: task.scheduled_start_date,
-      scheduled_end_date: task.scheduled_end_date,
-    }));
-
-    const formattedChangeOrderTasks: UpcomingTask[] = (changeOrderTasks || []).map((task: any) => ({
-      id: task.id,
-      task_type: 'change_order' as const,
-      description: task.description,
-      project_name: task.change_orders.projects.project_name,
-      project_number: task.change_orders.projects.project_number,
-      address: task.change_orders.projects.address,
-      category: task.category,
-      scheduled_start_date: task.scheduled_start_date,
-      scheduled_end_date: task.scheduled_end_date,
-    }));
-
-      const allTasks = [...formattedEstimateTasks, ...formattedChangeOrderTasks]
-        .sort((a, b) => a.scheduled_start_date.localeCompare(b.scheduled_start_date))
-        .slice(0, 20);
-
-      setUpcomingTasks(allTasks);
-    } catch (error) {
-      console.error('Error loading upcoming tasks:', error);
-    }
-  };
-
-  const loadPendingApprovals = async () => {
-    try {
-      const { count: timeEntriesCount, error: timeEntriesError } = await supabase
-        .from('expenses')
-        .select('*', { count: 'exact', head: true })
-        .eq('category', 'labor_internal')
-        .in('approval_status', ['pending', 'null']);
-
-      if (timeEntriesError) throw timeEntriesError;
-      setPendingTimeEntries(timeEntriesCount || 0);
-
-      const { count: receiptsCount, error: receiptsError } = await supabase
-        .from('receipts')
-        .select('*', { count: 'exact', head: true })
-        .eq('approval_status', 'pending');
-
-      if (receiptsError) throw receiptsError;
-      setPendingReceipts(receiptsCount || 0);
-    } catch (error) {
-      console.error('Error loading pending approvals:', error);
-    }
-  };
-
   const loadDashboardData = async () => {
-    const isInitial = isInitialLoading;
-    if (isInitial) {
-      setIsInitialLoading(true);
-    } else {
-      setIsRefreshing(true);
-    }
-
+    setLoading(true);
     try {
       await Promise.all([
+        loadActiveProjectCount(),
         loadProjectStatusCounts(),
-        loadUpcomingTasks(),
-        loadPendingApprovals()
+        loadPendingApprovals(),
+        loadNeedsAttentionData()
       ]);
-      setLastRefresh(new Date());
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
-      if (isInitial) {
-        setIsInitialLoading(false);
-      } else {
-        setIsRefreshing(false);
-      }
+      setLoading(false);
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
+  const loadActiveProjectCount = async () => {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id, status')
+      .neq('project_number', 'SYS-000')
+      .neq('project_number', '000-UNASSIGNED');
+
+    if (error) {
+      console.error('Error loading active projects:', error);
+      return;
+    }
+
+    const activeCount = data?.filter(p => 
+      ['in_progress', 'approved', 'quoted'].includes(p.status)
+    ).length || 0;
+
+    setActiveProjectCount(activeCount);
+  };
+
+  const loadProjectStatusCounts = async () => {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('status')
+      .neq('project_number', 'SYS-000')
+      .neq('project_number', '000-UNASSIGNED');
+
+    if (error) {
+      console.error('Error loading project status counts:', error);
+      return;
+    }
+
+    const counts = data?.reduce((acc: Record<string, number>, project) => {
+      acc[project.status] = (acc[project.status] || 0) + 1;
+      return acc;
+    }, {}) || {};
+
+    const statusOrder = ['in_progress', 'estimating', 'quoted', 'approved', 'complete', 'on_hold', 'cancelled'];
+    const statusLabels: Record<string, string> = {
+      'in_progress': 'In Progress',
       'estimating': 'Estimating',
       'quoted': 'Quoted',
       'approved': 'Approved',
-      'in_progress': 'In Progress',
       'complete': 'Complete',
       'on_hold': 'On Hold',
-      'cancelled': 'Cancelled',
+      'cancelled': 'Cancelled'
     };
-    return labels[status] || status;
+
+    const formattedCounts = statusOrder
+      .filter(status => counts[status] > 0)
+      .map(status => ({
+        status,
+        count: counts[status],
+        label: statusLabels[status]
+      }));
+
+    setProjectStatusCounts(formattedCounts);
   };
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      'estimating': 'border-l-blue-500',
-      'quoted': 'border-l-purple-500',
-      'approved': 'border-l-green-500',
-      'in_progress': 'border-l-orange-500',
-      'complete': 'border-l-emerald-600',
-      'on_hold': 'border-l-yellow-500',
-      'cancelled': 'border-l-gray-500',
-    };
-    return colors[status] || 'border-l-gray-400';
+  const loadPendingApprovals = async () => {
+    // Pending time entries
+    const { count: timeEntriesCount, error: timeError } = await supabase
+      .from('expenses')
+      .select('*', { count: 'exact', head: true })
+      .eq('approval_status', 'pending')
+      .eq('category', 'labor_internal');
+
+    // Pending receipts
+    const { count: receiptsCount, error: receiptsError } = await supabase
+      .from('expenses')
+      .select('*', { count: 'exact', head: true })
+      .eq('approval_status', 'pending')
+      .not('receipt_id', 'is', null);
+
+    if (timeError) console.error('Error loading pending time entries:', timeError);
+    if (receiptsError) console.error('Error loading pending receipts:', receiptsError);
+
+    setPendingApprovals({
+      timeEntries: timeEntriesCount || 0,
+      receipts: receiptsCount || 0
+    });
   };
 
-  const getCategoryBadgeColor = (category: string) => {
-    const colors: Record<string, string> = {
-      'labor_internal': 'bg-blue-100 text-blue-800',
-      'labor_subcontractor': 'bg-purple-100 text-purple-800',
-      'materials': 'bg-green-100 text-green-800',
-      'equipment': 'bg-orange-100 text-orange-800',
-      'permits': 'bg-yellow-100 text-yellow-800',
-      'other': 'bg-gray-100 text-gray-800',
-    };
-    return colors[category] || 'bg-gray-100 text-gray-800';
+  const loadNeedsAttentionData = async () => {
+    // Pending change orders
+    const { count: changeOrdersCount, error: coError } = await supabase
+      .from('change_orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+
+    // Expiring quotes (next 7 days)
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+    
+    const { count: quotesCount, error: quotesError } = await supabase
+      .from('quotes')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending')
+      .gte('valid_until', new Date().toISOString())
+      .lte('valid_until', sevenDaysFromNow.toISOString());
+
+    // Draft estimates
+    const { count: estimatesCount, error: estimatesError } = await supabase
+      .from('estimates')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'draft');
+
+    if (coError) console.error('Error loading pending change orders:', coError);
+    if (quotesError) console.error('Error loading expiring quotes:', quotesError);
+    if (estimatesError) console.error('Error loading draft estimates:', estimatesError);
+
+    setPendingChangeOrders(changeOrdersCount || 0);
+    setExpiringQuotes(quotesCount || 0);
+    setDraftEstimates(estimatesCount || 0);
   };
 
-  if (isInitialLoading) {
-    return <BrandedLoader />;
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadDashboardData();
+    setIsRefreshing(false);
+  };
+
+  if (loading) {
+    return (
+      <MobilePageWrapper>
+        <BrandedLoader message="Loading dashboard..." />
+      </MobilePageWrapper>
+    );
   }
 
   return (
-    <div className="container mx-auto p-3 space-y-3 max-w-[1600px]">
-      <div className="flex items-center justify-between mb-2">
-        <h1 className="text-lg font-semibold">Dashboard</h1>
-        <div className="flex items-center gap-2">
-          <div className="text-xs text-muted-foreground">
-            Last updated: {format(lastRefresh, 'h:mm:ss a')}
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => loadDashboardData()}
-            disabled={isRefreshing}
-            className="h-7 text-xs"
-          >
-            <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
-      </div>
+    <MobilePageWrapper>
+      <DashboardHeader
+        activeProjectCount={activeProjectCount}
+        lastUpdated={lastUpdated}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
+      />
 
-      {/* Projects by Status */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-        {projectStatusCounts.map(({ status, count }) => (
-          <Card
-            key={status}
-            className={`border-l-4 ${getStatusColor(status)} cursor-pointer hover:shadow-md transition-shadow`}
-            onClick={() => navigate('/projects')}
-          >
-            <CardContent className="p-2">
-              <div className="text-xs text-muted-foreground mb-0.5">{getStatusLabel(status)}</div>
-              <div className="text-xl font-bold">{count}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Pending Approvals */}
-      <div className="flex items-center gap-3">
-        <div 
-          className="flex items-center gap-2 p-2 rounded-lg border border-l-4 border-l-orange-500 cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => navigate('/time-entries')}
-        >
-          <Clock className="h-4 w-4 text-orange-500" />
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">Pending Time Entries:</span>
-            <span className="text-sm font-semibold">{pendingTimeEntries}</span>
-          </div>
-        </div>
-        
-        <div 
-          className="flex items-center gap-2 p-2 rounded-lg border border-l-4 border-l-blue-500 cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => navigate('/time-tracker')}
-        >
-          <FileText className="h-4 w-4 text-blue-500" />
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">Pending Receipts:</span>
-            <span className="text-sm font-semibold">{pendingReceipts}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop: Two Column Layout | Mobile: Stacked */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
-        {/* Left: Upcoming Schedule (60% width) */}
-        <div className="lg:col-span-3">
+      {/* Main Content: Activity Feed (2/3) + Sidebar (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+        {/* Activity Feed - Main Content */}
+        <div className="lg:col-span-2 order-2 lg:order-1">
           <Card>
             <CardHeader className="p-3 pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Upcoming Schedule (Next 7 Days)
-              </CardTitle>
+              <CardTitle className="text-sm font-semibold">Activity Feed</CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              {upcomingTasks.length === 0 ? (
-                <div className="p-4 text-center text-xs text-muted-foreground">
-                  No scheduled tasks in the next 7 days
-                </div>
-              ) : (
-                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead className="border-b bg-muted/50 sticky top-0 z-10">
-                      <tr>
-                        <th className="text-left p-2 font-medium">Start</th>
-                        <th className="text-left p-2 font-medium">End</th>
-                        <th className="text-left p-2 font-medium">Project</th>
-                        <th className="text-left p-2 font-medium">Description</th>
-                        <th className="text-left p-2 font-medium">Category</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {upcomingTasks.map((task) => (
-                        <tr key={task.id} className="border-b hover:bg-muted/50 h-8">
-                          <td className="p-2">{format(new Date(task.scheduled_start_date), 'MMM d')}</td>
-                          <td className="p-2">{format(new Date(task.scheduled_end_date), 'MMM d')}</td>
-                          <td className="p-2">
-                            <div className="flex items-center gap-1">
-                              <Badge variant="outline" className="text-[10px] h-5 px-1">
-                                {task.project_number}
-                              </Badge>
-                              <span className="text-xs truncate max-w-[120px]">{task.project_name}</span>
-                            </div>
-                          </td>
-                          <td className="p-2">{task.description}</td>
-                          <td className="p-2">
-                            <Badge variant="outline" className={`text-[10px] h-5 px-1.5 ${getCategoryBadgeColor(task.category)}`}>
-                              {task.category.replace('_', ' ')}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+            <CardContent className="p-3 pt-0">
+              <ActivityFeedList limit={20} showFilters />
             </CardContent>
           </Card>
         </div>
 
-        {/* Right: Activity Feed (40% width) */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader className="p-3 pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3">
-              <ActivityFeedList limit={15} showFilters={true} />
-            </CardContent>
-          </Card>
+        {/* Sidebar */}
+        <div className="space-y-3 order-1 lg:order-2">
+          <NeedsAttentionCard
+            pendingTimeEntries={pendingApprovals.timeEntries}
+            pendingReceipts={pendingApprovals.receipts}
+            pendingChangeOrders={pendingChangeOrders}
+            expiringQuotes={expiringQuotes}
+            draftEstimates={draftEstimates}
+          />
+          
+          <ProjectStatusCard statusCounts={projectStatusCounts} />
+          
+          <QuickActionsCard />
         </div>
       </div>
-    </div>
+    </MobilePageWrapper>
   );
 };
 

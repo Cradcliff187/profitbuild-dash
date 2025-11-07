@@ -50,7 +50,7 @@ interface ActivityFeedListProps {
 }
 
 export const ActivityFeedList = ({ 
-  limit = 15, 
+  limit = 20, 
   projectId = null,
   showFilters = true 
 }: ActivityFeedListProps) => {
@@ -215,7 +215,7 @@ export const ActivityFeedList = ({
         </div>
       )}
 
-      <div className="max-h-[600px] overflow-y-auto space-y-1">
+      <div className="max-h-[700px] overflow-y-auto space-y-1">
         {activities.map((activity) => {
           const Icon = getActivityIcon(activity.activity_type);
           const colorClass = getActivityColor(activity.activity_type);
