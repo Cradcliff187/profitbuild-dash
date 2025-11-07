@@ -276,38 +276,93 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
       // Get all expense IDs from this project
       const expenseIds = (expenses || []).map((exp: any) => exp.id);
       
-      let correlationData: any[] = [];
-      if (expenseIds.length > 0) {
-        const { data, error: correlationsError } = await supabase
-          .from('expense_line_item_correlations')
-          .select(`
-            *,
-            expenses (
-              id,
-              amount,
-              description,
-              expense_date,
-              category,
-              is_split,
-              payees (payee_name)
-            ),
-            expense_splits (
-              id,
-              split_amount,
-              project_id,
-              projects (
-                project_name,
-                project_number
-              )
-            )
-          `)
-          .in('expense_id', expenseIds);
+      // Also get expense split IDs for this project (for split expense allocations)
+      const { data: projectSplits } = await supabase
+        .from('expense_splits')
+        .select('id')
+        .eq('project_id', projectId);
 
-        if (correlationsError) {
-          console.warn('[LineItemControl] Error fetching correlations:', correlationsError);
-        } else {
-          correlationData = data || [];
+      const splitIds = (projectSplits || []).map((split: any) => split.id);
+
+      console.log(`[LineItemControl] Project ${projectId}: ${expenseIds.length} direct expenses, ${splitIds.length} expense splits`);
+
+      let correlationData: any[] = [];
+
+      // Fetch correlations for both direct expenses AND expense splits
+      if (expenseIds.length > 0 || splitIds.length > 0) {
+        const queries = [];
+        
+        // Query 1: Direct expense correlations
+        if (expenseIds.length > 0) {
+          queries.push(
+            supabase
+              .from('expense_line_item_correlations')
+              .select(`
+                *,
+                expenses (
+                  id,
+                  amount,
+                  description,
+                  expense_date,
+                  category,
+                  is_split,
+                  payees (payee_name)
+                ),
+                expense_splits (
+                  id,
+                  split_amount,
+                  project_id,
+                  projects (
+                    project_name,
+                    project_number
+                  )
+                )
+              `)
+              .in('expense_id', expenseIds)
+          );
         }
+        
+        // Query 2: Split expense correlations
+        if (splitIds.length > 0) {
+          queries.push(
+            supabase
+              .from('expense_line_item_correlations')
+              .select(`
+                *,
+                expenses (
+                  id,
+                  amount,
+                  description,
+                  expense_date,
+                  category,
+                  is_split,
+                  payees (payee_name)
+                ),
+                expense_splits (
+                  id,
+                  split_amount,
+                  project_id,
+                  projects (
+                    project_name,
+                    project_number
+                  )
+                )
+              `)
+              .in('expense_split_id', splitIds)
+          );
+        }
+        
+        const results = await Promise.all(queries);
+        correlationData = results.flatMap(r => r.data || []);
+
+        console.log(`[LineItemControl] Total correlations loaded: ${correlationData.length}`);
+        console.log(`[LineItemControl] Correlations by type:`, {
+          direct: correlationData.filter(c => c.expense_id && !c.expense_split_id).length,
+          split: correlationData.filter(c => c.expense_split_id).length,
+          estimate: correlationData.filter(c => c.estimate_line_item_id).length,
+          quote: correlationData.filter(c => c.quote_id).length,
+          changeOrder: correlationData.filter(c => c.change_order_line_item_id).length
+        });
       }
 
       // Build quote-to-estimate mapping from quotes
