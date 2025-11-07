@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, FileText, Calendar, Activity } from "lucide-react";
+import { Clock, FileText, Calendar, Activity, RefreshCw } from "lucide-react";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 
 interface ProjectStatusCount {
@@ -24,20 +25,67 @@ interface UpcomingTask {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [projectStatusCounts, setProjectStatusCounts] = useState<ProjectStatusCount[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<UpcomingTask[]>([]);
   const [pendingTimeEntries, setPendingTimeEntries] = useState(0);
   const [pendingReceipts, setPendingReceipts] = useState(0);
 
+  // Auto-refresh with 30-second polling
   useEffect(() => {
     loadDashboardData();
+    
+    const intervalId = setInterval(() => {
+      loadDashboardData();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(intervalId);
   }, []);
 
-  const loadDashboardData = async () => {
-    setIsLoading(true);
+  // Realtime subscriptions for immediate updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('dashboard-updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'expenses',
+        filter: 'category=eq.labor_internal'
+      }, () => {
+        loadPendingApprovals();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'receipts'
+      }, () => {
+        loadPendingApprovals();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'estimate_line_items'
+      }, () => {
+        loadUpcomingTasks();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'change_order_line_items'
+      }, () => {
+        loadUpcomingTasks();
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const loadProjectStatusCounts = async () => {
     try {
-      // Fetch project counts by status (excluding placeholder projects)
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select('status')
@@ -45,7 +93,6 @@ const Dashboard = () => {
 
       if (projectsError) throw projectsError;
 
-      // Group by status
       const statusCounts = projects.reduce((acc: Record<string, number>, proj) => {
         acc[proj.status] = (acc[proj.status] || 0) + 1;
         return acc;
@@ -54,12 +101,16 @@ const Dashboard = () => {
       setProjectStatusCounts(
         Object.entries(statusCounts).map(([status, count]) => ({ status, count }))
       );
+    } catch (error) {
+      console.error('Error loading project status counts:', error);
+    }
+  };
 
-      // Fetch upcoming scheduled tasks (next 7 days)
+  const loadUpcomingTasks = async () => {
+    try {
       const today = new Date().toISOString().split('T')[0];
       const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-      // Get estimate line items
       const { data: estimateTasks, error: estimateError } = await supabase
         .from('estimate_line_items')
         .select(`
@@ -79,7 +130,6 @@ const Dashboard = () => {
 
       if (estimateError) throw estimateError;
 
-      // Get change order line items
       const { data: changeOrderTasks, error: changeOrderError } = await supabase
         .from('change_order_line_items')
         .select(`
@@ -99,7 +149,6 @@ const Dashboard = () => {
 
       if (changeOrderError) throw changeOrderError;
 
-      // Combine and format tasks
       const formattedEstimateTasks: UpcomingTask[] = (estimateTasks || []).map((task: any) => ({
         id: task.id,
         task_type: 'estimate' as const,
@@ -125,8 +174,13 @@ const Dashboard = () => {
         .slice(0, 20);
 
       setUpcomingTasks(allTasks);
+    } catch (error) {
+      console.error('Error loading upcoming tasks:', error);
+    }
+  };
 
-      // Fetch pending time entries count
+  const loadPendingApprovals = async () => {
+    try {
       const { count: timeEntriesCount, error: timeEntriesError } = await supabase
         .from('expenses')
         .select('*', { count: 'exact', head: true })
@@ -136,7 +190,6 @@ const Dashboard = () => {
       if (timeEntriesError) throw timeEntriesError;
       setPendingTimeEntries(timeEntriesCount || 0);
 
-      // Fetch pending receipts count
       const { count: receiptsCount, error: receiptsError } = await supabase
         .from('receipts')
         .select('*', { count: 'exact', head: true })
@@ -144,11 +197,34 @@ const Dashboard = () => {
 
       if (receiptsError) throw receiptsError;
       setPendingReceipts(receiptsCount || 0);
+    } catch (error) {
+      console.error('Error loading pending approvals:', error);
+    }
+  };
 
+  const loadDashboardData = async () => {
+    const isInitial = isInitialLoading;
+    if (isInitial) {
+      setIsInitialLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
+
+    try {
+      await Promise.all([
+        loadProjectStatusCounts(),
+        loadUpcomingTasks(),
+        loadPendingApprovals()
+      ]);
+      setLastRefresh(new Date());
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
-      setIsLoading(false);
+      if (isInitial) {
+        setIsInitialLoading(false);
+      } else {
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -190,7 +266,7 @@ const Dashboard = () => {
     return colors[category] || 'bg-gray-100 text-gray-800';
   };
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return <BrandedLoader />;
   }
 
@@ -198,6 +274,21 @@ const Dashboard = () => {
     <div className="container mx-auto p-4 space-y-4 max-w-[1600px]">
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-xl font-semibold">Dashboard</h1>
+        <div className="flex items-center gap-3">
+          <div className="text-xs text-muted-foreground">
+            Last updated: {format(lastRefresh, 'h:mm:ss a')}
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => loadDashboardData()}
+            disabled={isRefreshing}
+            className="h-7 text-xs"
+          >
+            <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Projects by Status */}
