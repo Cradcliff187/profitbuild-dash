@@ -171,7 +171,7 @@ export function ProjectNotesTimeline({ projectId }: ProjectNotesTimelineProps) {
           <div className="p-2 border-b bg-muted/30">
             <h4 className="text-xs font-semibold">Recent Notes</h4>
           </div>
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 max-h-[280px]">
             <div className="p-2 space-y-2">
               {notes && notes.length > 0 ? (
                 notes.map((note) => {
