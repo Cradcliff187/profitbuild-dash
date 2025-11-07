@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { ProjectSidebar } from "@/components/ProjectSidebar";
-import { ProjectOverviewCompact } from "@/components/ProjectOverviewCompact";
+import { ProjectOperationalDashboard } from "@/components/ProjectOperationalDashboard";
 import { EstimateVersionComparison } from "@/components/EstimateVersionComparison";
 import { QuotesList } from "@/components/QuotesList";
 import { ExpensesList } from "@/components/ExpensesList";
@@ -49,6 +49,10 @@ export const ProjectDetailView = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
+  const [pendingTimeEntries, setPendingTimeEntries] = useState<number>(0);
+  const [pendingReceipts, setPendingReceipts] = useState<number>(0);
+  const [mediaCounts, setMediaCounts] = useState({ photos: 0, videos: 0 });
+  const [documentCount, setDocumentCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   
   // Change Order Modal State
@@ -99,7 +103,11 @@ export const ProjectDetailView = () => {
         { data: estimatesData },
         { data: quotesData },
         { data: expensesData },
-        { data: changeOrdersData }
+        { data: changeOrdersData },
+        pendingTimeEntriesData,
+        pendingReceiptsData,
+        { data: mediaData },
+        documentsData
       ] = await Promise.all([
         supabase
           .from('estimates')
@@ -149,7 +157,27 @@ export const ProjectDetailView = () => {
           .from('change_orders')
           .select('*')
           .eq('project_id', projectId)
-          .order('requested_date', { ascending: false })
+          .order('requested_date', { ascending: false }),
+        supabase
+          .from('expenses')
+          .select('id', { count: 'exact', head: true })
+          .eq('project_id', projectId)
+          .eq('category', 'labor_internal')
+          .eq('approval_status', 'pending'),
+        supabase
+          .from('expenses')
+          .select('id', { count: 'exact', head: true })
+          .eq('project_id', projectId)
+          .not('receipt_id', 'is', null)
+          .eq('approval_status', 'pending'),
+        supabase
+          .from('project_media')
+          .select('file_type')
+          .eq('project_id', projectId),
+        supabase
+          .from('project_documents')
+          .select('id', { count: 'exact', head: true })
+          .eq('project_id', projectId)
       ]);
 
       // Format the project data
@@ -228,6 +256,15 @@ export const ProjectDetailView = () => {
       setQuotes(formattedQuotes);
       setExpenses(formattedExpenses);
       setChangeOrders(changeOrdersData || []);
+      setPendingTimeEntries(pendingTimeEntriesData.count || 0);
+      setPendingReceipts(pendingReceiptsData.count || 0);
+      
+      // Count media by type
+      const photos = (mediaData || []).filter(m => m.file_type === 'image').length;
+      const videos = (mediaData || []).filter(m => m.file_type === 'video').length;
+      setMediaCounts({ photos, videos });
+      
+      setDocumentCount(documentsData.count || 0);
 
     } catch (error) {
       console.error('Error loading project data:', error);
@@ -321,13 +358,16 @@ export const ProjectDetailView = () => {
           <main className="flex-1 overflow-auto p-3 space-y-3">
             <Routes>
               <Route index element={
-                <ProjectOverviewCompact
+                <ProjectOperationalDashboard
                   project={project}
-                  marginData={project}
                   estimates={estimates}
                   quotes={quotes}
                   expenses={expenses}
                   changeOrders={changeOrders}
+                  pendingTimeEntries={pendingTimeEntries}
+                  pendingReceipts={pendingReceipts}
+                  mediaCounts={mediaCounts}
+                  documentCount={documentCount}
                 />
               } />
               
