@@ -63,9 +63,11 @@ export default function ProjectScheduleView({
     return taskName.replace(/\s*\([^)]+\)\s*$/, '').trim();
   };
 
-  // FIX 1: Track if we're currently dragging to prevent click events
+  // Track if we're currently dragging to prevent click events
   const isDraggingRef = React.useRef(false);
   const dragTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  // Track if we're currently updating to prevent realtime reload
+  const isUpdatingRef = React.useRef(false);
 
   useEffect(() => {
     loadScheduleTasks();
@@ -75,10 +77,20 @@ export default function ProjectScheduleView({
     const channel = supabase
       .channel(`schedule-updates-${projectId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'estimate_line_items' }, 
-        () => loadScheduleTasks()
+        () => {
+          // Only reload if we're not in the middle of an update
+          if (!isUpdatingRef.current) {
+            loadScheduleTasks();
+          }
+        }
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'change_order_line_items' }, 
-        () => loadScheduleTasks()
+        () => {
+          // Only reload if we're not in the middle of an update
+          if (!isUpdatingRef.current) {
+            loadScheduleTasks();
+          }
+        }
       )
       .subscribe((status) => {
         setIsRealtimeSynced(status === 'SUBSCRIBED');
@@ -119,6 +131,9 @@ export default function ProjectScheduleView({
   const loadScheduleTasks = async () => {
     try {
       setIsLoading(true);
+      
+      // Save current task order before reload
+      const existingOrder = taskOrder.length > 0 ? [...taskOrder] : null;
 
       // Load approved estimate with line items
       const { data: estimate, error: estError } = await supabase
@@ -189,14 +204,28 @@ export default function ProjectScheduleView({
       );
 
       const allScheduleTasks = [...estimateTasks, ...changeOrderTasks];
-      setScheduleTasks(allScheduleTasks);
       
-      // Initialize task order with task IDs
-      setTaskOrder(allScheduleTasks.map(t => t.id));
-
-      // Convert to Gantt Task format
-      const ganttTasks = convertToGanttTasks(allScheduleTasks);
-      setTasks(ganttTasks);
+      // If we have existing order, apply it; otherwise use database order
+      if (existingOrder && existingOrder.length === allScheduleTasks.length) {
+        // Reorder tasks to match existing order
+        const orderedTasks = existingOrder
+          .map(id => allScheduleTasks.find(t => t.id === id))
+          .filter(Boolean) as ScheduleTask[];
+        setScheduleTasks(orderedTasks);
+        setTaskOrder(existingOrder);
+        
+        // Convert reordered tasks to Gantt format
+        const ganttTasks = convertToGanttTasks(orderedTasks);
+        setTasks(ganttTasks);
+      } else {
+        // First load or task count changed - use database order
+        setScheduleTasks(allScheduleTasks);
+        setTaskOrder(allScheduleTasks.map(t => t.id));
+        
+        // Convert to Gantt Task format
+        const ganttTasks = convertToGanttTasks(allScheduleTasks);
+        setTasks(ganttTasks);
+      }
 
       checkScheduleWarnings(allScheduleTasks);
     } catch (error) {
@@ -347,10 +376,21 @@ export default function ProjectScheduleView({
 
   const handleTaskChange = async (task: Task) => {
     isDraggingRef.current = true;
+    isUpdatingRef.current = true; // Block realtime reload
     
     if (dragTimeoutRef.current) {
       clearTimeout(dragTimeoutRef.current);
     }
+
+    console.log('🎯 Drag event:', {
+      taskId: task.id,
+      start: task.start,
+      end: task.end,
+      startISO: task.start.toISOString(),
+      endISO: task.end.toISOString(),
+      startLocal: task.start.toLocaleDateString(),
+      endLocal: task.end.toLocaleDateString()
+    });
 
     try {
       // Check if this is a phase from a multi-phase task
@@ -372,11 +412,11 @@ export default function ProjectScheduleView({
       const duration = Math.ceil((task.end.getTime() - task.start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       const newStart = task.start.toISOString().split('T')[0];
       const newEnd = task.end.toISOString().split('T')[0];
+      
+      console.log('💾 Saving to database:', { newStart, newEnd, duration });
 
       // Prepare update data
-      let updateData: any = {
-        duration_days: duration
-      };
+      let updateData: any = {};
 
       if (isPhase && phaseNumber !== null && scheduleTask.phases) {
         // Multi-phase task: Update specific phase in phases array
@@ -397,6 +437,11 @@ export default function ProjectScheduleView({
         const allEnds = updatedPhases.map((p: any) => new Date(p.end_date));
         const overallStart = new Date(Math.min(...allStarts.map(d => d.getTime())));
         const overallEnd = new Date(Math.max(...allEnds.map(d => d.getTime())));
+        
+        // Calculate overall span duration (not phase duration)
+        const overallDuration = Math.ceil(
+          (overallEnd.getTime() - overallStart.getTime()) / (1000 * 60 * 60 * 24)
+        ) + 1;
 
         // Preserve existing notes if present
         let existingNotes: string | undefined;
@@ -412,6 +457,7 @@ export default function ProjectScheduleView({
 
         updateData.scheduled_start_date = overallStart.toISOString().split('T')[0];
         updateData.scheduled_end_date = overallEnd.toISOString().split('T')[0];
+        updateData.duration_days = overallDuration; // Use overall span, not phase duration
         updateData.schedule_notes = JSON.stringify({
           phases: updatedPhases,
           notes: existingNotes || undefined
@@ -443,6 +489,7 @@ export default function ProjectScheduleView({
         // Single-phase task: Update task dates directly
         updateData.scheduled_start_date = newStart;
         updateData.scheduled_end_date = newEnd;
+        updateData.duration_days = duration;
 
         // Optimistic UI update
         setScheduleTasks(prev => prev.map(t => 
@@ -473,9 +520,15 @@ export default function ProjectScheduleView({
 
       if (error) {
         // Revert optimistic update on error
+        isUpdatingRef.current = false; // Reset immediately on error
         await loadScheduleTasks();
         throw error;
       }
+
+      // Keep blocking realtime for 1 second to let UI settle
+      setTimeout(() => {
+        isUpdatingRef.current = false;
+      }, 1000);
 
       // Success toast
       const displayName = isPhase 
@@ -490,6 +543,7 @@ export default function ProjectScheduleView({
 
     } catch (error) {
       console.error('Error updating task:', error);
+      isUpdatingRef.current = false; // Reset on exception
       toast({
         title: '✗ Update Failed',
         description: 'Could not save schedule changes. Please try again.',
