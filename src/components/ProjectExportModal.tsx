@@ -8,11 +8,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { ProjectSearchFilters } from "@/components/ProjectFilters";
 
 interface ProjectExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  filters: any;
+  filters: ProjectSearchFilters;
 }
 
 interface ExportOptions {
@@ -63,14 +64,36 @@ export function ProjectExportModal({ isOpen, onClose, filters }: ProjectExportMo
       if (filters.searchText) {
         query = query.or(`project_name.ilike.%${filters.searchText}%,project_number.ilike.%${filters.searchText}%,client_name.ilike.%${filters.searchText}%`);
       }
-      if (filters.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
+
+      // Handle status array filter
+      if (filters.status && filters.status.length > 0) {
+        query = query.in('status', filters.status);
       }
-      if (filters.jobType && filters.jobType !== 'all') {
-        query = query.eq('job_type', filters.jobType);
+
+      // Handle job type array filter
+      if (filters.jobType && filters.jobType.length > 0) {
+        query = query.in('job_type', filters.jobType);
       }
-      if (filters.clientName && filters.clientName !== 'all') {
-        query = query.eq('client_name', filters.clientName);
+
+      // Handle client name array filter
+      if (filters.clientName && filters.clientName.length > 0) {
+        query = query.in('client_name', filters.clientName);
+      }
+
+      // Handle date range filter
+      if (filters.dateRange.start) {
+        query = query.gte('start_date', filters.dateRange.start.toISOString());
+      }
+      if (filters.dateRange.end) {
+        query = query.lte('end_date', filters.dateRange.end.toISOString());
+      }
+
+      // Handle budget range filter
+      if (filters.budgetRange.min !== null) {
+        query = query.gte('contracted_amount', filters.budgetRange.min);
+      }
+      if (filters.budgetRange.max !== null) {
+        query = query.lte('contracted_amount', filters.budgetRange.max);
       }
 
       const { data: projects, error } = await query;
