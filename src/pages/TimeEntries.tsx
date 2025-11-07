@@ -63,6 +63,18 @@ const TimeEntries = () => {
   useEffect(() => {
     setActiveTab(tabFromUrl);
   }, [tabFromUrl]);
+
+  // Apply URL status parameter to filters
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    
+    if (statusParam && (statusParam === 'pending' || statusParam === 'approved' || statusParam === 'rejected')) {
+      setFilters(prev => ({
+        ...prev,
+        status: [statusParam]
+      }));
+    }
+  }, [searchParams]);
   
   const [filters, setFilters] = useState<TimeEntryFilters>({
     dateFrom: null,

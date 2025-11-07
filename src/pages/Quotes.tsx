@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { FileText, Plus, BarChart3, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuoteForm } from "@/components/QuoteForm";
@@ -17,6 +18,7 @@ import { BrandedLoader } from "@/components/ui/branded-loader";
 const Quotes = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const [searchParams] = useSearchParams();
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'compare'>('list');
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [filteredQuotes, setFilteredQuotes] = useState<Quote[]>([]);
@@ -46,6 +48,27 @@ const Quotes = () => {
   useEffect(() => {
     applyFilters();
   }, [quotes, searchFilters]);
+
+  // Apply URL parameters to filters on mount
+  useEffect(() => {
+    const filterParam = searchParams.get('filter');
+    
+    if (filterParam === 'expiring') {
+      // Calculate 7 days from now for expiring quotes
+      const today = new Date();
+      const sevenDaysFromNow = new Date();
+      sevenDaysFromNow.setDate(today.getDate() + 7);
+      
+      setSearchFilters(prev => ({
+        ...prev,
+        status: ['pending'],
+        dateRange: {
+          start: today,
+          end: sevenDaysFromNow
+        }
+      }));
+    }
+  }, [searchParams]);
 
   const loadClients = async () => {
     const { data, error } = await supabase

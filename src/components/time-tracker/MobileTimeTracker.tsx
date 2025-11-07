@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { getCompanyBranding } from '@/utils/companyBranding';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { checkTimeOverlap, validateTimeEntryHours, checkStaleTimer } from '@/utils/timeEntryValidation';
 import { Button } from '@/components/ui/button';
@@ -75,6 +75,7 @@ interface ActiveTimer {
 export const MobileTimeTracker: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { isAdmin, isManager } = useRoles();
   const { isOnline } = useOnlineStatus();
@@ -106,6 +107,18 @@ export const MobileTimeTracker: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showStaleTimerWarning, setShowStaleTimerWarning] = useState(false);
   const [showScheduleSelector, setShowScheduleSelector] = useState(false);
+
+  // Apply URL parameters to set initial view
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    
+    if (tabParam === 'receipts') {
+      setView('receipts');
+    } else if (tabParam === 'entries') {
+      setView('entries');
+    }
+    // Note: status filtering for receipts is handled by ReceiptsList component
+  }, [searchParams]);
 
   // Prevent body scroll when custom dropdowns are open
   useEffect(() => {

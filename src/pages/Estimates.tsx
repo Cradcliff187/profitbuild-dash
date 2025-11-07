@@ -47,11 +47,23 @@ const EstimatesPage = () => {
     loadEstimates();
     loadClients();
     
-    // Check for preselected project from URL params
-    if (preselectedProjectId && viewMode === 'list') {
-      setViewMode('create');
-    }
-  }, [preselectedProjectId]);
+  // Check for preselected project from URL params
+  if (preselectedProjectId && viewMode === 'list') {
+    setViewMode('create');
+  }
+}, [preselectedProjectId]);
+
+// Apply URL status parameter to filters
+useEffect(() => {
+  const statusParam = searchParams.get('status');
+  
+  if (statusParam && (statusParam === 'draft' || statusParam === 'pending' || statusParam === 'approved' || statusParam === 'rejected')) {
+    setSearchFilters(prev => ({
+      ...prev,
+      status: [statusParam]
+    }));
+  }
+}, [searchParams]);
 
   const loadClients = async () => {
     const { data, error } = await supabase
