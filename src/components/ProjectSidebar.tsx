@@ -4,11 +4,8 @@ import {
   DollarSign, 
   Target, 
   Link2, 
-  FileEdit, 
-  Camera, 
-  Video,
+  FileEdit,
   Edit,
-  Play,
   Calendar
 } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -21,26 +18,72 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { isFeatureEnabled } from "@/lib/featureFlags";
 
-const baseSections = [
-  { title: "Overview", url: "", icon: Building2 },
-  { title: "Estimates & Quotes", url: "estimates", icon: FileText },
-  { title: "Expenses", url: "expenses", icon: DollarSign },
-  { title: "Line Item Control", url: "control", icon: Target },
-  { title: "Expense Matching", url: "matching", icon: Link2 },
-  { title: "Change Orders", url: "changes", icon: FileEdit },
-  { title: "Documents", url: "documents", icon: FileText },
-];
+interface NavigationItem {
+  title: string;
+  url: string;
+  icon: any;
+}
 
-const scheduleSection = { title: "Schedule", url: "schedule", icon: Calendar };
+interface NavigationGroup {
+  label: string;
+  abbrev: string;
+  items: NavigationItem[];
+}
 
-const actions = [
-  { title: "Edit Project", url: "edit", icon: Edit },
-  { title: "Start Project", action: "start", icon: Play },
-];
+const getNavigationGroups = (): NavigationGroup[] => {
+  const projectInfoItems: NavigationItem[] = [
+    { title: "Overview", url: "", icon: Building2 },
+  ];
+
+  // Add Schedule if feature flag is enabled
+  if (isFeatureEnabled('scheduleView')) {
+    projectInfoItems.push({ title: "Schedule", url: "schedule", icon: Calendar });
+  }
+
+  return [
+    {
+      label: "PROJECT INFO",
+      abbrev: "PI",
+      items: projectInfoItems
+    },
+    {
+      label: "CONTRACTS & ESTIMATES",
+      abbrev: "CE",
+      items: [
+        { title: "Estimates & Quotes", url: "estimates", icon: FileText },
+        { title: "Change Orders", url: "changes", icon: FileEdit },
+      ]
+    },
+    {
+      label: "COST MANAGEMENT",
+      abbrev: "CM",
+      items: [
+        { title: "Expenses", url: "expenses", icon: DollarSign },
+        { title: "Expense Matching", url: "matching", icon: Link2 },
+        { title: "Line Item Control", url: "control", icon: Target },
+      ]
+    },
+    {
+      label: "DOCUMENTATION",
+      abbrev: "DOC",
+      items: [
+        { title: "Documents", url: "documents", icon: FileText },
+      ]
+    },
+    {
+      label: "ACTIONS",
+      abbrev: "ACT",
+      items: [
+        { title: "Edit Project", url: "edit", icon: Edit },
+      ]
+    }
+  ];
+};
 
 export function ProjectSidebar() {
   const { state, setOpenMobile, isMobile } = useSidebar();
@@ -50,6 +93,8 @@ export function ProjectSidebar() {
 
   const collapsed = state === "collapsed";
   const currentSection = location.pathname.split('/').pop() || '';
+  const navigationGroups = getNavigationGroups();
+
   const isActive = (sectionUrl: string) => {
     if (sectionUrl === '' && currentSection === projectId) return true;
     return currentSection === sectionUrl;
@@ -65,56 +110,44 @@ export function ProjectSidebar() {
     }
   };
 
-  // Conditionally include schedule section based on feature flag
-  const sections = isFeatureEnabled('scheduleView')
-    ? [...baseSections.slice(0, 3), scheduleSection, ...baseSections.slice(3)]
-    : baseSections;
-
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "text-xs" : ""}>
-            {collapsed ? "Nav" : "Navigation"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {sections.map((section) => (
-                <SidebarMenuItem key={section.title}>
-                  <SidebarMenuButton
-                    onClick={() => handleNavigation(section.url)}
-                    isActive={isActive(section.url)}
-                    className="cursor-pointer"
-                  >
-                    <section.icon className="h-4 w-4" />
-                    {!collapsed && <span className="text-sm">{section.title}</span>}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "text-xs" : ""}>
-            {collapsed ? "Act" : "Actions"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {actions.map((action) => (
-                <SidebarMenuItem key={action.title}>
-                  <SidebarMenuButton
-                    onClick={() => action.url && handleNavigation(action.url)}
-                    className="cursor-pointer"
-                  >
-                    <action.icon className="h-4 w-4" />
-                    {!collapsed && <span className="text-sm">{action.title}</span>}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {navigationGroups.map((group, groupIndex) => (
+          <div key={group.label}>
+            <SidebarGroup>
+              <SidebarGroupLabel className={collapsed ? "text-xs uppercase text-muted-foreground mb-1" : "text-xs uppercase text-muted-foreground mb-1"}>
+                {collapsed ? group.abbrev : group.label}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map((item) => {
+                    const active = isActive(item.url);
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          onClick={() => handleNavigation(item.url)}
+                          isActive={active}
+                          className={`cursor-pointer py-2 ${
+                            active 
+                              ? 'font-semibold border-l-2 border-orange-600 pl-2 bg-accent/50' 
+                              : ''
+                          }`}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          {!collapsed && <span className="text-sm">{item.title}</span>}
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+            {groupIndex < navigationGroups.length - 1 && (
+              <SidebarSeparator className="my-2" />
+            )}
+          </div>
+        ))}
       </SidebarContent>
     </Sidebar>
   );
