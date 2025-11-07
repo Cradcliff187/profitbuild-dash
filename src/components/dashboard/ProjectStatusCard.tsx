@@ -14,13 +14,17 @@ interface ProjectStatusCardProps {
   activeContractValue: number;
   activeEstimatedCosts: number;
   completedContractValue: number;
+  activeGrossMargin: number;
+  activeGrossMarginPercent: number;
 }
 
 export function ProjectStatusCard({ 
   statusCounts,
   activeContractValue,
   activeEstimatedCosts,
-  completedContractValue
+  completedContractValue,
+  activeGrossMargin,
+  activeGrossMarginPercent
 }: ProjectStatusCardProps) {
   const navigate = useNavigate();
 
@@ -60,6 +64,23 @@ export function ProjectStatusCard({
             <div className="flex-1 min-w-0">
               <div className="text-xs text-muted-foreground">Active Est. Costs</div>
               <div className="text-sm font-semibold truncate">{formatCurrency(activeEstimatedCosts)}</div>
+            </div>
+          </div>
+          
+          <div className="flex items-start gap-2">
+            <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-muted-foreground">Active Projected Margin</div>
+              <div className="text-sm font-semibold truncate">
+                {formatCurrency(activeGrossMargin)}
+                <span className={`ml-2 text-xs ${
+                  activeGrossMarginPercent >= 20 ? 'text-green-600' :
+                  activeGrossMarginPercent >= 10 ? 'text-yellow-600' :
+                  'text-red-600'
+                }`}>
+                  ({activeGrossMarginPercent.toFixed(1)}%)
+                </span>
+              </div>
             </div>
           </div>
           

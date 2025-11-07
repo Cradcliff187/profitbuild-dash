@@ -38,6 +38,8 @@ const Dashboard = () => {
   const [activeContractValue, setActiveContractValue] = useState(0);
   const [activeEstimatedCosts, setActiveEstimatedCosts] = useState(0);
   const [completedContractValue, setCompletedContractValue] = useState(0);
+  const [activeGrossMargin, setActiveGrossMargin] = useState(0);
+  const [activeGrossMarginPercent, setActiveGrossMarginPercent] = useState(0);
 
   useEffect(() => {
     loadDashboardData();
@@ -210,7 +212,7 @@ const Dashboard = () => {
     // Get active projects (approved + in_progress)
     const { data: activeProjects, error: activeError } = await supabase
       .from('projects')
-      .select('contracted_amount, adjusted_est_costs')
+      .select('contracted_amount, adjusted_est_costs, projected_margin, margin_percentage')
       .in('status', ['approved', 'in_progress'])
       .neq('project_number', 'SYS-000')
       .neq('project_number', '000-UNASSIGNED');
@@ -222,9 +224,16 @@ const Dashboard = () => {
         sum + (p.contracted_amount || 0), 0) || 0;
       const totalEstCosts = activeProjects?.reduce((sum, p) => 
         sum + (p.adjusted_est_costs || 0), 0) || 0;
+      const totalProjectedMargin = activeProjects?.reduce((sum, p) => 
+        sum + (p.projected_margin || 0), 0) || 0;
+      const aggregateMarginPercent = totalContractValue > 0 
+        ? (totalProjectedMargin / totalContractValue) * 100 
+        : 0;
       
       setActiveContractValue(totalContractValue);
       setActiveEstimatedCosts(totalEstCosts);
+      setActiveGrossMargin(totalProjectedMargin);
+      setActiveGrossMarginPercent(aggregateMarginPercent);
     }
 
     // Get completed projects
@@ -297,6 +306,8 @@ const Dashboard = () => {
             activeContractValue={activeContractValue}
             activeEstimatedCosts={activeEstimatedCosts}
             completedContractValue={completedContractValue}
+            activeGrossMargin={activeGrossMargin}
+            activeGrossMarginPercent={activeGrossMarginPercent}
           />
           
           <QuickActionsCard />
