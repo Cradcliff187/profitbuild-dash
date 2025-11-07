@@ -18,6 +18,8 @@ interface UpcomingTask {
   task_type: 'estimate' | 'change_order';
   description: string;
   project_name: string;
+  project_number: string;
+  address: string | null;
   category: string;
   scheduled_start_date: string;
   scheduled_end_date: string;
@@ -120,7 +122,7 @@ const Dashboard = () => {
           scheduled_start_date,
           scheduled_end_date,
           estimate_id,
-          estimates!inner(project_id, projects!inner(project_name))
+          estimates!inner(project_id, projects!inner(project_name, project_number, address))
         `)
         .gte('scheduled_start_date', today)
         .lte('scheduled_start_date', sevenDaysFromNow)
@@ -139,7 +141,7 @@ const Dashboard = () => {
           scheduled_start_date,
           scheduled_end_date,
           change_order_id,
-          change_orders!inner(project_id, projects!inner(project_name))
+          change_orders!inner(project_id, projects!inner(project_name, project_number, address))
         `)
         .gte('scheduled_start_date', today)
         .lte('scheduled_start_date', sevenDaysFromNow)
@@ -149,25 +151,29 @@ const Dashboard = () => {
 
       if (changeOrderError) throw changeOrderError;
 
-      const formattedEstimateTasks: UpcomingTask[] = (estimateTasks || []).map((task: any) => ({
-        id: task.id,
-        task_type: 'estimate' as const,
-        description: task.description,
-        project_name: task.estimates.projects.project_name,
-        category: task.category,
-        scheduled_start_date: task.scheduled_start_date,
-        scheduled_end_date: task.scheduled_end_date,
-      }));
+    const formattedEstimateTasks: UpcomingTask[] = (estimateTasks || []).map((task: any) => ({
+      id: task.id,
+      task_type: 'estimate' as const,
+      description: task.description,
+      project_name: task.estimates.projects.project_name,
+      project_number: task.estimates.projects.project_number,
+      address: task.estimates.projects.address,
+      category: task.category,
+      scheduled_start_date: task.scheduled_start_date,
+      scheduled_end_date: task.scheduled_end_date,
+    }));
 
-      const formattedChangeOrderTasks: UpcomingTask[] = (changeOrderTasks || []).map((task: any) => ({
-        id: task.id,
-        task_type: 'change_order' as const,
-        description: task.description,
-        project_name: task.change_orders.projects.project_name,
-        category: task.category,
-        scheduled_start_date: task.scheduled_start_date,
-        scheduled_end_date: task.scheduled_end_date,
-      }));
+    const formattedChangeOrderTasks: UpcomingTask[] = (changeOrderTasks || []).map((task: any) => ({
+      id: task.id,
+      task_type: 'change_order' as const,
+      description: task.description,
+      project_name: task.change_orders.projects.project_name,
+      project_number: task.change_orders.projects.project_number,
+      address: task.change_orders.projects.address,
+      category: task.category,
+      scheduled_start_date: task.scheduled_start_date,
+      scheduled_end_date: task.scheduled_end_date,
+    }));
 
       const allTasks = [...formattedEstimateTasks, ...formattedChangeOrderTasks]
         .sort((a, b) => a.scheduled_start_date.localeCompare(b.scheduled_start_date))
@@ -352,36 +358,38 @@ const Dashboard = () => {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead className="border-b bg-muted/50">
-                  <tr>
-                    <th className="text-left p-2 font-medium">Start Date</th>
-                    <th className="text-left p-2 font-medium">End Date</th>
-                    <th className="text-left p-2 font-medium">Project</th>
-                    <th className="text-left p-2 font-medium">Description</th>
-                    <th className="text-left p-2 font-medium">Category</th>
-                    <th className="text-left p-2 font-medium">Type</th>
+              <thead className="border-b bg-muted/50">
+                <tr>
+                  <th className="text-left p-2 font-medium">Start Date</th>
+                  <th className="text-left p-2 font-medium">End Date</th>
+                  <th className="text-left p-2 font-medium">Project</th>
+                  <th className="text-left p-2 font-medium">Address</th>
+                  <th className="text-left p-2 font-medium">Description</th>
+                  <th className="text-left p-2 font-medium">Category</th>
+                  <th className="text-left p-2 font-medium">Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {upcomingTasks.map((task) => (
+                  <tr key={task.id} className="border-b hover:bg-muted/50 h-9">
+                    <td className="p-2">{format(new Date(task.scheduled_start_date), 'MMM d')}</td>
+                    <td className="p-2">{format(new Date(task.scheduled_end_date), 'MMM d')}</td>
+                    <td className="p-2 font-medium">{task.project_number} - {task.project_name}</td>
+                    <td className="p-2 text-muted-foreground">{task.address || 'N/A'}</td>
+                    <td className="p-2">{task.description}</td>
+                    <td className="p-2">
+                      <Badge variant="outline" className={`text-[10px] h-5 px-1.5 ${getCategoryBadgeColor(task.category)}`}>
+                        {task.category.replace('_', ' ')}
+                      </Badge>
+                    </td>
+                    <td className="p-2">
+                      <Badge variant="outline" className="text-[10px] h-5 px-1.5">
+                        {task.task_type === 'estimate' ? 'EST' : 'CO'}
+                      </Badge>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {upcomingTasks.map((task) => (
-                    <tr key={task.id} className="border-b hover:bg-muted/50 h-9">
-                      <td className="p-2">{format(new Date(task.scheduled_start_date), 'MMM d')}</td>
-                      <td className="p-2">{format(new Date(task.scheduled_end_date), 'MMM d')}</td>
-                      <td className="p-2 font-medium">{task.project_name}</td>
-                      <td className="p-2">{task.description}</td>
-                      <td className="p-2">
-                        <Badge variant="outline" className={`text-[10px] h-5 px-1.5 ${getCategoryBadgeColor(task.category)}`}>
-                          {task.category.replace('_', ' ')}
-                        </Badge>
-                      </td>
-                      <td className="p-2">
-                        <Badge variant="outline" className="text-[10px] h-5 px-1.5">
-                          {task.task_type === 'estimate' ? 'EST' : 'CO'}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                ))}
+              </tbody>
               </table>
             </div>
           )}
