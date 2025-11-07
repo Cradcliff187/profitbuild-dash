@@ -1,225 +1,259 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingUp, AlertCircle, FileText } from "lucide-react";
-import { ProjectStatusCard } from "@/components/dashboard/ProjectStatusCard";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ActivityFeedList } from '@/components/ActivityFeedList';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { NeedsAttentionCard } from '@/components/dashboard/NeedsAttentionCard';
+import { ProjectStatusCard } from '@/components/dashboard/ProjectStatusCard';
+import { QuickActionsCard } from '@/components/dashboard/QuickActionsCard';
+import { BrandedLoader } from '@/components/ui/branded-loader';
+import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 
-interface ProjectStatusMetrics {
-  estimating: { count: number; value: number };
-  quoted: { count: number; value: number };
-  approved: { count: number; value: number };
-  in_progress: { count: number; value: number };
-  complete: { count: number; value: number };
-  on_hold: { count: number; value: number };
-  cancelled: { count: number; value: number };
+interface ProjectStatusCount {
+  status: string;
+  count: number;
+  label: string;
 }
 
-interface DashboardMetrics {
-  totalRevenue: number;
-  totalExpenses: number;
-  totalProfit: number;
-  profitMargin: number;
-  activeProjects: number;
-  pendingEstimates: number;
-}
-
-export default function Dashboard() {
-  const { toast } = useToast();
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    totalRevenue: 0,
-    totalExpenses: 0,
-    totalProfit: 0,
-    profitMargin: 0,
-    activeProjects: 0,
-    pendingEstimates: 0,
-  });
-  const [projectStatusMetrics, setProjectStatusMetrics] = useState<ProjectStatusMetrics>({
-    estimating: { count: 0, value: 0 },
-    quoted: { count: 0, value: 0 },
-    approved: { count: 0, value: 0 },
-    in_progress: { count: 0, value: 0 },
-    complete: { count: 0, value: 0 },
-    on_hold: { count: 0, value: 0 },
-    cancelled: { count: 0, value: 0 },
-  });
+const Dashboard = () => {
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Operational metrics
+  const [activeProjectCount, setActiveProjectCount] = useState(0);
+  const [projectStatusCounts, setProjectStatusCounts] = useState<ProjectStatusCount[]>([]);
+  
+  // Needs Attention metrics
+  const [pendingApprovals, setPendingApprovals] = useState({
+    timeEntries: 0,
+    receipts: 0
+  });
+  const [pendingChangeOrders, setPendingChangeOrders] = useState(0);
+  const [expiringQuotes, setExpiringQuotes] = useState(0);
+  const [draftEstimates, setDraftEstimates] = useState(0);
 
   useEffect(() => {
     loadDashboardData();
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      setRefreshKey(prev => prev + 1);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [refreshKey]);
+
+  useEffect(() => {
+    // Set up real-time subscriptions for pending approvals
+    const timeEntriesChannel = supabase
+      .channel('dashboard-time-entries')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'expenses',
+          filter: 'category=eq.labor_internal'
+        },
+        () => {
+          loadPendingApprovals();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(timeEntriesChannel);
+    };
   }, []);
 
   const loadDashboardData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      await Promise.all([loadFinancialMetrics(), loadProjectStatusMetrics()]);
+      await Promise.all([
+        loadActiveProjectCount(),
+        loadProjectStatusCounts(),
+        loadPendingApprovals(),
+        loadNeedsAttentionData()
+      ]);
+      setLastUpdated(new Date());
     } catch (error) {
-      console.error("Error loading dashboard:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load dashboard data",
-        variant: "destructive",
-      });
+      console.error('Error loading dashboard data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadFinancialMetrics = async () => {
-    const { data: projects, error } = await supabase
-      .from("projects")
-      .select("contracted_amount, total_expenses")
-      .in("status", ["in_progress", "complete"]);
+  const loadActiveProjectCount = async () => {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id, status')
+      .neq('project_number', 'SYS-000')
+      .neq('project_number', '000-UNASSIGNED');
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error loading active projects:', error);
+      return;
+    }
 
-    const totalRevenue = projects?.reduce((sum, p) => sum + (p.contracted_amount || 0), 0) || 0;
+    const activeCount = data?.filter(p => 
+      ['in_progress', 'approved', 'quoted'].includes(p.status)
+    ).length || 0;
 
-    const totalExpenses = projects?.reduce((sum, p) => sum + (p.total_expenses || 0), 0) || 0;
-
-    const totalProfit = totalRevenue - totalExpenses;
-    const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
-
-    const { count: activeCount } = await supabase
-      .from("projects")
-      .select("*", { count: "exact", head: true })
-      .in("status", ["in_progress", "approved"]);
-
-    const { count: estimateCount } = await supabase
-      .from("estimates")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "draft");
-
-    setMetrics({
-      totalRevenue,
-      totalExpenses,
-      totalProfit,
-      profitMargin,
-      activeProjects: activeCount || 0,
-      pendingEstimates: estimateCount || 0,
-    });
+    setActiveProjectCount(activeCount);
   };
 
-  const loadProjectStatusMetrics = async () => {
-    const { data: projects, error } = await supabase.from("projects").select("status, contracted_amount");
+  const loadProjectStatusCounts = async () => {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('status')
+      .neq('project_number', 'SYS-000')
+      .neq('project_number', '000-UNASSIGNED');
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error loading project status counts:', error);
+      return;
+    }
 
-    const statusMetrics: ProjectStatusMetrics = {
-      estimating: { count: 0, value: 0 },
-      quoted: { count: 0, value: 0 },
-      approved: { count: 0, value: 0 },
-      in_progress: { count: 0, value: 0 },
-      complete: { count: 0, value: 0 },
-      on_hold: { count: 0, value: 0 },
-      cancelled: { count: 0, value: 0 },
+    const counts = data?.reduce((acc: Record<string, number>, project) => {
+      acc[project.status] = (acc[project.status] || 0) + 1;
+      return acc;
+    }, {}) || {};
+
+    const statusOrder = ['in_progress', 'estimating', 'quoted', 'approved', 'complete', 'on_hold', 'cancelled'];
+    const statusLabels: Record<string, string> = {
+      'in_progress': 'In Progress',
+      'estimating': 'Estimating',
+      'quoted': 'Quoted',
+      'approved': 'Approved',
+      'complete': 'Complete',
+      'on_hold': 'On Hold',
+      'cancelled': 'Cancelled'
     };
 
-    projects?.forEach((project) => {
-      const status = project.status as keyof ProjectStatusMetrics;
-      if (statusMetrics[status]) {
-        statusMetrics[status].count += 1;
-        statusMetrics[status].value += project.contracted_amount || 0;
-      }
+    const formattedCounts = statusOrder
+      .filter(status => counts[status] > 0)
+      .map(status => ({
+        status,
+        count: counts[status],
+        label: statusLabels[status]
+      }));
+
+    setProjectStatusCounts(formattedCounts);
+  };
+
+  const loadPendingApprovals = async () => {
+    // Pending time entries
+    const { count: timeEntriesCount, error: timeError } = await supabase
+      .from('expenses')
+      .select('*', { count: 'exact', head: true })
+      .eq('approval_status', 'pending')
+      .eq('category', 'labor_internal');
+
+    // Pending receipts
+    const { count: receiptsCount, error: receiptsError } = await supabase
+      .from('expenses')
+      .select('*', { count: 'exact', head: true })
+      .eq('approval_status', 'pending')
+      .not('receipt_id', 'is', null);
+
+    if (timeError) console.error('Error loading pending time entries:', timeError);
+    if (receiptsError) console.error('Error loading pending receipts:', receiptsError);
+
+    setPendingApprovals({
+      timeEntries: timeEntriesCount || 0,
+      receipts: receiptsCount || 0
     });
-
-    setProjectStatusMetrics(statusMetrics);
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+  const loadNeedsAttentionData = async () => {
+    // Pending change orders
+    const { count: changeOrdersCount, error: coError } = await supabase
+      .from('change_orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+
+    // Expiring quotes (next 7 days)
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+    
+    const { count: quotesCount, error: quotesError } = await supabase
+      .from('quotes')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending')
+      .gte('valid_until', new Date().toISOString())
+      .lte('valid_until', sevenDaysFromNow.toISOString());
+
+    // Draft estimates
+    const { count: estimatesCount, error: estimatesError } = await supabase
+      .from('estimates')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'draft');
+
+    if (coError) console.error('Error loading pending change orders:', coError);
+    if (quotesError) console.error('Error loading expiring quotes:', quotesError);
+    if (estimatesError) console.error('Error loading draft estimates:', estimatesError);
+
+    setPendingChangeOrders(changeOrdersCount || 0);
+    setExpiringQuotes(quotesCount || 0);
+    setDraftEstimates(estimatesCount || 0);
   };
 
-  const formatPercentage = (value: number) => {
-    return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadDashboardData();
+    setIsRefreshing(false);
   };
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <MobilePageWrapper>
+        <BrandedLoader message="Loading dashboard..." />
+      </MobilePageWrapper>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your construction projects and finances</p>
+    <MobilePageWrapper>
+      <DashboardHeader
+        activeProjectCount={activeProjectCount}
+        lastUpdated={lastUpdated}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
+      />
+
+      {/* Main Content: Activity Feed (2/3) + Sidebar (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+        {/* Activity Feed - Main Content */}
+        <div className="lg:col-span-2 order-2 lg:order-1">
+          <Card>
+            <CardHeader className="p-3 pb-2">
+              <CardTitle className="text-sm font-semibold">Activity Feed</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+              <ActivityFeedList limit={20} showFilters />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-3 order-1 lg:order-2">
+          <NeedsAttentionCard
+            pendingTimeEntries={pendingApprovals.timeEntries}
+            pendingReceipts={pendingApprovals.receipts}
+            pendingChangeOrders={pendingChangeOrders}
+            expiringQuotes={expiringQuotes}
+            draftEstimates={draftEstimates}
+          />
+          
+          <ProjectStatusCard statusCounts={projectStatusCounts} />
+          
+          <QuickActionsCard />
+        </div>
       </div>
-
-      {/* Financial Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(metrics.totalRevenue)}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(metrics.totalExpenses)}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Profit</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(metrics.totalProfit)}</div>
-            <p className="text-xs text-muted-foreground">{formatPercentage(metrics.profitMargin)} margin</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.activeProjects}</div>
-            <p className="text-xs text-muted-foreground">{metrics.pendingEstimates} pending estimates</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Project Status Overview */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <ProjectStatusCard metrics={projectStatusMetrics} />
-
-        {/* Placeholder for Activity Tracker - to be implemented */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Activity tracker coming soon...</p>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    </MobilePageWrapper>
   );
-}
+};
+
+export default Dashboard;
