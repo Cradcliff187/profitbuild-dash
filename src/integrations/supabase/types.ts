@@ -577,7 +577,7 @@ export type Database = {
           correlation_type: string
           created_at: string
           estimate_line_item_id: string | null
-          expense_id: string
+          expense_id: string | null
           expense_split_id: string | null
           id: string
           notes: string | null
@@ -591,7 +591,7 @@ export type Database = {
           correlation_type: string
           created_at?: string
           estimate_line_item_id?: string | null
-          expense_id: string
+          expense_id?: string | null
           expense_split_id?: string | null
           id?: string
           notes?: string | null
@@ -605,7 +605,7 @@ export type Database = {
           correlation_type?: string
           created_at?: string
           estimate_line_item_id?: string | null
-          expense_id?: string
+          expense_id?: string | null
           expense_split_id?: string | null
           id?: string
           notes?: string | null

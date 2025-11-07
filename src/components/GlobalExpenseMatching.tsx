@@ -765,19 +765,16 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
 
       // Create correlations for expense splits
       if (splitIds.length > 0) {
-        correlations.push(...splitIds.map(splitId => {
-          const split = expenseSplits.find(s => s.id === splitId);
-          return {
-            expense_id: split?.expense_id,
-            expense_split_id: splitId,
-            estimate_line_item_id: lineItem.type === 'estimate' ? lineItem.id : null,
-            quote_id: lineItem.type === 'quote' ? lineItem.source_id : null,
-            change_order_line_item_id: lineItem.type === 'change_order' ? lineItem.id : null,
-            correlation_type: lineItem.type === 'estimate' ? 'estimated' : lineItem.type === 'quote' ? 'quoted' : 'change_order',
-            auto_correlated: false,
-            notes: 'Manually assigned split via Global Expense Allocation'
-          };
-        }));
+        correlations.push(...splitIds.map(splitId => ({
+          expense_id: null, // Must be null per check_expense_or_split constraint
+          expense_split_id: splitId,
+          estimate_line_item_id: lineItem.type === 'estimate' ? lineItem.id : null,
+          quote_id: lineItem.type === 'quote' ? lineItem.source_id : null,
+          change_order_line_item_id: lineItem.type === 'change_order' ? lineItem.id : null,
+          correlation_type: lineItem.type === 'estimate' ? 'estimated' : lineItem.type === 'quote' ? 'quoted' : 'change_order',
+          auto_correlated: false,
+          notes: 'Manually assigned split via Global Expense Allocation'
+        })));
       }
 
       const { error: correlationError } = await supabase
