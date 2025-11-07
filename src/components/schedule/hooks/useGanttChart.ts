@@ -14,6 +14,17 @@ interface UseGanttChartProps {
 }
 
 /**
+ * Format date string to US format (MM/DD/YYYY)
+ */
+function formatDateUS(dateString: string): string {
+  const date = new Date(dateString);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month}/${day}/${year}`;
+}
+
+/**
  * Manage Gantt chart initialization and lifecycle with proper cleanup
  */
 export function useGanttChart({
@@ -146,7 +157,7 @@ export function useGanttChart({
               <div class="gantt-popup">
                 <h5>${scheduleTask.isChangeOrder ? '🔄' : '📋'} ${task.name}</h5>
                 <p><strong>Category:</strong> ${scheduleTask.category}</p>
-                <p><strong>Duration:</strong> ${task.start} to ${task.end}</p>
+                <p><strong>Duration:</strong> ${formatDateUS(task.start)} to ${formatDateUS(task.end)}</p>
                 <p><strong>Progress:</strong> ${scheduleTask.progress}%</p>
                 ${progressBar}
                 ${scheduleTask.estimated_cost > 0 ? `<p><strong>Budget:</strong> $${scheduleTask.estimated_cost.toLocaleString()}</p>` : ''}
