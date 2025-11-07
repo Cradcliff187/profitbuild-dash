@@ -264,7 +264,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
                     <div key={exp.id} className="py-0.5">
                       • {formatCurrency(exp.amount)} - {exp.description || 'No description'}
                       <div className="text-muted-foreground pl-2">
-                        {format(new Date(exp.expense_date), 'MMM d, yyyy')} - {exp.payees?.payee_name || 'Unknown'}
+                        {exp.expense_date ? format(new Date(exp.expense_date), 'MMM d, yyyy') : 'No date'} - {exp.payees?.payee_name || 'Unknown'}
                       </div>
                     </div>
                   ))}
@@ -872,7 +872,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
                             <div className="flex-1">
                               <div className="font-medium">{expense.payees?.payee_name || 'Unknown'}</div>
                               <div className="text-xs text-muted-foreground">
-                                {format(new Date(expense.expense_date), 'MMM d, yyyy')} • {expense.description}
+                                {expense.expense_date ? format(new Date(expense.expense_date), 'MMM d, yyyy') : 'No date'} • {expense.description}
                               </div>
                             </div>
                             <div className="font-medium">{formatCurrency(expense.amount)}</div>

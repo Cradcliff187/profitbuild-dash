@@ -322,29 +322,30 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
           );
         }
         
-        // Query 2: Split expense correlations
+        // Query 2: Split expense correlations (join through expense_splits to get parent expense)
         if (splitIds.length > 0) {
           queries.push(
             supabase
               .from('expense_line_item_correlations')
               .select(`
                 *,
-                expenses (
-                  id,
-                  amount,
-                  description,
-                  expense_date,
-                  category,
-                  is_split,
-                  payees (payee_name)
-                ),
-                expense_splits (
+                expense_splits!inner (
                   id,
                   split_amount,
                   project_id,
+                  expense_id,
                   projects (
                     project_name,
                     project_number
+                  ),
+                  expenses!inner (
+                    id,
+                    amount,
+                    description,
+                    expense_date,
+                    category,
+                    is_split,
+                    payees (payee_name)
                   )
                 )
               `)
@@ -436,17 +437,18 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
           let trackingId: string;
           
           if (corr.expense_split_id && corr.expense_splits) {
-            // Split allocation - use split data
+            // Split allocation - use split data and access parent expense through nested join
+            const parentExpense = corr.expense_splits?.expenses;
             expenseDataToUse = {
               id: corr.expense_splits.id,
               amount: corr.expense_splits.split_amount,  // Use split amount!
-              description: `${corr.expenses?.description || 'Split'} (${corr.expense_splits.projects?.project_name || 'Unknown'})`,
-              expense_date: corr.expenses?.expense_date,
-              category: corr.expenses?.category,
-              payees: corr.expenses?.payees,
+              description: `${parentExpense?.description || 'Split'} (${corr.expense_splits.projects?.project_name || 'Unknown'})`,
+              expense_date: parentExpense?.expense_date,
+              category: parentExpense?.category,
+              payees: parentExpense?.payees,
               is_split: true,
               split_id: corr.expense_split_id,
-              parent_expense_id: corr.expense_id
+              parent_expense_id: parentExpense?.id
             };
             trackingId = corr.expense_split_id;
           } else if (corr.expenses) {
