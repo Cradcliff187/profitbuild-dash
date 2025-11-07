@@ -236,7 +236,7 @@ export async function calculateProjectExpenses(
   let total = 0;
   
   for (const expense of expenses) {
-    if (expense.project_id === 'SYS-000' && expense.is_split && expense.id) {
+    if (expense.is_split && expense.id) {
       // This is a split expense - get splits for this project only
       const splits = await getExpenseSplits(expense.id);
       const projectSplits = splits.filter(s => s.project_id === projectId);
