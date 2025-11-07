@@ -1,195 +1,39 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { BarChart3 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { BarChart3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-interface ProjectStatusMetrics {
-  inProgress: {
-    count: number;
-    value: number;
-  };
-  approved: {
-    count: number;
-    value: number;
-  };
-  activeTotal: {
-    count: number;
-    value: number;
-  };
-  estimating: { count: number };
-  quoted: { count: number };
-  complete: {
-    count: number;
-    value: number;
-  };
-  onHold: { count: number };
-  cancelled: { count: number };
-}
-
-interface ProjectFinancialMetrics {
-  activeContractValue: number;
-  activeAdjustedCosts: number;
-  completedContractValue: number;
+interface ProjectStatusCount {
+  status: string;
+  count: number;
+  label: string;
 }
 
 interface ProjectStatusCardProps {
-  metrics: ProjectStatusMetrics;
-  financialMetrics: ProjectFinancialMetrics;
+  statusCounts: ProjectStatusCount[];
 }
 
-interface StatusLineProps {
-  label: string;
-  count: number;
-  value?: number;
-  status?: string;
-}
-
-function StatusLine({ label, count, value, status }: StatusLineProps) {
+export function ProjectStatusCard({ statusCounts }: ProjectStatusCardProps) {
   const navigate = useNavigate();
-
-  const handleClick = () => {
-    if (status) {
-      navigate(`/projects?status=${status}`);
-    }
-  };
-
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
-
-  return (
-    <div
-      onClick={handleClick}
-      className="flex items-center justify-between text-sm py-1 hover:bg-accent/50 px-2 rounded cursor-pointer transition-colors"
-    >
-      <span className="text-muted-foreground">
-        {label}: {count}
-      </span>
-      {value !== undefined && <span className="font-mono font-medium">{formatCurrency(value)}</span>}
-    </div>
-  );
-}
-
-export function ProjectStatusCard({ metrics, financialMetrics }: ProjectStatusCardProps) {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+      <CardHeader className="p-3 pb-2">
+        <div className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4" />
-          Project Status
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Financial Summary Section */}
-        <div className="space-y-2 pb-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Active Contract Value</span>
-            <span className="font-mono font-semibold">
-              {formatCurrency(financialMetrics.activeContractValue)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Active Adjusted Est Costs</span>
-            <span className="font-mono font-semibold">
-              {formatCurrency(financialMetrics.activeAdjustedCosts)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Completed Contract Value</span>
-            <span className="font-mono font-semibold">
-              {formatCurrency(financialMetrics.completedContractValue)}
-            </span>
-          </div>
+          <CardTitle className="text-sm font-semibold">Project Status</CardTitle>
         </div>
-
-        <Separator />
-
-        {/* Active Projects Section */}
-        {(metrics.inProgress.count > 0 || metrics.approved.count > 0) && (
-          <div>
-            <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-              ACTIVE PROJECTS
-            </h4>
-            <div className="space-y-1">
-              {metrics.inProgress.count > 0 && (
-                <StatusLine
-                  label="In Progress"
-                  count={metrics.inProgress.count}
-                  value={metrics.inProgress.value}
-                  status="in_progress"
-                />
-              )}
-              {metrics.approved.count > 0 && (
-                <StatusLine
-                  label="Approved"
-                  count={metrics.approved.count}
-                  value={metrics.approved.value}
-                  status="approved"
-                />
-              )}
-            </div>
-            <Separator className="my-2" />
-            <div className="flex items-center justify-between font-semibold bg-accent/50 p-2 rounded">
-              <span className="text-sm">Total Active: {metrics.activeTotal.count}</span>
-              <span className="text-sm font-mono">{formatCurrency(metrics.activeTotal.value)}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Pipeline Section */}
-        {(metrics.estimating.count > 0 || metrics.quoted.count > 0) && (
-          <div>
-            <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">PIPELINE</h4>
-            <div className="space-y-1">
-              {metrics.estimating.count > 0 && (
-                <StatusLine label="Estimating" count={metrics.estimating.count} status="estimating" />
-              )}
-              {metrics.quoted.count > 0 && <StatusLine label="Quoted" count={metrics.quoted.count} status="quoted" />}
-            </div>
-          </div>
-        )}
-
-        {/* Completed Section */}
-        {metrics.complete.count > 0 && (
-          <div>
-            <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">COMPLETED</h4>
-            <div className="space-y-1">
-              <StatusLine
-                label="Complete"
-                count={metrics.complete.count}
-                value={metrics.complete.value}
-                status="complete"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Other Section */}
-        {(metrics.onHold.count > 0 || metrics.cancelled.count > 0) && (
-          <div>
-            <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">OTHER</h4>
-            <div className="space-y-1">
-              {metrics.onHold.count > 0 && <StatusLine label="On Hold" count={metrics.onHold.count} status="on_hold" />}
-              {metrics.cancelled.count > 0 && (
-                <StatusLine label="Cancelled" count={metrics.cancelled.count} status="cancelled" />
-              )}
-            </div>
-          </div>
-        )}
+      </CardHeader>
+      <CardContent className="p-3 pt-0 space-y-1">
+        {statusCounts.map((item) => (
+          <button
+            key={item.status}
+            onClick={() => navigate(`/projects?status=${item.status}`)}
+            className="flex items-center justify-between w-full p-2 rounded hover:bg-muted text-left transition-colors h-8"
+          >
+            <span className="text-sm">{item.label}</span>
+            <span className="text-sm font-semibold">{item.count}</span>
+          </button>
+        ))}
       </CardContent>
     </Card>
   );
