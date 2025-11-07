@@ -14,6 +14,67 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_feed: {
+        Row: {
+          activity_type: string
+          created_at: string
+          deleted_at: string | null
+          description: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+          project_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          deleted_at?: string | null
+          description: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          project_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          deleted_at?: string | null
+          description?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          project_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_feed_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "activity_feed_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_feed_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_actions: {
         Row: {
           action_details: Json | null
@@ -1858,6 +1919,18 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_activity: {
+        Args: {
+          p_activity_type: string
+          p_description: string
+          p_entity_id: string
+          p_entity_type: string
+          p_metadata?: Json
+          p_project_id: string
+          p_user_id: string
+        }
+        Returns: string
       }
       rollback_cost_migration_final: { Args: never; Returns: undefined }
     }

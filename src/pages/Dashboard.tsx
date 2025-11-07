@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Clock, FileText, Calendar, Activity, RefreshCw } from "lucide-react";
+import { ActivityFeedList } from "@/components/ActivityFeedList";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -396,7 +397,7 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Activity Feed Placeholder */}
+      {/* Activity Feed */}
       <Card>
         <CardHeader className="p-3 pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
@@ -405,9 +406,7 @@ const Dashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-3">
-          <div className="text-xs text-muted-foreground text-center py-8">
-            Activity feed coming soon
-          </div>
+          <ActivityFeedList limit={50} showFilters={true} />
         </CardContent>
       </Card>
     </div>
