@@ -259,8 +259,9 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
         console.warn('[LineItemControl] Error fetching change orders:', changeOrdersError);
       }
 
-      // Fetch expenses grouped by category with payee info
-      const { data: expenses, error: expensesError } = await supabase
+      // Fetch expenses: direct expenses + split parent expenses that have splits for this project
+      // Query 1: Direct expenses assigned to this project
+      const { data: directExpenses, error: directError } = await supabase
         .from('expenses')
         .select(`
           *,
@@ -270,7 +271,24 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
         `)
         .eq('project_id', projectId);
 
-      if (expensesError) throw expensesError;
+      if (directError) throw directError;
+
+      // Query 2: Split parent expenses (project_id = SYS-000) that have splits for this project
+      const { data: splitParentExpenses, error: splitError } = await supabase
+        .from('expenses')
+        .select(`
+          *,
+          payees (
+            payee_name
+          )
+        `)
+        .eq('project_id', 'SYS-000')
+        .eq('is_split', true);
+
+      if (splitError) throw splitError;
+
+      // Combine both - calculateProjectExpenses will filter split parents correctly
+      const expenses = [...(directExpenses || []), ...(splitParentExpenses || [])];
 
       // Fetch expense correlations for ALL types (estimate, quote, change order)
       // Get all expense IDs from this project
