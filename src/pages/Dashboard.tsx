@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, AlertCircle, FileText } from "lucide-react";
 import { ProjectStatusCard } from "@/components/dashboard/ProjectStatusCard";
+import { ActivityFeedList } from "@/components/ActivityFeedList";
 
 interface ProjectStatusMetrics {
   inProgress: {
@@ -311,13 +312,12 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <ProjectStatusCard metrics={projectStatusMetrics} financialMetrics={projectFinancialMetrics} />
 
-        {/* Placeholder for Activity Tracker - to be implemented */}
         <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+          <CardHeader className="p-3 pb-2">
+            <CardTitle className="text-sm font-semibold">Recent Activity</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Activity tracker coming soon...</p>
+          <CardContent className="p-3 pt-0">
+            <ActivityFeedList limit={10} showFilters={false} />
           </CardContent>
         </Card>
       </div>
