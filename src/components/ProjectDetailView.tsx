@@ -317,7 +317,7 @@ export const ProjectDetailView = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full no-horizontal-scroll">
+      <div className="min-h-screen flex w-full no-horizontal-scroll pt-16">
         <ProjectSidebar />
         
         <SidebarInset className="flex-1 flex flex-col no-horizontal-scroll overflow-hidden">
