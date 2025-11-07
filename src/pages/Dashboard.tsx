@@ -28,6 +28,12 @@ interface ProjectStatusMetrics {
   cancelled: { count: number };
 }
 
+interface ProjectFinancialMetrics {
+  activeContractValue: number;
+  activeAdjustedCosts: number;
+  completedContractValue: number;
+}
+
 interface DashboardMetrics {
   totalRevenue: number;
   totalExpenses: number;
@@ -57,6 +63,11 @@ export default function Dashboard() {
     onHold: { count: 0 },
     cancelled: { count: 0 },
   });
+  const [projectFinancialMetrics, setProjectFinancialMetrics] = useState<ProjectFinancialMetrics>({
+    activeContractValue: 0,
+    activeAdjustedCosts: 0,
+    completedContractValue: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -66,7 +77,7 @@ export default function Dashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      await Promise.all([loadFinancialMetrics(), loadProjectStatusMetrics()]);
+      await Promise.all([loadFinancialMetrics(), loadProjectStatusMetrics(), loadProjectFinancialMetrics()]);
     } catch (error) {
       console.error("Error loading dashboard:", error);
       toast({
@@ -82,7 +93,7 @@ export default function Dashboard() {
   const loadFinancialMetrics = async () => {
     const { data: projects, error } = await supabase
       .from("projects")
-      .select("contracted_amount, total_expenses")
+      .select("contracted_amount")
       .in("status", ["in_progress", "complete"])
       .neq("project_number", "SYS-000")
       .neq("project_number", "000-UNASSIGNED");
@@ -91,7 +102,7 @@ export default function Dashboard() {
 
     const totalRevenue = projects?.reduce((sum, p) => sum + (p.contracted_amount || 0), 0) || 0;
 
-    const totalExpenses = projects?.reduce((sum, p) => sum + (p.total_expenses || 0), 0) || 0;
+    const totalExpenses = 0; // Expenses calculated separately if needed
 
     const totalProfit = totalRevenue - totalExpenses;
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
@@ -178,6 +189,44 @@ export default function Dashboard() {
     setProjectStatusMetrics(statusMetrics);
   };
 
+  const loadProjectFinancialMetrics = async () => {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('status, contracted_amount, adjusted_est_costs')
+      .neq('project_number', 'SYS-000')
+      .neq('project_number', '000-UNASSIGNED');
+
+    if (error) throw error;
+
+    // Active projects (approved + in_progress)
+    const activeProjects = data?.filter(p => 
+      p.status === 'approved' || p.status === 'in_progress'
+    ) || [];
+
+    const activeContractValue = activeProjects.reduce(
+      (sum, p) => sum + (p.contracted_amount || 0), 
+      0
+    );
+
+    const activeAdjustedCosts = activeProjects.reduce(
+      (sum, p) => sum + (p.adjusted_est_costs || 0), 
+      0
+    );
+
+    // Completed projects
+    const completedProjects = data?.filter(p => p.status === 'complete') || [];
+    const completedContractValue = completedProjects.reduce(
+      (sum, p) => sum + (p.contracted_amount || 0), 
+      0
+    );
+
+    setProjectFinancialMetrics({
+      activeContractValue,
+      activeAdjustedCosts,
+      completedContractValue,
+    });
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -260,7 +309,7 @@ export default function Dashboard() {
 
       {/* Project Status Overview */}
       <div className="grid gap-4 md:grid-cols-2">
-        <ProjectStatusCard metrics={projectStatusMetrics} />
+        <ProjectStatusCard metrics={projectStatusMetrics} financialMetrics={projectFinancialMetrics} />
 
         {/* Placeholder for Activity Tracker - to be implemented */}
         <Card>

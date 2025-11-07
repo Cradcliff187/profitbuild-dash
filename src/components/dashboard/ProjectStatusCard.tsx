@@ -26,8 +26,15 @@ interface ProjectStatusMetrics {
   cancelled: { count: number };
 }
 
+interface ProjectFinancialMetrics {
+  activeContractValue: number;
+  activeAdjustedCosts: number;
+  completedContractValue: number;
+}
+
 interface ProjectStatusCardProps {
   metrics: ProjectStatusMetrics;
+  financialMetrics: ProjectFinancialMetrics;
 }
 
 interface StatusLineProps {
@@ -68,7 +75,7 @@ function StatusLine({ label, count, value, status }: StatusLineProps) {
   );
 }
 
-export function ProjectStatusCard({ metrics }: ProjectStatusCardProps) {
+export function ProjectStatusCard({ metrics, financialMetrics }: ProjectStatusCardProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -87,6 +94,30 @@ export function ProjectStatusCard({ metrics }: ProjectStatusCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Financial Summary Section */}
+        <div className="space-y-2 pb-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Active Contract Value</span>
+            <span className="font-mono font-semibold">
+              {formatCurrency(financialMetrics.activeContractValue)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Active Adjusted Est Costs</span>
+            <span className="font-mono font-semibold">
+              {formatCurrency(financialMetrics.activeAdjustedCosts)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Completed Contract Value</span>
+            <span className="font-mono font-semibold">
+              {formatCurrency(financialMetrics.completedContractValue)}
+            </span>
+          </div>
+        </div>
+
+        <Separator />
+
         {/* Active Projects Section */}
         {(metrics.inProgress.count > 0 || metrics.approved.count > 0) && (
           <div>
