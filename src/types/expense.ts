@@ -72,6 +72,8 @@ export interface Expense {
   payee_name?: string;
   project_name?: string;
   project_number?: string;
+  // For split expenses: the amount allocated to this project (different from parent amount)
+  display_amount?: number;
 }
 
 export interface ProjectExpenseSummary {

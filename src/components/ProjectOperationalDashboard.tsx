@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
 import { getMarginThresholdStatus, getThresholdStatusColor } from '@/utils/thresholdUtils';
-import { calculateBudgetStatus, calculateScheduleStatus, getExpiringQuotes } from '@/utils/projectDashboard';
+import { calculateBudgetStatus, calculateScheduleStatus, getExpiringQuotes, getProjectScheduleDates } from '@/utils/projectDashboard';
 import type { Project } from '@/types/project';
 import type { Estimate } from '@/types/estimate';
 import type { Quote } from '@/types/quote';
@@ -52,6 +52,25 @@ export function ProjectOperationalDashboard({
   documentCount
 }: ProjectOperationalDashboardProps) {
   const navigate = useNavigate();
+
+  // State for schedule dates loaded from line items if needed
+  const [scheduleDates, setScheduleDates] = useState<{ start: Date | null; end: Date | null }>({ 
+    start: null, 
+    end: null 
+  });
+
+  // Load schedule dates on mount
+  useEffect(() => {
+    const loadScheduleDates = async () => {
+      const dates = await getProjectScheduleDates(
+        project.id,
+        project.start_date,
+        project.end_date
+      );
+      setScheduleDates(dates);
+    };
+    loadScheduleDates();
+  }, [project.id, project.start_date, project.end_date]);
 
   // Calculate operational metrics
   const needsAttention = useMemo(() => {
@@ -112,8 +131,8 @@ export function ProjectOperationalDashboard({
   );
 
   const scheduleStatus = useMemo(() => 
-    calculateScheduleStatus(project.start_date, project.end_date),
-    [project.start_date, project.end_date]
+    calculateScheduleStatus(scheduleDates.start, scheduleDates.end),
+    [scheduleDates.start, scheduleDates.end]
   );
 
   const changeOrderSummary = useMemo(() => {

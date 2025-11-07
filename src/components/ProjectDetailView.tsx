@@ -119,39 +119,46 @@ export const ProjectDetailView = () => {
           .select('*')
           .eq('project_id', projectId)
           .order('date_received', { ascending: false }),
-        // Fetch direct expenses
+        // Fetch expenses with proper split handling
         (async () => {
+          // Fetch direct expenses (not split)
           const { data: directExpenses } = await supabase
             .from('expenses')
             .select('*, payees(payee_name), projects(project_name, project_number)')
-            .eq('project_id', projectId);
+            .eq('project_id', projectId)
+            .eq('is_split', false);
 
-          // Fetch split parent expenses with splits for this project
-          const { data: splitExpenseIds } = await supabase
+          // Fetch split records for this project
+          const { data: splitRecords } = await supabase
             .from('expense_splits')
-            .select('expense_id')
+            .select(`
+              split_amount,
+              expense_id,
+              expenses(*, payees(payee_name), projects(project_name, project_number))
+            `)
             .eq('project_id', projectId);
 
-          const splitExpenseIdsArray = (splitExpenseIds || []).map(s => s.expense_id);
+          // Format direct expenses (use actual amount)
+          const formattedDirectExpenses = (directExpenses || []).map(expense => ({
+            ...expense,
+            display_amount: expense.amount // Use full amount for direct expenses
+          }));
 
-          // Fetch the parent split expenses
-          const { data: splitExpenses } = splitExpenseIdsArray.length > 0
-            ? await supabase
-                .from('expenses')
-                .select('*, payees(payee_name), projects(project_name, project_number)')
-                .in('id', splitExpenseIdsArray)
-                .eq('is_split', true)
-            : { data: [] };
+          // Format split expenses (use split_amount instead of parent amount)
+          const formattedSplitExpenses = (splitRecords || []).map((split: any) => ({
+            ...split.expenses,
+            display_amount: split.split_amount // Use split amount for budget calculations
+          }));
 
-          // Combine and deduplicate
-          const allExpenses = [...(directExpenses || []), ...(splitExpenses || [])];
-          const uniqueExpenses = Array.from(
-            new Map(allExpenses.map(e => [e.id, e])).values()
+          // Combine and sort
+          const allExpenses = [
+            ...formattedDirectExpenses,
+            ...formattedSplitExpenses
+          ].sort((a, b) => 
+            new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime()
           );
 
-          return { data: uniqueExpenses.sort((a, b) => 
-            new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime()
-          ) };
+          return { data: allExpenses };
         })(),
         supabase
           .from('change_orders')
