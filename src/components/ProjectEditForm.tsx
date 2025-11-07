@@ -35,6 +35,7 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
   const [projectType, setProjectType] = useState<ProjectType>(project.project_type);
   const [status, setStatus] = useState<ProjectStatus>(project.status);
   const [jobType, setJobType] = useState(project.job_type || "");
+  const [notes, setNotes] = useState(project.notes || "");
   const [startDate, setStartDate] = useState<Date | undefined>(project.start_date);
   const [endDate, setEndDate] = useState<Date | undefined>(project.end_date);
   const [isLoading, setIsLoading] = useState(false);
@@ -147,6 +148,7 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
           project_type: projectType,
           status: status as any, // Cast to any to avoid Supabase type conflicts
           job_type: jobType.trim() || null,
+          notes: notes.trim() || null,
           start_date: startDate?.toISOString().split('T')[0] || null,
           end_date: endDate?.toISOString().split('T')[0] || null,
           updated_at: new Date().toISOString()
@@ -289,6 +291,19 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Enter project address"
               rows={2}
+            />
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Project Notes</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add project notes, requirements, or special instructions..."
+              rows={3}
+              className="resize-none"
             />
           </div>
 

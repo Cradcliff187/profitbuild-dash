@@ -25,6 +25,7 @@ export interface Project {
   projected_margin?: number | null;
   adjusted_est_costs?: number | null;
   original_est_costs?: number | null;
+  notes?: string | null;
   created_at: Date;
   updated_at: Date;
 }

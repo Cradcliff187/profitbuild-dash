@@ -1348,6 +1348,7 @@ export type Database = {
           last_synced_at: string | null
           margin_percentage: number | null
           minimum_margin_threshold: number | null
+          notes: string | null
           original_est_costs: number | null
           original_margin: number | null
           payment_terms: string | null
@@ -1381,6 +1382,7 @@ export type Database = {
           last_synced_at?: string | null
           margin_percentage?: number | null
           minimum_margin_threshold?: number | null
+          notes?: string | null
           original_est_costs?: number | null
           original_margin?: number | null
           payment_terms?: string | null
@@ -1414,6 +1416,7 @@ export type Database = {
           last_synced_at?: string | null
           margin_percentage?: number | null
           minimum_margin_threshold?: number | null
+          notes?: string | null
           original_est_costs?: number | null
           original_margin?: number | null
           payment_terms?: string | null
