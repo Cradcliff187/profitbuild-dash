@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Building2, Table, Grid, Plus, ArrowUpAZ, ArrowDownZA, Download } from "lucide-react";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ type DisplayMode = 'cards' | 'table';
 const Projects = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const [searchParams] = useSearchParams();
   const [projects, setProjects] = useState<ProjectWithFinancials[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -45,6 +47,18 @@ const Projects = () => {
     sortBy: 'date',
     sortOrder: 'desc',
   });
+
+  // Apply URL parameters to filters on mount
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    
+    if (statusParam) {
+      setFilters(prev => ({
+        ...prev,
+        status: [statusParam as ProjectStatus]
+      }));
+    }
+  }, [searchParams]);
 
   // Load projects and clients from Supabase
   useEffect(() => {
