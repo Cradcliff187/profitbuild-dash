@@ -27,6 +27,7 @@ import type { Estimate } from '@/types/estimate';
 import type { Quote } from '@/types/quote';
 import type { Expense } from '@/types/expense';
 import type { ChangeOrder } from '@/types/changeOrder';
+import { ProjectNotesTimeline } from './ProjectNotesTimeline';
 
 interface ProjectOperationalDashboardProps {
   project: Project;
@@ -170,18 +171,6 @@ export function ProjectOperationalDashboard({
 
   return (
     <div className="space-y-3">
-      {/* Project Notes */}
-      {project.notes && (
-        <Card>
-          <CardHeader className="p-3 pb-2">
-            <h3 className="text-sm font-semibold">Project Notes</h3>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <p className="text-sm text-foreground whitespace-pre-wrap">{project.notes}</p>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Needs Attention Section */}
       {needsAttention.length > 0 && (
         <Card className="border-l-4 border-l-destructive bg-destructive/5">
@@ -450,6 +439,16 @@ export function ProjectOperationalDashboard({
                 </div>
               </button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Project Notes Timeline */}
+        <Card>
+          <CardHeader className="p-3 pb-2">
+            <h3 className="text-sm font-semibold">Project Notes</h3>
+          </CardHeader>
+          <CardContent className="p-3 pt-0">
+            <ProjectNotesTimeline projectId={project.id} />
           </CardContent>
         </Card>
       </div>

@@ -64,6 +64,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
+    "date-fns-tz": "^3.2.0",
     "embla-carousel-react": "^8.6.0",
     "gantt-task-react": "^0.3.9",
     "html2pdf.js": "^0.12.1",
