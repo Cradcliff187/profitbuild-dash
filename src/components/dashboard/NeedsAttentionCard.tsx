@@ -40,7 +40,7 @@ export function NeedsAttentionCard({
       icon: <Camera className="h-3.5 w-3.5" />,
       label: 'Receipts to review',
       count: pendingReceipts,
-      path: '/time-tracker?tab=receipts&status=pending',
+      path: '/time-entries?tab=receipts&status=pending',
       color: 'text-blue-600'
     },
     {

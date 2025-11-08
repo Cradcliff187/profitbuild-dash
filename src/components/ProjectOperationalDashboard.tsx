@@ -84,7 +84,7 @@ export function ProjectOperationalDashboard({
         count: pendingTimeEntries,
         color: 'orange',
         icon: Clock,
-        onClick: () => navigate('/time-entries?filter=pending')
+        onClick: () => navigate('/time-entries?status=pending')
       });
     }
     
@@ -95,7 +95,7 @@ export function ProjectOperationalDashboard({
         count: pendingReceipts,
         color: 'blue',
         icon: FileText,
-        onClick: () => navigate('/time-tracker?tab=receipts&filter=pending')
+        onClick: () => navigate('/time-entries?tab=receipts&status=pending')
       });
     }
     
@@ -208,20 +208,20 @@ export function ProjectOperationalDashboard({
           <h3 className="text-sm font-semibold">Financial Summary</h3>
         </CardHeader>
         <CardContent className="p-3 pt-0">
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
             <div>
               <div className="text-xs text-muted-foreground mb-1">Contract Value</div>
-              <div className="text-xl font-bold">{formatCurrency(project.contracted_amount)}</div>
+              <div className="text-base sm:text-xl font-bold">{formatCurrency(project.contracted_amount)}</div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground mb-1">Adjusted Est. Cost</div>
-              <div className="text-xl font-bold text-foreground">
+              <div className="text-base sm:text-xl font-bold text-foreground">
                 {formatCurrency(project.adjusted_est_costs)}
               </div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground mb-1">Original Margin</div>
-              <div className="text-xl font-bold text-foreground">
+              <div className="text-base sm:text-xl font-bold text-foreground">
                 {formatCurrency(project.original_margin)}
               </div>
               {originalMarginPercent && (
@@ -233,7 +233,7 @@ export function ProjectOperationalDashboard({
             <div>
               <div className="text-xs text-muted-foreground mb-1">Projected Margin</div>
               <div 
-                className="text-xl font-bold flex items-center gap-1"
+                className="text-base sm:text-xl font-bold flex items-center gap-1"
                 style={{ color: getThresholdStatusColor(marginStatus) }}
               >
                 {formatCurrency(project.projected_margin)}
@@ -419,7 +419,7 @@ export function ProjectOperationalDashboard({
                 </div>
               </button>
               <button 
-                onClick={() => navigate('/time-tracker?tab=receipts')}
+                onClick={() => navigate('/time-entries?tab=receipts')}
                 className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
               >
                 <Receipt className="h-4 w-4 text-green-600" />
