@@ -121,6 +121,11 @@ export const ActivityFeedList = ({
     loadActivities();
   }, [limit, projectId, activityTypeFilter, pagination.currentPage]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    pagination.goToPage(1);
+  }, [activityTypeFilter, projectId]);
+
   useEffect(() => {
     const channel = supabase
       .channel('activity-feed-updates')
