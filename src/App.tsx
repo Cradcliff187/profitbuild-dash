@@ -8,7 +8,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RoleProvider } from "@/contexts/RoleContext";
 import ProtectedLayout from "@/components/ProtectedLayout";
-import { InstallPrompt } from "@/components/InstallPrompt";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import Dashboard from "./pages/Dashboard";
@@ -18,7 +17,6 @@ import Projects from "./pages/Projects";
 import NotFound from "./pages/NotFound";
 
 // Lazy load heavy pages
-const Install = lazy(() => import("./pages/Install"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const WorkOrders = lazy(() => import("./pages/WorkOrders"));
 const TimeTracker = lazy(() => import("./pages/TimeTracker"));
@@ -53,7 +51,6 @@ const App = () => (
         <TooltipProvider>
         <Toaster />
         <Sonner />
-        <InstallPrompt />
         <OfflineIndicator />
         <BrowserRouter>
           <ErrorBoundary>
@@ -62,7 +59,6 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/change-password" element={<ChangePassword />} />
                 <Route path="/reset-password" element={<LazyRoute component={ResetPassword} />} />
-                <Route path="/install" element={<LazyRoute component={Install} />} />
                 <Route path="/" element={<ProtectedLayout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="dashboard" element={<Navigate to="/" replace />} />
