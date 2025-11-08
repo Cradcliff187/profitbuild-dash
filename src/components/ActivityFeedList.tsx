@@ -15,6 +15,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -22,8 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { usePagination } from "@/hooks/usePagination";
-import { CompletePagination } from "@/components/ui/complete-pagination";
 
 interface ActivityFeedItem {
   id: string;
@@ -59,34 +58,11 @@ export const ActivityFeedList = ({
   const [activities, setActivities] = useState<ActivityFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activityTypeFilter, setActivityTypeFilter] = useState<string>("all");
-  const [totalCount, setTotalCount] = useState(0);
-  
-  const pagination = usePagination({
-    totalItems: totalCount,
-    pageSize: limit,
-    initialPage: 1,
-  });
+  const [hasMore, setHasMore] = useState(false);
 
   const loadActivities = async () => {
     setLoading(true);
     try {
-      // Build count query with same filters
-      let countQuery = supabase
-        .from('activity_feed')
-        .select('*', { count: 'exact', head: true });
-
-      if (projectId) {
-        countQuery = countQuery.eq('project_id', projectId);
-      }
-
-      if (activityTypeFilter !== 'all') {
-        countQuery = countQuery.like('activity_type', `${activityTypeFilter}%`);
-      }
-
-      const { count } = await countQuery;
-      setTotalCount(count || 0);
-
-      // Build data query with pagination
       let query = supabase
         .from('activity_feed')
         .select(`
@@ -95,7 +71,7 @@ export const ActivityFeedList = ({
           project:projects(project_number, project_name)
         `)
         .order('created_at', { ascending: false })
-        .range(pagination.startIndex, pagination.endIndex - 1);
+        .limit(limit);
 
       if (projectId) {
         query = query.eq('project_id', projectId);
@@ -110,6 +86,12 @@ export const ActivityFeedList = ({
       if (error) throw error;
 
       setActivities(data || []);
+      
+      const { count } = await supabase
+        .from('activity_feed')
+        .select('*', { count: 'exact', head: true });
+      
+      setHasMore((count || 0) > limit);
     } catch (error) {
       console.error('Error loading activities:', error);
     } finally {
@@ -119,12 +101,7 @@ export const ActivityFeedList = ({
 
   useEffect(() => {
     loadActivities();
-  }, [limit, projectId, activityTypeFilter, pagination.currentPage]);
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    pagination.goToPage(1);
-  }, [activityTypeFilter, projectId]);
+  }, [limit, projectId, activityTypeFilter]);
 
   useEffect(() => {
     const channel = supabase
@@ -296,15 +273,16 @@ export const ActivityFeedList = ({
         })}
       </div>
 
-      {pagination.totalPages > 1 && (
-        <div className="pt-2">
-          <CompletePagination
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            onPageChange={pagination.goToPage}
-            showPrevNext={true}
-            showEllipsis={true}
-          />
+      {hasMore && (
+        <div className="text-center pt-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs h-6"
+            onClick={() => loadActivities()}
+          >
+            Load more
+          </Button>
         </div>
       )}
     </div>
