@@ -347,7 +347,7 @@ export default function FieldVideoCapture() {
           <AlertDescription className="text-xs">
             <strong>Limited Functionality:</strong> Camera, video, and GPS features work best on mobile devices.{' '}
             <a 
-              href="https://lovable.dev/blogs/TODO" 
+              href="https://docs.lovable.dev/features/mobile" 
               target="_blank"
               rel="noopener noreferrer"
               className="underline hover:text-primary"

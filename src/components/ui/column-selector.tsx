@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Settings2, GripVertical } from "lucide-react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
