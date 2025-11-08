@@ -128,13 +128,13 @@ export function ProjectSidebar() {
                         <SidebarMenuButton
                           onClick={() => handleNavigation(item.url)}
                           isActive={active}
-                          className={`cursor-pointer py-2 ${
+                          className={`cursor-pointer min-h-[48px] py-3 ${
                             active 
                               ? 'font-semibold border-l-2 border-orange-600 pl-2 bg-accent/50' 
                               : ''
                           }`}
                         >
-                          <item.icon className="h-4 w-4" />
+                          <item.icon className="h-5 w-5" />
                           {!collapsed && <span className="text-sm">{item.title}</span>}
                         </SidebarMenuButton>
                       </SidebarMenuItem>
