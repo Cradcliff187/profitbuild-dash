@@ -1,3 +1,33 @@
+/**
+ * @file ProjectSelectorNew.tsx
+ * @description Modern project selector with inline project creation capability.
+ * 
+ * **Use Case**: Primary project selection component for forms and workflows requiring
+ * quick project creation without navigation away from current context.
+ * 
+ * **Key Features**:
+ * - Works with generic Project objects (not estimate-specific)
+ * - Inline project creation form (no modal, stays in context)
+ * - Searchable dropdown with command palette UI
+ * - Displays project number, name, and client
+ * - Optional ability to hide "Create New" button
+ * 
+ * **When to Use**:
+ * - Time entry forms
+ * - Expense/receipt assignment
+ * - Work order creation
+ * - Any workflow where users may need to quickly create a project
+ * 
+ * **Advantages over ProjectSelector**:
+ * - Inline creation = faster workflow (no page navigation)
+ * - Works with generic projects (not tied to estimate data)
+ * - Better UX for rapid data entry scenarios
+ * 
+ * **Alternatives**:
+ * - Use `ProjectSelector` if you need estimate financial data
+ * - Use `FieldProjectSelector` for mobile-optimized field workflows
+ */
+
 import { useState } from "react";
 import { Check, ChevronsUpDown, FolderOpen, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +57,10 @@ interface ProjectSelectorNewProps {
   hideCreateButton?: boolean;
 }
 
+/**
+ * Modern project selector component with inline creation capability.
+ * Displays projects in a searchable command palette with ability to create new projects without leaving context.
+ */
 export const ProjectSelectorNew = ({
   projects,
   selectedProject,

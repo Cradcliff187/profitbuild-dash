@@ -1,3 +1,26 @@
+/**
+ * @file ProjectSelector.tsx
+ * @description Legacy project selector component that works with Estimate objects.
+ * 
+ * **Use Case**: Selecting estimates/projects in contexts where estimate-specific data is needed
+ * (e.g., estimate number, total amount).
+ * 
+ * **Key Features**:
+ * - Works with Estimate objects (not generic Project objects)
+ * - Displays estimate number and total amount
+ * - Searchable dropdown with command palette UI
+ * - Optional "Create New Project" action
+ * 
+ * **When to Use**:
+ * - Quote comparison/linking workflows
+ * - Estimate-to-estimate relationships
+ * - Anywhere estimate financial data is relevant
+ * 
+ * **Alternatives**:
+ * - Use `ProjectSelectorNew` for generic project selection with inline creation
+ * - Use `FieldProjectSelector` for mobile-optimized field worker workflows
+ */
+
 import { useState } from "react";
 import { Check, ChevronsUpDown, FolderOpen, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +48,10 @@ interface ProjectSelectorProps {
   placeholder?: string;
 }
 
+/**
+ * Legacy project selector component for estimate-based workflows.
+ * Displays estimate numbers and financial totals in a searchable command palette.
+ */
 export const ProjectSelector = ({
   estimates,
   selectedEstimate,

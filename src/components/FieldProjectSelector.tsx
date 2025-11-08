@@ -1,3 +1,33 @@
+/**
+ * @file FieldProjectSelector.tsx
+ * @description Mobile-optimized project selector for field worker workflows.
+ * 
+ * **Use Case**: Project selection on mobile devices during field operations
+ * (photo capture, video capture, time tracking in the field).
+ * 
+ * **Key Features**:
+ * - Fetches projects directly (no parent data dependency)
+ * - Excludes system projects (SYS-000, 000-UNASSIGNED)
+ * - Mobile-friendly native select UI (not command palette)
+ * - Automatic loading/error states
+ * - Shows project number, name, and client in compact format
+ * 
+ * **When to Use**:
+ * - Field photo/video capture workflows
+ * - Mobile time tracking
+ * - Any field worker interface requiring project selection
+ * 
+ * **Why Mobile-Optimized**:
+ * - Uses native `<Select>` (better touch targets, native OS UI)
+ * - Self-contained data fetching (works independently)
+ * - Compact display optimized for small screens
+ * - Automatic filtering of system/administrative projects
+ * 
+ * **Alternatives**:
+ * - Use `ProjectSelectorNew` for desktop forms with inline creation
+ * - Use `ProjectSelector` for estimate-specific workflows
+ */
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
