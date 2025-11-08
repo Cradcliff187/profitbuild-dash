@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
@@ -59,9 +59,27 @@ export const ActivityFeedList = ({
   const [loading, setLoading] = useState(true);
   const [activityTypeFilter, setActivityTypeFilter] = useState<string>("all");
   const [hasMore, setHasMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const loadActivities = async () => {
+    // Cancel any in-flight requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
+    
     setLoading(true);
+    setError(null);
+    
+    // Set a timeout for loading
+    const timeoutId = setTimeout(() => {
+      setError('Loading is taking longer than expected. Please try again.');
+      setLoading(false);
+    }, 10000);
+    
     try {
       let query = supabase
         .from('activity_feed')
@@ -81,9 +99,11 @@ export const ActivityFeedList = ({
         query = query.like('activity_type', `${activityTypeFilter}%`);
       }
 
-      const { data, error } = await query;
+      const { data, error: queryError } = await query;
+      
+      clearTimeout(timeoutId);
 
-      if (error) throw error;
+      if (queryError) throw queryError;
 
       setActivities(data || []);
       
@@ -92,16 +112,27 @@ export const ActivityFeedList = ({
         .select('*', { count: 'exact', head: true });
       
       setHasMore((count || 0) > limit);
-    } catch (error) {
-      console.error('Error loading activities:', error);
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name !== 'AbortError') {
+        console.error('Error loading activities:', err);
+        setError('Failed to load activities. Please try again.');
+      }
     } finally {
-      setLoading(false);
+      if (!abortControllerRef.current?.signal.aborted) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     loadActivities();
   }, [limit, projectId, activityTypeFilter]);
+
+  // Clear activities when filter changes to prevent showing stale data
+  useEffect(() => {
+    setActivities([]);
+  }, [activityTypeFilter]);
 
   useEffect(() => {
     const channel = supabase
@@ -122,6 +153,9 @@ export const ActivityFeedList = ({
 
     return () => {
       supabase.removeChannel(channel);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, [projectId]);
 
@@ -184,11 +218,44 @@ export const ActivityFeedList = ({
     );
   }
 
+  if (error) {
+    return (
+      <div className="text-center py-6">
+        <AlertCircle className="h-6 w-6 text-destructive mx-auto mb-2" />
+        <div className="text-xs text-muted-foreground mb-2">{error}</div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs h-7"
+          onClick={() => loadActivities()}
+        >
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
   if (activities.length === 0) {
+    const filterLabel = activityTypeFilter === 'all' 
+      ? 'recent activity'
+      : `${activityTypeFilter.replace('_', ' ')} activities`;
+      
     return (
       <div className="text-center py-6">
         <AlertCircle className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-        <div className="text-xs text-muted-foreground">No recent activity</div>
+        <div className="text-xs text-muted-foreground">
+          No {filterLabel} found
+        </div>
+        {activityTypeFilter !== 'all' && (
+          <Button
+            variant="link"
+            size="sm"
+            className="text-xs h-6 mt-2"
+            onClick={() => setActivityTypeFilter('all')}
+          >
+            Clear filter
+          </Button>
+        )}
       </div>
     );
   }
