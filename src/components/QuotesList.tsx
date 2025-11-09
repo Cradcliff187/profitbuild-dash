@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Eye, FileText, Trash2, ArrowUpDown, Edit } from "lucide-react";
+import { Eye, FileText, Trash2, ArrowUpDown, Edit, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
 import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
@@ -41,6 +42,19 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onE
   const [sortBy, setSortBy] = useState<'date' | 'project' | 'total'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const { toast } = useToast();
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+
+  const toggleCard = (quoteId: string) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(quoteId)) {
+        next.delete(quoteId);
+      } else {
+        next.add(quoteId);
+      }
+      return next;
+    });
+  };
 
   const getEstimateForQuote = (quote: Quote): Estimate | undefined => {
     return estimates.find(est => est.project_id === quote.project_id);
@@ -314,106 +328,129 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onE
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-compact space-y-2">
-                {/* Quote Details */}
-                <div className="grid grid-cols-2 gap-2 text-label">
-                  <div>
-                    <div className="text-muted-foreground text-label">Quoted By</div>
-                    <div className="font-medium">{quote.quotedBy}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground text-label">Date Received</div>
-                    <div className="font-medium">{format(quote.dateReceived, "MMM dd, yyyy")}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground text-label">Quote Total</div>
-                    <div className="text-interface font-bold font-mono">{formatCurrency(quote.total)}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground text-label">Estimate Cost</div>
-                    <div className="font-medium font-mono">
-                      {(() => {
-                        const estimateCost = getEstimateLineItemCost(quote);
-                        return estimateCost !== null ? formatCurrency(estimateCost) : 'N/A';
-                      })()}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Quoted Amount</div>
-                    <div className="font-bold">
-                      {(() => {
-                        const quotedAmount = getQuotedAmountForEstimateMatch(quote);
-                        return quotedAmount !== null ? formatCurrency(quotedAmount) : 'N/A';
-                      })()}
-                    </div>
-                  </div>
-                  {quote.valid_until && (
-                    <>
+              
+              <Collapsible open={expandedCards.has(quote.id)}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleCard(quote.id);
+                    }}
+                    className="w-full justify-between px-3 py-2 h-auto hover:bg-muted/50 border-t"
+                  >
+                    <span className="text-sm font-medium">
+                      {formatCurrency(quote.total)} • {quote.quotedBy}
+                    </span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${
+                      expandedCards.has(quote.id) ? 'rotate-180' : ''
+                    }`} />
+                  </Button>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent>
+                  <CardContent className="p-compact space-y-2">
+                    {/* Quote Details */}
+                    <div className="grid grid-cols-2 gap-2 text-label">
                       <div>
-                        <div className="text-muted-foreground">Valid Until</div>
-                        <div className="font-medium">{format(quote.valid_until, "MMM dd, yyyy")}</div>
+                        <div className="text-muted-foreground text-label">Quoted By</div>
+                        <div className="font-medium">{quote.quotedBy}</div>
                       </div>
-                      <div></div>
-                    </>
-                  )}
-                  {quote.accepted_date && (
-                    <>
                       <div>
-                        <div className="text-muted-foreground">Accepted Date</div>
-                        <div className="font-medium">{format(quote.accepted_date, "MMM dd, yyyy")}</div>
+                        <div className="text-muted-foreground text-label">Date Received</div>
+                        <div className="font-medium">{format(quote.dateReceived, "MMM dd, yyyy")}</div>
                       </div>
-                      <div></div>
-                    </>
-                  )}
-                </div>
+                      <div>
+                        <div className="text-muted-foreground text-label">Quote Total</div>
+                        <div className="text-interface font-bold font-mono">{formatCurrency(quote.total)}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground text-label">Estimate Cost</div>
+                        <div className="font-medium font-mono">
+                          {(() => {
+                            const estimateCost = getEstimateLineItemCost(quote);
+                            return estimateCost !== null ? formatCurrency(estimateCost) : 'N/A';
+                          })()}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Quoted Amount</div>
+                        <div className="font-bold">
+                          {(() => {
+                            const quotedAmount = getQuotedAmountForEstimateMatch(quote);
+                            return quotedAmount !== null ? formatCurrency(quotedAmount) : 'N/A';
+                          })()}
+                        </div>
+                      </div>
+                      {quote.valid_until && (
+                        <>
+                          <div>
+                            <div className="text-muted-foreground">Valid Until</div>
+                            <div className="font-medium">{format(quote.valid_until, "MMM dd, yyyy")}</div>
+                          </div>
+                          <div></div>
+                        </>
+                      )}
+                      {quote.accepted_date && (
+                        <>
+                          <div>
+                            <div className="text-muted-foreground">Accepted Date</div>
+                            <div className="font-medium">{format(quote.accepted_date, "MMM dd, yyyy")}</div>
+                          </div>
+                          <div></div>
+                        </>
+                      )}
+                    </div>
 
 
-                {/* Budget Variance */}
-                {estimate && (
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Cost Variance</span>
-                      <Badge 
-                        variant={
-                          variance.status === 'over' ? 'destructive' : 
-                          variance.status === 'under' ? 'default' : 
-                          'secondary'
-                        }
-                      >
-                        {variance.status === 'over' && '+'}
-                        {variance.status === 'under' && '-'}
-                        {formatCurrency(variance.amount)} ({variance.percentage.toFixed(1)}%)
-                      </Badge>
-                    </div>
-                    {variance.status === 'over' && (
-                      <div className="text-xs text-destructive mt-1">
-                        Over budget
+                    {/* Budget Variance */}
+                    {estimate && (
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Cost Variance</span>
+                          <Badge 
+                            variant={
+                              variance.status === 'over' ? 'destructive' : 
+                              variance.status === 'under' ? 'default' : 
+                              'secondary'
+                            }
+                          >
+                            {variance.status === 'over' && '+'}
+                            {variance.status === 'under' && '-'}
+                            {formatCurrency(variance.amount)} ({variance.percentage.toFixed(1)}%)
+                          </Badge>
+                        </div>
+                        {variance.status === 'over' && (
+                          <div className="text-xs text-destructive mt-1">
+                            Over budget
+                          </div>
+                        )}
+                        {variance.status === 'under' && (
+                          <div className="text-xs text-green-600">
+                            Under budget
+                          </div>
+                        )}
                       </div>
                     )}
-                    {variance.status === 'under' && (
-                      <div className="text-xs text-green-600">
-                        Under budget
+
+                    {/* Rejection Reason */}
+                    {quote.status === QuoteStatus.REJECTED && quote.rejection_reason && (
+                      <div className="text-sm p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
+                        <div className="text-red-600 dark:text-red-400 font-medium mb-1">Rejection Reason</div>
+                        <div className="text-red-800 dark:text-red-200">{quote.rejection_reason}</div>
                       </div>
                     )}
-                  </div>
-                )}
 
-                {/* Rejection Reason */}
-                {quote.status === QuoteStatus.REJECTED && quote.rejection_reason && (
-                  <div className="text-sm p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
-                    <div className="text-red-600 dark:text-red-400 font-medium mb-1">Rejection Reason</div>
-                    <div className="text-red-800 dark:text-red-200">{quote.rejection_reason}</div>
-                  </div>
-                )}
-
-                {/* Notes */}
-                {quote.notes && (
-                  <div className="text-sm">
-                    <div className="text-muted-foreground mb-1">Notes</div>
-                    <div className="text-foreground">{quote.notes}</div>
-                  </div>
-                )}
-              </CardContent>
+                    {/* Notes */}
+                    {quote.notes && (
+                      <div className="text-sm">
+                        <div className="text-muted-foreground mb-1">Notes</div>
+                        <div className="text-foreground">{quote.notes}</div>
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
             </Card>
           );
         })}

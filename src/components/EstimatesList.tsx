@@ -46,6 +46,19 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [estimateToDelete, setEstimateToDelete] = useState<string | null>(null);
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+
+  const toggleCard = (estimateId: string) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(estimateId)) {
+        next.delete(estimateId);
+      } else {
+        next.add(estimateId);
+      }
+      return next;
+    });
+  };
   
   // Group estimates by project to show as families
   const estimatesByProject = estimates.reduce((groups, estimate) => {
@@ -263,88 +276,110 @@ const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }:
 
               <CardContent className="p-compact space-y-2">
                 {/* Current Version Details - Compact */}
-                <div className="compact-card-section border border-primary/20">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-interface font-medium text-foreground">Latest Version</h3>
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <Badge className="compact-badge bg-primary text-primary-foreground font-medium">
-                          v{currentVersion.version_number || 1}
-                        </Badge>
-                        <Badge variant="outline" className={`compact-badge capitalize ${
-                          currentVersion.status === 'approved' ? 'border-success text-success bg-success/10' :
-                          currentVersion.status === 'draft' ? 'border-muted text-muted-foreground bg-muted/10' :
-                          'border-primary text-primary bg-primary/10'
-                        }`}>
-                          {currentVersion.status}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-label text-muted-foreground flex-wrap">
-                      <span className="truncate">{currentVersion.estimate_number}</span>
-                      <span>•</span>
-                      <span>{format(currentVersion.date_created, 'MMM dd, yyyy')}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                         <div className="text-lg font-bold text-foreground font-mono">
-                           {formatCurrency(currentVersion.total_amount, { showCents: false })}
-                         </div>
-                        <div className="text-label text-muted-foreground">Total Amount</div>
-                      </div>
-                    </div>
-
-                  {/* Budget Comparison - Compact */}
-                  {(quoteStatus !== 'awaiting-quotes') && (
-                    <div className="pt-2 border-t border-primary/20">
-                      <div className="flex items-center justify-between">
-                        <span className="text-label font-medium text-foreground">Budget vs Actual:</span>
-                        <div className="flex items-center gap-1">
-                          <BudgetComparisonBadge status={quoteStatus} />
-                          {bestQuoteVariance && (
-                             <span className={`text-data font-mono font-medium ${
-                               bestQuoteVariance.variance < 0 ? 'text-success' : 'text-destructive'
-                             }`}>
-                               {formatCurrency(bestQuoteVariance.variance, { showCents: false })}
-                             </span>
-                          )}
+                <Collapsible open={expandedCards.has(currentVersion.id)}>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleCard(currentVersion.id);
+                      }}
+                      className="w-full justify-between p-2 h-auto hover:bg-muted/50"
+                    >
+                      <span className="text-sm font-medium">
+                        {expandedCards.has(currentVersion.id) ? 'Hide Details' : 'Show Details'}
+                      </span>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${
+                        expandedCards.has(currentVersion.id) ? 'rotate-180' : ''
+                      }`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent>
+                    <div className="compact-card-section border border-primary/20">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-interface font-medium text-foreground">Latest Version</h3>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <Badge className="compact-badge bg-primary text-primary-foreground font-medium">
+                              v{currentVersion.version_number || 1}
+                            </Badge>
+                            <Badge variant="outline" className={`compact-badge capitalize ${
+                              currentVersion.status === 'approved' ? 'border-success text-success bg-success/10' :
+                              currentVersion.status === 'draft' ? 'border-muted text-muted-foreground bg-muted/10' :
+                              'border-primary text-primary bg-primary/10'
+                            }`}>
+                              {currentVersion.status}
+                            </Badge>
+                          </div>
                         </div>
+                        <div className="flex items-center gap-1 text-label text-muted-foreground flex-wrap">
+                          <span className="truncate">{currentVersion.estimate_number}</span>
+                          <span>•</span>
+                          <span>{format(currentVersion.date_created, 'MMM dd, yyyy')}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                             <div className="text-lg font-bold text-foreground font-mono">
+                               {formatCurrency(currentVersion.total_amount, { showCents: false })}
+                             </div>
+                            <div className="text-label text-muted-foreground">Total Amount</div>
+                          </div>
+                        </div>
+
+                      {/* Budget Comparison - Compact */}
+                      {(quoteStatus !== 'awaiting-quotes') && (
+                        <div className="pt-2 border-t border-primary/20">
+                          <div className="flex items-center justify-between">
+                            <span className="text-label font-medium text-foreground">Budget vs Actual:</span>
+                            <div className="flex items-center gap-1">
+                              <BudgetComparisonBadge status={quoteStatus} />
+                              {bestQuoteVariance && (
+                                 <span className={`text-data font-mono font-medium ${
+                                   bestQuoteVariance.variance < 0 ? 'text-success' : 'text-destructive'
+                                 }`}>
+                                   {formatCurrency(bestQuoteVariance.variance, { showCents: false })}
+                                 </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Buttons - Compact */}
+                      <div className="flex gap-1 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onView(currentVersion)}
+                          className="flex-1 h-button-compact text-label border-primary/20 hover:bg-primary/5"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          View
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onEdit(currentVersion)}
+                          className="flex-1 h-button-compact text-label border-primary/20 hover:bg-primary/5"
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => createNewVersion(currentVersion)}
+                          className="flex-1 h-button-compact text-label border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          New
+                        </Button>
+                      </div>
                       </div>
                     </div>
-                  )}
-
-                  {/* Action Buttons - Compact */}
-                  <div className="flex gap-1 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onView(currentVersion)}
-                      className="flex-1 h-button-compact text-label border-primary/20 hover:bg-primary/5"
-                    >
-                      <Eye className="h-3 w-3 mr-1" />
-                      View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEdit(currentVersion)}
-                      className="flex-1 h-button-compact text-label border-primary/20 hover:bg-primary/5"
-                    >
-                      <Edit className="h-3 w-3 mr-1" />
-                      Edit
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => createNewVersion(currentVersion)}
-                      className="flex-1 h-button-compact text-label border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      New
-                    </Button>
-                  </div>
-                  </div>
-                </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
                 {/* Previous Versions */}
                 {previousVersions.length > 0 && (
