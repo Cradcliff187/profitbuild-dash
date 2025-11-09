@@ -265,71 +265,27 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onE
       </Card>
 
       {/* Quotes Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="space-y-3">
         {sortedQuotes.map((quote) => {
           const estimate = getEstimateForQuote(quote);
           const variance = getCostVariance(quote);
           
           return (
-            <Card key={quote.id} className="hover:shadow-md transition-shadow compact-card">
-              <CardHeader className="p-compact pb-2">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1">
-                      <CardTitle className="text-interface">{quote.projectName}</CardTitle>
-                      <QuoteStatusBadge status={quote.status} />
-                    </div>
-                    <div className="text-label text-muted-foreground">
-                      {quote.client} • {quote.quoteNumber}
-                    </div>
+            <Card key={quote.id} className="compact-card border border-primary/10">
+              <CardHeader className="p-compact bg-gradient-to-r from-primary/5 to-transparent">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1">
+                    <CardTitle className="text-interface">{quote.projectName}</CardTitle>
+                    <QuoteStatusBadge status={quote.status} />
                   </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEdit(quote)}
-                      className="h-btn-compact text-label"
-                    >
-                      <Edit className="h-3 w-3 mr-1" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onCompare(quote)}
-                      disabled={!estimate}
-                      className="h-btn-compact text-label"
-                    >
-                      <Eye className="h-3 w-3 mr-1" />
-                      Compare
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Quote</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this quote from {quote.quotedBy}? 
-                            This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => onDelete(quote.id)}>
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                  <div className="text-label text-muted-foreground">
+                    {quote.client} • {quote.quoteNumber}
                   </div>
                 </div>
               </CardHeader>
               
-              <Collapsible open={expandedCards.has(quote.id)}>
+              <CardContent className="p-compact space-y-2">
+                <Collapsible open={expandedCards.has(quote.id)}>
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="ghost"
@@ -349,7 +305,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onE
                 </CollapsibleTrigger>
                 
                 <CollapsibleContent>
-                  <CardContent className="p-compact space-y-2">
+                  <div className="space-y-2 pt-2">
                     {/* Quote Details */}
                     <div className="grid grid-cols-2 gap-2 text-label">
                       <div>
@@ -448,9 +404,55 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onE
                         <div className="text-foreground">{quote.notes}</div>
                       </div>
                     )}
-                  </CardContent>
+
+                    {/* Action Buttons - Inside Collapsed Area */}
+                    <div className="flex gap-1 pt-2 border-t border-primary/20">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onEdit(quote)}
+                        className="h-btn-compact text-label flex-1"
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onCompare(quote)}
+                        disabled={!estimate}
+                        className="h-btn-compact text-label flex-1"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        Compare
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-btn-compact">
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Quote</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this quote from {quote.quotedBy}? 
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDelete(quote.id)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
                 </CollapsibleContent>
               </Collapsible>
+            </CardContent>
             </Card>
           );
         })}
