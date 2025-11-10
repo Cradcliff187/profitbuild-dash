@@ -379,6 +379,20 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
         }
       }
 
+      // Build quote-to-change-order mapping from quotes
+      const quoteToChangeOrder = new Map<string, Array<{ change_order_line_item_id: string, total_cost: number }>>();
+      for (const quote of (quotes || [])) {
+        const { data: qliData } = await supabase
+          .from('quote_line_items')
+          .select('change_order_line_item_id, total_cost')
+          .eq('quote_id', quote.id)
+          .not('change_order_line_item_id', 'is', null);
+        
+        if (qliData && qliData.length > 0) {
+          quoteToChangeOrder.set(quote.id, qliData as any[]);
+        }
+      }
+
       // Build correlation map by line item (supporting estimate, quote, and change order allocations)
       const correlationsByLineItem = new Map<string, any[]>();
       const seenExpenses = new Map<string, Set<string>>(); // Track expense_id or split_id per line_item to avoid dupes
@@ -397,36 +411,73 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
             targetLineItemIds.push(corr.change_order_line_item_id);
           }
           
-          // Quote allocation - map to estimate line items
-          if (corr.quote_id && quoteToEstimate.has(corr.quote_id)) {
-            const candidates = quoteToEstimate.get(corr.quote_id)!;
-            
-            if (candidates.length === 1) {
-              // Single candidate - straightforward mapping
-              targetLineItemIds.push(candidates[0].estimate_line_item_id);
-            } else if (candidates.length > 1) {
-              // Multiple candidates - use heuristic
-              const expenseAmount = corr.expenses?.amount || 0;
+          // Quote allocation - map to BOTH estimate AND change order line items
+          if (corr.quote_id) {
+            // Check estimate mapping first
+            if (quoteToEstimate.has(corr.quote_id)) {
+              const candidates = quoteToEstimate.get(corr.quote_id)!;
               
-              if (expenseAmount > 0) {
-                // Find closest match by cost
-                let closestCandidate = candidates[0];
-                let smallestDiff = Math.abs(candidates[0].total_cost - expenseAmount);
-                
-                for (let i = 1; i < candidates.length; i++) {
-                  const diff = Math.abs(candidates[i].total_cost - expenseAmount);
-                  if (diff < smallestDiff) {
-                    smallestDiff = diff;
-                    closestCandidate = candidates[i];
-                  }
-                }
-                
-                targetLineItemIds.push(closestCandidate.estimate_line_item_id);
-                console.warn(`[LineItemControl] Quote ${corr.quote_id} has ${candidates.length} estimate line items. Mapped expense $${expenseAmount} to closest match (cost diff: $${smallestDiff.toFixed(2)})`);
-              } else {
-                // No expense amount - use first candidate
+              if (candidates.length === 1) {
+                // Single candidate - straightforward mapping
                 targetLineItemIds.push(candidates[0].estimate_line_item_id);
-                console.warn(`[LineItemControl] Quote ${corr.quote_id} has ${candidates.length} estimate line items. Using first candidate (no expense amount available).`);
+              } else if (candidates.length > 1) {
+                // Multiple candidates - use heuristic
+                const expenseAmount = corr.expenses?.amount || 0;
+                
+                if (expenseAmount > 0) {
+                  // Find closest match by cost
+                  let closestCandidate = candidates[0];
+                  let smallestDiff = Math.abs(candidates[0].total_cost - expenseAmount);
+                  
+                  for (let i = 1; i < candidates.length; i++) {
+                    const diff = Math.abs(candidates[i].total_cost - expenseAmount);
+                    if (diff < smallestDiff) {
+                      smallestDiff = diff;
+                      closestCandidate = candidates[i];
+                    }
+                  }
+                  
+                  targetLineItemIds.push(closestCandidate.estimate_line_item_id);
+                  console.warn(`[LineItemControl] Quote ${corr.quote_id} has ${candidates.length} estimate line items. Mapped expense $${expenseAmount} to closest match (cost diff: $${smallestDiff.toFixed(2)})`);
+                } else {
+                  // No expense amount - use first candidate
+                  targetLineItemIds.push(candidates[0].estimate_line_item_id);
+                  console.warn(`[LineItemControl] Quote ${corr.quote_id} has ${candidates.length} estimate line items. Using first candidate (no expense amount available).`);
+                }
+              }
+            }
+            
+            // ALSO check change order mapping
+            if (quoteToChangeOrder.has(corr.quote_id)) {
+              const candidates = quoteToChangeOrder.get(corr.quote_id)!;
+              
+              if (candidates.length === 1) {
+                // Single candidate - straightforward mapping
+                targetLineItemIds.push(candidates[0].change_order_line_item_id);
+              } else if (candidates.length > 1) {
+                // Multiple candidates - use heuristic
+                const expenseAmount = corr.expenses?.amount || 0;
+                
+                if (expenseAmount > 0) {
+                  // Find closest match by cost
+                  let closestCandidate = candidates[0];
+                  let smallestDiff = Math.abs(candidates[0].total_cost - expenseAmount);
+                  
+                  for (let i = 1; i < candidates.length; i++) {
+                    const diff = Math.abs(candidates[i].total_cost - expenseAmount);
+                    if (diff < smallestDiff) {
+                      smallestDiff = diff;
+                      closestCandidate = candidates[i];
+                    }
+                  }
+                  
+                  targetLineItemIds.push(closestCandidate.change_order_line_item_id);
+                  console.warn(`[LineItemControl] Quote ${corr.quote_id} has ${candidates.length} change order line items. Mapped expense $${expenseAmount} to closest match (cost diff: $${smallestDiff.toFixed(2)})`);
+                } else {
+                  // No expense amount - use first candidate
+                  targetLineItemIds.push(candidates[0].change_order_line_item_id);
+                  console.warn(`[LineItemControl] Quote ${corr.quote_id} has ${candidates.length} change order line items. Using first candidate (no expense amount available).`);
+                }
               }
             }
           }
