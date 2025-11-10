@@ -114,7 +114,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
             <div className="space-y-1 cursor-help">
               <div className="flex items-center gap-2">
                 <div className="font-medium text-sm">
-                  {CATEGORY_DISPLAY_MAP[item.category as keyof typeof CATEGORY_DISPLAY_MAP] || item.category}
+                  {item.description}
                 </div>
                 {item.source === 'change_order' && (
                   <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4 leading-none">
@@ -122,8 +122,8 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
                   </Badge>
                 )}
               </div>
-              <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                {item.description}
+              <div className="text-xs text-muted-foreground">
+                {CATEGORY_DISPLAY_MAP[item.category as keyof typeof CATEGORY_DISPLAY_MAP] || item.category}
               </div>
             </div>
           </TooltipTrigger>
