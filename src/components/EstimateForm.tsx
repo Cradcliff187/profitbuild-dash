@@ -971,8 +971,15 @@ useEffect(() => {
                   </div>
                   
                   <div className="flex flex-col">
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Project Number</span>
-                    <span className="text-base font-bold text-primary mt-1">{selectedProject?.project_number || projectName || 'N/A'}</span>
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Project</span>
+                    <span className="text-base font-bold text-primary mt-1">
+                      {selectedProject 
+                        ? `${selectedProject.project_name} (${selectedProject.project_number})`
+                        : projectName 
+                          ? `${projectName} (${selectedProject?.project_number || 'N/A'})`
+                          : 'N/A'
+                      }
+                    </span>
                   </div>
                   
                   <div className="flex flex-col">
