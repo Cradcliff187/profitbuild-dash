@@ -8,6 +8,7 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { ProjectSidebar } from "@/components/ProjectSidebar";
 import { ProjectOperationalDashboard } from "@/components/ProjectOperationalDashboard";
 import { ProjectEstimatesView } from "@/components/ProjectEstimatesView";
+import { EstimateForm } from "@/components/EstimateForm";
 import { ExpensesList } from "@/components/ExpensesList";
 import { LineItemControlDashboard } from "@/components/LineItemControlDashboard";
 import { GlobalExpenseAllocation } from "@/components/GlobalExpenseMatching";
@@ -34,6 +35,42 @@ import { isFeatureEnabled } from "@/lib/featureFlags";
 import ProjectScheduleView from "@/components/schedule/ProjectScheduleView";
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
+
+// Wrapper component to handle estimate editing with route params
+const EstimateEditWrapper = ({ 
+  estimates, 
+  projectId, 
+  onSave, 
+  onCancel 
+}: { 
+  estimates: Estimate[]; 
+  projectId: string; 
+  onSave: () => void; 
+  onCancel: () => void; 
+}) => {
+  const { estimateId } = useParams<{ estimateId: string }>();
+  const estimate = estimates.find(e => e.id === estimateId);
+  
+  if (!estimate) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center text-sm text-muted-foreground">
+          Estimate not found
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  return (
+    <EstimateForm
+      mode="edit"
+      initialEstimate={estimate}
+      onSave={onSave}
+      onCancel={onCancel}
+      preselectedProjectId={projectId}
+    />
+  );
+};
 
 export const ProjectDetailView = () => {
   const { id: projectId } = useParams<{ id: string }>();
@@ -378,14 +415,38 @@ export const ProjectDetailView = () => {
                 />
               } />
               
-              <Route path="estimates" element={
-                <ProjectEstimatesView 
-                  projectId={project.id}
-                  estimates={estimates}
-                  quotes={quotes}
-                  onRefresh={loadProjectData}
-                />
-              } />
+              <Route path="estimates">
+                <Route index element={
+                  <ProjectEstimatesView 
+                    projectId={project.id}
+                    estimates={estimates}
+                    quotes={quotes}
+                    onRefresh={loadProjectData}
+                  />
+                } />
+                <Route path=":estimateId/edit" element={
+                  <EstimateEditWrapper 
+                    estimates={estimates}
+                    projectId={projectId!}
+                    onSave={() => {
+                      loadProjectData();
+                      navigate(`/projects/${projectId}/estimates`);
+                    }}
+                    onCancel={() => navigate(`/projects/${projectId}/estimates`)}
+                  />
+                } />
+                <Route path="new" element={
+                  <EstimateForm
+                    mode="create"
+                    onSave={() => {
+                      loadProjectData();
+                      navigate(`/projects/${projectId}/estimates`);
+                    }}
+                    onCancel={() => navigate(`/projects/${projectId}/estimates`)}
+                    preselectedProjectId={projectId}
+                  />
+                } />
+              </Route>
               
               <Route path="expenses" element={
                 <ExpensesList 

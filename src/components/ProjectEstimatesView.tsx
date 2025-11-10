@@ -59,7 +59,7 @@ export const ProjectEstimatesView = ({
       onRefresh();
       
       // Navigate to edit the new version
-      navigate(`/estimates?projectId=${projectId}&estimateId=${newVersionId}`);
+      navigate(`/projects/${projectId}/estimates/${newVersionId}/edit`);
     } catch (error) {
       console.error('Error creating version:', error);
       toast({
@@ -74,7 +74,7 @@ export const ProjectEstimatesView = ({
 
   const handleEditEstimate = () => {
     if (!currentEstimate) return;
-    navigate(`/estimates?projectId=${projectId}&estimateId=${currentEstimate.id}`);
+    navigate(`/projects/${projectId}/estimates/${currentEstimate.id}/edit`);
   };
 
   const handleCreateQuote = () => {
@@ -94,7 +94,7 @@ export const ProjectEstimatesView = ({
           <p className="text-sm text-muted-foreground mb-4">
             This project doesn't have an estimate yet.
           </p>
-          <Button onClick={() => navigate(`/estimates?projectId=${projectId}`)}>
+          <Button onClick={() => navigate(`/projects/${projectId}/estimates/new`)}>
             <Plus className="h-4 w-4 mr-2" />
             Create Estimate
           </Button>
@@ -205,7 +205,7 @@ export const ProjectEstimatesView = ({
                     <div 
                       key={estimate.id} 
                       className="p-3 hover:bg-muted/50 cursor-pointer flex items-center justify-between"
-                      onClick={() => navigate(`/estimates?projectId=${projectId}&estimateId=${estimate.id}`)}
+                      onClick={() => navigate(`/projects/${projectId}/estimates/${estimate.id}/edit`)}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
