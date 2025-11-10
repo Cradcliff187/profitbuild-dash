@@ -129,7 +129,7 @@ const Dashboard = () => {
       return acc;
     }, {}) || {};
 
-    const statusOrder = ['in_progress', 'estimating', 'quoted', 'approved', 'complete', 'on_hold', 'cancelled'];
+    const statusOrder = ['estimating', 'approved', 'in_progress', 'complete', 'cancelled', 'quoted', 'on_hold'];
     const statusLabels: Record<string, string> = {
       'in_progress': 'In Progress',
       'estimating': 'Estimating',
