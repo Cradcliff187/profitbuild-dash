@@ -28,15 +28,17 @@ export function NotesSheetTrigger({ projectId, projectName }: NotesSheetTriggerP
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <button className="w-full h-12 px-3 rounded-lg border border-primary/10 bg-gradient-to-r from-primary/5 to-transparent hover:from-primary/10 hover:to-transparent active:bg-primary/10 transition-colors flex items-center justify-between group">
-          <div className="flex items-center gap-2">
-            <StickyNote className="h-4 w-4 text-primary" />
+        <button className="w-full h-12 px-3 rounded-lg border-2 border-primary/30 bg-gradient-to-r from-primary/20 via-primary/12 to-primary/5 hover:from-primary/25 hover:via-primary/17 hover:to-primary/8 active:from-primary/30 active:via-primary/20 active:to-primary/10 shadow-sm transition-all flex items-center justify-between group">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-primary/20 rounded-md p-1.5">
+              <StickyNote className="h-4 w-4 text-primary" />
+            </div>
             <span className="text-sm font-semibold text-foreground">Project Notes</span>
-            <span className="text-xs text-muted-foreground">
-              • {noteCount} {noteCount === 1 ? 'note' : 'notes'}
+            <span className="text-xs font-medium text-primary bg-primary/15 px-2 py-0.5 rounded-full">
+              {noteCount}
             </span>
           </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
         </button>
       </SheetTrigger>
       
