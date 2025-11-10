@@ -89,6 +89,7 @@ const QuoteEditWrapper = ({
 }) => {
   const { quoteId } = useParams<{ quoteId: string }>();
   const quote = quotes.find(q => q.id === quoteId);
+  console.log('[QuoteEditWrapper] Resolving quote', { quoteId, found: !!quote });
   
   if (!quote) {
     return (
@@ -492,14 +493,12 @@ export const ProjectDetailView = () => {
                     projectId={projectId!}
                     onSave={() => {
                       loadProjectData();
-                      const searchParams = new URLSearchParams(window.location.search);
-                      const tab = searchParams.get('tab') || 'quotes';
-                      navigate(`/projects/${projectId}/estimates?tab=${tab}`);
+                      console.log('[QuoteEditWrapper] Save - navigating back to quotes tab', { projectId });
+                      navigate(`/projects/${projectId}/estimates?tab=quotes`);
                     }}
                     onCancel={() => {
-                      const searchParams = new URLSearchParams(window.location.search);
-                      const tab = searchParams.get('tab') || 'quotes';
-                      navigate(`/projects/${projectId}/estimates?tab=${tab}`);
+                      console.log('[QuoteEditWrapper] Cancel - navigating back to quotes tab', { projectId });
+                      navigate(`/projects/${projectId}/estimates?tab=quotes`);
                     }}
                   />
                 } />

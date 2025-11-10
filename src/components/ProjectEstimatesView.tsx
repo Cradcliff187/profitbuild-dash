@@ -232,7 +232,10 @@ export const ProjectEstimatesView = ({
           <QuotesList 
             quotes={quotes}
             estimates={estimates}
-            onEdit={(quote) => navigate(`/projects/${projectId}/estimates/quotes/${quote.id}/edit?tab=quotes`)}
+            onEdit={(quote) => {
+              console.log('[QuotesTab] Edit quote clicked', { quoteId: quote.id, projectId });
+              navigate(`/projects/${projectId}/estimates/quotes/${quote.id}/edit`);
+            }}
             onDelete={() => onRefresh()}
             onCompare={() => {}}
             onCreateNew={() => navigate(`/projects/${projectId}/estimates/quotes/new?tab=quotes`)}
