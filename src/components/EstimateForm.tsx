@@ -867,10 +867,10 @@ useEffect(() => {
           {/* Back button - show when in project context */}
           {(preselectedProjectId || initialEstimate) && (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={onCancel}
-              className="w-fit mb-2 -ml-2 hover:bg-muted"
+              className="w-fit mb-2"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Estimates
