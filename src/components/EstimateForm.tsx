@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Plus, Trash2, Calculator, FolderOpen } from "lucide-react";
+import { Save, Plus, Trash2, Calculator, FolderOpen, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -864,6 +864,19 @@ useEffect(() => {
     <div className="form-dense space-y-2">
       <Card>
         <CardHeader className="p-4 bg-muted/30 border-b">
+          {/* Back button - show when in project context */}
+          {(preselectedProjectId || initialEstimate) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onCancel}
+              className="w-fit mb-2 -ml-2 hover:bg-muted"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Estimates
+            </Button>
+          )}
+          
           <div className="space-y-3">
             <CardTitle className="text-lg font-semibold">
               {mode === 'view' ? 'View Estimate Details' : initialEstimate ? 'Edit Estimate' : 'Create Estimate'}
