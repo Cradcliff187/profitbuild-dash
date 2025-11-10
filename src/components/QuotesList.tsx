@@ -19,7 +19,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
 import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
-import { calculateQuoteTotalCost } from "@/utils/quoteFinancials";
 import { QuoteStatusBadge } from "./QuoteStatusBadge";
 import { QuotesTableView } from "./QuotesTableView";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,6 +83,25 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
     return matchingItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
   };
 
+  const getEstimateLineItemPrice = (quote: Quote): number | null => {
+    const estimate = getEstimateForQuote(quote);
+    if (!estimate || !estimate.lineItems) return null;
+
+    if (quote.estimate_line_item_id) {
+      const targetLineItem = estimate.lineItems.find(item => item.id === quote.estimate_line_item_id);
+      if (!targetLineItem) return null;
+      return targetLineItem.total || targetLineItem.quantity * targetLineItem.pricePerUnit;
+    } else {
+      // Category-based matching
+      const quoteCategorySet = new Set(quote.lineItems.map(item => item.category));
+      const matchingItems = estimate.lineItems.filter(item => quoteCategorySet.has(item.category));
+      
+      if (matchingItems.length === 0) return null;
+      
+      return matchingItems.reduce((sum, item) => sum + (item.total || item.quantity * item.pricePerUnit), 0);
+    }
+  };
+
   const getQuotedAmountForEstimateMatch = (quote: Quote): number | null => {
     const estimate = getEstimateForQuote(quote);
     if (!estimate || !estimate.lineItems || !quote.lineItems) {
@@ -102,24 +120,6 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
       // Category-based matching - sum all quote line item costs
       return quote.lineItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
     }
-  };
-
-  const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'over' | 'under' | 'exact' } => {
-    const estimateCost = getEstimateLineItemCost(quote);
-    const quotedAmount = getQuotedAmountForEstimateMatch(quote);
-    
-    if (estimateCost === null || quotedAmount === null) {
-      return { amount: 0, percentage: 0, status: 'exact' };
-    }
-
-    const difference = quotedAmount - estimateCost;
-    const percentage = estimateCost > 0 ? (difference / estimateCost) * 100 : 0;
-    
-    return {
-      amount: Math.abs(difference),
-      percentage: Math.abs(percentage),
-      status: difference > 0 ? 'over' : difference < 0 ? 'under' : 'exact'
-    };
   };
 
   const sortedQuotes = [...quotes].sort((a, b) => {
@@ -270,7 +270,6 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
       <div className="space-y-3">
         {sortedQuotes.map((quote) => {
           const estimate = getEstimateForQuote(quote);
-          const variance = getCostVariance(quote);
           
           return (
             <Card key={quote.id} className="compact-card border border-primary/10">
@@ -308,8 +307,78 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
                 
                 <CollapsibleContent>
                   <div className="space-y-2 pt-2">
-                    {/* Quote Details */}
-                    <div className="grid grid-cols-2 gap-2 text-label">
+                    {/* Financial Summary - 3 key numbers */}
+                    <div className="grid grid-cols-3 gap-2 text-label bg-muted/30 p-3 rounded-lg">
+                      <div className="text-center">
+                        <div className="text-muted-foreground text-label">Price</div>
+                        <div className="text-interface font-bold font-mono">
+                          {(() => {
+                            const estimatePrice = getEstimateLineItemPrice(quote);
+                            return estimatePrice !== null ? formatCurrency(estimatePrice) : 'N/A';
+                          })()}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Customer</div>
+                      </div>
+                      <div className="text-center border-x border-border">
+                        <div className="text-muted-foreground text-label">Est. Cost</div>
+                        <div className="text-interface font-bold font-mono">
+                          {(() => {
+                            const estimateCost = getEstimateLineItemCost(quote);
+                            return estimateCost !== null ? formatCurrency(estimateCost) : 'N/A';
+                          })()}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Budgeted</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-muted-foreground text-label">Quoted Cost</div>
+                        <div className="text-interface font-bold font-mono text-primary">
+                          {formatCurrency(quote.total)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Vendor</div>
+                      </div>
+                    </div>
+
+                    {/* Profit Impact Calculation */}
+                    {(() => {
+                      const estimatePrice = getEstimateLineItemPrice(quote);
+                      const estimateCost = getEstimateLineItemCost(quote);
+                      const quotedCost = quote.total;
+                      
+                      if (estimatePrice !== null && estimateCost !== null) {
+                        const originalProfit = estimatePrice - estimateCost;
+                        const newProfit = estimatePrice - quotedCost;
+                        const profitImpact = newProfit - originalProfit;
+                        
+                        return (
+                          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium">Profit Impact</span>
+                              <Badge 
+                                variant={profitImpact >= 0 ? 'default' : 'destructive'}
+                                className="font-mono"
+                              >
+                                {profitImpact >= 0 ? '+' : ''}
+                                {formatCurrency(profitImpact)}
+                              </Badge>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="text-muted-foreground">Original: </span>
+                                <span className="font-mono">{formatCurrency(originalProfit)}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">New: </span>
+                                <span className="font-mono">{formatCurrency(newProfit)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* Other Details */}
+                    <div className="grid grid-cols-2 gap-2 text-label pt-2 border-t">
                       <div>
                         <div className="text-muted-foreground text-label">Quoted By</div>
                         <div className="font-medium">{quote.quotedBy}</div>
@@ -318,78 +387,19 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
                         <div className="text-muted-foreground text-label">Date Received</div>
                         <div className="font-medium">{format(quote.dateReceived, "MMM dd, yyyy")}</div>
                       </div>
-                      <div>
-                        <div className="text-muted-foreground text-label">Quote Total</div>
-                        <div className="text-interface font-bold font-mono">{formatCurrency(quote.total)}</div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground text-label">Estimate Cost</div>
-                        <div className="font-medium font-mono">
-                          {(() => {
-                            const estimateCost = getEstimateLineItemCost(quote);
-                            return estimateCost !== null ? formatCurrency(estimateCost) : 'N/A';
-                          })()}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground">Quoted Amount</div>
-                        <div className="font-bold">
-                          {(() => {
-                            const quotedAmount = getQuotedAmountForEstimateMatch(quote);
-                            return quotedAmount !== null ? formatCurrency(quotedAmount) : 'N/A';
-                          })()}
-                        </div>
-                      </div>
                       {quote.valid_until && (
-                        <>
-                          <div>
-                            <div className="text-muted-foreground">Valid Until</div>
-                            <div className="font-medium">{format(quote.valid_until, "MMM dd, yyyy")}</div>
-                          </div>
-                          <div></div>
-                        </>
+                        <div>
+                          <div className="text-muted-foreground">Valid Until</div>
+                          <div className="font-medium">{format(quote.valid_until, "MMM dd, yyyy")}</div>
+                        </div>
                       )}
                       {quote.accepted_date && (
-                        <>
-                          <div>
-                            <div className="text-muted-foreground">Accepted Date</div>
-                            <div className="font-medium">{format(quote.accepted_date, "MMM dd, yyyy")}</div>
-                          </div>
-                          <div></div>
-                        </>
+                        <div>
+                          <div className="text-muted-foreground">Accepted Date</div>
+                          <div className="font-medium">{format(quote.accepted_date, "MMM dd, yyyy")}</div>
+                        </div>
                       )}
                     </div>
-
-
-                    {/* Budget Variance */}
-                    {estimate && (
-                        <div className="p-3 rounded-lg bg-muted/50">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">Cost Variance</span>
-                          <Badge 
-                            variant={
-                              variance.status === 'over' ? 'destructive' : 
-                              variance.status === 'under' ? 'default' : 
-                              'secondary'
-                            }
-                          >
-                            {variance.status === 'over' && '+'}
-                            {variance.status === 'under' && '-'}
-                            {formatCurrency(variance.amount)} ({variance.percentage.toFixed(1)}%)
-                          </Badge>
-                        </div>
-                        {variance.status === 'over' && (
-                          <div className="text-xs text-destructive mt-1">
-                            Over budget
-                          </div>
-                        )}
-                        {variance.status === 'under' && (
-                          <div className="text-xs text-green-600">
-                            Under budget
-                          </div>
-                        )}
-                      </div>
-                    )}
 
                     {/* Rejection Reason */}
                     {quote.status === QuoteStatus.REJECTED && quote.rejection_reason && (
