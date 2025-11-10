@@ -191,7 +191,11 @@ export const ProjectDetailView = () => {
           .order('date_created', { ascending: false }),
         supabase
           .from('quotes')
-          .select('*')
+          .select(`
+            *,
+            payees(payee_name),
+            quote_line_items(*)
+          `)
           .eq('project_id', projectId)
           .order('date_received', { ascending: false }),
         // Fetch expenses with proper split handling
@@ -284,31 +288,56 @@ export const ProjectDetailView = () => {
       }));
 
       // Format quotes with proper typing
-      const formattedQuotes = (quotesData || []).map(quote => ({
-        ...quote,
-        dateReceived: new Date(quote.date_received),
-        createdAt: new Date(quote.created_at),
-        updatedAt: new Date(quote.updated_at),
-        validUntil: quote.valid_until ? new Date(quote.valid_until) : undefined,
-        accepted_date: quote.accepted_date ? new Date(quote.accepted_date) : undefined,
-        status: quote.status as any,
-        projectName: formattedProject.project_name,
-        client: formattedProject.client_name,
-        project_number: formattedProject.project_number,
-        quotedBy: '',
-        quoteNumber: quote.quote_number || '',
-        lineItems: [],
-        subtotals: {
-          labor: 0,
-          subcontractors: 0,
-          materials: 0,
-          equipment: 0,
-          other: 0
-        },
-        total: quote.total_amount || 0,
-        isOverdue: false,
-        daysUntilExpiry: 0
-      })) as unknown as Quote[];
+      const formattedQuotes = (quotesData || []).map(quote => {
+        // Helper function to safely parse numbers
+        const safeNumber = (value: any, defaultValue: number = 0): number => {
+          const parsed = typeof value === 'string' ? parseFloat(value) : Number(value);
+          return isNaN(parsed) || !isFinite(parsed) ? defaultValue : parsed;
+        };
+
+        // Handle nested Supabase response
+        const payeeData = Array.isArray(quote.payees) ? quote.payees[0] : quote.payees;
+
+        return {
+          ...quote,
+          dateReceived: new Date(quote.date_received),
+          createdAt: new Date(quote.created_at),
+          updatedAt: new Date(quote.updated_at),
+          validUntil: quote.valid_until ? new Date(quote.valid_until) : undefined,
+          accepted_date: quote.accepted_date ? new Date(quote.accepted_date) : undefined,
+          status: quote.status as any,
+          projectName: formattedProject.project_name,
+          client: formattedProject.client_name,
+          project_number: formattedProject.project_number,
+          quotedBy: payeeData?.payee_name || '',
+          quoteNumber: quote.quote_number || '',
+          lineItems: (quote.quote_line_items || []).map((item: any) => ({
+            id: item.id || '',
+            estimateLineItemId: item.estimate_line_item_id || undefined,
+            changeOrderLineItemId: item.change_order_line_item_id || undefined,
+            category: item.category,
+            description: item.description || '',
+            quantity: safeNumber(item.quantity, 1),
+            pricePerUnit: safeNumber(item.rate, 0),
+            total: safeNumber(item.total, 0),
+            costPerUnit: safeNumber(item.cost_per_unit, 0),
+            markupPercent: item.markup_percent ? safeNumber(item.markup_percent) : null,
+            markupAmount: item.markup_amount ? safeNumber(item.markup_amount) : null,
+            totalCost: safeNumber(item.total_cost, 0),
+            totalMarkup: safeNumber(item.total_markup, 0)
+          })),
+          subtotals: {
+            labor: 0,
+            subcontractors: 0,
+            materials: 0,
+            equipment: 0,
+            other: 0
+          },
+          total: quote.total_amount || 0,
+          isOverdue: false,
+          daysUntilExpiry: 0
+        };
+      }) as unknown as Quote[];
 
       // Format expenses with proper typing
       const formattedExpenses: Expense[] = (expensesData || []).map((expense: any) => ({
