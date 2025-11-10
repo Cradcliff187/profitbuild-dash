@@ -31,13 +31,14 @@ interface QuotesListProps {
   quotes: Quote[];
   estimates: Estimate[];
   onEdit: (quote: Quote) => void;
+  onView?: (quote: Quote) => void;
   onDelete: (quoteId: string) => void;
   onCompare: (quote: Quote) => void;
   onExpire?: (expiredQuoteIds: string[]) => void;
   onCreateNew?: () => void;
 }
 
-export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onExpire, onCreateNew }: QuotesListProps) => {
+export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onCompare, onExpire, onCreateNew }: QuotesListProps) => {
   const isMobile = useIsMobile();
   const [sortBy, setSortBy] = useState<'date' | 'project' | 'total'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -206,6 +207,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onDelete, onCompare, onE
         quotes={quotes}
         estimates={estimates}
         onEdit={onEdit}
+        onView={onView}
         onDelete={onDelete}
         onCompare={onCompare}
         onCreateNew={onCreateNew || (() => {})}

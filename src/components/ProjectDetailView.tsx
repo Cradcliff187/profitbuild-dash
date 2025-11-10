@@ -79,17 +79,19 @@ const QuoteEditWrapper = ({
   estimates,
   projectId, 
   onSave, 
-  onCancel 
+  onCancel,
+  mode = 'edit'
 }: { 
   quotes: Quote[]; 
   estimates: Estimate[];
   projectId: string; 
   onSave: () => void; 
-  onCancel: () => void; 
+  onCancel: () => void;
+  mode?: 'edit' | 'view';
 }) => {
   const { quoteId } = useParams<{ quoteId: string }>();
   const quote = quotes.find(q => q.id === quoteId);
-  console.log('[QuoteEditWrapper] Resolving quote', { quoteId, found: !!quote });
+  console.log('[QuoteEditWrapper] Resolving quote', { quoteId, found: !!quote, mode });
   
   if (!quote) {
     return (
@@ -107,6 +109,7 @@ const QuoteEditWrapper = ({
       initialQuote={quote}
       onSave={onSave}
       onCancel={onCancel}
+      mode={mode}
     />
   );
 };
@@ -184,11 +187,15 @@ export const ProjectDetailView = () => {
         { data: mediaData },
         documentsData
       ] = await Promise.all([
-        supabase
-          .from('estimates')
-          .select('*')
-          .eq('project_id', projectId)
-          .order('date_created', { ascending: false }),
+      supabase
+        .from('estimates')
+        .select(`
+          *,
+          projects(project_name, client_name),
+          estimate_line_items(*)
+        `)
+        .eq('project_id', projectId)
+        .order('date_created', { ascending: false }),
         supabase
           .from('quotes')
           .select(`
@@ -275,17 +282,42 @@ export const ProjectDetailView = () => {
         end_date: projectData.end_date ? new Date(projectData.end_date) : undefined,
       };
 
-      // Format estimates with proper typing
-      const formattedEstimates: Estimate[] = (estimatesData || []).map(estimate => ({
-        ...estimate,
-        date_created: new Date(estimate.date_created),
-        created_at: new Date(estimate.created_at),
-        updated_at: new Date(estimate.updated_at),
-        valid_until: estimate.valid_until ? new Date(estimate.valid_until) : undefined,
-        lineItems: [],
-        defaultMarkupPercent: estimate.default_markup_percent || 25,
-        targetMarginPercent: estimate.target_margin_percent || 20
-      }));
+      // Format estimates with line items
+      const formattedEstimates = (estimatesData || []).map((estimate: any) => {
+        const safeNumber = (value: any, defaultValue: number = 0): number => {
+          const parsed = typeof value === 'string' ? parseFloat(value) : Number(value);
+          return isNaN(parsed) || !isFinite(parsed) ? defaultValue : parsed;
+        };
+
+        const projectData = Array.isArray(estimate.projects) ? estimate.projects[0] : estimate.projects;
+
+        return {
+          ...estimate,
+          date_created: new Date(estimate.date_created),
+          valid_until: estimate.valid_until ? new Date(estimate.valid_until) : undefined,
+          created_at: new Date(estimate.created_at),
+          updated_at: new Date(estimate.updated_at),
+          project_name: projectData?.project_name || formattedProject.project_name,
+          client_name: projectData?.client_name || formattedProject.client_name,
+          defaultMarkupPercent: estimate.default_markup_percent || 25,
+          targetMarginPercent: estimate.target_margin_percent || 20,
+          lineItems: (estimate.estimate_line_items || []).map((item: any) => ({
+            id: item.id,
+            category: item.category,
+            description: item.description || '',
+            quantity: safeNumber(item.quantity, 1),
+            pricePerUnit: safeNumber(item.price_per_unit || item.rate, 0),
+            total: safeNumber(item.total, 0),
+            unit: item.unit || '',
+            sort_order: item.sort_order || 0,
+            costPerUnit: safeNumber(item.cost_per_unit, 0),
+            markupPercent: item.markup_percent ? safeNumber(item.markup_percent) : null,
+            markupAmount: item.markup_amount ? safeNumber(item.markup_amount) : null,
+            totalCost: safeNumber(item.total_cost, 0),
+            totalMarkup: safeNumber(item.total_markup, 0)
+          }))
+        };
+      });
 
       // Format quotes with proper typing
       const formattedQuotes = (quotesData || []).map(quote => {
@@ -513,6 +545,19 @@ export const ProjectDetailView = () => {
                     onCancel={() => navigate(`/projects/${projectId}/estimates`)}
                     preselectedProjectId={projectId}
                     availableEstimates={estimates}
+                  />
+                } />
+                <Route path="quotes/:quoteId" element={
+                  <QuoteEditWrapper 
+                    quotes={quotes}
+                    estimates={estimates}
+                    projectId={projectId!}
+                    mode="view"
+                    onSave={() => {}}
+                    onCancel={() => {
+                      console.log('[QuoteViewWrapper] Back - navigating back to quotes tab', { projectId });
+                      navigate(`/projects/${projectId}/estimates?tab=quotes`);
+                    }}
                   />
                 } />
                 <Route path="quotes/:quoteId/edit" element={

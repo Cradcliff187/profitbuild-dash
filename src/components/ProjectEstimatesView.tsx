@@ -232,6 +232,10 @@ export const ProjectEstimatesView = ({
           <QuotesList 
             quotes={quotes}
             estimates={estimates}
+            onView={(quote) => {
+              console.log('[QuotesTab] View quote clicked', { quoteId: quote.id, projectId });
+              navigate(`/projects/${projectId}/estimates/quotes/${quote.id}`);
+            }}
             onEdit={(quote) => {
               console.log('[QuotesTab] Edit quote clicked', { quoteId: quote.id, projectId });
               navigate(`/projects/${projectId}/estimates/quotes/${quote.id}/edit`);

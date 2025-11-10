@@ -63,11 +63,13 @@ interface QuoteFormProps {
   initialQuote?: Quote;
   onSave: (quote: Quote) => void;
   onCancel: () => void;
+  mode?: 'edit' | 'view';
 }
 
-export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFormProps) => {
+export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'edit' }: QuoteFormProps) => {
   const { toast } = useToast();
   const isEdit = !!initialQuote;
+  const isViewMode = mode === 'view';
   
   // Initialize selectedEstimate synchronously when editing
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate | undefined>(() => {
@@ -87,6 +89,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   const [validationErrors, setValidationErrors] = useState<Record<string, QuoteValidationResult>>({});
   const [estimateSearchQuery, setEstimateSearchQuery] = useState('');
   const [changeOrderLineItems, setChangeOrderLineItems] = useState<any[]>([]);
+  const [isChangingEstimate, setIsChangingEstimate] = useState(false);
 
   const generateQuoteNumber = async (projectId: string, projectNumber: string, estimateId: string) => {
     try {
@@ -574,8 +577,8 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   }, [estimates, estimateSearchQuery]);
 
   if (!selectedEstimate) {
-    // In edit mode, show loading while estimate resolves
-    if (isEdit) {
+    // In edit mode, show loading while estimate resolves (unless user is actively changing it)
+    if (isEdit && !isChangingEstimate) {
       return (
         <Card className="compact-card">
           <CardHeader className="p-compact">
@@ -904,19 +907,26 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
           )}
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>{initialQuote ? 'Edit Quote' : 'Create Quote'}</CardTitle>
+              <CardTitle>{isViewMode ? 'View Quote' : (initialQuote ? 'Edit Quote' : 'Create Quote')}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 {selectedEstimate.project_name} • {selectedEstimate.client_name}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setSelectedEstimate(undefined)}
-              >
-                Change Estimate
-              </Button>
+              {!isViewMode && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setIsChangingEstimate(true);
+                    setSelectedEstimate(undefined);
+                    setShowLineItemSelection(false);
+                    setLineItems([]);
+                  }}
+                >
+                  Change Estimate
+                </Button>
+              )}
               <Badge variant="outline">
                 {selectedEstimate.estimate_number}
               </Badge>
@@ -928,7 +938,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
             <PayeeSelector
               value={selectedPayee?.id || ''}
               onValueChange={(payeeId, payeeName, payee) => {
-                if (payee) setSelectedPayee(payee);
+                if (payee && !isViewMode) setSelectedPayee(payee);
               }}
               placeholder="Select vendor/subcontractor..."
               label="Vendor/Payee"
@@ -943,6 +953,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
+                    disabled={isViewMode}
                     className={cn(
                       "w-full justify-start text-left font-normal",
                       !dateReceived && "text-muted-foreground"
@@ -965,7 +976,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
 
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={status} onValueChange={(value: QuoteStatus) => setStatus(value)}>
+              <Select value={status} onValueChange={(value: QuoteStatus) => setStatus(value)} disabled={isViewMode}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -1024,10 +1035,12 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Line Items Comparison</CardTitle>
-            <Button size="sm" onClick={addLineItem}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
-            </Button>
+            {!isViewMode && (
+              <Button size="sm" onClick={addLineItem}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -1063,7 +1076,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                 <div key={item.id} className="border rounded-lg p-3 space-y-3">
                   <div className="flex items-center justify-between">
                     <Badge variant="outline">{CATEGORY_DISPLAY_MAP[item.category]}</Badge>
-                    {!estimateItem && (
+                    {!estimateItem && !isViewMode && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -1096,6 +1109,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                               onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
                               placeholder="Item description"
                               className="h-8"
+                              disabled={isViewMode}
                             />
                           </td>
                           <td className="p-3 text-sm text-muted-foreground">—</td>
@@ -1113,6 +1127,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
                               step="0.01"
                               onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
                               className="h-8"
+                              disabled={isViewMode}
                             />
                           </td>
                           <td className="p-3 text-sm">
@@ -1234,6 +1249,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add any notes about this quote..."
               rows={4}
+              disabled={isViewMode}
             />
           </CardContent>
         </Card>
@@ -1243,11 +1259,23 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
             <CardTitle>Attachment</CardTitle>
           </CardHeader>
           <CardContent>
-            <PdfUpload
-              onUpload={(url, fileName) => setAttachmentUrl(url)}
-              existingFile={attachmentUrl ? { url: attachmentUrl, name: "Quote Attachment" } : undefined}
-              onRemove={() => setAttachmentUrl("")}
-            />
+            {isViewMode ? (
+              attachmentUrl ? (
+                <div className="text-sm">
+                  <a href={attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    View Attachment
+                  </a>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No attachment</p>
+              )
+            ) : (
+              <PdfUpload
+                onUpload={(url, fileName) => setAttachmentUrl(url)}
+                existingFile={attachmentUrl ? { url: attachmentUrl, name: "Quote Attachment" } : undefined}
+                onRemove={() => setAttachmentUrl("")}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
@@ -1255,12 +1283,14 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       {/* Actions */}
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onCancel}>
-          Cancel
+          {isViewMode ? 'Back to Quotes' : 'Cancel'}
         </Button>
-        <Button onClick={handleSave}>
-          <Save className="h-4 w-4 mr-2" />
-          {initialQuote ? 'Update Quote' : 'Save Quote'}
-        </Button>
+        {!isViewMode && (
+          <Button onClick={handleSave}>
+            <Save className="h-4 w-4 mr-2" />
+            {initialQuote ? 'Update Quote' : 'Save Quote'}
+          </Button>
+        )}
       </div>
     </div>
   );

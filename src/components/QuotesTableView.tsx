@@ -38,6 +38,7 @@ interface QuotesTableViewProps {
   quotes: Quote[];
   estimates: Estimate[];
   onEdit: (quote: Quote) => void;
+  onView?: (quote: Quote) => void;
   onDelete: (quoteId: string) => void;
   onCompare: (quote: Quote) => void;
   onCreateNew: () => void;
@@ -62,7 +63,8 @@ const columnDefinitions = [
 export const QuotesTableView = ({ 
   quotes, 
   estimates, 
-  onEdit, 
+  onEdit,
+  onView, 
   onDelete, 
   onCompare, 
   onCreateNew 
@@ -595,6 +597,15 @@ export const QuotesTableView = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
+            {onView && (
+              <>
+                <DropdownMenuItem onClick={() => onView(quote)}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  View
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem onClick={() => onEdit(quote)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
