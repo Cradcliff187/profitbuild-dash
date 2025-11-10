@@ -679,9 +679,11 @@ function processLineItemData(
     const variance = actualAmount - estimatedPrice;
     const variancePercent = estimatedPrice > 0 ? (variance / estimatedPrice) * 100 : 0;
 
-    // Cost variance (quoted vs estimated cost)
-    const costVariance = quotedCost - estimatedCost;
-    const costVariancePercent = estimatedCost > 0 ? (costVariance / estimatedCost) * 100 : 0;
+    // Cost variance (quoted vs estimated cost) - only calculate if quote exists
+    const costVariance = quotedCost > 0 ? (quotedCost - estimatedCost) : 0;
+    const costVariancePercent = (estimatedCost > 0 && quotedCost > 0) 
+      ? (costVariance / estimatedCost) * 100 
+      : 0;
     
     // Margin impact (positive = improves margin)
     const marginImpact = estimatedCost - quotedCost;
@@ -778,12 +780,13 @@ async function calculateSummary(lineItems: LineItemControlData[], project: Proje
   
   // Total Quoted + Internal Labor: 
   // - For internal categories: use estimated cost
-  // - For external categories: use quoted cost
+  // - For external categories: ONLY use quoted cost if quote exists
   const totalQuotedWithInternal = lineItems.reduce((sum, item) => {
     if (isInternalCategory(item.category)) {
       return sum + item.estimatedCost; // Use estimate for internal
     } else {
-      return sum + item.quotedCost; // Use quote for external
+      // Only include if there's an accepted quote (quotedCost > 0)
+      return sum + item.quotedCost; // Will be 0 if no quote
     }
   }, 0);
   
@@ -802,10 +805,20 @@ async function calculateSummary(lineItems: LineItemControlData[], project: Proje
   // Unallocated = project expenses not yet matched to any line item
   const totalUnallocated = Math.max(0, totalProjectExpenses - totalAllocated);
   
-  // Total Variance: (Quoted + Internal) vs Estimated Cost
+  // Total Estimated Cost for items that have quotes (for variance calc)
+  const totalEstimatedCostWithQuotes = lineItems.reduce((sum, item) => {
+    if (isInternalCategory(item.category)) {
+      return sum + item.estimatedCost; // Include internal (always "quoted")
+    } else if (item.quotedCost > 0) {
+      return sum + item.estimatedCost; // Only include if quote exists
+    }
+    return sum;
+  }, 0);
+  
+  // Total Variance: Only compare items that have quotes
   // Positive = over budget (quotes came in higher than estimated)
   // Negative = under budget (quotes came in lower than estimated)
-  const totalVariance = totalQuotedWithInternal - totalEstimatedCost;
+  const totalVariance = totalQuotedWithInternal - totalEstimatedCostWithQuotes;
   
   // Contract Value: from project table
   const totalContractValue = project.contracted_amount || 0;
@@ -814,14 +827,18 @@ async function calculateSummary(lineItems: LineItemControlData[], project: Proje
     item.quotes.filter(q => q.status === 'accepted').length > 0
   ).length;
   
-  // Items over budget: where quoted cost > estimated cost (for external items)
+  // Items over budget: where quoted cost > estimated cost (ONLY for items with quotes)
   const lineItemsOverBudget = lineItems.filter(item => 
-    !isInternalCategory(item.category) && item.costVariance > 0
+    !isInternalCategory(item.category) && 
+    item.quotedCost > 0 &&  // Must have a quote
+    item.costVariance > 0
   ).length;
   
-  // Items under budget: where quoted cost < estimated cost (for external items)
+  // Items under budget: where quoted cost < estimated cost (ONLY for items with quotes)
   const lineItemsUnderBudget = lineItems.filter(item => 
-    !isInternalCategory(item.category) && item.costVariance < 0
+    !isInternalCategory(item.category) && 
+    item.quotedCost > 0 &&  // Must have a quote
+    item.costVariance < 0
   ).length;
   
   // Completion %: actual vs quoted+internal (more meaningful baseline)
