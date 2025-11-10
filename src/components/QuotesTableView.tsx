@@ -16,7 +16,6 @@ import { format } from "date-fns";
 import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
 import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
-import { calculateQuoteTotalCost } from "@/utils/quoteFinancials";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
 import { QuoteStatusSelector } from "./QuoteStatusSelector";
 // Removed BudgetComparisonBadge import
@@ -230,47 +229,22 @@ export const QuotesTableView = ({
     return null;
   };
 
-  const getQuotedAmountForEstimateMatch = (quote: Quote): number | null => {
-    const quoteLineItems = quote.lineItems || [];
-    if (quoteLineItems.length === 0) return null;
-    
-    let totalQuoted = 0;
-    let hasMatch = false;
-    
-    // Sum quote line items that have estimate_line_item_id links
-    quoteLineItems.forEach(qli => {
-      // Handle both camelCase and snake_case
-      const linkId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
-      if (linkId) {
-        totalQuoted += Number(qli.totalCost || (qli as any).total_cost || 0);
-        hasMatch = true;
-      }
-    });
-    
-    if (hasMatch) {
-      return totalQuoted;
-    }
-    
-    // Fallback: If quote has quote-level estimate_line_item_id link, sum costs if available
-    if (quote.estimate_line_item_id) {
-      const sumCost = quoteLineItems.reduce((s, i) => s + Number(i.totalCost || (i as any).total_cost || 0), 0);
-      return sumCost || null;
-    }
-    
-    // Last fallback: sum all quote line item costs
-    return quoteLineItems.reduce((sum, item) => sum + Number(item.totalCost || (item as any).total_cost || 0), 0);
+  const getQuotedCost = (quote: Quote): number => {
+    return quote.lineItems.reduce((sum, item) => 
+      sum + (item.totalCost || item.quantity * item.costPerUnit), 0
+    );
   };
 
   // Line-item-aware variance calculation for individual quotes
   const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'under' | 'over' | 'none' } => {
     const estimateCost = getEstimateLineItemCost(quote);
-    const quotedAmount = getQuotedAmountForEstimateMatch(quote);
+    const quotedCost = getQuotedCost(quote);
     
-    if (estimateCost === null || quotedAmount === null || estimateCost === 0) {
+    if (estimateCost === null || quotedCost === 0) {
       return { amount: 0, percentage: 0, status: 'none' };
     }
     
-    const variance = quotedAmount - estimateCost;
+    const variance = quotedCost - estimateCost;
     const variancePercent = (variance / estimateCost) * 100;
     
     return {
@@ -461,13 +435,13 @@ export const QuotesTableView = ({
       align: 'right',
       width: '120px',
       sortable: true,
-      getSortValue: (quote) => calculateQuoteTotalCost(quote.lineItems || []),
+      getSortValue: (quote) => getQuotedCost(quote),
       render: (quote) => (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="font-semibold text-xs font-mono tabular-nums cursor-help">
-                {formatCurrency(calculateQuoteTotalCost(quote.lineItems || []), { showCents: false })}
+                {formatCurrency(getQuotedCost(quote), { showCents: false })}
               </div>
             </TooltipTrigger>
             <TooltipContent>

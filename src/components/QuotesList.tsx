@@ -134,24 +134,10 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
     );
   };
 
-  const getQuotedAmountForEstimateMatch = (quote: Quote): number | null => {
-    const estimate = getEstimateForQuote(quote);
-    if (!estimate || !estimate.lineItems || !quote.lineItems) {
-      return null;
-    }
-
-    // If linked to specific estimate line item
-    if (quote.estimate_line_item_id) {
-      const targetLineItem = estimate.lineItems.find(item => item.id === quote.estimate_line_item_id);
-      if (!targetLineItem) return null;
-      
-      // Find quote line items that match this category
-      const matchingQuoteItems = quote.lineItems.filter(item => item.category === targetLineItem.category);
-      return matchingQuoteItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
-    } else {
-      // Category-based matching - sum all quote line item costs
-      return quote.lineItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
-    }
+  const getQuotedCost = (quote: Quote): number => {
+    return quote.lineItems.reduce((sum, item) => 
+      sum + (item.totalCost || item.quantity * item.costPerUnit), 0
+    );
   };
 
   const sortedQuotes = [...quotes].sort((a, b) => {
@@ -364,7 +350,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
                       <div className="text-center">
                         <div className="text-muted-foreground text-label">Quoted Cost</div>
                         <div className="text-interface font-bold font-mono text-primary">
-                          {formatCurrency(quote.total)}
+                          {formatCurrency(getQuotedCost(quote))}
                         </div>
                         <div className="text-xs text-muted-foreground">Vendor</div>
                       </div>
@@ -374,7 +360,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
                     {(() => {
                       const estimatePrice = getEstimateLineItemPrice(quote);
                       const estimateCost = getEstimateLineItemCost(quote);
-                      const quotedCost = quote.total;
+                      const quotedCost = getQuotedCost(quote);
                       
                       if (estimatePrice !== null && estimateCost !== null) {
                         const originalProfit = estimatePrice - estimateCost;
