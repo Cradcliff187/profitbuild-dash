@@ -38,9 +38,25 @@ const isNativePickerInteraction = (target: EventTarget | null): boolean => {
   return isSelect || isPicker;
 };
 
+// Helper to detect clicks on Radix DropdownMenu components
+const isRadixDropdownMenuInteraction = (target: EventTarget | null): boolean => {
+  if (!(target instanceof Element)) return false;
+  return !!(
+    target.closest('[data-radix-dropdown-menu-trigger]') ||  // Trigger button
+    target.closest('[data-radix-dropdown-menu-content]') ||  // Dropdown portal
+    target.closest('[data-radix-dropdown-menu-item]') ||     // Menu items
+    target.closest('[role="menu"]') ||                       // ARIA role on content
+    target.closest('[role="menuitem"]')                      // ARIA role on items
+  );
+};
+
 // Combined helper to detect any dropdown-like interaction
 const isDropdownLikeInteraction = (target: EventTarget | null): boolean => {
-  return isRadixSelectInteraction(target) || isNativePickerInteraction(target);
+  return (
+    isRadixSelectInteraction(target) || 
+    isNativePickerInteraction(target) ||
+    isRadixDropdownMenuInteraction(target)
+  );
 };
 
 const Sheet = SheetPrimitive.Root;
