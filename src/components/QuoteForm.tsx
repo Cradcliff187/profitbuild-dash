@@ -418,7 +418,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
   };
 
   const handleSave = async () => {
-    if (!selectedEstimate) {
+    if (!selectedEstimate && !initialQuote) {
       toast({
         title: "Missing Project",
         description: "Please select a project estimate.",
@@ -494,34 +494,38 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
     const financials = calculateQuoteFinancials(lineItems);
     const { includes_materials, includes_labor } = determineQuoteIncludes(lineItems.filter(item => item.description.trim()));
 
-    // Get project data for hierarchical quote number generation
-    const { data: projectData, error: projectError } = await supabase
-      .from('projects')
-      .select('project_number')
-      .eq('id', selectedEstimate.project_id)
-      .single();
-    
     let quoteNumber = initialQuote?.quoteNumber;
     if (!quoteNumber) {
-      if (projectError) {
-        console.error('Error fetching project:', projectError);
-        // Fallback to old format if project fetch fails
-        quoteNumber = `QTE-${Date.now().toString().slice(-6)}`;
+      if (selectedEstimate) {
+        const { data: projectData, error: projectError } = await supabase
+          .from('projects')
+          .select('project_number')
+          .eq('id', selectedEstimate.project_id)
+          .single();
+
+        if (projectError) {
+          console.error('Error fetching project:', projectError);
+          // Fallback to old format if project fetch fails
+          quoteNumber = `QTE-${Date.now().toString().slice(-6)}`;
+        } else {
+          quoteNumber = await generateQuoteNumber(
+            selectedEstimate.project_id, 
+            projectData.project_number, 
+            selectedEstimate.id
+          );
+        }
       } else {
-        quoteNumber = await generateQuoteNumber(
-          selectedEstimate.project_id, 
-          projectData.project_number, 
-          selectedEstimate.id
-        );
+        // No estimate (e.g., change order quote) - fallback number
+        quoteNumber = `QTE-${Date.now().toString().slice(-6)}`;
       }
     }
 
     const quote: Quote = {
       id: initialQuote?.id || Date.now().toString(),
-      project_id: selectedEstimate.project_id,
-      estimate_id: selectedEstimate.id,
-      projectName: selectedEstimate.project_name || '',
-      client: selectedEstimate.client_name || '',
+      project_id: selectedEstimate?.project_id || initialQuote!.project_id,
+      estimate_id: selectedEstimate?.id || initialQuote?.estimate_id,
+      projectName: selectedEstimate?.project_name || initialQuote?.projectName || '',
+      client: selectedEstimate?.client_name || initialQuote?.client || '',
       payee_id: selectedPayee.id,
       quotedBy: selectedPayee.payee_name,
       dateReceived,
@@ -887,7 +891,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
   }
 
   // Filter estimate line items to only include those that correspond to quote line items
-  const relevantEstimateLineItems = selectedEstimate.lineItems.filter(item => 
+  const relevantEstimateLineItems = (selectedEstimate?.lineItems || []).filter(item => 
     lineItems.some(quoteItem => quoteItem.estimateLineItemId === item.id)
   );
   const estimateFinancials = calculateEstimateFinancials(relevantEstimateLineItems);
@@ -942,9 +946,11 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
                   Change Estimate
                 </Button>
               )}
-              <Badge variant="outline">
-                {selectedEstimate.estimate_number}
-              </Badge>
+              {selectedEstimate && (
+                <Badge variant="outline">
+                  {selectedEstimate.estimate_number}
+                </Badge>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -1009,15 +1015,17 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
 
       {/* Financial Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-muted-foreground">Your Estimate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(estimateFinancials.totalAmount)}</div>
-            <div className="text-sm text-muted-foreground">Original estimated price</div>
-          </CardContent>
-        </Card>
+        {selectedEstimate && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-muted-foreground">Your Estimate</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(estimateFinancials.totalAmount)}</div>
+              <div className="text-sm text-muted-foreground">Original estimated price</div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="pb-3">
@@ -1083,7 +1091,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
                   <Plus className="h-4 w-4 mr-2" />
                   Add First Item
                 </Button>
-                {selectedEstimate.lineItems.length === 0 && (
+                {selectedEstimate && selectedEstimate.lineItems.length === 0 && (
                   <Button variant="outline" onClick={() => setSelectedEstimate(undefined)}>
                     Change Estimate
                   </Button>
@@ -1093,7 +1101,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
           ) : (
             <div className="space-y-2">
               {lineItems.map((item, index) => {
-              const estimateItem = selectedEstimate.lineItems.find(e => e.id === item.estimateLineItemId);
+              const estimateItem = selectedEstimate?.lineItems.find(e => e.id === item.estimateLineItemId);
               
               return (
                 <div key={item.id} className="border rounded-lg p-3 space-y-3">
