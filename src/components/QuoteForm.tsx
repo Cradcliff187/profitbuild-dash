@@ -67,7 +67,14 @@ interface QuoteFormProps {
 
 export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFormProps) => {
   const { toast } = useToast();
-  const [selectedEstimate, setSelectedEstimate] = useState<Estimate>();
+  const isEdit = !!initialQuote;
+  
+  // Initialize selectedEstimate synchronously when editing
+  const [selectedEstimate, setSelectedEstimate] = useState<Estimate | undefined>(() => {
+    if (!initialQuote) return undefined;
+    // Try to resolve immediately from provided estimates
+    return estimates.find(e => e.id === initialQuote.estimate_id) || undefined;
+  });
   const [selectedLineItemIds, setSelectedLineItemIds] = useState<string[]>([]);
   const [showLineItemSelection, setShowLineItemSelection] = useState(false);
   const [selectedPayee, setSelectedPayee] = useState<Payee>();
@@ -136,10 +143,29 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
     totalMarkup: 0
   });
 
+  // Fallback effect to resolve estimate if not found synchronously
+  useEffect(() => {
+    if (!isEdit) return;
+    if (!selectedEstimate && estimates.length) {
+      const match = initialQuote?.estimate_id
+        ? estimates.find(e => e.id === initialQuote.estimate_id)
+        : undefined;
+      const fallback =
+        match ||
+        estimates.find(e => e.is_current_version) ||
+        [...estimates].sort((a, b) => b.version_number - a.version_number)[0] ||
+        estimates[0];
+
+      if (fallback) {
+        setSelectedEstimate(fallback);
+      }
+    }
+  }, [isEdit, initialQuote?.estimate_id, estimates, selectedEstimate]);
+
   useEffect(() => {
     if (initialQuote) {
       const estimate = estimates.find(e => e.id === initialQuote.estimate_id);
-      setSelectedEstimate(estimate);
+      if (estimate) setSelectedEstimate(estimate);
       setDateReceived(initialQuote.dateReceived);
       setStatus(initialQuote.status);
       setValidUntil(initialQuote.valid_until);
@@ -148,6 +174,22 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       setAttachmentUrl(initialQuote.attachment_url || "");
     }
   }, [initialQuote, estimates]);
+
+  // Fetch and set payee in edit mode
+  useEffect(() => {
+    const loadPayee = async () => {
+      if (!initialQuote?.payee_id) return;
+      const { data, error } = await supabase
+        .from('payees')
+        .select('*')
+        .eq('id', initialQuote.payee_id)
+        .maybeSingle();
+      if (!error && data) {
+        setSelectedPayee(data as Payee);
+      }
+    };
+    if (isEdit) loadPayee();
+  }, [isEdit, initialQuote?.payee_id]);
 
   useEffect(() => {
     if (selectedEstimate && !initialQuote) {
@@ -532,6 +574,21 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
   }, [estimates, estimateSearchQuery]);
 
   if (!selectedEstimate) {
+    // In edit mode, show loading while estimate resolves
+    if (isEdit) {
+      return (
+        <Card className="compact-card">
+          <CardHeader className="p-compact">
+            <CardTitle className="text-interface">Loading Quote…</CardTitle>
+          </CardHeader>
+          <CardContent className="p-compact text-label text-muted-foreground">
+            Preparing quote for editing
+          </CardContent>
+        </Card>
+      );
+    }
+    
+    // New quote flow - show estimate selection
     return (
       <Card className="compact-card">
         <CardHeader className="p-compact">
