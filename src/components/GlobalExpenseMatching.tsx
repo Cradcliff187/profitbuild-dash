@@ -58,7 +58,7 @@ interface EnhancedExpense {
   project_id: string;
   project_name?: string;
   project_number?: string;
-  match_status: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote';
+  match_status: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' | 'allocated_to_change_order';
   suggested_line_item_id?: string;
   suggested_quote_id?: string;
   confidence_score?: number;
@@ -72,7 +72,7 @@ interface EnhancedExpenseSplit extends ExpenseSplit {
   expense_category: ExpenseCategory;
   expense_date: Date;
   payee_name?: string;
-  match_status: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote';
+  match_status: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' | 'allocated_to_change_order';
   suggested_line_item_id?: string;
   confidence_score?: number;
 }
@@ -421,7 +421,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       // Process expenses with match status and splits
       const enhancedExpenses: EnhancedExpense[] = rawExpenses.map(expense => {
         const correlation = correlations.find(c => c.expense_id === expense.id && !c.expense_split_id);
-        let matchStatus: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' = 'unallocated';
+        let matchStatus: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' | 'allocated_to_change_order' = 'unallocated';
         
         // Check if ANY non-split correlation exists for this expense
         if (correlation) {
@@ -429,6 +429,8 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
             matchStatus = 'allocated_to_estimate';
           } else if (correlation.quote_id) {
             matchStatus = 'allocated_to_quote';
+          } else if (correlation.change_order_line_item_id) {
+            matchStatus = 'allocated_to_change_order';
           }
         }
 
@@ -464,13 +466,15 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       const enhancedSplits: EnhancedExpenseSplit[] = rawSplits.map(split => {
         const parentExpense = rawExpenses.find(e => e.id === split.expense_id);
         const correlation = correlations.find(c => c.expense_split_id === split.id);
-        let matchStatus: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' = 'unallocated';
+        let matchStatus: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' | 'allocated_to_change_order' = 'unallocated';
         
         if (correlation) {
           if (correlation.estimate_line_item_id) {
             matchStatus = 'allocated_to_estimate';
           } else if (correlation.quote_id) {
             matchStatus = 'allocated_to_quote';
+          } else if (correlation.change_order_line_item_id) {
+            matchStatus = 'allocated_to_change_order';
           }
         }
 
@@ -996,6 +1000,8 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
         return <Badge className="bg-blue-100 text-blue-800">Allocated to Estimate</Badge>;
       case 'allocated_to_quote':
         return <Badge className="bg-green-100 text-green-800">Allocated to Quote</Badge>;
+      case 'allocated_to_change_order':
+        return <Badge className="bg-purple-100 text-purple-800">Allocated to Change Order</Badge>;
       default:
         return <Badge variant="destructive">Unallocated</Badge>;
     }
@@ -1131,6 +1137,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
               <SelectItem value="unallocated">⚠️ Unallocated</SelectItem>
               <SelectItem value="allocated_to_estimate">✅ Allocated to Estimate</SelectItem>
               <SelectItem value="allocated_to_quote">✅ Allocated to Quote</SelectItem>
+              <SelectItem value="allocated_to_change_order">✅ Allocated to Change Order</SelectItem>
             </SelectContent>
           </Select>
           
