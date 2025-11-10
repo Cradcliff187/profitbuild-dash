@@ -26,9 +26,24 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
 
-  const formatTimestamp = (utcTimestamp: string) => {
-    const estTime = toZonedTime(new Date(utcTimestamp), "America/New_York");
+  const formatTimestamp = (utcTimestamp: string | null | undefined) => {
+    if (!utcTimestamp) return "No date";
+    
+    const date = new Date(utcTimestamp);
+    if (isNaN(date.getTime())) return "Invalid date";
+    
+    const estTime = toZonedTime(date, "America/New_York");
     return format(estTime, "MMM d, yyyy h:mm a 'EST'");
+  };
+
+  const formatTimestampCompact = (utcTimestamp: string | null | undefined) => {
+    if (!utcTimestamp) return "No date";
+    
+    const date = new Date(utcTimestamp);
+    if (isNaN(date.getTime())) return "Invalid date";
+    
+    const estTime = toZonedTime(date, "America/New_York");
+    return format(estTime, "MMM d, h:mm a");
   };
 
   const getInitials = (name: string): string => {
@@ -209,7 +224,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                           </span>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             <span className="text-xs text-muted-foreground">
-                              {format(toZonedTime(new Date(note.created_at), "America/New_York"), "MMM d, h:mm a")}
+                              {formatTimestampCompact(note.created_at)}
                             </span>
                             <Button
                               variant="ghost"
@@ -319,7 +334,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                         </span>
                         <div className="flex items-center gap-0.5">
                           <span className="text-[9px] text-muted-foreground flex-shrink-0">
-                            {format(toZonedTime(new Date(note.created_at), "America/New_York"), "MMM d h:mm a")}
+                            {formatTimestampCompact(note.created_at)}
                           </span>
                           <Button
                             variant="ghost"
