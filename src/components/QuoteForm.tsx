@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -149,6 +149,10 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
   // Fallback effect to resolve estimate if not found synchronously
   useEffect(() => {
     if (!isEdit) return;
+    
+    // Skip estimate resolution for change order quotes (they don't have an estimate)
+    if (initialQuote && !initialQuote.estimate_id) return;
+    
     if (!selectedEstimate && estimates.length) {
       const match = initialQuote?.estimate_id
         ? estimates.find(e => e.id === initialQuote.estimate_id)
@@ -350,9 +354,9 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
             updated.costPerUnit = costPerUnit;
             updated.totalCost = quantity * costPerUnit;
             
-            // Validate quote amount when cost changes
-            if (field === 'costPerUnit' || field === 'quantity') {
-              const estimateLineItem = selectedEstimate?.lineItems.find(est => est.id === updated.estimateLineItemId);
+            // Validate quote amount when cost changes (only if we have an estimate to compare against)
+            if ((field === 'costPerUnit' || field === 'quantity') && selectedEstimate) {
+              const estimateLineItem = selectedEstimate.lineItems.find(est => est.id === updated.estimateLineItemId);
               const validation = validateQuoteAmount(costPerUnit, quantity, estimateLineItem);
               setValidationErrors(prev => ({
                 ...prev,
@@ -577,8 +581,11 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
   }, [estimates, estimateSearchQuery]);
 
   if (!selectedEstimate) {
-    // In edit mode, show loading while estimate resolves (unless user is actively changing it)
-    if (isEdit && !isChangingEstimate) {
+    // Change order quotes don't need an estimate
+    const isChangeOrderQuote = isEdit && initialQuote && !initialQuote.estimate_id;
+    
+    // In edit mode, show loading only if we're expecting an estimate (not for change order quotes)
+    if (isEdit && !isChangingEstimate && !isChangeOrderQuote) {
       return (
         <Card className="compact-card">
           <CardHeader className="p-compact">
@@ -591,100 +598,103 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
       );
     }
     
-    // New quote flow - show estimate selection
-    return (
-      <Card className="compact-card">
-        <CardHeader className="p-compact">
-          <CardTitle className="text-interface">Create New Quote</CardTitle>
-        </CardHeader>
-        <CardContent className="p-compact">
-          <div className="form-dense">
-            <div className="space-y-2">
-              <Label className="text-label">Select Project Estimate</Label>
-              
-              {/* Search Input */}
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Search by project, client, or estimate number..."
-                  value={estimateSearchQuery}
-                  onChange={(e) => setEstimateSearchQuery(e.target.value)}
-                  className="h-9 text-sm"
-                />
-                {estimateSearchQuery && (
-                  <button
-                    onClick={() => setEstimateSearchQuery('')}
-                    className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              
-              {/* Results count when searching */}
-              {estimateSearchQuery && (
-                <p className="text-xs text-muted-foreground">
-                  Found {filteredAndSortedEstimates.length} estimate{filteredAndSortedEstimates.length !== 1 ? 's' : ''}
-                </p>
-              )}
-
+    // If it's a change order quote, continue to render the form below
+    if (!isChangeOrderQuote) {
+      // New quote flow - show estimate selection
+      return (
+        <Card className="compact-card">
+          <CardHeader className="p-compact">
+            <CardTitle className="text-interface">Create New Quote</CardTitle>
+          </CardHeader>
+          <CardContent className="p-compact">
+            <div className="form-dense">
               <div className="space-y-2">
-                {estimates.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <p className="text-label">No estimates available</p>
-                    <p className="text-label">Create an estimate first to generate quotes</p>
-                  </div>
-                ) : filteredAndSortedEstimates.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <p className="text-label">No estimates match your search</p>
-                    <button 
+                <Label className="text-label">Select Project Estimate</Label>
+                
+                {/* Search Input */}
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Search by project, client, or estimate number..."
+                    value={estimateSearchQuery}
+                    onChange={(e) => setEstimateSearchQuery(e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                  {estimateSearchQuery && (
+                    <button
                       onClick={() => setEstimateSearchQuery('')}
-                      className="text-primary hover:underline text-sm mt-2"
+                      className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
                     >
-                      Clear search
+                      <X className="h-4 w-4" />
                     </button>
-                  </div>
-                ) : (
-                  <div className="grid gap-2">
-                    {filteredAndSortedEstimates.map((estimate) => (
-                        <Card 
-                          key={estimate.id} 
-                          className="cursor-pointer hover:bg-accent transition-colors compact-card"
-                          onClick={() => setSelectedEstimate(estimate)}
-                        >
-                          <CardContent className="p-compact">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="text-interface font-medium">{estimate.project_name}</div>
-                                <div className="text-label text-muted-foreground">{estimate.client_name}</div>
-                                <div className="text-label text-muted-foreground">
-                                  {estimate.estimate_number} • {format(new Date(estimate.date_created), "MMM d, yyyy")}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-interface font-medium font-mono">{formatCurrency(estimate.total_amount)}</div>
-                                <div className="text-label text-muted-foreground">
-                                  {estimate.lineItems.length} line item{estimate.lineItems.length !== 1 ? 's' : ''}
-                                </div>
-                                <Badge variant={estimate.lineItems.length > 0 ? "default" : "secondary"} className="compact-badge">
-                                  {estimate.lineItems.length > 0 ? "Ready" : "Empty"}
-                                </Badge>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                  </div>
+                  )}
+                </div>
+                
+                {/* Results count when searching */}
+                {estimateSearchQuery && (
+                  <p className="text-xs text-muted-foreground">
+                    Found {filteredAndSortedEstimates.length} estimate{filteredAndSortedEstimates.length !== 1 ? 's' : ''}
+                  </p>
                 )}
+
+                <div className="space-y-2">
+                  {estimates.length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <p className="text-label">No estimates available</p>
+                      <p className="text-label">Create an estimate first to generate quotes</p>
+                    </div>
+                  ) : filteredAndSortedEstimates.length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <p className="text-label">No estimates match your search</p>
+                      <button 
+                        onClick={() => setEstimateSearchQuery('')}
+                        className="text-primary hover:underline text-sm mt-2"
+                      >
+                        Clear search
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid gap-2">
+                      {filteredAndSortedEstimates.map((estimate) => (
+                          <Card 
+                            key={estimate.id} 
+                            className="cursor-pointer hover:bg-accent transition-colors compact-card"
+                            onClick={() => setSelectedEstimate(estimate)}
+                          >
+                            <CardContent className="p-compact">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="text-interface font-medium">{estimate.project_name}</div>
+                                  <div className="text-label text-muted-foreground">{estimate.client_name}</div>
+                                  <div className="text-label text-muted-foreground">
+                                    {estimate.estimate_number} • {format(new Date(estimate.date_created), "MMM d, yyyy")}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-interface font-medium font-mono">{formatCurrency(estimate.total_amount)}</div>
+                                  <div className="text-label text-muted-foreground">
+                                    {estimate.lineItems.length} line item{estimate.lineItems.length !== 1 ? 's' : ''}
+                                  </div>
+                                  <Badge variant={estimate.lineItems.length > 0 ? "default" : "secondary"} className="compact-badge">
+                                    {estimate.lineItems.length > 0 ? "Ready" : "Empty"}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-1">
+                <Button variant="outline" onClick={onCancel} size="sm" className="h-btn-compact text-label">Cancel</Button>
               </div>
             </div>
-            <div className="flex gap-1">
-              <Button variant="outline" onClick={onCancel} size="sm" className="h-btn-compact text-label">Cancel</Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+          </CardContent>
+        </Card>
+      );
+    }
   }
 
   // Line Item Selection Step
@@ -909,11 +919,16 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
             <div>
               <CardTitle>{isViewMode ? 'View Quote' : (initialQuote ? 'Edit Quote' : 'Create Quote')}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                {selectedEstimate.project_name} • {selectedEstimate.client_name}
+                {selectedEstimate 
+                  ? `${selectedEstimate.project_name} • ${selectedEstimate.client_name}`
+                  : initialQuote
+                    ? `${initialQuote.projectName} • ${initialQuote.client}`
+                    : 'No project selected'
+                }
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {!isViewMode && (
+              {!isViewMode && selectedEstimate && (
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -1034,7 +1049,15 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Line Items Comparison</CardTitle>
+            <div>
+              <CardTitle>{selectedEstimate ? 'Line Items Comparison' : 'Quote Line Items'}</CardTitle>
+              <CardDescription className="text-xs mt-1">
+                {selectedEstimate 
+                  ? 'Compare your estimate with vendor quote'
+                  : 'Line items for this change order quote'
+                }
+              </CardDescription>
+            </div>
             {!isViewMode && (
               <Button size="sm" onClick={addLineItem}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -1049,7 +1072,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
               <div className="text-muted-foreground mb-4">
                 <p className="text-lg font-medium">No line items available</p>
                 <p className="text-sm">
-                  {selectedEstimate.lineItems.length === 0 
+                  {selectedEstimate && selectedEstimate.lineItems.length === 0 
                     ? "This estimate has no line items. Add your first item to get started."
                     : "Quote line items will appear here when you add them."
                   }
