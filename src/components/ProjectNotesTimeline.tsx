@@ -16,9 +16,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ProjectNotesTimelineProps {
   projectId: string;
+  inSheet?: boolean; // When true, optimized for mobile Sheet display
 }
 
-export function ProjectNotesTimeline({ projectId }: ProjectNotesTimelineProps) {
+export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNotesTimelineProps) {
   const [noteText, setNoteText] = useState("");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -156,8 +157,118 @@ export function ProjectNotesTimeline({ projectId }: ProjectNotesTimelineProps) {
     return <div className="text-sm text-muted-foreground">Loading notes...</div>;
   }
 
+  // When displayed in Sheet modal (mobile full-screen)
+  if (inSheet) {
+    return (
+      <div className="flex flex-col h-full">
+        {/* Add Note Form - Prominent at top */}
+        <div className="p-3 bg-muted/20 border rounded-lg mb-3 shrink-0">
+          <div className="flex gap-2">
+            <Textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="Add a note..."
+              rows={3}
+              className="text-sm flex-1 resize-none"
+            />
+            <Button
+              onClick={handleAddNote}
+              disabled={addNoteMutation.isPending || !noteText.trim()}
+              size="sm"
+              className="px-3 h-auto self-end"
+            >
+              <PlusCircle className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Notes List - Full scrollable area */}
+        <ScrollArea className="flex-1">
+          <div className="space-y-3 pb-4">
+            {notes && notes.length > 0 ? (
+              notes.map((note) => {
+                const displayName =
+                  note.profiles?.full_name ||
+                  note.profiles?.email ||
+                  "Unknown User";
+                const initials = getInitials(displayName);
+
+                return (
+                  <div key={note.id} className="p-3 bg-card rounded-lg border hover:bg-accent/30 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-8 w-8 flex-shrink-0">
+                        <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-sm font-semibold truncate">
+                            {displayName}
+                          </span>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <span className="text-xs text-muted-foreground">
+                              {format(toZonedTime(new Date(note.created_at), "America/New_York"), "MMM d, h:mm a")}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={() => handleStartEdit(note)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-destructive"
+                              onClick={() => handleDelete(note.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {editingNoteId === note.id ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={editText}
+                              onChange={(e) => setEditText(e.target.value)}
+                              className="text-sm min-h-[80px]"
+                              rows={4}
+                              autoFocus
+                            />
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={handleSaveEdit} className="h-8 text-xs px-3">
+                                Save
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={handleCancelEdit} className="h-8 text-xs px-3">
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                            {note.note_text}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-center py-8 text-sm text-muted-foreground">No notes yet</p>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+    );
+  }
+
   return isMobile ? (
-    // MOBILE: Compact vertical stack
+    // MOBILE: Compact vertical stack (when NOT in sheet)
     <div className="border rounded-lg overflow-hidden">
       {/* Quick Add Form - Top Priority */}
       <div className="p-2 bg-muted/20 border-b">

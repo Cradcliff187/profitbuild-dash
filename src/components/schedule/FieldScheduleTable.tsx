@@ -8,6 +8,8 @@ import { ScheduleTask, SchedulePhase } from '@/types/schedule';
 import { cn } from '@/lib/utils';
 import { getCategoryBadgeClasses } from '@/utils/categoryColors';
 import { ProjectNotesTimeline } from '@/components/ProjectNotesTimeline';
+import { NotesSheetTrigger } from './NotesSheetTrigger';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface FieldScheduleTableProps {
   tasks: ScheduleTask[];
@@ -36,6 +38,7 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
   projectId,
 }) => {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const isMobile = useIsMobile();
 
   const calculateDuration = (start: string, end: string): number => {
     const startDate = new Date(start);
@@ -152,10 +155,14 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
   return (
     <div className="space-y-3">
       {/* Project Notes */}
-      <Card className="p-3">
-        <h3 className="text-sm font-semibold mb-3">Project Notes</h3>
-        <ProjectNotesTimeline projectId={projectId} />
-      </Card>
+      {isMobile ? (
+        <NotesSheetTrigger projectId={projectId} />
+      ) : (
+        <Card className="p-3">
+          <h3 className="text-sm font-semibold mb-3">Project Notes</h3>
+          <ProjectNotesTimeline projectId={projectId} />
+        </Card>
+      )}
 
       {/* Task Cards */}
       <div className="space-y-2">
