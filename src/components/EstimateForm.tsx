@@ -975,8 +975,8 @@ useEffect(() => {
                     <span className="text-base font-bold text-primary mt-1">
                       {selectedProject 
                         ? `${selectedProject.project_name} (${selectedProject.project_number})`
-                        : projectName 
-                          ? `${projectName} (${selectedProject?.project_number || 'N/A'})`
+                        : initialEstimate && projectName
+                          ? `${projectName} (${initialEstimate.project_number || 'N/A'})`
                           : 'N/A'
                       }
                     </span>

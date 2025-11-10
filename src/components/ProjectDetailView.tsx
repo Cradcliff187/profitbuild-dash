@@ -191,7 +191,7 @@ export const ProjectDetailView = () => {
         .from('estimates')
         .select(`
           *,
-          projects(project_name, client_name),
+          projects(project_name, client_name, project_number),
           estimate_line_items(*)
         `)
         .eq('project_id', projectId)
@@ -299,6 +299,7 @@ export const ProjectDetailView = () => {
           updated_at: new Date(estimate.updated_at),
           project_name: projectData?.project_name || formattedProject.project_name,
           client_name: projectData?.client_name || formattedProject.client_name,
+          project_number: projectData?.project_number || formattedProject.project_number,
           defaultMarkupPercent: estimate.default_markup_percent || 25,
           targetMarginPercent: estimate.target_margin_percent || 20,
           lineItems: (estimate.estimate_line_items || []).map((item: any) => ({
