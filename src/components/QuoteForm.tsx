@@ -842,7 +842,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
               className="w-fit mb-2"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Estimates
+              Back to Quotes
             </Button>
           )}
           <div className="flex items-center justify-between">

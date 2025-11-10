@@ -944,8 +944,8 @@ useEffect(() => {
     <div className="form-dense space-y-2">
       <Card>
         <CardHeader className="p-4 bg-muted/30 border-b">
-          {/* Back button - show when in project context */}
-          {(preselectedProjectId || initialEstimate) && (
+          {/* Back button - show when editing or when other estimates exist */}
+          {(initialEstimate || (preselectedProjectId && availableEstimates && availableEstimates.length > 0)) && (
             <Button
               variant="outline"
               size="sm"

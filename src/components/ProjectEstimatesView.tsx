@@ -34,6 +34,11 @@ export const ProjectEstimatesView = ({
   const tabFromUrl = searchParams.get('tab') || 'current';
   const [activeTab, setActiveTab] = useState(tabFromUrl);
 
+  // Sync activeTab with URL changes
+  useEffect(() => {
+    setActiveTab(tabFromUrl);
+  }, [tabFromUrl]);
+
   // Find current/approved estimate
   const currentEstimate = estimates.find(e => e.status === 'approved') 
     || estimates.find(e => e.is_current_version) 
