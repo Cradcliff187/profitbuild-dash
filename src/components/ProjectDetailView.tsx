@@ -9,6 +9,7 @@ import { ProjectSidebar } from "@/components/ProjectSidebar";
 import { ProjectOperationalDashboard } from "@/components/ProjectOperationalDashboard";
 import { ProjectEstimatesView } from "@/components/ProjectEstimatesView";
 import { EstimateForm } from "@/components/EstimateForm";
+import { QuoteForm } from "@/components/QuoteForm";
 import { ExpensesList } from "@/components/ExpensesList";
 import { LineItemControlDashboard } from "@/components/LineItemControlDashboard";
 import { GlobalExpenseAllocation } from "@/components/GlobalExpenseMatching";
@@ -68,6 +69,43 @@ const EstimateEditWrapper = ({
       onSave={onSave}
       onCancel={onCancel}
       preselectedProjectId={projectId}
+    />
+  );
+};
+
+// Wrapper component to handle quote editing with route params
+const QuoteEditWrapper = ({ 
+  quotes, 
+  estimates,
+  projectId, 
+  onSave, 
+  onCancel 
+}: { 
+  quotes: Quote[]; 
+  estimates: Estimate[];
+  projectId: string; 
+  onSave: () => void; 
+  onCancel: () => void; 
+}) => {
+  const { quoteId } = useParams<{ quoteId: string }>();
+  const quote = quotes.find(q => q.id === quoteId);
+  
+  if (!quote) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center text-sm text-muted-foreground">
+          Quote not found
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  return (
+    <QuoteForm
+      estimates={estimates}
+      initialQuote={quote}
+      onSave={onSave}
+      onCancel={onCancel}
     />
   );
 };
@@ -444,6 +482,28 @@ export const ProjectDetailView = () => {
                     }}
                     onCancel={() => navigate(`/projects/${projectId}/estimates`)}
                     preselectedProjectId={projectId}
+                  />
+                } />
+                <Route path="quotes/:quoteId/edit" element={
+                  <QuoteEditWrapper 
+                    quotes={quotes}
+                    estimates={estimates}
+                    projectId={projectId!}
+                    onSave={() => {
+                      loadProjectData();
+                      navigate(`/projects/${projectId}/estimates`);
+                    }}
+                    onCancel={() => navigate(`/projects/${projectId}/estimates`)}
+                  />
+                } />
+                <Route path="quotes/new" element={
+                  <QuoteForm
+                    estimates={estimates}
+                    onSave={() => {
+                      loadProjectData();
+                      navigate(`/projects/${projectId}/estimates`);
+                    }}
+                    onCancel={() => navigate(`/projects/${projectId}/estimates`)}
                   />
                 } />
               </Route>

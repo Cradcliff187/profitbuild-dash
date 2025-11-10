@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Save, Calendar as CalendarIcon, Plus, ArrowRight, TrendingUp, TrendingDown, Check, Search, X } from "lucide-react";
+import { Save, Calendar as CalendarIcon, Plus, ArrowRight, TrendingUp, TrendingDown, Check, Search, X, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -833,6 +833,18 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel }: QuoteFo
       {/* Header with Project Info */}
       <Card>
         <CardHeader>
+          {/* Back button - show when editing in project context */}
+          {initialQuote && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCancel}
+              className="w-fit mb-2"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Estimates
+            </Button>
+          )}
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>{initialQuote ? 'Edit Quote' : 'Create Quote'}</CardTitle>

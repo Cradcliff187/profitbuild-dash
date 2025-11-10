@@ -247,10 +247,10 @@ export const ProjectEstimatesView = ({
           <QuotesList 
             quotes={quotes}
             estimates={estimates}
-            onEdit={() => onRefresh()}
+            onEdit={(quote) => navigate(`/projects/${projectId}/estimates/quotes/${quote.id}/edit`)}
             onDelete={() => onRefresh()}
             onCompare={() => {}}
-            onCreateNew={handleCreateQuote}
+            onCreateNew={() => navigate(`/projects/${projectId}/estimates/quotes/new`)}
           />
         </TabsContent>
 

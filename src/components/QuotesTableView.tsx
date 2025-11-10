@@ -599,17 +599,6 @@ export const QuotesTableView = ({
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleDuplicate(quote)}>
-              <Copy className="h-4 w-4 mr-2" />
-              Duplicate
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => onCompare(quote)}
-              disabled={!quote.estimate}
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              View vs Estimate
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={() => handleDeleteClick(quote.id)}
