@@ -219,6 +219,7 @@ export const ProjectDetailView = () => {
         status: quote.status as any,
         projectName: formattedProject.project_name,
         client: formattedProject.client_name,
+        project_number: formattedProject.project_number,
         quotedBy: '',
         quoteNumber: quote.quote_number || '',
         lineItems: [],
