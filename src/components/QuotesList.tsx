@@ -66,40 +66,72 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
       return null;
     }
     
-    // If quote is linked to a specific estimate line item, use that item's cost
-    if (quote.estimate_line_item_id) {
-      const targetLineItem = estimate.lineItems.find(item => item.id === quote.estimate_line_item_id);
-      if (targetLineItem) {
-        return targetLineItem.totalCost || (targetLineItem.quantity * targetLineItem.costPerUnit);
+    // Collect all estimate line item IDs referenced by quote line items
+    const estimateLineItemIds = quote.lineItems
+      .map(item => item.estimateLineItemId)
+      .filter(id => id !== undefined && id !== null);
+    
+    if (estimateLineItemIds.length > 0) {
+      // Match by specific estimate line item IDs
+      const matchingItems = estimate.lineItems.filter(item => 
+        estimateLineItemIds.includes(item.id)
+      );
+      
+      if (matchingItems.length > 0) {
+        return matchingItems.reduce((sum, item) => 
+          sum + (item.totalCost || item.quantity * item.costPerUnit), 0
+        );
       }
     }
     
-    // Fallback: If no specific line item link, match by categories present in quote
+    // Fallback: Match by categories present in quote
     const quoteCategorySet = new Set(quote.lineItems.map(item => item.category));
-    const matchingItems = estimate.lineItems.filter(item => quoteCategorySet.has(item.category));
+    const matchingItems = estimate.lineItems.filter(item => 
+      quoteCategorySet.has(item.category)
+    );
     
     if (matchingItems.length === 0) return null;
     
-    return matchingItems.reduce((sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit), 0);
+    return matchingItems.reduce((sum, item) => 
+      sum + (item.totalCost || item.quantity * item.costPerUnit), 0
+    );
   };
 
   const getEstimateLineItemPrice = (quote: Quote): number | null => {
     const estimate = getEstimateForQuote(quote);
-    if (!estimate || !estimate.lineItems) return null;
-
-    if (quote.estimate_line_item_id) {
-      const targetLineItem = estimate.lineItems.find(item => item.id === quote.estimate_line_item_id);
-      if (!targetLineItem) return null;
-      return targetLineItem.total || targetLineItem.quantity * targetLineItem.pricePerUnit;
-    } else {
-      // Category-based matching
-      const quoteCategorySet = new Set(quote.lineItems.map(item => item.category));
-      const matchingItems = estimate.lineItems.filter(item => quoteCategorySet.has(item.category));
-      
-      if (matchingItems.length === 0) return null;
-      
-      return matchingItems.reduce((sum, item) => sum + (item.total || item.quantity * item.pricePerUnit), 0);
+    if (!estimate || !estimate.lineItems || !quote.lineItems) {
+      return null;
     }
+    
+    // Collect all estimate line item IDs referenced by quote line items
+    const estimateLineItemIds = quote.lineItems
+      .map(item => item.estimateLineItemId)
+      .filter(id => id !== undefined && id !== null);
+    
+    if (estimateLineItemIds.length > 0) {
+      // Match by specific estimate line item IDs
+      const matchingItems = estimate.lineItems.filter(item => 
+        estimateLineItemIds.includes(item.id)
+      );
+      
+      if (matchingItems.length > 0) {
+        return matchingItems.reduce((sum, item) => 
+          sum + (item.total || item.quantity * item.pricePerUnit), 0
+        );
+      }
+    }
+    
+    // Fallback: Match by categories present in quote
+    const quoteCategorySet = new Set(quote.lineItems.map(item => item.category));
+    const matchingItems = estimate.lineItems.filter(item => 
+      quoteCategorySet.has(item.category)
+    );
+    
+    if (matchingItems.length === 0) return null;
+    
+    return matchingItems.reduce((sum, item) => 
+      sum + (item.total || item.quantity * item.pricePerUnit), 0
+    );
   };
 
   const getQuotedAmountForEstimateMatch = (quote: Quote): number | null => {
