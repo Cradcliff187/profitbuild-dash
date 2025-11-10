@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,8 +30,9 @@ export const ProjectEstimatesView = ({
 }: ProjectEstimatesViewProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("current");
-  const [isCreatingVersion, setIsCreatingVersion] = useState(false);
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') || 'current';
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
 
   // Find current/approved estimate
   const currentEstimate = estimates.find(e => e.status === 'approved') 
@@ -40,36 +41,10 @@ export const ProjectEstimatesView = ({
 
   const hasMultipleEstimates = estimates.length > 1;
 
-  const handleCreateNewVersion = async () => {
+  const handleCreateNewVersion = () => {
     if (!currentEstimate) return;
-    
-    setIsCreatingVersion(true);
-    try {
-      const { data: newVersionId, error } = await supabase.rpc('create_estimate_version', {
-        source_estimate_id: currentEstimate.id
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "New Version Created",
-        description: "A new estimate version has been created."
-      });
-
-      onRefresh();
-      
-      // Navigate to edit the new version
-      navigate(`/projects/${projectId}/estimates/${newVersionId}/edit`);
-    } catch (error) {
-      console.error('Error creating version:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create new estimate version.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsCreatingVersion(false);
-    }
+    // Navigate to creation form with source estimate ID
+    navigate(`/projects/${projectId}/estimates/new?sourceEstimateId=${currentEstimate.id}`);
   };
 
   const handleEditEstimate = () => {
@@ -103,9 +78,15 @@ export const ProjectEstimatesView = ({
     );
   }
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Update URL with tab param
+    navigate(`/projects/${projectId}/estimates?tab=${value}`, { replace: true });
+  };
+
   return (
     <div className="space-y-3">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <div className="flex items-center justify-between mb-3">
           <TabsList className="h-8">
             <TabsTrigger value="current" className="text-xs px-3 py-1">
@@ -133,7 +114,6 @@ export const ProjectEstimatesView = ({
               <Button 
                 size="sm" 
                 onClick={handleCreateNewVersion}
-                disabled={isCreatingVersion}
               >
                 <Plus className="h-3 w-3 mr-1" />
                 New Version
@@ -247,10 +227,10 @@ export const ProjectEstimatesView = ({
           <QuotesList 
             quotes={quotes}
             estimates={estimates}
-            onEdit={(quote) => navigate(`/projects/${projectId}/estimates/quotes/${quote.id}/edit`)}
+            onEdit={(quote) => navigate(`/projects/${projectId}/estimates/quotes/${quote.id}/edit?tab=quotes`)}
             onDelete={() => onRefresh()}
             onCompare={() => {}}
-            onCreateNew={() => navigate(`/projects/${projectId}/estimates/quotes/new`)}
+            onCreateNew={() => navigate(`/projects/${projectId}/estimates/quotes/new?tab=quotes`)}
           />
         </TabsContent>
 

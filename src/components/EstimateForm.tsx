@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Plus, Trash2, Calculator, FolderOpen, ArrowLeft } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { Save, Plus, Trash2, Calculator, FolderOpen, ArrowLeft, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { EditableField, CalculatedField, ReadOnlyField } from "@/components/ui/field-types";
 import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP, EstimateStatus } from "@/types/estimate";
 import { Project } from "@/types/project";
@@ -32,13 +33,16 @@ interface EstimateFormProps {
   mode?: 'create' | 'edit' | 'view'; // Mode: create, edit, or view
   initialEstimate?: Estimate; // For editing mode
   preselectedProjectId?: string; // For linking from project page
+  availableEstimates?: Estimate[]; // For showing copy options
   onSave: (estimate: Estimate) => void;
   onCancel: () => void;
 }
 
-export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjectId, onSave, onCancel }: EstimateFormProps) => {
+export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjectId, availableEstimates = [], onSave, onCancel }: EstimateFormProps) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const [searchParams] = useSearchParams();
+  const sourceEstimateIdFromUrl = searchParams.get('sourceEstimateId');
   
   // Form state
   const [projectId, setProjectId] = useState(preselectedProjectId || initialEstimate?.project_id || "");
@@ -62,6 +66,9 @@ export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjec
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [showProjectCreation, setShowProjectCreation] = useState(false);
+  
+  // Copy estimate workflow
+  const [copyFromEstimate, setCopyFromEstimate] = useState<string | null>(sourceEstimateIdFromUrl || null);
 
 useEffect(() => {
   // Load available projects once on mount
@@ -75,6 +82,14 @@ useEffect(() => {
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
+
+useEffect(() => {
+  // Auto-load source estimate if provided via URL
+  if (sourceEstimateIdFromUrl && !initialEstimate && copyFromEstimate === sourceEstimateIdFromUrl) {
+    handleCopyFromChange(sourceEstimateIdFromUrl);
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [sourceEstimateIdFromUrl, availableEstimates.length]);
 
 useEffect(() => {
   // Load project data when projectId changes
@@ -205,6 +220,71 @@ useEffect(() => {
       setLineItems(items as LineItem[]);
     } catch (error) {
       console.error('Error loading line items:', error);
+    }
+  };
+
+  const handleCopyFromChange = async (selectedEstimateId: string) => {
+    setCopyFromEstimate(selectedEstimateId);
+    
+    if (!selectedEstimateId) {
+      setLineItems([createNewLineItem()]);
+      setContingencyPercent(10.0);
+      setNotes('');
+      return;
+    }
+
+    // Load the selected estimate's data
+    try {
+      const { data: estimateData, error: estimateError } = await supabase
+        .from('estimates')
+        .select('*')
+        .eq('id', selectedEstimateId)
+        .single();
+
+      if (estimateError) throw estimateError;
+
+      // Load line items for this estimate
+      const { data: lineItemsData, error: lineItemsError } = await supabase
+        .from('estimate_line_items')
+        .select('*')
+        .eq('estimate_id', selectedEstimateId)
+        .order('sort_order');
+
+      if (lineItemsError) throw lineItemsError;
+
+      // Populate form with copied data
+      setContingencyPercent(estimateData.contingency_percent ?? 10.0);
+      setNotes(estimateData.notes || '');
+
+      const items = lineItemsData?.map(item => ({
+        id: `new-${Date.now()}-${Math.random()}`, // New IDs for copied items
+        category: item.category,
+        description: item.description,
+        quantity: item.quantity,
+        pricePerUnit: item.price_per_unit || item.rate || 0,
+        total: item.total,
+        unit: item.unit,
+        sort_order: item.sort_order,
+        costPerUnit: item.cost_per_unit || 0,
+        markupPercent: item.markup_percent,
+        markupAmount: item.markup_amount,
+        totalCost: item.total_cost || 0,
+        totalMarkup: item.total_markup || 0
+      })) || [];
+
+      setLineItems(items as LineItem[]);
+      
+      toast({
+        title: "Estimate Copied",
+        description: `Copied ${items.length} line items from estimate ${estimateData.estimate_number}`,
+      });
+    } catch (error) {
+      console.error('Error copying estimate:', error);
+      toast({
+        title: "Error",
+        description: "Failed to copy estimate data",
+        variant: "destructive"
+      });
     }
   };
 
@@ -953,6 +1033,81 @@ useEffect(() => {
                 <p className="text-xs text-muted-foreground">Please select a project to continue</p>
               )}
             </div>
+          )}
+
+          {/* Copy Estimate Option - Show in create mode with project selected */}
+          {!initialEstimate && mode === 'create' && projectId && availableEstimates.length > 0 && (
+            <Card className="border-dashed bg-muted/30">
+              <CardHeader className="p-3 pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Copy className="h-4 w-4" />
+                  Copy from Existing Estimate
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0 space-y-2">
+                <div className="flex items-start gap-2">
+                  <div className="flex items-center space-x-2 pt-2">
+                    <input 
+                      type="radio" 
+                      id="start-fresh" 
+                      name="copy-option"
+                      checked={!copyFromEstimate}
+                      onChange={() => {
+                        setCopyFromEstimate(null);
+                        setLineItems([createNewLineItem()]);
+                        setContingencyPercent(10.0);
+                        setNotes('');
+                      }}
+                      className="h-4 w-4"
+                    />
+                    <Label htmlFor="start-fresh" className="text-sm font-normal cursor-pointer">
+                      Start from scratch
+                    </Label>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="radio" 
+                      id="copy-estimate" 
+                      name="copy-option"
+                      checked={!!copyFromEstimate}
+                      onChange={() => {
+                        const firstEstimate = availableEstimates[0];
+                        if (firstEstimate) {
+                          handleCopyFromChange(firstEstimate.id);
+                        }
+                      }}
+                      className="h-4 w-4"
+                    />
+                    <Label htmlFor="copy-estimate" className="text-sm font-normal cursor-pointer">
+                      Copy from existing estimate
+                    </Label>
+                  </div>
+                  
+                  {copyFromEstimate && (
+                    <div className="pl-6">
+                      <Select value={copyFromEstimate} onValueChange={handleCopyFromChange}>
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="Select estimate to copy..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableEstimates
+                            .filter(est => est.project_id === projectId)
+                            .sort((a, b) => b.version_number - a.version_number)
+                            .map(est => (
+                              <SelectItem key={est.id} value={est.id}>
+                                {est.estimate_number} - v{est.version_number} ({formatCurrency(est.total_amount)})
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Estimate Details */}

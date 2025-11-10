@@ -482,6 +482,7 @@ export const ProjectDetailView = () => {
                     }}
                     onCancel={() => navigate(`/projects/${projectId}/estimates`)}
                     preselectedProjectId={projectId}
+                    availableEstimates={estimates}
                   />
                 } />
                 <Route path="quotes/:quoteId/edit" element={
@@ -491,9 +492,15 @@ export const ProjectDetailView = () => {
                     projectId={projectId!}
                     onSave={() => {
                       loadProjectData();
-                      navigate(`/projects/${projectId}/estimates`);
+                      const searchParams = new URLSearchParams(window.location.search);
+                      const tab = searchParams.get('tab') || 'quotes';
+                      navigate(`/projects/${projectId}/estimates?tab=${tab}`);
                     }}
-                    onCancel={() => navigate(`/projects/${projectId}/estimates`)}
+                    onCancel={() => {
+                      const searchParams = new URLSearchParams(window.location.search);
+                      const tab = searchParams.get('tab') || 'quotes';
+                      navigate(`/projects/${projectId}/estimates?tab=${tab}`);
+                    }}
                   />
                 } />
                 <Route path="quotes/new" element={
@@ -501,9 +508,15 @@ export const ProjectDetailView = () => {
                     estimates={estimates}
                     onSave={() => {
                       loadProjectData();
-                      navigate(`/projects/${projectId}/estimates`);
+                      const searchParams = new URLSearchParams(window.location.search);
+                      const tab = searchParams.get('tab') || 'quotes';
+                      navigate(`/projects/${projectId}/estimates?tab=${tab}`);
                     }}
-                    onCancel={() => navigate(`/projects/${projectId}/estimates`)}
+                    onCancel={() => {
+                      const searchParams = new URLSearchParams(window.location.search);
+                      const tab = searchParams.get('tab') || 'quotes';
+                      navigate(`/projects/${projectId}/estimates?tab=${tab}`);
+                    }}
                   />
                 } />
               </Route>
