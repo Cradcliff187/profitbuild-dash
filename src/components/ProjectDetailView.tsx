@@ -7,8 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { ProjectSidebar } from "@/components/ProjectSidebar";
 import { ProjectOperationalDashboard } from "@/components/ProjectOperationalDashboard";
-import { EstimateVersionComparison } from "@/components/EstimateVersionComparison";
-import { QuotesList } from "@/components/QuotesList";
+import { ProjectEstimatesView } from "@/components/ProjectEstimatesView";
 import { ExpensesList } from "@/components/ExpensesList";
 import { LineItemControlDashboard } from "@/components/LineItemControlDashboard";
 import { GlobalExpenseAllocation } from "@/components/GlobalExpenseMatching";
@@ -380,18 +379,12 @@ export const ProjectDetailView = () => {
               } />
               
               <Route path="estimates" element={
-                <div className="space-y-3">
-                  <EstimateVersionComparison projectId={project.id} />
-                  <Separator />
-                  <QuotesList 
-                    quotes={quotes} 
-                    estimates={estimates}
-                    onEdit={() => loadProjectData()}
-                    onDelete={() => loadProjectData()}
-                    onCompare={() => {}}
-                    onCreateNew={() => {}}
-                  />
-                </div>
+                <ProjectEstimatesView 
+                  projectId={project.id}
+                  estimates={estimates}
+                  quotes={quotes}
+                  onRefresh={loadProjectData}
+                />
               } />
               
               <Route path="expenses" element={
