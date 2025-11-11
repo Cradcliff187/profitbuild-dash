@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import { Project } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
@@ -505,7 +506,19 @@ export const ProjectDetailView = () => {
                 </>
               )}
             </div>
-            <Badge variant="outline" className="text-xs flex-shrink-0">
+            <Badge 
+              variant="outline" 
+              className={cn(
+                "text-xs flex-shrink-0 capitalize px-2 py-0.5",
+                project.status === 'approved' && 'border-green-200 text-green-700 bg-green-50',
+                project.status === 'estimating' && 'border-gray-200 text-gray-700 bg-gray-50',
+                project.status === 'quoted' && 'border-blue-200 text-blue-700 bg-blue-50',
+                project.status === 'in_progress' && 'border-purple-200 text-purple-700 bg-purple-50',
+                project.status === 'complete' && 'border-green-200 text-green-700 bg-green-50',
+                project.status === 'on_hold' && 'border-yellow-200 text-yellow-700 bg-yellow-50',
+                project.status === 'cancelled' && 'border-red-200 text-red-700 bg-red-50'
+              )}
+            >
               {project.status?.replace(/_/g, ' ')}
             </Badge>
           </header>
