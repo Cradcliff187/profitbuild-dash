@@ -158,12 +158,13 @@ export const ProjectEstimatesView = ({
                 </CardHeader>
               </Card>
 
-              <EstimateForm
-                mode="view"
-                initialEstimate={currentEstimate}
-                onSave={() => {}}
-                onCancel={() => {}}
-              />
+                <EstimateForm
+                  mode="view"
+                  initialEstimate={currentEstimate}
+                  hideNavigationButtons={true}
+                  onSave={() => {}}
+                  onCancel={() => {}}
+                />
             </div>
           ) : (
             <Card>

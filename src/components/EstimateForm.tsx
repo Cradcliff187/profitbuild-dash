@@ -36,9 +36,10 @@ interface EstimateFormProps {
   availableEstimates?: Estimate[]; // For showing copy options
   onSave: (estimate: Estimate) => void;
   onCancel: () => void;
+  hideNavigationButtons?: boolean; // Hide navigation and status buttons (for project-specific views)
 }
 
-export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjectId, availableEstimates = [], onSave, onCancel }: EstimateFormProps) => {
+export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjectId, availableEstimates = [], onSave, onCancel, hideNavigationButtons = false }: EstimateFormProps) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
@@ -945,7 +946,7 @@ useEffect(() => {
       <Card>
         <CardHeader className="p-4 bg-muted/30 border-b">
           {/* Back button - show when editing or when other estimates exist */}
-          {(initialEstimate || (preselectedProjectId && availableEstimates && availableEstimates.length > 0)) && (
+          {!hideNavigationButtons && (initialEstimate || (preselectedProjectId && availableEstimates && availableEstimates.length > 0)) && (
             <Button
               variant="outline"
               size="sm"
@@ -1334,13 +1335,15 @@ useEffect(() => {
                 {isLoading ? "Saving..." : (initialEstimate ? "Update Estimate" : "Create Estimate")}
               </Button>
             )}
-            <Button onClick={onCancel} variant="outline" disabled={isLoading} className={mode === 'view' ? 'flex-1' : ''}>
-              {mode === 'view' ? 'Close' : 'Cancel'}
-            </Button>
+            {!(hideNavigationButtons && mode === 'view') && (
+              <Button onClick={onCancel} variant="outline" disabled={isLoading} className={mode === 'view' ? 'flex-1' : ''}>
+                {mode === 'view' ? 'Close' : 'Cancel'}
+              </Button>
+            )}
           </div>
 
           {/* Status Actions - Only show for existing estimates */}
-          {initialEstimate && (
+          {!hideNavigationButtons && initialEstimate && (
             <div className="border-t pt-4 mt-4">
               <div className="flex justify-center">
                 <EstimateStatusActions
