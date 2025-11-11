@@ -74,6 +74,7 @@ export const ProjectsTableView = ({
   const columnDefinitions = [
     { key: 'project_number', label: 'Project #', required: true },
     { key: 'status', label: 'Status', required: true },
+    { key: 'customer_po_number', label: 'Customer PO #', required: false },
     { key: 'start_date', label: 'Start Date', required: false },
     { key: 'end_date', label: 'Target/End Date', required: false },
     { key: 'duration', label: 'Schedule', required: false },
@@ -460,6 +461,17 @@ export const ProjectsTableView = ({
           />
         );
       },
+    },
+    {
+      key: 'customer_po_number',
+      label: 'Customer PO #',
+      sortable: true,
+      getSortValue: (project) => project.customer_po_number || '',
+      render: (project) => (
+        <span className="text-xs font-mono">
+          {project.customer_po_number || <span className="text-muted-foreground">—</span>}
+        </span>
+      ),
     },
     {
       key: 'start_date',

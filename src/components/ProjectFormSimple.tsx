@@ -18,6 +18,7 @@ const formSchema = z.object({
   project_name: z.string().min(1, "Project name is required").max(200),
   client_id: z.string().uuid("Please select a client"),
   address: z.string().optional(),
+  customer_po_number: z.string().optional(),
   project_type: z.enum(["construction_project", "work_order"]),
   status: z.enum(["estimating", "quoted", "approved", "in_progress", "complete", "on_hold", "cancelled"]),
   job_type: z.string().optional(),
@@ -45,6 +46,7 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false }:
       project_name: "",
       client_id: "",
       address: "",
+      customer_po_number: "",
       project_type: "construction_project",
       status: "estimating",
       job_type: "",
@@ -85,6 +87,7 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false }:
           client_id: data.client_id,
           client_name: selectedClient?.client_name || "",
           address: data.address,
+          customer_po_number: data.customer_po_number || null,
           project_type: data.project_type,
           status: data.status,
           job_type: data.job_type,
@@ -184,6 +187,21 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false }:
                   className="min-h-[60px] resize-none"
                   {...field} 
                 />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Customer PO Number */}
+        <FormField
+          control={form.control}
+          name="customer_po_number"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Customer PO Number</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter PO number (optional)" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

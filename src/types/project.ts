@@ -26,6 +26,7 @@ export interface Project {
   adjusted_est_costs?: number | null;
   original_est_costs?: number | null;
   notes?: string | null;
+  customer_po_number?: string | null;
   created_at: Date;
   updated_at: Date;
 }

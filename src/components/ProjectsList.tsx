@@ -222,11 +222,16 @@ export const ProjectsList = ({
               >
                 <CardHeader className="p-compact pb-2">
                   <div className="flex items-start justify-between">
-                    <div className="space-y-1 min-w-0 flex-1">
+                  <div className="space-y-1 min-w-0 flex-1">
                       <CardTitle className="text-interface font-medium leading-tight truncate">{project.project_name}</CardTitle>
                       <div className="text-label text-muted-foreground truncate">
                         {project.project_number} • {project.client_name}
                       </div>
+                      {project.customer_po_number && (
+                        <div className="text-label text-muted-foreground font-mono truncate">
+                          PO: {project.customer_po_number}
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>

@@ -36,6 +36,7 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
   const [status, setStatus] = useState<ProjectStatus>(project.status);
   const [jobType, setJobType] = useState(project.job_type || "");
   const [notes, setNotes] = useState(project.notes || "");
+  const [customerPoNumber, setCustomerPoNumber] = useState(project.customer_po_number || "");
   const [startDate, setStartDate] = useState<Date | undefined>(project.start_date);
   const [endDate, setEndDate] = useState<Date | undefined>(project.end_date);
   const [isLoading, setIsLoading] = useState(false);
@@ -145,6 +146,7 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
           project_name: projectName.trim(),
           client_name: clientName,
           address: address.trim() || null,
+          customer_po_number: customerPoNumber.trim() || null,
           project_type: projectType,
           status: status as any, // Cast to any to avoid Supabase type conflicts
           job_type: jobType.trim() || null,
@@ -226,6 +228,17 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
                  showLabel={false}
                />
             </div>
+          </div>
+
+          {/* Customer PO Number */}
+          <div className="space-y-2">
+            <Label htmlFor="customerPoNumber">Customer PO Number</Label>
+            <Input
+              id="customerPoNumber"
+              value={customerPoNumber}
+              onChange={(e) => setCustomerPoNumber(e.target.value)}
+              placeholder="Enter PO number (optional)"
+            />
           </div>
 
           {/* Client Details Card */}
