@@ -37,25 +37,39 @@ export const ReceiptCapture: React.FC<ReceiptCaptureProps> = ({
     }
     
     try {
-      // Capture photo using web file input
+      // Capture photo using web file input (iOS PWA compatible pattern)
       const dataUrl = await new Promise<string | null>((resolve) => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
         input.capture = 'environment';
+        input.style.display = 'none';
         
-        input.onchange = async (e) => {
+        const handleChange = async (e: Event) => {
           const file = (e.target as HTMLInputElement).files?.[0];
           if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
+            reader.onloadend = () => {
+              resolve(reader.result as string);
+              input.remove();
+            };
             reader.readAsDataURL(file);
           } else {
             resolve(null);
+            input.remove();
           }
         };
         
-        input.oncancel = () => resolve(null);
+        const handleCancel = () => {
+          resolve(null);
+          input.remove();
+        };
+        
+        input.addEventListener('change', handleChange);
+        input.addEventListener('cancel', handleCancel);
+        
+        // Append to DOM before clicking (required for iOS PWA)
+        document.body.appendChild(input);
         input.click();
       });
 
