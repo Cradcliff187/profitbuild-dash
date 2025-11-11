@@ -492,6 +492,7 @@ export const ProjectDetailView = () => {
               <h1 className="text-sm font-semibold truncate">{project.project_name}</h1>
               <p className="text-xs text-muted-foreground truncate">
                 #{project.project_number} • {project.client_name}
+                {project.customer_po_number && ` • PO: ${project.customer_po_number}`}
               </p>
             </div>
             <Badge variant="outline" className="text-xs">
