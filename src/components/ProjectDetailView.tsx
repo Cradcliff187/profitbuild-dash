@@ -488,14 +488,24 @@ export const ProjectDetailView = () => {
               </Button>
             )}
             
-            <div className="min-w-0 max-w-2xl">
-              <h1 className="text-sm font-semibold truncate">{project.project_name}</h1>
-              <p className="text-xs text-muted-foreground truncate">
-                #{project.project_number} • {project.client_name}
-                {project.customer_po_number && ` • PO: ${project.customer_po_number}`}
-              </p>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="text-sm font-semibold truncate">
+                {project.project_name}
+              </span>
+              <span className="text-xs text-muted-foreground flex-shrink-0">•</span>
+              <span className="text-xs text-muted-foreground truncate">
+                {project.client_name}
+              </span>
+              {project.customer_po_number && (
+                <>
+                  <span className="text-xs text-muted-foreground flex-shrink-0">•</span>
+                  <span className="text-xs text-muted-foreground flex-shrink-0">
+                    PO: {project.customer_po_number}
+                  </span>
+                </>
+              )}
             </div>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs flex-shrink-0">
               {project.status?.replace(/_/g, ' ')}
             </Badge>
           </header>
