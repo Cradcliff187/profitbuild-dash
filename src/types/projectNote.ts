@@ -3,6 +3,8 @@ export interface ProjectNote {
   project_id: string;
   user_id: string;
   note_text: string;
+  attachment_url?: string | null;
+  attachment_type?: 'image' | 'video' | null;
   created_at: string;
   updated_at: string;
   profiles?: {

@@ -1289,6 +1289,8 @@ export type Database = {
       }
       project_notes: {
         Row: {
+          attachment_type: string | null
+          attachment_url: string | null
           created_at: string
           id: string
           note_text: string
@@ -1297,6 +1299,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachment_type?: string | null
+          attachment_url?: string | null
           created_at?: string
           id?: string
           note_text: string
@@ -1305,6 +1309,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachment_type?: string | null
+          attachment_url?: string | null
           created_at?: string
           id?: string
           note_text?: string

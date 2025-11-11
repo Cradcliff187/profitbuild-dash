@@ -10,7 +10,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
-import { Clock, PlusCircle, Pencil, Trash2, MoreVertical } from "lucide-react";
+import { Clock, PlusCircle, Pencil, Trash2, MoreVertical, Camera, Video, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ProjectNote } from "@/types/projectNote";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCameraCapture } from "@/hooks/useCameraCapture";
+import { useVideoCapture } from "@/hooks/useVideoCapture";
 
 interface ProjectNotesTimelineProps {
   projectId: string;
@@ -29,8 +31,13 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
   const [noteText, setNoteText] = useState("");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
+  const [attachmentType, setAttachmentType] = useState<'image' | 'video' | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const { capturePhoto, isCapturing: isCapturingPhoto } = useCameraCapture();
+  const { startRecording, isRecording } = useVideoCapture();
 
   const formatTimestamp = (utcTimestamp: string | null | undefined) => {
     if (!utcTimestamp) return "No date";
@@ -78,8 +85,62 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
     },
   });
 
+  const handleCapturePhoto = async () => {
+    const result = await capturePhoto();
+    if (result?.dataUrl) {
+      setAttachmentPreview(result.dataUrl);
+      setAttachmentType('image');
+    }
+  };
+
+  const handleCaptureVideo = async () => {
+    const result = await startRecording();
+    if (result?.dataUrl) {
+      setAttachmentPreview(result.dataUrl);
+      setAttachmentType('video');
+    }
+  };
+
+  const handleClearAttachment = () => {
+    setAttachmentPreview(null);
+    setAttachmentType(null);
+  };
+
+  const uploadAttachment = async (dataUrl: string, type: 'image' | 'video'): Promise<string | null> => {
+    try {
+      setIsUploading(true);
+      
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      
+      const fileExt = type === 'image' ? 'jpg' : 'mp4';
+      const fileName = `${projectId}/${Date.now()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('note-attachments')
+        .upload(fileName, blob, {
+          contentType: blob.type,
+          upsert: false
+        });
+      
+      if (error) throw error;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('note-attachments')
+        .getPublicUrl(data.path);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading attachment:', error);
+      toast.error('Failed to upload attachment');
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const addNoteMutation = useMutation({
-    mutationFn: async (text: string) => {
+    mutationFn: async (params: { text: string; attachmentUrl?: string; attachmentType?: 'image' | 'video' }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
@@ -88,7 +149,9 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
         .insert({
           project_id: projectId,
           user_id: user.id,
-          note_text: text,
+          note_text: params.text,
+          attachment_url: params.attachmentUrl,
+          attachment_type: params.attachmentType,
         });
 
       if (error) throw error;
@@ -96,6 +159,8 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-notes", projectId] });
       setNoteText("");
+      setAttachmentPreview(null);
+      setAttachmentType(null);
       toast.success("Note added");
     },
     onError: (error) => {
@@ -144,13 +209,27 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
     },
   });
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     const trimmedText = noteText.trim();
     if (!trimmedText) {
       toast.error("Note cannot be empty");
       return;
     }
-    addNoteMutation.mutate(trimmedText);
+    
+    let attachmentUrl: string | null = null;
+    
+    if (attachmentPreview && attachmentType) {
+      attachmentUrl = await uploadAttachment(attachmentPreview, attachmentType);
+      if (!attachmentUrl) {
+        return;
+      }
+    }
+    
+    addNoteMutation.mutate({
+      text: trimmedText,
+      attachmentUrl: attachmentUrl || undefined,
+      attachmentType: attachmentType || undefined,
+    });
   };
 
   const handleStartEdit = (note: ProjectNote) => {
@@ -184,6 +263,24 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
       <div className="flex flex-col h-full">
         {/* Add Note Form - Prominent at top */}
         <div className="p-3 bg-muted/20 border rounded-lg mb-3 shrink-0">
+          {attachmentPreview && (
+            <div className="mb-2 relative">
+              {attachmentType === 'image' ? (
+                <img src={attachmentPreview} alt="Preview" className="w-full h-32 object-cover rounded" />
+              ) : (
+                <video src={attachmentPreview} className="w-full h-32 object-cover rounded" controls />
+              )}
+              <Button
+                variant="destructive"
+                size="sm"
+                className="absolute top-1 right-1 h-6 w-6 p-0"
+                onClick={handleClearAttachment}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+          
           <div className="flex gap-2">
             <Textarea
               value={noteText}
@@ -192,14 +289,34 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
               rows={3}
               className="text-sm flex-1 resize-none"
             />
-            <Button
-              onClick={handleAddNote}
-              disabled={addNoteMutation.isPending || !noteText.trim()}
-              size="sm"
-              className="px-3 h-auto self-end"
-            >
-              <PlusCircle className="w-4 h-4" />
-            </Button>
+            <div className="flex flex-col gap-1">
+              <Button
+                onClick={handleCapturePhoto}
+                disabled={isCapturingPhoto || isUploading}
+                size="sm"
+                variant="outline"
+                className="px-2 h-8"
+              >
+                <Camera className="w-4 h-4" />
+              </Button>
+              <Button
+                onClick={handleCaptureVideo}
+                disabled={isRecording || isUploading}
+                size="sm"
+                variant="outline"
+                className="px-2 h-8"
+              >
+                <Video className="w-4 h-4" />
+              </Button>
+              <Button
+                onClick={handleAddNote}
+                disabled={addNoteMutation.isPending || !noteText.trim() || isUploading}
+                size="sm"
+                className="px-2 h-8"
+              >
+                <PlusCircle className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -274,9 +391,28 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                             </div>
                           </div>
                         ) : (
-                          <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
-                            {note.note_text}
-                          </p>
+                          <>
+                            <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                              {note.note_text}
+                            </p>
+                            {note.attachment_url && (
+                              <div className="mt-2">
+                                {note.attachment_type === 'image' ? (
+                                  <img 
+                                    src={note.attachment_url} 
+                                    alt="Note attachment" 
+                                    className="w-full max-w-xs rounded border"
+                                  />
+                                ) : (
+                                  <video 
+                                    src={note.attachment_url} 
+                                    className="w-full max-w-xs rounded border" 
+                                    controls
+                                  />
+                                )}
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -297,6 +433,24 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
     <div className="border rounded-lg overflow-hidden">
       {/* Quick Add Form - Top Priority */}
       <div className="p-2 bg-muted/20 border-b">
+        {attachmentPreview && (
+          <div className="mb-1 relative">
+            {attachmentType === 'image' ? (
+              <img src={attachmentPreview} alt="Preview" className="w-full h-20 object-cover rounded" />
+            ) : (
+              <video src={attachmentPreview} className="w-full h-20 object-cover rounded" controls />
+            )}
+            <Button
+              variant="destructive"
+              size="sm"
+              className="absolute top-0.5 right-0.5 h-4 w-4 p-0"
+              onClick={handleClearAttachment}
+            >
+              <X className="h-2 w-2" />
+            </Button>
+          </div>
+        )}
+        
         <div className="flex gap-1">
           <Textarea
             value={noteText}
@@ -305,14 +459,34 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
             rows={2}
             className="text-xs flex-1 min-h-0 resize-none"
           />
-          <Button
-            onClick={handleAddNote}
-            disabled={addNoteMutation.isPending || !noteText.trim()}
-            size="sm"
-            className="px-2 h-auto self-end"
-          >
-            <PlusCircle className="w-3 h-3" />
-          </Button>
+          <div className="flex flex-col gap-0.5">
+            <Button
+              onClick={handleCapturePhoto}
+              disabled={isCapturingPhoto || isUploading}
+              size="sm"
+              variant="outline"
+              className="px-1 h-6"
+            >
+              <Camera className="w-2.5 h-2.5" />
+            </Button>
+            <Button
+              onClick={handleCaptureVideo}
+              disabled={isRecording || isUploading}
+              size="sm"
+              variant="outline"
+              className="px-1 h-6"
+            >
+              <Video className="w-2.5 h-2.5" />
+            </Button>
+            <Button
+              onClick={handleAddNote}
+              disabled={addNoteMutation.isPending || !noteText.trim() || isUploading}
+              size="sm"
+              className="px-1 h-6"
+            >
+              <PlusCircle className="w-2.5 h-2.5" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -392,9 +566,28 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                           </div>
                         </div>
                       ) : (
-                        <p className="text-[11px] leading-tight text-foreground/90 whitespace-pre-wrap line-clamp-3">
-                          {note.note_text}
-                        </p>
+                        <>
+                          <p className="text-[11px] leading-tight text-foreground/90 whitespace-pre-wrap line-clamp-3">
+                            {note.note_text}
+                          </p>
+                          {note.attachment_url && (
+                            <div className="mt-1">
+                              {note.attachment_type === 'image' ? (
+                                <img 
+                                  src={note.attachment_url} 
+                                  alt="Note attachment" 
+                                  className="w-full max-w-[120px] rounded border"
+                                />
+                              ) : (
+                                <video 
+                                  src={note.attachment_url} 
+                                  className="w-full max-w-[120px] rounded border" 
+                                  controls
+                                />
+                              )}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -490,9 +683,28 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                               </div>
                             </div>
                           ) : (
-                            <p className="text-xs leading-snug text-foreground whitespace-pre-wrap">
-                              {note.note_text}
-                            </p>
+                            <>
+                              <p className="text-xs leading-snug text-foreground whitespace-pre-wrap">
+                                {note.note_text}
+                              </p>
+                              {note.attachment_url && (
+                                <div className="mt-1.5">
+                                  {note.attachment_type === 'image' ? (
+                                    <img 
+                                      src={note.attachment_url} 
+                                      alt="Note attachment" 
+                                      className="w-full max-w-[200px] rounded border"
+                                    />
+                                  ) : (
+                                    <video 
+                                      src={note.attachment_url} 
+                                      className="w-full max-w-[200px] rounded border" 
+                                      controls
+                                    />
+                                  )}
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -518,6 +730,25 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
       <ResizablePanel defaultSize={40} minSize={30}>
         <div className="h-full flex flex-col p-2 bg-muted/20">
           <h4 className="text-xs font-semibold mb-2">Add Note</h4>
+          
+          {attachmentPreview && (
+            <div className="mb-2 relative">
+              {attachmentType === 'image' ? (
+                <img src={attachmentPreview} alt="Preview" className="w-full h-24 object-cover rounded" />
+              ) : (
+                <video src={attachmentPreview} className="w-full h-24 object-cover rounded" controls />
+              )}
+              <Button
+                variant="destructive"
+                size="sm"
+                className="absolute top-1 right-1 h-5 w-5 p-0"
+                onClick={handleClearAttachment}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+          
           <Textarea
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
@@ -525,14 +756,38 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
             rows={4}
             className="text-xs mb-2 resize-none flex-1"
           />
+          
+          <div className="flex gap-1 mb-2">
+            <Button
+              onClick={handleCapturePhoto}
+              disabled={isCapturingPhoto || isUploading}
+              size="sm"
+              variant="outline"
+              className="flex-1"
+            >
+              <Camera className="w-3 h-3 mr-1" />
+              Photo
+            </Button>
+            <Button
+              onClick={handleCaptureVideo}
+              disabled={isRecording || isUploading}
+              size="sm"
+              variant="outline"
+              className="flex-1"
+            >
+              <Video className="w-3 h-3 mr-1" />
+              Video
+            </Button>
+          </div>
+          
           <Button
             onClick={handleAddNote}
-            disabled={addNoteMutation.isPending || !noteText.trim()}
+            disabled={addNoteMutation.isPending || !noteText.trim() || isUploading}
             size="sm"
             className="w-full"
           >
             <PlusCircle className="w-3 h-3 mr-1" />
-            {addNoteMutation.isPending ? "Adding..." : "Add"}
+            {isUploading ? "Uploading..." : addNoteMutation.isPending ? "Adding..." : "Add"}
           </Button>
         </div>
       </ResizablePanel>
