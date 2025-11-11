@@ -19,7 +19,7 @@ const Quotes = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
-  const [view, setView] = useState<'list' | 'create' | 'edit' | 'compare'>('list');
+  const [view, setView] = useState<'list' | 'create' | 'edit' | 'view' | 'compare'>('list');
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [filteredQuotes, setFilteredQuotes] = useState<Quote[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
@@ -579,6 +579,11 @@ const Quotes = () => {
     setView('edit');
   };
 
+  const handleViewQuote = (quote: Quote) => {
+    setSelectedQuote(quote);
+    setView('view');
+  };
+
   const handleCompareQuote = (quote: Quote) => {
     setSelectedQuote(quote);
     setView('compare');
@@ -634,12 +639,14 @@ const Quotes = () => {
             {view === 'list' ? 'Quotes' : 
              view === 'create' ? 'Create New Quote' :
              view === 'edit' ? 'Edit Quote' :
+             view === 'view' ? 'View Quote' :
              'Compare Quote'}
           </h1>
           <p className="text-muted-foreground">
             {view === 'list' ? 'Manage project quotes and compare against estimates' :
              view === 'create' ? 'Enter quote details below' :
              view === 'edit' ? 'Update quote details' :
+             view === 'view' ? 'Review quote details' :
              selectedQuote ? `Compare quote ${selectedQuote.quoteNumber} against estimate` : ''}
           </p>
         </div>
@@ -675,6 +682,7 @@ const Quotes = () => {
           <QuotesList
             quotes={filteredQuotes}
             estimates={estimates}
+            onView={handleViewQuote}
             onEdit={handleEditQuote}
             onDelete={handleDeleteQuote}
             onCompare={handleCompareQuote}
@@ -697,6 +705,16 @@ const Quotes = () => {
           estimates={estimates}
           initialQuote={selectedQuote}
           onSave={handleSaveQuote}
+          onCancel={() => { setView('list'); setSelectedQuote(undefined); }}
+        />
+      )}
+
+      {view === 'view' && selectedQuote && (
+        <QuoteForm
+          mode="view"
+          estimates={estimates}
+          initialQuote={selectedQuote}
+          onSave={() => {}}
           onCancel={() => { setView('list'); setSelectedQuote(undefined); }}
         />
       )}
