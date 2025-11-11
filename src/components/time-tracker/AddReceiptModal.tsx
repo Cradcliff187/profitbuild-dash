@@ -14,6 +14,7 @@ import { PayeeType } from '@/types/payee';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { isIOSPWA } from '@/utils/platform';
+import { useCameraCapture } from '@/hooks/useCameraCapture';
 
 const UNASSIGNED_RECEIPTS_PROJECT_NUMBER = 'SYS-000';
 
@@ -37,6 +38,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   initialProjectId
 }) => {
   const isMobile = useIsMobile();
+  const { capturePhoto: captureCameraPhoto, isCapturing } = useCameraCapture();
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
   const [selectedPayeeId, setSelectedPayeeId] = useState<string | undefined>();
@@ -90,27 +92,9 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
       });
     }
     
-    try {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.capture = 'environment';
-      
-      input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setCapturedPhoto(reader.result as string);
-          };
-          reader.readAsDataURL(file);
-        }
-      };
-      
-      input.click();
-    } catch (error) {
-      console.error('Error capturing photo:', error);
-      toast.error('Failed to capture photo');
+    const result = await captureCameraPhoto();
+    if (result?.dataUrl) {
+      setCapturedPhoto(result.dataUrl);
     }
   };
 
@@ -215,6 +199,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
             onClick={capturePhoto}
             variant="outline"
             className={isMobile ? "w-full h-60 border-2 border-dashed" : "w-full h-48 border-2 border-dashed"}
+            disabled={isCapturing}
           >
             <div className="flex flex-col items-center gap-2">
               <CameraIcon className={isMobile ? "w-16 h-16 text-muted-foreground" : "w-12 h-12 text-muted-foreground"} />
