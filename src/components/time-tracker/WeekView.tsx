@@ -155,9 +155,12 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
       ) : (
         // Group entries by date
         weekDays.map(day => {
-          const dayEntries = entries.filter(e => 
-            isSameDay(new Date(e.expense_date), day)
-          );
+          const dayEntries = entries.filter(e => {
+            // Parse date string as local date, not UTC
+            const [year, month, dayNum] = e.expense_date.split('-').map(Number);
+            const entryDate = new Date(year, month - 1, dayNum);
+            return isSameDay(entryDate, day);
+          });
           
           if (dayEntries.length === 0) return null;
           
