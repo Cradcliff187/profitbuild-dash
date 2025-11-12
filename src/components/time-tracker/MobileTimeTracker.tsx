@@ -1,23 +1,37 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check, AlertTriangle, BarChart3 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
-import { getCompanyBranding } from '@/utils/companyBranding';
-import { useToast } from '@/hooks/use-toast';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { format } from 'date-fns';
-import { checkTimeOverlap, validateTimeEntryHours, checkStaleTimer } from '@/utils/timeEntryValidation';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { BrandedLoader } from '@/components/ui/branded-loader';
-import { AddReceiptModal } from './AddReceiptModal';
-import { WeekView } from './WeekView';
-import { EditTimeEntryDialog } from './EditTimeEntryDialog';
-import { CreateTimeEntryDialog } from './CreateTimeEntryDialog';
-import { BulkActionsBar } from './BulkActionsBar';
-import { SyncStatusBanner } from './SyncStatusBanner';
-import { ReceiptsList } from './ReceiptsList';
-import { ProjectScheduleSelector } from './ProjectScheduleSelector';
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  Clock,
+  MapPin,
+  User,
+  Play,
+  Square,
+  Edit2,
+  Calendar,
+  Loader2,
+  AlertCircle,
+  Camera,
+  Check,
+  AlertTriangle,
+  BarChart3,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { getCompanyBranding } from "@/utils/companyBranding";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { format } from "date-fns";
+import { checkTimeOverlap, validateTimeEntryHours, checkStaleTimer } from "@/utils/timeEntryValidation";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { BrandedLoader } from "@/components/ui/branded-loader";
+import { AddReceiptModal } from "./AddReceiptModal";
+import { WeekView } from "./WeekView";
+import { EditTimeEntryDialog } from "./EditTimeEntryDialog";
+import { CreateTimeEntryDialog } from "./CreateTimeEntryDialog";
+import { BulkActionsBar } from "./BulkActionsBar";
+import { SyncStatusBanner } from "./SyncStatusBanner";
+import { ReceiptsList } from "./ReceiptsList";
+import { ProjectScheduleSelector } from "./ProjectScheduleSelector";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,10 +42,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useAuth } from '@/contexts/AuthContext';
-import { useRoles } from '@/contexts/RoleContext';
-import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { addToQueue } from '@/utils/syncQueue';
+import { useAuth } from "@/contexts/AuthContext";
+import { useRoles } from "@/contexts/RoleContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { addToQueue } from "@/utils/syncQueue";
 
 interface Project {
   id: string;
@@ -89,8 +103,8 @@ export const MobileTimeTracker: React.FC = () => {
   const [showProjectSelect, setShowProjectSelect] = useState(false);
   const [showWorkerSelect, setShowWorkerSelect] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
-  const [view, setView] = useState<'timer' | 'entries' | 'receipts'>('timer');
-  const [entriesDateRange, setEntriesDateRange] = useState<'today' | 'week'>('today');
+  const [view, setView] = useState<"timer" | "entries" | "receipts">("timer");
+  const [entriesDateRange, setEntriesDateRange] = useState<"today" | "week">("today");
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
@@ -103,19 +117,21 @@ export const MobileTimeTracker: React.FC = () => {
   const [showDuplicateTimerAlert, setShowDuplicateTimerAlert] = useState(false);
   const [existingTimerInfo, setExistingTimerInfo] = useState<any>(null);
   const [activeTimerPayeeIds, setActiveTimerPayeeIds] = useState<Set<string>>(new Set());
-  const [logoIcon] = useState<string>("https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/all%20white%20logo%20only.png");
+  const [logoIcon] = useState<string>(
+    "https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/all%20white%20logo%20only.png",
+  );
   const [showSuccess, setShowSuccess] = useState(false);
   const [showStaleTimerWarning, setShowStaleTimerWarning] = useState(false);
   const [showScheduleSelector, setShowScheduleSelector] = useState(false);
 
   // Apply URL parameters to set initial view
   useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    
-    if (tabParam === 'receipts') {
-      setView('receipts');
-    } else if (tabParam === 'entries') {
-      setView('entries');
+    const tabParam = searchParams.get("tab");
+
+    if (tabParam === "receipts") {
+      setView("receipts");
+    } else if (tabParam === "entries") {
+      setView("entries");
     }
     // Note: status filtering for receipts is handled by ReceiptsList component
   }, [searchParams]);
@@ -123,9 +139,9 @@ export const MobileTimeTracker: React.FC = () => {
   // Prevent body scroll when custom dropdowns are open
   useEffect(() => {
     if (showWorkerSelect || showProjectSelect) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
       return () => {
-        document.body.style.overflow = '';
+        document.body.style.overflow = "";
       };
     }
   }, [showWorkerSelect, showProjectSelect]);
@@ -134,105 +150,105 @@ export const MobileTimeTracker: React.FC = () => {
   const loadActiveTimers = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from('expenses')
-        .select('payee_id, id, start_time, project_id, payees(id, payee_name, hourly_rate, is_internal, provides_labor, user_id), projects(id, project_name, project_number)')
-        .eq('category', 'labor_internal')
-        .is('end_time', null);
+        .from("expenses")
+        .select(
+          "payee_id, id, start_time, project_id, payees(id, payee_name, hourly_rate, is_internal, provides_labor, user_id), projects(id, project_name, project_number)",
+        )
+        .eq("category", "labor_internal")
+        .is("end_time", null);
 
       if (error) throw error;
 
-      const activePayeeIds = new Set(data?.map(e => e.payee_id) || []);
+      const activePayeeIds = new Set(data?.map((e) => e.payee_id) || []);
       setActiveTimerPayeeIds(activePayeeIds);
 
       // Check ALL active timers for staleness
       if (data && data.length > 0) {
         let hasAutoClosedTimer = false;
-        
+
         for (const timer of data) {
           if (!timer.start_time) continue;
-          
+
           const staleCheck = checkStaleTimer(new Date(timer.start_time));
-          
+
           if (staleCheck.isStale) {
             // Determine ownership
             const isOwnTimer = timer.payees?.user_id === user?.id;
-            
+
             if (staleCheck.shouldAutoClose && isOwnTimer) {
               // Only auto-close YOUR OWN timer
-              console.log('Auto-closing YOUR stale timer:', {
+              console.log("Auto-closing YOUR stale timer:", {
                 payee_name: timer.payees?.payee_name,
-                hours: staleCheck.hoursElapsed.toFixed(1)
+                hours: staleCheck.hoursElapsed.toFixed(1),
               });
-              
+
               setShowStaleTimerWarning(true);
-              
+
               // Set as active timer
               setActiveTimer({
-                teamMember: { 
-                  id: timer.payee_id, 
-                  payee_name: timer.payees?.payee_name || 'Unknown Worker',
+                teamMember: {
+                  id: timer.payee_id,
+                  payee_name: timer.payees?.payee_name || "Unknown Worker",
                   hourly_rate: timer.payees?.hourly_rate || 75,
                   is_internal: timer.payees?.is_internal || false,
                   provides_labor: timer.payees?.provides_labor || false,
-                  user_id: timer.payees?.user_id
+                  user_id: timer.payees?.user_id,
                 },
                 project: {
                   id: timer.project_id,
-                  project_name: timer.projects?.project_name || 'Unknown Project',
-                  project_number: timer.projects?.project_number || 'UNKNOWN',
-                  client_name: ''
+                  project_name: timer.projects?.project_name || "Unknown Project",
+                  project_number: timer.projects?.project_number || "UNKNOWN",
+                  client_name: "",
                 },
                 startTime: new Date(timer.start_time),
-                location: undefined
+                location: undefined,
               });
-              
+
               // Auto-close
               await completeClockOut();
-              
+
               toast({
-                title: 'Timer Auto-Closed',
-                description: 'Your timer was running for over 24 hours and has been automatically closed.',
-                variant: 'destructive'
+                title: "Timer Auto-Closed",
+                description: "Your timer was running for over 24 hours and has been automatically closed.",
+                variant: "destructive",
               });
-              
+
               // Cleanup: Hide stale warning banner and refresh entries
               setShowStaleTimerWarning(false);
               await loadTodayEntries();
-              
+
               hasAutoClosedTimer = true;
               break; // Exit loop after auto-closing
-              
             } else if (staleCheck.shouldAutoClose && !isOwnTimer) {
               // Someone else's timer needs attention
-              console.warn('Stale timer detected for another user:', {
+              console.warn("Stale timer detected for another user:", {
                 payee_name: timer.payees?.payee_name,
                 hours: staleCheck.hoursElapsed.toFixed(1),
-                timer_id: timer.id
+                timer_id: timer.id,
               });
-              
+
               // Show notification to admin/manager
               if (isAdmin || isManager) {
                 toast({
-                  title: 'Stale Timer Alert',
+                  title: "Stale Timer Alert",
                   description: `${timer.payees?.payee_name} has a timer running for ${staleCheck.hoursElapsed.toFixed(1)} hours. Please review.`,
-                  variant: 'destructive',
-                  duration: 15000
+                  variant: "destructive",
+                  duration: 15000,
                 });
               }
-              
             } else if (staleCheck.isStale && isOwnTimer) {
               // Show warning for YOUR stale (but not auto-close) timer
               setShowStaleTimerWarning(true);
               toast({
-                title: 'Long Running Timer',
+                title: "Long Running Timer",
                 description: staleCheck.message,
-                variant: 'destructive',
-                duration: 10000
+                variant: "destructive",
+                duration: 10000,
               });
             }
           }
         }
-        
+
         // If we auto-closed, refresh and exit
         if (hasAutoClosedTimer) {
           setShowStaleTimerWarning(false);
@@ -241,10 +257,9 @@ export const MobileTimeTracker: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('Error loading active timers:', error);
+      console.error("Error loading active timers:", error);
     }
   }, [toast]);
-
 
   // Refresh timer when app returns to foreground (iOS background handling)
   useEffect(() => {
@@ -252,18 +267,17 @@ export const MobileTimeTracker: React.FC = () => {
       if (!document.hidden) {
         // App just came back to foreground
         setCurrentTime(new Date());
-        
+
         // If there's an active timer, reload from database to ensure accuracy
         if (activeTimer) {
           loadActiveTimers();
         }
       }
     };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [activeTimer, loadActiveTimers]);
 
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [activeTimer, loadActiveTimers]);
 
   // Load projects and workers on mount
   useEffect(() => {
@@ -271,10 +285,10 @@ export const MobileTimeTracker: React.FC = () => {
       loadInitialData();
       loadTodayEntries();
       loadActiveTimers();
-      
+
       // Set up real-time subscription
       const channel = setupRealtimeSubscription();
-      
+
       // Cleanup on unmount
       return () => {
         supabase.removeChannel(channel);
@@ -290,29 +304,29 @@ export const MobileTimeTracker: React.FC = () => {
 
   // Load timer state from localStorage on mount
   useEffect(() => {
-    const savedTimer = localStorage.getItem('activeTimer');
+    const savedTimer = localStorage.getItem("activeTimer");
     if (savedTimer) {
       try {
         const parsed = JSON.parse(savedTimer);
-        
+
         // Sanitize: clear system project if cached
-        const isSystemProject = (num?: string) => 
-          !!num && (num === 'SYS-000' || num === '000-UNASSIGNED' || num.startsWith('SYS-'));
-        
+        const isSystemProject = (num?: string) =>
+          !!num && (num === "SYS-000" || num === "000-UNASSIGNED" || num.startsWith("SYS-"));
+
         if (parsed.project && isSystemProject(parsed.project.project_number)) {
           parsed.project = null;
         }
-        
+
         setActiveTimer({
           ...parsed,
-          startTime: new Date(parsed.startTime)
+          startTime: new Date(parsed.startTime),
         });
         setSelectedTeamMember(parsed.teamMember);
         setSelectedProject(parsed.project);
         setLocation(parsed.location);
       } catch (error) {
-        console.error('Failed to restore timer:', error);
-        localStorage.removeItem('activeTimer');
+        console.error("Failed to restore timer:", error);
+        localStorage.removeItem("activeTimer");
       }
     }
   }, []);
@@ -320,9 +334,9 @@ export const MobileTimeTracker: React.FC = () => {
   // Save timer state to localStorage whenever it changes
   useEffect(() => {
     if (activeTimer) {
-      localStorage.setItem('activeTimer', JSON.stringify(activeTimer));
+      localStorage.setItem("activeTimer", JSON.stringify(activeTimer));
     } else {
-      localStorage.removeItem('activeTimer');
+      localStorage.removeItem("activeTimer");
     }
   }, [activeTimer]);
 
@@ -330,33 +344,34 @@ export const MobileTimeTracker: React.FC = () => {
     setDataLoading(true);
     try {
       // Load active projects (exclude system projects)
-    const { data: projectsData, error: projectsError } = await supabase
-      .from('projects')
-      .select('id, project_number, project_name, client_name, address')
-      .in('status', ['approved', 'in_progress'])
-      .neq('project_number', '000-UNASSIGNED')
-      .neq('project_number', 'SYS-000')
-        .order('project_number', { ascending: false })
+      const { data: projectsData, error: projectsError } = await supabase
+        .from("projects")
+        .select("id, project_number, project_name, client_name, address")
+        .in("status", ["approved", "in_progress"])
+        .neq("project_number", "000-UNASSIGNED")
+        .neq("project_number", "SYS-000")
+        .order("project_number", { ascending: false })
         .limit(20);
 
       if (projectsError) throw projectsError;
-      
+
       // Defense-in-depth: filter any system projects
       const cleanedProjects = (projectsData || []).filter(
-        p => p.project_number !== '000-UNASSIGNED' && 
-             p.project_number !== 'SYS-000' && 
-             !p.project_number.startsWith('SYS-')
+        (p) =>
+          p.project_number !== "000-UNASSIGNED" &&
+          p.project_number !== "SYS-000" &&
+          !p.project_number.startsWith("SYS-"),
       );
       setProjects(cleanedProjects);
 
       // Load internal labor team members
       const { data: teamMembersData, error: teamMembersError } = await supabase
-        .from('payees')
-        .select('id, payee_name, hourly_rate, email')
-        .eq('is_internal', true)
-        .eq('provides_labor', true)
-        .eq('is_active', true)
-        .order('payee_name');
+        .from("payees")
+        .select("id, payee_name, hourly_rate, email")
+        .eq("is_internal", true)
+        .eq("provides_labor", true)
+        .eq("is_active", true)
+        .order("payee_name");
 
       if (teamMembersError) throw teamMembersError;
       setTeamMembers(teamMembersData || []);
@@ -364,23 +379,23 @@ export const MobileTimeTracker: React.FC = () => {
       // Auto-select current user if they're a team member
       if (user?.email && teamMembersData && teamMembersData.length > 0) {
         const currentUserPayee = teamMembersData.find(
-          member => member.email?.toLowerCase() === user.email?.toLowerCase()
+          (member) => member.email?.toLowerCase() === user.email?.toLowerCase(),
         );
-        
+
         if (currentUserPayee && !activeTimer) {
           setSelectedTeamMember({
             id: currentUserPayee.id,
             payee_name: currentUserPayee.payee_name,
-            hourly_rate: currentUserPayee.hourly_rate
+            hourly_rate: currentUserPayee.hourly_rate,
           });
         }
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error("Error loading data:", error);
       toast({
-        title: 'Error Loading Data',
-        description: 'Failed to load projects and team members',
-        variant: 'destructive'
+        title: "Error Loading Data",
+        description: "Failed to load projects and team members",
+        variant: "destructive",
       });
     } finally {
       setDataLoading(false);
@@ -390,21 +405,21 @@ export const MobileTimeTracker: React.FC = () => {
   // Set up real-time subscription for time entries
   const setupRealtimeSubscription = () => {
     const channel = supabase
-      .channel('time-entries-changes')
+      .channel("time-entries-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*', // Listen to INSERT, UPDATE, DELETE
-          schema: 'public',
-          table: 'expenses',
-          filter: `category=eq.labor_internal`
+          event: "*", // Listen to INSERT, UPDATE, DELETE
+          schema: "public",
+          table: "expenses",
+          filter: `category=eq.labor_internal`,
         },
         (payload) => {
-          console.log('Real-time change detected:', payload);
+          console.log("Real-time change detected:", payload);
           // Reload today's entries when any change occurs
           loadTodayEntries();
           loadActiveTimers();
-        }
+        },
       )
       .subscribe();
 
@@ -413,21 +428,24 @@ export const MobileTimeTracker: React.FC = () => {
 
   const loadTodayEntries = async () => {
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
-      
+      const today = format(new Date(), "yyyy-MM-dd");
+
       // Get current user and check role
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user?.id || '');
-      
-      const isAdmin = roles?.some(r => r.role === 'admin');
-      const isManager = roles?.some(r => r.role === 'manager');
-      
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user?.id || "");
+
+      const isAdmin = roles?.some((r) => r.role === "admin");
+      const isManager = roles?.some((r) => r.role === "manager");
+
       let query = supabase
-        .from('expenses')
-        .select(`
+        .from("expenses")
+        .select(
+          `
           id,
           amount,
           expense_date,
@@ -440,106 +458,110 @@ export const MobileTimeTracker: React.FC = () => {
           end_time,
           payees!inner(id, payee_name, hourly_rate),
           projects!inner(id, project_number, project_name, client_name, address)
-        `)
-        .eq('category', 'labor_internal')
-        .eq('expense_date', today);
-      
+        `,
+        )
+        .eq("category", "labor_internal")
+        .eq("expense_date", today);
+
       // Field workers only see their own entries
       if (!isAdmin && !isManager) {
-        query = query.eq('user_id', user?.id || '');
+        query = query.eq("user_id", user?.id || "");
       }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
+
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
 
       // Client-side filter to ensure entries match local timezone date
       const filteredData = (data || []).filter((expense: any) => {
-        const localCreatedDate = format(new Date(expense.created_at), 'yyyy-MM-dd');
+        const localCreatedDate = format(new Date(expense.created_at), "yyyy-MM-dd");
         const matches = localCreatedDate === today && expense.expense_date === today;
-        
+
         if (!matches) {
-          console.debug(`Dropping entry ${expense.id}: created=${localCreatedDate}, expense_date=${expense.expense_date}, today=${today}`);
+          console.debug(
+            `Dropping entry ${expense.id}: created=${localCreatedDate}, expense_date=${expense.expense_date}, today=${today}`,
+          );
         }
-        
+
         return matches;
       });
 
       // Parse entries from expenses
-      const entries = filteredData.map((expense: any) => {
-        const hourlyRate = expense.payees?.hourly_rate || 75;
-        const hours = expense.amount / hourlyRate;
-        
-        // Prioritize database columns, fallback to description parsing
-        let startTimeString: string | undefined;
-        let endTimeString: string | undefined;
-        let startTime: Date;
-        let endTime: Date;
-        
-        if (expense.start_time && expense.end_time) {
-          // Use database timestamps (new entries)
-          startTime = new Date(expense.start_time);
-          endTime = new Date(expense.end_time);
-          startTimeString = formatTime(startTime);
-          endTimeString = formatTime(endTime);
-        } else {
-          // Fallback: Parse times from description (old entries)
-          const timeMatch = expense.description.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)/i);
-          startTime = new Date(expense.created_at);
-          
-          if (timeMatch) {
-            startTimeString = timeMatch[1];
-            endTimeString = timeMatch[2];
-            endTime = startTime; // Placeholder, actual time in string
-          } else if (hours > 0.01) {
-            // Calculate times from created_at for old entries
-            endTime = new Date(startTime.getTime() + hours * 60 * 60 * 1000);
+      const entries =
+        filteredData.map((expense: any) => {
+          const hourlyRate = expense.payees?.hourly_rate || 75;
+          const hours = expense.amount / hourlyRate;
+
+          // Prioritize database columns, fallback to description parsing
+          let startTimeString: string | undefined;
+          let endTimeString: string | undefined;
+          let startTime: Date;
+          let endTime: Date;
+
+          if (expense.start_time && expense.end_time) {
+            // Use database timestamps (new entries)
+            startTime = new Date(expense.start_time);
+            endTime = new Date(expense.end_time);
             startTimeString = formatTime(startTime);
             endTimeString = formatTime(endTime);
           } else {
-            endTime = startTime;
-            startTimeString = undefined;
-            endTimeString = undefined;
+            // Fallback: Parse times from description (old entries)
+            const timeMatch = expense.description.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)/i);
+            startTime = new Date(expense.created_at);
+
+            if (timeMatch) {
+              startTimeString = timeMatch[1];
+              endTimeString = timeMatch[2];
+              endTime = startTime; // Placeholder, actual time in string
+            } else if (hours > 0.01) {
+              // Calculate times from created_at for old entries
+              endTime = new Date(startTime.getTime() + hours * 60 * 60 * 1000);
+              startTimeString = formatTime(startTime);
+              endTimeString = formatTime(endTime);
+            } else {
+              endTime = startTime;
+              startTimeString = undefined;
+              endTimeString = undefined;
+            }
           }
-        }
-        
-        // Clean up description to remove redundant info
-        const cleanNote = expense.description
-          .replace(/Internal Labor\s*-\s*/i, '') // Remove "Internal Labor" prefix
-          .replace(/\d+\.?\d*\s*h(?:ou)?rs?\s*-?\s*/i, '') // Remove hours
-          .replace(/\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M\s*-?\s*/i, '') // Remove time range
-          .replace(/Employee\s+\d+/i, '') // Remove "Employee 1", "Employee 2", etc.
-          .replace(/\s*-\s*\w{3}\s+\d{1,2},\s+\d{4}\s*-?\s*/i, '') // Remove date like "Oct 13, 2025"
-          .replace(/\s*-\s*[A-Z][a-z]+\s+[A-Z][a-z]+\s*$/i, '') // Remove "FirstName LastName" at end
-          .replace(/^\s*-\s*/, '') // Remove leading dash
-          .replace(/\s*-\s*$/, '') // Remove trailing dash
-          .trim();
-        
-        return {
-          id: expense.id,
-          teamMember: expense.payees,
-          project: expense.projects,
-          payee_id: expense.payees?.id,
-          project_id: expense.projects?.id,
-          expense_date: expense.expense_date,
-          description: expense.description,
-          hours,
-          note: cleanNote,
-          attachment_url: expense.attachment_url,
-          user_id: expense.user_id,
-          approval_status: expense.approval_status,
-          is_locked: expense.is_locked,
-          startTime,
-          endTime,
-          startTimeString,
-          endTimeString
-        };
-      }) || [];
+
+          // Clean up description to remove redundant info
+          const cleanNote = expense.description
+            .replace(/Internal Labor\s*-\s*/i, "") // Remove "Internal Labor" prefix
+            .replace(/\d+\.?\d*\s*h(?:ou)?rs?\s*-?\s*/i, "") // Remove hours
+            .replace(/\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M\s*-?\s*/i, "") // Remove time range
+            .replace(/Employee\s+\d+/i, "") // Remove "Employee 1", "Employee 2", etc.
+            .replace(/\s*-\s*\w{3}\s+\d{1,2},\s+\d{4}\s*-?\s*/i, "") // Remove date like "Oct 13, 2025"
+            .replace(/\s*-\s*[A-Z][a-z]+\s+[A-Z][a-z]+\s*$/i, "") // Remove "FirstName LastName" at end
+            .replace(/^\s*-\s*/, "") // Remove leading dash
+            .replace(/\s*-\s*$/, "") // Remove trailing dash
+            .trim();
+
+          return {
+            id: expense.id,
+            teamMember: expense.payees,
+            project: expense.projects,
+            payee_id: expense.payees?.id,
+            project_id: expense.projects?.id,
+            expense_date: expense.expense_date,
+            description: expense.description,
+            hours,
+            note: cleanNote,
+            attachment_url: expense.attachment_url,
+            user_id: expense.user_id,
+            approval_status: expense.approval_status,
+            is_locked: expense.is_locked,
+            startTime,
+            endTime,
+            startTimeString,
+            endTimeString,
+          };
+        }) || [];
 
       setTodayEntries(entries);
       await loadActiveTimers();
     } catch (error) {
-      console.error('Error loading today entries:', error);
+      console.error("Error loading today entries:", error);
     }
   };
 
@@ -547,13 +569,13 @@ export const MobileTimeTracker: React.FC = () => {
     try {
       if (!navigator.geolocation) {
         toast({
-          title: 'Location not available',
-          description: 'GPS is not supported on this device',
-          variant: 'destructive'
+          title: "Location not available",
+          description: "GPS is not supported on this device",
+          variant: "destructive",
         });
         return null;
       }
-      
+
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(
           resolve,
@@ -562,28 +584,28 @@ export const MobileTimeTracker: React.FC = () => {
             switch (error.code) {
               case error.PERMISSION_DENIED:
                 toast({
-                  title: 'Location Permission Denied',
-                  description: 'Enable location services in your device settings to track work sites',
-                  variant: 'destructive'
+                  title: "Location Permission Denied",
+                  description: "Enable location services in your device settings to track work sites",
+                  variant: "destructive",
                 });
                 break;
               case error.POSITION_UNAVAILABLE:
                 toast({
-                  title: 'Location Unavailable',
-                  description: 'Unable to determine your position. GPS may be unavailable.'
+                  title: "Location Unavailable",
+                  description: "Unable to determine your position. GPS may be unavailable.",
                 });
                 break;
               case error.TIMEOUT:
                 toast({
-                  title: 'Location Timeout',
-                  description: 'Location request took too long. Please try again.'
+                  title: "Location Timeout",
+                  description: "Location request took too long. Please try again.",
                 });
                 break;
               default:
                 toast({
-                  title: 'Failed to get location',
-                  description: 'An unknown error occurred while accessing GPS',
-                  variant: 'destructive'
+                  title: "Failed to get location",
+                  description: "An unknown error occurred while accessing GPS",
+                  variant: "destructive",
                 });
             }
             reject(error);
@@ -591,31 +613,35 @@ export const MobileTimeTracker: React.FC = () => {
           {
             enableHighAccuracy: true,
             timeout: 10000,
-            maximumAge: 0
-          }
+            maximumAge: 0,
+          },
         );
       });
-      
+
       const loc = {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
-        address: 'Location captured'
+        address: "Location captured",
       };
-      
+
       setLocation(loc);
       return loc;
     } catch (error) {
-      console.error('Error getting location:', error);
+      console.error("Error getting location:", error);
       return null;
     }
   };
 
   const getElapsedTime = () => {
-    if (!activeTimer) return '00:00:00';
+    if (!activeTimer) return "00:00:00";
     const diff = Math.floor((currentTime.getTime() - activeTimer.startTime.getTime()) / 1000);
-    const hours = Math.floor(diff / 3600).toString().padStart(2, '0');
-    const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-    const seconds = (diff % 60).toString().padStart(2, '0');
+    const hours = Math.floor(diff / 3600)
+      .toString()
+      .padStart(2, "0");
+    const minutes = Math.floor((diff % 3600) / 60)
+      .toString()
+      .padStart(2, "0");
+    const seconds = (diff % 60).toString().padStart(2, "0");
     return `${hours}:${minutes}:${seconds}`;
   };
 
@@ -624,12 +650,12 @@ export const MobileTimeTracker: React.FC = () => {
 
     try {
       const { data, error } = await supabase
-        .from('expenses')
-        .select('*, projects(project_name, project_number)')
-        .eq('payee_id', selectedTeamMember.id)
-        .eq('category', 'labor_internal')
-        .is('end_time', null)
-        .order('start_time', { ascending: false })
+        .from("expenses")
+        .select("*, projects(project_name, project_number)")
+        .eq("payee_id", selectedTeamMember.id)
+        .eq("category", "labor_internal")
+        .is("end_time", null)
+        .order("start_time", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -643,7 +669,7 @@ export const MobileTimeTracker: React.FC = () => {
 
       return false;
     } catch (error) {
-      console.error('Error checking for duplicate timer:', error);
+      console.error("Error checking for duplicate timer:", error);
       return false;
     }
   };
@@ -651,9 +677,9 @@ export const MobileTimeTracker: React.FC = () => {
   const handleClockIn = async () => {
     if (!selectedTeamMember || !selectedProject) {
       toast({
-        title: 'Missing Information',
-        description: 'Please select team member and project first',
-        variant: 'destructive'
+        title: "Missing Information",
+        description: "Please select team member and project first",
+        variant: "destructive",
       });
       return;
     }
@@ -673,39 +699,39 @@ export const MobileTimeTracker: React.FC = () => {
     setLoading(true);
     try {
       // Capture location only if online
-      const loc = isOnline ? await captureLocation() : { lat: 0, lng: 0, address: 'Offline - no location' };
-      
+      const loc = isOnline ? await captureLocation() : { lat: 0, lng: 0, address: "Offline - no location" };
+
       const timerData = {
         teamMember: selectedTeamMember,
         project: selectedProject,
         startTime: new Date(),
-        location: loc || undefined
+        location: loc || undefined,
       };
-      
+
       setActiveTimer(timerData);
-      
+
       // Queue for sync if offline
       if (!isOnline) {
         await addToQueue({
-          type: 'clock_in',
+          type: "clock_in",
           payload: timerData,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
-      
+
       toast({
-        title: 'Clocked In',
-        description: `Timer started for ${selectedTeamMember.payee_name}${!isOnline ? ' (offline)' : ''}`,
+        title: "Clocked In",
+        description: `Timer started for ${selectedTeamMember.payee_name}${!isOnline ? " (offline)" : ""}`,
       });
 
       // Refresh active timers list
       await loadActiveTimers();
     } catch (error) {
-      console.error('Error clocking in:', error);
+      console.error("Error clocking in:", error);
       toast({
-        title: 'Clock In Failed',
-        description: 'Failed to start timer',
-        variant: 'destructive'
+        title: "Clock In Failed",
+        description: "Failed to start timer",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -714,33 +740,33 @@ export const MobileTimeTracker: React.FC = () => {
 
   const handleReceiptFromClockOut = async (receiptId: string) => {
     setShowReceiptModal(false);
-    
+
     // Link the receipt to the expense
     if (pendingReceiptExpenseId) {
       try {
         const { error } = await supabase
-          .from('expenses')
+          .from("expenses")
           .update({ receipt_id: receiptId })
-          .eq('id', pendingReceiptExpenseId);
+          .eq("id", pendingReceiptExpenseId);
 
         if (error) throw error;
 
         toast({
-          title: 'Receipt Added',
-          description: 'Receipt attached to time entry',
+          title: "Receipt Added",
+          description: "Receipt attached to time entry",
         });
 
         await loadTodayEntries();
       } catch (error) {
-        console.error('Error linking receipt:', error);
+        console.error("Error linking receipt:", error);
         toast({
-          title: 'Receipt Link Failed',
-          description: 'Receipt saved but failed to link to time entry',
-          variant: 'destructive'
+          title: "Receipt Link Failed",
+          description: "Receipt saved but failed to link to time entry",
+          variant: "destructive",
         });
       }
     }
-    
+
     setPendingReceiptExpenseId(null);
   };
 
@@ -756,9 +782,9 @@ export const MobileTimeTracker: React.FC = () => {
       const hoursValidation = validateTimeEntryHours(activeTimer.startTime, endTime);
       if (!hoursValidation.valid) {
         toast({
-          title: 'Invalid Time Entry',
+          title: "Invalid Time Entry",
           description: hoursValidation.message,
-          variant: 'destructive'
+          variant: "destructive",
         });
         setLoading(false);
         return null;
@@ -768,15 +794,15 @@ export const MobileTimeTracker: React.FC = () => {
       if (isOnline) {
         const overlapCheck = await checkTimeOverlap(
           activeTimer.teamMember.id,
-          format(activeTimer.startTime, 'yyyy-MM-dd'),
+          format(activeTimer.startTime, "yyyy-MM-dd"),
           activeTimer.startTime,
           endTime,
-          undefined
+          undefined,
         );
 
         if (overlapCheck.hasOverlap) {
           const proceed = window.confirm(
-            `⚠️ Overlap Warning\n\n${overlapCheck.message}\n\nThis entry overlaps with existing time entries. Continue anyway?`
+            `⚠️ Overlap Warning\n\n${overlapCheck.message}\n\nThis entry overlaps with existing time entries. Continue anyway?`,
           );
           if (!proceed) {
             setLoading(false);
@@ -788,50 +814,48 @@ export const MobileTimeTracker: React.FC = () => {
       const amount = hours * activeTimer.teamMember.hourly_rate;
 
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       // SAFETY CHECK: Verify this is the user's own timer
       if (activeTimer.teamMember.user_id && activeTimer.teamMember.user_id !== user?.id) {
-        console.error('Timer ownership mismatch:', {
+        console.error("Timer ownership mismatch:", {
           timer_owner: activeTimer.teamMember.user_id,
           current_user: user?.id,
-          payee_name: activeTimer.teamMember.payee_name
+          payee_name: activeTimer.teamMember.payee_name,
         });
-        
+
         toast({
-          title: 'Cannot Close Timer',
-          description: 'This timer belongs to another user. Only the timer owner can clock out.',
-          variant: 'destructive'
+          title: "Cannot Close Timer",
+          description: "This timer belongs to another user. Only the timer owner can clock out.",
+          variant: "destructive",
         });
-        
+
         setLoading(false);
         return null;
       }
-      
+
       const expenseData = {
         project_id: activeTimer.project.id,
         payee_id: activeTimer.teamMember.id,
-        category: 'labor_internal' as const,
-        transaction_type: 'expense' as const,
+        category: "labor_internal" as const,
+        transaction_type: "expense" as const,
         amount: amount,
-        expense_date: `${activeTimer.startTime.getFullYear()}-${String(activeTimer.startTime.getMonth() + 1).padStart(2, '0')}-${String(activeTimer.startTime.getDate()).padStart(2, '0')}`,
-        description: '',
+        expense_date: `${activeTimer.startTime.getFullYear()}-${String(activeTimer.startTime.getMonth() + 1).padStart(2, "0")}-${String(activeTimer.startTime.getDate()).padStart(2, "0")}`,
+        description: "",
         is_planned: false,
         created_offline: !isOnline,
-        approval_status: 'pending',
+        approval_status: "pending",
         user_id: user?.id,
         updated_by: user?.id,
         start_time: activeTimer.startTime.toISOString(),
-        end_time: endTime.toISOString()
+        end_time: endTime.toISOString(),
       };
 
       if (isOnline) {
         // Save directly to DB
-        const { data, error } = await supabase
-          .from('expenses')
-          .insert(expenseData)
-          .select()
-          .single();
+        const { data, error } = await supabase.from("expenses").insert(expenseData).select().single();
 
         if (error) throw error;
 
@@ -841,7 +865,7 @@ export const MobileTimeTracker: React.FC = () => {
 
         // Keep toast for accessibility
         toast({
-          title: 'Clocked Out',
+          title: "Clocked Out",
           description: `Saved ${hours.toFixed(2)} hours`,
         });
 
@@ -855,9 +879,9 @@ export const MobileTimeTracker: React.FC = () => {
         // Queue for later sync
         const localId = crypto.randomUUID();
         await addToQueue({
-          type: 'clock_out',
+          type: "clock_out",
           payload: { ...expenseData, local_id: localId },
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         // Add to local today entries immediately (optimistic UI)
@@ -867,9 +891,9 @@ export const MobileTimeTracker: React.FC = () => {
           project: activeTimer.project,
           hours,
           startTime: activeTimer.startTime,
-          endTime: endTime
+          endTime: endTime,
         };
-        setTodayEntries(prev => [localEntry, ...prev]);
+        setTodayEntries((prev) => [localEntry, ...prev]);
 
         // Show success card
         setShowSuccess(true);
@@ -877,7 +901,7 @@ export const MobileTimeTracker: React.FC = () => {
 
         // Keep toast for accessibility
         toast({
-          title: 'Clocked Out (Offline)',
+          title: "Clocked Out (Offline)",
           description: `Saved ${hours.toFixed(2)} hours - will sync when online`,
         });
 
@@ -887,17 +911,17 @@ export const MobileTimeTracker: React.FC = () => {
         return localId;
       }
     } catch (error: any) {
-      console.error('Error clocking out:', error);
-      const errorMessage = error?.message || '';
-      const isRlsError = errorMessage.toLowerCase().includes('row-level security') || 
-                         errorMessage.toLowerCase().includes('policy');
-      
+      console.error("Error clocking out:", error);
+      const errorMessage = error?.message || "";
+      const isRlsError =
+        errorMessage.toLowerCase().includes("row-level security") || errorMessage.toLowerCase().includes("policy");
+
       toast({
-        title: 'Clock Out Failed',
+        title: "Clock Out Failed",
         description: isRlsError
-          ? 'Your account is missing permission to save time entries. Please contact an administrator.'
-          : 'Failed to save time entry. Please try again.',
-        variant: 'destructive'
+          ? "Your account is missing permission to save time entries. Please contact an administrator."
+          : "Failed to save time entry. Please try again.",
+        variant: "destructive",
       });
       return null;
     } finally {
@@ -908,10 +932,10 @@ export const MobileTimeTracker: React.FC = () => {
   const handleClockOut = async () => {
     // Capture project before completing clock out
     const projectId = activeTimer?.project.id;
-    
+
     // Save time entry immediately
     const expenseId = await completeClockOut();
-    
+
     // Then ask if user wants to add receipt
     if (expenseId && isOnline && projectId) {
       setPendingReceiptExpenseId(expenseId);
@@ -921,7 +945,7 @@ export const MobileTimeTracker: React.FC = () => {
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
   };
 
   const todayTotal = todayEntries.reduce((sum, entry) => sum + entry.hours, 0);
@@ -941,7 +965,8 @@ export const MobileTimeTracker: React.FC = () => {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>No Team Members Available</AlertTitle>
           <AlertDescription>
-            No internal labor team members found. Please add team members in the Payees section with "Internal" and "Provides Labor" enabled.
+            No internal labor team members found. Please add team members in the Payees section with "Internal" and
+            "Provides Labor" enabled.
           </AlertDescription>
         </Alert>
       </div>
@@ -949,21 +974,21 @@ export const MobileTimeTracker: React.FC = () => {
   }
 
   // Clock out success feedback overlay
-  {showSuccess && (
-    <div className="fixed top-20 left-4 right-4 z-50 animate-in slide-in-from-top">
-      <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-4 shadow-2xl">
-        <div className="flex items-center gap-3">
-          <Check className="w-8 h-8 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-lg">Successfully Clocked Out!</p>
-            <p className="text-sm text-green-100">
-              {todayTotal.toFixed(2)} hours worked
-            </p>
+  {
+    showSuccess && (
+      <div className="fixed top-20 left-4 right-4 z-50 animate-in slide-in-from-top">
+        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-4 shadow-2xl">
+          <div className="flex items-center gap-3">
+            <Check className="w-8 h-8 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-lg">Successfully Clocked Out!</p>
+              <p className="text-sm text-green-100">{todayTotal.toFixed(2)} hours worked</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  )}
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 pb-20">
@@ -974,28 +999,20 @@ export const MobileTimeTracker: React.FC = () => {
       <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-4 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {logoIcon && (
-              <img 
-                src={logoIcon} 
-                alt="Company Logo" 
-                className="h-10 w-10 rounded-lg object-cover"
-              />
-            )}
+            {logoIcon && <img src={logoIcon} alt="Company Logo" className="h-10 w-10 rounded-lg object-cover" />}
             <div>
               <h1 className="text-xl font-bold">Time Tracker</h1>
               <p className="text-sm opacity-90">
-                {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                {currentTime.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
               </p>
             </div>
             {!isOnline && (
-              <div className="bg-yellow-500 text-yellow-950 px-2 py-1 text-xs rounded font-medium">
-                OFFLINE
-              </div>
+              <div className="bg-yellow-500 text-yellow-950 px-2 py-1 text-xs rounded font-medium">OFFLINE</div>
             )}
           </div>
           <div className="text-right">
             <div className="text-2xl font-mono font-bold">
-              {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              {currentTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
             </div>
             <p className="text-xs opacity-90">Current Time</p>
           </div>
@@ -1006,33 +1023,27 @@ export const MobileTimeTracker: React.FC = () => {
       <div className="bg-card shadow-sm border-b sticky top-0 z-10">
         <div className="flex">
           <button
-            onClick={() => setView('timer')}
+            onClick={() => setView("timer")}
             className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
-              view === 'timer' 
-                ? 'text-primary border-b-2 border-primary bg-primary/5' 
-                : 'text-muted-foreground'
+              view === "timer" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground"
             }`}
           >
             <Clock className="w-5 h-5 mx-auto mb-1" />
             Timer
           </button>
           <button
-            onClick={() => setView('entries')}
+            onClick={() => setView("entries")}
             className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
-              view === 'entries' 
-                ? 'text-primary border-b-2 border-primary bg-primary/5' 
-                : 'text-muted-foreground'
+              view === "entries" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground"
             }`}
           >
             <Calendar className="w-5 h-5 mx-auto mb-1" />
             Entries
           </button>
           <button
-            onClick={() => setView('receipts')}
+            onClick={() => setView("receipts")}
             className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
-              view === 'receipts' 
-                ? 'text-primary border-b-2 border-primary bg-primary/5' 
-                : 'text-muted-foreground'
+              view === "receipts" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground"
             }`}
           >
             <Camera className="w-5 h-5 mx-auto mb-1" />
@@ -1047,15 +1058,8 @@ export const MobileTimeTracker: React.FC = () => {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Long Running Timer</AlertTitle>
           <AlertDescription className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <span>
-              Timer has been running for {getElapsedTime()}. Please clock out.
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleClockOut()}
-              className="w-full sm:w-auto"
-            >
+            <span>Timer has been running for {getElapsedTime()}. Please clock out.</span>
+            <Button size="sm" variant="outline" onClick={() => handleClockOut()} className="w-full sm:w-auto">
               Clock Out Now
             </Button>
           </AlertDescription>
@@ -1063,7 +1067,7 @@ export const MobileTimeTracker: React.FC = () => {
       )}
 
       {/* Timer View */}
-      {view === 'timer' && (
+      {view === "timer" && (
         <div className="p-4 space-y-4">
           {/* Active Timer Display */}
           {activeTimer && (
@@ -1075,7 +1079,7 @@ export const MobileTimeTracker: React.FC = () => {
                 </div>
                 {activeTimer.location && <MapPin className="w-5 h-5" />}
               </div>
-              
+
               <div className="text-center py-6">
                 <div className="text-5xl font-mono font-bold mb-2">{getElapsedTime()}</div>
                 <p className="text-green-100">Started at {formatTime(activeTimer.startTime)}</p>
@@ -1089,9 +1093,11 @@ export const MobileTimeTracker: React.FC = () => {
                 <div className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
-                    <span>{activeTimer.project.project_number} - {activeTimer.project.client_name}</span>
+                    <span>
+                      {activeTimer.project.project_number} - {activeTimer.project.project_name}
+                    </span>
                   </div>
-                  <span className="text-xs opacity-90 ml-6">{activeTimer.project.project_name}</span>
+                  <span className="text-xs opacity-90 ml-6">{activeTimer.project.client_name}</span>
                   {activeTimer.project.address && (
                     <span className="text-xs opacity-90 ml-6">{activeTimer.project.address}</span>
                   )}
@@ -1128,10 +1134,10 @@ export const MobileTimeTracker: React.FC = () => {
                 <div className="text-muted-foreground">Select team member...</div>
               )}
             </button>
-            
+
             {showWorkerSelect && !activeTimer && (
               <div className="mt-2 border rounded-lg bg-card shadow-md relative z-50 max-h-64 overflow-y-auto">
-                {teamMembers.map(member => (
+                {teamMembers.map((member) => (
                   <button
                     key={member.id}
                     onClick={() => {
@@ -1142,7 +1148,7 @@ export const MobileTimeTracker: React.FC = () => {
                       "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
                       selectedTeamMember?.id === member.id
                         ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
-                        : "hover:bg-muted"
+                        : "hover:bg-muted",
                     )}
                   >
                     <div className="flex items-center justify-between">
@@ -1182,9 +1188,9 @@ export const MobileTimeTracker: React.FC = () => {
               {selectedProject ? (
                 <div>
                   <div className="font-semibold text-foreground">
-                    {selectedProject.project_number} - {selectedProject.client_name}
+                    {selectedProject.project_number} - {selectedProject.project_name}
                   </div>
-                  <div className="text-sm text-muted-foreground">{selectedProject.project_name}</div>
+                  <div className="text-sm text-muted-foreground">{selectedProject.client_name}</div>
                   {selectedProject.address && (
                     <div className="text-sm text-muted-foreground">{selectedProject.address}</div>
                   )}
@@ -1193,10 +1199,10 @@ export const MobileTimeTracker: React.FC = () => {
                 <div className="text-muted-foreground">Select project...</div>
               )}
             </button>
-            
+
             {showProjectSelect && !activeTimer && (
               <div className="mt-2 border rounded-lg bg-card shadow-md relative z-50 max-h-64 overflow-y-auto">
-                {projects.map(project => (
+                {projects.map((project) => (
                   <button
                     key={project.id}
                     onClick={() => {
@@ -1207,22 +1213,20 @@ export const MobileTimeTracker: React.FC = () => {
                       "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
                       selectedProject?.id === project.id
                         ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
-                        : "hover:bg-muted"
+                        : "hover:bg-muted",
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold truncate">
-                          {project.project_number} - {project.client_name}
+                          {project.project_number} - {project.project_name}
                         </div>
-                        <div className="text-sm text-muted-foreground truncate">{project.project_name}</div>
+                        <div className="text-sm text-muted-foreground truncate">{project.client_name}</div>
                         {project.address && (
                           <div className="text-sm text-muted-foreground truncate">{project.address}</div>
                         )}
                       </div>
-                      {selectedProject?.id === project.id && (
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                      )}
+                      {selectedProject?.id === project.id && <Check className="w-5 h-5 text-primary flex-shrink-0" />}
                     </div>
                   </button>
                 ))}
@@ -1263,7 +1267,7 @@ export const MobileTimeTracker: React.FC = () => {
                 )}
               </button>
             )}
-            
+
             {/* Manual Entry Button */}
             <button
               onClick={() => setShowManualEntry(true)}
@@ -1299,27 +1303,27 @@ export const MobileTimeTracker: React.FC = () => {
       )}
 
       {/* Entries View - Combined Today/Week */}
-      {view === 'entries' && (
+      {view === "entries" && (
         <div className="space-y-3">
           {/* Date Range Toggle */}
           <div className="bg-card shadow-sm border-b p-2 sticky top-[57px] z-10">
             <div className="flex gap-2">
               <button
-                onClick={() => setEntriesDateRange('today')}
+                onClick={() => setEntriesDateRange("today")}
                 className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                  entriesDateRange === 'today'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  entriesDateRange === "today"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
                 Today ({todayEntries.length})
               </button>
               <button
-                onClick={() => setEntriesDateRange('week')}
+                onClick={() => setEntriesDateRange("week")}
                 className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                  entriesDateRange === 'week'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  entriesDateRange === "week"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
                 This Week
@@ -1328,13 +1332,13 @@ export const MobileTimeTracker: React.FC = () => {
           </div>
 
           {/* Content based on selected range */}
-          {entriesDateRange === 'today' ? (
+          {entriesDateRange === "today" ? (
             <div className="p-4 space-y-3 relative pb-24">
               <div className="bg-card rounded-xl shadow-sm p-4">
                 <div className="text-3xl font-bold text-primary">{todayTotal.toFixed(1)} hrs</div>
                 <div className="text-sm text-muted-foreground">Total today • {todayEntries.length} entries</div>
               </div>
-              
+
               {todayEntries.length === 0 ? (
                 <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl shadow-sm p-8 text-center border-2 border-dashed border-primary/20">
                   <Clock className="w-20 h-20 mx-auto text-primary mb-4" />
@@ -1342,22 +1346,18 @@ export const MobileTimeTracker: React.FC = () => {
                   <p className="text-muted-foreground text-sm mb-4">
                     Select your name and project to start tracking time
                   </p>
-                  <Button onClick={() => setView('timer')} className="mt-2">
+                  <Button onClick={() => setView("timer")} className="mt-2">
                     <Play className="w-4 h-4 mr-2" />
                     Start Timer
                   </Button>
                 </div>
               ) : (
-                todayEntries.map(entry => (
-                  <div 
-                    key={entry.id} 
+                todayEntries.map((entry) => (
+                  <div
+                    key={entry.id}
                     className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary cursor-pointer"
                     onClick={async () => {
-                      const { data } = await supabase
-                        .from('expenses')
-                        .select('*')
-                        .eq('id', entry.id)
-                        .single();
+                      const { data } = await supabase.from("expenses").select("*").eq("id", entry.id).single();
                       if (data) setEditingEntry(data);
                     }}
                   >
@@ -1370,41 +1370,35 @@ export const MobileTimeTracker: React.FC = () => {
                           </div>
                         ) : (
                           <div className="text-sm font-medium text-muted-foreground">
-                            {format(entry.startTime, 'EEE, MMM d')} • Manual Entry
+                            {format(entry.startTime, "EEE, MMM d")} • Manual Entry
                           </div>
                         )}
-                        
+
                         {/* SECONDARY: Project Information */}
                         <div className="text-sm text-muted-foreground mt-1">
-                          {entry.project.project_number} - {entry.project.client_name}
+                          {entry.project.project_number} - {entry.project.project_name}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {entry.project.project_name}
-                        </div>
-                        
+                        <div className="text-xs text-muted-foreground">{entry.project.client_name}</div>
+
                         {/* STATUS: Approval Badge if Pending */}
-                        {entry.approval_status === 'pending' && (
+                        {entry.approval_status === "pending" && (
                           <div className="inline-flex items-center gap-1 mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
                             <Clock className="w-3 h-3" />
                             Pending Approval
                           </div>
                         )}
                       </div>
-                      
+
                       {/* EMPHASIS: Hours Worked */}
                       <div className="text-right">
-                        <div className="font-bold text-primary text-lg">
-                          {entry.hours.toFixed(2)} hrs
-                        </div>
-                        {entry.attachment_url && (
-                          <div className="text-xs text-muted-foreground mt-1">📎 Receipt</div>
-                        )}
+                        <div className="font-bold text-primary text-lg">{entry.hours.toFixed(2)} hrs</div>
+                        {entry.attachment_url && <div className="text-xs text-muted-foreground mt-1">📎 Receipt</div>}
                       </div>
                     </div>
                   </div>
                 ))
               )}
-              
+
               {/* Floating Add Button - Only on Today tab */}
               <button
                 onClick={() => setShowManualEntry(true)}
@@ -1435,29 +1429,31 @@ export const MobileTimeTracker: React.FC = () => {
       )}
 
       {/* Receipts View */}
-      {view === 'receipts' && <ReceiptsList />}
+      {view === "receipts" && <ReceiptsList />}
 
       {/* Receipt Prompt Confirmation */}
       <AlertDialog open={showReceiptPrompt} onOpenChange={setShowReceiptPrompt}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Add Receipt?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Would you like to add a receipt for this time entry?
-            </AlertDialogDescription>
+            <AlertDialogDescription>Would you like to add a receipt for this time entry?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setShowReceiptPrompt(false);
-              setPendingReceiptExpenseId(null);
-              setPendingReceiptProjectId(null);
-            }}>
+            <AlertDialogCancel
+              onClick={() => {
+                setShowReceiptPrompt(false);
+                setPendingReceiptExpenseId(null);
+                setPendingReceiptProjectId(null);
+              }}
+            >
               Skip
             </AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-              setShowReceiptPrompt(false);
-              setShowReceiptModal(true);
-            }}>
+            <AlertDialogAction
+              onClick={() => {
+                setShowReceiptPrompt(false);
+                setShowReceiptModal(true);
+              }}
+            >
               Add Receipt
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1516,32 +1512,41 @@ export const MobileTimeTracker: React.FC = () => {
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <p>
-                <span className="font-medium text-foreground">{selectedTeamMember?.payee_name}</span> already has an active timer running
+                <span className="font-medium text-foreground">{selectedTeamMember?.payee_name}</span> already has an
+                active timer running
                 {existingTimerInfo?.projects && (
-                  <> on project <span className="font-medium text-foreground">{existingTimerInfo.projects.project_name}</span></>
-                )}.
+                  <>
+                    {" "}
+                    on project{" "}
+                    <span className="font-medium text-foreground">{existingTimerInfo.projects.project_name}</span>
+                  </>
+                )}
+                .
               </p>
               {existingTimerInfo?.start_time && (
                 <p className="text-xs text-muted-foreground">
-                  Started: {format(new Date(existingTimerInfo.start_time), 'h:mm a')}
+                  Started: {format(new Date(existingTimerInfo.start_time), "h:mm a")}
                 </p>
               )}
               <p className="text-sm">
-                Starting a new timer will leave the existing timer running. You should clock out of the existing timer first.
+                Starting a new timer will leave the existing timer running. You should clock out of the existing timer
+                first.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
-            <AlertDialogCancel onClick={() => {
-              setShowDuplicateTimerAlert(false);
-              setExistingTimerInfo(null);
-            }}>
+            <AlertDialogCancel
+              onClick={() => {
+                setShowDuplicateTimerAlert(false);
+                setExistingTimerInfo(null);
+              }}
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setShowDuplicateTimerAlert(false);
-                setView('entries');
+                setView("entries");
                 setExistingTimerInfo(null);
               }}
             >
