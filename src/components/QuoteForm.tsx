@@ -89,7 +89,6 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
   const [validationErrors, setValidationErrors] = useState<Record<string, QuoteValidationResult>>({});
   const [estimateSearchQuery, setEstimateSearchQuery] = useState('');
   const [changeOrderLineItems, setChangeOrderLineItems] = useState<any[]>([]);
-  const [isChangingEstimate, setIsChangingEstimate] = useState(false);
 
   const generateQuoteNumber = async (projectId: string, projectNumber: string, estimateId: string) => {
     try {
@@ -589,7 +588,7 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
     const isChangeOrderQuote = isEdit && initialQuote && !initialQuote.estimate_id;
     
     // In edit mode, show loading only if we're expecting an estimate (not for change order quotes)
-    if (isEdit && !isChangingEstimate && !isChangeOrderQuote) {
+    if (isEdit && !isChangeOrderQuote) {
       return (
         <Card className="compact-card">
           <CardHeader className="p-compact">
@@ -932,20 +931,6 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {!isViewMode && selectedEstimate && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setIsChangingEstimate(true);
-                    setSelectedEstimate(undefined);
-                    setShowLineItemSelection(false);
-                    setLineItems([]);
-                  }}
-                >
-                  Change Estimate
-                </Button>
-              )}
               {selectedEstimate && (
                 <Badge variant="outline">
                   {selectedEstimate.estimate_number}
