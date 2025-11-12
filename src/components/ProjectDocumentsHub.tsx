@@ -101,12 +101,12 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="hidden w-full gap-2 overflow-x-auto px-1 pb-0 [scrollbar-width:none] sm:flex sm:flex-wrap">
+        <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
           {tabOptions.map((tab) => (
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className="min-h-[42px] whitespace-nowrap rounded-full px-3 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="h-10 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               {tab.label}
             </TabsTrigger>
