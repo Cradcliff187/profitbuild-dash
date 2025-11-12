@@ -9,6 +9,7 @@ import { ProjectDocumentsTable } from "./ProjectDocumentsTable";
 import { DocumentUpload } from "./DocumentUpload";
 import { ProjectDocumentsTimeline } from "./ProjectDocumentsTimeline";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { DocumentType } from "@/types/document";
 import { useNavigate } from "react-router-dom";
 
@@ -25,6 +26,16 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
   const [uploadDocumentType, setUploadDocumentType] = useState<DocumentType>("other");
   const navigate = useNavigate();
 
+  const tabOptions = [
+    { value: "all", label: "All" },
+    { value: "media", label: "Photos & Videos" },
+    { value: "receipts", label: "Receipts" },
+    { value: "quotes", label: "Quote PDFs" },
+    { value: "drawings", label: "Drawings" },
+    { value: "permits", label: "Permits" },
+    { value: "licenses", label: "Licenses" },
+  ];
+
   const handleUploadClick = () => {
     // Set document type based on active tab
     const typeMap: Record<string, DocumentType> = {
@@ -39,56 +50,74 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
   const showUploadButton = ["drawings", "permits", "licenses"].includes(activeTab);
 
   return (
-    <div className="space-y-2 p-2">
+    <div className="space-y-4 p-3 sm:p-4 documents-section">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/projects/${projectId}`)} className="h-7">
-            <ChevronLeft className="w-3 h-3" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(`/projects/${projectId}`)}
+            className="h-9 w-9 rounded-full sm:h-7 sm:w-7"
+          >
+            <ChevronLeft className="w-4 h-4 sm:w-3 sm:h-3" />
           </Button>
-          <div>
-            <h1 className="text-sm font-semibold">Documents</h1>
+          <div className="flex flex-col">
+            <h1 className="text-base font-semibold text-foreground sm:text-sm">Documents</h1>
+            <span className="text-xs text-muted-foreground sm:hidden">
+              {projectNumber} · {projectName}
+            </span>
           </div>
         </div>
         {showUploadButton && (
-          <Button size="sm" onClick={handleUploadClick} className="h-7 gap-1">
-            <Upload className="w-3 h-3" />
+          <Button size="sm" onClick={handleUploadClick} className="hidden h-8 gap-1 px-3 sm:flex">
+            <Upload className="w-4 h-4" />
             Upload
           </Button>
         )}
       </div>
 
+      {showUploadButton && (
+        <Button onClick={handleUploadClick} className="h-10 w-full gap-2 text-sm font-semibold sm:hidden">
+          <Upload className="w-4 h-4" />
+          Upload Document
+        </Button>
+      )}
+
       {/* Tabs */}
+      <div className="sm:hidden">
+        <Select value={activeTab} onValueChange={setActiveTab}>
+          <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
+            <SelectValue placeholder="Select tab" />
+          </SelectTrigger>
+          <SelectContent>
+            {tabOptions.map((tab) => (
+              <SelectItem key={tab.value} value={tab.value}>
+                {tab.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full justify-start overflow-x-auto h-8 flex-wrap gap-1 p-1">
-          <TabsTrigger value="all" className="text-xs h-6">
-            All
-          </TabsTrigger>
-          <TabsTrigger value="media" className="text-xs h-6">
-            Photos & Videos
-          </TabsTrigger>
-          <TabsTrigger value="receipts" className="text-xs h-6">
-            Receipts
-          </TabsTrigger>
-          <TabsTrigger value="quotes" className="text-xs h-6">
-            Quote PDFs
-          </TabsTrigger>
-          <TabsTrigger value="drawings" className="text-xs h-6">
-            Drawings
-          </TabsTrigger>
-          <TabsTrigger value="permits" className="text-xs h-6">
-            Permits
-          </TabsTrigger>
-          <TabsTrigger value="licenses" className="text-xs h-6">
-            Licenses
-          </TabsTrigger>
+        <TabsList className="hidden w-full gap-2 overflow-x-auto px-1 pb-0 [scrollbar-width:none] sm:flex sm:flex-wrap">
+          {tabOptions.map((tab) => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              className="min-h-[42px] whitespace-nowrap rounded-full px-3 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              {tab.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        <TabsContent value="all" className="mt-2">
+        <TabsContent value="all" className="mt-3 sm:mt-4">
           <ProjectDocumentsTimeline projectId={projectId} />
         </TabsContent>
 
-        <TabsContent value="media" className="mt-2">
+        <TabsContent value="media" className="mt-3 sm:mt-4">
           <ProjectMediaGallery
             projectId={projectId}
             projectName={projectName}
@@ -97,23 +126,23 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
           />
         </TabsContent>
 
-        <TabsContent value="receipts" className="mt-2">
+        <TabsContent value="receipts" className="mt-3 sm:mt-4">
           <ProjectReceiptsView projectId={projectId} />
         </TabsContent>
 
-        <TabsContent value="quotes" className="mt-2">
+        <TabsContent value="quotes" className="mt-3 sm:mt-4">
           <ProjectQuotePDFsList projectId={projectId} />
         </TabsContent>
 
-        <TabsContent value="drawings" className="mt-2">
+        <TabsContent value="drawings" className="mt-3 sm:mt-4">
           <ProjectDocumentsTable projectId={projectId} documentType="drawing" onDocumentDeleted={() => {}} />
         </TabsContent>
 
-        <TabsContent value="permits" className="mt-2">
+        <TabsContent value="permits" className="mt-3 sm:mt-4">
           <ProjectDocumentsTable projectId={projectId} documentType="permit" onDocumentDeleted={() => {}} />
         </TabsContent>
 
-        <TabsContent value="licenses" className="mt-2">
+        <TabsContent value="licenses" className="mt-3 sm:mt-4">
           <ProjectDocumentsTable projectId={projectId} documentType="license" onDocumentDeleted={() => {}} />
         </TabsContent>
       </Tabs>
