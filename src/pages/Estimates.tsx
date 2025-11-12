@@ -7,6 +7,7 @@ import { EstimateExportModal } from "@/components/EstimateExportModal";
 import EstimateFinancialAnalyticsDashboard from "@/components/EstimateFinancialAnalyticsDashboard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +40,10 @@ const EstimatesPage = () => {
     amountRange: { min: null, max: null },
     hasVersions: null
   });
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'estimates' | 'analytics'>(
+    tabParam === 'analytics' ? 'analytics' : 'estimates'
+  );
 
   // Get preselected project ID from URL params
   const preselectedProjectId = searchParams.get('projectId');
@@ -52,6 +57,13 @@ const EstimatesPage = () => {
     setViewMode('create');
   }
 }, [preselectedProjectId]);
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'analytics' || tabParam === 'estimates') {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
 // Apply URL status parameter to filters
 useEffect(() => {
@@ -84,6 +96,24 @@ useEffect(() => {
   useEffect(() => {
     applyFilters();
   }, [estimates, searchFilters]);
+
+  const tabOptions = [
+    { value: 'estimates', label: 'Estimates', icon: null },
+    { value: 'analytics', label: 'Analytics', icon: BarChart3 },
+  ];
+
+  const handleTabChange = (value: string) => {
+    if (value === 'estimates' || value === 'analytics') {
+      setActiveTab(value);
+      const newParams = new URLSearchParams(searchParams);
+      if (value === 'estimates') {
+        newParams.delete('tab');
+      } else {
+        newParams.set('tab', value);
+      }
+      setSearchParams(newParams);
+    }
+  };
 
   // Real-time updates for estimates
   useEffect(() => {
@@ -508,14 +538,47 @@ useEffect(() => {
       </div>
 
       {viewMode === 'list' ? (
-        <Tabs defaultValue="estimates" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="estimates">Estimates</TabsTrigger>
-            <TabsTrigger value="analytics">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Analytics
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="w-full sm:w-auto">
+              <div className="sm:hidden">
+                <Select value={activeTab} onValueChange={handleTabChange}>
+                  <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tabOptions.map((tab) => {
+                      const Icon = tab.icon;
+                      return (
+                        <SelectItem key={tab.value} value={tab.value}>
+                          <div className="flex items-center gap-2">
+                            {Icon && <Icon className="h-4 w-4" />}
+                            <span>{tab.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
+                {tabOptions.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger
+                      key={tab.value}
+                      value={tab.value}
+                      className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    >
+                      {Icon && <Icon className="h-4 w-4" />}
+                      <span>{tab.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
+          </div>
           
           <TabsContent value="estimates" className="space-y-4">
             <EstimateSearchFilters

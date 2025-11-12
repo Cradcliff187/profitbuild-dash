@@ -3,6 +3,7 @@ import { Receipt, Plus, Upload, BarChart3, List, Target, Clock, FileDown } from 
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { ExpenseDashboard } from "@/components/ExpenseDashboard";
 import { ExpenseForm } from "@/components/ExpenseForm";
@@ -30,6 +31,10 @@ const Expenses = () => {
   const [estimates, setEstimates] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
+  const tabOptions = [
+    { value: 'overview', label: 'Overview', icon: BarChart3 },
+    { value: 'list', label: 'All Expenses', icon: List },
+  ];
   const [loading, setLoading] = useState(true);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showTimesheetModal, setShowTimesheetModal] = useState(false);
@@ -132,6 +137,12 @@ const Expenses = () => {
     setViewMode('overview');
   };
 
+  const handleTabChange = (value: string) => {
+    if (value === 'overview' || value === 'list') {
+      setViewMode(value as ViewMode);
+    }
+  };
+
   if (loading) {
     return <BrandedLoader message="Loading expenses..." />;
   }
@@ -192,17 +203,47 @@ const Expenses = () => {
           onCancel={handleCancel}
         />
       ) : (
-        <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="overview">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              <span>Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="list">
-              <List className="h-4 w-4 mr-2" />
-              <span>All Expenses</span>
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={viewMode} onValueChange={handleTabChange}>
+          <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="w-full sm:w-auto">
+              <div className="sm:hidden">
+                <Select value={viewMode} onValueChange={handleTabChange}>
+                  <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tabOptions.map((tab) => {
+                      const Icon = tab.icon;
+                      return (
+                        <SelectItem key={tab.value} value={tab.value}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-4 w-4" />
+                            <span>{tab.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
+                {tabOptions.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger
+                      key={tab.value}
+                      value={tab.value}
+                      className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{tab.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
+          </div>
 
           <TabsContent value="overview">
             <ExpenseDashboard expenses={expenses} estimates={estimates} />

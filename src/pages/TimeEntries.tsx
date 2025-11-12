@@ -15,6 +15,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
 import { TimeEntryFilters } from "@/types/timeEntry";
 import { TimeEntrySearchFilters } from "@/components/TimeEntrySearchFilters";
@@ -181,6 +182,25 @@ const TimeEntries = () => {
     pageSize,
     pagination.currentPage
   );
+
+  const tabOptions = [
+    {
+      value: "entries",
+      label: "Time Entries",
+      icon: ClipboardCheck,
+      badgeCount: statistics.pendingCount,
+    },
+    {
+      value: "receipts",
+      label: "Receipts",
+      icon: FileImage,
+      badgeCount: receiptCount,
+    },
+  ];
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
 
   // Update pagination when totalCount changes
   useEffect(() => {
@@ -425,27 +445,57 @@ const TimeEntries = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-2 h-8">
-          <TabsTrigger value="entries" className="text-xs h-7">
-            <ClipboardCheck className="h-3 w-3 mr-1" />
-            Time Entries
-            {statistics.pendingCount > 0 && (
-              <Badge variant="secondary" className="ml-1.5 h-4 text-[10px] px-1.5">
-                {statistics.pendingCount}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="receipts" className="text-xs h-7">
-            <FileImage className="h-3 w-3 mr-1" />
-            Receipts
-            {receiptCount > 0 && (
-              <Badge variant="secondary" className="ml-1.5 h-4 text-[10px] px-1.5">
-                {receiptCount}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="w-full sm:w-auto">
+            <div className="sm:hidden">
+              <Select value={activeTab} onValueChange={handleTabChange}>
+                <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {tabOptions.map((tab) => {
+                    const Icon = tab.icon;
+                    return (
+                      <SelectItem key={tab.value} value={tab.value}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          <span>{tab.label}</span>
+                          {tab.badgeCount > 0 && (
+                            <Badge variant="secondary" className="ml-auto h-4 text-[10px] px-1.5">
+                              {tab.badgeCount}
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
+              {tabOptions.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{tab.label}</span>
+                    {tab.badgeCount > 0 && (
+                      <Badge variant="secondary" className="h-4 text-[10px] px-1.5">
+                        {tab.badgeCount}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
+        </div>
 
         {/* Time Entries Tab */}
         <TabsContent value="entries" className="space-y-2">
