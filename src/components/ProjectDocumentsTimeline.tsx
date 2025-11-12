@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, formatDistanceToNow } from 'date-fns';
+import { useEffect } from 'react';
 import { FileText, Image, Video, Receipt, FileCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +23,8 @@ type TimelineItem = {
 };
 
 export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimelineProps) {
+  const queryClient = useQueryClient();
+  
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['project-documents-timeline', projectId],
     queryFn: async () => {
@@ -118,6 +121,39 @@ export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimeline
       return timelineItems.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     },
   });
+
+  // Real-time subscriptions for all document types
+  useEffect(() => {
+    const channels = [
+      supabase
+        .channel(`timeline-documents-${projectId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'project_documents', filter: `project_id=eq.${projectId}` }, 
+          () => queryClient.invalidateQueries({ queryKey: ['project-documents-timeline', projectId] }))
+        .subscribe(),
+      
+      supabase
+        .channel(`timeline-media-${projectId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'project_media', filter: `project_id=eq.${projectId}` }, 
+          () => queryClient.invalidateQueries({ queryKey: ['project-documents-timeline', projectId] }))
+        .subscribe(),
+      
+      supabase
+        .channel(`timeline-receipts-${projectId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'receipts', filter: `project_id=eq.${projectId}` }, 
+          () => queryClient.invalidateQueries({ queryKey: ['project-documents-timeline', projectId] }))
+        .subscribe(),
+      
+      supabase
+        .channel(`timeline-quotes-${projectId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'quotes', filter: `project_id=eq.${projectId}` }, 
+          () => queryClient.invalidateQueries({ queryKey: ['project-documents-timeline', projectId] }))
+        .subscribe(),
+    ];
+
+    return () => {
+      channels.forEach(channel => supabase.removeChannel(channel));
+    };
+  }, [projectId, queryClient]);
 
   const getIcon = (type: TimelineItem['type']) => {
     switch (type) {

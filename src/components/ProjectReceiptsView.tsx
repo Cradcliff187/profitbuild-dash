@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow, parseISO } from 'date-fns';
+import { useEffect } from 'react';
 import { Receipt } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -22,6 +23,8 @@ interface ProjectReceiptsViewProps {
 }
 
 export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
+  const queryClient = useQueryClient();
+  
   const { data: receipts = [], isLoading } = useQuery<Receipt[]>({
     queryKey: ['project-receipts', projectId],
     queryFn: async () => {
@@ -55,6 +58,29 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
       }));
     },
   });
+
+  // Real-time subscription for receipts
+  useEffect(() => {
+    const channel = supabase
+      .channel(`project-receipts-${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'receipts',
+          filter: `project_id=eq.${projectId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['project-receipts', projectId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, queryClient]);
 
   const getApprovalBadge = (status: string | null) => {
     if (!status || status === 'pending') {

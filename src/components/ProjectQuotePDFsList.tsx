@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, ExternalLink } from 'lucide-react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow, parseISO } from 'date-fns';
@@ -20,6 +21,8 @@ interface ProjectQuotePDFsListProps {
 }
 
 export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
+  const queryClient = useQueryClient();
+  
   const { data: quotes = [], isLoading } = useQuery({
     queryKey: ['project-quote-pdfs', projectId],
     queryFn: async () => {
@@ -39,6 +42,29 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
       })[];
     },
   });
+
+  // Real-time subscription for quotes
+  useEffect(() => {
+    const channel = supabase
+      .channel(`project-quotes-${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'quotes',
+          filter: `project_id=eq.${projectId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['project-quote-pdfs', projectId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, queryClient]);
 
   const getStatusBadge = (status: string) => {
     if (status === 'accepted') {

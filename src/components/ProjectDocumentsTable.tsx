@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Eye, Download, Trash2, Search, Filter, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,30 @@ export function ProjectDocumentsTable({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<ProjectDocument | null>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Real-time subscription for project documents
+  useEffect(() => {
+    const channel = supabase
+      .channel(`project-documents-${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'project_documents',
+          filter: `project_id=eq.${projectId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['project-documents', projectId, documentType] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, documentType, queryClient]);
 
   const { data: documents = [], isLoading, refetch } = useQuery({
     queryKey: ['project-documents', projectId, documentType],
