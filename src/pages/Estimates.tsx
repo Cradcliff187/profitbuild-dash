@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { EstimatesList } from "@/components/EstimatesList";
 import { EstimateForm } from "@/components/EstimateForm";
 import { EstimateSearchFilters, type SearchFilters } from "@/components/EstimateSearchFilters";
@@ -7,76 +7,98 @@ import { EstimateExportModal } from "@/components/EstimateExportModal";
 import EstimateFinancialAnalyticsDashboard from "@/components/EstimateFinancialAnalyticsDashboard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Estimate } from "@/types/estimate";
 import { Plus, BarChart3, Download } from "lucide-react";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-type ViewMode = 'list' | 'create' | 'edit' | 'view';
+type ViewMode = "list" | "create" | "edit" | "view";
 
 const EstimatesPage = () => {
   const isMobile = useIsMobile();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [filteredEstimates, setFilteredEstimates] = useState<Estimate[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate | undefined>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [clients, setClients] = useState<Array<{ id: string; client_name: string; }>>([]);
+  const [clients, setClients] = useState<Array<{ id: string; client_name: string }>>([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
-    searchText: '',
+    searchText: "",
     status: [],
-    projectType: '',
+    projectType: "",
     clientName: [],
     categories: [],
     dateRange: { start: null, end: null },
     amountRange: { min: null, max: null },
-    hasVersions: null
+    hasVersions: null,
   });
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<"estimates" | "analytics">(
+    tabParam === "analytics" ? "analytics" : "estimates",
+  );
 
   // Get preselected project ID from URL params
-  const preselectedProjectId = searchParams.get('projectId');
+  const preselectedProjectId = searchParams.get("projectId");
 
   useEffect(() => {
     loadEstimates();
     loadClients();
-    
-  // Check for preselected project from URL params
-  if (preselectedProjectId && viewMode === 'list') {
-    setViewMode('create');
-  }
-}, [preselectedProjectId]);
 
-// Apply URL status parameter to filters
-useEffect(() => {
-  const statusParam = searchParams.get('status');
-  
-  if (statusParam && (statusParam === 'draft' || statusParam === 'pending' || statusParam === 'approved' || statusParam === 'rejected')) {
-    setSearchFilters(prev => ({
-      ...prev,
-      status: [statusParam]
-    }));
-  }
-}, [searchParams]);
+    // Check for preselected project from URL params
+    if (preselectedProjectId && viewMode === "list") {
+      setViewMode("create");
+    }
+  }, [preselectedProjectId]);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "analytics" || tabParam === "estimates") {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  // Apply URL status parameter to filters
+  useEffect(() => {
+    const statusParam = searchParams.get("status");
+
+    if (
+      statusParam &&
+      (statusParam === "draft" || statusParam === "pending" || statusParam === "approved" || statusParam === "rejected")
+    ) {
+      setSearchFilters((prev) => ({
+        ...prev,
+        status: [statusParam],
+      }));
+    }
+  }, [searchParams]);
 
   const loadClients = async () => {
     const { data, error } = await supabase
-      .from('clients')
-      .select('id, client_name')
-      .eq('is_active', true)
-      .order('client_name', { ascending: true });
-    
+      .from("clients")
+      .select("id, client_name")
+      .eq("is_active", true)
+      .order("client_name", { ascending: true });
+
     if (error) {
-      console.error('Error loading clients:', error);
+      console.error("Error loading clients:", error);
       return;
     }
-    
+
     setClients(data || []);
   };
 
@@ -85,21 +107,43 @@ useEffect(() => {
     applyFilters();
   }, [estimates, searchFilters]);
 
+  const tabOptions = [
+    { value: "estimates", label: "Estimates", icon: null },
+    { value: "analytics", label: "Analytics", icon: BarChart3 },
+  ];
+
+  const handleTabChange = (value: string) => {
+    if (value === "estimates" || value === "analytics") {
+      setActiveTab(value);
+      const newParams = new URLSearchParams(searchParams);
+      if (value === "estimates") {
+        newParams.delete("tab");
+      } else {
+        newParams.set("tab", value);
+      }
+      setSearchParams(newParams);
+    }
+  };
+
   // Real-time updates for estimates
   useEffect(() => {
     const channel = supabase
-      .channel('estimates-realtime-updates')
-      .on('postgres_changes', {
-        event: '*', // Listen to INSERT, UPDATE, DELETE
-        schema: 'public',
-        table: 'estimates'
-      }, (payload) => {
-        console.log('Estimate changed:', payload);
-        // Reload all estimates to ensure related data is fresh
-        loadEstimates();
-      })
+      .channel("estimates-realtime-updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "*", // Listen to INSERT, UPDATE, DELETE
+          schema: "public",
+          table: "estimates",
+        },
+        (payload) => {
+          console.log("Estimate changed:", payload);
+          // Reload all estimates to ensure related data is fresh
+          loadEstimates();
+        },
+      )
       .subscribe();
-      
+
     return () => {
       supabase.removeChannel(channel);
     };
@@ -111,73 +155,62 @@ useEffect(() => {
     // Text search
     if (searchFilters.searchText) {
       const searchText = searchFilters.searchText.toLowerCase();
-      filtered = filtered.filter(estimate => 
-        estimate.estimate_number.toLowerCase().includes(searchText) ||
-        estimate.project_name?.toLowerCase().includes(searchText) ||
-        estimate.client_name?.toLowerCase().includes(searchText) ||
-        estimate.notes?.toLowerCase().includes(searchText)
+      filtered = filtered.filter(
+        (estimate) =>
+          estimate.estimate_number.toLowerCase().includes(searchText) ||
+          estimate.project_name?.toLowerCase().includes(searchText) ||
+          estimate.client_name?.toLowerCase().includes(searchText) ||
+          estimate.notes?.toLowerCase().includes(searchText),
       );
     }
 
     // Status filter
     if (searchFilters.status.length > 0) {
-      filtered = filtered.filter(estimate => 
-        searchFilters.status.includes(estimate.status)
-      );
+      filtered = filtered.filter((estimate) => searchFilters.status.includes(estimate.status));
     }
 
     // Client name filter
     if (searchFilters.clientName.length > 0) {
-      filtered = filtered.filter(estimate => {
+      filtered = filtered.filter((estimate) => {
         if (!estimate.client_name) return false;
-        return searchFilters.clientName.some(client =>
-          estimate.client_name!.toLowerCase().includes(client.toLowerCase())
+        return searchFilters.clientName.some((client) =>
+          estimate.client_name!.toLowerCase().includes(client.toLowerCase()),
         );
       });
     }
 
     // Date range filter
     if (searchFilters.dateRange.start) {
-      filtered = filtered.filter(estimate => 
-        new Date(estimate.date_created) >= searchFilters.dateRange.start!
-      );
+      filtered = filtered.filter((estimate) => new Date(estimate.date_created) >= searchFilters.dateRange.start!);
     }
     if (searchFilters.dateRange.end) {
-      filtered = filtered.filter(estimate => 
-        new Date(estimate.date_created) <= searchFilters.dateRange.end!
-      );
+      filtered = filtered.filter((estimate) => new Date(estimate.date_created) <= searchFilters.dateRange.end!);
     }
 
     // Amount range filter
     if (searchFilters.amountRange.min !== null) {
-      filtered = filtered.filter(estimate => 
-        estimate.total_amount >= searchFilters.amountRange.min!
-      );
+      filtered = filtered.filter((estimate) => estimate.total_amount >= searchFilters.amountRange.min!);
     }
     if (searchFilters.amountRange.max !== null) {
-      filtered = filtered.filter(estimate => 
-        estimate.total_amount <= searchFilters.amountRange.max!
-      );
+      filtered = filtered.filter((estimate) => estimate.total_amount <= searchFilters.amountRange.max!);
     }
 
     // Category filter - show estimates that contain ANY of the selected categories
     if (searchFilters.categories.length > 0) {
-      filtered = filtered.filter(estimate => {
-        return estimate.lineItems.some(lineItem => 
-          searchFilters.categories.includes(lineItem.category)
-        );
+      filtered = filtered.filter((estimate) => {
+        return estimate.lineItems.some((lineItem) => searchFilters.categories.includes(lineItem.category));
       });
     }
 
     // Has versions filter
     if (searchFilters.hasVersions !== null) {
       const estimatesByFamily = new Map<string, number>();
-      estimates.forEach(estimate => {
+      estimates.forEach((estimate) => {
         const familyId = estimate.parent_estimate_id || estimate.id;
         estimatesByFamily.set(familyId, (estimatesByFamily.get(familyId) || 0) + 1);
       });
 
-      filtered = filtered.filter(estimate => {
+      filtered = filtered.filter((estimate) => {
         const familyId = estimate.parent_estimate_id || estimate.id;
         const versionCount = estimatesByFamily.get(familyId) || 1;
         return searchFilters.hasVersions ? versionCount > 1 : versionCount === 1;
@@ -193,51 +226,53 @@ useEffect(() => {
 
   const resetFilters = () => {
     setSearchFilters({
-      searchText: '',
+      searchText: "",
       status: [],
-      projectType: '',
+      projectType: "",
       clientName: [],
       categories: [],
       dateRange: { start: null, end: null },
       amountRange: { min: null, max: null },
-      hasVersions: null
+      hasVersions: null,
     });
   };
 
   const loadEstimates = async () => {
     try {
       setLoading(true);
-      
+
       // First get estimates with project data
       const { data: estimatesData, error: estimatesError } = await supabase
-        .from('estimates')
-        .select(`
+        .from("estimates")
+        .select(
+          `
           *,
           projects (
             project_number,
             project_name,
             client_name
           )
-        `)
-        .not('projects.project_number', 'in', '("SYS-000","000-UNASSIGNED")')
-        .order('created_at', { ascending: false });
+        `,
+        )
+        .not("projects.project_number", "in", '("SYS-000","000-UNASSIGNED")')
+        .order("created_at", { ascending: false });
 
       if (estimatesError) throw estimatesError;
 
       // Get line items for all estimates
-      const estimateIds = estimatesData?.map(est => est.id) || [];
+      const estimateIds = estimatesData?.map((est) => est.id) || [];
       const { data: lineItemsData, error: lineItemsError } = await supabase
-        .from('estimate_line_items')
-        .select('*')
-        .in('estimate_id', estimateIds)
-        .order('sort_order');
+        .from("estimate_line_items")
+        .select("*")
+        .in("estimate_id", estimateIds)
+        .order("sort_order");
 
       if (lineItemsError) throw lineItemsError;
 
       // Then get quotes for each estimate
       const { data: quotesData, error: quotesError } = await supabase
-        .from('quotes')
-        .select('id, estimate_id, total_amount, status');
+        .from("quotes")
+        .select("id, estimate_id, total_amount, status");
 
       if (quotesError) throw quotesError;
 
@@ -258,8 +293,8 @@ useEffect(() => {
           costPerUnit: item.cost_per_unit || 0,
           markupPercent: item.markup_percent,
           markupAmount: item.markup_amount,
-          totalCost: item.total_cost || (item.quantity * (item.cost_per_unit || 0)),
-          totalMarkup: item.total_markup || 0
+          totalCost: item.total_cost || item.quantity * (item.cost_per_unit || 0),
+          totalMarkup: item.total_markup || 0,
         });
         return acc;
       }, {});
@@ -272,43 +307,44 @@ useEffect(() => {
         return acc;
       }, {});
 
-      const formattedEstimates = estimatesData?.map((est: any) => ({
-        id: est.id,
-        project_id: est.project_id,
-        estimate_number: est.estimate_number,
-        date_created: new Date(est.date_created),
-        total_amount: est.total_amount,
-        total_cost: est.total_cost || 0,
-        status: est.status,
-        notes: est.notes,
-        valid_until: est.valid_until ? new Date(est.valid_until) : undefined,
-        revision_number: est.revision_number,
-        contingency_percent: est.contingency_percent ?? 10.0,
-        contingency_amount: est.contingency_amount,
-        contingency_used: est.contingency_used || 0,
-        version_number: est.version_number || 1,
-        parent_estimate_id: est.parent_estimate_id || undefined,
-        is_current_version: est.is_current_version ?? true,
-        valid_for_days: est.valid_for_days || 30,
-        lineItems: lineItemsByEstimate[est.id] || [],
-        created_at: new Date(est.created_at),
-        updated_at: new Date(est.updated_at),
-        project_number: est.projects?.project_number,
-        project_name: est.projects?.project_name,
-        client_name: est.projects?.client_name,
-        quotes: quotesByEstimate[est.id] || [],
-        defaultMarkupPercent: 25,
-        targetMarginPercent: 20,
-        is_draft: false
-      })) || [];
+      const formattedEstimates =
+        estimatesData?.map((est: any) => ({
+          id: est.id,
+          project_id: est.project_id,
+          estimate_number: est.estimate_number,
+          date_created: new Date(est.date_created),
+          total_amount: est.total_amount,
+          total_cost: est.total_cost || 0,
+          status: est.status,
+          notes: est.notes,
+          valid_until: est.valid_until ? new Date(est.valid_until) : undefined,
+          revision_number: est.revision_number,
+          contingency_percent: est.contingency_percent ?? 10.0,
+          contingency_amount: est.contingency_amount,
+          contingency_used: est.contingency_used || 0,
+          version_number: est.version_number || 1,
+          parent_estimate_id: est.parent_estimate_id || undefined,
+          is_current_version: est.is_current_version ?? true,
+          valid_for_days: est.valid_for_days || 30,
+          lineItems: lineItemsByEstimate[est.id] || [],
+          created_at: new Date(est.created_at),
+          updated_at: new Date(est.updated_at),
+          project_number: est.projects?.project_number,
+          project_name: est.projects?.project_name,
+          client_name: est.projects?.client_name,
+          quotes: quotesByEstimate[est.id] || [],
+          defaultMarkupPercent: 25,
+          targetMarginPercent: 20,
+          is_draft: false,
+        })) || [];
 
       setEstimates(formattedEstimates);
     } catch (error) {
-      console.error('Error loading estimates:', error);
+      console.error("Error loading estimates:", error);
       toast({
         title: "Error",
         description: "Failed to load estimates.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -318,12 +354,12 @@ useEffect(() => {
   const handleSaveEstimate = (estimate: Estimate) => {
     if (selectedEstimate) {
       // Editing existing estimate
-      setEstimates(prev => prev.map(e => e.id === estimate.id ? estimate : e));
+      setEstimates((prev) => prev.map((e) => (e.id === estimate.id ? estimate : e)));
     } else {
       // Creating new estimate
-      setEstimates(prev => [...prev, estimate]);
+      setEstimates((prev) => [...prev, estimate]);
     }
-    setViewMode('list');
+    setViewMode("list");
     setSelectedEstimate(undefined);
     // Clear URL params
     setSearchParams({});
@@ -332,7 +368,7 @@ useEffect(() => {
 
   const handleCreateNew = () => {
     setSelectedEstimate(undefined);
-    setViewMode('create');
+    setViewMode("create");
   };
 
   // Context-aware button logic
@@ -344,92 +380,84 @@ useEffect(() => {
 
   const handleEdit = (estimate: Estimate) => {
     setSelectedEstimate(estimate);
-    setViewMode('edit');
+    setViewMode("edit");
   };
 
   const handleView = (estimate: Estimate) => {
     setSelectedEstimate(estimate);
-    setViewMode('view');
+    setViewMode("view");
   };
 
   const handleDelete = async (id: string) => {
     try {
       // First, check if the estimate exists
-      const estimate = estimates.find(e => e.id === id);
+      const estimate = estimates.find((e) => e.id === id);
       if (!estimate) {
         toast({
           title: "Error",
           description: "Estimate not found.",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
 
       // Check for accepted quotes that would be orphaned
       const { data: acceptedQuotes } = await supabase
-        .from('quotes')
-        .select('id, quote_number')
-        .eq('estimate_id', id)
-        .eq('status', 'accepted');
+        .from("quotes")
+        .select("id, quote_number")
+        .eq("estimate_id", id)
+        .eq("status", "accepted");
 
       if (acceptedQuotes && acceptedQuotes.length > 0) {
         toast({
           title: "Cannot Delete Estimate",
-          description: `This estimate has ${acceptedQuotes.length} accepted quote(s): ${acceptedQuotes.map(q => q.quote_number).join(', ')}. You must reject or delete these quotes first.`,
+          description: `This estimate has ${acceptedQuotes.length} accepted quote(s): ${acceptedQuotes.map((q) => q.quote_number).join(", ")}. You must reject or delete these quotes first.`,
           variant: "destructive",
-          duration: 8000
+          duration: 8000,
         });
         return;
       }
 
       // Check for child versions
       const { data: childVersions } = await supabase
-        .from('estimates')
-        .select('id, estimate_number')
-        .eq('parent_estimate_id', id);
+        .from("estimates")
+        .select("id, estimate_number")
+        .eq("parent_estimate_id", id);
 
       if (childVersions && childVersions.length > 0) {
         toast({
           title: "Cannot Delete Estimate",
-          description: `This estimate has ${childVersions.length} child version(s). Delete the child versions first: ${childVersions.map(v => v.estimate_number).join(', ')}`,
+          description: `This estimate has ${childVersions.length} child version(s). Delete the child versions first: ${childVersions.map((v) => v.estimate_number).join(", ")}`,
           variant: "destructive",
-          duration: 8000
+          duration: 8000,
         });
         return;
       }
 
       // Project doesn't exist and no child versions - proceed with deletion
-      
+
       // Delete estimate line items first
-      const { error: lineItemsError } = await supabase
-        .from('estimate_line_items')
-        .delete()
-        .eq('estimate_id', id);
-      
+      const { error: lineItemsError } = await supabase.from("estimate_line_items").delete().eq("estimate_id", id);
+
       if (lineItemsError) throw lineItemsError;
 
       // Delete quotes related to this estimate
-      const { error: quotesError } = await supabase
-        .from('quotes')
-        .delete()
-        .eq('estimate_id', id);
-      
+      const { error: quotesError } = await supabase.from("quotes").delete().eq("estimate_id", id);
+
       if (quotesError) throw quotesError;
 
       // Finally delete the estimate
-      const { error: estimateError } = await supabase
-        .from('estimates')
-        .delete()
-        .eq('id', id);
-      
+      const { error: estimateError } = await supabase.from("estimates").delete().eq("id", id);
+
       if (estimateError) {
         // Parse specific database errors
-        if (estimateError.message.includes('foreign key') || estimateError.code === '23503') {
+        if (estimateError.message.includes("foreign key") || estimateError.code === "23503") {
           toast({
             title: "Cannot Delete Estimate",
-            description: "This estimate is referenced by other records in the database. Please contact support for assistance.",
+            description:
+              "This estimate is referenced by other records in the database. Please contact support for assistance.",
             variant: "destructive",
-            duration: 8000
+            duration: 8000,
           });
         } else {
           throw estimateError;
@@ -438,24 +466,24 @@ useEffect(() => {
       }
 
       // Remove from local state
-      setEstimates(prev => prev.filter(e => e.id !== id));
-      
+      setEstimates((prev) => prev.filter((e) => e.id !== id));
+
       toast({
         title: "Estimate Deleted",
-        description: "The estimate and all related data have been successfully deleted."
+        description: "The estimate and all related data have been successfully deleted.",
       });
     } catch (error) {
-      console.error('Error deleting estimate:', error);
+      console.error("Error deleting estimate:", error);
       toast({
         title: "Error",
-        description: `Failed to delete estimate: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: "destructive"
+        description: `Failed to delete estimate: ${error instanceof Error ? error.message : "Unknown error"}`,
+        variant: "destructive",
       });
     }
   };
 
   const handleCancel = () => {
-    setViewMode('list');
+    setViewMode("list");
     setSelectedEstimate(undefined);
     // Clear URL params
     setSearchParams({});
@@ -467,7 +495,7 @@ useEffect(() => {
 
   return (
     <div className="w-full overflow-x-hidden space-y-4">
-      {!isMobile && viewMode === 'list' && (
+      {!isMobile && viewMode === "list" && (
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -480,22 +508,16 @@ useEffect(() => {
           </BreadcrumbList>
         </Breadcrumb>
       )}
-      
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-xl font-bold">Estimates</h1>
-          <p className="text-muted-foreground">
-            Manage project estimates, versions, and approvals
-          </p>
+          <p className="text-muted-foreground">Manage project estimates, versions, and approvals</p>
         </div>
-        
-        {viewMode === 'list' && (
+
+        {viewMode === "list" && (
           <div className="flex gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setShowExportModal(true)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setShowExportModal(true)}>
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
@@ -507,16 +529,49 @@ useEffect(() => {
         )}
       </div>
 
-      {viewMode === 'list' ? (
-        <Tabs defaultValue="estimates" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="estimates">Estimates</TabsTrigger>
-            <TabsTrigger value="analytics">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Analytics
-            </TabsTrigger>
-          </TabsList>
-          
+      {viewMode === "list" ? (
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="w-full sm:w-auto">
+              <div className="sm:hidden">
+                <Select value={activeTab} onValueChange={handleTabChange}>
+                  <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tabOptions.map((tab) => {
+                      const Icon = tab.icon;
+                      return (
+                        <SelectItem key={tab.value} value={tab.value}>
+                          <div className="flex items-center gap-2">
+                            {Icon && <Icon className="h-4 w-4" />}
+                            <span>{tab.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
+                {tabOptions.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger
+                      key={tab.value}
+                      value={tab.value}
+                      className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    >
+                      {Icon && <Icon className="h-4 w-4" />}
+                      <span>{tab.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
+          </div>
+
           <TabsContent value="estimates" className="space-y-4">
             <EstimateSearchFilters
               filters={searchFilters}
@@ -534,14 +589,14 @@ useEffect(() => {
               onCreateNew={handleCreateNew}
             />
           </TabsContent>
-          
+
           <TabsContent value="analytics">
             <EstimateFinancialAnalyticsDashboard />
           </TabsContent>
         </Tabs>
       ) : (
         <EstimateForm
-          mode={viewMode as 'create' | 'edit' | 'view'}
+          mode={viewMode as "create" | "edit" | "view"}
           initialEstimate={selectedEstimate}
           preselectedProjectId={preselectedProjectId}
           onSave={handleSaveEstimate}
@@ -549,11 +604,7 @@ useEffect(() => {
         />
       )}
 
-      <EstimateExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        filters={searchFilters}
-      />
+      <EstimateExportModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} filters={searchFilters} />
     </div>
   );
 };
