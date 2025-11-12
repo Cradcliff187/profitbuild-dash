@@ -314,8 +314,8 @@ export const ProjectsList = ({
                   {(project.contracted_amount || project.original_margin !== null) && (() => {
                     const contract = project.contracted_amount ?? 0;
                     const adjustedCosts = project.adjusted_est_costs ?? 0;
-                    const currentMargin = contract - adjustedCosts;
-                    const derivedMarginPct = contract > 0 ? (currentMargin / contract) * 100 : 0;
+                    const projectedMargin = contract - adjustedCosts;
+                    const derivedMarginPct = contract > 0 ? (projectedMargin / contract) * 100 : 0;
                     const marginPctToShow = project.margin_percentage ?? derivedMarginPct;
                     const changeOrderRevenue = project.changeOrderRevenue || 0;
                     const changeOrderCosts = project.changeOrderCosts || 0;
@@ -326,7 +326,7 @@ export const ProjectsList = ({
                       <div className="compact-card-section bg-muted/10 space-y-2">
                         {/* Contract Value */}
                         <div className="flex justify-between text-data">
-                          <span className="text-label text-muted-foreground">Contract</span>
+                          <span className="text-label text-muted-foreground">Contract Value</span>
                           <span className="font-mono font-medium">{formatCurrency(contract)}</span>
                         </div>
 
@@ -339,8 +339,8 @@ export const ProjectsList = ({
                             </span>
                           </div>
                         )}
-                        
-                        {/* Two-Tier Margins - Original & Current with Breakdown Popover */}
+
+                        {/* Two-Tier Margins - Original & Projected with Breakdown Popover */}
                         <div className="grid grid-cols-2 gap-3 text-data pt-1 border-t border-border/50">
                           <div>
                             <p className="text-[10px] text-muted-foreground leading-tight">Original Margin</p>
@@ -348,7 +348,7 @@ export const ProjectsList = ({
                           </div>
                           <div>
                             <div className="flex items-center gap-1">
-                              <p className="text-[10px] text-muted-foreground leading-tight">Current Margin</p>
+                              <p className="text-[10px] text-muted-foreground leading-tight">Projected Margin</p>
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <button className="p-0 h-3 w-3 hover:bg-muted/50 rounded inline-flex items-center justify-center">
@@ -382,8 +382,8 @@ export const ProjectsList = ({
                                         </div>
                                       )}
                                       <div className="flex justify-between gap-2 border-t pt-1 font-semibold">
-                                        <span>= Current:</span>
-                                        <span>{formatCurrency(currentMargin)}</span>
+                                        <span>= Projected:</span>
+                                        <span>{formatCurrency(projectedMargin)}</span>
                                       </div>
                                     </div>
                                   </div>
@@ -391,11 +391,11 @@ export const ProjectsList = ({
                               </Popover>
                             </div>
                             <p className={`font-mono text-xs font-semibold ${
-                              currentMargin < 0 ? 'text-red-600 dark:text-red-400' :
-                              currentMargin >= (project.target_margin || 20) * contract / 100 ? 'text-green-600 dark:text-green-400' :
+                              projectedMargin < 0 ? 'text-red-600 dark:text-red-400' :
+                              projectedMargin >= (project.target_margin || 20) * contract / 100 ? 'text-green-600 dark:text-green-400' :
                               'text-orange-600 dark:text-orange-400'
                             }`}>
-                              {formatCurrency(currentMargin)}
+                              {formatCurrency(projectedMargin)}
                             </p>
                           </div>
                         </div>
@@ -407,10 +407,10 @@ export const ProjectsList = ({
                             {marginPctToShow.toFixed(1)}%
                           </Badge>
                         </div>
-                        
+
                         {/* Adjusted Estimated Costs */}
                         <div className="flex justify-between text-data pt-1 border-t border-border/50">
-                          <span className="text-label text-muted-foreground">Est. Costs</span>
+                          <span className="text-label text-muted-foreground">Adjusted Est. Costs</span>
                           <span className="font-mono font-medium">{formatCurrency(adjustedCosts)}</span>
                         </div>
 
@@ -448,24 +448,21 @@ export const ProjectsList = ({
           const isExpanded = expandedCards.has(project.id);
           const contract = project.contracted_amount ?? 0;
           const adjustedCosts = project.adjusted_est_costs ?? 0;
-          const currentMargin = contract - adjustedCosts;
-          const derivedMarginPct = contract > 0 ? (currentMargin / contract) * 100 : 0;
+          const projectedMargin = contract - adjustedCosts;
+          const derivedMarginPct = contract > 0 ? (projectedMargin / contract) * 100 : 0;
           const marginPctToShow = project.margin_percentage ?? derivedMarginPct;
-          
+
           return (
-            <Card 
-              key={project.id} 
-              className={`compact-card ${getCardBorderClass(project.margin_percentage)}`}
+            <Card
+              key={project.id}
+              className={`compact-card border ${getCardBorderClass(project.margin_percentage)}`}
             >
               <Collapsible open={isExpanded} onOpenChange={() => toggleCard(project.id)}>
-                {/* COLLAPSED VIEW - Compact header */}
-                <CollapsibleTrigger asChild>
-                  <div className="p-3 cursor-pointer hover:bg-muted/50 space-y-2">
-                    {/* Row 1: Project name + Status + Chevron */}
+                {/* COLLAPSED VIEW - Enhanced header with gradient */}
+                <CardHeader className="p-compact bg-gradient-to-r from-primary/5 to-transparent">
+                  <div className="space-y-0.5">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold truncate">{project.project_name}</h3>
-                      </div>
+                      <CardTitle className="text-interface truncate flex-1">{project.project_name}</CardTitle>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         {isProjectAtRisk(project.margin_percentage) && (
                           <Badge className="compact-badge bg-destructive text-destructive-foreground flex items-center gap-1">
@@ -476,233 +473,197 @@ export const ProjectsList = ({
                         <Badge className={`compact-badge ${getStatusColor(project.status)}`}>
                           {project.status.replace('_', ' ').toUpperCase()}
                         </Badge>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </div>
                     </div>
-                    
-                    {/* Row 2: Project number + Client */}
-                    <div className="text-xs text-muted-foreground truncate">
+                    <div className="text-label text-muted-foreground truncate">
                       {project.project_number} • {project.client_name}
                     </div>
-                    
-                    {/* Row 3: Current Margin (prominent) */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Current Margin</span>
-                      <Badge className={`compact-badge ${getMarginColor(marginPctToShow)} font-mono`}>
-                        {formatCurrency(currentMargin)} ({marginPctToShow.toFixed(1)}%)
-                      </Badge>
-                    </div>
                   </div>
+                </CardHeader>
+
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-between px-3 py-2 h-auto hover:bg-muted/50 border-t"
+                  >
+                    <span className="text-sm font-medium">
+                      {formatCurrency(projectedMargin)} • {marginPctToShow.toFixed(1)}%
+                    </span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  </Button>
                 </CollapsibleTrigger>
 
                 {/* EXPANDED VIEW - Full card content */}
                 <CollapsibleContent>
-                  <div className="border-t" onClick={(e) => e.stopPropagation()}>
+                  <div className="space-y-2 pt-2" onClick={(e) => e.stopPropagation()}>
                     <CardContent className="p-compact space-y-2">
-                      {/* Action Buttons - Compact */}
-                      {(() => {
-                        const projectEstimates = estimates.filter(e => e.project_id === project.id);
-                        const hasEstimates = projectEstimates.length > 0;
-                        
-                        if (!hasEstimates) {
-                          return (
-                            <Button 
-                              size="sm"
-                              variant="default"
-                              className="w-full h-button-compact"
-                              onClick={() => window.location.href = `/estimates?project=${project.id}`}
-                            >
-                              <Calculator className="h-3 w-3 mr-1" />
-                              Create Estimate
-                            </Button>
-                          );
-                        } else {
-                          return (
-                            <Button 
-                              size="sm"
-                              variant="default"
-                              className="w-full h-button-compact"
-                              onClick={() => window.location.href = `/projects/${project.id}`}
-                            >
-                              <FileText className="h-3 w-3 mr-1" />
-                              Details
-                            </Button>
-                          );
-                        }
-                      })()}
-
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {isProjectAtRisk(project.margin_percentage) && (
-                          <Badge className="compact-badge bg-destructive text-destructive-foreground flex items-center gap-1">
-                            <AlertTriangle className="h-2 w-2" />
-                            RISK
-                          </Badge>
-                        )}
-                        <Badge className={`compact-badge ${getStatusColor(project.status)}`}>
-                          {project.status.replace('_', ' ').toUpperCase()}
-                        </Badge>
-                        {project.margin_percentage !== null && project.margin_percentage !== undefined && (
-                          <Badge className={`compact-badge ${getMarginColor(project.margin_percentage)}`}>
-                            {project.margin_percentage.toFixed(1)}%
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Financial Summary - Two-Tier Margins */}
+                      {/* Financial Summary - 3-Column Grid (matching quotes style) */}
                       {(project.contracted_amount || project.original_margin !== null) && (() => {
-                        const contract = project.contracted_amount ?? 0;
-                        const adjustedCosts = project.adjusted_est_costs ?? 0;
-                        const currentMargin = contract - adjustedCosts;
-                        const derivedMarginPct = contract > 0 ? (currentMargin / contract) * 100 : 0;
-                        const marginPctToShow = project.margin_percentage ?? derivedMarginPct;
                         const changeOrderRevenue = project.changeOrderRevenue || 0;
                         const changeOrderCosts = project.changeOrderCosts || 0;
                         const originalCosts = project.original_est_costs || 0;
                         const quoteVariance = (adjustedCosts - originalCosts) - changeOrderCosts;
 
                         return (
-                          <div className="compact-card-section bg-muted/10 space-y-2">
-                            {/* Contract Value */}
-                            <div className="flex justify-between text-data">
-                              <span className="text-label text-muted-foreground">Contract</span>
-                              <span className="font-mono font-medium">{formatCurrency(contract)}</span>
-                            </div>
-
-                            {/* Change Orders */}
-                            {changeOrderRevenue > 0 && (
-                              <div className="flex justify-between text-data">
-                                <span className="text-label text-muted-foreground">Change Orders</span>
-                                <span className="font-mono font-medium text-green-600">
-                                  +{formatCurrency(changeOrderRevenue)}
-                                </span>
-                              </div>
-                            )}
-                            
-                            {/* Two-Tier Margins - Original & Current with Breakdown Popover */}
-                            <div className="grid grid-cols-2 gap-3 text-data pt-1 border-t border-border/50">
-                              <div>
-                                <p className="text-[10px] text-muted-foreground leading-tight">Original Margin</p>
-                                <p className="font-mono text-xs font-medium">{formatCurrency(project.original_margin)}</p>
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-1">
-                                  <p className="text-[10px] text-muted-foreground leading-tight">Current Margin</p>
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <button className="p-0 h-3 w-3 hover:bg-muted/50 rounded inline-flex items-center justify-center">
-                                        <Info className="h-2.5 w-2.5 text-muted-foreground" />
-                                      </button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-56 text-xs p-3" align="start">
-                                      <div className="space-y-1.5">
-                                        <p className="font-semibold text-[11px] border-b pb-1">Margin Breakdown</p>
-                                        <div className="space-y-1 font-mono tabular-nums text-[10px]">
-                                          <div className="flex justify-between gap-2">
-                                            <span className="text-muted-foreground">Original:</span>
-                                            <span>{formatCurrency(project.original_margin || 0)}</span>
-                                          </div>
-                                          {changeOrderRevenue > 0 && (
-                                            <>
-                                              <div className="flex justify-between gap-2 text-blue-600 dark:text-blue-400">
-                                                <span>+ CO Revenue:</span>
-                                                <span>{formatCurrency(changeOrderRevenue)}</span>
-                                              </div>
-                                              <div className="flex justify-between gap-2 text-orange-600 dark:text-orange-400">
-                                                <span>− CO Costs:</span>
-                                                <span>{formatCurrency(changeOrderCosts)}</span>
-                                              </div>
-                                            </>
-                                          )}
-                                          {quoteVariance !== 0 && (
-                                            <div className="flex justify-between gap-2 text-orange-600 dark:text-orange-400">
-                                              <span>{quoteVariance > 0 ? '−' : '+'} Quote Δ:</span>
-                                              <span>{formatCurrency(Math.abs(quoteVariance))}</span>
-                                            </div>
-                                          )}
-                                          <div className="flex justify-between gap-2 border-t pt-1 font-semibold">
-                                            <span>= Current:</span>
-                                            <span>{formatCurrency(currentMargin)}</span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </PopoverContent>
-                                  </Popover>
+                          <>
+                            <div className="grid grid-cols-3 gap-2 text-label bg-muted/30 p-3 rounded-lg">
+                              <div className="text-center">
+                                <div className="text-muted-foreground text-[10px]">Contract Value</div>
+                                <div className="text-interface font-bold font-mono">
+                                  {formatCurrency(contract)}
                                 </div>
-                                <p className={`font-mono text-xs font-semibold ${
-                                  currentMargin < 0 ? 'text-red-600 dark:text-red-400' :
-                                  currentMargin >= (project.target_margin || 20) * contract / 100 ? 'text-green-600 dark:text-green-400' :
+                              </div>
+                              <div className="text-center border-x border-border">
+                                <div className="text-muted-foreground text-[10px]">Projected Margin</div>
+                                <div className={`text-interface font-bold font-mono ${
+                                  projectedMargin < 0 ? 'text-red-600 dark:text-red-400' :
+                                  projectedMargin >= (project.target_margin || 20) * contract / 100 ? 'text-green-600 dark:text-green-400' :
                                   'text-orange-600 dark:text-orange-400'
                                 }`}>
-                                  {formatCurrency(currentMargin)}
-                                </p>
+                                  {formatCurrency(projectedMargin)}
+                                </div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-muted-foreground text-[10px]">Margin %</div>
+                                <div className="text-interface font-bold font-mono">
+                                  {marginPctToShow.toFixed(1)}%
+                                </div>
                               </div>
                             </div>
 
-                            {/* Margin Percentage */}
-                            <div className="flex justify-between text-data">
-                              <span className="text-label text-muted-foreground">Margin %</span>
-                              <Badge className={`compact-badge ${getMarginColor(marginPctToShow)} font-mono`}>
-                                {marginPctToShow.toFixed(1)}%
-                              </Badge>
-                            </div>
-                            
-                            {/* Adjusted Estimated Costs */}
-                            <div className="flex justify-between text-data pt-1 border-t border-border/50">
-                              <span className="text-label text-muted-foreground">Est. Costs</span>
-                              <span className="font-mono font-medium">{formatCurrency(adjustedCosts)}</span>
-                            </div>
-
-                            {/* Contingency Remaining */}
-                            {project.contingency_remaining > 0 && (
-                              <div className="flex justify-between text-data">
-                                <span className="text-label text-muted-foreground">Contingency</span>
-                                <span className="font-mono font-medium text-blue-600">{formatCurrency(project.contingency_remaining)}</span>
+                            {/* Margin Breakdown Section (matching quotes profit impact style) */}
+                            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium">Margin Breakdown</span>
+                                <Badge
+                                  variant={projectedMargin >= 0 ? 'default' : 'destructive'}
+                                  className="font-mono compact-badge"
+                                >
+                                  {formatCurrency(projectedMargin)}
+                                </Badge>
                               </div>
-                            )}
-                          </div>
+                              <div className="space-y-1 text-xs font-mono tabular-nums">
+                                <div className="flex justify-between gap-2">
+                                  <span className="text-muted-foreground">Original Margin:</span>
+                                  <span>{formatCurrency(project.original_margin || 0)}</span>
+                                </div>
+                                {changeOrderRevenue > 0 && (
+                                  <>
+                                    <div className="flex justify-between gap-2 text-green-600 dark:text-green-400">
+                                      <span>+ Change Orders:</span>
+                                      <span>{formatCurrency(changeOrderRevenue - changeOrderCosts)}</span>
+                                    </div>
+                                  </>
+                                )}
+                                {quoteVariance !== 0 && (
+                                  <div className={`flex justify-between gap-2 ${
+                                    quoteVariance > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+                                  }`}>
+                                    <span>{quoteVariance > 0 ? '−' : '+'} Quote Variance:</span>
+                                    <span>{formatCurrency(Math.abs(quoteVariance))}</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between gap-2 border-t pt-1 font-semibold">
+                                  <span>= Projected Margin:</span>
+                                  <span>{formatCurrency(projectedMargin)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </>
                         );
                       })()}
 
-                      <div className="grid grid-cols-2 gap-2 text-label">
+                      {/* Other Details - Compact Grid */}
+                      <div className="grid grid-cols-2 gap-2 text-label pt-2 border-t">
                         <div>
-                          <p className="text-muted-foreground">Type</p>
+                          <div className="text-muted-foreground text-label">Adjusted Est. Costs</div>
+                          <div className="font-medium font-mono text-data">{formatCurrency(adjustedCosts)}</div>
+                        </div>
+                        {project.contingency_remaining > 0 && (
+                          <div>
+                            <div className="text-muted-foreground text-label">Contingency</div>
+                            <div className="font-medium font-mono text-data text-blue-600">{formatCurrency(project.contingency_remaining)}</div>
+                          </div>
+                        )}
+
+                        <div>
+                          <p className="text-muted-foreground text-label">Type</p>
                           <p className="text-data font-medium truncate">
                             {project.project_type === 'construction_project' ? 'Construction' : 'Work Order'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Created</p>
+                          <p className="text-muted-foreground text-label">Created</p>
                           <p className="text-data font-medium">
                             {format(project.created_at, "MMM dd")}
                           </p>
                         </div>
                       </div>
 
-                      {/* Dropdown Menu */}
-                      <div className="flex gap-1 pt-2 border-t">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-input-compact flex-1" aria-label="Project options">
-                              <MoreHorizontal className="h-3 w-3 mr-1" />
-                              Actions
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem onClick={() => onEdit(project)}>
-                              <Edit className="h-3 w-3 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDuplicateProject(project)}>
-                              <Copy className="h-3 w-3 mr-2" />
-                              Duplicate
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleDeleteProject(project.id)} className="text-destructive">
-                              <Trash2 className="h-3 w-3 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      {/* Action Buttons - Inside Collapsed Area (matching quotes style) */}
+                      <div className="flex gap-1 pt-2 border-t border-primary/20">
+                        {(() => {
+                          const projectEstimates = estimates.filter(e => e.project_id === project.id);
+                          const hasEstimates = projectEstimates.length > 0;
+
+                          return (
+                            <>
+                              {!hasEstimates ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.location.href = `/estimates?project=${project.id}`}
+                                  className="h-btn-compact text-label flex-1"
+                                >
+                                  <Calculator className="h-3 w-3 mr-1" />
+                                  Create Estimate
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.location.href = `/projects/${project.id}`}
+                                  className="h-btn-compact text-label flex-1"
+                                >
+                                  <FileText className="h-3 w-3 mr-1" />
+                                  Details
+                                </Button>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onEdit(project)}
+                                className="h-btn-compact text-label flex-1"
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Edit
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="outline" size="sm" className="h-btn-compact">
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{project.project_name}"?
+                                      This action will permanently delete the project and all related data including estimates, quotes, and expenses.
+                                      This cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteProject(project.id)}>
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          );
+                        })()}
                       </div>
                     </CardContent>
                   </div>
