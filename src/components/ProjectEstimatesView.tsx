@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Edit, Plus, FileText, GitCompare, FileStack } from "lucide-react";
 import { EstimateForm } from "@/components/EstimateForm";
 import { QuotesList } from "@/components/QuotesList";
@@ -61,6 +62,13 @@ export const ProjectEstimatesView = ({
     navigate(`/quotes?projectId=${projectId}&estimateId=${currentEstimate?.id}`);
   };
 
+  const tabOptions = [
+    { value: 'current', label: 'Current Estimate' },
+    { value: 'versions', label: `Versions (${estimates.length})` },
+    { value: 'quotes', label: `Quotes (${quotes.length})` },
+    ...(hasMultipleEstimates ? [{ value: 'compare', label: 'Compare' }] : []),
+  ];
+
   if (estimates.length === 0) {
     return (
       <Card>
@@ -92,26 +100,38 @@ export const ProjectEstimatesView = ({
   return (
     <div className="space-y-3">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <div className="flex items-center justify-between mb-3">
-          <TabsList className="h-8">
-            <TabsTrigger value="current" className="text-xs px-3 py-1">
-              Current Estimate
-            </TabsTrigger>
-            <TabsTrigger value="versions" className="text-xs px-3 py-1">
-              Versions ({estimates.length})
-            </TabsTrigger>
-            <TabsTrigger value="quotes" className="text-xs px-3 py-1">
-              Quotes ({quotes.length})
-            </TabsTrigger>
-            {hasMultipleEstimates && (
-              <TabsTrigger value="compare" className="text-xs px-3 py-1">
-                Compare
-              </TabsTrigger>
-            )}
-          </TabsList>
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="w-full sm:w-auto">
+            <div className="sm:hidden">
+              <Select value={activeTab} onValueChange={handleTabChange}>
+                <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {tabOptions.map((tab) => (
+                    <SelectItem key={tab.value} value={tab.value}>
+                      {tab.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
+              {tabOptions.map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="h-9 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           {activeTab === "current" && currentEstimate && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={handleEditEstimate}>
                 <Edit className="h-3 w-3 mr-1" />
                 Edit

@@ -1089,9 +1089,9 @@ export const MobileTimeTracker: React.FC = () => {
                 <div className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
-                    <span>{activeTimer.project.project_number} - {activeTimer.project.client_name}</span>
+                    <span>{activeTimer.project.project_number} - {activeTimer.project.project_name}</span>
                   </div>
-                  <span className="text-xs opacity-90 ml-6">{activeTimer.project.project_name}</span>
+                  <span className="text-xs opacity-90 ml-6">{activeTimer.project.client_name}</span>
                   {activeTimer.project.address && (
                     <span className="text-xs opacity-90 ml-6">{activeTimer.project.address}</span>
                   )}
@@ -1182,9 +1182,9 @@ export const MobileTimeTracker: React.FC = () => {
               {selectedProject ? (
                 <div>
                   <div className="font-semibold text-foreground">
-                    {selectedProject.project_number} - {selectedProject.client_name}
+                    {selectedProject.project_number} - {selectedProject.project_name}
                   </div>
-                  <div className="text-sm text-muted-foreground">{selectedProject.project_name}</div>
+                  <div className="text-sm text-muted-foreground">{selectedProject.client_name}</div>
                   {selectedProject.address && (
                     <div className="text-sm text-muted-foreground">{selectedProject.address}</div>
                   )}
@@ -1213,9 +1213,9 @@ export const MobileTimeTracker: React.FC = () => {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold truncate">
-                          {project.project_number} - {project.client_name}
+                          {project.project_number} - {project.project_name}
                         </div>
-                        <div className="text-sm text-muted-foreground truncate">{project.project_name}</div>
+                        <div className="text-sm text-muted-foreground truncate">{project.client_name}</div>
                         {project.address && (
                           <div className="text-sm text-muted-foreground truncate">{project.address}</div>
                         )}
@@ -1376,10 +1376,10 @@ export const MobileTimeTracker: React.FC = () => {
                         
                         {/* SECONDARY: Project Information */}
                         <div className="text-sm text-muted-foreground mt-1">
-                          {entry.project.project_number} - {entry.project.client_name}
+                          {entry.project.project_number} - {entry.project.project_name}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {entry.project.project_name}
+                          {entry.project.client_name}
                         </div>
                         
                         {/* STATUS: Approval Badge if Pending */}

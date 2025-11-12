@@ -154,119 +154,197 @@ export function ProjectDocumentsTable({
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex gap-2">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-2 top-2 h-3 w-3 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search documents..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-7 h-7 text-xs"
+            className="h-11 w-full rounded-xl border-border pl-10 text-sm shadow-sm sm:h-9"
           />
         </div>
         {!documentType && (
-          <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as DocumentType | 'all')}>
-            <SelectTrigger className="w-[150px] h-7 text-xs">
-              <Filter className="w-3 h-3 mr-1" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              {Object.entries(DOCUMENT_TYPE_LABELS).map(([key, label]) => (
-                <SelectItem key={key} value={key}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="sm:w-[220px]">
+            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as DocumentType | 'all')}>
+              <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm sm:h-9">
+                <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
+                <SelectValue placeholder="Filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {Object.entries(DOCUMENT_TYPE_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         )}
       </div>
 
       {filteredDocuments.length === 0 ? (
-        <div className="text-center py-8">
-          <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">No documents found</p>
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
+          <FileText className="mb-3 h-12 w-12 text-muted-foreground" />
+          <p className="text-sm font-medium text-foreground">No documents found</p>
+          <p className="mt-1 text-xs text-muted-foreground max-w-xs">
+            Upload documents to quickly share drawings, permits, licenses, or receipts with the team.
+          </p>
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full text-xs">
-            <thead className="bg-muted/50 border-b">
-              <tr>
-                <th className="text-left p-2 font-medium text-xs">Document</th>
-                <th className="text-left p-2 font-medium text-xs">Version</th>
-                <th className="text-left p-2 font-medium text-xs">Size</th>
-                <th className="text-left p-2 font-medium text-xs">Uploaded</th>
-                <th className="text-right p-2 font-medium text-xs">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {filteredDocuments.map((doc) => (
-                <tr key={doc.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="p-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">{DOCUMENT_TYPE_ICONS[doc.document_type]}</span>
-                      <div className="min-w-0">
-                        <p className="font-medium truncate text-xs">{doc.file_name}</p>
-                        {doc.description && (
-                          <p className="text-xs text-muted-foreground truncate">{doc.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-2">
-                    <Badge variant="outline" className="text-xs">v{doc.version_number}</Badge>
-                  </td>
-                  <td className="p-2 text-muted-foreground text-xs">
-                    {formatFileSize(doc.file_size)}
-                  </td>
-                  <td className="p-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground text-xs">
-                        {formatDistanceToNow(parseISO(doc.created_at), { addSuffix: true })}
-                      </span>
+        <>
+          {/* Mobile Cards */}
+          <div className="space-y-3 md:hidden">
+            {filteredDocuments.map((doc) => (
+              <div key={doc.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => window.open(doc.file_url, '_blank')}
+                  className="flex w-full items-start gap-3 text-left"
+                >
+                  <span className="text-xl text-muted-foreground">
+                    {DOCUMENT_TYPE_ICONS[doc.document_type]}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground break-words">
+                      {doc.file_name}
+                    </p>
+                    {doc.description && (
+                      <p className="mt-0.5 text-xs text-muted-foreground break-words">
+                        {doc.description}
+                      </p>
+                    )}
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <Badge variant="outline" className="text-[10px]">
+                        v{doc.version_number}
+                      </Badge>
+                      <span>{formatFileSize(doc.file_size)}</span>
+                      <span>•</span>
+                      <span>{formatDistanceToNow(parseISO(doc.created_at), { addSuffix: true })}</span>
                       {getExpirationWarning(doc.expires_at)}
                     </div>
-                  </td>
-                  <td className="p-2">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => window.open(doc.file_url, '_blank')}
-                        className="h-7 w-7 p-0"
-                      >
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const a = document.createElement('a');
-                          a.href = doc.file_url;
-                          a.download = doc.file_name;
-                          a.click();
-                        }}
-                        className="h-7 w-7 p-0"
-                      >
-                        <Download className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setDocumentToDelete(doc);
-                          setDeleteDialogOpen(true);
-                        }}
-                        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </td>
+                  </div>
+                </button>
+                <div className="mt-3 flex items-center justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(doc.file_url, '_blank')}
+                    className="h-9 w-9 rounded-full"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const a = document.createElement('a');
+                      a.href = doc.file_url;
+                      a.download = doc.file_name;
+                      a.click();
+                    }}
+                    className="h-9 w-9 rounded-full"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setDocumentToDelete(doc);
+                      setDeleteDialogOpen(true);
+                    }}
+                    className="h-9 w-9 rounded-full text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden overflow-hidden rounded-lg border md:block">
+            <table className="w-full text-xs">
+              <thead className="border-b bg-muted/50">
+                <tr>
+                  <th className="p-2 text-left font-medium text-xs">Document</th>
+                  <th className="p-2 text-left font-medium text-xs">Version</th>
+                  <th className="p-2 text-left font-medium text-xs">Size</th>
+                  <th className="p-2 text-left font-medium text-xs">Uploaded</th>
+                  <th className="p-2 text-right font-medium text-xs">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y">
+                {filteredDocuments.map((doc) => (
+                  <tr key={doc.id} className="transition-colors hover:bg-muted/30">
+                    <td className="p-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{DOCUMENT_TYPE_ICONS[doc.document_type]}</span>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-medium">{doc.file_name}</p>
+                          {doc.description && (
+                            <p className="truncate text-xs text-muted-foreground">{doc.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-2">
+                      <Badge variant="outline" className="text-xs">v{doc.version_number}</Badge>
+                    </td>
+                    <td className="p-2 text-xs text-muted-foreground">
+                      {formatFileSize(doc.file_size)}
+                    </td>
+                    <td className="p-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(parseISO(doc.created_at), { addSuffix: true })}
+                        </span>
+                        {getExpirationWarning(doc.expires_at)}
+                      </div>
+                    </td>
+                    <td className="p-2">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(doc.file_url, '_blank')}
+                          className="h-7 w-7 p-0"
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const a = document.createElement('a');
+                            a.href = doc.file_url;
+                            a.download = doc.file_name;
+                            a.click();
+                          }}
+                          className="h-7 w-7 p-0"
+                        >
+                          <Download className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setDocumentToDelete(doc);
+                            setDeleteDialogOpen(true);
+                          }}
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
