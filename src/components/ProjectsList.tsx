@@ -310,120 +310,122 @@ export const ProjectsList = ({
                     )}
                   </div>
 
-                  {/* Financial Summary - Two-Tier Margins */}
-                  {(project.contracted_amount || project.original_margin !== null) && (() => {
-                    const contract = project.contracted_amount ?? 0;
-                    const adjustedCosts = project.adjusted_est_costs ?? 0;
-                    const projectedMargin = contract - adjustedCosts;
-                    const derivedMarginPct = contract > 0 ? (projectedMargin / contract) * 100 : 0;
-                    const marginPctToShow = project.margin_percentage ?? derivedMarginPct;
-                    const changeOrderRevenue = project.changeOrderRevenue || 0;
-                    const changeOrderCosts = project.changeOrderCosts || 0;
-                    const originalCosts = project.original_est_costs || 0;
-                    const quoteVariance = (adjustedCosts - originalCosts) - changeOrderCosts;
+                    {/* Financial Summary - Two-Tier Margins */}
+                    {(project.contracted_amount || project.original_margin !== null) && (() => {
+                      const contract = project.contracted_amount ?? 0;
+                      const adjustedCosts = project.adjusted_est_costs ?? 0;
+                      const projectedMargin = project.projected_margin ?? (contract - adjustedCosts);
+                      const derivedMarginPct = contract > 0 ? (projectedMargin / contract) * 100 : 0;
+                      const marginPctToShow = project.margin_percentage ?? derivedMarginPct;
+                      const changeOrderRevenue = project.changeOrderRevenue || 0;
+                      const changeOrderCosts = project.changeOrderCosts || 0;
+                      const changeOrderNetMargin = changeOrderRevenue - changeOrderCosts;
+                      const originalCosts = project.original_est_costs || 0;
+                      const quoteVariance = (adjustedCosts - originalCosts) - changeOrderCosts;
+                      const originalMargin = project.original_margin || 0;
 
-                    return (
-                      <div className="compact-card-section bg-muted/10 space-y-2">
-                        {/* Contract Value */}
-                        <div className="flex justify-between text-data">
-                          <span className="text-label text-muted-foreground">Contract Value</span>
-                          <span className="font-mono font-medium">{formatCurrency(contract)}</span>
-                        </div>
-
-                        {/* Change Orders */}
-                        {changeOrderRevenue > 0 && (
+                      return (
+                        <div className="compact-card-section bg-muted/10 space-y-2">
+                          {/* Contract Value */}
                           <div className="flex justify-between text-data">
-                            <span className="text-label text-muted-foreground">Change Orders</span>
-                            <span className="font-mono font-medium text-green-600">
-                              +{formatCurrency(changeOrderRevenue)}
-                            </span>
+                            <span className="text-label text-muted-foreground">Contract Value</span>
+                            <span className="font-mono font-medium">{formatCurrency(contract)}</span>
                           </div>
-                        )}
 
-                        {/* Two-Tier Margins - Original & Projected with Breakdown Popover */}
-                        <div className="grid grid-cols-2 gap-3 text-data pt-1 border-t border-border/50">
-                          <div>
-                            <p className="text-[10px] text-muted-foreground leading-tight">Original Margin</p>
-                            <p className="font-mono text-xs font-medium">{formatCurrency(project.original_margin)}</p>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1">
-                              <p className="text-[10px] text-muted-foreground leading-tight">Projected Margin</p>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <button className="p-0 h-3 w-3 hover:bg-muted/50 rounded inline-flex items-center justify-center">
-                                    <Info className="h-2.5 w-2.5 text-muted-foreground" />
-                                  </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-56 text-xs p-3" align="start">
-                                  <div className="space-y-1.5">
-                                    <p className="font-semibold text-[11px] border-b pb-1">Margin Breakdown</p>
-                                    <div className="space-y-1 font-mono tabular-nums text-[10px]">
-                                      <div className="flex justify-between gap-2">
-                                        <span className="text-muted-foreground">Original:</span>
-                                        <span>{formatCurrency(project.original_margin || 0)}</span>
-                                      </div>
-                                      {changeOrderRevenue > 0 && (
-                                        <>
-                                          <div className="flex justify-between gap-2 text-blue-600 dark:text-blue-400">
-                                            <span>+ CO Revenue:</span>
-                                            <span>{formatCurrency(changeOrderRevenue)}</span>
-                                          </div>
-                                          <div className="flex justify-between gap-2 text-orange-600 dark:text-orange-400">
-                                            <span>− CO Costs:</span>
-                                            <span>{formatCurrency(changeOrderCosts)}</span>
-                                          </div>
-                                        </>
-                                      )}
-                                      {quoteVariance !== 0 && (
-                                        <div className="flex justify-between gap-2 text-orange-600 dark:text-orange-400">
-                                          <span>{quoteVariance > 0 ? '−' : '+'} Quote Δ:</span>
-                                          <span>{formatCurrency(Math.abs(quoteVariance))}</span>
+                          {/* Change Orders */}
+                          {changeOrderRevenue > 0 && (
+                            <div className="flex justify-between text-data">
+                              <span className="text-label text-muted-foreground">Change Orders</span>
+                              <span className="font-mono font-medium text-green-600">
+                                +{formatCurrency(changeOrderRevenue)}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Two-Tier Margins - Original & Projected with Breakdown Popover */}
+                          <div className="grid grid-cols-2 gap-3 text-data pt-1 border-t border-border/50">
+                            <div>
+                              <p className="text-[10px] text-muted-foreground leading-tight">Original Margin</p>
+                              <p className="font-mono text-xs font-medium">{formatCurrency(originalMargin)}</p>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1">
+                                <p className="text-[10px] text-muted-foreground leading-tight">Projected Margin</p>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button className="p-0 h-3 w-3 hover:bg-muted/50 rounded inline-flex items-center justify-center">
+                                      <Info className="h-2.5 w-2.5 text-muted-foreground" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-56 text-xs p-3" align="start">
+                                    <div className="space-y-1.5">
+                                      <p className="font-semibold text-[11px] border-b pb-1">Margin Breakdown</p>
+                                      <div className="space-y-1 font-mono tabular-nums text-[10px]">
+                                        <div className="flex justify-between gap-2">
+                                          <span className="text-muted-foreground">Original:</span>
+                                          <span>{formatCurrency(originalMargin)}</span>
                                         </div>
-                                      )}
-                                      <div className="flex justify-between gap-2 border-t pt-1 font-semibold">
-                                        <span>= Projected:</span>
-                                        <span>{formatCurrency(projectedMargin)}</span>
+                                        {changeOrderNetMargin !== 0 && (
+                                          <div className="flex justify-between gap-2 text-blue-600 dark:text-blue-400">
+                                            <span>+ Change Orders:</span>
+                                            <span>{formatCurrency(changeOrderNetMargin)}</span>
+                                          </div>
+                                        )}
+                                        {quoteVariance !== 0 && (
+                                          <div className="flex justify-between gap-2 text-orange-600 dark:text-orange-400">
+                                            <span>{quoteVariance > 0 ? '−' : '+'} Quote Δ:</span>
+                                            <span>{formatCurrency(Math.abs(quoteVariance))}</span>
+                                          </div>
+                                        )}
+                                        <div className="flex justify-between gap-2 border-t pt-1 font-semibold">
+                                          <span>= Projected:</span>
+                                          <span>{formatCurrency(projectedMargin)}</span>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                </PopoverContent>
-                              </Popover>
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                              <p
+                                className={`font-mono text-xs font-semibold ${
+                                  projectedMargin < 0
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : projectedMargin >= (project.target_margin || 20) * contract / 100
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : 'text-orange-600 dark:text-orange-400'
+                                }`}
+                              >
+                                {formatCurrency(projectedMargin)}
+                              </p>
                             </div>
-                            <p className={`font-mono text-xs font-semibold ${
-                              projectedMargin < 0 ? 'text-red-600 dark:text-red-400' :
-                              projectedMargin >= (project.target_margin || 20) * contract / 100 ? 'text-green-600 dark:text-green-400' :
-                              'text-orange-600 dark:text-orange-400'
-                            }`}>
-                              {formatCurrency(projectedMargin)}
-                            </p>
                           </div>
-                        </div>
 
-                        {/* Margin Percentage */}
-                        <div className="flex justify-between text-data">
-                          <span className="text-label text-muted-foreground">Margin %</span>
-                          <Badge className={`compact-badge ${getMarginColor(marginPctToShow)} font-mono`}>
-                            {marginPctToShow.toFixed(1)}%
-                          </Badge>
-                        </div>
-
-                        {/* Adjusted Estimated Costs */}
-                        <div className="flex justify-between text-data pt-1 border-t border-border/50">
-                          <span className="text-label text-muted-foreground">Adjusted Est. Costs</span>
-                          <span className="font-mono font-medium">{formatCurrency(adjustedCosts)}</span>
-                        </div>
-
-                        {/* Contingency Remaining */}
-                        {project.contingency_remaining > 0 && (
+                          {/* Margin Percentage */}
                           <div className="flex justify-between text-data">
-                            <span className="text-label text-muted-foreground">Contingency</span>
-                            <span className="font-mono font-medium text-blue-600">{formatCurrency(project.contingency_remaining)}</span>
+                            <span className="text-label text-muted-foreground">Margin %</span>
+                            <Badge className={`compact-badge ${getMarginColor(marginPctToShow)} font-mono`}>
+                              {marginPctToShow.toFixed(1)}%
+                            </Badge>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })()}
+
+                          {/* Adjusted Estimated Costs */}
+                          <div className="flex justify-between text-data pt-1 border-t border-border/50">
+                            <span className="text-label text-muted-foreground">Adjusted Est. Costs</span>
+                            <span className="font-mono font-medium">{formatCurrency(adjustedCosts)}</span>
+                          </div>
+
+                          {/* Contingency Remaining */}
+                          {project.contingency_remaining > 0 && (
+                            <div className="flex justify-between text-data">
+                              <span className="text-label text-muted-foreground">Contingency</span>
+                              <span className="font-mono font-medium text-blue-600">
+                                {formatCurrency(project.contingency_remaining)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                   <div className="grid grid-cols-2 gap-2 text-label">
                     <div>
@@ -448,7 +450,7 @@ export const ProjectsList = ({
           const isExpanded = expandedCards.has(project.id);
           const contract = project.contracted_amount ?? 0;
           const adjustedCosts = project.adjusted_est_costs ?? 0;
-          const projectedMargin = contract - adjustedCosts;
+          const projectedMargin = project.projected_margin ?? (contract - adjustedCosts);
           const derivedMarginPct = contract > 0 ? (projectedMargin / contract) * 100 : 0;
           const marginPctToShow = project.margin_percentage ?? derivedMarginPct;
 
@@ -498,11 +500,13 @@ export const ProjectsList = ({
                   <div className="space-y-2 pt-2" onClick={(e) => e.stopPropagation()}>
                     <CardContent className="p-compact space-y-2">
                       {/* Financial Summary - 3-Column Grid (matching quotes style) */}
-                      {(project.contracted_amount || project.original_margin !== null) && (() => {
-                        const changeOrderRevenue = project.changeOrderRevenue || 0;
-                        const changeOrderCosts = project.changeOrderCosts || 0;
-                        const originalCosts = project.original_est_costs || 0;
-                        const quoteVariance = (adjustedCosts - originalCosts) - changeOrderCosts;
+                        {(project.contracted_amount || project.original_margin !== null) && (() => {
+                          const changeOrderRevenue = project.changeOrderRevenue || 0;
+                          const changeOrderCosts = project.changeOrderCosts || 0;
+                          const changeOrderNetMargin = changeOrderRevenue - changeOrderCosts;
+                          const originalCosts = project.original_est_costs || 0;
+                          const quoteVariance = (adjustedCosts - originalCosts) - changeOrderCosts;
+                          const originalMargin = project.original_margin || 0;
 
                         return (
                           <>
@@ -542,32 +546,32 @@ export const ProjectsList = ({
                                   {formatCurrency(projectedMargin)}
                                 </Badge>
                               </div>
-                              <div className="space-y-1 text-xs font-mono tabular-nums">
-                                <div className="flex justify-between gap-2">
-                                  <span className="text-muted-foreground">Original Margin:</span>
-                                  <span>{formatCurrency(project.original_margin || 0)}</span>
-                                </div>
-                                {changeOrderRevenue > 0 && (
-                                  <>
-                                    <div className="flex justify-between gap-2 text-green-600 dark:text-green-400">
-                                      <span>+ Change Orders:</span>
-                                      <span>{formatCurrency(changeOrderRevenue - changeOrderCosts)}</span>
-                                    </div>
-                                  </>
-                                )}
-                                {quoteVariance !== 0 && (
-                                  <div className={`flex justify-between gap-2 ${
-                                    quoteVariance > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
-                                  }`}>
-                                    <span>{quoteVariance > 0 ? '−' : '+'} Quote Variance:</span>
-                                    <span>{formatCurrency(Math.abs(quoteVariance))}</span>
+                                <div className="space-y-1 text-xs font-mono tabular-nums">
+                                  <div className="flex justify-between gap-2">
+                                    <span className="text-muted-foreground">Original Margin:</span>
+                                    <span>{formatCurrency(originalMargin)}</span>
                                   </div>
-                                )}
-                                <div className="flex justify-between gap-2 border-t pt-1 font-semibold">
-                                  <span>= Projected Margin:</span>
-                                  <span>{formatCurrency(projectedMargin)}</span>
+                                  {changeOrderNetMargin !== 0 && (
+                                    <div className="flex justify-between gap-2 text-blue-600 dark:text-blue-400">
+                                      <span>+ Change Orders:</span>
+                                      <span>{formatCurrency(changeOrderNetMargin)}</span>
+                                    </div>
+                                  )}
+                                  {quoteVariance !== 0 && (
+                                    <div
+                                      className={`flex justify-between gap-2 ${
+                                        quoteVariance > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+                                      }`}
+                                    >
+                                      <span>{quoteVariance > 0 ? '−' : '+'} Quote Variance:</span>
+                                      <span>{formatCurrency(Math.abs(quoteVariance))}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between gap-2 border-t pt-1 font-semibold">
+                                    <span>= Projected Margin:</span>
+                                    <span>{formatCurrency(projectedMargin)}</span>
+                                  </div>
                                 </div>
-                              </div>
                             </div>
                           </>
                         );
