@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Edit, Plus, FileText, GitCompare, FileStack } from "lucide-react";
 import { EstimateForm } from "@/components/EstimateForm";
 import { QuotesList } from "@/components/QuotesList";
@@ -22,16 +23,11 @@ interface ProjectEstimatesViewProps {
   onRefresh: () => void;
 }
 
-export const ProjectEstimatesView = ({ 
-  projectId, 
-  estimates, 
-  quotes, 
-  onRefresh 
-}: ProjectEstimatesViewProps) => {
+export const ProjectEstimatesView = ({ projectId, estimates, quotes, onRefresh }: ProjectEstimatesViewProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const tabFromUrl = searchParams.get('tab') || 'current';
+  const tabFromUrl = searchParams.get("tab") || "current";
   const [activeTab, setActiveTab] = useState(tabFromUrl);
 
   // Sync activeTab with URL changes
@@ -40,9 +36,10 @@ export const ProjectEstimatesView = ({
   }, [tabFromUrl]);
 
   // Find current/approved estimate
-  const currentEstimate = estimates.find(e => e.status === 'approved') 
-    || estimates.find(e => e.is_current_version) 
-    || estimates.sort((a, b) => b.version_number - a.version_number)[0];
+  const currentEstimate =
+    estimates.find((e) => e.status === "approved") ||
+    estimates.find((e) => e.is_current_version) ||
+    estimates.sort((a, b) => b.version_number - a.version_number)[0];
 
   const hasMultipleEstimates = estimates.length > 1;
 
@@ -61,6 +58,13 @@ export const ProjectEstimatesView = ({
     navigate(`/quotes?projectId=${projectId}&estimateId=${currentEstimate?.id}`);
   };
 
+  const tabOptions = [
+    { value: "current", label: "Current Estimate" },
+    { value: "versions", label: `Versions (${estimates.length})` },
+    { value: "quotes", label: `Quotes (${quotes.length})` },
+    ...(hasMultipleEstimates ? [{ value: "compare", label: "Compare" }] : []),
+  ];
+
   if (estimates.length === 0) {
     return (
       <Card>
@@ -71,9 +75,7 @@ export const ProjectEstimatesView = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            This project doesn't have an estimate yet.
-          </p>
+          <p className="text-sm text-muted-foreground mb-4">This project doesn't have an estimate yet.</p>
           <Button onClick={() => navigate(`/projects/${projectId}/estimates/new`)}>
             <Plus className="h-4 w-4 mr-2" />
             Create Estimate
@@ -92,34 +94,43 @@ export const ProjectEstimatesView = ({
   return (
     <div className="space-y-3">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <div className="flex items-center justify-between mb-3">
-          <TabsList className="h-8">
-            <TabsTrigger value="current" className="text-xs px-3 py-1">
-              Current Estimate
-            </TabsTrigger>
-            <TabsTrigger value="versions" className="text-xs px-3 py-1">
-              Versions ({estimates.length})
-            </TabsTrigger>
-            <TabsTrigger value="quotes" className="text-xs px-3 py-1">
-              Quotes ({quotes.length})
-            </TabsTrigger>
-            {hasMultipleEstimates && (
-              <TabsTrigger value="compare" className="text-xs px-3 py-1">
-                Compare
-              </TabsTrigger>
-            )}
-          </TabsList>
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="w-full sm:w-auto">
+            <div className="sm:hidden">
+              <Select value={activeTab} onValueChange={handleTabChange}>
+                <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {tabOptions.map((tab) => (
+                    <SelectItem key={tab.value} value={tab.value}>
+                      {tab.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
+              {tabOptions.map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="h-9 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           {activeTab === "current" && currentEstimate && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={handleEditEstimate}>
                 <Edit className="h-3 w-3 mr-1" />
                 Edit
               </Button>
-              <Button 
-                size="sm" 
-                onClick={handleCreateNewVersion}
-              >
+              <Button size="sm" onClick={handleCreateNewVersion}>
                 <Plus className="h-3 w-3 mr-1" />
                 New Version
               </Button>
@@ -136,35 +147,39 @@ export const ProjectEstimatesView = ({
                     <CardTitle className="text-base font-semibold">
                       Estimate {currentEstimate.estimate_number}
                     </CardTitle>
-                    <Badge variant={
-                      currentEstimate.status === 'approved' ? 'default' :
-                      currentEstimate.status === 'sent' ? 'secondary' :
-                      'outline'
-                    }>
+                    <Badge
+                      variant={
+                        currentEstimate.status === "approved"
+                          ? "default"
+                          : currentEstimate.status === "sent"
+                            ? "secondary"
+                            : "outline"
+                      }
+                    >
                       {currentEstimate.status}
                     </Badge>
                   </div>
                   <div className="flex gap-4 text-xs text-muted-foreground mt-2">
                     <span>Version {currentEstimate.version_number}</span>
                     <span>•</span>
-                    <span>Created {format(currentEstimate.date_created, 'MMM d, yyyy')}</span>
+                    <span>Created {format(currentEstimate.date_created, "MMM d, yyyy")}</span>
                     {currentEstimate.valid_until && (
                       <>
                         <span>•</span>
-                        <span>Valid Until {format(currentEstimate.valid_until, 'MMM d, yyyy')}</span>
+                        <span>Valid Until {format(currentEstimate.valid_until, "MMM d, yyyy")}</span>
                       </>
                     )}
                   </div>
                 </CardHeader>
               </Card>
 
-                <EstimateForm
-                  mode="view"
-                  initialEstimate={currentEstimate}
-                  hideNavigationButtons={true}
-                  onSave={() => {}}
-                  onCancel={() => {}}
-                />
+              <EstimateForm
+                mode="view"
+                initialEstimate={currentEstimate}
+                hideNavigationButtons={true}
+                onSave={() => {}}
+                onCancel={() => {}}
+              />
             </div>
           ) : (
             <Card>
@@ -188,33 +203,36 @@ export const ProjectEstimatesView = ({
                 {estimates
                   .sort((a, b) => b.version_number - a.version_number)
                   .map((estimate) => (
-                    <div 
-                      key={estimate.id} 
+                    <div
+                      key={estimate.id}
                       className="p-3 hover:bg-muted/50 cursor-pointer flex items-center justify-between"
                       onClick={() => navigate(`/projects/${projectId}/estimates/${estimate.id}/edit`)}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium">
-                            {estimate.estimate_number}
-                          </span>
+                          <span className="text-sm font-medium">{estimate.estimate_number}</span>
                           {estimate.is_current_version && (
                             <Badge variant="secondary" className="text-xs px-1.5 py-0">
                               Current
                             </Badge>
                           )}
-                          <Badge variant={
-                            estimate.status === 'approved' ? 'default' :
-                            estimate.status === 'sent' ? 'secondary' :
-                            'outline'
-                          } className="text-xs px-1.5 py-0">
+                          <Badge
+                            variant={
+                              estimate.status === "approved"
+                                ? "default"
+                                : estimate.status === "sent"
+                                  ? "secondary"
+                                  : "outline"
+                            }
+                            className="text-xs px-1.5 py-0"
+                          >
                             {estimate.status}
                           </Badge>
                         </div>
                         <div className="flex gap-3 text-xs text-muted-foreground">
                           <span>v{estimate.version_number}</span>
                           <span>•</span>
-                          <span>{format(estimate.date_created, 'MMM d, yyyy')}</span>
+                          <span>{format(estimate.date_created, "MMM d, yyyy")}</span>
                           <span>•</span>
                           <span className="font-medium">{formatCurrency(estimate.total_amount)}</span>
                         </div>
@@ -230,15 +248,15 @@ export const ProjectEstimatesView = ({
         </TabsContent>
 
         <TabsContent value="quotes" className="mt-0">
-          <QuotesList 
+          <QuotesList
             quotes={quotes}
             estimates={estimates}
             onView={(quote) => {
-              console.log('[QuotesTab] View quote clicked', { quoteId: quote.id, projectId });
+              console.log("[QuotesTab] View quote clicked", { quoteId: quote.id, projectId });
               navigate(`/projects/${projectId}/estimates/quotes/${quote.id}`);
             }}
             onEdit={(quote) => {
-              console.log('[QuotesTab] Edit quote clicked', { quoteId: quote.id, projectId });
+              console.log("[QuotesTab] Edit quote clicked", { quoteId: quote.id, projectId });
               navigate(`/projects/${projectId}/estimates/quotes/${quote.id}/edit`);
             }}
             onDelete={() => onRefresh()}
@@ -257,9 +275,7 @@ export const ProjectEstimatesView = ({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <EstimateVersionComparison 
-                  projectId={projectId}
-                />
+                <EstimateVersionComparison projectId={projectId} />
               </CardContent>
             </Card>
           </TabsContent>
