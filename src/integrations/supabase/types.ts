@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -101,6 +101,158 @@ export type Database = {
           target_user_id?: string | null
         }
         Relationships: []
+      }
+      bid_media: {
+        Row: {
+          bid_id: string
+          caption: string | null
+          created_at: string
+          description: string | null
+          duration: number | null
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id: string
+          mime_type: string
+          thumbnail_url: string | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          bid_id: string
+          caption?: string | null
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id?: string
+          mime_type: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          bid_id?: string
+          caption?: string | null
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          mime_type?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_media_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: false
+            referencedRelation: "branch_bids"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bid_notes: {
+        Row: {
+          bid_id: string
+          created_at: string
+          id: string
+          note_text: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bid_id: string
+          created_at?: string
+          id?: string
+          note_text: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bid_id?: string
+          created_at?: string
+          id?: string
+          note_text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_notes_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: false
+            referencedRelation: "branch_bids"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      branch_bids: {
+        Row: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          description: string | null
+          estimate_id: string | null
+          id: string
+          name: string
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          description?: string | null
+          estimate_id?: string | null
+          id?: string
+          name: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          description?: string | null
+          estimate_id?: string | null
+          id?: string
+          name?: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branch_bids_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_bids_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "branch_bids_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       change_order_line_items: {
         Row: {
@@ -2180,3 +2332,4 @@ export const Constants = {
     },
   },
 } as const
+
