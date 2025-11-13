@@ -1,9 +1,24 @@
+import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow, parseISO } from 'date-fns';
-import { useEffect } from 'react';
-import { Receipt } from 'lucide-react';
+import { Eye, Download, Trash2, Search, Filter, Receipt } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ReceiptPreviewModal } from '@/components/ReceiptPreviewModal';
+import { useToast } from '@/hooks/use-toast';
 
 interface Receipt {
   id: string;
@@ -23,6 +38,13 @@ interface ProjectReceiptsViewProps {
 }
 
 export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [receiptToDelete, setReceiptToDelete] = useState<Receipt | null>(null);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   
   const { data: receipts = [], isLoading } = useQuery<Receipt[]>({
@@ -82,6 +104,18 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
     };
   }, [projectId, queryClient]);
 
+  const filteredReceipts = receipts.filter((receipt) => {
+    const matchesSearch = 
+      receipt.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      receipt.amount.toString().includes(searchQuery) ||
+      receipt.payee_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      receipt.user_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'pending' && (!receipt.approval_status || receipt.approval_status === 'pending')) ||
+      receipt.approval_status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   const getApprovalBadge = (status: string | null) => {
     if (!status || status === 'pending') {
       return <Badge variant="outline" className="text-xs">Pending</Badge>;
@@ -95,57 +129,263 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
     return null;
   };
 
+  const handlePreview = (receipt: Receipt) => {
+    setSelectedReceipt(receipt);
+    setPreviewDialogOpen(true);
+  };
+
+  const handleDownload = (receipt: Receipt) => {
+    const a = document.createElement('a');
+    a.href = receipt.image_url;
+    a.download = `Receipt-${receipt.id}.jpg`;
+    a.click();
+    toast({
+      title: 'Download started',
+      description: 'Your receipt is being downloaded',
+    });
+  };
+
+  const handleDelete = async () => {
+    if (!receiptToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('receipts')
+        .delete()
+        .eq('id', receiptToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Receipt deleted',
+        description: 'Receipt removed successfully',
+      });
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: 'Delete failed',
+        description: error instanceof Error ? error.message : 'Failed to delete receipt',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setReceiptToDelete(null);
+    }
+  };
+
   if (isLoading) {
     return <div className="text-xs text-muted-foreground p-2">Loading receipts...</div>;
   }
 
-  if (receipts.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <Receipt className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-        <p className="text-xs text-muted-foreground">No receipts found for this project</p>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-        {receipts.map((receipt) => (
-          <div
-            key={receipt.id}
-            className="border rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => window.open(receipt.image_url, '_blank')}
-          >
-            <div className="aspect-square bg-muted relative">
-              <img
-                src={receipt.image_url}
-                alt="Receipt"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="p-2 space-y-1">
-              <div className="flex items-center justify-between">
-                <p className="font-semibold text-sm">
-                  ${receipt.amount.toFixed(2)}
-                </p>
-                {getApprovalBadge(receipt.approval_status)}
-              </div>
-              <p className="text-xs text-muted-foreground truncate">
-                {receipt.user_name}
-              </p>
-              {receipt.payee_name && (
-                <p className="text-xs text-muted-foreground truncate">
-                  {receipt.payee_name}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(parseISO(receipt.captured_at), { addSuffix: true })}
-              </p>
-            </div>
-          </div>
-        ))}
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search receipts..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-11 w-full rounded-xl border-border pl-10 text-sm shadow-sm sm:h-9"
+          />
+        </div>
+        <div className="sm:w-[200px]">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm sm:h-9">
+              <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
+              <SelectValue placeholder="Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-    </>
+
+      {filteredReceipts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
+          <Receipt className="mb-3 h-12 w-12 text-muted-foreground" />
+          <p className="text-sm font-medium text-foreground">No receipts found</p>
+          <p className="mt-1 text-xs text-muted-foreground max-w-xs">
+            {searchQuery || statusFilter !== 'all' 
+              ? 'Try adjusting your search or filters'
+              : 'Capture receipts from the field to track expenses'}
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Mobile Cards */}
+          <div className="space-y-3 md:hidden">
+            {filteredReceipts.map((receipt) => (
+              <div key={receipt.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="h-16 w-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                    <img
+                      src={receipt.image_url}
+                      alt="Receipt"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">${receipt.amount.toFixed(2)}</p>
+                      {getApprovalBadge(receipt.approval_status)}
+                    </div>
+                    {receipt.description && (
+                      <p className="text-xs text-muted-foreground truncate">{receipt.description}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">{receipt.user_name}</p>
+                    {receipt.payee_name && (
+                      <p className="text-xs text-muted-foreground">{receipt.payee_name}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(parseISO(receipt.captured_at), { addSuffix: true })}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePreview(receipt)}
+                    className="h-9 w-9 rounded-full"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDownload(receipt)}
+                    className="h-9 w-9 rounded-full"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setReceiptToDelete(receipt);
+                      setDeleteDialogOpen(true);
+                    }}
+                    className="h-9 w-9 rounded-full text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden overflow-hidden rounded-lg border md:block">
+            <table className="w-full text-xs">
+              <thead className="border-b bg-muted/50">
+                <tr>
+                  <th className="p-2 text-left font-medium text-xs">Receipt</th>
+                  <th className="p-2 text-right font-medium text-xs">Amount</th>
+                  <th className="p-2 text-left font-medium text-xs">User</th>
+                  <th className="p-2 text-left font-medium text-xs">Payee</th>
+                  <th className="p-2 text-left font-medium text-xs">Date</th>
+                  <th className="p-2 text-left font-medium text-xs">Status</th>
+                  <th className="p-2 text-right font-medium text-xs">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {filteredReceipts.map((receipt) => (
+                  <tr key={receipt.id} className="transition-colors hover:bg-muted/30">
+                    <td className="p-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-10 w-10 rounded overflow-hidden bg-muted flex-shrink-0">
+                          <img
+                            src={receipt.image_url}
+                            alt="Receipt"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          {receipt.description && (
+                            <p className="truncate text-xs">{receipt.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-2 text-right font-medium text-xs">
+                      ${receipt.amount.toFixed(2)}
+                    </td>
+                    <td className="p-2 text-xs text-muted-foreground">{receipt.user_name}</td>
+                    <td className="p-2 text-xs text-muted-foreground">
+                      {receipt.payee_name || '-'}
+                    </td>
+                    <td className="p-2 text-xs text-muted-foreground">
+                      {formatDistanceToNow(parseISO(receipt.captured_at), { addSuffix: true })}
+                    </td>
+                    <td className="p-2">
+                      {getApprovalBadge(receipt.approval_status)}
+                    </td>
+                    <td className="p-2">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handlePreview(receipt)}
+                          className="h-7 w-7 p-0"
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownload(receipt)}
+                          className="h-7 w-7 p-0"
+                        >
+                          <Download className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setReceiptToDelete(receipt);
+                            setDeleteDialogOpen(true);
+                          }}
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      <ReceiptPreviewModal
+        open={previewDialogOpen}
+        onOpenChange={setPreviewDialogOpen}
+        receiptUrl={selectedReceipt?.image_url || ''}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Receipt</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this receipt? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
