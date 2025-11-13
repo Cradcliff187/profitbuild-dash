@@ -135,7 +135,7 @@ export const MobileTimeTracker: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('expenses')
-        .select('payee_id, id, start_time, project_id, payees(id, payee_name, hourly_rate, is_internal, provides_labor, user_id), projects(id, project_name, project_number)')
+        .select('payee_id, id, start_time, project_id, payees(id, payee_name, hourly_rate, email, is_internal, provides_labor, user_id), projects(id, project_name, project_number, client_name, address)')
         .eq('category', 'labor_internal')
         .is('end_time', null);
 
@@ -144,106 +144,126 @@ export const MobileTimeTracker: React.FC = () => {
       const activePayeeIds = new Set(data?.map(e => e.payee_id) || []);
       setActiveTimerPayeeIds(activePayeeIds);
 
-      // Check ALL active timers for staleness
-      if (data && data.length > 0) {
-        let hasAutoClosedTimer = false;
+      // Find the current user's active timer
+      const myTimer = data?.find(timer => 
+        timer.payees?.user_id === user?.id
+      );
+
+      if (myTimer && myTimer.start_time) {
+        const staleCheck = checkStaleTimer(new Date(myTimer.start_time));
         
-        for (const timer of data) {
-          if (!timer.start_time) continue;
+        if (staleCheck.shouldAutoClose) {
+          // Auto-close at 24 hours
+          const timerState = {
+            teamMember: {
+              id: myTimer.payee_id,
+              payee_name: myTimer.payees?.payee_name || 'Unknown',
+              hourly_rate: myTimer.payees?.hourly_rate || 75,
+              email: myTimer.payees?.email,
+              is_internal: myTimer.payees?.is_internal || false,
+              provides_labor: myTimer.payees?.provides_labor || false,
+              user_id: myTimer.payees?.user_id
+            },
+            project: {
+              id: myTimer.project_id,
+              project_name: myTimer.projects?.project_name || 'Unknown',
+              project_number: myTimer.projects?.project_number || 'UNKNOWN',
+              client_name: myTimer.projects?.client_name || '',
+              address: myTimer.projects?.address
+            },
+            startTime: new Date(myTimer.start_time),
+            location: undefined
+          };
           
-          const staleCheck = checkStaleTimer(new Date(timer.start_time));
+          setActiveTimer(timerState);
+          setShowStaleTimerWarning(true);
+          
+          // Perform auto-close
+          await completeClockOut();
+          
+          toast({
+            title: 'Timer Auto-Closed',
+            description: 'Your timer was running for over 24 hours and has been automatically closed.',
+            variant: 'destructive'
+          });
+          
+          setShowStaleTimerWarning(false);
+          await loadTodayEntries();
+          
+        } else {
+          // Restore active timer to UI
+          setActiveTimer({
+            teamMember: {
+              id: myTimer.payee_id,
+              payee_name: myTimer.payees?.payee_name || 'Unknown',
+              hourly_rate: myTimer.payees?.hourly_rate || 75,
+              email: myTimer.payees?.email,
+              is_internal: myTimer.payees?.is_internal || false,
+              provides_labor: myTimer.payees?.provides_labor || false,
+              user_id: myTimer.payees?.user_id
+            },
+            project: {
+              id: myTimer.project_id,
+              project_name: myTimer.projects?.project_name || 'Unknown',
+              project_number: myTimer.projects?.project_number || 'UNKNOWN',
+              client_name: myTimer.projects?.client_name || '',
+              address: myTimer.projects?.address
+            },
+            startTime: new Date(myTimer.start_time),
+            location: undefined
+          });
+          
+          setSelectedTeamMember({
+            id: myTimer.payee_id,
+            payee_name: myTimer.payees?.payee_name || 'Unknown',
+            hourly_rate: myTimer.payees?.hourly_rate || 75,
+            email: myTimer.payees?.email,
+            is_internal: myTimer.payees?.is_internal || false,
+            provides_labor: myTimer.payees?.provides_labor || false,
+            user_id: myTimer.payees?.user_id
+          });
+          
+          setSelectedProject({
+            id: myTimer.project_id,
+            project_name: myTimer.projects?.project_name || 'Unknown',
+            project_number: myTimer.projects?.project_number || 'UNKNOWN',
+            client_name: myTimer.projects?.client_name || '',
+            address: myTimer.projects?.address
+          });
           
           if (staleCheck.isStale) {
-            // Determine ownership
-            const isOwnTimer = timer.payees?.user_id === user?.id;
-            
-            if (staleCheck.shouldAutoClose && isOwnTimer) {
-              // Only auto-close YOUR OWN timer
-              console.log('Auto-closing YOUR stale timer:', {
-                payee_name: timer.payees?.payee_name,
-                hours: staleCheck.hoursElapsed.toFixed(1)
-              });
-              
-              setShowStaleTimerWarning(true);
-              
-              // Set as active timer
-              setActiveTimer({
-                teamMember: { 
-                  id: timer.payee_id, 
-                  payee_name: timer.payees?.payee_name || 'Unknown Worker',
-                  hourly_rate: timer.payees?.hourly_rate || 75,
-                  is_internal: timer.payees?.is_internal || false,
-                  provides_labor: timer.payees?.provides_labor || false,
-                  user_id: timer.payees?.user_id
-                },
-                project: {
-                  id: timer.project_id,
-                  project_name: timer.projects?.project_name || 'Unknown Project',
-                  project_number: timer.projects?.project_number || 'UNKNOWN',
-                  client_name: ''
-                },
-                startTime: new Date(timer.start_time),
-                location: undefined
-              });
-              
-              // Auto-close
-              await completeClockOut();
-              
+            setShowStaleTimerWarning(true);
+            toast({
+              title: 'Long Running Timer',
+              description: staleCheck.message,
+              variant: 'destructive',
+              duration: 10000
+            });
+          }
+        }
+      }
+      
+      // Alert admins/managers about other users' stale timers
+      if ((isAdmin || isManager) && data && data.length > 0) {
+        for (const timer of data) {
+          if (timer.payees?.user_id !== user?.id && timer.start_time) {
+            const staleCheck = checkStaleTimer(new Date(timer.start_time));
+            if (staleCheck.shouldAutoClose) {
               toast({
-                title: 'Timer Auto-Closed',
-                description: 'Your timer was running for over 24 hours and has been automatically closed.',
-                variant: 'destructive'
-              });
-              
-              // Cleanup: Hide stale warning banner and refresh entries
-              setShowStaleTimerWarning(false);
-              await loadTodayEntries();
-              
-              hasAutoClosedTimer = true;
-              break; // Exit loop after auto-closing
-              
-            } else if (staleCheck.shouldAutoClose && !isOwnTimer) {
-              // Someone else's timer needs attention
-              console.warn('Stale timer detected for another user:', {
-                payee_name: timer.payees?.payee_name,
-                hours: staleCheck.hoursElapsed.toFixed(1),
-                timer_id: timer.id
-              });
-              
-              // Show notification to admin/manager
-              if (isAdmin || isManager) {
-                toast({
-                  title: 'Stale Timer Alert',
-                  description: `${timer.payees?.payee_name} has a timer running for ${staleCheck.hoursElapsed.toFixed(1)} hours. Please review.`,
-                  variant: 'destructive',
-                  duration: 15000
-                });
-              }
-              
-            } else if (staleCheck.isStale && isOwnTimer) {
-              // Show warning for YOUR stale (but not auto-close) timer
-              setShowStaleTimerWarning(true);
-              toast({
-                title: 'Long Running Timer',
-                description: staleCheck.message,
+                title: 'Stale Timer Alert',
+                description: `${timer.payees?.payee_name} has a timer running for ${staleCheck.hoursElapsed.toFixed(1)} hours. Please review.`,
                 variant: 'destructive',
-                duration: 10000
+                duration: 15000
               });
             }
           }
         }
-        
-        // If we auto-closed, refresh and exit
-        if (hasAutoClosedTimer) {
-          setShowStaleTimerWarning(false);
-          await loadTodayEntries();
-          return;
-        }
       }
+      
     } catch (error) {
       console.error('Error loading active timers:', error);
     }
-  }, [toast]);
+  }, [user, isAdmin, isManager, toast]);
 
 
   // Refresh timer when app returns to foreground (iOS background handling)
@@ -675,17 +695,44 @@ export const MobileTimeTracker: React.FC = () => {
       // Capture location only if online
       const loc = isOnline ? await captureLocation() : { lat: 0, lng: 0, address: 'Offline - no location' };
       
+      const startTime = new Date();
       const timerData = {
         teamMember: selectedTeamMember,
         project: selectedProject,
-        startTime: new Date(),
+        startTime: startTime,
         location: loc || undefined
       };
       
       setActiveTimer(timerData);
       
-      // Queue for sync if offline
-      if (!isOnline) {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (isOnline) {
+        // Create database entry immediately when clocking in
+        const { error } = await supabase
+          .from('expenses')
+          .insert({
+            project_id: selectedProject.id,
+            payee_id: selectedTeamMember.id,
+            category: 'labor_internal' as const,
+            transaction_type: 'expense' as const,
+            amount: 0, // Will be calculated on clock-out
+            expense_date: format(startTime, 'yyyy-MM-dd'),
+            description: 'Active timer',
+            is_planned: false,
+            approval_status: 'pending',
+            user_id: user?.id,
+            start_time: startTime.toISOString(),
+            end_time: null // NULL indicates active timer
+          });
+        
+        if (error) {
+          console.error('Error creating timer in database:', error);
+          throw error;
+        }
+      } else {
+        // Queue for sync if offline
         await addToQueue({
           type: 'clock_in',
           payload: timerData,
@@ -826,14 +873,47 @@ export const MobileTimeTracker: React.FC = () => {
       };
 
       if (isOnline) {
-        // Save directly to DB
-        const { data, error } = await supabase
+        // Find the existing timer entry in the database
+        const { data: existingTimer, error: findError } = await supabase
           .from('expenses')
-          .insert(expenseData)
-          .select()
-          .single();
+          .select('id')
+          .eq('payee_id', activeTimer.teamMember.id)
+          .eq('category', 'labor_internal')
+          .is('end_time', null)
+          .eq('start_time', activeTimer.startTime.toISOString())
+          .maybeSingle();
 
-        if (error) throw error;
+        if (findError) throw findError;
+
+        let expenseId: string;
+
+        if (existingTimer) {
+          // Update the existing timer entry
+          const { data, error } = await supabase
+            .from('expenses')
+            .update({
+              end_time: endTime.toISOString(),
+              amount: amount,
+              updated_by: user?.id,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingTimer.id)
+            .select()
+            .single();
+
+          if (error) throw error;
+          expenseId = data.id;
+        } else {
+          // Fallback: Create new entry if timer wasn't found (shouldn't happen with new code)
+          const { data, error } = await supabase
+            .from('expenses')
+            .insert(expenseData)
+            .select()
+            .single();
+
+          if (error) throw error;
+          expenseId = data.id;
+        }
 
         // Show success card
         setShowSuccess(true);
@@ -850,7 +930,7 @@ export const MobileTimeTracker: React.FC = () => {
         setActiveTimer(null);
         setLocation(null);
 
-        return data.id;
+        return expenseId;
       } else {
         // Queue for later sync
         const localId = crypto.randomUUID();
