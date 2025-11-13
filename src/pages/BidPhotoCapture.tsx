@@ -110,7 +110,7 @@ export default function BidPhotoCapture() {
     if (skippedCaption) {
       const newSkipCount = skipCount + 1;
       setSkipCount(newSkipCount);
-      
+
       // Show gentle reminder after 3 consecutive skips
       if (newSkipCount >= 3 && newSkipCount % 3 === 0) {
         toast.info(CAPTION_PROMPTS.multipleSkips, {
@@ -122,12 +122,13 @@ export default function BidPhotoCapture() {
     try {
       // Convert photo URI to File
       const response = await fetch(capturedPhotoUri);
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch photo file');
       }
-      
+
       const blob = await response.blob();
+      const takenAt = new Date().toISOString();
       const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
 
       // Check file size (warn if > 15MB)
@@ -142,13 +143,22 @@ export default function BidPhotoCapture() {
         bid_id: bidId,
         file,
         caption: pendingCaption || undefined,
+        // GPS and location metadata
+        latitude: coordinates?.latitude,
+        longitude: coordinates?.longitude,
+        altitude: coordinates?.altitude,
+        location_name: locationName || undefined,
+        // Capture metadata
+        taken_at: takenAt,
+        device_model: navigator.userAgent || undefined,
+        upload_source: 'camera',
       });
 
       // Show success toast with caption info
       const wordCount = pendingCaption ? pendingCaption.split(/\s+/).filter(w => w.length > 0).length : 0;
       toast.success(
-        pendingCaption 
-          ? `Photo uploaded with caption (${wordCount} word${wordCount !== 1 ? 's' : ''})` 
+        pendingCaption
+          ? `Photo uploaded with caption (${wordCount} word${wordCount !== 1 ? 's' : ''})`
           : 'Photo uploaded without caption'
       );
 

@@ -15,7 +15,7 @@ import { BrandedLoader } from '@/components/ui/branded-loader';
 import { toast } from 'sonner';
 import { BidNotesTimeline } from '@/components/BidNotesTimeline';
 import { BidMediaGallery } from '@/components/BidMediaGallery';
-import { PdfUpload } from '@/components/PdfUpload';
+import { BidDocumentUpload } from '@/components/BidDocumentUpload';
 import type { BranchBid } from '@/types/bid';
 
 export default function BranchBidDetail() {
@@ -29,7 +29,6 @@ export default function BranchBidDetail() {
   const [description, setDescription] = useState('');
   const [projectId, setProjectId] = useState<string>('');
   const [estimateId, setEstimateId] = useState<string>('');
-  const [documentUrl, setDocumentUrl] = useState('');
 
   // Fetch bid details
   const { data: bid, isLoading } = useQuery({
@@ -141,11 +140,6 @@ export default function BranchBidDetail() {
       return;
     }
     updateMutation.mutate();
-  };
-
-  const handleDocumentUpload = (url: string, fileName: string) => {
-    setDocumentUrl(url);
-    toast.success('Document uploaded successfully');
   };
 
   if (isLoading) {
@@ -372,14 +366,10 @@ export default function BranchBidDetail() {
           <Card>
             <CardHeader>
               <CardTitle>Documents</CardTitle>
-              <CardDescription>Upload PDFs and other documents</CardDescription>
+              <CardDescription>Upload PDFs, Word docs, Excel files, and other documents</CardDescription>
             </CardHeader>
             <CardContent>
-              <PdfUpload
-                onUpload={handleDocumentUpload}
-                existingFile={documentUrl ? { url: documentUrl, name: 'Document' } : undefined}
-                onRemove={() => setDocumentUrl('')}
-              />
+              <BidDocumentUpload bidId={id!} />
             </CardContent>
           </Card>
         </TabsContent>
