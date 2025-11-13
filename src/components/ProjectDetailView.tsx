@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Routes, Route, Navigate } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Camera, Video } from "lucide-react";
+import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
@@ -20,6 +20,9 @@ import { ProjectEditForm } from "@/components/ProjectEditForm";
 import { ProjectDocumentsHub } from "@/components/ProjectDocumentsHub";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { ProjectOption, formatProjectLabel } from "@/components/projects/ProjectOption";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -132,6 +135,8 @@ export const ProjectDetailView = () => {
   const [pendingReceipts, setPendingReceipts] = useState<number>(0);
   const [mediaCounts, setMediaCounts] = useState({ photos: 0, videos: 0 });
   const [documentCount, setDocumentCount] = useState<number>(0);
+  const [projectOptions, setProjectOptions] = useState<Array<{ id: string; project_number: string | null; project_name: string | null; client_name: string | null }>>([]);
+  const [projectSwitcherOpen, setProjectSwitcherOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
   // Change Order Modal State
@@ -141,6 +146,7 @@ export const ProjectDetailView = () => {
   useEffect(() => {
     if (projectId) {
       loadProjectData();
+      loadProjectOptions();
     }
   }, [projectId]);
 
@@ -150,6 +156,22 @@ export const ProjectDetailView = () => {
       queryClient.invalidateQueries({ queryKey: ['project-media'] });
     }
   }, [location.state, queryClient]);
+
+  const loadProjectOptions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, project_number, project_name, client_name')
+        .neq('project_number', 'SYS-000')
+        .neq('project_number', '000-UNASSIGNED')
+        .order('project_number', { ascending: true });
+
+      if (error) throw error;
+      setProjectOptions(data || []);
+    } catch (error) {
+      console.error('Error loading project options', error);
+    }
+  };
 
   const loadProjectData = async () => {
     if (!projectId) return;
@@ -439,6 +461,13 @@ export const ProjectDetailView = () => {
     }
   };
 
+  const handleProjectSwitch = (targetProjectId: string) => {
+    setProjectSwitcherOpen(false);
+    if (targetProjectId && targetProjectId !== project.id) {
+      navigate(`/projects/${targetProjectId}`);
+    }
+  };
+
   if (isLoading) {
     return <BrandedLoader message="Loading project details..." />;
   }
@@ -461,66 +490,108 @@ export const ProjectDetailView = () => {
         
         <SidebarInset className="flex-1 flex flex-col no-horizontal-scroll overflow-hidden">
           {/* Compact Header */}
-          <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 justify-start border-b bg-background px-3">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="h-6" />
-            
-            {!isMobile ? (
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink href="/projects">Projects</BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>{project.project_number}</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/projects')}
-                className="h-8"
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Projects
-              </Button>
-            )}
-            
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <span className="text-sm font-semibold truncate">
-                {project.project_name}
-              </span>
-              <span className="text-xs text-muted-foreground flex-shrink-0">•</span>
-              <span className="text-xs text-muted-foreground truncate">
-                {project.client_name}
-              </span>
-              {project.customer_po_number && (
-                <>
-                  <span className="text-xs text-muted-foreground flex-shrink-0">•</span>
-                  <span className="text-xs text-muted-foreground flex-shrink-0">
-                    PO: {project.customer_po_number}
-                  </span>
-                </>
-              )}
+          <header className="sticky top-0 z-10 flex h-auto flex-col gap-3 border-b bg-background px-3 py-3 sm:h-16 sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger />
+              <Separator orientation="vertical" className="hidden sm:block h-8" />
             </div>
-            <Badge 
-              variant="outline" 
-              className={cn(
-                "text-xs flex-shrink-0 capitalize px-2 py-0.5",
-                project.status === 'approved' && 'border-green-200 text-green-700 bg-green-50',
-                project.status === 'estimating' && 'border-gray-200 text-gray-700 bg-gray-50',
-                project.status === 'quoted' && 'border-blue-200 text-blue-700 bg-blue-50',
-                project.status === 'in_progress' && 'border-purple-200 text-purple-700 bg-purple-50',
-                project.status === 'complete' && 'border-green-200 text-green-700 bg-green-50',
-                project.status === 'on_hold' && 'border-yellow-200 text-yellow-700 bg-yellow-50',
-                project.status === 'cancelled' && 'border-red-200 text-red-700 bg-red-50'
-              )}
-            >
-              {project.status?.replace(/_/g, ' ')}
-            </Badge>
+
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className={cn("flex flex-col gap-2", isMobile ? "w-full" : "min-w-0")}
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/projects')}
+                  className="self-start inline-flex h-8"
+                >
+                  <ArrowLeftCircle className="h-4 w-4 mr-2" />
+                  Back to Projects
+                </Button>
+              </div>
+
+              <div className={cn("flex items-center gap-2", isMobile ? "w-full" : "min-w-0")}
+              >
+                <Popover open={projectSwitcherOpen} onOpenChange={setProjectSwitcherOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "h-10 gap-2 truncate border-border focus-visible:ring-2 focus-visible:ring-primary/40", 
+                        isMobile ? "w-full justify-between" : "justify-between max-w-[320px]"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span className="truncate text-left">
+                          {formatProjectLabel(project.project_number, project.project_name)}
+                        </span>
+                      </div>
+                      <ChevronsUpDown className="h-3 w-3 opacity-60" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[320px] max-h-[320px] overflow-auto p-0 border border-border rounded-lg shadow-md" align="start">
+                    <Command className="bg-background">
+                      <div className="px-2 py-2">
+                        <CommandInput placeholder="Search projects..." className="h-9 text-sm rounded-md border border-border focus-visible:ring-2 focus-visible:ring-primary/40" />
+                      </div>
+                      <CommandEmpty>No projects found.</CommandEmpty>
+                      <CommandList>
+                        <CommandGroup>
+                          {projectOptions.map((proj) => (
+                            <CommandItem
+                              key={proj.id}
+                              value={`${formatProjectLabel(proj.project_number, proj.project_name)} ${proj.client_name ?? ''}`}
+                              onSelect={() => handleProjectSwitch(proj.id)}
+                            >
+                              <div className="flex w-full items-center gap-2">
+                                <ProjectOption
+                                  projectNumber={proj.project_number}
+                                  projectName={proj.project_name}
+                                  clientName={proj.client_name}
+                                  size="sm"
+                                  className="flex-1 min-w-0"
+                                />
+                                {proj.id === project.id && (
+                                  <Check className="h-4 w-4 text-primary" />
+                                )}
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:gap-2 sm:text-right">
+                <div className="flex items-center gap-2">
+                  <span className="truncate max-w-[200px] sm:max-w-[180px]">
+                    {project.client_name}
+                  </span>
+                  {project.customer_po_number && (
+                    <span className="truncate">PO {project.customer_po_number}</span>
+                  )}
+                </div>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-xs flex-shrink-0 capitalize px-2 py-0.5",
+                    project.status === 'approved' && 'border-green-200 text-green-700 bg-green-50',
+                    project.status === 'estimating' && 'border-gray-200 text-gray-700 bg-gray-50',
+                    project.status === 'quoted' && 'border-blue-200 text-blue-700 bg-blue-50',
+                    project.status === 'in_progress' && 'border-purple-200 text-purple-700 bg-purple-50',
+                    project.status === 'complete' && 'border-green-200 text-green-700 bg-green-50',
+                    project.status === 'on_hold' && 'border-yellow-200 text-yellow-700 bg-yellow-50',
+                    project.status === 'cancelled' && 'border-red-200 text-red-700 bg-red-50'
+                  )}
+                >
+                  {project.status?.replace(/_/g, ' ')}
+                </Badge>
+              </div>
+            </div>
           </header>
 
           {/* Main Content Area */}
