@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, Search, X, Trash2 } from 'lucide-react';
+import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, Search, X, Trash2, Clock } from 'lucide-react';
 import { formatDistanceToNow, parseISO, format } from 'date-fns';
 import CreateUserModal from '@/components/CreateUserModal';
 import ResetPasswordModal from '@/components/ResetPasswordModal';
@@ -20,6 +20,7 @@ import EditProfileModal from '@/components/EditProfileModal';
 import { DeleteUserDialog } from '@/components/DeleteUserDialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreVertical, UserCog } from 'lucide-react';
+import { ActiveTimersTable } from '@/components/role-management/ActiveTimersTable';
 
 interface Profile {
   id: string;
@@ -62,7 +63,7 @@ export default function RoleManagement() {
       });
       navigate('/');
     }
-  }, [isAdmin, rolesLoading, navigate, toast]);
+  }, [isAdmin, rolesLoading, navigate]);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -611,6 +612,22 @@ export default function RoleManagement() {
           />
         </>
       )}
+
+      {/* Active Timers Section - Admin Only */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Active Timers
+          </CardTitle>
+          <CardDescription>
+            Workers currently clocked in. Force clock-out if needed.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ActiveTimersTable onTimerClosed={loadUsers} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
