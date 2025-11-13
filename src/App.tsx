@@ -32,9 +32,13 @@ const Settings = lazy(() => import("./pages/Settings"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const FieldPhotoCapture = lazy(() => import("./pages/FieldPhotoCapture"));
 const FieldVideoCapture = lazy(() => import("./pages/FieldVideoCapture"));
+const BidPhotoCapture = lazy(() => import("./pages/BidPhotoCapture"));
+const BidVideoCapture = lazy(() => import("./pages/BidVideoCapture"));
 const RoleManagement = lazy(() => import("./pages/RoleManagement"));
 const FieldMedia = lazy(() => import("./pages/FieldMedia"));
 const FieldSchedule = lazy(() => import("./pages/FieldSchedule"));
+const BranchBids = lazy(() => import("./pages/BranchBids"));
+const BranchBidDetail = lazy(() => import("./pages/BranchBidDetail"));
 
 const queryClient = new QueryClient();
 
@@ -77,6 +81,13 @@ const App = () => (
                   <Route path="field-media/:id" element={<LazyRoute component={FieldMedia} />} />
                   <Route path="field-media/:id/capture" element={<LazyRoute component={FieldPhotoCapture} />} />
                   <Route path="field-media/:id/capture-video" element={<LazyRoute component={FieldVideoCapture} />} />
+                  
+                  {/* Bids Routes */}
+                  <Route path="branch-bids" element={<LazyRoute component={BranchBids} />} />
+                  <Route path="branch-bids/:id" element={<LazyRoute component={BranchBidDetail} />} />
+                  <Route path="branch-bids/:id/capture" element={<LazyRoute component={BidPhotoCapture} />} />
+                  <Route path="branch-bids/:id/capture-video" element={<LazyRoute component={BidVideoCapture} />} />
+                  
                   <Route path="estimates" element={<LazyRoute component={Estimates} />} />
                   <Route path="quotes" element={<LazyRoute component={Quotes} />} />
                   <Route path="expenses" element={<LazyRoute component={Expenses} />} />
