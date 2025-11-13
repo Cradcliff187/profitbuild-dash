@@ -73,22 +73,17 @@ export const ProjectProfitMargin = ({
                 >
                   {isProfit ? 'Profitable' : 'Loss'}
                 </Badge>
-                <Badge 
-                  style={{ 
-                    backgroundColor: thresholdColor,
-                    color: 'white'
-                  }}
-                  className="flex items-center gap-1"
-                >
-                  <Target className="h-3 w-3" />
-                  {thresholdLabel}
-                </Badge>
-                {marginData.at_risk && (
-                  <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">
-                    At Risk
-                  </Badge>
-                )}
-              </div>
+              <Badge 
+                style={{ 
+                  backgroundColor: thresholdColor,
+                  color: 'white'
+                }}
+                className="flex items-center gap-1"
+              >
+                <Target className="h-3 w-3" />
+                {thresholdLabel}
+              </Badge>
+            </div>
             </div>
 
             {/* Breakdown */}

@@ -293,12 +293,6 @@ const Projects = () => {
     setViewMode('list');
   };
 
-  // Helper function to check if project is at risk
-  const isProjectAtRisk = (marginPercentage: number | null | undefined): boolean => {
-    if (marginPercentage === null || marginPercentage === undefined) return false;
-    return marginPercentage < 10;
-  };
-
   // Filter and sort projects based on search criteria
   const filteredAndSortedProjects = useMemo(() => {
     let filtered = projects.filter(project => {
@@ -352,14 +346,6 @@ const Projects = () => {
 
     // Sort the filtered projects
     const sorted = [...filtered].sort((a, b) => {
-      // First priority: at-risk projects go to top
-      const aIsAtRisk = isProjectAtRisk(a.margin_percentage);
-      const bIsAtRisk = isProjectAtRisk(b.margin_percentage);
-      
-      if (aIsAtRisk && !bIsAtRisk) return -1;
-      if (!aIsAtRisk && bIsAtRisk) return 1;
-      
-      // Secondary sorting by selected criteria
       const modifier = filters.sortOrder === 'asc' ? 1 : -1;
       
       switch (filters.sortBy) {

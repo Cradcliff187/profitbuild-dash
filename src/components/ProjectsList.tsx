@@ -120,15 +120,6 @@ export const ProjectsList = ({
     }).format(amount);
   };
 
-  const isProjectAtRisk = (marginPercentage: number | null | undefined): boolean => {
-    if (marginPercentage === null || marginPercentage === undefined) return false;
-    return marginPercentage < 10;
-  };
-
-  const getCardBorderClass = (marginPercentage: number | null | undefined): string => {
-    return isProjectAtRisk(marginPercentage) ? 'border-red-500 border-2' : '';
-  };
-
   const handleDeleteProject = async (projectId: string) => {
     try {
       const { error } = await supabase
@@ -217,7 +208,7 @@ export const ProjectsList = ({
             return (
               <Card 
                 key={project.id} 
-                className={`compact-card hover:shadow-sm transition-shadow cursor-pointer ${getCardBorderClass(project.margin_percentage)}`}
+                className="compact-card hover:shadow-sm transition-shadow cursor-pointer"
                 onClick={() => window.location.href = `/projects/${project.id}`}
               >
                 <CardHeader className="p-compact pb-2">
@@ -294,12 +285,6 @@ export const ProjectsList = ({
                   })()}
 
                   <div className="flex items-center gap-1 flex-wrap">
-                    {isProjectAtRisk(project.margin_percentage) && (
-                      <Badge className="compact-badge bg-destructive text-destructive-foreground flex items-center gap-1">
-                        <AlertTriangle className="h-2 w-2" />
-                        RISK
-                      </Badge>
-                    )}
                     <Badge className={`compact-badge ${getStatusColor(project.status)}`}>
                       {project.status.replace('_', ' ').toUpperCase()}
                     </Badge>
@@ -457,7 +442,7 @@ export const ProjectsList = ({
           return (
             <Card
               key={project.id}
-              className={`compact-card border ${getCardBorderClass(project.margin_percentage)}`}
+              className="compact-card border"
             >
               <Collapsible open={isExpanded} onOpenChange={() => toggleCard(project.id)}>
                 {/* COLLAPSED VIEW - Enhanced header with gradient */}
@@ -466,12 +451,6 @@ export const ProjectsList = ({
                     <div className="flex items-center justify-between gap-2">
                       <CardTitle className="text-interface truncate flex-1">{project.project_name}</CardTitle>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        {isProjectAtRisk(project.margin_percentage) && (
-                          <Badge className="compact-badge bg-destructive text-destructive-foreground flex items-center gap-1">
-                            <AlertTriangle className="h-2 w-2" />
-                            RISK
-                          </Badge>
-                        )}
                         <Badge className={`compact-badge ${getStatusColor(project.status)}`}>
                           {project.status.replace('_', ' ').toUpperCase()}
                         </Badge>
