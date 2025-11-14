@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { BidMedia, UploadBidMediaParams } from '@/types/bid';
 import { toast } from 'sonner';
 import { compressImage } from '@/utils/imageCompression';
+import { validateMediaFile, generateStoragePath } from '@/utils/mediaMetadata';
 
 interface UseBidMediaUploadResult {
   upload: (params: UploadBidMediaParams) => Promise<BidMedia | null>;
@@ -12,7 +13,7 @@ interface UseBidMediaUploadResult {
 }
 
 /**
- * Hook for uploading bid media with progress tracking
+ * Hook for uploading bid media with progress tracking, validation, and error rollback
  */
 export function useBidMediaUpload(): UseBidMediaUploadResult {
   const [isUploading, setIsUploading] = useState(false);
@@ -25,25 +26,32 @@ export function useBidMediaUpload(): UseBidMediaUploadResult {
     setError(null);
 
     try {
+      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
       let fileToUpload = params.file;
-      const fileType = params.file.type.startsWith('image/') ? 'image' 
+      const fileType = params.file.type.startsWith('image/') ? 'image'
         : params.file.type.startsWith('video/') ? 'video'
         : 'document';
+
+      // Validate file before processing
+      const validation = validateMediaFile(params.file);
+      if (!validation.isValid) {
+        throw new Error(validation.error || 'Invalid file');
+      }
 
       // Compress images (not videos or documents)
       if (fileType === 'image') {
         setProgress(10);
-        
+
         fileToUpload = await compressImage(params.file, {
           maxWidth: 1920,
           maxHeight: 1920,
           quality: 0.85,
           targetSizeKB: 500
         });
-        
+
         setProgress(20);
       }
 
@@ -51,15 +59,17 @@ export function useBidMediaUpload(): UseBidMediaUploadResult {
 
       // Determine bucket based on file type
       const bucket = fileType === 'document' ? 'bid-documents' : 'bid-media';
-      
-      // Upload to storage
-      const timestamp = Date.now();
-      const fileExt = fileToUpload.name.split('.').pop();
-      const fileName = `${params.bid_id}/${timestamp}.${fileExt}`;
 
+      // Generate standardized storage path: {userId}/{bidId}/{timestamp}-{sanitizedFilename}
+      const storagePath = generateStoragePath(user.id, params.bid_id, fileToUpload.name);
+
+      // Upload to storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(fileName, fileToUpload);
+        .upload(storagePath, fileToUpload, {
+          cacheControl: '3600',
+          upsert: false,
+        });
 
       if (uploadError) throw uploadError;
 
@@ -72,7 +82,7 @@ export function useBidMediaUpload(): UseBidMediaUploadResult {
 
       setProgress(80);
 
-      // Create database record
+      // Create database record with all metadata
       const { data: mediaData, error: dbError } = await supabase
         .from('bid_media')
         .insert({
@@ -85,12 +95,25 @@ export function useBidMediaUpload(): UseBidMediaUploadResult {
           caption: params.caption || null,
           description: params.description || null,
           duration: params.duration || null,
+          // GPS and location metadata
+          latitude: params.latitude || null,
+          longitude: params.longitude || null,
+          altitude: params.altitude || null,
+          location_name: params.location_name || null,
+          // Capture metadata
+          taken_at: params.taken_at || null,
+          device_model: params.device_model || null,
+          upload_source: params.upload_source || 'web',
           uploaded_by: user.id,
         })
         .select('*')
         .single();
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        // Rollback: delete uploaded file from storage
+        await supabase.storage.from(bucket).remove([uploadData.path]);
+        throw dbError;
+      }
 
       // Fetch user profile separately
       const { data: profile } = await supabase

@@ -138,10 +138,10 @@ export default function BidVideoCapture() {
       if (!response.ok) {
         throw new Error('Failed to fetch video file');
       }
-      
+
       const blob = await response.blob();
       const fileSizeMB = blob.size / (1024 * 1024);
-      
+
       // Warn for large files
       if (fileSizeMB > 50) {
         toast.warning(`Large video: ${fileSizeMB.toFixed(1)}MB`, {
@@ -149,26 +149,41 @@ export default function BidVideoCapture() {
           duration: 5000,
         });
       }
-      
-      const file = new File([blob], `video-${Date.now()}.${capturedVideo.format}`, { 
-        type: `video/${capturedVideo.format}` 
+
+      const takenAt = new Date().toISOString();
+      const file = new File([blob], `video-${Date.now()}.${capturedVideo.format}`, {
+        type: `video/${capturedVideo.format}`
       });
 
       // Get video duration
       const duration = await getVideoDuration(capturedVideo.webPath || '');
+
+      // Generate location name from coordinates if available
+      const locationName = coordinates
+        ? `${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`
+        : undefined;
 
       await upload({
         bid_id: bidId,
         file,
         caption: videoCaption || undefined,
         duration: duration || undefined,
+        // GPS and location metadata
+        latitude: coordinates?.latitude,
+        longitude: coordinates?.longitude,
+        altitude: coordinates?.altitude,
+        location_name: locationName,
+        // Capture metadata
+        taken_at: takenAt,
+        device_model: navigator.userAgent || undefined,
+        upload_source: 'camera',
       });
 
       // Show success toast
       const wordCount = videoCaption ? videoCaption.split(/\s+/).filter(w => w.length > 0).length : 0;
       toast.success(
-        videoCaption 
-          ? `Video uploaded with caption (${wordCount} word${wordCount !== 1 ? 's' : ''})` 
+        videoCaption
+          ? `Video uploaded with caption (${wordCount} word${wordCount !== 1 ? 's' : ''})`
           : 'Video uploaded without caption'
       );
 
