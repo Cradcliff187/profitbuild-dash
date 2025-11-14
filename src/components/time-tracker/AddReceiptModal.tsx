@@ -14,7 +14,6 @@ import { PayeeType } from '@/types/payee';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { isIOSPWA } from '@/utils/platform';
-import { useCameraCapture } from '@/hooks/useCameraCapture';
 
 const UNASSIGNED_RECEIPTS_PROJECT_NUMBER = 'SYS-000';
 
@@ -39,7 +38,6 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 }) => {
   const isMobile = useIsMobile();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const { capturePhoto: captureCameraPhoto, isCapturing } = useCameraCapture();
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
   const [selectedPayeeId, setSelectedPayeeId] = useState<string | undefined>();
@@ -81,21 +79,6 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
     } catch (error) {
       console.error('Failed to load projects:', error);
       toast.error('Failed to load projects');
-    }
-  };
-
-  const capturePhoto = async () => {
-    // Add iOS PWA guidance
-    if (isIOSPWA()) {
-      toast.info("iOS Camera Tip", {
-        description: "Your camera will open, or select 'Take Photo or Video' from the menu if you see the photo library",
-        duration: 5000,
-      });
-    }
-    
-    const result = await captureCameraPhoto();
-    if (result?.dataUrl) {
-      setCapturedPhoto(result.dataUrl);
     }
   };
 
@@ -219,10 +202,10 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
     setSelectedProjectId(undefined);
     setSelectedPayeeId(undefined);
     setDescription('');
-      setAmount('');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    setAmount('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
     onClose();
   };
 
@@ -232,28 +215,29 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
         <div className="space-y-3">
           {!capturedPhoto ? (
             <>
-              <div className={isMobile ? "grid gap-2" : "flex flex-col gap-2"}>
-                <Button
-                  onClick={capturePhoto}
-                  variant="outline"
-                  className={isMobile ? "w-full h-24 border-2 border-dashed" : "w-full h-32 border-2 border-dashed"}
-                  disabled={isCapturing}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <CameraIcon className={isMobile ? "w-10 h-10 text-muted-foreground" : "w-12 h-12 text-muted-foreground"} />
-                    <span className="font-medium">Take Photo</span>
-                  </div>
-                </Button>
-                <Button
-                  onClick={openFilePicker}
-                  variant="outline"
-                  className={isMobile ? "w-full h-16" : "w-full h-12"}
-                >
-                  Choose from Library
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                On iPhone you&apos;ll see the native menu with options like Take Photo, Photo Library, or Browse.
+              <Button
+                onClick={() => {
+                  if (isIOSPWA()) {
+                    toast.info('Device upload tip', {
+                      description: "Select Take Photo or Video, Photo Library, or Browse from your iPhone's sheet.",
+                      duration: 4000,
+                    });
+                  }
+                  openFilePicker();
+                }}
+                variant="outline"
+                className={isMobile ? "w-full h-56 border-2 border-dashed" : "w-full h-40 border-2 border-dashed"}
+              >
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <CameraIcon className={isMobile ? "w-12 h-12 text-muted-foreground" : "w-10 h-10 text-muted-foreground"} />
+                  <span className="font-semibold text-sm sm:text-base">
+                    Upload photo (camera, photo library, or files)
+                  </span>
+                </div>
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Tapping the button opens the default iPhone/Android prompt so you can take a photo, pick from your
+                library, or browse files.
               </p>
             </>
           ) : (
@@ -283,7 +267,6 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             className="hidden"
             onChange={handleFileInputChange}
           />
