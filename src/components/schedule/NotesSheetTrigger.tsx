@@ -28,7 +28,7 @@ export function NotesSheetTrigger({ projectId, projectName }: NotesSheetTriggerP
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <button className="w-full h-12 px-3 rounded-lg border-2 border-primary/30 bg-gradient-to-r from-primary/20 via-primary/12 to-primary/5 hover:from-primary/25 hover:via-primary/17 hover:to-primary/8 active:from-primary/30 active:via-primary/20 active:to-primary/10 shadow-sm transition-all flex items-center justify-between group">
+        <button className="w-full h-14 px-3 rounded-lg border-2 border-primary/30 bg-gradient-to-r from-primary/20 via-primary/12 to-primary/5 hover:from-primary/25 hover:via-primary/17 hover:to-primary/8 active:from-primary/30 active:via-primary/20 active:to-primary/10 active:scale-[0.98] shadow-sm transition-all flex items-center justify-between group">
           <div className="flex items-center gap-2.5">
             <div className="bg-primary/20 rounded-md p-1.5">
               <StickyNote className="h-4 w-4 text-primary" />
@@ -44,15 +44,20 @@ export function NotesSheetTrigger({ projectId, projectName }: NotesSheetTriggerP
       
       <SheetContent 
         side="bottom" 
-        className="h-[90vh] rounded-t-2xl p-0 flex flex-col"
+        className="h-[85vh] rounded-t-2xl p-0 flex flex-col"
       >
-        <SheetHeader className="px-4 pt-4 pb-3 border-b shrink-0">
+        {/* Drag handle indicator */}
+        <div className="w-full flex justify-center pt-3 pb-1">
+          <div className="w-12 h-1 rounded-full bg-muted-foreground/30" />
+        </div>
+        
+        <SheetHeader className="px-4 pt-2 pb-3 border-b shrink-0">
           <SheetTitle className="text-left">
             {projectName ? `${projectName} - Notes` : 'Project Notes'}
           </SheetTitle>
         </SheetHeader>
         
-        <div className="flex-1 overflow-hidden px-4 py-3">
+        <div className="flex-1 overflow-hidden px-4 py-3 pb-6">
           <ProjectNotesTimeline projectId={projectId} inSheet />
         </div>
       </SheetContent>

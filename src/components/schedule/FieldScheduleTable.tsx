@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Circle, AlertCircle } from 'lucide-react';
 import { ScheduleTask, SchedulePhase } from '@/types/schedule';
 import { cn } from '@/lib/utils';
 import { getCategoryBadgeClasses } from '@/utils/categoryColors';
@@ -37,7 +36,6 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
   onTaskUpdate,
   projectId,
 }) => {
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const isMobile = useIsMobile();
 
   const calculateDuration = (start: string, end: string): number => {
@@ -92,31 +90,9 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
     });
   }, [taskRows]);
 
-  const toggleExpanded = (taskId: string) => {
-    const newExpanded = new Set(expandedTasks);
-    if (newExpanded.has(taskId)) {
-      newExpanded.delete(taskId);
-    } else {
-      newExpanded.add(taskId);
-    }
-    setExpandedTasks(newExpanded);
-  };
-
-  const handleToggleComplete = (row: TaskRow) => {
+  const handleToggleSingleTask = (row: TaskRow) => {
     const updatedTask = { ...row.originalTask };
-    
-    if (row.hasPhases && row.phases) {
-      // Toggle all phases
-      const allComplete = row.phases.every(p => p.completed);
-      updatedTask.phases = row.phases.map(p => ({
-        ...p,
-        completed: !allComplete,
-      }));
-    } else {
-      // Toggle single task
-      updatedTask.completed = !row.isComplete;
-    }
-    
+    updatedTask.completed = !row.isComplete;
     onTaskUpdate(updatedTask);
   };
 
@@ -132,7 +108,6 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
     
     onTaskUpdate(updatedTask);
   };
-
 
   const formatDate = (dateStr: string): string => {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -172,7 +147,133 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
           </Card>
         ) : (
           sortedTasks.map((row) => {
-            const isExpanded = expandedTasks.has(row.id);
+            // For multi-phase tasks, render as header + phase list
+            if (row.hasPhases && row.phases) {
+              const completedPhases = row.phases.filter(p => p.completed).length;
+              const totalPhases = row.phases.length;
+              
+              return (
+                <div key={row.id} className="space-y-2">
+                  {/* Task Header (no checkbox) */}
+                  <div className="p-3 bg-muted/30 rounded-lg border border-border">
+                    <div className="flex items-start gap-2 mb-1">
+                      <h3 className="text-sm font-medium flex-1">
+                        {row.taskName}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge 
+                        variant="outline" 
+                        className={cn('text-xs px-2 py-0 h-5', getCategoryBadgeClasses(row.category))}
+                      >
+                        {row.category.replace('_', ' ')}
+                      </Badge>
+                      {row.isChangeOrder && (
+                        <Badge 
+                          variant="outline"
+                          className="text-xs px-2 py-0 h-5 bg-pink-50 text-pink-700 border-pink-200"
+                        >
+                          Change Order
+                        </Badge>
+                      )}
+                      <Badge 
+                        variant="outline"
+                        className="text-xs px-2 py-0 h-5 bg-blue-50 text-blue-700 border-blue-200"
+                      >
+                        {completedPhases} of {totalPhases} complete
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Phase Cards (always visible) */}
+                  <div className="space-y-2">
+                    {row.phases
+                      .sort((a, b) => {
+                        // Incomplete phases first, completed phases at bottom
+                        if (a.completed !== b.completed) {
+                          return a.completed ? 1 : -1;
+                        }
+                        // Then by phase number
+                        return a.phase_number - b.phase_number;
+                      })
+                      .map((phase) => {
+                      const phaseIsActive = isDateInRange(phase.start_date, phase.end_date);
+                      const phaseStartsToday = isToday(phase.start_date);
+                      
+                      return (
+                        <Card
+                          key={phase.phase_number}
+                          className={cn(
+                            'overflow-hidden transition-all',
+                            phaseIsActive && 'ring-2 ring-primary/20',
+                            phaseStartsToday && 'ring-2 ring-blue-500/40',
+                            phase.completed && 'opacity-60 bg-green-50/50'
+                          )}
+                        >
+                          <div className="p-3">
+                            <div className="flex items-start gap-3">
+                              {/* Completion Checkbox */}
+                              <div className="pt-0.5">
+                                <Checkbox
+                                  checked={phase.completed || false}
+                                  onCheckedChange={() => handleTogglePhase(row, phase.phase_number)}
+                                  className="h-6 w-6"
+                                />
+                              </div>
+
+                              {/* Phase Info */}
+                              <div className="flex-1 min-w-0">
+                                <h4 className={cn(
+                                  'text-sm font-medium mb-1',
+                                  phase.completed && 'line-through text-muted-foreground'
+                                )}>
+                                  Phase {phase.phase_number}
+                                  {phase.description && `: ${phase.description}`}
+                                </h4>
+
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                  <span>{formatDate(phase.start_date)} - {formatDate(phase.end_date)}</span>
+                                  <span>•</span>
+                                  <span>{phase.duration_days} days</span>
+                                </div>
+
+                                {phase.notes && (
+                                  <div className="mt-2 p-2.5 rounded-md bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/50">
+                                    <div className="flex items-start gap-2">
+                                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+                                      <p className="text-xs text-amber-900 dark:text-amber-100 font-medium leading-relaxed">
+                                        {phase.notes}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {phaseStartsToday && (
+                                  <div className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 font-medium">
+                                    <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
+                                    Starts today
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Status Icon */}
+                              {phase.completed ? (
+                                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                              ) : (
+                                <Circle className="w-5 h-5 text-muted-foreground/40 flex-shrink-0" />
+                              )}
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+
+            // Single-phase task - render as normal card with checkbox
             const isActive = isDateInRange(row.start, row.end);
             const startsToday = isToday(row.start);
             
@@ -182,18 +283,18 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
                 className={cn(
                   'overflow-hidden transition-all',
                   isActive && 'ring-2 ring-primary/20',
-                  startsToday && 'ring-2 ring-blue-500/40'
+                  startsToday && 'ring-2 ring-blue-500/40',
+                  row.isComplete && 'opacity-60 bg-green-50/50'
                 )}
               >
-                {/* Main Task Row */}
                 <div className="p-3">
                   <div className="flex items-start gap-3">
                     {/* Completion Checkbox */}
                     <div className="pt-0.5">
                       <Checkbox
                         checked={row.isComplete}
-                        onCheckedChange={() => handleToggleComplete(row)}
-                        className="h-5 w-5"
+                        onCheckedChange={() => handleToggleSingleTask(row)}
+                        className="h-6 w-6"
                       />
                     </div>
 
@@ -206,20 +307,6 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
                         )}>
                           {row.taskName}
                         </h3>
-                        {row.hasPhases && row.phases && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleExpanded(row.id)}
-                            className="h-6 w-6 p-0"
-                          >
-                            {isExpanded ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
-                            )}
-                          </Button>
-                        )}
                       </div>
 
                       <div className="flex items-center gap-2 mb-2">
@@ -245,7 +332,7 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
                         <span>{row.duration} days</span>
                       </div>
 
-                      {!row.hasPhases && extractNotesFromScheduleNotes(row.originalTask.schedule_notes) && (
+                      {extractNotesFromScheduleNotes(row.originalTask.schedule_notes) && (
                         <div className="mt-2 p-2.5 rounded-md bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/50">
                           <div className="flex items-start gap-2">
                             <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
@@ -272,48 +359,6 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
                     )}
                   </div>
                 </div>
-
-                {/* Expanded Phases */}
-                {isExpanded && row.phases && (
-                  <div className="border-t border-border bg-muted/30">
-                    <div className="p-3 space-y-2">
-                      {row.phases.map((phase) => (
-                        <div
-                          key={phase.phase_number}
-                          className="flex items-start gap-3 p-2 rounded-lg bg-background"
-                        >
-                          <Checkbox
-                            checked={phase.completed || false}
-                            onCheckedChange={() => handleTogglePhase(row, phase.phase_number)}
-                            className="h-4 w-4 mt-0.5"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className={cn(
-                              'text-sm font-medium',
-                              phase.completed && 'line-through text-muted-foreground'
-                            )}>
-                              Phase {phase.phase_number}
-                              {phase.description && `: ${phase.description}`}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {formatDate(phase.start_date)} - {formatDate(phase.end_date)} ({phase.duration_days} days)
-                            </p>
-                            {phase.notes && (
-                              <div className="mt-2 p-2.5 rounded-md bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/50">
-                                <div className="flex items-start gap-2">
-                                  <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
-                                  <p className="text-xs text-amber-900 dark:text-amber-100 font-medium leading-relaxed">
-                                    {phase.notes}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </Card>
             );
           })

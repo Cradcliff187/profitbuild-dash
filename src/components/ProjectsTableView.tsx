@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, DollarSign, Calendar, Clock, AlertTriangle, Filter, Trash2, ChevronsUpDown } from "lucide-react";
+import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, Calendar, Clock, AlertTriangle, Filter, Trash2, ChevronsUpDown } from "lucide-react";
 import { ProjectStatusSelector } from "@/components/ProjectStatusSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1146,14 +1146,6 @@ export const ProjectsTableView = ({
             <DropdownMenuItem onClick={() => onEdit(project)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={() => window.location.href = `/estimates?project=${project.id}`}
-              disabled={!hasEstimates(project.id)}
-            >
-              <DollarSign className="h-4 w-4 mr-2" />
-              Financials
             </DropdownMenuItem>
             {onArchive && (
               <>

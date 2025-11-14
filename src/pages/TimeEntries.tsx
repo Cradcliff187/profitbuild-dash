@@ -35,7 +35,7 @@ import { TimeEntrySearchFilters } from "@/components/TimeEntrySearchFilters";
 import { TimeEntryBulkActions } from "@/components/TimeEntryBulkActions";
 import { RejectTimeEntryDialog } from "@/components/RejectTimeEntryDialog";
 import { EditTimeEntryDialog } from "@/components/time-tracker/EditTimeEntryDialog";
-import { exportTimeEntriesToCSV } from "@/utils/timeEntryExport";
+import { TimeEntryExportModal } from "@/components/TimeEntryExportModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -112,6 +112,7 @@ const TimeEntries = () => {
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [receiptCount, setReceiptCount] = useState(0);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const { isAdmin, isManager } = useRoles();
   const canCreateTimeEntry = isAdmin || isManager;
 
@@ -232,12 +233,18 @@ const TimeEntries = () => {
   // Fetch workers for filter
   useEffect(() => {
     const fetchWorkers = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("payees")
         .select("id, payee_name")
-        .eq("payee_type", "internal")
+        .eq("is_internal", true)
+        .eq("provides_labor", true)
         .eq("is_active", true)
         .order("payee_name");
+
+      if (error) {
+        console.error("Error fetching workers:", error);
+        return;
+      }
 
       if (data) {
         setWorkers(data.map((w) => ({ id: w.id, name: w.payee_name })));
@@ -557,11 +564,11 @@ const TimeEntries = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => exportTimeEntriesToCSV(entries)}
+                onClick={() => setShowExportModal(true)}
                 disabled={entries.length === 0}
               >
                 <Download className="h-4 w-4 mr-1" />
-                Export CSV
+                Export
               </Button>
             </div>
           </div>
@@ -999,6 +1006,14 @@ const TimeEntries = () => {
           onSaved={handleTimeEntrySaved}
         />
       )}
+
+      {/* Export Modal */}
+      <TimeEntryExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        entries={entries}
+        filters={filters}
+      />
     </div>
   );
 };

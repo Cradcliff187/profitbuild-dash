@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -299,13 +300,17 @@ export function ProjectExportModal({ isOpen, onClose, filters }: ProjectExportMo
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Export Projects</DialogTitle>
-        </DialogHeader>
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="w-full sm:max-w-[600px] flex flex-col">
+        <SheetHeader>
+          <SheetTitle>Export Projects</SheetTitle>
+          <SheetDescription>
+            Configure export options and download project data matching your filters
+          </SheetDescription>
+        </SheetHeader>
 
-        <div className="space-y-4 py-4">
+        <ScrollArea className="flex-1">
+          <div className="space-y-4 px-6 py-4">
           <div className="space-y-2">
             <Label>Export Format</Label>
             <Select value={exportOptions.format} onValueChange={(value: any) => updateOptions('format', value)}>
@@ -404,9 +409,10 @@ export function ProjectExportModal({ isOpen, onClose, filters }: ProjectExportMo
               </SelectContent>
             </Select>
           </div>
-        </div>
+          </div>
+        </ScrollArea>
 
-        <div className="flex justify-end gap-2">
+        <div className="px-6 py-4 border-t flex justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={isExporting}>
             Cancel
           </Button>
@@ -415,7 +421,7 @@ export function ProjectExportModal({ isOpen, onClose, filters }: ProjectExportMo
             Export Projects
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

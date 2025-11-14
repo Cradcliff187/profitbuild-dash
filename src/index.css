@@ -920,3 +920,39 @@ textarea:focus-visible {
 }
 
 /* Category-specific colors are handled inline via Task.styles */
+
+/* =================================
+   NAVIGATION LOGO SPACING FOR PROJECT DETAIL PAGES
+   ================================= */
+
+/* Default: Expanded sidebar (16rem = 256px) */
+.nav-logo-project-detail {
+  padding-left: 16rem;
+}
+
+/* When sidebar is collapsed (3rem = 48px) */
+.group[data-state="collapsed"] ~ * .nav-logo-project-detail,
+body:has(.group[data-state="collapsed"]) .nav-logo-project-detail {
+  padding-left: 3rem;
+}
+
+/* Mobile: No extra padding needed */
+@media (max-width: 768px) {
+  .nav-logo-project-detail {
+    padding-left: 0;
+  }
+}
+
+/* =================================
+   PDF PREVIEW DIALOG Z-INDEX
+   ================================= */
+
+/* Ensure PDF preview dialog appears above Sheet components (Sheet uses z-50) */
+/* When both Sheet and Dialog are open, Dialog should be on top */
+[data-state="open"][data-radix-dialog-overlay] {
+  z-index: 60 !important;
+}
+
+[data-state="open"][data-radix-dialog-content] {
+  z-index: 60 !important;
+}

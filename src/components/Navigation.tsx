@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck, Camera, FileImage, FolderOpen } from "lucide-react";
 const logoFullDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Full%20Horizontal%20Logo%20-%201500x500.png';
 const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png';
@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/contexts/RoleContext";
 import { useState, useEffect } from "react";
 import { isIOSDevice, isPWAInstalled } from "@/utils/platform";
+import { cn } from "@/lib/utils";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -19,9 +20,13 @@ interface BeforeInstallPromptEvent extends Event {
 
 const Navigation = () => {
   const isMobile = useIsMobile();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { isAdmin, isManager, isFieldWorker, roles } = useRoles();
+  
+  // Check if we're on a project detail page
+  const isProjectDetailPage = /^\/projects\/[^/]+/.test(location.pathname);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -142,7 +147,12 @@ const Navigation = () => {
       <div className="w-full px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center py-2">
+          <div className={cn(
+            "flex items-center py-2 transition-all duration-200",
+            // Add left padding on project detail pages to account for sidebar
+            // Expanded sidebar is 16rem (256px), collapsed is 3rem (48px)
+            isProjectDetailPage && !isMobile && "nav-logo-project-detail"
+          )}>
             {/* Desktop: Full horizontal logo */}
             <img 
               src={logoFull} 

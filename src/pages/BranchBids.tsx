@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Plus, Trash2, ExternalLink, FolderOpen, Grid, Table as TableIcon, ArrowUpDown } from 'lucide-react';
+import { FileText, Plus, Trash2, ExternalLink, FolderOpen, Grid, Table as TableIcon, ArrowUpDown, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { ClientSelector } from '@/components/ClientSelector';
+import { BidExportModal } from '@/components/BidExportModal';
 import type { BranchBid } from '@/types/bid';
 
 type DisplayMode = 'cards' | 'table';
@@ -31,6 +32,7 @@ export default function BranchBids() {
   const isMobile = useIsMobile();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [selectedBid, setSelectedBid] = useState<BranchBid | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [displayMode, setDisplayMode] = useState<DisplayMode>(isMobile ? 'cards' : 'table');
@@ -227,10 +229,21 @@ export default function BranchBids() {
             Pre-estimate workspace for gathering project information
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)} size="lg">
-          <Plus className="h-4 w-4 mr-2" />
-          New Bid
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setShowExportModal(true)} 
+            variant="outline" 
+            size="lg"
+            disabled={!bids || bids.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Button onClick={() => setShowCreateDialog(true)} size="lg">
+            <Plus className="h-4 w-4 mr-2" />
+            New Bid
+          </Button>
+        </div>
       </div>
 
       {/* Search and Controls */}
@@ -513,6 +526,13 @@ export default function BranchBids() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Export Modal */}
+      <BidExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        bids={filteredAndSortedBids || []}
+      />
     </div>
   );
 }

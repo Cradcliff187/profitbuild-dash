@@ -42,8 +42,11 @@ export default function ProjectScheduleView({
   const [showExportModal, setShowExportModal] = useState(false);
   const [showReorderPanel, setShowReorderPanel] = useState(false);
   const [projectName, setProjectName] = useState<string>('Project');
+  const [projectNumber, setProjectNumber] = useState<string | undefined>(undefined);
+  const [clientName, setClientName] = useState<string | undefined>(undefined);
   const [taskOrder, setTaskOrder] = useState<string[]>([]);
   const [isRealtimeSynced, setIsRealtimeSynced] = useState(false);
+  const ganttContainerRef = React.useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { getTaskProgress, isLoading: progressLoading } = useProgressTracking(projectId);
@@ -114,13 +117,15 @@ export default function ProjectScheduleView({
     try {
       const { data: project, error } = await supabase
         .from('projects')
-        .select('project_name')
+        .select('project_name, project_number, client_name')
         .eq('id', projectId)
         .single();
       
       if (error) throw error;
       if (project) {
         setProjectName(project.project_name);
+        setProjectNumber(project.project_number || undefined);
+        setClientName(project.client_name || undefined);
       }
     } catch (error) {
       console.error('Error loading project name:', error);
@@ -790,24 +795,26 @@ export default function ProjectScheduleView({
       {/* Conditional Rendering: Gantt or Table */}
       {displayMode === 'gantt' ? (
         <Card className="p-6 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <Gantt
-            tasks={tasks}
-            viewMode={viewMode}
-            onDateChange={handleTaskChange}
-            onDoubleClick={handleTaskClick}
-            listCellWidth=""
-            columnWidth={
-              viewMode === ViewMode.Day ? 80 : 
-              viewMode === ViewMode.Week ? 65 : 
-              viewMode === ViewMode.Month ? 300 : 65
-            }
-            headerHeight={60}
-            rowHeight={45}
-            barCornerRadius={4}
-            handleWidth={8}
-            todayColor="rgba(59, 130, 246, 0.1)"
-            locale="en-US"
-          />
+          <div ref={ganttContainerRef}>
+            <Gantt
+              tasks={tasks}
+              viewMode={viewMode}
+              onDateChange={handleTaskChange}
+              onDoubleClick={handleTaskClick}
+              listCellWidth=""
+              columnWidth={
+                viewMode === ViewMode.Day ? 80 : 
+                viewMode === ViewMode.Week ? 65 : 
+                viewMode === ViewMode.Month ? 300 : 65
+              }
+              headerHeight={60}
+              rowHeight={45}
+              barCornerRadius={4}
+              handleWidth={8}
+              todayColor="rgba(59, 130, 246, 0.1)"
+              locale="en-US"
+            />
+          </div>
         </Card>
       ) : (
         <ScheduleTableView
@@ -885,6 +892,9 @@ export default function ProjectScheduleView({
         onClose={() => setShowExportModal(false)}
         tasks={orderedTasks}
         projectName={projectName}
+        projectNumber={projectNumber}
+        clientName={clientName}
+        ganttContainerRef={ganttContainerRef}
       />
     </div>
   );

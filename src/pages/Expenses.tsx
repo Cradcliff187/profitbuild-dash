@@ -9,6 +9,7 @@ import { ExpenseDashboard } from "@/components/ExpenseDashboard";
 import { ExpenseFormSheet } from "@/components/ExpenseFormSheet";
 import { ExpensesList, ExpensesListRef } from "@/components/ExpensesList";
 import { ExpenseImportModal } from "@/components/ExpenseImportModal";
+import { ExpenseExportModal } from "@/components/ExpenseExportModal";
 import { TimesheetGridView } from "@/components/TimesheetGridView";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +40,7 @@ const Expenses = () => {
   const [loading, setLoading] = useState(true);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showTimesheetModal, setShowTimesheetModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const expensesListRef = useRef<ExpensesListRef>(null);
   const { toast } = useToast();
 
@@ -163,7 +165,7 @@ const Expenses = () => {
             <Upload className="h-4 w-4 mr-2" />
             <span>Import</span>
           </Button>
-          <Button onClick={() => expensesListRef.current?.exportToCsv()} variant="outline" size="sm">
+          <Button onClick={() => setShowExportModal(true)} variant="outline" size="sm">
             <FileDown className="h-4 w-4 mr-2" />
             <span>Export</span>
           </Button>
@@ -249,6 +251,12 @@ const Expenses = () => {
         open={showTimesheetModal}
         onClose={() => setShowTimesheetModal(false)}
         onSuccess={handleTimesheetSuccess}
+      />
+
+      <ExpenseExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        expenses={expenses}
       />
     </div>
   );

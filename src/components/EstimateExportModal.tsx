@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -204,16 +205,20 @@ export const EstimateExportModal: React.FC<EstimateExportModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="w-full sm:max-w-[600px] flex flex-col">
+        <SheetHeader>
+          <SheetTitle className="flex items-center space-x-2">
             <Download className="h-5 w-5" />
             <span>Export Estimates</span>
-          </DialogTitle>
-        </DialogHeader>
+          </SheetTitle>
+          <SheetDescription>
+            Configure export options and download estimate data matching your filters
+          </SheetDescription>
+        </SheetHeader>
 
-        <div className="space-y-4">
+        <ScrollArea className="flex-1">
+          <div className="space-y-4 px-6 py-4">
           {/* Active Filters Summary */}
           <div className="p-3 bg-muted rounded-lg">
             <p className="text-sm font-medium mb-2">Active Filters:</p>
@@ -325,31 +330,33 @@ export const EstimateExportModal: React.FC<EstimateExportModalProps> = ({
             </Select>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex space-x-2 pt-4">
-            <Button variant="outline" onClick={onClose} className="flex-1">
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleExport} 
-              disabled={isExporting}
-              className="flex-1"
-            >
-              {isExporting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </>
-              )}
-            </Button>
           </div>
+        </ScrollArea>
+
+        {/* Action Buttons */}
+        <div className="px-6 py-4 border-t flex space-x-2">
+          <Button variant="outline" onClick={onClose} className="flex-1" disabled={isExporting}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleExport} 
+            disabled={isExporting}
+            className="flex-1"
+          >
+            {isExporting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </>
+            )}
+          </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 };
