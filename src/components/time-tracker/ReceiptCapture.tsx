@@ -26,23 +26,23 @@ export const ReceiptCapture: React.FC<ReceiptCaptureProps> = ({
     if (!user) return;
 
     setUploading(true);
-    
+
     // Add iOS PWA guidance
     if (isIOSPWA()) {
       toast({
-        title: "iOS Camera Tip",
-        description: "Your camera will open, or select 'Take Photo or Video' from the menu if you see the photo library",
-        duration: 5000,
+        title: "Device upload tip",
+        description: "Select Take Photo or Video, Photo Library, or Browse from your iPhone's sheet.",
+        duration: 4000,
       });
     }
-    
+
     try {
       // Capture photo using web file input (iOS PWA compatible pattern)
       const dataUrl = await new Promise<string | null>((resolve) => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
-        input.capture = 'environment';
+        // Removed capture="environment" to allow photo library and file browsing
         input.style.display = 'none';
         
         const handleChange = async (e: Event) => {
@@ -123,13 +123,13 @@ export const ReceiptCapture: React.FC<ReceiptCaptureProps> = ({
         <DialogHeader>
           <DialogTitle>Add Receipt (Optional)</DialogTitle>
           <DialogDescription>
-            Capture a receipt or timesheet document for this time entry
+            Upload a receipt from camera, photo library, or files
           </DialogDescription>
         </DialogHeader>
         
         <div className="flex flex-col gap-4 py-4">
-          <Button 
-            onClick={captureReceipt} 
+          <Button
+            onClick={captureReceipt}
             disabled={uploading}
             className="w-full h-24 text-lg"
           >
@@ -138,7 +138,7 @@ export const ReceiptCapture: React.FC<ReceiptCaptureProps> = ({
             ) : (
               <CameraIcon className="w-6 h-6 mr-2" />
             )}
-            {uploading ? 'Uploading...' : 'Take Photo'}
+            {uploading ? 'Uploading...' : 'Upload Photo'}
           </Button>
           
           <Button 
