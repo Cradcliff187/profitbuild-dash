@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,6 @@ import { PayeeType } from '@/types/payee';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { isIOSPWA } from '@/utils/platform';
-import { useCameraCapture } from '@/hooks/useCameraCapture';
 
 const UNASSIGNED_RECEIPTS_PROJECT_NUMBER = 'SYS-000';
 
@@ -37,7 +36,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   initialProjectId
 }) => {
   const isMobile = useIsMobile();
-  const { capturePhoto: captureCameraPhoto, isCapturing } = useCameraCapture();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
   const [selectedPayeeId, setSelectedPayeeId] = useState<string | undefined>();
@@ -93,18 +92,41 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
     );
   }, [projects, projectSearchQuery]);
 
-  const capturePhoto = async () => {
-    // Add iOS PWA guidance
+  const openFilePicker = () => {
     if (isIOSPWA()) {
-      toast.info("iOS Camera Tip", {
-        description: "Your camera will open, or select 'Take Photo or Video' from the menu if you see the photo library",
-        duration: 5000,
+      toast.info('Device upload tip', {
+        description: "Select Take Photo or Video, Photo Library, or Browse from your iPhone's sheet.",
+        duration: 4000,
       });
     }
-    
-    const result = await captureCameraPhoto();
-    if (result?.dataUrl) {
-      setCapturedPhoto(result.dataUrl);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please choose an image file');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('Please choose a file smaller than 15MB');
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCapturedPhoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Failed to read file:', error);
+      toast.error('Failed to read selected file');
     }
   };
 
@@ -197,6 +219,9 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
     setSelectedPayeeId(undefined);
     setDescription('');
     setAmount('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
     onClose();
   };
 
@@ -222,19 +247,26 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <div className={cn("space-y-4", isMobile && "space-y-4")}>
             {/* Camera Capture / Photo Preview */}
-            <div>
+            <div className="space-y-3">
               {!capturedPhoto ? (
-                <Button
-                  onClick={capturePhoto}
-                  variant="outline"
-                  className={cn("w-full border-2 border-dashed", isMobile ? "h-48" : "h-48")}
-                  disabled={isCapturing}
-                >
-                  <div className="flex flex-col items-center gap-3">
-                    <CameraIcon className={isMobile ? "w-12 h-12 text-muted-foreground" : "w-12 h-12 text-muted-foreground"} />
-                    <span className={isMobile ? "text-base font-medium" : "text-sm font-medium"}>Take Photo</span>
-                  </div>
-                </Button>
+                <>
+                  <Button
+                    onClick={openFilePicker}
+                    variant="outline"
+                    className={cn("w-full border-2 border-dashed", isMobile ? "h-48" : "h-48")}
+                  >
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <CameraIcon className="w-12 h-12 text-muted-foreground" />
+                      <span className={isMobile ? "text-base font-medium" : "text-sm font-medium"}>
+                        Upload photo (camera, photo library, or files)
+                      </span>
+                    </div>
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Tapping the button opens the default iPhone/Android prompt so you can take a photo, pick from your
+                    library, or browse files.
+                  </p>
+                </>
               ) : (
                 <div className="relative">
                   <img
@@ -243,7 +275,12 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                     className={cn("w-full object-cover rounded-lg", isMobile ? "h-48" : "h-48")}
                   />
                   <Button
-                    onClick={() => setCapturedPhoto(null)}
+                    onClick={() => {
+                      setCapturedPhoto(null);
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                      }
+                    }}
                     variant="destructive"
                     size="icon"
                     className={cn("absolute top-2 right-2", isMobile && "h-10 w-10")}
@@ -252,6 +289,14 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                   </Button>
                 </div>
               )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileInputChange}
+              />
             </div>
 
             {/* Amount (Required) */}
