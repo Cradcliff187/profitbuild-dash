@@ -70,12 +70,8 @@ export default function BranchBidDetail() {
         .single();
 
       const bidWithProfile = {
-        ...data,
+        ...data as any,
         profiles: profile,
-        client_id: data.client_id || null,
-        address: data.address || null,
-        project_type: data.project_type || null,
-        job_type: data.job_type || null,
       } as BranchBid;
 
       // Set form state from fetched data
