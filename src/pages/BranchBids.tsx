@@ -75,11 +75,21 @@ export default function BranchBids() {
         // Map profiles to bids
         return data.map(bid => ({
           ...bid,
-          profiles: profiles?.find(p => p.id === bid.created_by)
+          profiles: profiles?.find(p => p.id === bid.created_by),
+          client_id: bid.client_id || null,
+          address: bid.address || null,
+          project_type: bid.project_type || null,
+          job_type: bid.job_type || null,
         })) as BranchBid[];
       }
       
-      return data as BranchBid[];
+      return (data || []).map(bid => ({
+        ...bid,
+        client_id: bid.client_id || null,
+        address: bid.address || null,
+        project_type: bid.project_type || null,
+        job_type: bid.job_type || null,
+      })) as BranchBid[];
     },
   });
 
