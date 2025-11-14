@@ -1,5 +1,9 @@
 import React from 'react';
-import { EntityDetailsModal } from './EntityDetailsModal';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from './ui/sheet';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Edit2, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { Payee } from '@/types/payee';
 
 interface PayeeDetailsModalProps {
@@ -18,6 +22,28 @@ export const PayeeDetailsModal: React.FC<PayeeDetailsModalProps> = ({
   onDelete
 }) => {
   if (!payee) return null;
+
+  const renderFieldValue = (field: any) => {
+    if (!field.value && field.value !== 0 && field.value !== false) {
+      return <span className="text-muted-foreground">-</span>;
+    }
+
+    switch (field.type) {
+      case 'badge':
+        return <Badge variant={field.variant as any}>{field.value}</Badge>;
+      case 'date':
+        return new Date(field.value).toLocaleDateString();
+      case 'currency':
+        return new Intl.NumberFormat('en-US', { 
+          style: 'currency', 
+          currency: 'USD' 
+        }).format(field.value);
+      case 'boolean':
+        return field.value ? 'Yes' : 'No';
+      default:
+        return field.value;
+    }
+  };
 
   const getPayeeTypeBadgeVariant = (type: string) => {
     switch (type) {
@@ -151,14 +177,67 @@ export const PayeeDetailsModal: React.FC<PayeeDetailsModalProps> = ({
   ];
 
   return (
-    <EntityDetailsModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={payee.payee_name}
-      subtitle={payee.full_name}
-      sections={sections}
-      onEdit={() => onEdit(payee)}
-      onDelete={() => onDelete(payee.id)}
-    />
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="w-full sm:max-w-[600px] flex flex-col p-0">
+        <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b">
+          <SheetTitle>{payee.payee_name}</SheetTitle>
+          {payee.full_name && (
+            <SheetDescription>{payee.full_name}</SheetDescription>
+          )}
+        </SheetHeader>
+
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="space-y-6">
+            {sections.map((section, sectionIndex) => (
+              <div key={sectionIndex} className="space-y-3">
+                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                  {section.title}
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {section.fields.map((field, fieldIndex) => (
+                    <div key={fieldIndex} className="space-y-1">
+                      <label className="text-sm font-medium text-muted-foreground">{field.label}</label>
+                      <div className="text-sm">
+                        {renderFieldValue(field)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-between gap-3 px-6 py-4 border-t bg-background">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Payee</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this payee? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onDelete(payee.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <Button onClick={() => onEdit(payee)}>
+            <Edit2 className="h-4 w-4 mr-2" />
+            Edit Payee
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };

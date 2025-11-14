@@ -6,7 +6,6 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,10 +44,18 @@ interface PayeeFormProps {
   defaultPayeeType?: PayeeType;
   defaultIsInternal?: boolean;
   defaultProvidesLabor?: boolean;
+  isSubmittingRef?: React.MutableRefObject<boolean>;
 }
 
-export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaultIsInternal, defaultProvidesLabor }: PayeeFormProps) => {
+export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaultIsInternal, defaultProvidesLabor, isSubmittingRef }: PayeeFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Sync submitting state with ref for parent
+  useEffect(() => {
+    if (isSubmittingRef) {
+      isSubmittingRef.current = isSubmitting;
+    }
+  }, [isSubmitting, isSubmittingRef]);
   const { toast } = useToast();
 
   const form = useForm<PayeeFormData>({
@@ -158,27 +165,25 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{payee ? "Edit Payee" : "Add New Payee"}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
-            <FormField
-              control={form.control}
-              name="payee_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payee Name *</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+    <Form {...form}>
+      <form id="payee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {/* Basic Information */}
+        <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="payee_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payee Name *</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="email"
@@ -206,21 +211,23 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
                 </FormItem>
               )}
             />
+          </div>
 
-             <FormField
-              control={form.control}
-              name="billing_address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Billing Address</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="billing_address"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Billing Address</FormLabel>
+                <FormControl>
+                  <Textarea {...field} rows={2} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="terms"
@@ -261,67 +268,54 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
                 </FormItem>
               )}
             />
+          </div>
+        </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <FormField
-                control={form.control}
-                name="provides_labor"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Provides Labor</FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
+        {/* Capabilities & Requirements */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium">Capabilities & Requirements</h3>
 
-              <FormField
-                control={form.control}
-                name="provides_materials"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Provides Materials</FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
-
-              {watchedPayeeType !== PayeeType.INTERNAL_LABOR && (
-                <FormField
-                  control={form.control}
-                  name="requires_1099"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Requires 1099</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="provides_labor"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-sm font-normal">Provides Labor</FormLabel>
+                  </div>
+                </FormItem>
               )}
+            />
 
+            <FormField
+              control={form.control}
+              name="provides_materials"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-sm font-normal">Provides Materials</FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            {watchedPayeeType !== PayeeType.INTERNAL_LABOR && (
               <FormField
                 control={form.control}
-                name="is_internal"
+                name="requires_1099"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
@@ -331,14 +325,39 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>Internal</FormLabel>
+                      <FormLabel className="text-sm font-normal">Requires 1099</FormLabel>
                     </div>
                   </FormItem>
                 )}
               />
-            </div>
+            )}
 
-            <div className="grid grid-cols-2 gap-2">
+            <FormField
+              control={form.control}
+              name="is_internal"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-sm font-normal">Internal</FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Additional Information (Conditional) */}
+        {(watchedPayeeType === PayeeType.SUBCONTRACTOR || watchedPayeeType === PayeeType.INTERNAL_LABOR || watchedPayeeType === PayeeType.PERMIT_AUTHORITY) && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium">Additional Information</h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {watchedPayeeType === PayeeType.SUBCONTRACTOR && (
                 <>
                   <FormField
@@ -387,7 +406,6 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
                               onSelect={field.onChange}
                               disabled={(date) => date < new Date()}
                               initialFocus
-                              className={cn("p-3 pointer-events-auto")}
                             />
                           </PopoverContent>
                         </Popover>
@@ -425,7 +443,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
                   control={form.control}
                   name="permit_issuer"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 self-end pb-2">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
@@ -433,25 +451,17 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel>Can Issue Permits</FormLabel>
+                        <FormLabel className="text-sm font-normal">Can Issue Permits</FormLabel>
                       </div>
                     </FormItem>
                   )}
                 />
               )}
             </div>
+          </div>
+        )}
 
-            <div className="flex gap-2 pt-2">
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : payee ? "Update Payee" : "Add Payee"}
-              </Button>
-              <Button type="button" variant="outline" onClick={onCancel}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+      </form>
+    </Form>
   );
 };

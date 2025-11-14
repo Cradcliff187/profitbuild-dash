@@ -163,60 +163,60 @@ export const TimeEntryForm = ({
   };
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex gap-1">
+    <div className={cn("space-y-3", isMobile && "space-y-4")}>
+      {/* Quick Hour Buttons - Larger on Mobile */}
+      <div className="flex gap-2">
         <Button 
           type="button" 
           variant="outline" 
-          size="sm"
           onClick={() => { 
             setStartTime('08:00'); 
             setEndTime('17:00'); 
             setHours('8'); 
           }}
           disabled={disabled}
-          className="flex-1 text-xs"
+          className={cn("flex-1", isMobile ? "h-12 text-base font-medium" : "h-9 text-sm")}
         >
           8h
         </Button>
         <Button 
           type="button" 
           variant="outline" 
-          size="sm"
           onClick={() => { 
             setStartTime('08:00'); 
             setEndTime('12:00'); 
             setHours('4'); 
           }}
           disabled={disabled}
-          className="flex-1 text-xs"
+          className={cn("flex-1", isMobile ? "h-12 text-base font-medium" : "h-9 text-sm")}
         >
           4h
         </Button>
         <Button 
           type="button" 
           variant="outline" 
-          size="sm"
           onClick={() => { 
             setStartTime('07:00'); 
             setEndTime('17:00'); 
             setHours('10'); 
           }}
           disabled={disabled}
-          className="flex-1 text-xs"
+          className={cn("flex-1", isMobile ? "h-12 text-base font-medium" : "h-9 text-sm")}
         >
           10h
         </Button>
       </div>
 
-      <div>
-        <Label htmlFor="worker" className="text-xs">Team Member *</Label>
+      <div className="space-y-2">
+        <Label htmlFor="worker" className={isMobile ? "text-sm font-medium" : "text-sm"}>
+          Team Member *
+        </Label>
         <NativeSelect
           id="worker"
           value={workerId || ""}
           onValueChange={setWorkerId}
           disabled={disabled}
-          className={cn("h-8", isMobile && "h-10 text-base")}
+          className={cn(isMobile ? "h-12 text-base" : "h-10")}
         >
           <option value="" disabled>Select team member</option>
           {workers.map(w => (
@@ -227,14 +227,16 @@ export const TimeEntryForm = ({
         </NativeSelect>
       </div>
 
-      <div>
-        <Label htmlFor="project" className="text-xs">Project *</Label>
+      <div className="space-y-2">
+        <Label htmlFor="project" className={isMobile ? "text-sm font-medium" : "text-sm"}>
+          Project *
+        </Label>
         <NativeSelect
           id="project"
           value={projectId || ""}
           onValueChange={setProjectId}
           disabled={disabled}
-          className={cn("h-8", isMobile && "h-10 text-base")}
+          className={cn(isMobile ? "h-12 text-base" : "h-10")}
         >
           <option value="" disabled>Select project</option>
           {projects.map(p => (
@@ -245,48 +247,56 @@ export const TimeEntryForm = ({
         </NativeSelect>
       </div>
 
-      <div>
-        <Label htmlFor="date" className="text-xs">Date *</Label>
+      <div className="space-y-2">
+        <Label htmlFor="date" className={isMobile ? "text-sm font-medium" : "text-sm"}>
+          Date *
+        </Label>
         <Input
           id="date"
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
           disabled={disabled}
-          className={cn(isMobile && "h-10")}
+          className={cn(isMobile ? "h-12" : "h-10")}
           style={{ fontSize: isMobile ? '16px' : undefined }}
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Label htmlFor="startTime" className="text-xs">Start Time</Label>
+      <div className={cn("grid grid-cols-2", isMobile ? "gap-3" : "gap-2")}>
+        <div className="space-y-2">
+          <Label htmlFor="startTime" className={isMobile ? "text-sm font-medium" : "text-sm"}>
+            Start Time
+          </Label>
           <Input
             id="startTime"
             type="time"
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
             disabled={disabled}
-            className={cn(isMobile && "h-10")}
+            className={cn(isMobile ? "h-12" : "h-10")}
             style={{ fontSize: isMobile ? '16px' : undefined }}
           />
         </div>
-        <div>
-          <Label htmlFor="endTime" className="text-xs">End Time</Label>
+        <div className="space-y-2">
+          <Label htmlFor="endTime" className={isMobile ? "text-sm font-medium" : "text-sm"}>
+            End Time
+          </Label>
           <Input
             id="endTime"
             type="time"
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
             disabled={disabled}
-            className={cn(isMobile && "h-10")}
+            className={cn(isMobile ? "h-12" : "h-10")}
             style={{ fontSize: isMobile ? '16px' : undefined }}
           />
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="hours" className="text-xs">Hours *</Label>
+      <div className="space-y-2">
+        <Label htmlFor="hours" className={isMobile ? "text-sm font-medium" : "text-sm"}>
+          Hours *
+        </Label>
         <Input
           id="hours"
           type="number"
@@ -296,7 +306,7 @@ export const TimeEntryForm = ({
           value={hours}
           onChange={(e) => setHours(e.target.value)}
           disabled={disabled}
-          className={cn(isMobile && "h-10")}
+          className={cn(isMobile ? "h-12" : "h-10")}
           style={{ fontSize: isMobile ? '16px' : undefined }}
         />
       </div>

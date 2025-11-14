@@ -28,11 +28,13 @@
  * - Use `ProjectSelector` for estimate-specific workflows
  */
 
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Input } from './ui/input';
 import { BrandedLoader } from "@/components/ui/branded-loader";
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Search } from 'lucide-react';
 
 interface FieldProjectSelectorProps {
   selectedProjectId?: string;
@@ -48,6 +50,8 @@ interface Project {
 }
 
 export function FieldProjectSelector({ selectedProjectId, onProjectSelect }: FieldProjectSelectorProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+
   const { data: projects, isLoading, error } = useQuery({
     queryKey: ['field-accessible-projects'],
     queryFn: async () => {
@@ -64,6 +68,19 @@ export function FieldProjectSelector({ selectedProjectId, onProjectSelect }: Fie
       return data as Project[];
     },
   });
+
+  // Filter projects based on search query
+  const filteredProjects = useMemo(() => {
+    if (!projects) return [];
+    if (!searchQuery.trim()) return projects;
+    
+    const query = searchQuery.toLowerCase();
+    return projects.filter(project =>
+      project.project_number.toLowerCase().includes(query) ||
+      project.project_name.toLowerCase().includes(query) ||
+      (project.client_name && project.client_name.toLowerCase().includes(query))
+    );
+  }, [projects, searchQuery]);
 
   if (isLoading) {
     return (
@@ -92,21 +109,43 @@ export function FieldProjectSelector({ selectedProjectId, onProjectSelect }: Fie
   }
 
   return (
-    <Select value={selectedProjectId} onValueChange={onProjectSelect}>
-      <SelectTrigger className="w-full">
+    <Select 
+      value={selectedProjectId} 
+      onValueChange={(value) => {
+        onProjectSelect(value);
+        setSearchQuery(''); // Clear search on selection
+      }}
+    >
+      <SelectTrigger className="w-full h-12">
         <SelectValue placeholder="Select a project..." />
       </SelectTrigger>
       <SelectContent>
-        {projects.map((project) => (
-          <SelectItem key={project.id} value={project.id}>
-            <div className="flex flex-col">
+        {/* Search Input INSIDE Dropdown */}
+        <div className="flex items-center border-b px-3 pb-2 pt-2">
+          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+          <Input
+            placeholder="Search projects..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-8 border-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          />
+        </div>
+        {/* Filtered Projects */}
+        {filteredProjects.length > 0 ? (
+          filteredProjects.map((project) => (
+            <SelectItem key={project.id} value={project.id}>
               <span className="font-medium">
                 {project.project_number} - {project.project_name}
               </span>
-              <span className="text-xs text-muted-foreground">{project.client_name}</span>
-            </div>
-          </SelectItem>
-        ))}
+            </SelectItem>
+          ))
+        ) : (
+          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+            No projects found
+          </div>
+        )}
       </SelectContent>
     </Select>
   );

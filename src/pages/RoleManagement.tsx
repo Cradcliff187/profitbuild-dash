@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, Search, X, Trash2, Clock } from 'lucide-react';
+import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, Search, X, Trash2, Clock, Mail, Calendar, ChevronDown } from 'lucide-react';
 import { formatDistanceToNow, parseISO, format } from 'date-fns';
 import CreateUserModal from '@/components/CreateUserModal';
 import ResetPasswordModal from '@/components/ResetPasswordModal';
@@ -21,6 +21,8 @@ import { DeleteUserDialog } from '@/components/DeleteUserDialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreVertical, UserCog } from 'lucide-react';
 import { ActiveTimersTable } from '@/components/role-management/ActiveTimersTable';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
 interface Profile {
   id: string;
@@ -42,6 +44,7 @@ export default function RoleManagement() {
   const { isAdmin, loading: rolesLoading } = useRoles();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [loading, setLoading] = useState(true);
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -53,6 +56,7 @@ export default function RoleManagement() {
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [bulkRoleOpen, setBulkRoleOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('active');
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!rolesLoading && !isAdmin) {
@@ -218,6 +222,18 @@ export default function RoleManagement() {
     } else {
       setSelectedUserIds(new Set(filteredUsers.map(u => u.id)));
     }
+  };
+
+  const toggleCard = (userId: string) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
   };
 
   // Helper function to determine password status
@@ -429,157 +445,331 @@ export default function RoleManagement() {
               </p>
             </div>
           ) : (
-            <div className="border-t overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
-              <div className="min-w-[800px]">
-                <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={selectedUserIds.size === filteredUsers.length && filteredUsers.length > 0}
-                        onCheckedChange={toggleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Roles</TableHead>
-                    <TableHead>Password Status</TableHead>
-                    <TableHead>Last Sign-In</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <>
+              {/* Mobile Card View */}
+              {isMobile ? (
+                <div className="space-y-3">
                   {filteredUsers.map((user) => {
                     const passwordStatus = getPasswordStatus(user);
                     const isInactive = user.is_active === false;
+                    const isExpanded = expandedCards.has(user.id);
+                    
                     return (
-                      <TableRow key={user.id} className={isInactive ? 'opacity-60 bg-muted/20' : ''}>
-                        {/* Checkbox Column */}
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedUserIds.has(user.id)}
-                            onCheckedChange={() => toggleUserSelection(user.id)}
-                          />
-                        </TableCell>
-
-                        {/* User Column */}
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm">{user.full_name || 'No name'}</span>
-                              {isInactive && (
-                                <Badge variant="outline" className="h-4 px-1 text-[10px] border-orange-500 text-orange-700 dark:text-orange-500">
-                                  Inactive
-                                </Badge>
-                              )}
-                            </div>
-                            <span className="text-xs text-muted-foreground">{user.email}</span>
-                          </div>
-                        </TableCell>
-
-                        {/* Roles Column */}
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {user.roles.length === 0 ? (
-                              <span className="text-xs text-muted-foreground">No roles</span>
-                            ) : (
-                              user.roles.map((role) => (
-                                <Badge key={role} variant="secondary" className="h-5 px-1.5 text-[10px] gap-1">
-                                  {role.replace('_', ' ')}
-                                  <button
-                                    onClick={() => removeRole(user.id, role)}
-                                    className="ml-0.5 hover:text-destructive font-bold"
-                                  >
-                                    ×
-                                  </button>
-                                </Badge>
-                              ))
-                            )}
-                          </div>
-                        </TableCell>
-
-                        {/* Password Status Column */}
-                        <TableCell>
-                          <Badge variant={passwordStatus.variant} className={passwordStatus.className}>
-                            {passwordStatus.label}
-                          </Badge>
-                        </TableCell>
-
-                        {/* Last Sign-In Column */}
-                        <TableCell>
-                          {user.last_sign_in_at ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="text-xs cursor-help">
-                                    {formatLastSignIn(user.last_sign_in_at)}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  {formatFullTimestamp(user.last_sign_in_at)}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Never</span>
-                          )}
-                        </TableCell>
-
-                        {/* Actions Column */}
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Select onValueChange={(value) => addRole(user.id, value as AppRole)}>
-                              <SelectTrigger className="h-7 w-[100px] sm:w-[120px] text-xs">
-                                <div className="flex items-center gap-1.5">
-                                  <UserPlus className="h-3 w-3" />
-                                  <span>Add Role</span>
+                      <Card 
+                        key={user.id} 
+                        className={`${isInactive ? 'opacity-60' : ''}`}
+                      >
+                        <Collapsible open={isExpanded} onOpenChange={() => toggleCard(user.id)}>
+                          {/* Collapsed Header */}
+                          <CardHeader className="p-3 bg-gradient-to-r from-primary/5 to-transparent">
+                            <div className="flex items-start gap-3">
+                              <Checkbox
+                                checked={selectedUserIds.has(user.id)}
+                                onCheckedChange={() => toggleUserSelection(user.id)}
+                                className="mt-0.5"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <div className="flex-1 min-w-0 space-y-0.5">
+                                <div className="flex items-center justify-between gap-2">
+                                  <CardTitle className="text-sm font-medium truncate">
+                                    {user.full_name || 'No name'}
+                                  </CardTitle>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {isInactive && (
+                                      <Badge variant="outline" className="h-4 px-1.5 text-[10px] border-orange-500 text-orange-700 dark:text-orange-500">
+                                        Inactive
+                                      </Badge>
+                                    )}
+                                    <Badge 
+                                      variant={passwordStatus.variant} 
+                                      className={`h-4 px-1.5 text-[10px] ${passwordStatus.className || ''}`}
+                                    >
+                                      {passwordStatus.label}
+                                    </Badge>
+                                  </div>
                                 </div>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {(['admin', 'manager', 'field_worker'] as AppRole[])
-                                  .filter(role => !user.roles.includes(role))
-                                  .map(role => (
-                                    <SelectItem key={role} value={role} className="text-xs">
-                                      {role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Mail className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{user.email}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardHeader>
 
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                  <MoreVertical className="h-3.5 w-3.5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuItem onClick={() => openEditProfile(user)} className="text-xs">
-                                  <UserCog className="h-3 w-3 mr-2" />
-                                  Edit Profile
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => openResetPassword(user)} className="text-xs">
-                                  <KeyRound className="h-3 w-3 mr-2" />
-                                  Reset Password
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  onClick={() => openDeleteUser(user)} 
-                                  className="text-xs text-destructive focus:text-destructive"
-                                >
-                                  <Trash2 className="h-3 w-3 mr-2" />
-                                  Delete User
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                          {/* Collapsible Trigger */}
+                          <CollapsibleTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              className="w-full justify-between px-3 py-2 h-auto hover:bg-muted/50 border-t"
+                            >
+                              <div className="flex items-center gap-2">
+                                {user.roles.length === 0 ? (
+                                  <span className="text-xs text-muted-foreground">No roles assigned</span>
+                                ) : (
+                                  <div className="flex flex-wrap gap-1">
+                                    {user.roles.map((role) => (
+                                      <Badge key={role} variant="secondary" className="h-5 px-1.5 text-[10px]">
+                                        {role.replace('_', ' ')}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <ChevronDown className={`h-4 w-4 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
+                            </Button>
+                          </CollapsibleTrigger>
+
+                          {/* Expanded Content */}
+                          <CollapsibleContent>
+                            <CardContent className="p-3 space-y-3 pt-2" onClick={(e) => e.stopPropagation()}>
+                              {/* Role Management */}
+                              <div className="space-y-2">
+                                <div className="text-xs font-medium text-muted-foreground">Assigned Roles</div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {user.roles.length === 0 ? (
+                                    <Badge variant="outline" className="h-6 px-2 text-xs text-muted-foreground">
+                                      No roles
+                                    </Badge>
+                                  ) : (
+                                    user.roles.map((role) => (
+                                      <Badge key={role} variant="secondary" className="h-6 px-2 text-xs gap-1.5">
+                                        {role.replace('_', ' ')}
+                                        <button
+                                          onClick={() => removeRole(user.id, role)}
+                                          className="ml-0.5 hover:text-destructive font-bold"
+                                        >
+                                          ×
+                                        </button>
+                                      </Badge>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Account Info */}
+                              <div className="grid grid-cols-2 gap-3 text-xs pt-2 border-t">
+                                <div>
+                                  <div className="text-muted-foreground text-[10px] mb-0.5">Last Sign-In</div>
+                                  <div className="font-medium">{formatLastSignIn(user.last_sign_in_at)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-muted-foreground text-[10px] mb-0.5">Account Status</div>
+                                  <Badge 
+                                    variant={passwordStatus.variant} 
+                                    className={`h-5 px-1.5 text-[10px] ${passwordStatus.className || ''}`}
+                                  >
+                                    {passwordStatus.label}
+                                  </Badge>
+                                </div>
+                              </div>
+
+                              {/* Actions */}
+                              <div className="flex gap-2 pt-2 border-t">
+                                <Select onValueChange={(value) => addRole(user.id, value as AppRole)}>
+                                  <SelectTrigger className="h-8 flex-1 text-xs">
+                                    <div className="flex items-center gap-1.5">
+                                      <UserPlus className="h-3 w-3" />
+                                      <span>Add Role</span>
+                                    </div>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(['admin', 'manager', 'field_worker'] as AppRole[])
+                                      .filter(role => !user.roles.includes(role))
+                                      .map(role => (
+                                        <SelectItem key={role} value={role} className="text-xs">
+                                          {role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm" className="h-8 w-8 p-0 shrink-0">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem onClick={() => openEditProfile(user)} className="text-xs">
+                                      <UserCog className="h-3 w-3 mr-2" />
+                                      Edit Profile
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => openResetPassword(user)} className="text-xs">
+                                      <KeyRound className="h-3 w-3 mr-2" />
+                                      Reset Password
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      onClick={() => openDeleteUser(user)} 
+                                      className="text-xs text-destructive focus:text-destructive"
+                                    >
+                                      <Trash2 className="h-3 w-3 mr-2" />
+                                      Delete User
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </CardContent>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </Card>
                     );
                   })}
-                </TableBody>
-              </Table>
-              </div>
-            </div>
+                </div>
+              ) : (
+                /* Desktop Table View */
+                <div className="border-t overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedUserIds.size === filteredUsers.length && filteredUsers.length > 0}
+                            onCheckedChange={toggleSelectAll}
+                          />
+                        </TableHead>
+                        <TableHead>User</TableHead>
+                        <TableHead>Roles</TableHead>
+                        <TableHead>Password Status</TableHead>
+                        <TableHead>Last Sign-In</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map((user) => {
+                        const passwordStatus = getPasswordStatus(user);
+                        const isInactive = user.is_active === false;
+                        return (
+                          <TableRow key={user.id} className={isInactive ? 'opacity-60 bg-muted/20' : ''}>
+                            {/* Checkbox Column */}
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedUserIds.has(user.id)}
+                                onCheckedChange={() => toggleUserSelection(user.id)}
+                              />
+                            </TableCell>
+
+                            {/* User Column */}
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-sm">{user.full_name || 'No name'}</span>
+                                  {isInactive && (
+                                    <Badge variant="outline" className="h-4 px-1 text-[10px] border-orange-500 text-orange-700 dark:text-orange-500">
+                                      Inactive
+                                    </Badge>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground">{user.email}</span>
+                              </div>
+                            </TableCell>
+
+                            {/* Roles Column */}
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {user.roles.length === 0 ? (
+                                  <span className="text-xs text-muted-foreground">No roles</span>
+                                ) : (
+                                  user.roles.map((role) => (
+                                    <Badge key={role} variant="secondary" className="h-5 px-1.5 text-[10px] gap-1">
+                                      {role.replace('_', ' ')}
+                                      <button
+                                        onClick={() => removeRole(user.id, role)}
+                                        className="ml-0.5 hover:text-destructive font-bold"
+                                      >
+                                        ×
+                                      </button>
+                                    </Badge>
+                                  ))
+                                )}
+                              </div>
+                            </TableCell>
+
+                            {/* Password Status Column */}
+                            <TableCell>
+                              <Badge variant={passwordStatus.variant} className={passwordStatus.className}>
+                                {passwordStatus.label}
+                              </Badge>
+                            </TableCell>
+
+                            {/* Last Sign-In Column */}
+                            <TableCell>
+                              {user.last_sign_in_at ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="text-xs cursor-help">
+                                        {formatLastSignIn(user.last_sign_in_at)}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {formatFullTimestamp(user.last_sign_in_at)}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Never</span>
+                              )}
+                            </TableCell>
+
+                            {/* Actions Column */}
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Select onValueChange={(value) => addRole(user.id, value as AppRole)}>
+                                  <SelectTrigger className="h-7 w-[100px] sm:w-[120px] text-xs">
+                                    <div className="flex items-center gap-1.5">
+                                      <UserPlus className="h-3 w-3" />
+                                      <span>Add Role</span>
+                                    </div>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(['admin', 'manager', 'field_worker'] as AppRole[])
+                                      .filter(role => !user.roles.includes(role))
+                                      .map(role => (
+                                        <SelectItem key={role} value={role} className="text-xs">
+                                          {role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                      <MoreVertical className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem onClick={() => openEditProfile(user)} className="text-xs">
+                                      <UserCog className="h-3 w-3 mr-2" />
+                                      Edit Profile
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => openResetPassword(user)} className="text-xs">
+                                      <KeyRound className="h-3 w-3 mr-2" />
+                                      Reset Password
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      onClick={() => openDeleteUser(user)} 
+                                      className="text-xs text-destructive focus:text-destructive"
+                                    >
+                                      <Trash2 className="h-3 w-3 mr-2" />
+                                      Delete User
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

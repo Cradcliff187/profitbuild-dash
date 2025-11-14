@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { ExpenseDashboard } from "@/components/ExpenseDashboard";
-import { ExpenseForm } from "@/components/ExpenseForm";
+import { ExpenseFormSheet } from "@/components/ExpenseFormSheet";
 import { ExpensesList, ExpensesListRef } from "@/components/ExpensesList";
 import { ExpenseImportModal } from "@/components/ExpenseImportModal";
 import { TimesheetGridView } from "@/components/TimesheetGridView";
@@ -14,7 +14,7 @@ import { Expense, ExpenseCategory } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-type ViewMode = "overview" | "form" | "list";
+type ViewMode = "overview" | "list";
 
 // Helper to filter out SYS-000 split parent expenses
 const filterDisplayableExpenses = (expenses: Expense[]): Expense[] => {
@@ -31,6 +31,7 @@ const Expenses = () => {
   const [estimates, setEstimates] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("overview");
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
+  const [expenseFormOpen, setExpenseFormOpen] = useState(false);
   const tabOptions = [
     { value: "overview", label: "Overview", icon: BarChart3 },
     { value: "list", label: "All Expenses", icon: List },
@@ -102,7 +103,6 @@ const Expenses = () => {
   const handleSaveExpense = (expense: Expense) => {
     // Refresh the expenses list
     fetchData();
-    setViewMode("list");
     setSelectedExpense(undefined);
   };
 
@@ -118,7 +118,7 @@ const Expenses = () => {
 
   const handleEditExpense = (expense: Expense) => {
     setSelectedExpense(expense);
-    setViewMode("form");
+    setExpenseFormOpen(true);
   };
 
   const handleDeleteExpense = (id: string) => {
@@ -127,12 +127,7 @@ const Expenses = () => {
 
   const handleCreateNew = () => {
     setSelectedExpense(undefined);
-    setViewMode("form");
-  };
-
-  const handleCancel = () => {
-    setSelectedExpense(undefined);
-    setViewMode("overview");
+    setExpenseFormOpen(true);
   };
 
   const handleTabChange = (value: string) => {
@@ -179,10 +174,7 @@ const Expenses = () => {
         </div>
       </div>
 
-      {viewMode === "form" ? (
-        <ExpenseForm expense={selectedExpense} onSave={handleSaveExpense} onCancel={handleCancel} />
-      ) : (
-        <Tabs value={viewMode} onValueChange={handleTabChange}>
+      <Tabs value={viewMode} onValueChange={handleTabChange}>
           <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="w-full sm:w-auto">
               <div className="sm:hidden">
@@ -238,7 +230,13 @@ const Expenses = () => {
             />
           </TabsContent>
         </Tabs>
-      )}
+
+      <ExpenseFormSheet
+        open={expenseFormOpen}
+        onOpenChange={setExpenseFormOpen}
+        expense={selectedExpense}
+        onSave={handleSaveExpense}
+      />
 
       <ExpenseImportModal
         open={showImportModal}

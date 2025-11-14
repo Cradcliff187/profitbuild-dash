@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -7,16 +7,16 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectGroup,
-  SelectLabel as SelectGroupLabel,
-  SelectSeparator,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PayeeForm } from '@/components/PayeeForm';
 import { PayeeType, Payee } from '@/types/payee';
-import { Plus } from 'lucide-react';
+import { Plus, Search, UserCog } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface PayeeSelectorProps {
   value: string;
@@ -25,7 +25,7 @@ interface PayeeSelectorProps {
   compact?: boolean;
   filterInternal?: boolean;
   filterLabor?: boolean;
-  filterPayeeTypes?: PayeeType[]; // NEW: Filter by specific payee types
+  filterPayeeTypes?: PayeeType[];
   defaultPayeeType?: PayeeType;
   defaultProvidesLabor?: boolean;
   defaultIsInternal?: boolean;
@@ -54,7 +54,9 @@ export function PayeeSelector({
   onBlur,
 }: PayeeSelectorProps) {
   const [showPayeeForm, setShowPayeeForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const queryClient = useQueryClient();
+  const isSubmittingRef = useRef(false);
 
   const { data: payees, isLoading } = useQuery({
     queryKey: ['payees', filterInternal, filterLabor, filterPayeeTypes],
@@ -65,12 +67,9 @@ export function PayeeSelector({
         .eq('is_active', true)
         .order('payee_name');
 
-      // Handle internal/external filtering
       if (filterInternal === true) {
-        // Only internal labor
         query = query.eq('is_internal', true).eq('provides_labor', true);
       } else if (filterInternal === false) {
-        // Only external payees
         query = query.eq('is_internal', false);
       }
       
@@ -78,7 +77,6 @@ export function PayeeSelector({
         query = query.eq('provides_labor', filterLabor);
       }
 
-      // Filter by specific payee types
       if (filterPayeeTypes && filterPayeeTypes.length > 0) {
         query = query.in('payee_type', filterPayeeTypes);
       }
@@ -104,120 +102,159 @@ export function PayeeSelector({
     }
   };
 
-  const groupPayeesByType = () => {
-    if (!payees) return {};
-    return payees.reduce((acc, payee) => {
-      const type = payee.payee_type || PayeeType.OTHER;
-      if (!acc[type]) acc[type] = [];
-      acc[type].push(payee);
-      return acc;
-    }, {} as Record<PayeeType, typeof payees>);
-  };
-
   const selectedPayee = payees?.find(p => p.id === value);
-  const groupedPayees = groupPayeesByType();
 
-  const handleValueChange = (val: string) => {
-    if (val === '__add_new__') {
-      setShowPayeeForm(true);
-    } else {
-      const payee = payees?.find(p => p.id === val);
-      onValueChange(val, payee?.payee_name, payee as Payee);
-    }
+  // Filter payees based on search query
+  const filteredPayees = useMemo(() => {
+    if (!payees) return [];
+    if (!searchQuery.trim()) return payees;
+    
+    const query = searchQuery.toLowerCase();
+    return payees.filter(payee => 
+      payee.payee_name.toLowerCase().includes(query) ||
+      (payee.company_name && payee.company_name.toLowerCase().includes(query)) ||
+      (payee.email && payee.email.toLowerCase().includes(query)) ||
+      (payee.payee_type && formatPayeeType(payee.payee_type as PayeeType).toLowerCase().includes(query))
+    );
+  }, [payees, searchQuery]);
+
+  const handlePayeeCreated = (newPayee: Payee) => {
+    queryClient.invalidateQueries({ queryKey: ['payees'] });
+    onValueChange(newPayee.id, newPayee.payee_name, newPayee);
+    setShowPayeeForm(false);
   };
 
   return (
-    <div className="space-y-1">
+    <div className={cn(showLabel && "space-y-2")}>
       {label && (showLabel !== false) && (
-        <Label className={compact ? 'text-xs' : 'text-sm'}>
+        <Label className={cn(compact ? 'text-xs' : 'text-sm', required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
           {label}
-          {required && <span className="text-destructive ml-1">*</span>}
         </Label>
       )}
       
-      <Select
-        value={value}
-        onValueChange={handleValueChange}
-      >
-        <SelectTrigger 
-          className={compact ? 'h-8 text-xs' : 'h-9 text-sm'}
-          onBlur={onBlur}
+      <div className="flex gap-2">
+        <Select
+          value={value}
+          onValueChange={(val) => {
+            const payee = payees?.find(p => p.id === val);
+            onValueChange(val, payee?.payee_name, payee as Payee);
+          }}
         >
-          <SelectValue placeholder={placeholder}>
-            {selectedPayee && (
-              <div className="flex items-center gap-1.5">
-                <span className="truncate">{selectedPayee.payee_name}</span>
-                <Badge variant={getPayeeTypeBadgeVariant(selectedPayee.payee_type as PayeeType)} className="h-4 text-[10px] px-1">
-                  {formatPayeeType(selectedPayee.payee_type as PayeeType)}
-                </Badge>
-              </div>
-            )}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent className={compact ? 'text-xs' : 'text-sm'}>
-          {isLoading ? (
-            <SelectItem value="__loading__" disabled>Loading...</SelectItem>
-          ) : Object.keys(groupedPayees).length === 0 ? (
-            <SelectItem value="__empty__" disabled>No payees found</SelectItem>
-          ) : (
-            <>
-              {(Object.entries(groupedPayees) as Array<[string, any[]]>).map(([type, payeeList], idx) => (
-                <div key={type}>
-                  {idx > 0 && <SelectSeparator />}
-                  <SelectGroup>
-                    <SelectGroupLabel className={compact ? 'text-[10px] py-1' : 'text-xs'}>
-                      {formatPayeeType(type as PayeeType)}
-                    </SelectGroupLabel>
-                    {payeeList.map((payee) => (
-                      <SelectItem 
-                        key={payee.id} 
-                        value={payee.id}
-                        className={compact ? 'text-xs py-1.5' : 'text-sm'}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <span>{payee.payee_name}</span>
-                          {payee.is_internal && (
-                            <span className="text-[10px] text-muted-foreground">(Internal)</span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </div>
-              ))}
-              <SelectSeparator />
-              <SelectItem value="__add_new__" className={compact ? 'text-xs py-1.5' : 'text-sm'}>
+          <SelectTrigger 
+            className={cn("flex-1", compact ? 'h-8 text-xs' : 'h-9 text-sm', error && "border-destructive")}
+            onBlur={onBlur}
+          >
+            <SelectValue placeholder={placeholder}>
+              {selectedPayee && (
                 <div className="flex items-center gap-1.5">
-                  <Plus className="h-3 w-3" />
-                  <span>Add New Payee</span>
+                  <span className="truncate">{selectedPayee.payee_name}</span>
+                  <Badge variant={getPayeeTypeBadgeVariant(selectedPayee.payee_type as PayeeType)} className="h-4 text-[10px] px-1">
+                    {formatPayeeType(selectedPayee.payee_type as PayeeType)}
+                  </Badge>
                 </div>
-              </SelectItem>
-            </>
-          )}
-        </SelectContent>
-      </Select>
+              )}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {/* Search Input INSIDE Dropdown */}
+            <div className="flex items-center border-b px-3 pb-2 pt-2">
+              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+              <Input
+                placeholder="Search payees..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 border-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
+
+            {isLoading ? (
+              <SelectItem value="__loading__" disabled>Loading payees...</SelectItem>
+            ) : filteredPayees.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                {searchQuery ? 'No payees match your search' : 'No payees found'}
+              </div>
+            ) : (
+              filteredPayees.map((payee) => (
+                <SelectItem 
+                  key={payee.id} 
+                  value={payee.id}
+                  className={compact ? 'text-xs' : 'text-sm'}
+                >
+                  <div className="flex items-center justify-between w-full gap-2">
+                    <span className="truncate">{payee.payee_name}</span>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Badge variant={getPayeeTypeBadgeVariant(payee.payee_type as PayeeType)} className="h-4 text-[10px] px-1">
+                        {formatPayeeType(payee.payee_type as PayeeType)}
+                      </Badge>
+                      {payee.is_internal && (
+                        <Badge variant="outline" className="h-4 text-[10px] px-1">Int</Badge>
+                      )}
+                    </div>
+                  </div>
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+
+        {/* Add New Payee Button */}
+        <Button
+          type="button"
+          variant="outline"
+          size={compact ? "sm" : "default"}
+          onClick={() => setShowPayeeForm(true)}
+          className={cn(compact && "h-8 text-xs px-3")}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
 
       {error && (
         <p className="text-xs text-destructive mt-1">{error}</p>
       )}
 
-      <Dialog open={showPayeeForm} onOpenChange={setShowPayeeForm}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Add New Payee</DialogTitle>
-          </DialogHeader>
-          <PayeeForm
-            onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: ['payees'] });
-              setShowPayeeForm(false);
-            }}
-            onCancel={() => setShowPayeeForm(false)}
-            defaultPayeeType={defaultPayeeType}
-            defaultProvidesLabor={defaultProvidesLabor}
-            defaultIsInternal={defaultIsInternal}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Create Payee Sheet */}
+      <Sheet open={showPayeeForm} onOpenChange={setShowPayeeForm}>
+        <SheetContent className="w-full sm:max-w-[600px] flex flex-col p-0">
+          <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b">
+            <SheetTitle>Add New Payee</SheetTitle>
+            <SheetDescription>
+              Create a new payee for expenses, invoices, and payments.
+            </SheetDescription>
+          </SheetHeader>
+          
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <PayeeForm
+              onSuccess={handlePayeeCreated}
+              onCancel={() => setShowPayeeForm(false)}
+              defaultPayeeType={defaultPayeeType}
+              defaultProvidesLabor={defaultProvidesLabor}
+              defaultIsInternal={defaultIsInternal}
+              isSubmittingRef={isSubmittingRef}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 px-6 py-4 border-t bg-background">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowPayeeForm(false)}
+              disabled={isSubmittingRef.current}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="payee-form"
+              disabled={isSubmittingRef.current}
+            >
+              {isSubmittingRef.current ? "Saving..." : "Add Payee"}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

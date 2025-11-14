@@ -1,7 +1,6 @@
 import { ReactNode } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
 
 interface TimeEntryDialogProps {
   open: boolean;
@@ -21,36 +20,19 @@ export const TimeEntryDialog = ({
   const isMobile = useIsMobile();
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
-        className={cn(
-          "max-h-[92vh] overflow-y-auto",
-          isMobile 
-            ? "fixed bottom-0 left-0 right-0 top-auto translate-x-0 translate-y-0 rounded-t-2xl pb-safe max-w-full w-full p-3 sm:p-6" 
-            : "!max-w-md p-4"
-        )}
-        onPointerDownOutside={(e) => {
-          if (isMobile) {
-            e.preventDefault();
-          }
-        }}
-        onInteractOutside={(e) => {
-          if (isMobile) {
-            e.preventDefault();
-          }
-        }}
-        onOpenAutoFocus={(e) => {
-          if (isMobile) {
-            e.preventDefault();
-          }
-        }}
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent 
+        className="w-full sm:max-w-[500px] flex flex-col p-0"
+        side={isMobile ? "bottom" : "right"}
       >
-        <DialogHeader>
-          <DialogTitle className="text-sm font-semibold">{title}</DialogTitle>
-          {description && <DialogDescription className="text-xs">{description}</DialogDescription>}
-        </DialogHeader>
-        {children}
-      </DialogContent>
-    </Dialog>
+        <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b">
+          <SheetTitle>{title}</SheetTitle>
+          {description && <SheetDescription>{description}</SheetDescription>}
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {children}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };

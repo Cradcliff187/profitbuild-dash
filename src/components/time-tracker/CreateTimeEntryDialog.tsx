@@ -144,23 +144,21 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
         isMobile={isMobile}
         showRates={false}
       />
-      <div className="flex gap-2 pt-2">
+      <div className={isMobile ? "flex gap-3 pt-4" : "flex gap-2 pt-2"}>
         <Button 
           type="button"
           variant="outline"
-          size="sm"
           onClick={() => onOpenChange(false)} 
           disabled={loading} 
-          className="flex-1 text-xs"
+          className={isMobile ? "flex-1 h-12 text-base" : "flex-1"}
         >
           Cancel
         </Button>
         <Button 
           type="button"
-          size="sm"
           onClick={handleSave} 
           disabled={loading} 
-          className="flex-1 text-xs"
+          className={isMobile ? "flex-1 h-12 text-base font-medium" : "flex-1"}
         >
           {loading ? 'Creating...' : 'Create Entry'}
         </Button>

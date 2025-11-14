@@ -285,7 +285,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                         <div>
                           <Select 
                             onValueChange={field.onChange} 
-                            defaultValue={field.value}
+                            value={field.value}
                             disabled={expense?.is_split}
                           >
                             <FormControl>
@@ -296,7 +296,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                             <SelectContent>
                               {projects.map((project) => (
                                 <SelectItem key={project.id} value={project.id}>
-                                  {project.project_name} - {project.client_name}
+                                  {project.project_number} - {project.project_name}
                                 </SelectItem>
                               ))}
                             </SelectContent>

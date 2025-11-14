@@ -2,8 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, MoreHorizontal, Eye, Edit2, Trash2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { AlertTriangle, MoreHorizontal, Eye, Edit2, Trash2, ChevronDown, Mail, Phone, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +38,29 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
   const [servicesFilter, setServicesFilter] = useState("all");
   const [selectedPayee, setSelectedPayee] = useState<Payee | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const isMobile = useIsMobile();
   const { toast } = useToast();
+
+  const toggleCard = (payeeId: string) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(payeeId)) {
+        newSet.delete(payeeId);
+      } else {
+        newSet.add(payeeId);
+      }
+      return newSet;
+    });
+  };
+
+  const togglePayeeSelection = (payeeId: string) => {
+    if (selectedPayees.includes(payeeId)) {
+      setSelectedPayees(selectedPayees.filter(id => id !== payeeId));
+    } else {
+      setSelectedPayees([...selectedPayees, payeeId]);
+    }
+  };
 
   const getPayeeTypeBadgeVariant = (payeeType: string) => {
     switch (payeeType) {
@@ -407,42 +433,206 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
 
   return (
     <div className="dense-spacing">
-      <EntityTableTemplate
-        title="Payee Directory"
-        description={`Manage your payees and contractors (${filteredPayees.length} total)`}
-        data={filteredPayees}
-        columns={columns}
-        isLoading={isLoading}
-        selectedItems={selectedPayees}
-        onSelectItem={handleSelectPayee}
-        onSelectAll={handleSelectAll}
-        renderActions={renderActions}
-        filters={
-          <PayeeFilters
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            selectedType={selectedType}
-            onTypeChange={setSelectedType}
-            servicesFilter={servicesFilter}
-            onServicesFilterChange={setServicesFilter}
-            onClearFilters={clearFilters}
-            hasActiveFilters={hasActiveFilters}
-            resultCount={filteredPayees.length}
-          />
-        }
-        bulkActions={
-          selectedPayees.length > 0 ? (
-            <PayeeBulkActions
-              selectedPayees={payees.filter(p => selectedPayees.includes(p.id))}
-              onBulkDelete={handleBulkDelete}
-              onBulkUpdateType={handleBulkUpdateType}
-              onClearSelection={clearSelection}
+      {/* Desktop Table View */}
+      <div className="hidden sm:block">
+        <EntityTableTemplate
+          title="Payee Directory"
+          description={`Manage your payees and contractors (${filteredPayees.length} total)`}
+          data={filteredPayees}
+          columns={columns}
+          isLoading={isLoading}
+          selectedItems={selectedPayees}
+          onSelectItem={handleSelectPayee}
+          onSelectAll={handleSelectAll}
+          renderActions={renderActions}
+          filters={
+            <PayeeFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              selectedType={selectedType}
+              onTypeChange={setSelectedType}
+              servicesFilter={servicesFilter}
+              onServicesFilterChange={setServicesFilter}
+              onClearFilters={clearFilters}
+              hasActiveFilters={hasActiveFilters}
+              resultCount={filteredPayees.length}
             />
-          ) : null
-        }
-        emptyMessage="No payees found. Add your first payee to get started."
-        noResultsMessage="No payees match your current filters."
-      />
+          }
+          bulkActions={
+            selectedPayees.length > 0 ? (
+              <PayeeBulkActions
+                selectedPayees={payees.filter(p => selectedPayees.includes(p.id))}
+                onBulkDelete={handleBulkDelete}
+                onBulkUpdateType={handleBulkUpdateType}
+                onClearSelection={clearSelection}
+              />
+            ) : null
+          }
+          emptyMessage="No payees found. Add your first payee to get started."
+          noResultsMessage="No payees match your current filters."
+        />
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="sm:hidden space-y-3">
+        <PayeeFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          selectedType={selectedType}
+          onTypeChange={setSelectedType}
+          servicesFilter={servicesFilter}
+          onServicesFilterChange={setServicesFilter}
+          onClearFilters={clearFilters}
+          hasActiveFilters={hasActiveFilters}
+          resultCount={filteredPayees.length}
+        />
+
+        {filteredPayees.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center text-sm text-muted-foreground">
+              {payees.length === 0 ? "No payees found. Add your first payee to get started." : "No payees match your current filters."}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {filteredPayees.map((payee) => {
+              const isExpanded = expandedCards.has(payee.id);
+              const isInsuranceExpiring = payee.insurance_expires && isInsuranceExpiringSoon(payee.insurance_expires);
+
+              return (
+                <Card key={payee.id} className="overflow-hidden">
+                  <Collapsible open={isExpanded} onOpenChange={() => toggleCard(payee.id)}>
+                    {/* Collapsed Header */}
+                    <CardHeader className="p-3 bg-gradient-to-r from-primary/5 to-transparent">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          checked={selectedPayees.includes(payee.id)}
+                          onCheckedChange={() => togglePayeeSelection(payee.id)}
+                          className="mt-0.5"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-sm font-medium truncate">
+                              {payee.payee_name}
+                            </CardTitle>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {isInsuranceExpiring && (
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                              )}
+                              <Badge 
+                                variant={getPayeeTypeBadgeVariant(payee.payee_type)} 
+                                className="h-4 px-1.5 text-[10px]"
+                              >
+                                {payee.payee_type.replace('_', ' ')}
+                              </Badge>
+                            </div>
+                          </div>
+                          {payee.email && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Mail className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{payee.email}</span>
+                            </div>
+                          )}
+                          {payee.phone_numbers && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Phone className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{payee.phone_numbers}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    {/* Collapsible Trigger */}
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-between px-3 py-2 h-auto hover:bg-muted/50 border-t"
+                      >
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {payee.provides_labor && (
+                            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">Labor</Badge>
+                          )}
+                          {payee.provides_materials && (
+                            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">Materials</Badge>
+                          )}
+                          {payee.is_internal && (
+                            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">Internal</Badge>
+                          )}
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
+                      </Button>
+                    </CollapsibleTrigger>
+
+                    {/* Expanded Content */}
+                    <CollapsibleContent>
+                      <CardContent className="p-3 space-y-3 pt-2">
+                        {/* Additional Details */}
+                        {payee.billing_address && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Address</div>
+                            <div className="flex items-start gap-1.5 text-xs">
+                              <MapPin className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground" />
+                              <span>{payee.billing_address}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {payee.license_number && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">License</div>
+                            <div className="text-xs">{payee.license_number}</div>
+                          </div>
+                        )}
+
+                        {payee.insurance_expires && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Insurance Expires</div>
+                            <div className="text-xs">
+                              {new Date(payee.insurance_expires).toLocaleDateString()}
+                              {isInsuranceExpiring && (
+                                <Badge variant="outline" className="ml-2 h-5 px-1.5 text-[10px] border-amber-500 text-amber-700">
+                                  Expiring Soon
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 pt-2 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              setSelectedPayee(payee);
+                              setShowDetailsModal(true);
+                            }}
+                          >
+                            <Eye className="h-3 w-3 mr-1.5" />
+                            View
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => onEdit(payee)}
+                          >
+                            <Edit2 className="h-3 w-3 mr-1.5" />
+                            Edit
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       <PayeeDetailsModal
         payee={selectedPayee}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -107,141 +107,146 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-lg">Create New User</DialogTitle>
-          <DialogDescription className="text-xs">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-[600px] flex flex-col p-0">
+        <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b">
+          <SheetTitle>Create New User</SheetTitle>
+          <SheetDescription>
             Add a new user to the system with assigned role
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         {temporaryPassword ? (
-          <div className="space-y-3">
-            <div className="bg-muted p-3 rounded-md">
-              <Label className="text-xs mb-1 block">Temporary Password</Label>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 text-sm font-mono bg-background p-2 rounded border">
-                  {temporaryPassword}
-                </code>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={copyPassword}
-                  className="h-8"
-                >
-                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                </Button>
+          <>
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <div className="space-y-4">
+                <div className="bg-muted p-4 rounded-md">
+                  <Label className="mb-2 block">Temporary Password</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-sm font-mono bg-background p-2 rounded border">
+                      {temporaryPassword}
+                    </code>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={copyPassword}
+                    >
+                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    User must change this password on first login. Copy it now - it won't be shown again.
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                User must change this password on first login. Copy it now - it won't be shown again.
-              </p>
             </div>
-            <Button onClick={handleClose} className="w-full h-8 text-xs">
-              Close
-            </Button>
-          </div>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t bg-background">
+              <Button onClick={handleClose} className="w-full">
+                Close
+              </Button>
+            </div>
+          </>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@example.com"
-                required
-                disabled={loading}
-                className="h-8 text-sm"
-              />
+          <>
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <form onSubmit={handleSubmit} className="space-y-4" id="create-user-form">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="user@example.com"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="John Doe"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="role">Initial Role</Label>
+                  <Select value={role} onValueChange={(value) => setRole(value as AppRole)} disabled={loading}>
+                    <SelectTrigger id="role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="field_worker">Field Worker</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="method">Creation Method</Label>
+                  <Select value={method} onValueChange={(value) => setMethod(value as any)} disabled={loading}>
+                    <SelectTrigger id="method">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="temporary_password">
+                        Temporary Password (Recommended for Invitations)
+                      </SelectItem>
+                      <SelectItem value="permanent_password">
+                        Set Permanent Password
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    💡 Use temporary password to invite users - they'll receive an email with login credentials and will be required to change their password on first login.
+                  </p>
+                </div>
+
+                {method === 'permanent_password' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="permanentPassword">Permanent Password</Label>
+                    <Input
+                      id="permanentPassword"
+                      type="text"
+                      value={permanentPassword}
+                      onChange={(e) => setPermanentPassword(e.target.value)}
+                      placeholder="Enter permanent password (min 8 chars)"
+                      required
+                      disabled={loading}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      ⚠️ Note: You'll know this password. Use temporary password method for better security.
+                    </p>
+                  </div>
+                )}
+              </form>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="fullName" className="text-xs">Full Name</Label>
-              <Input
-                id="fullName"
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="John Doe"
-                disabled={loading}
-                className="h-8 text-sm"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="role" className="text-xs">Initial Role</Label>
-              <Select value={role} onValueChange={(value) => setRole(value as AppRole)} disabled={loading}>
-                <SelectTrigger id="role" className="h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="field_worker">Field Worker</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="method" className="text-xs">Creation Method</Label>
-              <Select value={method} onValueChange={(value) => setMethod(value as any)} disabled={loading}>
-                <SelectTrigger id="method" className="h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="temporary_password">
-                    Temporary Password (Recommended for Invitations)
-                  </SelectItem>
-                  <SelectItem value="permanent_password">
-                    Set Permanent Password
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                💡 Use temporary password to invite users - they'll receive an email with login credentials and will be required to change their password on first login.
-              </p>
-            </div>
-
-            {method === 'permanent_password' && (
-              <div className="space-y-1.5">
-                <Label htmlFor="permanentPassword" className="text-xs">Permanent Password</Label>
-                <Input
-                  id="permanentPassword"
-                  type="text"
-                  value={permanentPassword}
-                  onChange={(e) => setPermanentPassword(e.target.value)}
-                  placeholder="Enter permanent password (min 8 chars)"
-                  required
-                  disabled={loading}
-                  className="h-8 text-sm"
-                />
-                <p className="text-xs text-muted-foreground">
-                  ⚠️ Note: You'll know this password. Use temporary password method for better security.
-                </p>
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-2">
+            <div className="flex justify-end gap-3 px-6 py-4 border-t bg-background">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleClose}
                 disabled={loading}
-                className="flex-1 h-8 text-xs"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading} className="flex-1 h-8 text-xs">
-                {loading && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+              <Button type="submit" form="create-user-form" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create User
               </Button>
             </div>
-          </form>
+          </>
         )}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
