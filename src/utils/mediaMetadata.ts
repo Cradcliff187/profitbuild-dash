@@ -18,8 +18,19 @@ const ALLOWED_VIDEO_TYPES = [
   'video/x-matroska',
 ];
 
+const ALLOWED_DOCUMENT_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain',
+  'text/csv',
+];
+
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
 const MAX_VIDEO_SIZE = 150 * 1024 * 1024; // 150MB
+const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024; // 10MB
 
 export interface ValidationResult {
   isValid: boolean;
@@ -27,25 +38,30 @@ export interface ValidationResult {
 }
 
 /**
- * Validate media file type and size
+ * Validate media file type and size (supports images, videos, and documents)
  */
 export function validateMediaFile(file: File): ValidationResult {
   const isImage = ALLOWED_IMAGE_TYPES.includes(file.type);
   const isVideo = ALLOWED_VIDEO_TYPES.includes(file.type);
+  const isDocument = ALLOWED_DOCUMENT_TYPES.includes(file.type);
 
-  if (!isImage && !isVideo) {
+  if (!isImage && !isVideo && !isDocument) {
     return {
       isValid: false,
-      error: `Invalid file type: ${file.type}. Allowed types: ${[...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES].join(', ')}`,
+      error: `Invalid file type: ${file.type}. Allowed types: images (JPG, PNG, WebP), videos (MP4, MOV), documents (PDF, Word, Excel, Text)`,
     };
   }
 
-  const maxSize = isImage ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE;
+  const maxSize = isImage ? MAX_IMAGE_SIZE 
+                : isVideo ? MAX_VIDEO_SIZE 
+                : MAX_DOCUMENT_SIZE;
+                
   if (file.size > maxSize) {
     const maxSizeMB = maxSize / (1024 * 1024);
+    const fileType = isImage ? 'Image' : isVideo ? 'Video' : 'Document';
     return {
       isValid: false,
-      error: `File size ${(file.size / (1024 * 1024)).toFixed(2)}MB exceeds maximum ${maxSizeMB}MB`,
+      error: `${fileType} size ${(file.size / (1024 * 1024)).toFixed(2)}MB exceeds maximum ${maxSizeMB}MB`,
     };
   }
 
