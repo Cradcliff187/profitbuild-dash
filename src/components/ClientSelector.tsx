@@ -1,15 +1,21 @@
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronsUpDown, Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import { Client } from "@/types/client";
-import { useQuery } from "@tanstack/react-query";
-import { ClientForm } from "./ClientForm";
+import { useState, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectSeparator,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { ClientForm } from '@/components/ClientForm';
+import { Client } from '@/types/client';
+import { Plus, Search } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ClientSelectorProps {
   value?: string;
@@ -30,13 +36,11 @@ export const ClientSelector = ({
   error = "",
   showLabel = true
 }: ClientSelectorProps) => {
-  const [open, setOpen] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const queryClient = useQueryClient();
 
-  const { data: clients = [], refetch } = useQuery({
+  const { data: clients = [], isLoading } = useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -50,186 +54,117 @@ export const ClientSelector = ({
     },
   });
 
+  // Filter clients based on search query
+  const filteredClients = useMemo(() => {
+    if (!searchQuery.trim()) return clients;
+    
+    const query = searchQuery.toLowerCase();
+    return clients.filter(client => 
+      client.client_name.toLowerCase().includes(query) ||
+      client.company_name?.toLowerCase().includes(query) ||
+      client.email?.toLowerCase().includes(query) ||
+      client.phone?.toLowerCase().includes(query)
+    );
+  }, [clients, searchQuery]);
+
   const selectedClient = clients.find(client => client.id === value);
 
-  // Enhanced search across multiple fields
-  const filteredClients = clients.filter(client => {
-    const search = searchValue.toLowerCase();
-    return (
-      client.client_name.toLowerCase().includes(search) ||
-      client.company_name?.toLowerCase().includes(search) ||
-      client.contact_person?.toLowerCase().includes(search) ||
-      client.email?.toLowerCase().includes(search) ||
-      client.phone?.toLowerCase().includes(search)
-    );
-  });
-
-  // Auto-focus search when opened
-  useEffect(() => {
-    if (open && searchInputRef.current) {
-      setTimeout(() => searchInputRef.current?.focus(), 10);
-      setSearchValue("");
-      setSelectedIndex(0);
-    }
-  }, [open]);
-
-  // Keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (filteredClients.length === 0) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSelectedIndex(prev => Math.min(prev + 1, filteredClients.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSelectedIndex(prev => Math.max(prev - 1, 0));
-    } else if (e.key === "Enter" && selectedIndex >= 0) {
-      e.preventDefault();
-      const client = filteredClients[selectedIndex];
-      if (client) {
-        onValueChange(client.id, client.client_name);
-        setOpen(false);
-      }
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      setOpen(false);
-    }
+  const handleValueChange = (val: string) => {
+    const client = clients.find(c => c.id === val);
+    onValueChange(val, client?.client_name);
   };
 
-  const handleSelect = (client: Client) => {
-    onValueChange(client.id, client.client_name);
-    setOpen(false);
-  };
-
-  const handleClientCreated = (createdClient?: Client) => {
+  const handleClientCreated = (newClient: Client) => {
+    queryClient.invalidateQueries({ queryKey: ["clients"] });
     setShowClientForm(false);
-    
-    // Add delay to ensure database transaction is committed
+    // Auto-select the newly created client
     setTimeout(() => {
-      refetch();
-      
-      // Auto-select the newly created client
-      if (createdClient) {
-        onValueChange(createdClient.id, createdClient.client_name);
-      }
-    }, 150);
+      onValueChange(newClient.id, newClient.client_name);
+    }, 100);
   };
 
   return (
-    <div className="space-y-2">
+    <div className={cn(showLabel && "space-y-2")}>
       {showLabel && (
         <Label className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
           Client
         </Label>
       )}
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            onBlur={onBlur}
+      
+      <div className="flex gap-2">
+        <Select
+          value={value}
+          onValueChange={handleValueChange}
+        >
+          <SelectTrigger 
             className={cn(
-              "w-full justify-between h-8 px-3 py-1.5 text-xs font-normal",
-              !value && "text-muted-foreground",
+              "flex-1",
               error && "border-destructive"
             )}
+            onBlur={onBlur}
           >
-            {selectedClient ? (
-              <span className="truncate">
-                {selectedClient.client_name}
-                {selectedClient.company_name && ` (${selectedClient.company_name})`}
-              </span>
-            ) : (
-              placeholder
-            )}
-            <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-[--radix-popper-anchor-width] p-0 z-[100] bg-popover">
-          <div className="flex flex-col h-[220px]">
+            <SelectValue placeholder={placeholder}>
+              {selectedClient && (
+                <span className="truncate">
+                  {selectedClient.client_name}
+                  {selectedClient.company_name && ` (${selectedClient.company_name})`}
+                </span>
+              )}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
             {/* Search Input */}
-            <div className="p-1.5 border-b">
+            <div className="flex items-center border-b px-3 pb-2 pt-2">
+              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
               <Input
-                ref={searchInputRef}
                 placeholder="Search clients..."
-                value={searchValue}
-                onChange={(e) => {
-                  setSearchValue(e.target.value);
-                  setSelectedIndex(0);
-                }}
-                onKeyDown={handleKeyDown}
-                className="h-7 text-[11px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 border-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
               />
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                {filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''} found
-              </p>
             </div>
 
-            {/* Client List */}
-            {filteredClients.length > 0 ? (
-              <>
-                <ScrollArea className="flex-1 overflow-auto">
-                  <div className="p-0.5">
-                    {filteredClients.map((client, index) => (
-                      <div
-                        key={client.id}
-                        onClick={() => handleSelect(client)}
-                        className={cn(
-                          "px-2 py-1 cursor-pointer rounded text-[11px] transition-colors",
-                          value === client.id && "bg-accent/50",
-                          selectedIndex === index && "bg-accent",
-                          "hover:bg-accent"
-                        )}
-                      >
-                        <div className="font-medium">{client.client_name}</div>
-                        {client.company_name && (
-                          <div className="text-muted-foreground">{client.company_name}</div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-
-                {/* Footer with Add Button */}
-                <div className="p-1.5 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full h-6 text-[11px]"
-                    onClick={() => {
-                      setShowClientForm(true);
-                      setOpen(false);
-                    }}
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add New Client
-                  </Button>
-                </div>
-              </>
-            ) : (
-              /* Empty State */
-              <div className="flex flex-col items-center justify-center flex-1 p-4 text-center">
-                <p className="text-sm text-muted-foreground mb-3">No clients found</p>
-                <Button
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => {
-                    setShowClientForm(true);
-                    setOpen(false);
-                  }}
-                >
-                  <Plus className="h-3 w-3 mr-1" />
-                  Add New Client
-                </Button>
+            {isLoading ? (
+              <SelectItem value="__loading__" disabled>Loading clients...</SelectItem>
+            ) : filteredClients.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                {searchQuery ? 'No clients match your search' : 'No clients found'}
               </div>
+            ) : (
+              <>
+                {filteredClients.map((client) => (
+                  <SelectItem 
+                    key={client.id} 
+                    value={client.id}
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">{client.client_name}</span>
+                      {client.company_name && (
+                        <span className="text-xs text-muted-foreground">{client.company_name}</span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </>
             )}
-          </div>
-        </PopoverContent>
-      </Popover>
+          </SelectContent>
+        </Select>
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowClientForm(true)}
+          className="shrink-0"
+        >
+          <Plus className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">New Client</span>
+        </Button>
+      </div>
 
       {error && (
-        <p className="text-sm font-medium text-destructive">{error}</p>
+        <p className="text-xs text-destructive">{error}</p>
       )}
 
       {showClientForm && (

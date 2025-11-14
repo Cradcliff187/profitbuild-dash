@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { EditableField } from "@/components/ui/field-types";
 import { supabase } from "@/integrations/supabase/client";
 import { Client, ClientType, CLIENT_TYPES, CreateClientRequest, PAYMENT_TERMS } from "@/types/client";
 import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ClientFormProps {
   client?: Client | null;
@@ -99,14 +100,18 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
   };
 
   return (
-    <Dialog open onOpenChange={onCancel}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Client" : "Add New Client"}</DialogTitle>
-        </DialogHeader>
+    <Sheet open onOpenChange={onCancel}>
+      <SheetContent className="w-full sm:max-w-[600px] flex flex-col p-0">
+        <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b">
+          <SheetTitle>{isEditing ? "Edit Client" : "Add New Client"}</SheetTitle>
+          <SheetDescription>
+            {isEditing ? "Update client information" : "Enter the client details below"}
+          </SheetDescription>
+        </SheetHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <form onSubmit={handleSubmit} className="space-y-4" id="client-form">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="client_name">Client Name *</Label>
               <Input
@@ -129,7 +134,7 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="contact_person">Contact Person</Label>
               <Input
@@ -157,7 +162,7 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="email">Email</Label>
               <Input
@@ -202,7 +207,7 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="payment_terms">Payment Terms</Label>
               <Select value={formData.payment_terms} onValueChange={(value) => setFormData({ ...formData, payment_terms: value })}>
@@ -251,16 +256,18 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Saving..." : (isEditing ? "Update Client" : "Create Client")}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </form>
+        </div>
+        
+        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-background">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" form="client-form" disabled={isLoading}>
+            {isLoading ? "Saving..." : (isEditing ? "Update Client" : "Create Client")}
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };

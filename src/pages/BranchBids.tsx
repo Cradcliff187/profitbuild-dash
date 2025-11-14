@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Plus, Trash2, ExternalLink, FolderOpen } from 'lucide-react';
+import { FileText, Plus, Trash2, ExternalLink, FolderOpen, Grid, Table as TableIcon, ArrowUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
@@ -14,20 +14,39 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { BrandedLoader } from '@/components/ui/branded-loader';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import { ClientSelector } from '@/components/ClientSelector';
 import type { BranchBid } from '@/types/bid';
+
+type DisplayMode = 'cards' | 'table';
+type SortOption = 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc';
 
 export default function BranchBids() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedBid, setSelectedBid] = useState<BranchBid | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>(isMobile ? 'cards' : 'table');
+  const [sortOption, setSortOption] = useState<SortOption>('date-desc');
   
   // Form state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [clientId, setClientId] = useState('');
+
+  // Auto-switch to cards on mobile
+  useEffect(() => {
+    if (isMobile && displayMode === 'table') {
+      setDisplayMode('cards');
+    }
+  }, [isMobile, displayMode]);
 
   // Fetch all bids
   const { data: bids, isLoading } = useQuery({
@@ -37,8 +56,8 @@ export default function BranchBids() {
         .from('branch_bids')
         .select(`
           *,
-          projects:project_id (project_number, project_name, client_name),
-          estimates:estimate_id (estimate_number)
+          clients:client_id (id, client_name, company_name),
+          projects:project_id (project_number, project_name, client_name)
         `)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
@@ -75,6 +94,7 @@ export default function BranchBids() {
         .insert({
           name,
           description: description || null,
+          client_id: clientId || null,
           created_by: user.id,
         })
         .select('*')
@@ -97,6 +117,7 @@ export default function BranchBids() {
       setShowCreateDialog(false);
       setName('');
       setDescription('');
+      setClientId('');
       // Navigate to the detail page
       navigate(`/branch-bids/${data.id}`);
     },
@@ -130,12 +151,34 @@ export default function BranchBids() {
     },
   });
 
-  // Filter bids based on search query
-  const filteredBids = bids?.filter(bid => 
-    bid.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    bid.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    bid.projects?.project_name?.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  // Filter and sort bids
+  const filteredAndSortedBids = useMemo(() => {
+    let result = bids?.filter(bid => 
+      bid.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bid.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bid.projects?.project_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bid.clients?.client_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bid.clients?.company_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    ) || [];
+
+    // Apply sorting
+    result.sort((a, b) => {
+      switch (sortOption) {
+        case 'date-desc':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'date-asc':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'name-asc':
+          return a.name.localeCompare(b.name);
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [bids, searchQuery, sortOption]);
 
   const handleCreateBid = () => {
     if (!name.trim()) {
@@ -188,18 +231,56 @@ export default function BranchBids() {
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="flex gap-2">
+      {/* Search and Controls */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Input
           placeholder="Search bids..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-md"
+          className="w-full sm:max-w-md"
         />
+        
+        <div className="flex gap-2">
+          {/* Sort */}
+          <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
+            <SelectTrigger className="w-[180px]">
+              <ArrowUpDown className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date-desc">Newest First</SelectItem>
+              <SelectItem value="date-asc">Oldest First</SelectItem>
+              <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+              <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* View Toggle */}
+          {!isMobile && (
+            <div className="flex gap-1 border rounded-md p-1">
+              <Button
+                variant={displayMode === 'table' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setDisplayMode('table')}
+                className="h-8 px-3"
+              >
+                <TableIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={displayMode === 'cards' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setDisplayMode('cards')}
+                className="h-8 px-3"
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Bids List */}
-      {filteredBids.length === 0 ? (
+      {filteredAndSortedBids.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
@@ -217,10 +298,89 @@ export default function BranchBids() {
             )}
           </CardContent>
         </Card>
+      ) : displayMode === 'table' ? (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Linked Project</TableHead>
+                <TableHead>Created By</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAndSortedBids.map((bid) => (
+                <TableRow 
+                  key={bid.id} 
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => navigate(`/branch-bids/${bid.id}`)}
+                >
+                  <TableCell className="font-medium">
+                    <div>
+                      <div className="font-semibold">{bid.name}</div>
+                      {bid.description && (
+                        <div className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
+                          {bid.description}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {bid.clients ? (
+                      <div className="text-sm">
+                        <div className="font-medium">{bid.clients.client_name}</div>
+                        {bid.clients.company_name && (
+                          <div className="text-xs text-muted-foreground">{bid.clients.company_name}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {format(new Date(bid.created_at), 'MMM d, yyyy')}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {bid.projects ? (
+                      <Badge variant="secondary" className="w-fit text-xs">
+                        {bid.projects.project_number}
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {bid.profiles?.full_name || 'Unknown'}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(bid);
+                      }}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredBids.map((bid) => (
-            <Card key={bid.id} className="hover:shadow-md transition-shadow">
+          {filteredAndSortedBids.map((bid) => (
+            <Card key={bid.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/branch-bids/${bid.id}`)}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -232,7 +392,10 @@ export default function BranchBids() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleDeleteClick(bid)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteClick(bid);
+                    }}
                     className="text-destructive hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -246,34 +409,30 @@ export default function BranchBids() {
                   </p>
                 )}
                 
+                {bid.clients && (
+                  <div className="text-sm">
+                    <span className="font-medium">{bid.clients.client_name}</span>
+                    {bid.clients.company_name && (
+                      <span className="text-muted-foreground"> • {bid.clients.company_name}</span>
+                    )}
+                  </div>
+                )}
+                
                 {bid.projects && (
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-xs">
                       <ExternalLink className="h-3 w-3 mr-1" />
                       {bid.projects.project_number}
                     </Badge>
-                  </div>
-                )}
-
-                {bid.estimates && (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      <FileText className="h-3 w-3 mr-1" />
-                      {bid.estimates.estimate_number}
-                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {bid.projects.project_name}
+                    </span>
                   </div>
                 )}
 
                 <div className="text-xs text-muted-foreground">
                   By {bid.profiles?.full_name || 'Unknown'}
                 </div>
-
-                <Button
-                  className="w-full"
-                  onClick={() => navigate(`/branch-bids/${bid.id}`)}
-                >
-                  View Details
-                </Button>
               </CardContent>
             </Card>
           ))}
@@ -297,6 +456,14 @@ export default function BranchBids() {
                 placeholder="e.g., Smith Residence Renovation"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <ClientSelector
+                value={clientId}
+                onValueChange={(id) => setClientId(id)}
+                placeholder="Select a client"
+                required={false}
               />
             </div>
             <div className="space-y-2">
