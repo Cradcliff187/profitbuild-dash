@@ -33,7 +33,7 @@ export function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaption
 
   const handleSave = () => {
     if (!caption.trim()) {
-      toast.error('Please add a caption');
+      toast.error('Please add a note for this photo');
       return;
     }
     onSave(caption.trim());
@@ -43,7 +43,7 @@ export function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaption
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-sm font-medium">Type Caption</DialogTitle>
+          <DialogTitle className="text-sm font-medium">Add Photo Note</DialogTitle>
         </DialogHeader>
 
         {!showAIEnhancer ? (
@@ -61,12 +61,12 @@ export function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaption
               {/* Caption Editor */}
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
-                  Caption
+                  Note
                 </label>
                 <Textarea
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
-                  placeholder="Type your caption here..."
+                  placeholder="Describe what's in this photo..."
                   className="min-h-[120px] text-sm resize-none"
                   autoFocus
                 />
@@ -94,7 +94,7 @@ export function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaption
                   disabled={!caption.trim()}
                   className="h-8"
                 >
-                  Save Caption
+                  Save Note
                 </Button>
               </div>
               <button

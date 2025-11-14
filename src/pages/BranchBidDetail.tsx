@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Save, Link as LinkIcon, Camera, Video, FileText } from 'lucide-react';
+import { ArrowLeft, Save, Link as LinkIcon, Camera, Video, FileText, StickyNote, Image, Rocket } from 'lucide-react';
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,19 +16,32 @@ import { toast } from 'sonner';
 import { BidNotesTimeline } from '@/components/BidNotesTimeline';
 import { BidMediaGallery } from '@/components/BidMediaGallery';
 import { BidDocumentUpload } from '@/components/BidDocumentUpload';
+import { ClientSelector } from '@/components/ClientSelector';
 import type { BranchBid } from '@/types/bid';
+import { generateProjectNumber } from '@/types/project';
 
 export default function BranchBidDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState('notes');
 
   // Form state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [projectId, setProjectId] = useState<string>('');
-  const [estimateId, setEstimateId] = useState<string>('');
+  const [clientId, setClientId] = useState('');
+  const [address, setAddress] = useState('');
+  const [projectType, setProjectType] = useState<'construction_project' | 'work_order'>('construction_project');
+  const [jobType, setJobType] = useState('');
+  const [documentUrl, setDocumentUrl] = useState('');
+
+  // Tab options
+  const tabOptions = [
+    { value: 'notes', label: 'Notes', icon: StickyNote },
+    { value: 'media', label: 'Media', icon: Image },
+    { value: 'documents', label: 'Documents', icon: FileText },
+  ];
 
   // Fetch bid details
   const { data: bid, isLoading } = useQuery({
@@ -40,8 +53,8 @@ export default function BranchBidDetail() {
         .from('branch_bids')
         .select(`
           *,
-          projects:project_id (id, project_number, project_name, client_name),
-          estimates:estimate_id (id, estimate_number)
+          clients:client_id (id, client_name, company_name, email, phone),
+          projects:project_id (id, project_number, project_name, client_name)
         `)
         .eq('id', id)
         .is('deleted_at', null)
@@ -61,48 +74,17 @@ export default function BranchBidDetail() {
       // Set form state from fetched data
       setName(bidWithProfile.name);
       setDescription(bidWithProfile.description || '');
-      setProjectId(bidWithProfile.project_id || '');
-      setEstimateId(bidWithProfile.estimate_id || '');
+      setClientId(bidWithProfile.client_id || '');
+      setAddress(bidWithProfile.address || '');
+      setProjectType(bidWithProfile.project_type || 'construction_project');
+      setJobType(bidWithProfile.job_type || '');
 
       return bidWithProfile;
     },
     enabled: !!id,
   });
 
-  // Fetch available projects
-  const { data: projects } = useQuery({
-    queryKey: ['projects-list'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('id, project_number, project_name, client_name')
-        .neq('project_number', 'SYS-000')
-        .neq('project_number', '000-UNASSIGNED')
-        .order('created_at', { ascending: false })
-        .limit(100);
 
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Fetch available estimates
-  const { data: estimates } = useQuery({
-    queryKey: ['estimates-list', projectId],
-    queryFn: async () => {
-      if (!projectId) return [];
-
-      const { data, error } = await supabase
-        .from('estimates')
-        .select('id, estimate_number, status')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!projectId,
-  });
 
   // Update mutation
   const updateMutation = useMutation({
@@ -114,8 +96,10 @@ export default function BranchBidDetail() {
         .update({
           name,
           description: description || null,
-          project_id: projectId || null,
-          estimate_id: estimateId || null,
+          client_id: clientId || null,
+          address: address || null,
+          project_type: projectType || null,
+          job_type: jobType || null,
         })
         .eq('id', id);
 
@@ -142,6 +126,92 @@ export default function BranchBidDetail() {
     updateMutation.mutate();
   };
 
+  // Convert to project mutation
+  const convertToProjectMutation = useMutation({
+    mutationFn: async () => {
+      if (!id) throw new Error('No bid ID');
+      if (!bid) throw new Error('Bid not found');
+
+      // Validate required fields
+      if (!name.trim()) throw new Error('Bid name is required');
+      if (!clientId) throw new Error('Client is required to create a project');
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      // Get client info
+      const { data: client, error: clientError } = await supabase
+        .from('clients')
+        .select('client_name')
+        .eq('id', clientId)
+        .single();
+
+      if (clientError || !client) throw new Error('Client not found');
+
+      // Generate project number
+      const projectNumber = await generateProjectNumber();
+
+      // Create the project
+      const { data: newProject, error: projectError } = await supabase
+        .from('projects')
+        .insert({
+          project_number: projectNumber,
+          project_name: name,
+          client_id: clientId,
+          client_name: client.client_name,
+          address: address || null,
+          project_type: projectType,
+          job_type: jobType || null,
+          status: 'estimating',
+          notes: description || null,
+        })
+        .select('*')
+        .single();
+
+      if (projectError) throw projectError;
+
+      // Link the bid to the new project
+      const { error: updateError } = await supabase
+        .from('branch_bids')
+        .update({ project_id: newProject.id })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      return newProject;
+    },
+    onSuccess: (newProject) => {
+      queryClient.invalidateQueries({ queryKey: ['branch-bid', id] });
+      queryClient.invalidateQueries({ queryKey: ['branch-bids'] });
+      toast.success('Project created successfully!');
+      // Navigate to the new project
+      navigate(`/projects/${newProject.id}`);
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to create project', {
+        description: error.message,
+      });
+    },
+  });
+
+  const handleConvertToProject = () => {
+    if (!clientId) {
+      toast.error('Please select a client before creating a project');
+      return;
+    }
+    if (!name.trim()) {
+      toast.error('Please enter a bid name');
+      return;
+    }
+    convertToProjectMutation.mutate();
+  };
+
+  const handleDocumentUpload = (url: string, fileName: string) => {
+    setDocumentUrl(url);
+    toast.success('Document uploaded successfully');
+  };
+
+>>>>>>> fix/bid-workflow
   if (isLoading) {
     return <BrandedLoader message="Loading bid..." />;
   }
@@ -192,8 +262,21 @@ export default function BranchBidDetail() {
           </div>
         </div>
         <div className="flex gap-2">
+          {/* Convert to Project Button - only show if not already linked */}
+          {!bid.projects && (
+            <Button 
+              onClick={handleConvertToProject} 
+              disabled={convertToProjectMutation.isPending}
+              variant="default"
+              className="gap-2"
+            >
+              <Rocket className="h-4 w-4" />
+              {convertToProjectMutation.isPending ? 'Creating...' : 'Convert to Project'}
+            </Button>
+          )}
+          
           {!isEditing ? (
-            <Button onClick={() => setIsEditing(true)}>Edit Details</Button>
+            <Button onClick={() => setIsEditing(true)} variant="outline">Edit Details</Button>
           ) : (
             <>
               <Button variant="outline" onClick={() => {
@@ -201,8 +284,10 @@ export default function BranchBidDetail() {
                 // Reset form state
                 setName(bid.name);
                 setDescription(bid.description || '');
-                setProjectId(bid.project_id || '');
-                setEstimateId(bid.estimate_id || '');
+                setClientId(bid.client_id || '');
+                setAddress(bid.address || '');
+                setProjectType(bid.project_type || 'construction_project');
+                setJobType(bid.job_type || '');
               }}>
                 Cancel
               </Button>
@@ -224,62 +309,76 @@ export default function BranchBidDetail() {
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name">Bid Name *</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={!isEditing}
+                placeholder="e.g., Smith Residence Renovation"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="project">Linked Project</Label>
+              <Label>Client</Label>
+              {isEditing ? (
+                <ClientSelector
+                  value={clientId}
+                  onValueChange={(id) => setClientId(id)}
+                  placeholder="Select a client"
+                  showLabel={false}
+                />
+              ) : (
+                <div className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm items-center">
+                  {bid.clients ? (
+                    <span className="truncate">
+                      {bid.clients.client_name}
+                      {bid.clients.company_name && ` (${bid.clients.company_name})`}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">No client selected</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="address">Project Address</Label>
+              <Input
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                disabled={!isEditing}
+                placeholder="e.g., 123 Main St, Cincinnati, OH 45202"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="projectType">Project Type</Label>
               <Select
-                value={projectId || undefined}
-                onValueChange={(value) => {
-                  setProjectId(value === 'none' ? '' : value);
-                  setEstimateId(''); // Reset estimate when project changes
-                }}
+                value={projectType}
+                onValueChange={(value) => setProjectType(value as 'construction_project' | 'work_order')}
                 disabled={!isEditing}
               >
-                <SelectTrigger id="project">
-                  <SelectValue placeholder="Select a project (optional)" />
+                <SelectTrigger id="projectType">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {projectId && (
-                    <SelectItem value="none">Clear selection</SelectItem>
-                  )}
-                  {projects?.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.project_number} - {project.project_name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="construction_project">Construction Project</SelectItem>
+                  <SelectItem value="work_order">Work Order</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="estimate">Linked Estimate</Label>
-              <Select
-                value={estimateId || undefined}
-                onValueChange={(value) => setEstimateId(value === 'none' ? '' : value)}
-                disabled={!isEditing || !projectId}
-              >
-                <SelectTrigger id="estimate">
-                  <SelectValue placeholder={projectId ? "Select an estimate (optional)" : "Select a project first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {estimateId && (
-                    <SelectItem value="none">Clear selection</SelectItem>
-                  )}
-                  {estimates?.map((estimate) => (
-                    <SelectItem key={estimate.id} value={estimate.id}>
-                      {estimate.estimate_number} ({estimate.status})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <Label htmlFor="jobType">Job Type (Optional)</Label>
+              <Input
+                id="jobType"
+                value={jobType}
+                onChange={(e) => setJobType(e.target.value)}
+                disabled={!isEditing}
+                placeholder="e.g., Renovation, New Construction"
+              />
             </div>
 
             <div className="space-y-2 md:col-span-2">
@@ -293,15 +392,27 @@ export default function BranchBidDetail() {
                 placeholder="Add notes about this bid..."
               />
             </div>
+
           </div>
 
           {bid.projects && (
-            <div className="pt-2 border-t">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <LinkIcon className="h-4 w-4" />
-                <span>
-                  Linked to project: <strong>{bid.projects.project_number}</strong> - {bid.projects.project_name}
-                </span>
+            <div className="p-4 border rounded-lg bg-muted/50">
+              <div className="flex items-center gap-2">
+                <LinkIcon className="h-4 w-4 text-primary" />
+                <div>
+                  <div className="font-medium text-sm">Converted to Project</div>
+                  <div className="text-sm text-muted-foreground">
+                    <strong>{bid.projects.project_number}</strong> - {bid.projects.project_name}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/projects/${bid.project_id}`)}
+                  className="ml-auto"
+                >
+                  View Project
+                </Button>
               </div>
             </div>
           )}
@@ -309,14 +420,73 @@ export default function BranchBidDetail() {
       </Card>
 
       {/* Tabbed Content */}
-      <Tabs defaultValue="notes" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="media">Media</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <div className="w-full sm:w-auto">
+            {/* Mobile Dropdown */}
+            <div className="sm:hidden">
+              <Select value={activeTab} onValueChange={setActiveTab}>
+                <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {tabOptions.map((tab) => {
+                    const Icon = tab.icon;
+                    return (
+                      <SelectItem key={tab.value} value={tab.value}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          <span>{tab.label}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <TabsContent value="notes" className="mt-4">
+            {/* Desktop Tabs */}
+            <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
+              {tabOptions.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{tab.label}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
+
+          {/* Action Buttons for Media Tab */}
+          {activeTab === 'media' && (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate(`/branch-bids/${id}/capture`)}
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                Photo
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate(`/branch-bids/${id}/capture-video`)}
+              >
+                <Video className="h-4 w-4 mr-2" />
+                Video
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <TabsContent value="notes" className="mt-0">
           <Card>
             <CardHeader>
               <CardTitle>Notes</CardTitle>
@@ -328,33 +498,11 @@ export default function BranchBidDetail() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="media" className="mt-4">
+        <TabsContent value="media" className="mt-0">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Photos & Videos</CardTitle>
-                  <CardDescription>Capture site photos and videos</CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate(`/branch-bids/${id}/capture`)}
-                  >
-                    <Camera className="h-4 w-4 mr-2" />
-                    Photo
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate(`/branch-bids/${id}/capture-video`)}
-                  >
-                    <Video className="h-4 w-4 mr-2" />
-                    Video
-                  </Button>
-                </div>
-              </div>
+              <CardTitle>Photos & Videos</CardTitle>
+              <CardDescription>Capture site photos and videos</CardDescription>
             </CardHeader>
             <CardContent>
               <BidMediaGallery bidId={id!} bidName={bid.name} />
@@ -362,7 +510,7 @@ export default function BranchBidDetail() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="documents" className="mt-4">
+        <TabsContent value="documents" className="mt-0">
           <Card>
             <CardHeader>
               <CardTitle>Documents</CardTitle>

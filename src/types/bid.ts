@@ -2,8 +2,11 @@ export interface BranchBid {
   id: string;
   name: string;
   description: string | null;
-  project_id: string | null;
-  estimate_id: string | null;
+  client_id: string | null;
+  address: string | null;
+  project_type: 'construction_project' | 'work_order' | null;
+  job_type: string | null;
+  project_id: string | null; // Only set after converting to project
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -13,13 +16,17 @@ export interface BranchBid {
     full_name: string | null;
     email: string | null;
   };
+  clients?: {
+    id: string;
+    client_name: string;
+    company_name: string | null;
+    email: string | null;
+    phone: string | null;
+  };
   projects?: {
     project_number: string;
     project_name: string;
     client_name: string;
-  };
-  estimates?: {
-    estimate_number: string;
   };
 }
 
@@ -71,15 +78,21 @@ export interface BidMedia {
 export interface CreateBranchBidParams {
   name: string;
   description?: string;
+  client_id?: string;
+  address?: string;
+  project_type?: 'construction_project' | 'work_order';
+  job_type?: string;
   project_id?: string;
-  estimate_id?: string;
 }
 
 export interface UpdateBranchBidParams {
   name?: string;
   description?: string;
+  client_id?: string;
+  address?: string;
+  project_type?: 'construction_project' | 'work_order';
+  job_type?: string;
   project_id?: string;
-  estimate_id?: string;
 }
 
 export interface CreateBidNoteParams {

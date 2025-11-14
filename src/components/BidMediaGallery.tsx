@@ -4,7 +4,7 @@ import { Image as ImageIcon, Video as VideoIcon, Trash2, Grid3x3, List, Download
 import { useBidMedia } from '@/hooks/useBidMedia';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
-import { PhotoLightbox } from './PhotoLightbox';
+import { BidPhotoLightbox } from './BidPhotoLightbox';
 import { VideoLightbox } from './VideoLightbox';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -40,9 +40,13 @@ export function BidMediaGallery({ bidId, bidName }: BidMediaGalleryProps) {
     return allMedia;
   }, [allMedia, activeTab]);
 
+  // Separate photos and videos for lightbox navigation
+  const allPhotos = useMemo(() => allMedia.filter(m => m.file_type === 'image'), [allMedia]);
+  const allVideos = useMemo(() => allMedia.filter(m => m.file_type === 'video'), [allMedia]);
+
   // Count media types
-  const photoCount = allMedia.filter(m => m.file_type === 'image').length;
-  const videoCount = allMedia.filter(m => m.file_type === 'video').length;
+  const photoCount = allPhotos.length;
+  const videoCount = allVideos.length;
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -285,17 +289,12 @@ export function BidMediaGallery({ bidId, bidName }: BidMediaGalleryProps) {
 
       {/* Lightboxes */}
       {selectedMedia?.file_type === 'image' && (
-        <PhotoLightbox
-          isOpen={true}
+        <BidPhotoLightbox
+          photo={selectedMedia}
+          allPhotos={allPhotos}
           onClose={() => setSelectedMedia(null)}
-          imageUrl={selectedMedia.file_url}
-          caption={selectedMedia.caption || undefined}
-          metadata={{
-            fileName: selectedMedia.file_name,
-            fileSize: selectedMedia.file_size,
-            uploadedBy: selectedMedia.profiles?.full_name || undefined,
-            createdAt: selectedMedia.created_at,
-          }}
+          onNavigate={(photo) => setSelectedMedia(photo)}
+          bidId={bidId}
         />
       )}
 

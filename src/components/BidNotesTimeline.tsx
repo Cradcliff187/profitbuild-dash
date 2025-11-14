@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -47,20 +47,20 @@ export function BidNotesTimeline({ bidId }: BidNotesTimelineProps) {
   } = useAudioTranscription();
 
   // Auto-transcribe when audio data is ready
-  useState(() => {
+  useEffect(() => {
     if (audioData && !isTranscribing) {
       transcribe(audioData, audioFormat);
     }
-  });
+  }, [audioData, audioFormat, isTranscribing, transcribe]);
 
   // Update textarea with transcription
-  useState(() => {
+  useEffect(() => {
     if (transcription) {
       setNoteText(prev => prev ? `${prev}\n${transcription}` : transcription);
       resetTranscription();
       resetRecording();
     }
-  });
+  }, [transcription, resetTranscription, resetRecording]);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -171,7 +171,12 @@ export function BidNotesTimeline({ bidId }: BidNotesTimelineProps) {
 
         {recordingError && (
           <Alert variant="destructive">
-            <AlertDescription>{recordingError}</AlertDescription>
+            <AlertDescription className="space-y-2">
+              <p className="font-medium">{recordingError}</p>
+              <p className="text-xs">
+                Click the 🔒 lock icon in your browser's address bar, allow microphone access, then reload the page.
+              </p>
+            </AlertDescription>
           </Alert>
         )}
 
