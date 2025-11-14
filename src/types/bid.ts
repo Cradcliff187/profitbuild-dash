@@ -50,6 +50,15 @@ export interface BidMedia {
   caption: string | null;
   description: string | null;
   uploaded_by: string | null;
+  // GPS and location metadata
+  latitude: number | null;
+  longitude: number | null;
+  altitude: number | null;
+  location_name: string | null;
+  // Capture metadata
+  taken_at: string | null;
+  device_model: string | null;
+  upload_source: 'camera' | 'gallery' | 'web' | null;
   created_at: string;
   updated_at: string;
   // Relations
@@ -84,5 +93,14 @@ export interface UploadBidMediaParams {
   caption?: string;
   description?: string;
   duration?: number;
+  // GPS and location metadata
+  latitude?: number;
+  longitude?: number;
+  altitude?: number;
+  location_name?: string;
+  // Capture metadata
+  taken_at?: string;
+  device_model?: string;
+  upload_source?: 'camera' | 'gallery' | 'web';
 }
 
