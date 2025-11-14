@@ -105,7 +105,18 @@ export default function BidVideoCapture() {
           const file = new File([blob], `video.${mimeType.split('/')[1]}`, { type: mimeType });
           console.log('🎤 Transcribing video file:', file.name, file.type);
           
-          const transcript = await transcribe(file);
+          // Convert File to base64 for transcription
+          const reader = new FileReader();
+          const base64Promise = new Promise<string>((resolve) => {
+            reader.onloadend = () => {
+              const base64 = reader.result as string;
+              resolve(base64.split(',')[1]); // Remove data:audio/... prefix
+            };
+            reader.readAsDataURL(file);
+          });
+          
+          const audioBase64 = await base64Promise;
+          const transcript = await transcribe(audioBase64, mimeType);
           
           if (transcript) {
             setVideoCaption(transcript);
@@ -155,8 +166,8 @@ export default function BidVideoCapture() {
         type: `video/${capturedVideo.format}`
       });
 
-      // Get video duration
-      const duration = await getVideoDuration(capturedVideo.webPath || '');
+      // Get video duration from the blob
+      const duration = await getVideoDuration(file);
 
       // Generate location name from coordinates if available
       const locationName = coordinates
@@ -389,10 +400,10 @@ export default function BidVideoCapture() {
 
         {/* Caption Modal */}
         <QuickCaptionModal
-          isOpen={showCaptionModal}
+          photo={{ file_url: '', caption: videoCaption } as any}
+          open={showCaptionModal}
           onClose={() => setShowCaptionModal(false)}
           onSave={handleSaveCaption}
-          initialCaption={videoCaption}
         />
       </div>
     </ErrorBoundary>

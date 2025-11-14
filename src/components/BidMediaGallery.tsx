@@ -298,18 +298,17 @@ export function BidMediaGallery({ bidId, bidName }: BidMediaGalleryProps) {
         />
       )}
 
-      {selectedMedia?.file_type === 'video' && (
+      {selectedMedia?.file_type === 'video' && selectedMedia && (
         <VideoLightbox
-          isOpen={true}
+          video={{
+            ...selectedMedia,
+            project_id: bidId,
+          } as any}
+          allVideos={allVideos.map(v => ({ ...v, project_id: bidId }) as any)}
           onClose={() => setSelectedMedia(null)}
-          videoUrl={selectedMedia.file_url}
-          caption={selectedMedia.caption || undefined}
-          metadata={{
-            fileName: selectedMedia.file_name,
-            fileSize: selectedMedia.file_size,
-            duration: selectedMedia.duration || undefined,
-            uploadedBy: selectedMedia.profiles?.full_name || undefined,
-            createdAt: selectedMedia.created_at,
+          onNavigate={(video) => {
+            const bidVideo = allVideos.find(v => v.id === video.id);
+            if (bidVideo) setSelectedMedia(bidVideo);
           }}
         />
       )}

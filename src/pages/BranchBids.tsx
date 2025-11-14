@@ -74,12 +74,14 @@ export default function BranchBids() {
         
         // Map profiles to bids
         return data.map(bid => ({
-          ...bid,
-          profiles: profiles?.find(p => p.id === bid.created_by)
+          ...bid as any,
+          profiles: profiles?.find(p => p.id === bid.created_by),
         })) as BranchBid[];
       }
       
-      return data as BranchBid[];
+      return (data || []).map(bid => ({
+        ...bid as any,
+      })) as BranchBid[];
     },
   });
 

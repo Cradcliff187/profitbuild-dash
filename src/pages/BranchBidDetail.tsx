@@ -69,7 +69,10 @@ export default function BranchBidDetail() {
         .eq('id', data.created_by)
         .single();
 
-      const bidWithProfile = { ...data, profiles: profile } as BranchBid;
+      const bidWithProfile = {
+        ...data as any,
+        profiles: profile,
+      } as BranchBid;
 
       // Set form state from fetched data
       setName(bidWithProfile.name);
@@ -211,7 +214,6 @@ export default function BranchBidDetail() {
     toast.success('Document uploaded successfully');
   };
 
->>>>>>> fix/bid-workflow
   if (isLoading) {
     return <BrandedLoader message="Loading bid..." />;
   }

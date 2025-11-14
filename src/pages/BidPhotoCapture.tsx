@@ -393,17 +393,16 @@ export default function BidPhotoCapture() {
 
         {/* Modals */}
         <QuickCaptionModal
-          isOpen={showCaptionModal}
+          photo={{ file_url: '', caption: pendingCaption } as any}
+          open={showCaptionModal}
           onClose={() => setShowCaptionModal(false)}
           onSave={handleSaveCaption}
-          initialCaption={pendingCaption}
         />
 
         <VoiceCaptionModal
-          isOpen={showVoiceCaptionModal}
+          open={showVoiceCaptionModal}
           onClose={() => setShowVoiceCaptionModal(false)}
           onCaptionReady={handleVoiceCaptionReady}
-          initialCaption={pendingCaption}
         />
       </div>
     </ErrorBoundary>
