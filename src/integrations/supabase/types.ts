@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -104,51 +104,72 @@ export type Database = {
       }
       bid_media: {
         Row: {
+          altitude: number | null
           bid_id: string
           caption: string | null
           created_at: string
           description: string | null
+          device_model: string | null
           duration: number | null
           file_name: string
           file_size: number
           file_type: string
           file_url: string
           id: string
+          latitude: number | null
+          location_name: string | null
+          longitude: number | null
           mime_type: string
+          taken_at: string | null
           thumbnail_url: string | null
           updated_at: string
+          upload_source: string | null
           uploaded_by: string | null
         }
         Insert: {
+          altitude?: number | null
           bid_id: string
           caption?: string | null
           created_at?: string
           description?: string | null
+          device_model?: string | null
           duration?: number | null
           file_name: string
           file_size: number
           file_type: string
           file_url: string
           id?: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
           mime_type: string
+          taken_at?: string | null
           thumbnail_url?: string | null
           updated_at?: string
+          upload_source?: string | null
           uploaded_by?: string | null
         }
         Update: {
+          altitude?: number | null
           bid_id?: string
           caption?: string | null
           created_at?: string
           description?: string | null
+          device_model?: string | null
           duration?: number | null
           file_name?: string
           file_size?: number
           file_type?: string
           file_url?: string
           id?: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
           mime_type?: string
+          taken_at?: string | null
           thumbnail_url?: string | null
           updated_at?: string
+          upload_source?: string | null
           uploaded_by?: string | null
         }
         Relationships: [
