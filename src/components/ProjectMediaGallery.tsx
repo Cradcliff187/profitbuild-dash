@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { format, isToday, isYesterday } from 'date-fns';
 import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Download, Trash2, Grid3x3, List, SortAsc, CheckSquare, Square, FileImage, FileVideo, FileText, Clock4, X, CloudUpload, MoreVertical, Check } from 'lucide-react';
 import { useProjectMedia } from '@/hooks/useProjectMedia';
@@ -35,6 +36,8 @@ interface ProjectMediaGalleryProps {
   projectNumber: string;
   clientName: string;
   address?: string;
+  externalActiveTab?: MediaTab; // Optional external tab control
+  hideInternalTabs?: boolean; // Hide internal tabs if external tabs are used
 }
 
 export function ProjectMediaGallery({ 
@@ -42,13 +45,18 @@ export function ProjectMediaGallery({
   projectName, 
   projectNumber, 
   clientName, 
-  address 
+  address,
+  externalActiveTab,
+  hideInternalTabs = false
 }: ProjectMediaGalleryProps) {
   const queryClient = useQueryClient();
   const { media: allMedia, isLoading, refetch } = useProjectMedia(projectId);
-  const [activeTab, setActiveTab] = useState<MediaTab>('all');
+  const [internalActiveTab, setInternalActiveTab] = useState<MediaTab>('all');
+  
+  // Use external tab if provided, otherwise use internal tab
+  const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalActiveTab;
+  const setActiveTab = externalActiveTab !== undefined ? () => {} : setInternalActiveTab;
   const [selectedMedia, setSelectedMedia] = useState<ProjectMedia | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortBy, setSortBy] = useState<SortBy>('date-desc');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -77,20 +85,8 @@ export function ProjectMediaGallery({
 
   // Filter and sort media
   const filteredAndSortedMedia = useMemo(() => {
-    let filtered = tabFilteredMedia;
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(item =>
-        item.caption?.toLowerCase().includes(query) ||
-        item.description?.toLowerCase().includes(query) ||
-        item.location_name?.toLowerCase().includes(query)
-      );
-    }
-
     // Apply sorting
-    const sorted = [...filtered].sort((a, b) => {
+    const sorted = [...tabFilteredMedia].sort((a, b) => {
       switch (sortBy) {
         case 'date-desc':
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -108,7 +104,7 @@ export function ProjectMediaGallery({
     });
 
     return sorted;
-  }, [tabFilteredMedia, searchQuery, sortBy]);
+  }, [tabFilteredMedia, sortBy]);
 
   // Group media by date
   const groupedMedia = useMemo(() => {
@@ -171,6 +167,70 @@ export function ProjectMediaGallery({
   const clearSelection = () => {
     setSelectedItems(new Set());
   };
+
+  // Render controls bar - clean, professional design
+  const renderControlsBar = () => (
+    <div className="flex items-center gap-2">
+      {/* Generate Report - Primary Action */}
+      <Button
+        onClick={() => {
+          if (selectedItems.size === 0) {
+            toast.info("Select photos or videos first to generate a report");
+          } else {
+            setShowReportModal(true);
+          }
+        }}
+        size="sm"
+        className="h-9"
+      >
+        <FileText className="h-4 w-4 mr-2" />
+        Generate Report
+        {selectedItems.size > 0 && (
+          <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-0">
+            {selectedItems.size}
+          </Badge>
+        )}
+      </Button>
+
+      {/* Sort Dropdown */}
+      <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
+        <SelectTrigger className="w-[140px] h-9 border-input">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="date-desc">Newest First</SelectItem>
+          <SelectItem value="date-asc">Oldest First</SelectItem>
+          {activeTab !== 'photos' && (
+            <>
+              <SelectItem value="duration-desc">Longest First</SelectItem>
+              <SelectItem value="duration-asc">Shortest First</SelectItem>
+            </>
+          )}
+          <SelectItem value="caption">By Caption</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {/* View Toggle - Grouped */}
+      <div className="flex items-center border rounded-md bg-background">
+        <Button
+          variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('grid')}
+          className="h-9 px-3 rounded-r-none border-r"
+        >
+          <Grid3x3 className="h-4 w-4" />
+        </Button>
+        <Button
+          variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('list')}
+          className="h-9 px-3 rounded-l-none"
+        >
+          <List className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -332,56 +392,77 @@ export function ProjectMediaGallery({
     );
   }
 
+  // Portal target for external controls - use state to ensure it exists
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (hideInternalTabs) {
+      const target = document.getElementById('field-media-controls');
+      setPortalTarget(target);
+    }
+  }, [hideInternalTabs]);
+
   return (
     <div className="space-y-2">
+      {/* Render controls in portal when external tabs are used (desktop only) */}
+      {hideInternalTabs && portalTarget && createPortal(
+        renderControlsBar(),
+        portalTarget
+      )}
+
+      {/* Statistics Card - Only show when internal tabs are visible */}
+      {!hideInternalTabs && (
+        <Card className="hidden md:block p-2">
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <div>
+              <div className="text-sm font-semibold">{stats.totalCount}</div>
+              <div className="text-xs text-muted-foreground">Items</div>
+            </div>
+            {activeTab !== 'photos' && stats.videoCount > 0 && (
+              <div>
+                <div className="text-sm font-semibold">{formatDuration(stats.totalDuration)}</div>
+                <div className="text-xs text-muted-foreground">Duration</div>
+              </div>
+            )}
+            <div>
+              <div className="text-sm font-semibold">{formatFileSize(stats.totalSize)}</div>
+              <div className="text-xs text-muted-foreground">Storage</div>
+            </div>
+            <div>
+              <div className="text-sm font-semibold">{stats.gpsPercentage}%</div>
+              <div className="text-xs text-muted-foreground">GPS Tagged</div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as MediaTab)}>
-        <TabsList className="grid w-full grid-cols-4 h-8">
-          <TabsTrigger value="all" className="text-xs h-6">
-            All ({stats.photoCount + stats.videoCount})
-          </TabsTrigger>
-          <TabsTrigger value="photos" className="text-xs h-6">
-            <FileImage className="h-3 w-3 mr-1" />
-            Photos ({stats.photoCount})
-          </TabsTrigger>
-          <TabsTrigger value="videos" className="text-xs h-6">
-            <FileVideo className="h-3 w-3 mr-1" />
-            Videos ({stats.videoCount})
-          </TabsTrigger>
-          <TabsTrigger value="timeline" className="text-xs h-6">
-            <Clock4 className="h-3 w-3 mr-1" />
-            Timeline
-          </TabsTrigger>
-        </TabsList>
+        {!hideInternalTabs && (
+          <TabsList className="grid w-full grid-cols-4 h-8">
+            <TabsTrigger value="all" className="text-xs h-6">
+              All ({stats.photoCount + stats.videoCount})
+            </TabsTrigger>
+            <TabsTrigger value="photos" className="text-xs h-6">
+              <FileImage className="h-3 w-3 mr-1" />
+              Photos ({stats.photoCount})
+            </TabsTrigger>
+            <TabsTrigger value="videos" className="text-xs h-6">
+              <FileVideo className="h-3 w-3 mr-1" />
+              Videos ({stats.videoCount})
+            </TabsTrigger>
+            <TabsTrigger value="timeline" className="text-xs h-6">
+              <Clock4 className="h-3 w-3 mr-1" />
+              Timeline
+            </TabsTrigger>
+          </TabsList>
+        )}
 
         {/* Gallery Tab Content */}
         <TabsContent value={activeTab === 'timeline' ? 'all' : activeTab} className="space-y-2 mt-2" hidden={activeTab === 'timeline'}>
-          {/* Statistics Card - Compact */}
-          <Card className="hidden md:block p-2">
-            <div className="grid grid-cols-4 gap-2 text-center">
-              <div>
-                <div className="text-sm font-semibold">{stats.totalCount}</div>
-                <div className="text-xs text-muted-foreground">Items</div>
-              </div>
-              {activeTab !== 'photos' && stats.videoCount > 0 && (
-                <div>
-                  <div className="text-sm font-semibold">{formatDuration(stats.totalDuration)}</div>
-                  <div className="text-xs text-muted-foreground">Duration</div>
-                </div>
-              )}
-              <div>
-                <div className="text-sm font-semibold">{formatFileSize(stats.totalSize)}</div>
-                <div className="text-xs text-muted-foreground">Storage</div>
-              </div>
-              <div>
-                <div className="text-sm font-semibold">{stats.gpsPercentage}%</div>
-                <div className="text-xs text-muted-foreground">GPS Tagged</div>
-              </div>
-            </div>
-          </Card>
 
           {/* Queue Status Banner */}
-          {queueCount && queueCount > 0 && (
+          {queueCount > 0 && (
             <Alert className="border-primary/50 bg-primary/5 py-2">
               <CloudUpload className="h-3 w-3" />
               <AlertDescription className="flex items-center gap-2">
@@ -419,287 +500,66 @@ export function ProjectMediaGallery({
             </Alert>
           )}
 
-          {/* Controls Bar */}
-          <TooltipProvider>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                <Input
-                  placeholder="Search media..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-7 h-7 text-xs"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                {/* Quick Select All Button */}
-                {selectedItems.size === 0 && filteredAndSortedMedia.length > 0 && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={selectAll}
-                        className="h-7"
-                      >
-                        <CheckSquare className="h-3 w-3 mr-1" />
-                        <span className="hidden sm:inline text-xs">Select All</span>
-                        <span className="sm:hidden text-xs">All</span>
-                        <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
-                          {filteredAndSortedMedia.length}
-                        </Badge>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Select all visible media (Ctrl+A)</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-
-                {/* Generate Report Button - Always Visible */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => {
-                        if (selectedItems.size === 0) {
-                          toast.info("Select media items to include in your report", {
-                            description: "Click the checkboxes on photos/videos, or use 'Select All'"
-                          });
-                        } else {
-                          setShowReportModal(true);
-                        }
-                      }}
-                      className="h-8 px-3"
-                    >
-                      <FileText className="h-4 w-4 mr-1" />
-                      <span className="hidden sm:inline">Generate Report</span>
-                      <span className="sm:hidden">Report</span>
-                      {selectedItems.size > 0 && (
-                        <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
-                          {selectedItems.size}
-                        </Badge>
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Create PDF report from selected media</p>
-                    {selectedItems.size === 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Select items first (Ctrl+A for all)
-                      </p>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-
-                {/* Mobile Overflow Menu - Only on small screens */}
-                <div className="sm:hidden">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 px-2">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel>View Options</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      
-                      {/* Sort Options */}
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>
-                          <SortAsc className="h-4 w-4 mr-2" />
-                          Sort
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                          <DropdownMenuItem onClick={() => setSortBy('date-desc')}>
-                            Newest First
-                            {sortBy === 'date-desc' && <Check className="h-4 w-4 ml-auto" />}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setSortBy('date-asc')}>
-                            Oldest First
-                            {sortBy === 'date-asc' && <Check className="h-4 w-4 ml-auto" />}
-                          </DropdownMenuItem>
-                          {activeTab !== 'photos' && (
-                            <>
-                              <DropdownMenuItem onClick={() => setSortBy('duration-desc')}>
-                                Longest First
-                                {sortBy === 'duration-desc' && <Check className="h-4 w-4 ml-auto" />}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setSortBy('duration-asc')}>
-                                Shortest First
-                                {sortBy === 'duration-asc' && <Check className="h-4 w-4 ml-auto" />}
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          <DropdownMenuItem onClick={() => setSortBy('caption')}>
-                            By Caption
-                            {sortBy === 'caption' && <Check className="h-4 w-4 ml-auto" />}
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                      
-                      {/* View Mode Toggle */}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setViewMode('grid')}>
-                        <Grid3x3 className="h-4 w-4 mr-2" />
-                        Grid View
-                        {viewMode === 'grid' && <Check className="h-4 w-4 ml-auto" />}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setViewMode('list')}>
-                        <List className="h-4 w-4 mr-2" />
-                        List View
-                        {viewMode === 'list' && <Check className="h-4 w-4 ml-auto" />}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <div className="hidden sm:block">
-                  <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <SelectTrigger className="w-[140px] h-8">
-                          <SortAsc className="h-4 w-4 mr-1" />
-                          <SelectValue />
-                        </SelectTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Sort media items</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <SelectContent>
-                      <SelectItem value="date-desc">Newest First</SelectItem>
-                      <SelectItem value="date-asc">Oldest First</SelectItem>
-                      {activeTab !== 'photos' && (
-                        <>
-                          <SelectItem value="duration-desc">Longest First</SelectItem>
-                          <SelectItem value="duration-asc">Shortest First</SelectItem>
-                        </>
-                      )}
-                      <SelectItem value="caption">By Caption</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="hidden sm:flex items-center gap-1 border rounded-md">
-                  <Button
-                    variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('grid')}
-                    className="h-8 px-2"
-                  >
-                    <Grid3x3 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('list')}
-                    className="h-8 px-2"
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+          {/* Controls Bar - Desktop via portal, Mobile inline */}
+          <div className="sm:hidden">
+            {renderControlsBar()}
+          </div>
+          {/* For internal tabs (non-Field Media), show controls here on desktop too */}
+          {!hideInternalTabs && (
+            <div className="hidden sm:block">
+              {renderControlsBar()}
             </div>
-          </TooltipProvider>
+          )}
 
-          {/* Batch Selection Bar */}
-          {selectedItems.size > 0 && (
-            <TooltipProvider>
-              <Card className="p-2 bg-primary/10 border-primary/30">
-                <div className="flex items-center flex-wrap gap-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="default" className="font-semibold h-6 text-xs">{selectedItems.size} selected</Badge>
-                    <span className="text-xs text-muted-foreground hidden md:inline">
-                      Ready to generate report
-                    </span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" onClick={clearSelection} className="h-6 px-2 text-xs">
-                          Clear
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Clear selection (Esc)</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    {selectedItems.size < filteredAndSortedMedia.length && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="sm" onClick={selectAll} className="h-6 px-2 text-xs">
-                            <span className="hidden sm:inline">Select All ({filteredAndSortedMedia.length})</span>
-                            <span className="sm:hidden">All ({filteredAndSortedMedia.length})</span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Select all filtered media (Ctrl+A)</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1 ml-auto flex-shrink-0">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowReportModal(true)}
-                          className="h-6 px-2"
-                        >
-                          <FileText className="h-4 w-4 sm:mr-1" />
-                          <span className="hidden sm:inline">Report</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Create PDF report (Ctrl+G)</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleBatchDownload}
-                          className="h-6 px-2"
-                        >
-                          <Download className="h-4 w-4 sm:mr-1" />
-                          <span className="hidden sm:inline">Download</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Download selected media</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowDeleteDialog(true)}
-                          className="h-6 px-2 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 sm:mr-1" />
-                          <span className="hidden sm:inline">Delete</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Delete selected media</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </div>
-              </Card>
-            </TooltipProvider>
+          {/* Selection Actions */}
+          {selectedItems.size > 0 ? (
+            // Active selection bar
+            <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium">
+                  {selectedItems.size} selected
+                </span>
+                {selectedItems.size < filteredAndSortedMedia.length && (
+                  <>
+                    <div className="h-4 w-px bg-border" />
+                    <button
+                      onClick={selectAll}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Select all {filteredAndSortedMedia.length}
+                    </button>
+                  </>
+                )}
+              </div>
+              <button
+                onClick={clearSelection}
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                Clear
+              </button>
+            </div>
+          ) : (
+            // Subtle select all hint
+            filteredAndSortedMedia.length > 0 && (
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  {filteredAndSortedMedia.length} {filteredAndSortedMedia.length === 1 ? 'item' : 'items'}
+                </span>
+                <button
+                  onClick={selectAll}
+                  className="text-primary hover:underline"
+                >
+                  Select all
+                </button>
+              </div>
+            )
           )}
 
           {/* Media Grid */}
           {filteredAndSortedMedia.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Search className="h-12 w-12 text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground">No media matches your search</p>
+              <p className="text-sm text-muted-foreground">No media found</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -708,7 +568,7 @@ export function ProjectMediaGallery({
                   <h3 className="text-sm font-medium text-foreground mb-3 sticky top-0 bg-background py-2 z-10">
                     {dateLabel}
                   </h3>
-                  <div className={viewMode === 'grid' ? 'grid grid-cols-3 gap-2' : 'space-y-2'}>
+                  <div className={viewMode === 'grid' ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3' : 'space-y-2'}>
                     {items.map((item) => (
                       <div key={item.id} className="relative">
                         <div

@@ -356,14 +356,14 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
           showRates={false}
         />
 
-        <div className="flex gap-1.5 pt-2">
+        <div className={isMobile ? "flex gap-3 pt-4" : "flex gap-2 pt-2"}>
           {canDelete && (
             <Button 
               type="button"
               variant="destructive"
-              size="sm"
               onClick={handleDelete}
               disabled={loading}
+              className={isMobile ? "h-12 px-4 text-base" : ""}
             >
               Delete
             </Button>
@@ -371,20 +371,18 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
           <Button 
             type="button"
             variant="outline"
-            size="sm"
             onClick={() => onOpenChange(false)} 
             disabled={loading}
-            className="flex-1"
+            className={isMobile ? "flex-1 h-12 text-base" : "flex-1"}
           >
             Cancel
           </Button>
           {canEdit && (
             <Button 
               type="button"
-              size="sm"
               onClick={handleSave} 
               disabled={loading}
-              className="flex-1"
+              className={isMobile ? "flex-1 h-12 text-base font-medium" : "flex-1"}
             >
               {loading ? 'Saving...' : 'Save'}
             </Button>
