@@ -126,18 +126,18 @@ export function BidDocumentUpload({ bidId }: BidDocumentUploadProps) {
     setDragOver(false);
   };
 
-  const handleDownload = async (document: BidMedia) => {
+  const handleDownload = async (doc: BidMedia) => {
     try {
-      const response = await fetch(document.file_url);
+      const response = await fetch(doc.file_url);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = window.document.createElement('a');
       a.href = url;
-      a.download = document.file_name;
-      document.body.appendChild(a);
+      a.download = doc.file_name;
+      window.document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      window.document.body.removeChild(a);
       toast.success('Download started');
     } catch (error) {
       console.error('Download error:', error);
