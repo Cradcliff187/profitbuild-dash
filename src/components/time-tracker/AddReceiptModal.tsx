@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -38,6 +38,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   initialProjectId
 }) => {
   const isMobile = useIsMobile();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { capturePhoto: captureCameraPhoto, isCapturing } = useCameraCapture();
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
@@ -95,6 +96,38 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
     const result = await captureCameraPhoto();
     if (result?.dataUrl) {
       setCapturedPhoto(result.dataUrl);
+    }
+  };
+
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please choose an image file');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('Please choose a file smaller than 15MB');
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCapturedPhoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Failed to read file:', error);
+      toast.error('Failed to read selected file');
     }
   };
 
@@ -186,44 +219,75 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
     setSelectedProjectId(undefined);
     setSelectedPayeeId(undefined);
     setDescription('');
-    setAmount('');
+      setAmount('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     onClose();
   };
 
   const ModalContent = (
     <div className={isMobile ? "space-y-6" : "space-y-4"}>
       {/* Camera Capture / Photo Preview */}
-      <div className="space-y-2">
-        {!capturedPhoto ? (
-          <Button
-            onClick={capturePhoto}
-            variant="outline"
-            className={isMobile ? "w-full h-60 border-2 border-dashed" : "w-full h-48 border-2 border-dashed"}
-            disabled={isCapturing}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <CameraIcon className={isMobile ? "w-16 h-16 text-muted-foreground" : "w-12 h-12 text-muted-foreground"} />
-              <span className={isMobile ? "text-base font-medium" : "text-sm font-medium"}>Take Photo</span>
+        <div className="space-y-3">
+          {!capturedPhoto ? (
+            <>
+              <div className={isMobile ? "grid gap-2" : "flex flex-col gap-2"}>
+                <Button
+                  onClick={capturePhoto}
+                  variant="outline"
+                  className={isMobile ? "w-full h-24 border-2 border-dashed" : "w-full h-32 border-2 border-dashed"}
+                  disabled={isCapturing}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <CameraIcon className={isMobile ? "w-10 h-10 text-muted-foreground" : "w-12 h-12 text-muted-foreground"} />
+                    <span className="font-medium">Take Photo</span>
+                  </div>
+                </Button>
+                <Button
+                  onClick={openFilePicker}
+                  variant="outline"
+                  className={isMobile ? "w-full h-16" : "w-full h-12"}
+                >
+                  Choose from Library
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                On iPhone you&apos;ll see the native menu with options like Take Photo, Photo Library, or Browse.
+              </p>
+            </>
+          ) : (
+            <div className="relative">
+              <img
+                src={capturedPhoto}
+                alt="Captured receipt"
+                className={isMobile ? "w-full h-60 object-cover rounded-lg" : "w-full h-48 object-cover rounded-lg"}
+              />
+              <Button
+                onClick={() => {
+                  setCapturedPhoto(null);
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                  }
+                }}
+                variant="destructive"
+                size="icon"
+                className={isMobile ? "absolute top-2 right-2 h-12 w-12" : "absolute top-2 right-2"}
+              >
+                <X className={isMobile ? "w-6 h-6" : "w-4 h-4"} />
+              </Button>
             </div>
-          </Button>
-        ) : (
-          <div className="relative">
-            <img
-              src={capturedPhoto}
-              alt="Captured receipt"
-              className={isMobile ? "w-full h-60 object-cover rounded-lg" : "w-full h-48 object-cover rounded-lg"}
-            />
-            <Button
-              onClick={() => setCapturedPhoto(null)}
-              variant="destructive"
-              size="icon"
-              className={isMobile ? "absolute top-2 right-2 h-12 w-12" : "absolute top-2 right-2"}
-            >
-              <X className={isMobile ? "w-6 h-6" : "w-4 h-4"} />
-            </Button>
-          </div>
-        )}
-      </div>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleFileInputChange}
+          />
+        </div>
 
       {/* Amount (Required) */}
       <div className="space-y-2">
