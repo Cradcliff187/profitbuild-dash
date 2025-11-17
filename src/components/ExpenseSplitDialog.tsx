@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, AlertCircle, DollarSign } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Plus, X, AlertCircle } from 'lucide-react';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
@@ -213,16 +212,17 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-sm font-semibold">{expense.is_split ? 'Manage' : 'Split'} Expense</DialogTitle>
-          <DialogDescription className="text-xs">
+    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <SheetContent className="w-full sm:max-w-[700px] flex flex-col p-0 overflow-hidden">
+        <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b shrink-0">
+          <SheetTitle>{expense.is_split ? 'Manage' : 'Split'} Expense</SheetTitle>
+          <SheetDescription>
             Allocate this {formatCurrency(expense.amount)} expense across multiple projects
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
-        <div className="space-y-3">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="space-y-3">
           {/* Expense Details */}
           <div className="rounded-md bg-muted p-2 space-y-0.5">
             <div className="text-xs font-medium">Expense Details</div>
@@ -354,17 +354,18 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
               <AlertDescription>{validationError}</AlertDescription>
             </Alert>
           )}
+          </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading} size="sm" className="text-xs">
+        <SheetFooter className="px-6 py-4 border-t shrink-0 gap-2">
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!isValid || loading} size="sm" className="text-xs">
+          <Button onClick={handleSubmit} disabled={!isValid || loading}>
             {loading ? 'Saving...' : expense.is_split ? 'Update Splits' : 'Create Splits'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 };

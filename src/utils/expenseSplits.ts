@@ -8,6 +8,86 @@ export interface CreateSplitInput {
 }
 
 /**
+ * Get or create the SYS-000 system project ID for split parent expenses
+ * This project serves as a container for expenses that are split across multiple projects
+ */
+async function getSys000ProjectId(): Promise<string> {
+  try {
+    // First, try to find existing SYS-000 project
+    const { data: existingProject, error: findError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('project_number', 'SYS-000')
+      .single();
+    
+    if (!findError && existingProject) {
+      return existingProject.id;
+    }
+    
+    // If not found, create it (migration should have created it, but handle edge case)
+    const { data: newProject, error: createError } = await supabase
+      .from('projects')
+      .insert({
+        project_number: 'SYS-000',
+        project_name: 'System - Split Parent Container',
+        client_name: 'System',
+        status: 'in_progress',
+        project_type: 'construction_project'
+      })
+      .select('id')
+      .single();
+    
+    if (createError) {
+      // If insert fails (e.g., conflict), try to fetch again
+      const { data: project, error: retryError } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('project_number', 'SYS-000')
+        .single();
+      
+      if (retryError || !project) {
+        throw new Error(`Failed to get or create SYS-000 project: ${createError.message || retryError?.message}`);
+      }
+      
+      return project.id;
+    }
+    
+    if (!newProject) {
+      throw new Error('Failed to create SYS-000 project: No data returned');
+    }
+    
+    return newProject.id;
+  } catch (error) {
+    console.error('Error getting SYS-000 project ID:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get the 000-UNASSIGNED project ID
+ * Used when reverting split expenses back to a single project
+ */
+async function getUnassignedProjectId(): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('project_number', '000-UNASSIGNED')
+      .single();
+    
+    if (error || !data) {
+      // If 000-UNASSIGNED doesn't exist, return null (caller should handle)
+      return null;
+    }
+    
+    return data.id;
+  } catch (error) {
+    console.error('Error getting 000-UNASSIGNED project ID:', error);
+    return null;
+  }
+}
+
+/**
  * Create splits for an expense across multiple projects
  * Validates that split totals match the expense amount
  */
@@ -48,11 +128,14 @@ export async function createExpenseSplits(
     
     if (insertError) throw insertError;
     
+    // Get SYS-000 project ID for the parent expense container
+    const sys000ProjectId = await getSys000ProjectId();
+    
     // Update parent expense to be a split container
     const { error: updateError } = await supabase
       .from('expenses')
       .update({
-        project_id: null,
+        project_id: sys000ProjectId,
         is_split: true,
         updated_at: new Date().toISOString()
       })
@@ -158,8 +241,18 @@ export async function deleteExpenseSplits(expenseId: string): Promise<{ success:
     
     if (fetchError) throw fetchError;
     
-    // Determine revert project: use first split's project, or UNASSIGNED if no splits
-    const revertProjectId = existingSplits?.[0]?.project_id || '000-UNASSIGNED';
+    // Determine revert project: use first split's project, or 000-UNASSIGNED if no splits
+    let revertProjectId: string;
+    if (existingSplits?.[0]?.project_id) {
+      revertProjectId = existingSplits[0].project_id;
+    } else {
+      // If no splits found, use 000-UNASSIGNED project
+      const unassignedProjectId = await getUnassignedProjectId();
+      if (!unassignedProjectId) {
+        throw new Error('Cannot revert expense: 000-UNASSIGNED project not found and no splits exist');
+      }
+      revertProjectId = unassignedProjectId;
+    }
     
     // Update parent expense first (before deleting splits)
     const { error: updateError } = await supabase

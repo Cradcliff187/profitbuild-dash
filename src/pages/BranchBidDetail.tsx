@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { BidNotesTimeline } from '@/components/BidNotesTimeline';
 import { BidMediaGallery } from '@/components/BidMediaGallery';
 import { BidDocumentUpload } from '@/components/BidDocumentUpload';
+import { BidMediaBulkUpload } from '@/components/BidMediaBulkUpload';
 import { ClientSelector } from '@/components/ClientSelector';
 import type { BranchBid } from '@/types/bid';
 import { generateProjectNumber } from '@/types/project';
@@ -467,7 +468,13 @@ export default function BranchBidDetail() {
 
           {/* Action Buttons for Media Tab */}
           {activeTab === 'media' && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <BidMediaBulkUpload 
+                bidId={id!} 
+                onUploadComplete={() => {
+                  // Gallery will auto-refresh via query invalidation
+                }}
+              />
               <Button
                 size="sm"
                 variant="outline"
