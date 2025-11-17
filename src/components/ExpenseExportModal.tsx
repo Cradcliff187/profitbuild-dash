@@ -82,38 +82,21 @@ export const ExpenseExportModal: React.FC<ExpenseExportModalProps> = ({
           *,
           projects(project_name)
         `)
-        .in('parent_expense_id', expenses.map(e => e.id).filter(Boolean));
+        .in('expense_id', expenses.map(e => e.id).filter(Boolean));
 
       if (splitsError) throw splitsError;
 
       const splits: Record<string, any[]> = {};
       (splitsData || []).forEach((split) => {
-        if (!splits[split.parent_expense_id]) {
-          splits[split.parent_expense_id] = [];
+        if (!splits[split.expense_id]) {
+          splits[split.expense_id] = [];
         }
-        splits[split.parent_expense_id].push({
+        splits[split.expense_id].push({
           ...split,
           project_name: split.projects?.project_name,
         });
       });
       setExpenseSplits(splits);
-
-      // Load matches
-      const { data: matchesData, error: matchesError } = await supabase
-        .from("expense_matches")
-        .select("*")
-        .in('expense_id', expenses.map(e => e.id).filter(Boolean));
-
-      if (matchesError) throw matchesError;
-
-      const matches: Record<string, any> = {};
-      (matchesData || []).forEach((match) => {
-        matches[match.expense_id] = {
-          matched: true,
-          type: match.match_type,
-        };
-      });
-      setExpenseMatches(matches);
     } catch (error) {
       console.error('Error loading expense data:', error);
     }

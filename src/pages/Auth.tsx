@@ -27,7 +27,7 @@ export default function Auth() {
   
   // Dynamic Branding State
   const [logoStacked, setLogoStacked] = useState(logoStackedDefault);
-  const [companyName, setCompanyName] = useState('Construction Profit Tracker');
+  const [companyName, setCompanyName] = useState('RCG Work');
   const [primaryColor, setPrimaryColor] = useState('#1b2b43');
   const [logoError, setLogoError] = useState(false);
 

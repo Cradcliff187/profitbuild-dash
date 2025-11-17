@@ -112,15 +112,13 @@ export function PayeeSelector({
     const query = searchQuery.toLowerCase();
     return payees.filter(payee => 
       payee.payee_name.toLowerCase().includes(query) ||
-      (payee.company_name && payee.company_name.toLowerCase().includes(query)) ||
       (payee.email && payee.email.toLowerCase().includes(query)) ||
       (payee.payee_type && formatPayeeType(payee.payee_type as PayeeType).toLowerCase().includes(query))
     );
   }, [payees, searchQuery]);
 
-  const handlePayeeCreated = (newPayee: Payee) => {
+  const handlePayeeCreated = () => {
     queryClient.invalidateQueries({ queryKey: ['payees'] });
-    onValueChange(newPayee.id, newPayee.payee_name, newPayee);
     setShowPayeeForm(false);
   };
 

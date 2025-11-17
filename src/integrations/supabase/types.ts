@@ -219,39 +219,58 @@ export type Database = {
       }
       branch_bids: {
         Row: {
+          address: string | null
+          client_id: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
           description: string | null
           estimate_id: string | null
           id: string
+          job_type: string | null
           name: string
           project_id: string | null
+          project_type: string | null
           updated_at: string
         }
         Insert: {
+          address?: string | null
+          client_id?: string | null
           created_at?: string
           created_by: string
           deleted_at?: string | null
           description?: string | null
           estimate_id?: string | null
           id?: string
+          job_type?: string | null
           name: string
           project_id?: string | null
+          project_type?: string | null
           updated_at?: string
         }
         Update: {
+          address?: string | null
+          client_id?: string | null
           created_at?: string
           created_by?: string
           deleted_at?: string | null
           description?: string | null
           estimate_id?: string | null
           id?: string
+          job_type?: string | null
           name?: string
           project_id?: string | null
+          project_type?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "branch_bids_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "branch_bids_estimate_id_fkey"
             columns: ["estimate_id"]
@@ -2353,4 +2372,3 @@ export const Constants = {
     },
   },
 } as const
-
