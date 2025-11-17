@@ -66,9 +66,9 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png', 'icon-180.png', 'favicon.ico'],
       manifest: {
-        name: 'ProfitBuild - Construction Profit Tracker',
-        short_name: 'ProfitBuild',
-        description: 'Professional construction project management app to track profits, estimates, quotes, and expenses for construction businesses.',
+        name: 'RCG Work',
+        short_name: 'RCG Work',
+        description: 'Professional construction project management for RCG - track profits, estimates, quotes, and expenses.',
         theme_color: '#1b2b43',
         background_color: '#ffffff',
         display: 'standalone',

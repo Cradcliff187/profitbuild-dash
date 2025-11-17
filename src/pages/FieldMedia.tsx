@@ -89,7 +89,7 @@ export default function FieldMedia() {
           ) : project ? (
             <>
               {/* Media Gallery with Tabs */}
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MediaTab)} className="space-y-4">
                 {/* Mobile: Dropdown + Controls Below */}
                 <div className="sm:hidden space-y-2">
                   <Select value={activeTab} onValueChange={(value) => setActiveTab(value as MediaTab)}>
