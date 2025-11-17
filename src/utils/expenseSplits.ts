@@ -52,7 +52,7 @@ export async function createExpenseSplits(
     const { error: updateError } = await supabase
       .from('expenses')
       .update({
-        project_id: 'SYS-000',
+        project_id: null,
         is_split: true,
         updated_at: new Date().toISOString()
       })
