@@ -256,6 +256,77 @@ export function FilterPresets({ dataSource, availableFields, onApplyPreset }: Fi
       }
     }
 
+    if (dataSource === 'internal_costs') {
+      const categoryField = availableFields.find(f => f.key === 'category');
+      const hoursField = availableFields.find(f => f.key === 'hours');
+      const dateField = availableFields.find(f => f.key === 'expense_date');
+
+      if (categoryField) {
+        presets.push({
+          label: 'Internal Labor Only',
+          icon: Users,
+          filters: [{
+            field: 'category',
+            operator: 'equals',
+            value: 'labor_internal'
+          }],
+          description: 'Show only internal labor expenses'
+        });
+
+        presets.push({
+          label: 'Management Only',
+          icon: DollarSign,
+          filters: [{
+            field: 'category',
+            operator: 'equals',
+            value: 'management'
+          }],
+          description: 'Show only management expenses'
+        });
+      }
+
+      if (hoursField) {
+        presets.push({
+          label: 'With Hours',
+          icon: Clock,
+          filters: [{
+            field: 'hours',
+            operator: 'greater_than',
+            value: '0'
+          }],
+          description: 'Entries with hours tracked'
+        });
+      }
+
+      if (dateField) {
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        presets.push({
+          label: 'This Month',
+          icon: Calendar,
+          filters: [{
+            field: 'expense_date',
+            operator: 'between',
+            value: [formatDate(firstDayOfMonth), formatDate(today)]
+          }],
+          description: 'Internal costs from this month'
+        });
+
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        presets.push({
+          label: 'Last 30 Days',
+          icon: Calendar,
+          filters: [{
+            field: 'expense_date',
+            operator: 'between',
+            value: [formatDate(thirtyDaysAgo), formatDate(today)]
+          }],
+          description: 'Internal costs from last 30 days'
+        });
+      }
+    }
+
     return presets;
   };
 

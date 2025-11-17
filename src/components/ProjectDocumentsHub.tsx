@@ -8,7 +8,7 @@ import { ProjectQuotePDFsList } from "./ProjectQuotePDFsList";
 import { ProjectDocumentsTable } from "./ProjectDocumentsTable";
 import { DocumentUpload } from "./DocumentUpload";
 import { ProjectDocumentsTimeline } from "./ProjectDocumentsTimeline";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { DocumentType } from "@/types/document";
 import { useNavigate } from "react-router-dom";
@@ -147,12 +147,15 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
         </TabsContent>
       </Tabs>
 
-      {/* Upload Dialog */}
-      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Upload Document</DialogTitle>
-          </DialogHeader>
+      {/* Upload Sheet */}
+      <Sheet open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <SheetContent side="right" className="sm:max-w-md w-full p-4 z-[80] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Upload Document</SheetTitle>
+            <SheetDescription>
+              Upload PDFs, drawings, permits, licenses, and other project documents.
+            </SheetDescription>
+          </SheetHeader>
           <DocumentUpload
             projectId={projectId}
             documentType={uploadDocumentType}
@@ -160,8 +163,8 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
               setUploadDialogOpen(false);
             }}
           />
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

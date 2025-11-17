@@ -8,7 +8,7 @@ export interface ReportFilter {
 }
 
 export interface ReportConfig {
-  data_source: 'projects' | 'expenses' | 'quotes' | 'time_entries';
+  data_source: 'projects' | 'expenses' | 'quotes' | 'time_entries' | 'estimate_line_items' | 'internal_costs';
   filters?: Record<string, ReportFilter>;
   sort_by?: string;
   sort_dir?: 'ASC' | 'DESC';

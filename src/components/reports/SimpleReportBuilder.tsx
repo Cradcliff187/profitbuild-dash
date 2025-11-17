@@ -30,7 +30,9 @@ const DATA_SOURCES = [
   { value: 'projects', label: 'Projects' },
   { value: 'expenses', label: 'Expenses' },
   { value: 'quotes', label: 'Quotes' },
-  { value: 'time_entries', label: 'Time Entries' }
+  { value: 'time_entries', label: 'Time Entries' },
+  { value: 'estimate_line_items', label: 'Estimate Line Items' },
+  { value: 'internal_costs', label: 'Internal Costs' }
 ] as const;
 
 const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
@@ -79,6 +81,40 @@ const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'approval_status', label: 'Approval Status', type: 'text', group: 'status', enumValues: ['pending', 'approved', 'rejected'], allowedOperators: ['equals', 'not_equals', 'in'], helpText: 'Time entry approval status' },
     { key: 'start_time', label: 'Start Time', type: 'text', group: 'time', helpText: 'Time entry start time' },
     { key: 'end_time', label: 'End Time', type: 'text', group: 'time', helpText: 'Time entry end time' }
+  ],
+  estimate_line_items: [
+    { key: 'estimate_number', label: 'Estimate #', type: 'text', group: 'project_info' },
+    { key: 'project_number', label: 'Project #', type: 'text', group: 'project_info' },
+    { key: 'project_name', label: 'Project Name', type: 'text', group: 'project_info' },
+    { key: 'client_name', label: 'Client', type: 'text', group: 'project_info', dataSource: 'clients', allowedOperators: ['equals', 'in', 'contains'] },
+    { key: 'category', label: 'Category', type: 'text', group: 'status', enumValues: Constants.public.Enums.expense_category as string[], allowedOperators: ['equals', 'not_equals', 'in'] },
+    { key: 'description', label: 'Description', type: 'text', group: 'project_info', allowedOperators: ['equals', 'contains'] },
+    { key: 'quantity', label: 'Quantity', type: 'number', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'price_per_unit', label: 'Price/Unit', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'total', label: 'Total', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'cost_per_unit', label: 'Cost/Unit', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'total_cost', label: 'Total Cost', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'quote_count', label: 'Quote Count', type: 'number', group: 'status', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Number of quotes received for this line item' },
+    { key: 'has_quotes', label: 'Has Quotes', type: 'text', group: 'status', enumValues: ['true', 'false'], allowedOperators: ['equals'], helpText: 'Whether line item has any quotes' },
+    { key: 'has_accepted_quote', label: 'Has Accepted Quote', type: 'text', group: 'status', enumValues: ['true', 'false'], allowedOperators: ['equals'], helpText: 'Whether line item has an accepted quote' },
+    { key: 'accepted_quote_count', label: 'Accepted Quotes', type: 'number', group: 'status', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'pending_quote_count', label: 'Pending Quotes', type: 'number', group: 'status', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] }
+  ],
+  internal_costs: [
+    { key: 'category', label: 'Category', type: 'text', group: 'status', enumValues: ['labor_internal', 'management'], allowedOperators: ['equals', 'not_equals', 'in'], helpText: 'Internal labor or management expense' },
+    { key: 'expense_date', label: 'Date', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Date when expense occurred' },
+    { key: 'hours', label: 'Hours', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Hours worked (only for internal labor)' },
+    { key: 'amount', label: 'Amount', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Cost amount' },
+    { key: 'worker_name', label: 'Employee/Worker', type: 'text', group: 'employee', dataSource: 'workers', allowedOperators: ['equals', 'in', 'contains'], helpText: 'Employee name (for internal labor)' },
+    { key: 'hourly_rate', label: 'Hourly Rate', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Hourly rate (for internal labor)' },
+    { key: 'project_number', label: 'Project #', type: 'text', group: 'project_info' },
+    { key: 'project_name', label: 'Project Name', type: 'text', group: 'project_info' },
+    { key: 'client_name', label: 'Client', type: 'text', group: 'project_info', dataSource: 'clients', allowedOperators: ['equals', 'in', 'contains'] },
+    { key: 'estimate_number', label: 'Estimate #', type: 'text', group: 'project_info', helpText: 'Approved estimate for this project' },
+    { key: 'description', label: 'Description', type: 'text', group: 'project_info', allowedOperators: ['equals', 'contains'] },
+    { key: 'approval_status', label: 'Approval Status', type: 'text', group: 'status', enumValues: ['pending', 'approved', 'rejected'], allowedOperators: ['equals', 'not_equals', 'in'], helpText: 'Expense approval status' },
+    { key: 'start_time', label: 'Start Time', type: 'text', group: 'time', helpText: 'Start time (for internal labor with time tracking)' },
+    { key: 'end_time', label: 'End Time', type: 'text', group: 'time', helpText: 'End time (for internal labor with time tracking)' }
   ]
 };
 
