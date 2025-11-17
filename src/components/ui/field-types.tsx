@@ -154,7 +154,7 @@ const CalculatedField = React.forwardRef<HTMLDivElement, CalculatedFieldProps>(
           )}
         >
           <Calculator className="h-3 w-3 flex-shrink-0" />
-          <span className="truncate">
+          <span className="truncate flex-1 min-w-0">
             {displayValue}
           </span>
           <Badge variant="secondary" className="text-xs ml-auto flex-shrink-0">
