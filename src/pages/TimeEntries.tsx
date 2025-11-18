@@ -59,6 +59,7 @@ import { useRoles } from "@/contexts/RoleContext";
 // Define column metadata for selector (must be outside component for state initialization)
 const columnDefinitions = [
   { key: "worker", label: "Worker", required: true },
+  { key: "employee_number", label: "Employee #", required: false },
   { key: "project", label: "Project", required: true },
   { key: "address", label: "Project Address", required: false },
   { key: "date", label: "Date", required: true },
@@ -661,6 +662,7 @@ const TimeEntries = () => {
 
                         const widths: Record<string, string> = {
                           worker: "w-32",
+                          employee_number: "w-28",
                           project: "w-48",
                           address: "w-40",
                           date: "w-28",
@@ -679,6 +681,12 @@ const TimeEntries = () => {
                             return (
                               <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>
                                 Worker
+                              </TableHead>
+                            );
+                          case "employee_number":
+                            return (
+                              <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>
+                                Employee #
                               </TableHead>
                             );
                           case "project":
@@ -798,6 +806,12 @@ const TimeEntries = () => {
                                 return (
                                   <TableCell key={colKey} className="p-1.5 text-xs font-medium">
                                     {entry.worker_name}
+                                  </TableCell>
+                                );
+                              case "employee_number":
+                                return (
+                                  <TableCell key={colKey} className="p-1.5 text-xs text-muted-foreground">
+                                    {entry.payee?.employee_number || "-"}
                                   </TableCell>
                                 );
                               case "project":

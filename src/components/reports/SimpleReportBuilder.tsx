@@ -76,6 +76,7 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
   time_entries: [
     { key: 'expense_date', label: 'Date', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Date when time was worked' },
     { key: 'worker_name', label: 'Employee', type: 'text', group: 'employee', dataSource: 'workers', allowedOperators: ['equals', 'in', 'contains'], helpText: 'Employee who worked the hours' },
+    { key: 'employee_number', label: 'Employee #', type: 'text', group: 'employee', allowedOperators: ['equals', 'contains'], helpText: 'Employee identification number' },
     { key: 'hours', label: 'Hours', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Number of hours worked' },
     { key: 'amount', label: 'Total Amount', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total cost (hours × hourly rate)' },
     { key: 'hourly_rate', label: 'Hourly Rate', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Employee hourly rate' },
