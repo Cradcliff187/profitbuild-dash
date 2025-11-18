@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface ReportFilter {
   field: string;
-  operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'in' | 'between' | 'is_null';
+  operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'in' | 'between' | 'is_null' | 'contains_any' | 'contains_only' | 'contains_all';
   value: any;
 }
 

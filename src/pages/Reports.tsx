@@ -1,67 +1,165 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, FileText, FolderOpen, BarChart3 } from "lucide-react";
-import { TemplateGallery } from "@/components/reports/TemplateGallery";
+import { Plus, FileText } from "lucide-react";
+import { NewTemplateGallery } from "@/components/reports/NewTemplateGallery";
 import { SimpleReportBuilder } from "@/components/reports/SimpleReportBuilder";
 import { ReportViewer } from "@/components/reports/ReportViewer";
 import { ExportControls } from "@/components/reports/ExportControls";
-import { useReportExecution, ReportConfig } from "@/hooks/useReportExecution";
+import { FilterSummary } from "@/components/reports/FilterSummary";
+import { SimpleFilterPanel } from "@/components/reports/SimpleFilterPanel";
+import { useReportExecution, ReportConfig, ReportFilter } from "@/hooks/useReportExecution";
 import { ReportTemplate } from "@/hooks/useReportTemplates";
 import { ReportField } from "@/utils/reportExporter";
 import { useToast } from "@/hooks/use-toast";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FieldMetadata, AVAILABLE_FIELDS } from "@/components/reports/SimpleReportBuilder";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Filter } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const ReportsPage = () => {
   const isMobile = useIsMobile();
-  const [activeTab, setActiveTab] = useState<'templates' | 'builder'>('templates');
+  const [showBuilder, setShowBuilder] = useState(false);
   const [hasResults, setHasResults] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
   const [reportData, setReportData] = useState<any[]>([]);
   const [reportFields, setReportFields] = useState<ReportField[]>([]);
   const [reportName, setReportName] = useState('');
+  const [currentConfig, setCurrentConfig] = useState<ReportConfig | null>(null);
+  const [currentFilters, setCurrentFilters] = useState<ReportFilter[]>([]);
+  const [currentDataSource, setCurrentDataSource] = useState<ReportConfig['data_source']>('projects');
+  const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
   const { executeReport, isLoading } = useReportExecution();
   const { toast } = useToast();
 
-  const tabOptions = [
-    { value: 'templates', label: 'Templates', icon: null },
-    { value: 'builder', label: 'Custom Builder', icon: Plus },
-  ];
+  // Convert filters object to array for FilterSummary
+  const filtersObjectToArray = (filters: Record<string, ReportFilter>): ReportFilter[] => {
+    return Object.values(filters).filter(filter => filter && filter.field && filter.operator);
+  };
 
-  const handleTabChange = (value: string) => {
-    if (value === 'templates' || value === 'builder') {
-      setActiveTab(value);
+  // Convert filters array back to object for ReportConfig
+  const filtersArrayToObject = (filters: ReportFilter[]): Record<string, ReportFilter> => {
+    const filterMap: Record<string, ReportFilter> = {};
+    filters.forEach((filter, index) => {
+      if (filter && filter.field && filter.operator) {
+        filterMap[`filter_${index}`] = filter;
+      }
+    });
+    return filterMap;
+  };
+
+  // Apply filters and refresh the report
+  const handleApplyFilters = async () => {
+    if (!currentConfig) return;
+
+    const filterMap = filtersArrayToObject(currentFilters);
+    
+    const updatedConfig: ReportConfig = {
+      ...currentConfig,
+      filters: filterMap,
+      sort_by: 'created_at', // Default sort, column sorting is now primary
+      sort_dir: 'DESC'
+    };
+
+    setCurrentConfig(updatedConfig);
+
+    const result = await executeReport(updatedConfig);
+
+    if (result) {
+      setReportData(result.data);
+      setFiltersSheetOpen(false);
+      toast({
+        title: "Filters Applied",
+        description: `Report updated with ${result.data.length} rows`
+      });
+    } else {
+      toast({
+        title: "Failed to apply filters",
+        description: "Could not refresh the report",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleClearAllFilters = () => {
+    setCurrentFilters([]);
+    if (currentConfig) {
+      const updatedConfig: ReportConfig = {
+        ...currentConfig,
+        filters: {}
+      };
+      executeReport(updatedConfig).then(result => {
+        if (result) {
+          setReportData(result.data);
+        }
+      });
     }
   };
 
   const handleUseTemplate = async (template: ReportTemplate) => {
     setSelectedTemplate(template);
-    setReportName(template.name);
-
+    
     // Execute the template's config
     const templateConfig = template.config as any;
+    
+    // Remove status filters that limit to "in_progress" to show all projects by default
+    const filters = { ...(templateConfig.filters || {}) };
+    const filterKeys = Object.keys(filters);
+    for (const key of filterKeys) {
+      const filter = filters[key];
+      if (filter?.field === 'status' && filter?.operator === 'equals' && filter?.value === 'in_progress') {
+        delete filters[key];
+      }
+    }
+    
+    // Update report name if it's "Active Projects Dashboard" to a generic name
+    let reportName = template.name;
+    if (template.name === 'Active Projects Dashboard' || template.name.toLowerCase().includes('active projects')) {
+      reportName = 'Projects Report';
+    }
+    setReportName(reportName);
     
     // Convert template config to ReportConfig format
     const config: ReportConfig = {
       data_source: templateConfig.data_source,
-      filters: templateConfig.filters || {},
+      filters: filters,
       sort_by: templateConfig.sort_by || 'created_at',
       sort_dir: templateConfig.sort_dir || 'DESC',
       limit: templateConfig.limit || 100
     };
 
+    // Store current config and convert filters to array
+    setCurrentConfig(config);
+    setCurrentDataSource(config.data_source);
+    setCurrentFilters(filtersObjectToArray(config.filters || {}));
+
     const result = await executeReport(config);
 
     if (result) {
       // Extract fields from template config
-      const fields: ReportField[] = templateConfig.fields?.map((f: any) => ({
-        key: f.key || f.source_field || f.field,
-        label: f.label || f.display_name || f.field,
-        type: f.type || 'text'
-      })) || [];
+      const fields: ReportField[] = templateConfig.fields?.map((f: any) => {
+        // Handle both string field names and field objects
+        if (typeof f === 'string') {
+          // Find field metadata from AVAILABLE_FIELDS
+          const fieldMetadata = AVAILABLE_FIELDS[config.data_source]?.find(
+            field => field.key === f
+          );
+          return {
+            key: f,
+            label: fieldMetadata?.label || f.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            type: fieldMetadata?.type || 'text'
+          };
+        }
+        // Handle field objects
+        return {
+          key: f.key || f.source_field || f.field || f,
+          label: f.label || f.display_name || f.field || f,
+          type: f.type || 'text'
+        };
+      }) || [];
 
       setReportFields(fields);
       setReportData(result.data);
@@ -76,6 +174,11 @@ const ReportsPage = () => {
   };
 
   const handleRunReport = async (config: ReportConfig, fields: ReportField[]) => {
+    // Store current config and convert filters to array
+    setCurrentConfig(config);
+    setCurrentDataSource(config.data_source);
+    setCurrentFilters(filtersObjectToArray(config.filters || {}));
+
     const result = await executeReport(config);
 
     if (result) {
@@ -117,13 +220,16 @@ const ReportsPage = () => {
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setHasResults(false)}>
+                  <Button variant="outline" onClick={() => {
+                    setHasResults(false);
+                    setShowBuilder(false);
+                  }}>
                     <FileText className="h-4 w-4 mr-2" />
                     Back to Reports
                   </Button>
                   <Button variant="outline" onClick={() => {
                     setHasResults(false);
-                    setActiveTab('builder');
+                    setShowBuilder(true);
                   }}>
                     <Plus className="h-4 w-4 mr-2" />
                     New Report
@@ -136,6 +242,89 @@ const ReportsPage = () => {
                 <BrandedLoader message="Loading report data..." />
               ) : (
                 <>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setFiltersSheetOpen(true)}
+                    className="w-full sm:w-auto"
+                  >
+                    <Filter className="h-4 w-4 mr-2" />
+                    <span>Filters</span>
+                    {currentFilters.length > 0 && (
+                      <Badge variant="default" className="ml-2">
+                        {currentFilters.length}
+                      </Badge>
+                    )}
+                  </Button>
+
+                  <Sheet open={filtersSheetOpen} onOpenChange={setFiltersSheetOpen}>
+                    <SheetContent side="right" className="sm:max-w-lg w-full p-0 flex flex-col">
+                      <SheetHeader className="px-6 pt-6 pb-4 border-b">
+                        <SheetTitle>Filter Report</SheetTitle>
+                        <SheetDescription>
+                          Add or modify filters to narrow down the results
+                        </SheetDescription>
+                      </SheetHeader>
+                      <ScrollArea className="flex-1 px-6 py-4">
+                        <SimpleFilterPanel
+                          filters={currentFilters}
+                          onFiltersChange={setCurrentFilters}
+                          availableFields={AVAILABLE_FIELDS[currentDataSource] || []}
+                          dataSource={currentDataSource}
+                        />
+                      </ScrollArea>
+                      <SheetFooter className="px-6 py-4 border-t gap-2">
+                        <Button variant="outline" onClick={handleClearAllFilters} disabled={currentFilters.length === 0}>
+                          Clear All
+                        </Button>
+                        <Button onClick={handleApplyFilters} disabled={isLoading}>
+                          Apply Filters
+                        </Button>
+                      </SheetFooter>
+                    </SheetContent>
+                  </Sheet>
+
+                  {currentFilters.length > 0 && (
+                    <FilterSummary
+                      filters={currentFilters}
+                      availableFields={AVAILABLE_FIELDS[currentDataSource] || []}
+                      onRemoveFilter={(index) => {
+                        setCurrentFilters(currentFilters.filter((_, i) => i !== index));
+                        // Auto-apply after removal
+                        setTimeout(() => {
+                          const updatedFilters = currentFilters.filter((_, i) => i !== index);
+                          const filterMap = filtersArrayToObject(updatedFilters);
+                          if (currentConfig) {
+                            const updatedConfig: ReportConfig = {
+                              ...currentConfig,
+                              filters: filterMap
+                            };
+                            executeReport(updatedConfig).then(result => {
+                              if (result) {
+                                setReportData(result.data);
+                                setCurrentFilters(updatedFilters);
+                              }
+                            });
+                          }
+                        }, 100);
+                      }}
+                      onClearAll={() => {
+                        setCurrentFilters([]);
+                        if (currentConfig) {
+                          const updatedConfig: ReportConfig = {
+                            ...currentConfig,
+                            filters: {}
+                          };
+                          executeReport(updatedConfig).then(result => {
+                            if (result) {
+                              setReportData(result.data);
+                              setCurrentFilters([]);
+                            }
+                          });
+                        }
+                      }}
+                    />
+                  )}
+
                   <ExportControls
                     reportName={reportName}
                     data={reportData}
@@ -150,77 +339,41 @@ const ReportsPage = () => {
             </CardContent>
           </Card>
         </div>
-      ) : (
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="w-full sm:w-auto">
-              <div className="sm:hidden">
-                <Select value={activeTab} onValueChange={handleTabChange}>
-                  <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tabOptions.map((tab) => {
-                      const Icon = tab.icon;
-                      return (
-                        <SelectItem key={tab.value} value={tab.value}>
-                          <div className="flex items-center gap-2">
-                            {Icon && <Icon className="h-4 w-4" />}
-                            <span>{tab.label}</span>
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
-                {tabOptions.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <TabsTrigger
-                      key={tab.value}
-                      value={tab.value}
-                      className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                    >
-                      {Icon && <Icon className="h-4 w-4" />}
-                      <span>{tab.label}</span>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-            </div>
-          </div>
-
-          <TabsContent value="templates" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Report Templates</CardTitle>
-                <CardDescription>
-                  Choose from pre-built report templates to get started quickly
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TemplateGallery onSelectTemplate={handleUseTemplate} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="builder" className="space-y-4">
-            <Card>
-              <CardHeader>
+      ) : showBuilder ? (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
                 <CardTitle>Create Custom Report</CardTitle>
                 <CardDescription>
                   Build your own report step by step
                 </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <SimpleReportBuilder onRunReport={handleRunReport} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setShowBuilder(false)}>
+                <FileText className="h-4 w-4 mr-2" />
+                Back to Templates
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <SimpleReportBuilder onRunReport={handleRunReport} />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Report Templates</CardTitle>
+            <CardDescription>
+              Choose from pre-built report templates organized by category
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <NewTemplateGallery 
+              onSelectTemplate={handleUseTemplate}
+              onCustomBuilder={() => setShowBuilder(true)}
+            />
+          </CardContent>
+        </Card>
       )}
     </div>
   );

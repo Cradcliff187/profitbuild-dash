@@ -5,7 +5,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { SimpleFilterPanel } from "./SimpleFilterPanel";
-import { FilterPresets } from "./FilterPresets";
 import { FilterSummary } from "./FilterSummary";
 import { ReportViewer } from "./ReportViewer";
 import { ExportControls } from "./ExportControls";
@@ -21,7 +20,7 @@ export interface FieldMetadata {
   type: ReportField['type'];
   enumValues?: string[];
   dataSource?: 'clients' | 'payees' | 'workers' | 'projects';
-  group?: 'financial' | 'project_info' | 'dates' | 'status' | 'employee' | 'time';
+  group?: 'financial' | 'project_info' | 'dates' | 'status' | 'employee' | 'time' | 'composition';
   helpText?: string;
   allowedOperators?: ReportFilter['operator'][];
 }
@@ -35,7 +34,7 @@ const DATA_SOURCES = [
   { value: 'internal_costs', label: 'Internal Costs' }
 ] as const;
 
-const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
+export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
   projects: [
     { key: 'project_number', label: 'Project #', type: 'text', group: 'project_info' },
     { key: 'project_name', label: 'Project Name', type: 'text', group: 'project_info' },
@@ -47,7 +46,13 @@ const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'total_expenses', label: 'Total Expenses', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'contingency_remaining', label: 'Contingency Remaining', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'start_date', label: 'Start Date', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
-    { key: 'end_date', label: 'End Date', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] }
+    { key: 'end_date', label: 'End Date', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'category_list', label: 'Line Item Categories', type: 'text', group: 'composition', enumValues: Constants.public.Enums.expense_category as string[], allowedOperators: ['contains_any', 'contains_only', 'contains_all'], helpText: 'Filter by line item category composition' },
+    { key: 'has_labor_internal', label: 'Has Internal Labor', type: 'boolean', group: 'composition', helpText: 'Project has internal labor line items' },
+    { key: 'only_labor_internal', label: 'Only Internal Labor', type: 'boolean', group: 'composition', helpText: 'Project has ONLY internal labor line items' },
+    { key: 'has_subcontractors', label: 'Has Subcontractors', type: 'boolean', group: 'composition', helpText: 'Project has subcontractor line items' },
+    { key: 'has_materials', label: 'Has Materials', type: 'boolean', group: 'composition', helpText: 'Project has materials line items' },
+    { key: 'has_equipment', label: 'Has Equipment', type: 'boolean', group: 'composition', helpText: 'Project has equipment line items' }
   ],
   expenses: [
     { key: 'expense_date', label: 'Date', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
@@ -95,8 +100,8 @@ const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'cost_per_unit', label: 'Cost/Unit', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'total_cost', label: 'Total Cost', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'quote_count', label: 'Quote Count', type: 'number', group: 'status', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Number of quotes received for this line item' },
-    { key: 'has_quotes', label: 'Has Quotes', type: 'text', group: 'status', enumValues: ['true', 'false'], allowedOperators: ['equals'], helpText: 'Whether line item has any quotes' },
-    { key: 'has_accepted_quote', label: 'Has Accepted Quote', type: 'text', group: 'status', enumValues: ['true', 'false'], allowedOperators: ['equals'], helpText: 'Whether line item has an accepted quote' },
+    { key: 'has_quotes', label: 'Has Quotes', type: 'boolean', group: 'status', helpText: 'Whether line item has any quotes' },
+    { key: 'has_accepted_quote', label: 'Has Accepted Quote', type: 'boolean', group: 'status', helpText: 'Whether line item has an accepted quote' },
     { key: 'accepted_quote_count', label: 'Accepted Quotes', type: 'number', group: 'status', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'pending_quote_count', label: 'Pending Quotes', type: 'number', group: 'status', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] }
   ],
@@ -304,11 +309,6 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
             <CardDescription>Optional: Filter the data to show only what you need</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <FilterPresets
-              dataSource={dataSource}
-              availableFields={AVAILABLE_FIELDS[dataSource] || []}
-              onApplyPreset={(presetFilters) => setFilters([...filters, ...presetFilters])}
-            />
             <FilterSummary
               filters={filters}
               availableFields={AVAILABLE_FIELDS[dataSource] || []}

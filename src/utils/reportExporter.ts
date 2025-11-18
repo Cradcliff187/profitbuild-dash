@@ -3,7 +3,7 @@ import jsPDF from 'jspdf';
 export interface ReportField {
   key: string;
   label: string;
-  type?: 'text' | 'number' | 'date' | 'currency' | 'percent';
+  type?: 'text' | 'number' | 'date' | 'currency' | 'percent' | 'boolean';
 }
 
 export interface ExportOptions {
