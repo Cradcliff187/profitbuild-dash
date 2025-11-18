@@ -39,6 +39,7 @@ const FieldMedia = lazy(() => import("./pages/FieldMedia"));
 const FieldSchedule = lazy(() => import("./pages/FieldSchedule"));
 const BranchBids = lazy(() => import("./pages/BranchBids"));
 const BranchBidDetail = lazy(() => import("./pages/BranchBidDetail"));
+const Reports = lazy(() => import("./pages/Reports"));
 
 const queryClient = new QueryClient();
 
@@ -56,7 +57,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <OfflineIndicator />
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <ErrorBoundary>
             <div className="min-h-screen bg-background w-full overflow-x-hidden">
               <Routes>
@@ -90,6 +91,7 @@ const App = () => (
                   
                   <Route path="estimates" element={<LazyRoute component={Estimates} />} />
                   <Route path="quotes" element={<LazyRoute component={Quotes} />} />
+                  <Route path="reports" element={<LazyRoute component={Reports} />} />
                   <Route path="expenses" element={<LazyRoute component={Expenses} />} />
                   <Route path="expenses/matching" element={<LazyRoute component={ExpenseMatching} />} />
                   <Route path="payees" element={<LazyRoute component={Payees} />} />

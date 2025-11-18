@@ -30,6 +30,7 @@ export interface Payee {
   license_number?: string;
   permit_issuer?: boolean;
   hourly_rate?: number | null;
+  employee_number?: string;
   created_at: string;
   updated_at: string;
 }
@@ -51,6 +52,7 @@ export interface CreatePayeeData {
   license_number?: string;
   permit_issuer?: boolean;
   hourly_rate?: number | null;
+  employee_number?: string;
 }
 
 export interface UpdatePayeeData extends Partial<CreatePayeeData> {

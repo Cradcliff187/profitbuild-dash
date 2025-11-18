@@ -32,17 +32,6 @@ export async function getCompanyBranding(): Promise<CompanyBranding | null> {
       return null;
     }
     
-    // Log logo URLs for debugging
-    if (data?.logo_full_url) {
-      console.log('✅ Full logo URL:', data.logo_full_url);
-    }
-    if (data?.logo_icon_url) {
-      console.log('✅ Icon logo URL:', data.logo_icon_url);
-    }
-    if (data?.logo_stacked_url) {
-      console.log('✅ Stacked logo URL:', data.logo_stacked_url);
-    }
-    
     return data;
   } catch (error) {
     console.error('Exception fetching company branding:', error);
