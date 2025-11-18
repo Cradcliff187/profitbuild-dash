@@ -33,6 +33,7 @@ const payeeSchema = z.object({
   license_number: z.string().optional(),
   permit_issuer: z.boolean().optional(),
   hourly_rate: z.number().positive().optional().or(z.literal("")),
+  employee_number: z.string().optional(),
 });
 
 type PayeeFormData = z.infer<typeof payeeSchema>;
@@ -75,6 +76,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
       license_number: payee?.license_number || "",
       permit_issuer: payee?.permit_issuer || false,
       hourly_rate: payee?.hourly_rate || (defaultPayeeType === PayeeType.INTERNAL_LABOR ? 75 : ""),
+      employee_number: payee?.employee_number || "",
     },
   });
 
@@ -107,6 +109,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
           license_number: data.license_number || null,
           permit_issuer: data.permit_issuer || false,
           hourly_rate: typeof data.hourly_rate === 'number' ? data.hourly_rate : null,
+          employee_number: data.employee_number || null,
         };
 
         const { error } = await supabase
@@ -137,6 +140,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
           license_number: data.license_number || null,
           permit_issuer: data.permit_issuer || false,
           hourly_rate: typeof data.hourly_rate === 'number' ? data.hourly_rate : null,
+          employee_number: data.employee_number || null,
         };
 
         const { error } = await supabase
@@ -417,25 +421,44 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
               )}
 
               {watchedPayeeType === PayeeType.INTERNAL_LABOR && (
-                <FormField
-                  control={form.control}
-                  name="hourly_rate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hourly Rate</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.01"
-                          placeholder="75.00"
-                          {...field} 
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : "")}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <>
+                  <FormField
+                    control={form.control}
+                    name="employee_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Employee Number</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="e.g., EMP-001"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="hourly_rate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Hourly Rate</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            step="0.01"
+                            placeholder="75.00"
+                            {...field} 
+                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : "")}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
               )}
 
               {watchedPayeeType === PayeeType.PERMIT_AUTHORITY && (
