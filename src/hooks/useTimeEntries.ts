@@ -35,7 +35,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           project_id,
           attachment_url,
           is_locked,
-          payees!inner(payee_name, hourly_rate),
+          payees!inner(payee_name, hourly_rate, employee_number),
           projects!inner(project_number, project_name, client_name, address)
         `, { count: 'exact' })
         .eq('category', 'labor_internal')
@@ -95,6 +95,9 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           payee_id: entry.payee_id,
           project_id: entry.project_id,
           is_locked: entry.is_locked,
+          payee: entry.payees ? {
+            employee_number: entry.payees.employee_number
+          } : undefined,
         };
       });
 

@@ -21,6 +21,9 @@ export interface TimeEntryListItem {
   payee_id: string | null;
   project_id: string | null;
   is_locked?: boolean;
+  payee?: {
+    employee_number?: string;
+  };
 }
 
 export interface TimeEntryFilters {
