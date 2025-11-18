@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
-import { X, CalendarIcon, ChevronDown, ChevronRight, Search, Plus } from "lucide-react";
+import { X, CalendarIcon, ChevronDown, ChevronRight, Search } from "lucide-react";
 import { format } from "date-fns";
 import { ReportFilter } from "@/hooks/useReportExecution";
 import { FieldMetadata } from './SimpleReportBuilder';
@@ -144,17 +144,6 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
     onFiltersChange(filters.filter(f => f.field !== fieldKey));
   };
   
-  const addFilter = () => {
-    onFiltersChange([
-      ...filters,
-      {
-        field: availableFields[0]?.key || '',
-        operator: 'equals',
-        value: ''
-      }
-    ]);
-  };
-
   const updateFilter = (index: number, updates: Partial<ReportFilter>, baseFilter?: ReportFilter) => {
     // If index is out of bounds, create a new filter
     if (index >= filters.length) {
@@ -179,10 +168,6 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
       newFilters[index].value = '';
     }
     onFiltersChange(newFilters);
-  };
-
-  const removeFilter = (index: number) => {
-    onFiltersChange(filters.filter((_, i) => i !== index));
   };
 
   const getFieldMetadata = (fieldKey: string): FieldMetadata | undefined => {
@@ -840,22 +825,8 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
     return renderFilterValue(tempFilter, filters.length);
   };
 
-  // Get advanced filters (filters added via "Add Filter" button)
-  const advancedFilters = useMemo(() => {
-    // Collect all field keys that appear in universal or custom sections
-    const simpleFilterKeys = new Set<string>();
-    universalFields.dateFields.forEach(f => simpleFilterKeys.add(f.key));
-    universalFields.statusFields.forEach(f => simpleFilterKeys.add(f.key));
-    universalFields.clientFields.forEach(f => simpleFilterKeys.add(f.key));
-    Object.values(customFields).flat().forEach(f => simpleFilterKeys.add(f.key));
-    
-    // Advanced filters are any filters NOT in the simple sections
-    return filters.filter(f => !simpleFilterKeys.has(f.field));
-  }, [filters, universalFields, customFields]);
-
   const [universalOpen, setUniversalOpen] = useState(true);
   const [customOpen, setCustomOpen] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -942,114 +913,6 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
           </CollapsibleContent>
         </Collapsible>
       )}
-
-      {/* Advanced Filters */}
-      <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-        <div className="flex items-center justify-between w-full py-2">
-          <CollapsibleTrigger className="flex items-center gap-2 text-sm font-semibold">
-            <span>Advanced Filters</span>
-            <ChevronDown className={cn("h-4 w-4 transition-transform", advancedOpen && "rotate-180")} />
-          </CollapsibleTrigger>
-          <Button onClick={addFilter} variant="outline" size="sm">
-            <Plus className="h-4 w-4 mr-1" />
-            Add Filter
-          </Button>
-        </div>
-        <CollapsibleContent className="space-y-3 pt-2">
-          <div className="mb-2">
-            <Label className="text-xs text-muted-foreground">Custom field and operator combinations</Label>
-          </div>
-
-          {advancedFilters.length === 0 && (
-            <div className="text-sm text-muted-foreground py-4 text-center">
-              No advanced filters. Click "Add Filter" to create custom filters.
-            </div>
-          )}
-
-          {advancedFilters.map((filter, idx) => {
-            const originalIndex = getFilterIndex(filter.field);
-            const field = getFieldMetadata(filter.field);
-            const availableOps = field ? getAvailableOperators(field) : Object.keys(operatorLabels) as ReportFilter['operator'][];
-            
-            return (
-              <div key={originalIndex} className="flex gap-2 items-end p-3 border rounded-md bg-card">
-                <div className="flex-1 space-y-2 min-w-0">
-                  <Label className="text-xs">Field</Label>
-                  <Select
-                    value={filter.field}
-                    onValueChange={(value) => {
-                      const newField = getFieldMetadata(value);
-                      const defaultOp = newField?.allowedOperators?.[0] || 'equals';
-                      updateFilter(originalIndex, { field: value, operator: defaultOp });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select field" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableFields
-                        // Exclude boolean fields that appear in Custom Filters
-                        .filter(f => !['has_labor_internal', 'only_labor_internal', 'has_subcontractors', 
-                                       'has_materials', 'has_equipment'].includes(f.key))
-                        .map(f => (
-                          <SelectItem key={f.key} value={f.key}>
-                            {f.label}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex-1 space-y-2 min-w-0">
-                  <Label className="text-xs">Operator</Label>
-                  <Select
-                    value={filter.operator}
-                    onValueChange={(value) => {
-                      const newOperator = value as ReportFilter['operator'];
-                      if (newOperator === 'in' && !Array.isArray(filter.value) && filter.value) {
-                        updateFilter(originalIndex, { operator: newOperator, value: [String(filter.value)] });
-                      } else if (newOperator !== 'in' && Array.isArray(filter.value)) {
-                        updateFilter(originalIndex, { operator: newOperator, value: filter.value[0] || '' });
-                      } else {
-                        updateFilter(originalIndex, { operator: newOperator });
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableOps.map((op) => (
-                        <SelectItem key={op} value={op}>
-                          {operatorLabels[op]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex-2 space-y-2 min-w-0">
-                  {filter.operator !== 'is_null' && (
-                    <>
-                      <Label className="text-xs">Value</Label>
-                      {renderFilterValue(filter, originalIndex)}
-                    </>
-                  )}
-                </div>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeFilter(originalIndex)}
-                  className="h-10 w-10 shrink-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            );
-          })}
-        </CollapsibleContent>
-      </Collapsible>
     </div>
   );
 }
