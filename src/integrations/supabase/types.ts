@@ -1161,6 +1161,7 @@ export type Database = {
           billing_address: string | null
           created_at: string | null
           email: string | null
+          employee_number: string | null
           full_name: string | null
           hourly_rate: number | null
           id: string
@@ -1187,6 +1188,7 @@ export type Database = {
           billing_address?: string | null
           created_at?: string | null
           email?: string | null
+          employee_number?: string | null
           full_name?: string | null
           hourly_rate?: number | null
           id?: string
@@ -1213,6 +1215,7 @@ export type Database = {
           billing_address?: string | null
           created_at?: string | null
           email?: string | null
+          employee_number?: string | null
           full_name?: string | null
           hourly_rate?: number | null
           id?: string
@@ -2011,6 +2014,83 @@ export type Database = {
           },
         ]
       }
+      report_execution_log: {
+        Row: {
+          config_used: Json | null
+          executed_at: string | null
+          executed_by: string | null
+          execution_time_ms: number | null
+          export_format: string | null
+          id: string
+          report_id: string | null
+          row_count: number | null
+        }
+        Insert: {
+          config_used?: Json | null
+          executed_at?: string | null
+          executed_by?: string | null
+          execution_time_ms?: number | null
+          export_format?: string | null
+          id?: string
+          report_id?: string | null
+          row_count?: number | null
+        }
+        Update: {
+          config_used?: Json | null
+          executed_at?: string | null
+          executed_by?: string | null
+          execution_time_ms?: number | null
+          export_format?: string | null
+          id?: string
+          report_id?: string | null
+          row_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_execution_log_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "saved_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_reports: {
+        Row: {
+          category: string | null
+          config: Json
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_template: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          config: Json
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_template?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          config?: Json
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_template?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           created_at: string
@@ -2111,6 +2191,16 @@ export type Database = {
       delete_project_cascade: {
         Args: { p_project_id: string }
         Returns: undefined
+      }
+      execute_simple_report: {
+        Args: {
+          p_data_source: string
+          p_filters?: Json
+          p_limit?: number
+          p_sort_by?: string
+          p_sort_dir?: string
+        }
+        Returns: Json
       }
       generate_estimate_number: {
         Args: { project_id_param: string; project_number_param: string }
