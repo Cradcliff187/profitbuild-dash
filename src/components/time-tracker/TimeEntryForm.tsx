@@ -131,6 +131,7 @@ export const TimeEntryForm = ({
         .in('status', ['approved', 'in_progress'])
         .neq('project_number', '000-UNASSIGNED')
         .neq('project_number', 'SYS-000')
+        .neq('project_number', '001-GAS')  // Hide gas project from manual entry
         .order('project_number', { ascending: false }),
       supabase.auth.getUser(),
     ]);
