@@ -62,6 +62,7 @@ export function FieldProjectSelector({ selectedProjectId, onProjectSelect }: Fie
         .select('id, project_number, project_name, client_name, status')
         .neq('project_number', 'SYS-000')
         .neq('project_number', '000-UNASSIGNED')
+        .neq('project_number', '001-GAS')  // Hide gas project from field media selector
         .order('project_number', { ascending: false });
       
       if (error) throw error;
