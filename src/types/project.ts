@@ -141,3 +141,25 @@ export const generateProjectNumberSync = (): string => {
   const timestamp = Date.now().toString().slice(-3);
   return `225-${timestamp}`;
 };
+
+// System placeholder projects - completely hidden from users
+export const SYSTEM_PROJECT_NUMBERS = ['SYS-000', '000-UNASSIGNED'] as const;
+
+// Operational projects - visible only in time tracking & expenses
+export const OPERATIONAL_PROJECT_NUMBERS = ['001-GAS'] as const;
+
+export type SystemProjectNumber = typeof SYSTEM_PROJECT_NUMBERS[number];
+export type OperationalProjectNumber = typeof OPERATIONAL_PROJECT_NUMBERS[number];
+
+// Helper functions
+export const isSystemProject = (projectNumber: string): boolean => {
+  return SYSTEM_PROJECT_NUMBERS.includes(projectNumber as SystemProjectNumber);
+};
+
+export const isOperationalProject = (projectNumber: string): boolean => {
+  return OPERATIONAL_PROJECT_NUMBERS.includes(projectNumber as OperationalProjectNumber);
+};
+
+export const shouldShowInGeneralLists = (projectNumber: string): boolean => {
+  return !isSystemProject(projectNumber) && !isOperationalProject(projectNumber);
+};
