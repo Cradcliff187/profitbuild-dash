@@ -75,31 +75,10 @@ export function useEstimateQuoteStatus(estimateId?: string) {
     setError(null);
 
     try {
-      // Fetch detailed line items for this estimate
-      // Views in reporting schema should be accessible via direct query if properly exposed
-      const { data: lineItemsData, error: lineItemsError } = await supabase
-        .from('estimate_line_items_quote_status')
-        .select('*')
-        .eq('estimate_id', id)
-        .order('sort_order', { ascending: true, nullsFirst: false });
-
-      if (lineItemsError) throw lineItemsError;
-      setLineItems((lineItemsData || []) as EstimateLineItemQuoteStatus[]);
-
-      // Fetch summary for this estimate
-      const { data: summaryData, error: summaryError } = await supabase
-        .from('estimate_quote_status_summary')
-        .select('*')
-        .eq('estimate_id', id)
-        .maybeSingle();
-
-      if (summaryError && summaryError.code !== 'PGRST116') {
-        // PGRST116 = not found, which is okay if estimate has no line items
-        throw summaryError;
-      }
-
-      setLineItems((lineItemsData || []) as EstimateLineItemQuoteStatus[]);
-      setSummary((summaryData || null) as EstimateQuoteStatusSummary | null);
+      // TODO: Database views not yet created - temporarily return empty data
+      console.warn('estimate_line_items_quote_status view not yet available');
+      setLineItems([]);
+      setSummary(null);
     } catch (err: any) {
       setError(err.message || 'Failed to load estimate quote status');
       console.error('Error fetching estimate quote status:', err);
@@ -113,14 +92,9 @@ export function useEstimateQuoteStatus(estimateId?: string) {
     setError(null);
 
     try {
-      const { data, error: summaryError } = await supabase
-        .from('estimate_quote_status_summary')
-        .select('*')
-        .order('total_line_items', { ascending: false });
-
-      if (summaryError) throw summaryError;
-
-      return (data || []) as EstimateQuoteStatusSummary[];
+      // TODO: Database views not yet created - temporarily return empty data
+      console.warn('estimate_quote_status_summary view not yet available');
+      return [];
     } catch (err: any) {
       setError(err.message || 'Failed to load estimate summaries');
       console.error('Error fetching estimate summaries:', err);

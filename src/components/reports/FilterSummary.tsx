@@ -19,7 +19,10 @@ const operatorLabels: Record<ReportFilter['operator'], string> = {
   contains: 'contains',
   in: 'in',
   between: 'between',
-  is_null: 'is null'
+  is_null: 'is null',
+  contains_any: 'contains any',
+  contains_only: 'contains only',
+  contains_all: 'contains all'
 };
 
 export function FilterSummary({ filters, availableFields, onRemoveFilter, onClearAll }: FilterSummaryProps) {

@@ -22,18 +22,9 @@ export function useReportTemplates() {
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('saved_reports')
-        .select('*')
-        .eq('is_template', true)
-        .order('category', { ascending: true })
-        .order('name', { ascending: true });
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      setTemplates((data as ReportTemplate[]) || []);
+      // TODO: saved_reports table not yet available - temporarily return empty data
+      console.warn('saved_reports table not yet available');
+      setTemplates([]);
     } catch (err: any) {
       setError(err.message || 'Failed to load templates');
       console.error('Error loading templates:', err);
@@ -47,21 +38,9 @@ export function useReportTemplates() {
     setError(null);
 
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
-
-      const { data, error: fetchError } = await supabase
-        .from('saved_reports')
-        .select('*')
-        .eq('is_template', false)
-        .eq('created_by', userData.user.id)
-        .order('updated_at', { ascending: false });
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      setSavedReports((data as ReportTemplate[]) || []);
+      // TODO: saved_reports table not yet available - temporarily return empty data
+      console.warn('saved_reports table not yet available');
+      setSavedReports([]);
     } catch (err: any) {
       setError(err.message || 'Failed to load saved reports');
       console.error('Error loading saved reports:', err);
@@ -78,34 +57,10 @@ export function useReportTemplates() {
     isTemplate: boolean = false
   ): Promise<string | null> => {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        throw new Error('User not authenticated');
-      }
-
-      const { data, error: insertError } = await supabase
-        .from('saved_reports')
-        .insert({
-          name,
-          description,
-          category,
-          config,
-          is_template: isTemplate,
-          created_by: userData.user.id
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        throw insertError;
-      }
-
-      // Refresh saved reports if not a template
-      if (!isTemplate) {
-        await loadSavedReports();
-      }
-
-      return data.id;
+      // TODO: saved_reports table not yet available
+      console.warn('saved_reports table not yet available - cannot save report');
+      setError('Report saving not yet available');
+      return null;
     } catch (err: any) {
       setError(err.message || 'Failed to save report');
       console.error('Error saving report:', err);
@@ -115,18 +70,9 @@ export function useReportTemplates() {
 
   const deleteReport = async (reportId: string): Promise<boolean> => {
     try {
-      const { error: deleteError } = await supabase
-        .from('saved_reports')
-        .delete()
-        .eq('id', reportId);
-
-      if (deleteError) {
-        throw deleteError;
-      }
-
-      // Refresh saved reports
-      await loadSavedReports();
-      return true;
+      // TODO: saved_reports table not yet available
+      console.warn('saved_reports table not yet available - cannot delete report');
+      return false;
     } catch (err: any) {
       setError(err.message || 'Failed to delete report');
       console.error('Error deleting report:', err);

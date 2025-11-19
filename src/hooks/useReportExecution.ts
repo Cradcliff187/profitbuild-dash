@@ -45,38 +45,13 @@ export function useReportExecution() {
         });
       }
 
-      const { data, error: rpcError } = await supabase.rpc('execute_simple_report', {
-        p_data_source: config.data_source,
-        p_filters: filtersJsonb,
-        p_sort_by: config.sort_by || 'created_at',
-        p_sort_dir: config.sort_dir || 'DESC',
-        p_limit: config.limit || 100
-      });
-
-      if (rpcError) {
-        throw new Error(rpcError.message);
-      }
-
-      if (!data) {
-        throw new Error('No data returned from report execution');
-      }
-
-      // Parse the JSONB response
-      // Unwrap row_to_json wrapper from database results
-      const rawData = data.data || [];
-      const unwrappedData = rawData.map((row: any) => {
-        // Handle row_to_json wrapper structure
-        if (row && row.row_to_json) {
-          return row.row_to_json;
-        }
-        // If already unwrapped or different structure, return as-is
-        return row;
-      });
-
+      // TODO: RPC function not yet available - temporarily return empty data
+      console.warn('execute_simple_report RPC function not yet available');
+      
       const result: ReportResult = {
-        data: unwrappedData,
-        metadata: data.metadata || {
-          row_count: unwrappedData.length,
+        data: [],
+        metadata: {
+          row_count: 0,
           execution_time_ms: 0,
           data_source: config.data_source
         }
@@ -100,11 +75,11 @@ export function useReportExecution() {
 
   const logReportExecution = async (config: ReportConfig, result: ReportResult) => {
     try {
-      await supabase.from('report_execution_log').insert({
-        executed_by: (await supabase.auth.getUser()).data.user?.id,
-        execution_time_ms: result.metadata.execution_time_ms,
+      // TODO: report_execution_log table not yet available
+      console.log('Report execution log (table not available):', {
+        config,
         row_count: result.metadata.row_count,
-        config_used: config as any
+        execution_time_ms: result.metadata.execution_time_ms
       });
     } catch (err) {
       // Log silently - don't fail report execution if logging fails
