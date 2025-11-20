@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { usePagination } from '@/hooks/usePagination';
 import { CompletePagination } from '@/components/ui/complete-pagination';
 import { exportReceiptsToCSV } from '@/utils/receiptExport';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,16 +45,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const receiptColumnDefinitions = [
-  { key: 'preview', label: 'Preview', required: true },
-  { key: 'type', label: 'Type', required: false },
-  { key: 'payee', label: 'Payee/Worker', required: true },
-  { key: 'project', label: 'Project', required: true },
-  { key: 'date', label: 'Date', required: true },
-  { key: 'amount', label: 'Amount', required: false },
-  { key: 'status', label: 'Status', required: false },
-  { key: 'submitted_at', label: 'Submitted At', required: false },
-  { key: 'description', label: 'Description', required: false },
-  { key: 'actions', label: 'Actions', required: true },
+  { key: 'preview', label: 'Preview', required: true, hiddenOnMobile: false },
+  { key: 'type', label: 'Type', required: false, hiddenOnMobile: true },
+  { key: 'payee', label: 'Payee/Worker', required: true, hiddenOnMobile: false },
+  { key: 'project', label: 'Project', required: true, hiddenOnMobile: true },
+  { key: 'date', label: 'Date', required: true, hiddenOnMobile: false },
+  { key: 'amount', label: 'Amount', required: false, hiddenOnMobile: false },
+  { key: 'status', label: 'Status', required: false, hiddenOnMobile: true },
+  { key: 'submitted_at', label: 'Submitted At', required: false, hiddenOnMobile: true },
+  { key: 'description', label: 'Description', required: false, hiddenOnMobile: true },
+  { key: 'actions', label: 'Actions', required: true, hiddenOnMobile: false },
 ];
 
 interface UnifiedReceipt {
@@ -79,6 +80,7 @@ interface UnifiedReceipt {
 }
 
 export const ReceiptsManagement: React.FC = () => {
+  const isMobile = useIsMobile();
   const [allReceipts, setAllReceipts] = useState<UnifiedReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ReceiptFilters>({
@@ -152,6 +154,15 @@ export const ReceiptsManagement: React.FC = () => {
     // Default: use order from receiptColumnDefinitions
     return receiptColumnDefinitions.map(col => col.key);
   });
+
+  // Filter columns for mobile - hide columns marked as hiddenOnMobile
+  const displayColumns = useMemo(() => {
+    if (!isMobile) return columnOrder;
+    return columnOrder.filter(colKey => {
+      const colDef = receiptColumnDefinitions.find(def => def.key === colKey);
+      return colDef && !colDef.hiddenOnMobile;
+    });
+  }, [columnOrder, isMobile]);
 
   useEffect(() => {
     loadReceipts();
@@ -776,19 +787,26 @@ export const ReceiptsManagement: React.FC = () => {
       )}
 
       {/* Single Unified Table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="h-8">
-                <TableHead className="w-10 p-2 text-xs">
-                  <Checkbox
-                    checked={selectedIds.length === paginatedReceipts.filter(r => r.type === 'standalone').length && paginatedReceipts.filter(r => r.type === 'standalone').length > 0}
-                    onCheckedChange={handleSelectAll}
-                  />
-                </TableHead>
-                {columnOrder.map(colKey => {
-                  if (!visibleColumns.includes(colKey)) return null;
+      {isMobile && (
+        <div className="px-3 py-2 text-xs text-center text-muted-foreground bg-muted/30 border-b">
+          ← Swipe to see all columns →
+        </div>
+      )}
+      <div className="overflow-x-auto">
+        <div className={isMobile ? "min-w-[900px]" : ""}>
+          <Card>
+            <CardContent className="p-0">
+              <Table className="text-xs">
+                <TableHeader>
+                  <TableRow className="h-8">
+                    <TableHead className="w-10 p-2 text-xs">
+                      <Checkbox
+                        checked={selectedIds.length === paginatedReceipts.filter(r => r.type === 'standalone').length && paginatedReceipts.filter(r => r.type === 'standalone').length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
+                    {displayColumns.map(colKey => {
+                      if (!visibleColumns.includes(colKey)) return null;
                   
                   const widths: Record<string, string> = {
                     preview: 'w-12',
@@ -855,7 +873,7 @@ export const ReceiptsManagement: React.FC = () => {
                     </TableCell>
 
                     {/* Dynamic columns based on columnOrder and visibleColumns */}
-                    {columnOrder.map(colKey => {
+                    {displayColumns.map(colKey => {
                       if (!visibleColumns.includes(colKey)) return null;
                       
                       switch (colKey) {
@@ -1025,6 +1043,8 @@ export const ReceiptsManagement: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
+        </div>
+      </div>
 
       {/* Pagination */}
       {filteredReceipts.length > 0 && (
