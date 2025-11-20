@@ -323,6 +323,15 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
               value={selectedPayeeId || ''}
               onValueChange={(payeeId) => setSelectedPayeeId(payeeId)}
               filterInternal={false}
+              filterPayeeTypes={[
+                PayeeType.MATERIAL_SUPPLIER,
+                PayeeType.EQUIPMENT_RENTAL,
+                PayeeType.MANAGEMENT,
+                PayeeType.PERMIT_AUTHORITY,
+                PayeeType.OTHER
+              ]}
+              sortByUsage={true}
+              usageSource="receipts"
               label="Vendor / Supplier"
               showLabel
               placeholder="Select a vendor or supplier"

@@ -34,6 +34,8 @@ interface PayeeSelectorProps {
   required?: boolean;
   error?: string;
   onBlur?: () => void;
+  sortByUsage?: boolean;
+  usageSource?: 'receipts' | 'expenses' | 'both';
 }
 
 export function PayeeSelector({
@@ -52,6 +54,8 @@ export function PayeeSelector({
   required,
   error,
   onBlur,
+  sortByUsage = false,
+  usageSource = 'receipts',
 }: PayeeSelectorProps) {
   const [showPayeeForm, setShowPayeeForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -87,6 +91,30 @@ export function PayeeSelector({
     },
   });
 
+  // Query usage statistics if sortByUsage is enabled
+  const { data: usageStats } = useQuery({
+    queryKey: ['payee-usage-stats', usageSource],
+    queryFn: async () => {
+      if (!sortByUsage) return null;
+      
+      const { data, error } = await supabase
+        .from('receipts')
+        .select('payee_id')
+        .not('payee_id', 'is', null);
+      
+      if (error) throw error;
+      
+      // Count occurrences of each payee
+      const counts: Record<string, number> = {};
+      data?.forEach(item => {
+        counts[item.payee_id] = (counts[item.payee_id] || 0) + 1;
+      });
+      
+      return counts;
+    },
+    enabled: sortByUsage === true,
+  });
+
   const formatPayeeType = (type?: PayeeType): string => {
     if (!type) return 'Other';
     return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
@@ -104,18 +132,38 @@ export function PayeeSelector({
 
   const selectedPayee = payees?.find(p => p.id === value);
 
-  // Filter payees based on search query
+  // Filter payees based on search query and sort by usage if enabled
   const filteredPayees = useMemo(() => {
     if (!payees) return [];
-    if (!searchQuery.trim()) return payees;
     
-    const query = searchQuery.toLowerCase();
-    return payees.filter(payee => 
-      payee.payee_name.toLowerCase().includes(query) ||
-      (payee.email && payee.email.toLowerCase().includes(query)) ||
-      (payee.payee_type && formatPayeeType(payee.payee_type as PayeeType).toLowerCase().includes(query))
-    );
-  }, [payees, searchQuery]);
+    let result = payees;
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(payee => 
+        payee.payee_name.toLowerCase().includes(query) ||
+        (payee.email && payee.email.toLowerCase().includes(query)) ||
+        (payee.payee_type && formatPayeeType(payee.payee_type as PayeeType).toLowerCase().includes(query))
+      );
+    }
+    
+    // Apply usage-based sorting
+    if (sortByUsage && usageStats) {
+      result = [...result].sort((a, b) => {
+        const aCount = usageStats[a.id] || 0;
+        const bCount = usageStats[b.id] || 0;
+        
+        // Sort by usage count (descending), then alphabetically
+        if (bCount !== aCount) {
+          return bCount - aCount;
+        }
+        return a.payee_name.localeCompare(b.payee_name);
+      });
+    }
+    
+    return result;
+  }, [payees, searchQuery, sortByUsage, usageStats]);
 
   const handlePayeeCreated = () => {
     queryClient.invalidateQueries({ queryKey: ['payees'] });
