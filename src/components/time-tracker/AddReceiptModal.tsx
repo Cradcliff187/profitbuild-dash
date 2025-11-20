@@ -73,9 +73,9 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
         setSystemProjectId(sysProject.id);
       }
       
-      // Pin projects at top of dropdown
+      // Pin only 001-GAS (000-UNASSIGNED has its own dedicated option)
       const pinnedProjects = data?.filter(p => 
-        ['000-UNASSIGNED', '001-GAS'].includes(p.project_number)
+        p.project_number === '001-GAS'
       ) || [];
       
       // Regular projects: filter to approved/in_progress only, exclude system projects
@@ -395,7 +395,10 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                   {filteredProjects.length > 0 ? (
                     filteredProjects.map((project) => (
                       <SelectItem key={project.id} value={project.id}>
-                        {project.project_number} - {project.project_name}
+                        {project.project_number === '001-GAS' 
+                          ? project.project_name 
+                          : `${project.project_number} - ${project.project_name}`
+                        }
                       </SelectItem>
                     ))
                   ) : (
