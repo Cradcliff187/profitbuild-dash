@@ -20,6 +20,7 @@ interface Project {
   id: string;
   project_number: string;
   project_name: string;
+  status: string;
 }
 
 interface AddReceiptModalProps {
@@ -61,7 +62,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
     try {
       const { data, error } = await supabase
         .from('projects')
-        .select('id, project_number, project_name')
+        .select('id, project_number, project_name, status')
         .order('project_name');
 
       if (error) throw error;
@@ -72,10 +73,19 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
         setSystemProjectId(sysProject.id);
       }
       
-      // Filter out system projects from dropdown
-      setProjects(data?.filter(p => 
-        !['SYS-000', '000-UNASSIGNED'].includes(p.project_number)
-      ) || []);
+      // Pin projects at top of dropdown
+      const pinnedProjects = data?.filter(p => 
+        ['000-UNASSIGNED', '001-GAS'].includes(p.project_number)
+      ) || [];
+      
+      // Regular projects: filter to approved/in_progress only, exclude system projects
+      const regularProjects = data?.filter(p => 
+        !['SYS-000', '000-UNASSIGNED', '001-GAS'].includes(p.project_number) &&
+        (p.status === 'approved' || p.status === 'in_progress')
+      ) || [];
+      
+      // Combine: pinned first, then regular projects
+      setProjects([...pinnedProjects, ...regularProjects]);
     } catch (error) {
       console.error('Failed to load projects:', error);
       toast.error('Failed to load projects');
