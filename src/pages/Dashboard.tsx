@@ -98,7 +98,8 @@ const Dashboard = () => {
       .from('projects')
       .select('id, status')
       .neq('project_number', 'SYS-000')
-      .neq('project_number', '000-UNASSIGNED');
+      .neq('project_number', '000-UNASSIGNED')
+      .neq('project_number', '001-GAS');
 
     if (error) {
       console.error('Error loading active projects:', error);
@@ -117,7 +118,8 @@ const Dashboard = () => {
       .from('projects')
       .select('status')
       .neq('project_number', 'SYS-000')
-      .neq('project_number', '000-UNASSIGNED');
+      .neq('project_number', '000-UNASSIGNED')
+      .neq('project_number', '001-GAS');
 
     if (error) {
       console.error('Error loading project status counts:', error);
@@ -215,7 +217,8 @@ const Dashboard = () => {
       .select('contracted_amount, adjusted_est_costs, projected_margin, margin_percentage')
       .in('status', ['approved', 'in_progress'])
       .neq('project_number', 'SYS-000')
-      .neq('project_number', '000-UNASSIGNED');
+      .neq('project_number', '000-UNASSIGNED')
+      .neq('project_number', '001-GAS');
 
     if (activeError) {
       console.error('Error loading active project financials:', activeError);
@@ -242,7 +245,8 @@ const Dashboard = () => {
       .select('contracted_amount')
       .eq('status', 'complete')
       .neq('project_number', 'SYS-000')
-      .neq('project_number', '000-UNASSIGNED');
+      .neq('project_number', '000-UNASSIGNED')
+      .neq('project_number', '001-GAS');
 
     if (completedError) {
       console.error('Error loading completed project financials:', completedError);
