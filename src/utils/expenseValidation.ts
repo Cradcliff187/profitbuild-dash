@@ -8,12 +8,12 @@ import { Expense } from '@/types/expense';
  * @param expense - The expense to validate (can be Expense or EnhancedExpense)
  * @returns Object with isValid flag and error message if invalid
  */
-export function canCorrelateExpense(expense: Pick<Expense, 'is_split' | 'project_id'>): { 
+export function canCorrelateExpense(expense: Pick<Expense, 'is_split' | 'project_id' | 'project_number'>): { 
   isValid: boolean; 
   error?: string 
 } {
   // Check if this is a split parent container
-  if (expense.is_split || expense.project_id === 'SYS-000') {
+  if (expense.is_split || expense.project_number === 'SYS-000') {
     return {
       isValid: false,
       error: 'Cannot correlate split parent expenses. Please correlate the individual split records instead.'
@@ -28,7 +28,7 @@ export function canCorrelateExpense(expense: Pick<Expense, 'is_split' | 'project
  * Validates a batch of expenses for correlation
  * Returns list of invalid expenses with reasons
  */
-export function validateExpensesForCorrelation<T extends Pick<Expense, 'is_split' | 'project_id'>>(expenses: T[]): {
+export function validateExpensesForCorrelation<T extends Pick<Expense, 'is_split' | 'project_id' | 'project_number'>>(expenses: T[]): {
   valid: T[];
   invalid: Array<{ expense: T; reason: string }>;
 } {

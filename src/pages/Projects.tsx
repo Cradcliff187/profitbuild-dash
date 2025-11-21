@@ -90,7 +90,10 @@ const Projects = () => {
         supabase.from('projects').select('*').neq('project_number', 'SYS-000').neq('project_number', '000-UNASSIGNED').neq('project_number', '001-GAS').order('created_at', { ascending: false }),
         supabase.from('estimates').select('*'),
         supabase.from('quotes').select('*'),
-        supabase.from('expenses').select('*'),
+        supabase.from('expenses').select(`
+          *,
+          projects (project_number)
+        `),
         supabase.from('change_orders').select('project_id, client_amount, cost_impact, status').eq('status', 'approved')
       ]);
 
@@ -194,6 +197,7 @@ const Projects = () => {
       const formattedExpenses = expensesRes.data?.map((expense: any) => ({
         id: expense.id,
         project_id: expense.project_id,
+        project_number: expense.projects?.project_number,
         payee_id: expense.payee_id,
         amount: expense.amount,
         description: expense.description,
@@ -213,7 +217,7 @@ const Projects = () => {
 
       // Filter out SYS-000 split parent expenses
       const displayableExpenses = formattedExpenses.filter(expense => {
-        const isSplitParent = expense.is_split && expense.project_id === 'SYS-000';
+        const isSplitParent = expense.is_split && expense.project_number === 'SYS-000';
         return !isSplitParent;
       });
 

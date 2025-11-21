@@ -255,7 +255,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     // Defensive filter: Remove any SYS-000 split parents that might slip through
     const displayableExpenses = useMemo(() => {
       return expenses.filter((expense) => {
-        const isSplitParent = expense.is_split && expense.project_id === "SYS-000";
+        const isSplitParent = expense.is_split && expense.project_number === "SYS-000";
         return !isSplitParent;
       });
     }, [expenses]);
@@ -279,7 +279,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         if (filterMatchStatuses.length > 0) {
           matchesMatchStatus = filterMatchStatuses.some(status => {
             if (status === "unassigned") {
-              return expense.project_id === "000-UNASSIGNED" || expense.project_name?.includes("Unassigned");
+              return expense.project_number === "000-UNASSIGNED";
             } else if (status === "unmatched") {
               return expenseMatches[expense.id]?.matched === false;
             } else if (status === "matched") {
@@ -430,8 +430,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
       for (const expense of filteredExpenses) {
         const splits = expenseSplits[expense.id] || [];
-        const isSplitParent = expense.is_split && expense.project_id === "SYS-000";
-        const isUnassigned = expense.project_id === "000-UNASSIGNED" || expense.project_name?.includes("Unassigned");
+        const isSplitParent = expense.is_split && expense.project_number === "SYS-000";
+        const isUnassigned = expense.project_number === "000-UNASSIGNED";
         const isPlaceholder = isUnassigned;
 
         // Skip split parent containers entirely in export
@@ -683,9 +683,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           }
 
           const isPlaceholder =
-            row.project_id === "000-UNASSIGNED" ||
-            row.project_name?.includes("Unassigned") ||
-            row.project_id === "SYS-000";
+            row.project_number === "000-UNASSIGNED" ||
+            row.project_number === "SYS-000";
 
           if (isPlaceholder) {
             return (
@@ -836,9 +835,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           }
 
           const isPlaceholder =
-            row.project_id === "000-UNASSIGNED" ||
-            row.project_name?.includes("Unassigned") ||
-            row.project_id === "SYS-000";
+            row.project_number === "000-UNASSIGNED" ||
+            row.project_number === "SYS-000";
 
           // Show dash for placeholder projects
           if (isPlaceholder) {
@@ -875,9 +873,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       const status = row.approval_status || "pending";
       const isAllocated = expenseMatches[row.id]?.matched;
       const canSplit =
-        row.project_id !== "000-UNASSIGNED" &&
-        row.project_id !== "SYS-000" &&
-        !row.project_name?.includes("Unassigned");
+        row.project_number !== "000-UNASSIGNED" &&
+        row.project_number !== "SYS-000";
 
       return (
         <DropdownMenu>

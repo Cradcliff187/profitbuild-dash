@@ -21,7 +21,7 @@ type ViewMode = "overview" | "list";
 const filterDisplayableExpenses = (expenses: Expense[]): Expense[] => {
   return expenses.filter((expense) => {
     // Hide split parent containers (SYS-000 project with is_split=true)
-    const isSplitParent = expense.is_split && expense.project_id === "SYS-000";
+    const isSplitParent = expense.is_split && expense.project_number === "SYS-000";
     return !isSplitParent;
   });
 };
