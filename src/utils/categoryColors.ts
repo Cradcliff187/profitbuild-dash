@@ -24,6 +24,16 @@ export const getCategoryThemeColor = (category: string): string => {
     case 'management':
     case LineItemCategory.MANAGEMENT:
       return 'success';
+    case 'tools':
+      return 'indigo';
+    case 'software':
+      return 'cyan';
+    case 'vehicle_maintenance':
+      return 'orange';
+    case 'gas':
+      return 'yellow';
+    case 'meals':
+      return 'pink';
     default:
       return 'slate';
   }
@@ -43,6 +53,11 @@ export const getCategoryBadgeClasses = (category: string): string => {
     success: 'bg-success/10 text-success border-success/20',
     emerald: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     amber: 'bg-amber-100 text-amber-800 border-amber-200',
+    indigo: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    cyan: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    orange: 'bg-orange-100 text-orange-800 border-orange-200',
+    yellow: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    pink: 'bg-pink-100 text-pink-800 border-pink-200',
     slate: 'bg-slate-100 text-slate-700 border-slate-200',
   };
   
@@ -63,6 +78,11 @@ export const getCategoryHexColor = (category: string): string => {
     amber: '#f59e0b',        // amber-500 for equipment
     destructive: '#ef4444',  // red-500 for permits
     success: '#22c55e',      // green-500 for management
+    indigo: '#6366f1',       // indigo-500 for tools
+    cyan: '#06b6d4',         // cyan-500 for software
+    orange: '#f97316',       // orange-500 for vehicle_maintenance
+    yellow: '#eab308',       // yellow-500 for gas
+    pink: '#ec4899',         // pink-500 for meals
     slate: '#94a3b8',        // slate-400 for other
   };
   
@@ -82,6 +102,11 @@ export const getCategoryDotClasses = (category: string): string => {
     amber: 'bg-amber-500',
     destructive: 'bg-destructive',
     success: 'bg-success',
+    indigo: 'bg-indigo-500',
+    cyan: 'bg-cyan-500',
+    orange: 'bg-orange-500',
+    yellow: 'bg-yellow-500',
+    pink: 'bg-pink-500',
     slate: 'bg-slate-400',
   };
   

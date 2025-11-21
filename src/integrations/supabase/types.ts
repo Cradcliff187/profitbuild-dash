@@ -2291,6 +2291,11 @@ export type Database = {
         | "management"
         | "office_expenses"
         | "vehicle_expenses"
+        | "tools"
+        | "software"
+        | "vehicle_maintenance"
+        | "gas"
+        | "meals"
       project_status:
         | "estimating"
         | "quoted"
@@ -2444,6 +2449,11 @@ export const Constants = {
         "management",
         "office_expenses",
         "vehicle_expenses",
+        "tools",
+        "software",
+        "vehicle_maintenance",
+        "gas",
+        "meals",
       ],
       project_status: [
         "estimating",
