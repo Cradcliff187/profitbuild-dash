@@ -28,6 +28,7 @@ const Quotes = () => {
   const [clients, setClients] = useState<Array<{ id: string; client_name: string; }>>([]);
   const [payees, setPayees] = useState<Array<{ id: string; payee_name: string; }>>([]);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [preSelectedEstimateId, setPreSelectedEstimateId] = useState<string | undefined>();
   const [searchFilters, setSearchFilters] = useState<QuoteSearchFilters>({
     searchText: '',
     status: [],
@@ -69,6 +70,34 @@ const Quotes = () => {
       }));
     }
   }, [searchParams]);
+
+  // Auto-open quote creation form when navigating from project details
+  useEffect(() => {
+    const projectIdParam = searchParams.get('projectId');
+    const estimateIdParam = searchParams.get('estimateId');
+    
+    if (projectIdParam && estimateIdParam && view === 'list') {
+      // Find the matching estimate
+      const preSelectedEstimate = estimates.find(e => e.id === estimateIdParam);
+      
+      if (preSelectedEstimate) {
+        setView('create');
+        setPreSelectedEstimateId(estimateIdParam);
+        
+        // Clear URL params after processing (will trigger on next render)
+        window.history.replaceState({}, '', '/quotes');
+      } else if (estimates.length > 0) {
+        // Estimates loaded but estimate not found
+        setView('create');
+        toast({
+          title: "Estimate not found",
+          description: "Please select the estimate manually",
+          variant: "default"
+        });
+        window.history.replaceState({}, '', '/quotes');
+      }
+    }
+  }, [searchParams, estimates, view, toast]);
 
   const loadClients = async () => {
     const { data, error } = await supabase
@@ -695,8 +724,12 @@ const Quotes = () => {
       {view === 'create' && (
         <QuoteForm
           estimates={estimates}
+          preSelectedEstimateId={preSelectedEstimateId}
           onSave={handleSaveQuote}
-          onCancel={() => setView('list')}
+          onCancel={() => {
+            setView('list');
+            setPreSelectedEstimateId(undefined);
+          }}
         />
       )}
 
