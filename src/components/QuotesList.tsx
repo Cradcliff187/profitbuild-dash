@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Eye, FileText, Trash2, ArrowUpDown, Edit, ChevronDown } from "lucide-react";
+import { Eye, FileText, Trash2, ArrowUpDown, Edit, ChevronDown, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -271,6 +271,14 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
 
   return (
     <div className="dense-spacing">
+      {/* Create New Quote Button */}
+      {onCreateNew && (
+        <Button onClick={onCreateNew} size="sm" className="w-full mb-3">
+          <Plus className="h-4 w-4 mr-2" />
+          New Quote
+        </Button>
+      )}
+      
       {/* Sort Controls */}
       <Card className="compact-card">
         <CardHeader className="p-compact pb-2">
