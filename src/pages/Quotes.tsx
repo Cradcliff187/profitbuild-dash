@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { FileText, Plus, BarChart3, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuoteForm } from "@/components/QuoteForm";
@@ -17,6 +17,7 @@ import { BrandedLoader } from "@/components/ui/branded-loader";
 
 const Quotes = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'view' | 'compare'>('list');
@@ -29,6 +30,7 @@ const Quotes = () => {
   const [payees, setPayees] = useState<Array<{ id: string; payee_name: string; }>>([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [preSelectedEstimateId, setPreSelectedEstimateId] = useState<string | undefined>();
+  const [returnUrl, setReturnUrl] = useState<string | null>(null);
   const [searchFilters, setSearchFilters] = useState<QuoteSearchFilters>({
     searchText: '',
     status: [],
@@ -75,6 +77,12 @@ const Quotes = () => {
   useEffect(() => {
     const projectIdParam = searchParams.get('projectId');
     const estimateIdParam = searchParams.get('estimateId');
+    const returnUrlParam = searchParams.get('returnUrl');
+    
+    // Store return URL if provided
+    if (returnUrlParam) {
+      setReturnUrl(decodeURIComponent(returnUrlParam));
+    }
     
     if (projectIdParam && estimateIdParam && view === 'list') {
       // Find the matching estimate
@@ -567,6 +575,14 @@ const Quotes = () => {
         title: selectedQuote ? "Quote Updated" : "Quote Created",
         description: `Quote ${quote.quoteNumber} has been ${selectedQuote ? 'updated' : 'created'} successfully.`
       });
+
+      // Navigate back to originating page if returnUrl exists
+      if (returnUrl) {
+        setTimeout(() => {
+          navigate(returnUrl);
+          setReturnUrl(null); // Clear after navigation
+        }, 500); // Small delay to let user see the success toast
+      }
     } catch (error) {
       console.error('Error saving quote:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
@@ -723,15 +739,40 @@ const Quotes = () => {
       )}
 
       {view === 'create' && (
-        <QuoteForm
-          estimates={estimates}
-          preSelectedEstimateId={preSelectedEstimateId}
-          onSave={handleSaveQuote}
-          onCancel={() => {
-            setView('list');
-            setPreSelectedEstimateId(undefined);
-          }}
-        />
+        <>
+          {returnUrl && (
+            <div className="mb-3">
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink onClick={() => navigate(returnUrl)} className="cursor-pointer">
+                      Project Estimates
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>Create Quote</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
+          )}
+          <QuoteForm
+            estimates={estimates}
+            preSelectedEstimateId={preSelectedEstimateId}
+            onSave={handleSaveQuote}
+            onCancel={() => {
+              setView('list');
+              setPreSelectedEstimateId(undefined);
+              
+              // Navigate back if we have a return URL
+              if (returnUrl) {
+                navigate(returnUrl);
+                setReturnUrl(null);
+              }
+            }}
+          />
+        </>
       )}
 
       {view === 'edit' && selectedQuote && (
