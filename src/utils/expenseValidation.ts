@@ -1,8 +1,10 @@
 import { Expense } from '@/types/expense';
+import { isOperationalProject } from '@/types/project';
 
 /**
  * Validates whether an expense can be directly correlated to line items
  * Split parent expenses (with is_split=true or project_id=SYS-000) cannot be correlated
+ * Operational tracking projects (e.g., 001-GAS) cannot be correlated
  * Only individual split records or regular expenses can be correlated
  * 
  * @param expense - The expense to validate (can be Expense or EnhancedExpense)
@@ -17,6 +19,14 @@ export function canCorrelateExpense(expense: Pick<Expense, 'is_split' | 'project
     return {
       isValid: false,
       error: 'Cannot correlate split parent expenses. Please correlate the individual split records instead.'
+    };
+  }
+  
+  // Check if this is an operational tracking project (e.g., Gas, Equipment)
+  if (expense.project_number && isOperationalProject(expense.project_number)) {
+    return {
+      isValid: false,
+      error: 'Tracking project expenses cannot be allocated to line items.'
     };
   }
   

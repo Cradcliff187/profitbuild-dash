@@ -419,48 +419,54 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       });
 
       // Process expenses with match status and splits
-      const enhancedExpenses: EnhancedExpense[] = rawExpenses.map(expense => {
-        const correlation = correlations.find(c => c.expense_id === expense.id && !c.expense_split_id);
-        let matchStatus: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' | 'allocated_to_change_order' = 'unallocated';
-        
-        // Check if ANY non-split correlation exists for this expense
-        if (correlation) {
-          if (correlation.estimate_line_item_id) {
-            matchStatus = 'allocated_to_estimate';
-          } else if (correlation.quote_id) {
-            matchStatus = 'allocated_to_quote';
-          } else if (correlation.change_order_line_item_id) {
-            matchStatus = 'allocated_to_change_order';
+      const enhancedExpenses: EnhancedExpense[] = rawExpenses
+        .map(expense => {
+          const correlation = correlations.find(c => c.expense_id === expense.id && !c.expense_split_id);
+          let matchStatus: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' | 'allocated_to_change_order' = 'unallocated';
+          
+          // Check if ANY non-split correlation exists for this expense
+          if (correlation) {
+            if (correlation.estimate_line_item_id) {
+              matchStatus = 'allocated_to_estimate';
+            } else if (correlation.quote_id) {
+              matchStatus = 'allocated_to_quote';
+            } else if (correlation.change_order_line_item_id) {
+              matchStatus = 'allocated_to_change_order';
+            }
           }
-        }
 
-        // Get splits for this expense and convert dates
-        const expenseSplits = rawSplits
-          .filter(s => s.expense_id === expense.id)
-          .map(s => ({
-            ...s,
-            created_at: new Date(s.created_at),
-            updated_at: new Date(s.updated_at)
-          }));
+          // Get splits for this expense and convert dates
+          const expenseSplits = rawSplits
+            .filter(s => s.expense_id === expense.id)
+            .map(s => ({
+              ...s,
+              created_at: new Date(s.created_at),
+              updated_at: new Date(s.updated_at)
+            }));
 
-        return {
-          id: expense.id,
-          amount: expense.amount,
-          expense_date: new Date(expense.expense_date),
-          description: expense.description,
-          category: expense.category as ExpenseCategory,
-          payee_id: expense.payee_id,
-          payee_name: expense.payees?.payee_name,
-          project_id: expense.project_id,
-          project_name: expense.projects?.project_name,
-          project_number: expense.projects?.project_number,
-          match_status: matchStatus,
-          suggested_line_item_id: suggestLineItemAllocation(expense, allLineItems),
-          confidence_score: calculateMatchConfidence(expense, allLineItems),
-          is_split: expense.is_split || false,
-          splits: expenseSplits
-        };
-      });
+          return {
+            id: expense.id,
+            amount: expense.amount,
+            expense_date: new Date(expense.expense_date),
+            description: expense.description,
+            category: expense.category as ExpenseCategory,
+            payee_id: expense.payee_id,
+            payee_name: expense.payees?.payee_name,
+            project_id: expense.project_id,
+            project_name: expense.projects?.project_name,
+            project_number: expense.projects?.project_number,
+            match_status: matchStatus,
+            suggested_line_item_id: suggestLineItemAllocation(expense, allLineItems),
+            confidence_score: calculateMatchConfidence(expense, allLineItems),
+            is_split: expense.is_split || false,
+            splits: expenseSplits
+          };
+        })
+        .filter(expense => {
+          // Only show expenses that CAN be correlated
+          const validation = canCorrelateExpense(expense);
+          return validation.isValid;
+        });
 
       // Process expense splits as allocatable items
       const enhancedSplits: EnhancedExpenseSplit[] = rawSplits.map(split => {
