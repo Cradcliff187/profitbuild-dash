@@ -126,10 +126,26 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
       weekStart.setDate(now.getDate() - now.getDay());
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      const { data: allEntries } = await supabase
+      let statsQuery = supabase
         .from('expenses')
         .select('approval_status, start_time, end_time, description, expense_date')
         .eq('category', 'labor_internal');
+
+      // Apply the same filters as the main query (except status filter)
+      if (filters.dateFrom) {
+        statsQuery = statsQuery.gte('expense_date', filters.dateFrom);
+      }
+      if (filters.dateTo) {
+        statsQuery = statsQuery.lte('expense_date', filters.dateTo);
+      }
+      if (filters.workerIds.length > 0) {
+        statsQuery = statsQuery.in('payee_id', filters.workerIds);
+      }
+      if (filters.projectIds.length > 0) {
+        statsQuery = statsQuery.in('project_id', filters.projectIds);
+      }
+
+      const { data: allEntries } = await statsQuery;
 
       if (allEntries) {
         const pendingCount = allEntries.filter(e => !e.approval_status || e.approval_status === 'pending').length;
