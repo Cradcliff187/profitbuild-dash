@@ -732,6 +732,37 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         },
       },
       {
+        key: "payee_type",
+        label: "Payee Type",
+        sortable: true,
+        render: (row: DisplayRow) => {
+          if (row._isSplitRow) {
+            return row.payee_type ? (
+              <span className="text-xs text-muted-foreground">{row.payee_type}</span>
+            ) : null;
+          }
+          
+          if (!row.payee_type) return <span className="text-xs text-muted-foreground">—</span>;
+          
+          const payeeTypeDisplay: Record<string, string> = {
+            'subcontractor': 'Subcontractor',
+            'supplier': 'Supplier',
+            'employee': 'Employee',
+            'internal': 'Internal',
+            'permit_issuer': 'Permit Issuer',
+            'equipment_rental': 'Equipment Rental',
+            'consultant': 'Consultant',
+            'other': 'Other'
+          };
+          
+          return (
+            <Badge variant="outline" className="text-xs">
+              {payeeTypeDisplay[row.payee_type] || row.payee_type}
+            </Badge>
+          );
+        },
+      },
+      {
         key: "amount",
         label: "Amount",
         sortable: true,
@@ -785,37 +816,6 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           return (
             <Badge variant={getCategoryBadgeVariant(row.category)} className="text-xs">
               {EXPENSE_CATEGORY_DISPLAY[row.category]}
-            </Badge>
-          );
-        },
-      },
-      {
-        key: "payee_type",
-        label: "Payee Type",
-        sortable: true,
-        render: (row: DisplayRow) => {
-          if (row._isSplitRow) {
-            return row.payee_type ? (
-              <span className="text-xs text-muted-foreground">{row.payee_type}</span>
-            ) : null;
-          }
-          
-          if (!row.payee_type) return <span className="text-xs text-muted-foreground">—</span>;
-          
-          const payeeTypeDisplay: Record<string, string> = {
-            'subcontractor': 'Subcontractor',
-            'supplier': 'Supplier',
-            'employee': 'Employee',
-            'internal': 'Internal',
-            'permit_issuer': 'Permit Issuer',
-            'equipment_rental': 'Equipment Rental',
-            'consultant': 'Consultant',
-            'other': 'Other'
-          };
-          
-          return (
-            <Badge variant="outline" className="text-xs">
-              {payeeTypeDisplay[row.payee_type] || row.payee_type}
             </Badge>
           );
         },
