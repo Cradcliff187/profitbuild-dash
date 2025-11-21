@@ -569,9 +569,10 @@ const Quotes = () => {
       });
     } catch (error) {
       console.error('Error saving quote:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       toast({
         title: "Error",
-        description: "Failed to save quote. Please try again.",
+        description: error?.message || "Failed to save quote. Please try again.",
         variant: "destructive",
       });
     }
