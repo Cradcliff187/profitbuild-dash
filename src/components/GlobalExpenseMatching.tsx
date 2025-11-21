@@ -530,6 +530,11 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       [ExpenseCategory.EQUIPMENT]: [LineItemCategory.EQUIPMENT],
       [ExpenseCategory.PERMITS]: [LineItemCategory.PERMITS],
       [ExpenseCategory.MANAGEMENT]: [LineItemCategory.MANAGEMENT],
+      [ExpenseCategory.TOOLS]: [LineItemCategory.EQUIPMENT],
+      [ExpenseCategory.SOFTWARE]: [LineItemCategory.MANAGEMENT],
+      [ExpenseCategory.VEHICLE_MAINTENANCE]: [LineItemCategory.EQUIPMENT],
+      [ExpenseCategory.GAS]: [LineItemCategory.EQUIPMENT],
+      [ExpenseCategory.MEALS]: [LineItemCategory.MANAGEMENT],
       [ExpenseCategory.OTHER]: [LineItemCategory.OTHER]
     };
 
@@ -605,6 +610,11 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       [ExpenseCategory.EQUIPMENT]: [LineItemCategory.EQUIPMENT],
       [ExpenseCategory.PERMITS]: [LineItemCategory.PERMITS],
       [ExpenseCategory.MANAGEMENT]: [LineItemCategory.MANAGEMENT],
+      [ExpenseCategory.TOOLS]: [LineItemCategory.EQUIPMENT],
+      [ExpenseCategory.SOFTWARE]: [LineItemCategory.MANAGEMENT],
+      [ExpenseCategory.VEHICLE_MAINTENANCE]: [LineItemCategory.EQUIPMENT],
+      [ExpenseCategory.GAS]: [LineItemCategory.EQUIPMENT],
+      [ExpenseCategory.MEALS]: [LineItemCategory.MANAGEMENT],
       [ExpenseCategory.OTHER]: [LineItemCategory.OTHER]
     };
 

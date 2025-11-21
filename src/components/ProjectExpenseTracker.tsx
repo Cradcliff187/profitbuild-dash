@@ -134,6 +134,56 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
         variance: 0,
         cost_overrun: 0
       },
+      tools: {
+        estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.tools?.estimated_cost || 0,
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'tools')
+        ),
+        variance: 0,
+        cost_overrun: 0
+      },
+      software: {
+        estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.software?.estimated_cost || 0,
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'software')
+        ),
+        variance: 0,
+        cost_overrun: 0
+      },
+      vehicle_maintenance: {
+        estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.vehicle_maintenance?.estimated_cost || 0,
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'vehicle_maintenance')
+        ),
+        variance: 0,
+        cost_overrun: 0
+      },
+      gas: {
+        estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.gas?.estimated_cost || 0,
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'gas')
+        ),
+        variance: 0,
+        cost_overrun: 0
+      },
+      meals: {
+        estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.meals?.estimated_cost || 0,
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'meals')
+        ),
+        variance: 0,
+        cost_overrun: 0
+      },
       other: {
         estimated: 0,
         estimated_cost: categoryTotalsFromLineItems.other?.estimated_cost || 0,

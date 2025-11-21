@@ -6,6 +6,11 @@ export enum ExpenseCategory {
   EQUIPMENT = 'equipment',
   PERMITS = 'permits',
   MANAGEMENT = 'management',
+  TOOLS = 'tools',
+  SOFTWARE = 'software',
+  VEHICLE_MAINTENANCE = 'vehicle_maintenance',
+  GAS = 'gas',
+  MEALS = 'meals',
   OTHER = 'other'
 }
 
@@ -19,6 +24,11 @@ export const EXPENSE_CATEGORY_DISPLAY = {
   [ExpenseCategory.EQUIPMENT]: 'Equipment', 
   [ExpenseCategory.PERMITS]: 'Permits & Fees',
   [ExpenseCategory.MANAGEMENT]: 'Management',
+  [ExpenseCategory.TOOLS]: 'Tools',
+  [ExpenseCategory.SOFTWARE]: 'Software',
+  [ExpenseCategory.VEHICLE_MAINTENANCE]: 'Vehicle Maintenance',
+  [ExpenseCategory.GAS]: 'Gas & Fuel',
+  [ExpenseCategory.MEALS]: 'Meals & Entertainment',
   [ExpenseCategory.OTHER]: 'Other'
 };
 
