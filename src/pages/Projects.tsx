@@ -215,9 +215,9 @@ const Projects = () => {
         updated_at: new Date(expense.updated_at)
       })) || [];
 
-      // Filter out SYS-000 split parent expenses
+      // Filter out all split parent expenses (defensive)
       const displayableExpenses = formattedExpenses.filter(expense => {
-        const isSplitParent = expense.is_split && expense.project_number === 'SYS-000';
+        const isSplitParent = expense.is_split === true;
         return !isSplitParent;
       });
 

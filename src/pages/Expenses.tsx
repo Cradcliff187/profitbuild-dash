@@ -17,11 +17,11 @@ import { useToast } from "@/hooks/use-toast";
 
 type ViewMode = "overview" | "list";
 
-// Helper to filter out SYS-000 split parent expenses
+// Helper to filter out all split parent expenses (defensive)
 const filterDisplayableExpenses = (expenses: Expense[]): Expense[] => {
   return expenses.filter((expense) => {
-    // Hide split parent containers (SYS-000 project with is_split=true)
-    const isSplitParent = expense.is_split && expense.project_number === "SYS-000";
+    // Hide split parent containers regardless of project assignment
+    const isSplitParent = expense.is_split === true;
     return !isSplitParent;
   });
 };
