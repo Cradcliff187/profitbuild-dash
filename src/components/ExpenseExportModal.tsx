@@ -189,7 +189,7 @@ export const ExpenseExportModal: React.FC<ExpenseExportModalProps> = ({
 
     for (const expense of filteredExpenses) {
       const splits = expenseSplits[expense.id] || [];
-      const isSplitParent = expense.is_split && expense.project_number === "SYS-000";
+      const isSplitParent = expense.is_split === true;
       const isUnassigned = expense.project_number === "000-UNASSIGNED";
       const isPlaceholder = isUnassigned;
 

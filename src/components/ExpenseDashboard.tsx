@@ -16,10 +16,10 @@ interface ExpenseDashboardProps {
 }
 
 export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, estimates }) => {
-  // Filter out SYS-000 split parent expenses from dashboard
+  // Filter out all split parent expenses from dashboard (defensive)
   const displayableExpenses = React.useMemo(() => {
     return expenses.filter(expense => {
-      const isSplitParent = expense.is_split && expense.project_number === 'SYS-000';
+      const isSplitParent = expense.is_split === true;
       return !isSplitParent;
     });
   }, [expenses]);

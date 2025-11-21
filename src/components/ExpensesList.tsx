@@ -252,10 +252,10 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       fetchExpenseSplits();
     }, [expenses]);
 
-    // Defensive filter: Remove any SYS-000 split parents that might slip through
+    // Defensive filter: Remove all split parent expenses regardless of project
     const displayableExpenses = useMemo(() => {
       return expenses.filter((expense) => {
-        const isSplitParent = expense.is_split && expense.project_number === "SYS-000";
+        const isSplitParent = expense.is_split === true;
         return !isSplitParent;
       });
     }, [expenses]);
@@ -428,14 +428,14 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       const csvRows: string[] = [];
       let totalRows = 0;
 
-      for (const expense of filteredExpenses) {
-        const splits = expenseSplits[expense.id] || [];
-        const isSplitParent = expense.is_split && expense.project_number === "SYS-000";
-        const isUnassigned = expense.project_number === "000-UNASSIGNED";
-        const isPlaceholder = isUnassigned;
+    for (const expense of filteredExpenses) {
+      const splits = expenseSplits[expense.id] || [];
+      const isSplitParent = expense.is_split === true;
+      const isUnassigned = expense.project_number === "000-UNASSIGNED";
+      const isPlaceholder = isUnassigned;
 
-        // Skip split parent containers entirely in export
-        if (isSplitParent) continue;
+      // Skip split parent containers entirely in export
+      if (isSplitParent) continue;
 
         // Add parent expense row
         csvRows.push(
@@ -678,6 +678,16 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
             return (
               <Badge variant="outline" className="text-xs bg-muted/50 border-muted-foreground/30">
                 Split
+              </Badge>
+            );
+          }
+
+          // Check if this is a split parent expense (defensive check)
+          if (row.is_split === true) {
+            return (
+              <Badge variant="outline" className="text-xs bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Split Parent
               </Badge>
             );
           }
