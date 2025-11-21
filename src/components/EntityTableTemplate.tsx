@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Eye, Edit2, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
@@ -184,7 +184,7 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
               {noResultsMessage}
             </div>
           ) : (
-            <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px] w-full">
+            <div className="h-[calc(100vh-280px)] min-h-[600px] w-full overflow-auto rounded-md border">
               <div className="mobile-table-wrapper">
                 <Table className="min-w-[800px] w-full">
                   <TableHeader className="sticky top-0 bg-background z-20 border-b shadow-sm">
@@ -292,7 +292,7 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
                 </TableBody>
               </Table>
             </div>
-          </ScrollArea>
+          </div>
           )}
           
           {enablePagination && data.length > 0 && totalPages > 1 && (
