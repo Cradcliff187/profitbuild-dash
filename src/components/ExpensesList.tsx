@@ -1090,17 +1090,16 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                           onSelect={() => toggleProject(project.id)}
                           className="text-sm"
                         >
-                          <div className="flex items-center gap-2 w-full">
-                            <Checkbox
-                              checked={filterProjects.includes(project.id)}
-                              onCheckedChange={() => toggleProject(project.id)}
-                              className="h-4 w-4"
-                            />
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {project.project_number}
-                            </span>
-                            <span className="truncate">{project.project_name}</span>
-                          </div>
+                  <div className="flex items-center gap-2 w-full">
+                    <Checkbox
+                      checked={filterProjects.includes(project.id)}
+                      onCheckedChange={() => toggleProject(project.id)}
+                      className="h-4 w-4"
+                    />
+                    <span className="text-sm truncate">
+                      {project.project_number} - {project.project_name}
+                    </span>
+                  </div>
                         </CommandItem>
                       ))}
                     </CommandGroup>
