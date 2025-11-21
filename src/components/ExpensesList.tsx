@@ -39,6 +39,7 @@ import {
   EXPENSE_CATEGORY_DISPLAY,
   TRANSACTION_TYPE_DISPLAY,
 } from "@/types/expense";
+import { isOperationalProject } from "@/types/project";
 import { formatCurrency } from "@/lib/utils";
 import { getExpenseSplits, calculateProjectExpenses } from "@/utils/expenseSplits";
 import {
@@ -433,7 +434,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       const splits = expenseSplits[expense.id] || [];
       const isSplitParent = expense.is_split === true;
       const isUnassigned = expense.project_number === "000-UNASSIGNED";
-      const isPlaceholder = isUnassigned;
+      const isPlaceholder = isUnassigned || (expense.project_number && isOperationalProject(expense.project_number));
 
       // Skip split parent containers entirely in export
       if (isSplitParent) continue;
@@ -881,7 +882,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
           const isPlaceholder =
             row.project_number === "000-UNASSIGNED" ||
-            row.project_number === "SYS-000";
+            row.project_number === "SYS-000" ||
+            (row.project_number && isOperationalProject(row.project_number));
 
           // Show dash for placeholder projects
           if (isPlaceholder) {

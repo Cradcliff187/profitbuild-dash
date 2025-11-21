@@ -9,6 +9,7 @@ import { Estimate } from '@/types/estimate';
 import { formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { isOperationalProject } from '@/types/project';
 
 interface ExpenseDashboardProps {
   expenses: Expense[];
@@ -65,11 +66,18 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
     }
     return expense.amount;
   };
+
+  // Helper to check if expense can be allocated to line items
+  const canBeAllocated = (expense: Expense) => {
+    return expense.project_number !== "000-UNASSIGNED" &&
+           expense.project_number !== "SYS-000" &&
+           !isOperationalProject(expense.project_number || '');
+  };
   
   // Calculate summary statistics (using split-aware amounts)
   const totalExpenses = displayableExpenses.reduce((sum, expense) => sum + getExpenseAmount(expense), 0);
   const allocatedExpenses = displayableExpenses.filter(e => allocatedExpenseIds.has(e.id)).reduce((sum, e) => sum + getExpenseAmount(e), 0);
-  const unallocatedExpenses = displayableExpenses.filter(e => !allocatedExpenseIds.has(e.id)).reduce((sum, e) => sum + getExpenseAmount(e), 0);
+  const unallocatedExpenses = displayableExpenses.filter(e => !allocatedExpenseIds.has(e.id) && canBeAllocated(e)).reduce((sum, e) => sum + getExpenseAmount(e), 0);
   const thisMonthExpenses = displayableExpenses.filter(e => {
     const now = new Date();
     const expenseDate = new Date(e.expense_date);
@@ -84,7 +92,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
   const unassignedCount = unassignedExpenses.length;
 
   // Count of unallocated expenses
-  const unallocatedCount = displayableExpenses.filter(e => !allocatedExpenseIds.has(e.id)).length;
+  const unallocatedCount = displayableExpenses.filter(e => !allocatedExpenseIds.has(e.id) && canBeAllocated(e)).length;
 
   // Calculate split expense metrics (show original amounts before splitting)
   const splitExpenses = displayableExpenses.filter(e => e.is_split);
