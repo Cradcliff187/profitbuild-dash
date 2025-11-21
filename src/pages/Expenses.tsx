@@ -54,7 +54,7 @@ const Expenses = () => {
       const [expensesResult, estimatesResult] = await Promise.all([
         supabase.from("expenses").select(`
             *,
-            payees(payee_name),
+            payees(payee_name, payee_type),
             projects(project_name, project_number)
           `),
         supabase.from("estimates").select(`
@@ -81,6 +81,7 @@ const Expenses = () => {
         created_at: new Date(expense.created_at),
         updated_at: new Date(expense.updated_at),
         payee_name: expense.payees?.payee_name,
+        payee_type: expense.payees?.payee_type,
         project_name: expense.projects?.project_name,
         project_number: expense.projects?.project_number,
       }));
