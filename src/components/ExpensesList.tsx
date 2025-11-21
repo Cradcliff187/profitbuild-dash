@@ -415,7 +415,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         "Project",
         "Project Assignment",
         "Payee",
-        "Category",
+        "Expense Category",
+        "Payee Type",
         "Transaction Type",
         "Amount",
         "Approval Status",
@@ -445,6 +446,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
             isPlaceholder ? "Needs Assignment" : "Assigned",
             `"${expense.payee_name || ""}"`,
             `"${EXPENSE_CATEGORY_DISPLAY[expense.category] || expense.category}"`,
+            `"${expense.payee_type || ""}"`,
             `"${TRANSACTION_TYPE_DISPLAY[expense.transaction_type] || expense.transaction_type}"`,
             expense.amount,
             (expense.approval_status || "pending").charAt(0).toUpperCase() +
@@ -472,6 +474,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                 "Split Allocation",
                 `"${expense.payee_name || ""}"`,
                 `"${EXPENSE_CATEGORY_DISPLAY[expense.category] || expense.category}"`,
+                `"${expense.payee_type || ""}"`,
                 `"${TRANSACTION_TYPE_DISPLAY[expense.transaction_type] || expense.transaction_type}"`,
                 split.split_amount.toFixed(2),
                 (expense.approval_status || "pending").charAt(0).toUpperCase() +
@@ -577,6 +580,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         project_number?: string;
       };
       _parentExpenseId?: string;
+      payee_type?: string;
     };
 
     const displayData = useMemo((): DisplayRow[] => {
@@ -767,7 +771,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       },
       {
         key: "category",
-        label: "Category",
+        label: "Expense Category",
         sortable: true,
         render: (row: DisplayRow) => {
           if (row._isSplitRow) {
@@ -786,8 +790,39 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         },
       },
       {
+        key: "payee_type",
+        label: "Payee Type",
+        sortable: true,
+        render: (row: DisplayRow) => {
+          if (row._isSplitRow) {
+            return row.payee_type ? (
+              <span className="text-xs text-muted-foreground">{row.payee_type}</span>
+            ) : null;
+          }
+          
+          if (!row.payee_type) return <span className="text-xs text-muted-foreground">—</span>;
+          
+          const payeeTypeDisplay: Record<string, string> = {
+            'subcontractor': 'Subcontractor',
+            'supplier': 'Supplier',
+            'employee': 'Employee',
+            'internal': 'Internal',
+            'permit_issuer': 'Permit Issuer',
+            'equipment_rental': 'Equipment Rental',
+            'consultant': 'Consultant',
+            'other': 'Other'
+          };
+          
+          return (
+            <Badge variant="outline" className="text-xs">
+              {payeeTypeDisplay[row.payee_type] || row.payee_type}
+            </Badge>
+          );
+        },
+      },
+      {
         key: "transaction_type",
-        label: "Type",
+        label: "Transaction Type",
         sortable: true,
         render: (row: DisplayRow) => {
           if (row._isSplitRow) {
@@ -1124,7 +1159,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                 >
                   <span className="truncate">
                     {filterCategories.length === 0 
-                      ? "All Categories" 
+                      ? "Expense Categories" 
                       : `${filterCategories.length} selected`
                     }
                   </span>
@@ -1181,7 +1216,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                 >
                   <span className="truncate">
                     {filterTransactionTypes.length === 0 
-                      ? "All Types" 
+                      ? "Transaction Types" 
                       : `${filterTransactionTypes.length} selected`
                     }
                   </span>
