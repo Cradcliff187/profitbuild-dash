@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Search,
   FileDown,
@@ -65,12 +67,12 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
   ({ expenses, projectId, onEdit, onDelete, onRefresh, enablePagination = true, pageSize = 25 }, ref) => {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState("");
-    const [filterCategory, setFilterCategory] = useState<string>("all");
-    const [filterTransactionType, setFilterTransactionType] = useState<string>("all");
-    const [filterProject, setFilterProject] = useState<string>("all");
-    const [filterMatchStatus, setFilterMatchStatus] = useState<string>("all");
-    const [filterApprovalStatus, setFilterApprovalStatus] = useState<string>("all");
-    const [filterSplitStatus, setFilterSplitStatus] = useState<string>("all");
+    const [filterCategories, setFilterCategories] = useState<string[]>([]);
+    const [filterTransactionTypes, setFilterTransactionTypes] = useState<string[]>([]);
+    const [filterProjects, setFilterProjects] = useState<string[]>([]);
+    const [filterMatchStatuses, setFilterMatchStatuses] = useState<string[]>([]);
+    const [filterApprovalStatuses, setFilterApprovalStatuses] = useState<string[]>([]);
+    const [filterSplitStatuses, setFilterSplitStatuses] = useState<string[]>([]);
     const [selectedExpenses, setSelectedExpenses] = useState<string[]>([]);
     const [projects, setProjects] = useState<any[]>([]);
     const [expenseMatches, setExpenseMatches] = useState<
@@ -88,12 +90,12 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     const getActiveFilterCount = (): number => {
       let count = 0;
       if (searchTerm) count++;
-      if (filterCategory !== "all") count++;
-      if (filterTransactionType !== "all") count++;
-      if (filterProject !== "all") count++;
-      if (filterMatchStatus !== "all") count++;
-      if (filterApprovalStatus !== "all") count++;
-      if (filterSplitStatus !== "all") count++;
+      if (filterCategories.length > 0) count++;
+      if (filterTransactionTypes.length > 0) count++;
+      if (filterProjects.length > 0) count++;
+      if (filterMatchStatuses.length > 0) count++;
+      if (filterApprovalStatuses.length > 0) count++;
+      if (filterSplitStatuses.length > 0) count++;
       return count;
     };
 
@@ -103,12 +105,61 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
     const handleClearFilters = () => {
       setSearchTerm("");
-      setFilterCategory("all");
-      setFilterTransactionType("all");
-      setFilterProject("all");
-      setFilterMatchStatus("all");
-      setFilterApprovalStatus("all");
-      setFilterSplitStatus("all");
+      setFilterCategories([]);
+      setFilterTransactionTypes([]);
+      setFilterProjects([]);
+      setFilterMatchStatuses([]);
+      setFilterApprovalStatuses([]);
+      setFilterSplitStatuses([]);
+    };
+
+    // Toggle helper functions for multi-select
+    const toggleProject = (projectId: string) => {
+      setFilterProjects(prev => 
+        prev.includes(projectId)
+          ? prev.filter(id => id !== projectId)
+          : [...prev, projectId]
+      );
+    };
+
+    const toggleCategory = (category: string) => {
+      setFilterCategories(prev =>
+        prev.includes(category)
+          ? prev.filter(c => c !== category)
+          : [...prev, category]
+      );
+    };
+
+    const toggleTransactionType = (type: string) => {
+      setFilterTransactionTypes(prev =>
+        prev.includes(type)
+          ? prev.filter(t => t !== type)
+          : [...prev, type]
+      );
+    };
+
+    const toggleMatchStatus = (status: string) => {
+      setFilterMatchStatuses(prev =>
+        prev.includes(status)
+          ? prev.filter(s => s !== status)
+          : [...prev, status]
+      );
+    };
+
+    const toggleApprovalStatus = (status: string) => {
+      setFilterApprovalStatuses(prev =>
+        prev.includes(status)
+          ? prev.filter(s => s !== status)
+          : [...prev, status]
+      );
+    };
+
+    const toggleSplitStatus = (status: string) => {
+      setFilterSplitStatuses(prev =>
+        prev.includes(status)
+          ? prev.filter(s => s !== status)
+          : [...prev, status]
+      );
     };
 
     React.useImperativeHandle(ref, () => ({
@@ -218,26 +269,36 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           expense.project_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           expense.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesCategory = filterCategory === "all" || expense.category === filterCategory;
-        const matchesType = filterTransactionType === "all" || expense.transaction_type === filterTransactionType;
-        const matchesProject = filterProject === "all" || expense.project_id === filterProject;
-        const matchesApprovalStatus =
-          filterApprovalStatus === "all" || (expense.approval_status || "pending") === filterApprovalStatus;
+        const matchesCategory = filterCategories.length === 0 || filterCategories.includes(expense.category);
+        const matchesType = filterTransactionTypes.length === 0 || filterTransactionTypes.includes(expense.transaction_type);
+        const matchesProject = filterProjects.length === 0 || filterProjects.includes(expense.project_id);
+        const matchesApprovalStatus = filterApprovalStatuses.length === 0 || 
+          filterApprovalStatuses.includes(expense.approval_status || "pending");
 
         let matchesMatchStatus = true;
-        if (filterMatchStatus === "matched") {
-          matchesMatchStatus = expenseMatches[expense.id]?.matched === true;
-        } else if (filterMatchStatus === "unmatched") {
-          matchesMatchStatus = expenseMatches[expense.id]?.matched === false;
-        } else if (filterMatchStatus === "unassigned") {
-          matchesMatchStatus = expense.project_id === "000-UNASSIGNED" || expense.project_name?.includes("Unassigned");
+        if (filterMatchStatuses.length > 0) {
+          matchesMatchStatus = filterMatchStatuses.some(status => {
+            if (status === "unassigned") {
+              return expense.project_id === "000-UNASSIGNED" || expense.project_name?.includes("Unassigned");
+            } else if (status === "unmatched") {
+              return expenseMatches[expense.id]?.matched === false;
+            } else if (status === "matched") {
+              return expenseMatches[expense.id]?.matched === true;
+            }
+            return false;
+          });
         }
 
         let matchesSplitStatus = true;
-        if (filterSplitStatus === "split") {
-          matchesSplitStatus = expense.is_split === true;
-        } else if (filterSplitStatus === "unsplit") {
-          matchesSplitStatus = !expense.is_split;
+        if (filterSplitStatuses.length > 0) {
+          matchesSplitStatus = filterSplitStatuses.some(status => {
+            if (status === "split") {
+              return expense.is_split === true;
+            } else if (status === "unsplit") {
+              return !expense.is_split;
+            }
+            return false;
+          });
         }
 
         return (
@@ -253,12 +314,12 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     }, [
       displayableExpenses,
       searchTerm,
-      filterCategory,
-      filterTransactionType,
-      filterProject,
-      filterMatchStatus,
-      filterApprovalStatus,
-      filterSplitStatus,
+      filterCategories,
+      filterTransactionTypes,
+      filterProjects,
+      filterMatchStatuses,
+      filterApprovalStatuses,
+      filterSplitStatuses,
       expenseMatches,
     ]);
 
@@ -983,83 +1044,385 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
             </div>
 
             {!projectId && (
-              <Select value={filterProject} onValueChange={setFilterProject}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="All Projects" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Projects</SelectItem>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.project_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-9 w-full justify-between text-xs"
+                  >
+                    <span className="truncate">
+                      {filterProjects.length === 0 
+                        ? "All Projects" 
+                        : `${filterProjects.length} selected`
+                      }
+                    </span>
+                    <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search projects..." className="h-9" />
+                    <CommandEmpty>No project found.</CommandEmpty>
+                    <CommandGroup className="max-h-64 overflow-auto">
+                      <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs px-2"
+                          onClick={() => setFilterProjects(projects.map(p => p.id))}
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs px-2"
+                          onClick={() => setFilterProjects([])}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                      {projects.map((project) => (
+                        <CommandItem
+                          key={project.id}
+                          value={`${project.project_number} ${project.project_name}`}
+                          onSelect={() => toggleProject(project.id)}
+                          className="text-sm"
+                        >
+                          <div className="flex items-center gap-2 w-full">
+                            <Checkbox
+                              checked={filterProjects.includes(project.id)}
+                              onCheckedChange={() => toggleProject(project.id)}
+                              className="h-4 w-4"
+                            />
+                            <span className="font-mono text-xs text-muted-foreground">
+                              {project.project_number}
+                            </span>
+                            <span className="truncate">{project.project_name}</span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             )}
 
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {Object.entries(EXPENSE_CATEGORY_DISPLAY).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-9 w-full justify-between text-xs"
+                >
+                  <span className="truncate">
+                    {filterCategories.length === 0 
+                      ? "All Categories" 
+                      : `${filterCategories.length} selected`
+                    }
+                  </span>
+                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="start">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => setFilterCategories(Object.keys(EXPENSE_CATEGORY_DISPLAY))}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => setFilterCategories([])}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  
+                  {Object.entries(EXPENSE_CATEGORY_DISPLAY).map(([value, label]) => (
+                    <div 
+                      key={value}
+                      className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                      onClick={() => toggleCategory(value)}
+                    >
+                      <Checkbox
+                        checked={filterCategories.includes(value)}
+                        onCheckedChange={() => toggleCategory(value)}
+                        className="h-4 w-4"
+                      />
+                      <label className="text-sm cursor-pointer flex-1">
+                        {label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
 
-            <Select value={filterTransactionType} onValueChange={setFilterTransactionType}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {Object.entries(TRANSACTION_TYPE_DISPLAY).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-9 w-full justify-between text-xs"
+                >
+                  <span className="truncate">
+                    {filterTransactionTypes.length === 0 
+                      ? "All Types" 
+                      : `${filterTransactionTypes.length} selected`
+                    }
+                  </span>
+                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="start">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => setFilterTransactionTypes(Object.keys(TRANSACTION_TYPE_DISPLAY))}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => setFilterTransactionTypes([])}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  
+                  {Object.entries(TRANSACTION_TYPE_DISPLAY).map(([value, label]) => (
+                    <div 
+                      key={value}
+                      className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                      onClick={() => toggleTransactionType(value)}
+                    >
+                      <Checkbox
+                        checked={filterTransactionTypes.includes(value)}
+                        onCheckedChange={() => toggleTransactionType(value)}
+                        className="h-4 w-4"
+                      />
+                      <label className="text-sm cursor-pointer flex-1">
+                        {label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
 
-            <Select value={filterMatchStatus} onValueChange={setFilterMatchStatus}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="Allocation Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Expenses</SelectItem>
-                <SelectItem value="unassigned">⚠️ Needs Assignment</SelectItem>
-                <SelectItem value="unmatched">⚠️ Unallocated</SelectItem>
-                <SelectItem value="matched">✅ Allocated</SelectItem>
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-9 w-full justify-between text-xs"
+                >
+                  <span className="truncate">
+                    {filterMatchStatuses.length === 0 
+                      ? "Allocation Status" 
+                      : `${filterMatchStatuses.length} selected`
+                    }
+                  </span>
+                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="start">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => setFilterMatchStatuses(["unassigned", "unmatched", "matched"])}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => setFilterMatchStatuses([])}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  
+                  <div 
+                    className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                    onClick={() => toggleMatchStatus("unassigned")}
+                  >
+                    <Checkbox
+                      checked={filterMatchStatuses.includes("unassigned")}
+                      onCheckedChange={() => toggleMatchStatus("unassigned")}
+                      className="h-4 w-4"
+                    />
+                    <label className="text-sm cursor-pointer flex-1">
+                      ⚠️ Needs Assignment
+                    </label>
+                  </div>
+                  <div 
+                    className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                    onClick={() => toggleMatchStatus("unmatched")}
+                  >
+                    <Checkbox
+                      checked={filterMatchStatuses.includes("unmatched")}
+                      onCheckedChange={() => toggleMatchStatus("unmatched")}
+                      className="h-4 w-4"
+                    />
+                    <label className="text-sm cursor-pointer flex-1">
+                      ⚠️ Unallocated
+                    </label>
+                  </div>
+                  <div 
+                    className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                    onClick={() => toggleMatchStatus("matched")}
+                  >
+                    <Checkbox
+                      checked={filterMatchStatuses.includes("matched")}
+                      onCheckedChange={() => toggleMatchStatus("matched")}
+                      className="h-4 w-4"
+                    />
+                    <label className="text-sm cursor-pointer flex-1">
+                      ✅ Allocated
+                    </label>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
 
-            <Select value={filterApprovalStatus} onValueChange={setFilterApprovalStatus}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-9 w-full justify-between text-xs"
+                >
+                  <span className="truncate">
+                    {filterApprovalStatuses.length === 0 
+                      ? "All Statuses" 
+                      : `${filterApprovalStatuses.length} selected`
+                    }
+                  </span>
+                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="start">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => setFilterApprovalStatuses(["pending", "approved", "rejected"])}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => setFilterApprovalStatuses([])}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  
+                  {[
+                    { value: "pending", label: "Pending" },
+                    { value: "approved", label: "Approved" },
+                    { value: "rejected", label: "Rejected" }
+                  ].map(({ value, label }) => (
+                    <div 
+                      key={value}
+                      className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                      onClick={() => toggleApprovalStatus(value)}
+                    >
+                      <Checkbox
+                        checked={filterApprovalStatuses.includes(value)}
+                        onCheckedChange={() => toggleApprovalStatus(value)}
+                        className="h-4 w-4"
+                      />
+                      <label className="text-sm cursor-pointer flex-1">
+                        {label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
 
-            <Select value={filterSplitStatus} onValueChange={setFilterSplitStatus}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="Split Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="split">Split Expenses</SelectItem>
-                <SelectItem value="unsplit">Single Project</SelectItem>
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-9 w-full justify-between text-xs"
+                >
+                  <span className="truncate">
+                    {filterSplitStatuses.length === 0 
+                      ? "Split Status" 
+                      : `${filterSplitStatuses.length} selected`
+                    }
+                  </span>
+                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="start">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => setFilterSplitStatuses(["split", "unsplit"])}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => setFilterSplitStatuses([])}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  
+                  {[
+                    { value: "split", label: "Split Expenses" },
+                    { value: "unsplit", label: "Single Project" }
+                  ].map(({ value, label }) => (
+                    <div 
+                      key={value}
+                      className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                      onClick={() => toggleSplitStatus(value)}
+                    >
+                      <Checkbox
+                        checked={filterSplitStatuses.includes(value)}
+                        onCheckedChange={() => toggleSplitStatus(value)}
+                        className="h-4 w-4"
+                      />
+                      <label className="text-sm cursor-pointer flex-1">
+                        {label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </CollapsibleFilterSection>
 
