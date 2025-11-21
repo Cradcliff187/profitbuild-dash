@@ -61,12 +61,13 @@ const validateQuoteAmount = (costPerUnit: number, quantity: number, estimateLine
 interface QuoteFormProps {
   estimates: Estimate[];
   initialQuote?: Quote;
+  preSelectedEstimateId?: string;
   onSave: (quote: Quote) => void;
   onCancel: () => void;
   mode?: 'edit' | 'view';
 }
 
-export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'edit' }: QuoteFormProps) => {
+export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSave, onCancel, mode = 'edit' }: QuoteFormProps) => {
   const { toast } = useToast();
   const isEdit = !!initialQuote;
   const isViewMode = mode === 'view';
@@ -89,6 +90,17 @@ export const QuoteForm = ({ estimates, initialQuote, onSave, onCancel, mode = 'e
   const [validationErrors, setValidationErrors] = useState<Record<string, QuoteValidationResult>>({});
   const [estimateSearchQuery, setEstimateSearchQuery] = useState('');
   const [changeOrderLineItems, setChangeOrderLineItems] = useState<any[]>([]);
+
+  // Auto-select estimate when navigating from project details
+  useEffect(() => {
+    if (preSelectedEstimateId && !selectedEstimate && !initialQuote) {
+      const estimate = estimates.find(e => e.id === preSelectedEstimateId);
+      if (estimate) {
+        setSelectedEstimate(estimate);
+        setShowLineItemSelection(true);
+      }
+    }
+  }, [preSelectedEstimateId, estimates, selectedEstimate, initialQuote]);
 
   const generateQuoteNumber = async (projectId: string, projectNumber: string, estimateId: string) => {
     try {
