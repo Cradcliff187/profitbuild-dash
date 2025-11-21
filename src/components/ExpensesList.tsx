@@ -680,7 +680,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         render: (row: DisplayRow) => {
           if (row._isSplitRow) {
             return (
-              <Badge variant="outline" className="text-xs bg-muted/50 border-muted-foreground/30">
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap bg-muted/50 border-muted-foreground/30">
                 Split
               </Badge>
             );
@@ -689,8 +689,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           // Check if this is a split parent expense (defensive check)
           if (row.is_split === true) {
             return (
-              <Badge variant="outline" className="text-xs bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                <AlertTriangle className="h-3 w-3 mr-1" />
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                <AlertTriangle className="h-2.5 w-2.5 mr-1" />
                 Split Parent
               </Badge>
             );
@@ -702,16 +702,16 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
           if (isPlaceholder) {
             return (
-              <Badge variant="outline" className="text-xs text-warning border-warning/50">
-                <AlertTriangle className="h-3 w-3 mr-1" />
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap text-warning border-warning/50">
+                <AlertTriangle className="h-2.5 w-2.5 mr-1" />
                 Needs Assignment
               </Badge>
             );
           }
 
           return (
-            <Badge variant="outline" className="text-xs text-success border-success/50">
-              <CheckCircle2 className="h-3 w-3 mr-1" />
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap text-success border-success/50">
+              <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
               Assigned
             </Badge>
           );
@@ -756,7 +756,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           };
           
           return (
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap">
               {payeeTypeDisplay[row.payee_type] || row.payee_type}
             </Badge>
           );
@@ -807,14 +807,14 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         render: (row: DisplayRow) => {
           if (row._isSplitRow) {
             return (
-              <Badge variant={getCategoryBadgeVariant(row.category)} className="text-xs opacity-60">
+              <Badge variant={getCategoryBadgeVariant(row.category)} className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap opacity-60">
                 {EXPENSE_CATEGORY_DISPLAY[row.category]}
               </Badge>
             );
           }
 
           return (
-            <Badge variant={getCategoryBadgeVariant(row.category)} className="text-xs">
+            <Badge variant={getCategoryBadgeVariant(row.category)} className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap">
               {EXPENSE_CATEGORY_DISPLAY[row.category]}
             </Badge>
           );
@@ -827,14 +827,14 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         render: (row: DisplayRow) => {
           if (row._isSplitRow) {
             return (
-              <Badge variant={getTypeBadgeVariant(row.transaction_type)} className="text-xs opacity-60">
+              <Badge variant={getTypeBadgeVariant(row.transaction_type)} className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap opacity-60">
                 {TRANSACTION_TYPE_DISPLAY[row.transaction_type]}
               </Badge>
             );
           }
 
           return (
-            <Badge variant={getTypeBadgeVariant(row.transaction_type)} className="text-xs">
+            <Badge variant={getTypeBadgeVariant(row.transaction_type)} className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap">
               {TRANSACTION_TYPE_DISPLAY[row.transaction_type]}
             </Badge>
           );
@@ -857,14 +857,14 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
           if (row._isSplitRow) {
             return (
-              <Badge variant={variant} className="text-xs opacity-60">
+              <Badge variant={variant} className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap opacity-60">
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </Badge>
             );
           }
 
           return (
-            <Badge variant={variant} className="text-xs">
+            <Badge variant={variant} className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap">
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </Badge>
           );
@@ -895,15 +895,15 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
               match.type === "estimate" ? "Estimate" : match.type === "quote" ? "Quote" : "Change Order";
 
             return (
-              <Badge variant="outline" className="text-xs text-success border-success/50">
-                <CheckCircle2 className="h-3 w-3 mr-1" />→ {displayType}
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap text-success border-success/50">
+                <CheckCircle2 className="h-2.5 w-2.5 mr-1" />→ {displayType}
               </Badge>
             );
           }
 
           return (
-            <Badge variant="outline" className="text-xs text-warning border-warning/50">
-              <AlertTriangle className="h-3 w-3 mr-1" />
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap text-warning border-warning/50">
+              <AlertTriangle className="h-2.5 w-2.5 mr-1" />
               Unallocated
             </Badge>
           );
