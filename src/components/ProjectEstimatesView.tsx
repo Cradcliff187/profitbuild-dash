@@ -261,7 +261,7 @@ export const ProjectEstimatesView = ({ projectId, estimates, quotes, onRefresh }
             }}
             onDelete={() => onRefresh()}
             onCompare={() => {}}
-            onCreateNew={() => navigate(`/projects/${projectId}/estimates/quotes/new?tab=quotes`)}
+            onCreateNew={handleCreateQuote}
           />
         </TabsContent>
 
