@@ -55,7 +55,8 @@ export const ProjectEstimatesView = ({ projectId, estimates, quotes, onRefresh }
   };
 
   const handleCreateQuote = () => {
-    navigate(`/quotes?projectId=${projectId}&estimateId=${currentEstimate?.id}`);
+    const returnUrl = `/projects/${projectId}/estimates?tab=quotes`;
+    navigate(`/quotes?projectId=${projectId}&estimateId=${currentEstimate?.id}&returnUrl=${encodeURIComponent(returnUrl)}`);
   };
 
   const tabOptions = [
