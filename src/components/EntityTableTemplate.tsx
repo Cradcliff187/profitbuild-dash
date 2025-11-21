@@ -185,7 +185,6 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
             </div>
           ) : (
             <div className="h-[calc(100vh-280px)] min-h-[600px] w-full overflow-auto rounded-md border">
-              <div className="mobile-table-wrapper">
                 <Table className="min-w-[800px] w-full">
                   <TableHeader className="sticky top-0 bg-background z-20 border-b shadow-sm">
                     <TableRow className="h-table-header">
@@ -289,10 +288,9 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
                         </TableCell>
                     </TableRow>
                   ))}
-                </TableBody>
-              </Table>
+                  </TableBody>
+                </Table>
             </div>
-          </div>
           )}
           
           {enablePagination && data.length > 0 && totalPages > 1 && (
