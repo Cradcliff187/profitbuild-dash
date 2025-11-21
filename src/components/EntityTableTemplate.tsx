@@ -187,9 +187,9 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
             <ScrollArea className="h-[calc(100vh-280px)] min-h-[600px] w-full">
               <div className="mobile-table-wrapper">
                 <Table className="min-w-[800px] w-full">
-                  <TableHeader className="sticky top-0 bg-card z-10 border-b">
+                  <TableHeader className="sticky top-0 bg-background z-20 border-b shadow-sm">
                     <TableRow className="h-table-header">
-                      <TableHead className="w-8 p-compact">
+                      <TableHead className="w-8 p-compact bg-background">
                         <Checkbox
                           checked={allSelected}
                           onCheckedChange={onSelectAll}
@@ -200,7 +200,7 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
                         <TableHead 
                           key={column.key} 
                           className={cn(
-                            "p-compact text-label font-medium",
+                            "p-compact text-label font-medium bg-background",
                             enableSorting && column.sortable !== false && "cursor-pointer hover:text-foreground select-none"
                           )}
                           onClick={() => column.sortable !== false && handleSort(column.key)}
@@ -211,7 +211,7 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
                           </div>
                         </TableHead>
                       ))}
-                      <TableHead className="w-24 p-compact text-label">Actions</TableHead>
+                      <TableHead className="w-24 p-compact text-label bg-background">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
