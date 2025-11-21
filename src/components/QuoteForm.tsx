@@ -561,10 +561,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
     };
 
     onSave(quote);
-    toast({
-      title: initialQuote ? "Quote Updated" : "Quote Saved",
-      description: `Quote ${quote.quoteNumber} from ${quote.quotedBy} has been saved.`
-    });
+    // Success toast moved to Quotes.tsx handleSaveQuote (shown after DB confirms save)
   };
 
   const filteredAndSortedEstimates = useMemo(() => {
