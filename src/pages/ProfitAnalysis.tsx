@@ -146,7 +146,7 @@ export default function ProfitAnalysisPage() {
 
       // Filter out SYS-000 split parent expenses
       const displayableExpenses = transformedExpenses.filter(expense => {
-        const isSplitParent = expense.is_split && expense.project_id === 'SYS-000';
+        const isSplitParent = expense.is_split && expense.project_number === 'SYS-000';
         return !isSplitParent;
       });
 

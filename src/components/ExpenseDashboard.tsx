@@ -19,7 +19,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
   // Filter out SYS-000 split parent expenses from dashboard
   const displayableExpenses = React.useMemo(() => {
     return expenses.filter(expense => {
-      const isSplitParent = expense.is_split && expense.project_id === 'SYS-000';
+      const isSplitParent = expense.is_split && expense.project_number === 'SYS-000';
       return !isSplitParent;
     });
   }, [expenses]);
@@ -78,9 +78,9 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
 
   // Calculate unassigned expenses
   const unassignedExpenses = displayableExpenses.filter(e => 
-    e.project_id === "000-UNASSIGNED" || e.project_name === "000-UNASSIGNED"
+    e.project_number === "000-UNASSIGNED"
   );
-  const unassignedAmount = unassignedExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const unassignedAmount = unassignedExpenses.reduce((sum, e) => sum + getExpenseAmount(e), 0);
   const unassignedCount = unassignedExpenses.length;
 
   // Count of unallocated expenses
@@ -231,15 +231,13 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
                       <div className="flex gap-1 flex-wrap justify-end">
                         <Badge 
                           variant={
-                            expense.project_id === "000-UNASSIGNED" || 
-                            expense.project_name === "000-UNASSIGNED"
+                            expense.project_number === "000-UNASSIGNED"
                               ? "secondary"
                               : "default"
                           } 
                           className="text-xs"
                         >
-                          {expense.project_id === "000-UNASSIGNED" || 
-                           expense.project_name === "000-UNASSIGNED"
+                          {expense.project_number === "000-UNASSIGNED"
                             ? "Needs Assignment"
                             : "Assigned"
                           }
