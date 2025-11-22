@@ -29,6 +29,7 @@ import { EntityTableTemplate } from "./EntityTableTemplate";
 import { ExpenseBulkActions } from "./ExpenseBulkActions";
 import { ReassignExpenseProjectDialog } from "./ReassignExpenseProjectDialog";
 import { ExpenseSplitDialog } from "./ExpenseSplitDialog";
+import { ExpenseAllocationSheet } from "./ExpenseAllocationSheet";
 import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
 import { cn } from "@/lib/utils";
 import {
@@ -86,6 +87,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     const [expandedExpenses, setExpandedExpenses] = useState<Set<string>>(new Set());
     const [expenseSplits, setExpenseSplits] = useState<Record<string, ExpenseSplit[]>>({});
     const [calculatedTotal, setCalculatedTotal] = useState<number>(0);
+    const [allocationSheetOpen, setAllocationSheetOpen] = useState(false);
+    const [expenseToAllocate, setExpenseToAllocate] = useState<string | null>(null);
     const { toast } = useToast();
 
     const getActiveFilterCount = (): number => {
@@ -523,6 +526,13 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       } else {
         setSelectedExpenses([...selectedExpenses, expenseId]);
       }
+    };
+
+    const handleAllocationSuccess = () => {
+      // Refresh the expenses list
+      onRefresh();
+      setAllocationSheetOpen(false);
+      setExpenseToAllocate(null);
     };
 
     const getCategoryBadgeVariant = (category: ExpenseCategory) => {
@@ -971,7 +981,10 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
             )}
 
             {!isAllocated && (
-              <DropdownMenuItem onClick={() => navigate(`/expenses/matching?highlight=${row.id}`)}>
+              <DropdownMenuItem onClick={() => {
+                setExpenseToAllocate(row.id);
+                setAllocationSheetOpen(true);
+              }}>
                 <Target className="h-3 w-3 mr-2" />
                 Match to Line Items
               </DropdownMenuItem>
@@ -1533,6 +1546,14 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
             setExpenseToSplit(null);
             onRefresh();
           }}
+        />
+
+        {/* Expense Allocation Sheet */}
+        <ExpenseAllocationSheet
+          open={allocationSheetOpen}
+          onOpenChange={setAllocationSheetOpen}
+          expenseId={expenseToAllocate}
+          onSuccess={handleAllocationSuccess}
         />
       </div>
     );
