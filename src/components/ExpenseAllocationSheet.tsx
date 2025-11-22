@@ -249,6 +249,29 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
     }
   }, [open, expenseId]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    if (!open) return;
+    
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // ESC to close
+      if (e.key === 'Escape') {
+        onOpenChange(false);
+      }
+      
+      // Enter on suggested match to allocate
+      if (e.key === 'Enter' && suggestedLineItemId && !isLoading) {
+        const suggested = lineItems.find(li => li.id === suggestedLineItemId);
+        if (suggested) {
+          handleAllocate(suggested);
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [open, suggestedLineItemId, lineItems, isLoading]);
+
   const handleAllocate = async (lineItem: LineItemForMatching) => {
     if (!expense) return;
     
@@ -370,6 +393,9 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
                       </div>
                     );
                   })()}
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Press Enter to quickly allocate to suggested match
+                  </div>
                 </div>
               )}
 
@@ -447,8 +473,17 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
                                 onClick={() => handleAllocate(item)}
                                 disabled={isLoading}
                               >
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Allocate to This Item
+                                {isLoading ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                    Allocating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Allocate to This Item
+                                  </>
+                                )}
                               </Button>
                             </div>
                           ))
@@ -492,8 +527,17 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
                                 onClick={() => handleAllocate(item)}
                                 disabled={isLoading}
                               >
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Allocate to This Item
+                                {isLoading ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                    Allocating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Allocate to This Item
+                                  </>
+                                )}
                               </Button>
                             </div>
                           ))
@@ -537,8 +581,17 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
                                 onClick={() => handleAllocate(item)}
                                 disabled={isLoading}
                               >
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Allocate to This Item
+                                {isLoading ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                    Allocating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Allocate to This Item
+                                  </>
+                                )}
                               </Button>
                             </div>
                           ))
