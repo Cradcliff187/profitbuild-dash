@@ -2,7 +2,7 @@ import React from 'react';
 import { Target, ArrowLeft, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { GlobalExpenseAllocation } from "@/components/_archived/GlobalExpenseMatching";
+import { GlobalExpenseAllocation } from "@/_archived/components/GlobalExpenseMatching";
 import { useNavigate } from "react-router-dom";
 
 const ExpenseMatching = () => {
