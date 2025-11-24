@@ -467,11 +467,12 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
         const tempExpense = {
           ...split,
           amount: split.split_amount,
-          category: parentExpense?.category,
+          category: parentExpense?.category as ExpenseCategory,
           payee_id: parentExpense?.payee_id,
           payee_name: parentExpense?.payees?.payee_name,
           description: parentExpense?.description,
-          expense_date: parentExpense?.expense_date
+          expense_date: new Date(parentExpense?.expense_date || new Date()),
+          match_status: matchStatus
         };
 
         return {
