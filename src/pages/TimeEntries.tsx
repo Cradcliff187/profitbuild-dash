@@ -297,7 +297,8 @@ const TimeEntries = () => {
       const { data } = (await supabase
         .from("projects")
         .select("id, project_number, project_name, category")
-        .eq('category', 'construction')) as any;
+        .eq('category', 'construction')
+        .order('project_number')) as any;
 
       if (data) {
         setProjects(
