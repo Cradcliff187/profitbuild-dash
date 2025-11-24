@@ -1586,6 +1586,7 @@ export type Database = {
         Row: {
           address: string | null
           adjusted_est_costs: number | null
+          category: Database["public"]["Enums"]["project_category"]
           client_id: string | null
           client_name: string
           contingency_remaining: number | null
@@ -1621,6 +1622,7 @@ export type Database = {
         Insert: {
           address?: string | null
           adjusted_est_costs?: number | null
+          category?: Database["public"]["Enums"]["project_category"]
           client_id?: string | null
           client_name: string
           contingency_remaining?: number | null
@@ -1656,6 +1658,7 @@ export type Database = {
         Update: {
           address?: string | null
           adjusted_est_costs?: number | null
+          category?: Database["public"]["Enums"]["project_category"]
           client_id?: string | null
           client_name?: string
           contingency_remaining?: number | null
@@ -2296,6 +2299,7 @@ export type Database = {
         | "vehicle_maintenance"
         | "gas"
         | "meals"
+      project_category: "construction" | "system" | "overhead"
       project_status:
         | "estimating"
         | "quoted"
@@ -2455,6 +2459,7 @@ export const Constants = {
         "gas",
         "meals",
       ],
+      project_category: ["construction", "system", "overhead"],
       project_status: [
         "estimating",
         "quoted",
