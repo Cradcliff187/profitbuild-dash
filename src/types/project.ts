@@ -8,6 +8,7 @@ export interface Project {
   project_type: ProjectType;
   job_type?: string;
   status: ProjectStatus;
+  category?: ProjectCategory;
   start_date?: Date;
   end_date?: Date;
   payment_terms?: string;
@@ -41,6 +42,16 @@ export type ProjectStatus =
   | 'complete'
   | 'on_hold'
   | 'cancelled';
+
+// ============================================================================
+// Project Category System
+// ============================================================================
+// Categories replace hardcoded project_number filtering:
+// - 'construction': Real job projects (default) - visible everywhere
+// - 'system': Internal projects (SYS-000, 000-UNASSIGNED) - completely hidden
+// - 'overhead': Overhead buckets (001-GAS, 002-GA) - visible in expenses/receipts only
+
+export type ProjectCategory = 'construction' | 'system' | 'overhead';
 
 export interface CreateProjectRequest {
   project_name: string;
@@ -141,6 +152,59 @@ export const generateProjectNumberSync = (): string => {
   const timestamp = Date.now().toString().slice(-3);
   return `225-${timestamp}`;
 };
+
+// ============================================================================
+// Category-Based Helper Functions (Preferred - Use These Going Forward)
+// ============================================================================
+
+/**
+ * Check if project is a construction project (real job)
+ * Returns true for undefined/null category for backward compatibility
+ */
+export const isConstructionProject = (category?: ProjectCategory | null): boolean => 
+  category === 'construction' || category === undefined || category === null;
+
+/**
+ * Check if project is an overhead project (001-GAS, 002-GA, etc.)
+ * These are visible only in expense and receipt contexts
+ */
+export const isOverheadProject = (category?: ProjectCategory | null): boolean => 
+  category === 'overhead';
+
+/**
+ * Check if project is a system project (SYS-000, 000-UNASSIGNED)
+ * These are completely hidden from users
+ */
+export const isSystemProjectByCategory = (category?: ProjectCategory | null): boolean => 
+  category === 'system';
+
+/**
+ * Check if project should be shown in general lists (dashboard, projects page)
+ * Only construction projects should appear
+ */
+export const shouldShowInConstructionLists = (category?: ProjectCategory | null): boolean => 
+  isConstructionProject(category);
+
+/**
+ * Check if project should be shown in expense/receipt selectors
+ * Both construction and overhead projects should appear
+ */
+export const shouldShowInExpenseContext = (category?: ProjectCategory | null): boolean => 
+  category === 'construction' || category === 'overhead';
+
+/**
+ * Get the appropriate Supabase filter for construction-only contexts
+ */
+export const getConstructionFilter = (): ProjectCategory => 'construction';
+
+/**
+ * Get the appropriate Supabase filter for expense contexts
+ */
+export const getExpenseContextFilter = (): ProjectCategory[] => ['construction', 'overhead'];
+
+// ============================================================================
+// Legacy Helpers (Keep for Backward Compatibility During Transition)
+// ============================================================================
 
 // System placeholder projects - completely hidden from users
 export const SYSTEM_PROJECT_NUMBERS = ['SYS-000', '000-UNASSIGNED'] as const;

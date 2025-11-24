@@ -96,10 +96,8 @@ const Dashboard = () => {
   const loadActiveProjectCount = async () => {
     const { data, error } = await supabase
       .from('projects')
-      .select('id, status')
-      .neq('project_number', 'SYS-000')
-      .neq('project_number', '000-UNASSIGNED')
-      .neq('project_number', '001-GAS');
+      .select('id, status, category')
+      .eq('category', 'construction');
 
     if (error) {
       console.error('Error loading active projects:', error);
@@ -116,10 +114,8 @@ const Dashboard = () => {
   const loadProjectStatusCounts = async () => {
     const { data, error } = await supabase
       .from('projects')
-      .select('status')
-      .neq('project_number', 'SYS-000')
-      .neq('project_number', '000-UNASSIGNED')
-      .neq('project_number', '001-GAS');
+      .select('status, category')
+      .eq('category', 'construction');
 
     if (error) {
       console.error('Error loading project status counts:', error);
@@ -214,11 +210,9 @@ const Dashboard = () => {
     // Get active projects (approved + in_progress)
     const { data: activeProjects, error: activeError } = await supabase
       .from('projects')
-      .select('contracted_amount, adjusted_est_costs, projected_margin, margin_percentage')
+      .select('contracted_amount, adjusted_est_costs, projected_margin, margin_percentage, category')
       .in('status', ['approved', 'in_progress'])
-      .neq('project_number', 'SYS-000')
-      .neq('project_number', '000-UNASSIGNED')
-      .neq('project_number', '001-GAS');
+      .eq('category', 'construction');
 
     if (activeError) {
       console.error('Error loading active project financials:', activeError);
@@ -242,11 +236,9 @@ const Dashboard = () => {
     // Get completed projects
     const { data: completedProjects, error: completedError } = await supabase
       .from('projects')
-      .select('contracted_amount')
+      .select('contracted_amount, category')
       .eq('status', 'complete')
-      .neq('project_number', 'SYS-000')
-      .neq('project_number', '000-UNASSIGNED')
-      .neq('project_number', '001-GAS');
+      .eq('category', 'construction');
 
     if (completedError) {
       console.error('Error loading completed project financials:', completedError);

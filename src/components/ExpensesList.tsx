@@ -44,7 +44,12 @@ import {
   TRANSACTION_TYPE_DISPLAY,
 } from "@/types/expense";
 import { PayeeType } from "@/types/payee";
-import { isOperationalProject } from "@/types/project";
+import { 
+  isOperationalProject,
+  isSystemProjectByCategory, 
+  isOverheadProject,
+  ProjectCategory 
+} from "@/types/project";
 import { formatCurrency } from "@/lib/utils";
 import { getExpenseSplits, calculateProjectExpenses } from "@/utils/expenseSplits";
 import {
@@ -301,11 +306,37 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         try {
           const { data, error } = await supabase
             .from("projects")
-            .select("id, project_name, project_number")
+            .select("id, project_name, project_number, category")
             .order("project_name");
 
           if (error) throw error;
-          setProjects(data || []);
+          
+          // Sort projects: unassigned and overhead at top, then construction projects
+          const sortedProjects = (data || []).sort((a, b) => {
+            // Check if project is system or overhead
+            const aIsSpecial = a.project_number === "000-UNASSIGNED" || 
+                              a.project_number === "SYS-000" ||
+                              (a.category === 'overhead' || isOverheadProject(a.category as ProjectCategory)) ||
+                              (!a.category && isOperationalProject(a.project_number || ''));
+            const bIsSpecial = b.project_number === "000-UNASSIGNED" || 
+                              b.project_number === "SYS-000" ||
+                              (b.category === 'overhead' || isOverheadProject(b.category as ProjectCategory)) ||
+                              (!b.category && isOperationalProject(b.project_number || ''));
+            
+            // Special projects (unassigned, system, overhead) come first
+            if (aIsSpecial && !bIsSpecial) return -1;
+            if (!aIsSpecial && bIsSpecial) return 1;
+            
+            // Within special projects, sort by project_number
+            if (aIsSpecial && bIsSpecial) {
+              return (a.project_number || '').localeCompare(b.project_number || '');
+            }
+            
+            // Regular construction projects sorted by project_name
+            return (a.project_name || '').localeCompare(b.project_name || '');
+          });
+          
+          setProjects(sortedProjects);
         } catch (error) {
           console.error("Error fetching projects:", error);
         }
@@ -755,6 +786,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       };
       _parentExpenseId?: string;
       payee_type?: string;
+      category?: string;
     };
 
     const displayData = useMemo((): DisplayRow[] => {
@@ -1062,10 +1094,16 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
             return <span className="text-xs text-muted-foreground">—</span>;
           }
 
+          // Check if this is a non-construction project (can't allocate to line items)
           const isPlaceholder =
-            row.project_number === "000-UNASSIGNED" ||
-            row.project_number === "SYS-000" ||
-            (row.project_number && isOperationalProject(row.project_number));
+            isSystemProjectByCategory(row.project_category as ProjectCategory) ||
+            isOverheadProject(row.project_category as ProjectCategory) ||
+            // Backward compatibility: check project_number if category not set
+            (!row.project_category && (
+              row.project_number === "000-UNASSIGNED" ||
+              row.project_number === "SYS-000" ||
+              (row.project_number && isOperationalProject(row.project_number))
+            ));
 
           // Show dash for placeholder projects
           if (isPlaceholder) {
@@ -1194,9 +1232,13 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           return (
             <Checkbox
               checked={selectedExpenses.includes(row.id)}
-              onCheckedChange={() => {
+              onCheckedChange={(checked) => {
                 if (!row._isSplitRow) {
-                  handleSelectExpense(row.id);
+                  if (checked) {
+                    setSelectedExpenses([...selectedExpenses, row.id]);
+                  } else {
+                    setSelectedExpenses(selectedExpenses.filter((id) => id !== row.id));
+                  }
                 }
               }}
               disabled={row._isSplitRow}
@@ -1333,20 +1375,6 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         case 'status_assigned':
           if (row._isSplitRow) return null;
           
-          // Show "-" for 001-GAS (gas expenses are never assigned/allocated)
-          if (row.project_number === "001-GAS" || row.project_name?.includes("Gas Expense")) {
-            return (
-              <div className="flex items-center justify-center">
-                <span className="text-xs text-muted-foreground">-</span>
-              </div>
-            );
-          }
-          
-          const isPlaceholder =
-            row.project_number === "000-UNASSIGNED" ||
-            row.project_number === "SYS-000" ||
-            (row.project_number && isOperationalProject(row.project_number));
-          
           if (row.is_split) {
             return (
               <div className="flex items-center justify-center">
@@ -1355,7 +1383,17 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
             );
           }
           
-          if (isPlaceholder) {
+          // Check for placeholder projects (system projects) or unassigned expenses
+          // Overhead projects (001-GAS, 002-GA) can be assigned, so they show green check when assigned
+          const isSystemProject = isSystemProjectByCategory(row.project_category as ProjectCategory) ||
+            (!row.project_category && (
+              row.project_number === "000-UNASSIGNED" ||
+              row.project_number === "SYS-000"
+            ));
+          
+          const isUnassigned = !row.project_id;
+          
+          if (isSystemProject || isUnassigned) {
             return (
               <div className="flex items-center justify-center">
                 <AlertTriangle className="h-4 w-4 text-yellow-600" />
@@ -1363,6 +1401,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
             );
           }
           
+          // Show green check for assigned expenses (including overhead projects like 001-GAS, 002-GA)
           return (
             <div className="flex items-center justify-center">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -1372,8 +1411,10 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         case 'status_allocated':
           if (row._isSplitRow) return null;
           
-          // Show "-" for 001-GAS (gas expenses are never assigned/allocated)
-          if (row.project_number === "001-GAS" || row.project_name?.includes("Gas Expense")) {
+          // Show "-" for overhead projects (never allocated to line items)
+          // This includes 001-GAS, 002-GA, and any future overhead projects
+          if (isOverheadProject(row.project_category as ProjectCategory) || 
+              (!row.project_category && (row.project_number === "001-GAS" || row.project_number === "002-GA"))) {
             return (
               <div className="flex items-center justify-center">
                 <span className="text-xs text-muted-foreground">-</span>
@@ -2051,8 +2092,15 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                 <Table className="min-w-[1200px]">
                   <TableHeader className="sticky top-0 bg-muted z-20 border-b">
                     <TableRow className="h-8">
+                      <TableHead className="w-10 p-2 text-xs">
+                        <Checkbox
+                          checked={selectedExpenses.length === filteredExpenses.length && filteredExpenses.length > 0}
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
                       {orderedColumns.map(column => {
                         if (!isColumnVisible(column.key)) return null;
+                        if (column.key === 'checkbox') return null; // Skip checkbox column in loop
                         
                         return (
                           <TableHead 
@@ -2065,14 +2113,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                               column.align !== 'right' && column.align !== 'center' && "text-left"
                             )}
                           >
-                            {column.key === 'checkbox' ? (
-                              <Checkbox
-                                checked={selectedExpenses.length === filteredExpenses.length && filteredExpenses.length > 0}
-                                onCheckedChange={handleSelectAll}
-                              />
-                            ) : (
-                              column.label
-                            )}
+                            {column.label}
                           </TableHead>
                         );
                       })}
@@ -2089,8 +2130,27 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                             row._isSplitRow ? "bg-muted/10 hover:bg-muted/30" : isEvenRow && "bg-muted/20"
                           )}
                         >
+                          {/* Selection Checkbox - always visible */}
+                          <TableCell className="p-1.5">
+                            {!row._isSplitRow ? (
+                              <Checkbox
+                                checked={selectedExpenses.includes(row.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedExpenses([...selectedExpenses, row.id]);
+                                  } else {
+                                    setSelectedExpenses(selectedExpenses.filter((id) => id !== row.id));
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-4 h-4" />
+                            )}
+                          </TableCell>
+
                           {orderedColumns.map(column => {
                             if (!isColumnVisible(column.key)) return null;
+                            if (column.key === 'checkbox') return null; // Skip checkbox column in loop
                             
                             return (
                               <TableCell 

@@ -160,9 +160,8 @@ export const ProjectDetailView = () => {
     try {
       const { data, error } = await supabase
         .from('projects')
-        .select('id, project_number, project_name, client_name')
-        .neq('project_number', 'SYS-000')
-        .neq('project_number', '000-UNASSIGNED')
+        .select('id, project_number, project_name, client_name, category')
+        .eq('category', 'construction')
         .order('project_number', { ascending: true });
 
       if (error) throw error;

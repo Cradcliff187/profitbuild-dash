@@ -127,11 +127,9 @@ export const TimeEntryForm = ({
         .order('payee_name'),
       supabase
         .from('projects')
-        .select('id, project_name, project_number')
+        .select('id, project_name, project_number, category')
         .in('status', ['approved', 'in_progress'])
-        .neq('project_number', '000-UNASSIGNED')
-        .neq('project_number', 'SYS-000')
-        .neq('project_number', '001-GAS')  // Hide gas project from manual entry
+        .eq('category', 'construction')
         .order('project_number', { ascending: false }),
       supabase.auth.getUser(),
     ]);

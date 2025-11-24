@@ -83,6 +83,7 @@ export interface Expense {
   payee_type?: string;
   project_name?: string;
   project_number?: string;
+  project_category?: string; // Project category: 'construction', 'system', or 'overhead'
   // For split expenses: the amount allocated to this project (different from parent amount)
   display_amount?: number;
 }

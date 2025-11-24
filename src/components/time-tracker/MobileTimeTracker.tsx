@@ -32,6 +32,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRoles } from '@/contexts/RoleContext';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { addToQueue } from '@/utils/syncQueue';
+import { ProjectCategory } from '@/types/project';
 
 interface Project {
   id: string;
@@ -39,6 +40,7 @@ interface Project {
   project_name: string;
   client_name: string;
   address?: string;
+  category?: string;
 }
 
 interface TeamMember {
@@ -315,11 +317,11 @@ export const MobileTimeTracker: React.FC = () => {
       try {
         const parsed = JSON.parse(savedTimer);
         
-        // Sanitize: clear system project if cached
-        const isSystemProject = (num?: string) => 
-          !!num && (num === 'SYS-000' || num === '000-UNASSIGNED' || num.startsWith('SYS-'));
+        // Sanitize: clear non-construction project if cached
+        const isNonConstructionProject = (category?: string) => 
+          category === 'system' || category === 'overhead';
         
-        if (parsed.project && isSystemProject(parsed.project.project_number)) {
+        if (parsed.project && isNonConstructionProject(parsed.project.category)) {
           parsed.project = null;
         }
         
@@ -352,21 +354,17 @@ export const MobileTimeTracker: React.FC = () => {
       // Load active projects (exclude system projects)
     const { data: projectsData, error: projectsError } = await supabase
       .from('projects')
-      .select('id, project_number, project_name, client_name, address')
+      .select('id, project_number, project_name, client_name, address, category')
       .in('status', ['approved', 'in_progress'])
-      .neq('project_number', '000-UNASSIGNED')
-      .neq('project_number', 'SYS-000')
-      .neq('project_number', '001-GAS')  // Hide gas project from timer
+      .eq('category', 'construction')
         .order('project_number', { ascending: false })
         .limit(20);
 
       if (projectsError) throw projectsError;
       
-      // Defense-in-depth: filter any system projects
+      // Defense-in-depth: filter any non-construction projects
       const cleanedProjects = (projectsData || []).filter(
-        p => p.project_number !== '000-UNASSIGNED' && 
-             p.project_number !== 'SYS-000' && 
-             !p.project_number.startsWith('SYS-')
+        p => p.category === 'construction'
       );
       setProjects(cleanedProjects);
 

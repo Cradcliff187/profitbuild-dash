@@ -1,6 +1,35 @@
+# Prompt 07: Update Expense Validation
+
+## Context
+We are implementing a project category system to replace hardcoded project_number filtering. The expense validation utilities need to check project category instead of project numbers.
+
+## Reference Document
+Read `/docs/project-category-implementation/02-COMPONENT-UPDATES.md` for full context.
+
+## Task
+Update `src/utils/expenseValidation.ts` to use category-based project checks.
+
+## Changes Required
+
+### 1. Update Imports (at top of file)
+
+Find:
+```typescript
+import { Expense } from '@/types/expense';
+import { isOperationalProject } from '@/types/project';
+```
+
+Replace with:
+```typescript
 import { Expense } from '@/types/expense';
 import { isOperationalProject, isSystemProjectByCategory, isOverheadProject, ProjectCategory } from '@/types/project';
+```
 
+### 2. Update `canCorrelateExpense()` Function
+
+Find the entire function and replace with:
+
+```typescript
 /**
  * Validates whether an expense can be directly correlated to line items
  * Split parent expenses (with is_split=true or system category) cannot be correlated
@@ -61,29 +90,35 @@ export function canCorrelateExpense(
   // Regular construction expense - can be correlated
   return { isValid: true };
 }
+```
 
-/**
- * Validates a batch of expenses for correlation
- * Returns list of invalid expenses with reasons
- */
+### 3. Update `validateExpensesForCorrelation()` Function
+
+Update the generic type constraint to include category:
+
+Find:
+```typescript
+export function validateExpensesForCorrelation<T extends Pick<Expense, 'is_split' | 'project_id' | 'project_number'>>(expenses: T[]): {
+```
+
+Replace with:
+```typescript
 export function validateExpensesForCorrelation<T extends Pick<Expense, 'is_split' | 'project_id' | 'project_number'> & { category?: ProjectCategory }>(expenses: T[]): {
-  valid: T[];
-  invalid: Array<{ expense: T; reason: string }>;
-} {
-  const valid: T[] = [];
-  const invalid: Array<{ expense: T; reason: string }> = [];
-  
-  for (const expense of expenses) {
-    const validation = canCorrelateExpense(expense);
-    if (validation.isValid) {
-      valid.push(expense);
-    } else {
-      invalid.push({ 
-        expense, 
-        reason: validation.error || 'Cannot correlate this expense' 
-      });
-    }
-  }
-  
-  return { valid, invalid };
-}
+```
+
+## Validation
+
+After making changes:
+1. No TypeScript errors
+2. All existing tests pass (if any)
+3. Split parent expenses are correctly rejected
+4. System project expenses are correctly rejected
+5. Overhead project expenses are correctly rejected
+6. Construction project expenses are correctly allowed
+7. Backward compatibility works (expenses without category field)
+
+## Do Not
+
+- Remove the project_number fallback checks (needed for backward compatibility)
+- Change the function signatures beyond what's specified
+- Modify the validateExpensesForCorrelation logic (only the type constraint)

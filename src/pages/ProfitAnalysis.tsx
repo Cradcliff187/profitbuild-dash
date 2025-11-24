@@ -38,7 +38,7 @@ export default function ProfitAnalysisPage() {
           payees(payee_name),
           projects(project_name)
         `),
-        supabase.from('projects').select('*').neq('project_number', 'SYS-000').neq('project_number', '000-UNASSIGNED')
+        supabase.from('projects').select('*').eq('category', 'construction')
       ]);
 
       if (estimatesResult.error) throw estimatesResult.error;

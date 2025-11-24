@@ -7,7 +7,7 @@
  * 
  * **Key Features**:
  * - Fetches projects directly (no parent data dependency)
- * - Excludes system projects (SYS-000, 000-UNASSIGNED)
+ * - Filters to construction projects only (excludes system and overhead categories)
  * - Mobile-friendly native select UI (not command palette)
  * - Automatic loading/error states
  * - Shows project number, name, and client in compact format
@@ -21,7 +21,7 @@
  * - Uses native `<Select>` (better touch targets, native OS UI)
  * - Self-contained data fetching (works independently)
  * - Compact display optimized for small screens
- * - Automatic filtering of system/administrative projects
+ * - Automatic filtering by category (construction only)
  * 
  * **Alternatives**:
  * - Use `ProjectSelectorNew` for desktop forms with inline creation
@@ -47,6 +47,7 @@ interface Project {
   project_name: string;
   client_name: string;
   status: string;
+  category: string;
 }
 
 export function FieldProjectSelector({ selectedProjectId, onProjectSelect }: FieldProjectSelectorProps) {
@@ -55,14 +56,11 @@ export function FieldProjectSelector({ selectedProjectId, onProjectSelect }: Fie
   const { data: projects, isLoading, error } = useQuery({
     queryKey: ['field-accessible-projects'],
     queryFn: async () => {
-      // Exclude system projects (SYS-000 and 000-UNASSIGNED) which are used
-      // for holding unassigned receipts/expenses and should never be selectable for media capture
+      // Filter to construction projects only (excludes system and overhead categories)
       const { data, error } = await supabase
         .from('projects')
-        .select('id, project_number, project_name, client_name, status')
-        .neq('project_number', 'SYS-000')
-        .neq('project_number', '000-UNASSIGNED')
-        .neq('project_number', '001-GAS')  // Hide gas project from field media selector
+        .select('id, project_number, project_name, client_name, status, category')
+        .eq('category', 'construction')
         .order('project_number', { ascending: false });
       
       if (error) throw error;

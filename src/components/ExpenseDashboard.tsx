@@ -9,7 +9,7 @@ import { Estimate } from '@/types/estimate';
 import { formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { isOperationalProject } from '@/types/project';
+import { isOperationalProject, isOverheadProject, isSystemProjectByCategory, ProjectCategory } from '@/types/project';
 
 interface ExpenseDashboardProps {
   expenses: Expense[];
@@ -69,9 +69,29 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
 
   // Helper to check if expense can be allocated to line items
   const canBeAllocated = (expense: Expense) => {
-    return expense.project_number !== "000-UNASSIGNED" &&
-           expense.project_number !== "SYS-000" &&
-           !isOperationalProject(expense.project_number || '');
+    // System projects cannot be allocated
+    if (expense.project_category && isSystemProjectByCategory(expense.project_category as ProjectCategory)) {
+      return false;
+    }
+    if (!expense.project_category && (expense.project_number === "000-UNASSIGNED" || expense.project_number === "SYS-000")) {
+      return false;
+    }
+    
+    // Overhead projects cannot be allocated
+    if (expense.project_category && isOverheadProject(expense.project_category as ProjectCategory)) {
+      return false;
+    }
+    // Backward compatibility: check project_number if category not available
+    if (!expense.project_category && expense.project_number && isOperationalProject(expense.project_number)) {
+      return false;
+    }
+    
+    // Unassigned expenses cannot be allocated
+    if (!expense.project_id) {
+      return false;
+    }
+    
+    return true;
   };
   
   // Calculate summary statistics (using split-aware amounts)
@@ -250,9 +270,20 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
                             : "Assigned"
                           }
                         </Badge>
-                        <Badge variant={allocatedExpenseIds.has(expense.id) ? 'default' : 'secondary'} className="text-xs">
-                          {allocatedExpenseIds.has(expense.id) ? 'Allocated' : 'Unallocated'}
-                        </Badge>
+                        {(() => {
+                          const isOverhead = expense.project_category && isOverheadProject(expense.project_category as ProjectCategory) ||
+                            (!expense.project_category && expense.project_number && isOperationalProject(expense.project_number));
+                          
+                          if (isOverhead) {
+                            return <Badge variant="secondary" className="text-xs">-</Badge>;
+                          }
+                          
+                          return (
+                            <Badge variant={allocatedExpenseIds.has(expense.id) ? 'default' : 'secondary'} className="text-xs">
+                              {allocatedExpenseIds.has(expense.id) ? 'Allocated' : 'Unallocated'}
+                            </Badge>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>

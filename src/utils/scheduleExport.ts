@@ -459,9 +459,8 @@ export const exportAllProjectsSchedule = async (format: 'csv' | 'daily-activity'
     // Load all active projects (exclude system projects)
     const { data: projects, error } = await supabase
       .from('projects')
-      .select('id, project_name, project_number')
-      .neq('project_number', 'SYS-000')
-      .neq('project_number', '000-UNASSIGNED')
+      .select('id, project_name, project_number, category')
+      .eq('category', 'construction')
       .in('status', ['approved', 'in_progress', 'complete'])
       .order('project_number', { ascending: false });
 

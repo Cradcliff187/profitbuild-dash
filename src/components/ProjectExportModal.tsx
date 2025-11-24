@@ -59,7 +59,7 @@ export function ProjectExportModal({ isOpen, onClose, filters }: ProjectExportMo
           expenses(id, amount),
           change_orders(id, client_amount, cost_impact, status)
         `)
-        .not('project_number', 'in', '("SYS-000","000-UNASSIGNED")');
+        .eq('category', 'construction');
 
       // Apply filters
       if (filters.searchText) {

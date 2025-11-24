@@ -294,17 +294,18 @@ const TimeEntries = () => {
   // Fetch projects for filter
   useEffect(() => {
     const fetchProjects = async () => {
-      const { data } = (await supabase.from("projects").select("id, project_number, project_name")) as any;
+      const { data } = (await supabase
+        .from("projects")
+        .select("id, project_number, project_name, category")
+        .eq('category', 'construction')) as any;
 
       if (data) {
         setProjects(
-          data
-            .filter((p: any) => p.project_number !== "SYS-000" && p.project_number !== "000-UNASSIGNED")
-            .map((p: any) => ({
-              id: p.id,
-              number: p.project_number,
-              name: p.project_name,
-            })),
+          data.map((p: any) => ({
+            id: p.id,
+            number: p.project_number,
+            name: p.project_name,
+          })),
         );
       }
     };

@@ -39,7 +39,8 @@ export function ReassignReceiptDialog({
   const loadProjects = async () => {
     const { data, error } = await supabase
       .from('projects')
-      .select('id, project_number, project_name')
+      .select('id, project_number, project_name, category')
+      .eq('category', 'construction')
       .order('project_number', { ascending: false });
 
     if (error) {
@@ -48,11 +49,7 @@ export function ReassignReceiptDialog({
       return;
     }
 
-    // Filter out system projects
-    const filteredProjects = data.filter(
-      (p) => !['SYS-000', '000-UNASSIGNED'].includes(p.project_number)
-    );
-    setProjects(filteredProjects);
+    setProjects(data || []);
   };
 
   const handleReassign = async () => {

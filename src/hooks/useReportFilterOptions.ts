@@ -21,10 +21,9 @@ export function useReportFilterOptions() {
         // Load distinct clients
         const { data: clientsData } = await supabase
           .from('projects')
-          .select('client_name')
+          .select('client_name, category')
           .not('client_name', 'is', null)
-          .neq('project_number', 'SYS-000')
-          .neq('project_number', '000-UNASSIGNED');
+          .eq('category', 'construction');
 
         if (clientsData) {
           const uniqueClients = Array.from(
@@ -60,9 +59,8 @@ export function useReportFilterOptions() {
         // Load projects
         const { data: projectsData } = await supabase
           .from('projects')
-          .select('id, project_number, project_name')
-          .neq('project_number', 'SYS-000')
-          .neq('project_number', '000-UNASSIGNED')
+          .select('id, project_number, project_name, category')
+          .eq('category', 'construction')
           .order('project_number', { ascending: false });
 
         if (projectsData) {

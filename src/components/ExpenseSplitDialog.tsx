@@ -53,9 +53,8 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
     try {
       const { data, error } = await supabase
         .from('projects')
-        .select('id, project_name, project_number')
-        .neq('project_number', '000-UNASSIGNED')
-        .neq('project_number', 'SYS-000')
+        .select('id, project_name, project_number, category')
+        .eq('category', 'construction')
         .order('project_name');
 
       if (error) throw error;

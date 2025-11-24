@@ -201,9 +201,8 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
     const fetchProjects = async () => {
       const { data } = await supabase
         .from('projects')
-        .select('id, project_number, project_name')
-        .neq('project_number', 'SYS-000')
-        .neq('project_number', '000-UNASSIGNED')
+        .select('id, project_number, project_name, category')
+        .eq('category', 'construction')
         .order('project_number');
       
       if (data) {

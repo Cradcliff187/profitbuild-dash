@@ -669,10 +669,6 @@ export const QuotesTableView = ({
           {localQuotes.length} {localQuotes.length === 1 ? 'quote' : 'quotes'} across {groupedData.length} {groupedData.length === 1 ? 'project' : 'projects'}
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={onCreateNew} size="sm" variant="default">
-            <Plus className="h-4 w-4 mr-2" />
-            New Quote
-          </Button>
           <ColumnSelector
             columns={columnDefinitions}
             visibleColumns={visibleColumns}

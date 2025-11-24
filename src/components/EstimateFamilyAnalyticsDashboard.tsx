@@ -67,7 +67,7 @@ export const EstimateFamilyAnalyticsDashboard: React.FC = () => {
           )
         `)
         .gte('created_at', startDate.toISOString())
-        .not('projects.project_number', 'in', '("SYS-000","000-UNASSIGNED")')
+        .eq('projects.category', 'construction')
         .order('created_at', { ascending: true });
 
       if (estimatesError) throw estimatesError;

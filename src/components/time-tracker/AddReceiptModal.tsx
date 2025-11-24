@@ -21,6 +21,7 @@ interface Project {
   project_number: string;
   project_name: string;
   status: string;
+  category?: string;
 }
 
 interface AddReceiptModalProps {
@@ -60,32 +61,39 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
   const loadProjects = async () => {
     try {
-      const { data, error } = await supabase
+      // Get system project ID for unassigned fallback
+      const { data: sysProject } = await supabase
         .from('projects')
-        .select('id, project_number, project_name, status')
-        .order('project_name');
-
-      if (error) throw error;
+        .select('id')
+        .eq('project_number', 'SYS-000')
+        .single();
       
-      // Find the SYS-000 project ID for fallback
-      const sysProject = data?.find(p => p.project_number === UNASSIGNED_RECEIPTS_PROJECT_NUMBER);
       if (sysProject) {
         setSystemProjectId(sysProject.id);
       }
       
-      // Pin only 001-GAS (000-UNASSIGNED has its own dedicated option)
-      const pinnedProjects = data?.filter(p => 
-        p.project_number === '001-GAS'
-      ) || [];
+      // Get overhead projects (these get pinned at top of list)
+      const { data: overheadProjects, error: overheadError } = await supabase
+        .from('projects')
+        .select('id, project_number, project_name, status, category')
+        .eq('category', 'overhead')
+        .in('status', ['approved', 'in_progress'])
+        .order('project_number', { ascending: true });
       
-      // Regular projects: filter to approved/in_progress only, exclude system projects
-      const regularProjects = data?.filter(p => 
-        !['SYS-000', '000-UNASSIGNED', '001-GAS'].includes(p.project_number) &&
-        (p.status === 'approved' || p.status === 'in_progress')
-      ) || [];
+      if (overheadError) throw overheadError;
       
-      // Combine: pinned first, then regular projects
-      setProjects([...pinnedProjects, ...regularProjects]);
+      // Get construction projects
+      const { data: constructionProjects, error: constructionError } = await supabase
+        .from('projects')
+        .select('id, project_number, project_name, status, category')
+        .eq('category', 'construction')
+        .in('status', ['approved', 'in_progress'])
+        .order('project_number', { ascending: false });
+      
+      if (constructionError) throw constructionError;
+      
+      // Combine: overhead first (pinned), then construction projects
+      setProjects([...(overheadProjects || []), ...(constructionProjects || [])]);
     } catch (error) {
       console.error('Failed to load projects:', error);
       toast.error('Failed to load projects');

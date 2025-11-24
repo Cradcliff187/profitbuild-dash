@@ -122,9 +122,9 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
 
       const { data, error } = await supabase
         .from('projects')
-        .select('id, project_name, project_number')
+        .select('id, project_name, project_number, category')
         .in('status', ['approved', 'in_progress'])
-        .not('project_number', 'in', '("000-UNASSIGNED","SYS-000")')
+        .in('category', ['construction', 'overhead'])
         .order('project_name');
 
       if (error) throw error;

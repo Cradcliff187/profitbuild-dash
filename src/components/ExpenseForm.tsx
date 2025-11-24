@@ -87,10 +87,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load projects (exclude system projects)
+        // Load projects (construction and overhead - expenses can be assigned to both)
         const { data: projectsData, error: projectsError } = await supabase
           .from('projects')
           .select('*')
+          .in('category', ['construction', 'overhead'])
           .order('created_at', { ascending: false });
 
         const transformedProjects = (projectsData || []).map(project => ({
