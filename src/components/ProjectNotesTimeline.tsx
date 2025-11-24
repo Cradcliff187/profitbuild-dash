@@ -10,7 +10,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
-import { Clock, PlusCircle, Pencil, Trash2, MoreVertical, Camera, Video, X } from "lucide-react";
+import { Clock, PlusCircle, Pencil, Trash2, MoreVertical, Camera, Video, X, Paperclip, Download, FileText, Maximize2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,8 +32,11 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
-  const [attachmentType, setAttachmentType] = useState<'image' | 'video' | null>(null);
+  const [attachmentType, setAttachmentType] = useState<'image' | 'video' | 'file' | null>(null);
+  const [attachmentFileName, setAttachmentFileName] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
+  const [enlargedVideo, setEnlargedVideo] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { capturePhoto, isCapturing: isCapturingPhoto } = useCameraCapture();
@@ -104,22 +107,65 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
   const handleClearAttachment = () => {
     setAttachmentPreview(null);
     setAttachmentType(null);
+    setAttachmentFileName(null);
   };
 
-  const uploadAttachment = async (dataUrl: string, type: 'image' | 'video'): Promise<string | null> => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const maxSize = 20 * 1024 * 1024; // 20MB
+    if (file.size > maxSize) {
+      toast.error('File size must be less than 20MB');
+      return;
+    }
+
+    const acceptedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/plain',
+    ];
+
+    if (!acceptedTypes.includes(file.type)) {
+      toast.error('File type not supported. Please use PDF, DOC, XLS, or TXT files');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAttachmentPreview(reader.result as string);
+      setAttachmentType('file');
+      setAttachmentFileName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const uploadAttachment = async (dataUrl: string, type: 'image' | 'video' | 'file', fileName?: string): Promise<string | null> => {
     try {
       setIsUploading(true);
       
       const response = await fetch(dataUrl);
       const blob = await response.blob();
       
-      const fileExt = type === 'image' ? 'jpg' : 'mp4';
-      const fileName = `${projectId}/${Date.now()}.${fileExt}`;
+      let fileExt = 'jpg';
+      let contentType = blob.type;
+      
+      if (type === 'video') {
+        fileExt = 'mp4';
+      } else if (type === 'file' && fileName) {
+        const ext = fileName.split('.').pop();
+        fileExt = ext || 'pdf';
+      }
+      
+      const uploadFileName = `${projectId}/${Date.now()}.${fileExt}`;
       
       const { data, error } = await supabase.storage
         .from('note-attachments')
-        .upload(fileName, blob, {
-          contentType: blob.type,
+        .upload(uploadFileName, blob, {
+          contentType: contentType || 'application/octet-stream',
           upsert: false
         });
       
@@ -140,7 +186,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
   };
 
   const addNoteMutation = useMutation({
-    mutationFn: async (params: { text: string; attachmentUrl?: string; attachmentType?: 'image' | 'video' }) => {
+    mutationFn: async (params: { text: string; attachmentUrl?: string; attachmentType?: 'image' | 'video' | 'file'; attachmentName?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
@@ -152,6 +198,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
           note_text: params.text,
           attachment_url: params.attachmentUrl,
           attachment_type: params.attachmentType,
+          attachment_name: params.attachmentName,
         });
 
       if (error) throw error;
@@ -161,6 +208,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
       setNoteText("");
       setAttachmentPreview(null);
       setAttachmentType(null);
+      setAttachmentFileName(null);
       toast.success("Note added");
     },
     onError: (error) => {
@@ -219,7 +267,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
     let attachmentUrl: string | null = null;
     
     if (attachmentPreview && attachmentType) {
-      attachmentUrl = await uploadAttachment(attachmentPreview, attachmentType);
+      attachmentUrl = await uploadAttachment(attachmentPreview, attachmentType, attachmentFileName || undefined);
       if (!attachmentUrl) {
         return;
       }
@@ -229,6 +277,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
       text: trimmedText,
       attachmentUrl: attachmentUrl || undefined,
       attachmentType: attachmentType || undefined,
+      attachmentName: attachmentFileName || undefined,
     });
   };
 
@@ -257,9 +306,12 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
     return <div className="text-sm text-muted-foreground">Loading notes...</div>;
   }
 
+  // Determine main content based on view mode
+  let mainContent;
+  
   // When displayed in Sheet modal (mobile full-screen)
   if (inSheet) {
-    return (
+    mainContent = (
       <div className="flex flex-col h-full">
         {/* Add Note Form - Prominent at top */}
         <div className="p-3 bg-muted/20 border rounded-lg mb-3 shrink-0">
@@ -267,8 +319,13 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
             <div className="mb-2 relative">
               {attachmentType === 'image' ? (
                 <img src={attachmentPreview} alt="Preview" className="w-full h-32 object-cover rounded" />
-              ) : (
+              ) : attachmentType === 'video' ? (
                 <video src={attachmentPreview} className="w-full h-32 object-cover rounded" controls />
+              ) : (
+                <div className="flex items-center gap-2 p-2 bg-muted rounded border">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs truncate">{attachmentFileName}</span>
+                </div>
               )}
               <Button
                 variant="destructive"
@@ -308,6 +365,22 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
               >
                 <Video className="w-4 h-4" />
               </Button>
+              <Button
+                onClick={() => document.getElementById('file-upload-sheet')?.click()}
+                disabled={isUploading}
+                size="sm"
+                variant="outline"
+                className="px-2 h-8"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              <input
+                id="file-upload-sheet"
+                type="file"
+                className="hidden"
+                onChange={handleFileSelect}
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+              />
               <Button
                 onClick={handleAddNote}
                 disabled={addNoteMutation.isPending || !noteText.trim() || isUploading}
@@ -398,17 +471,37 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                             {note.attachment_url && (
                               <div className="mt-2">
                                 {note.attachment_type === 'image' ? (
-                                  <img 
-                                    src={note.attachment_url} 
-                                    alt="Note attachment" 
-                                    className="w-full max-w-xs rounded border"
-                                  />
+                                  <div className="relative inline-block group cursor-pointer" onClick={() => setEnlargedImage(note.attachment_url!)}>
+                                    <img 
+                                      src={note.attachment_url} 
+                                      alt="Note attachment" 
+                                      className="w-full max-w-xs rounded border hover:opacity-90 transition-opacity"
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded">
+                                      <Maximize2 className="w-6 h-6 text-white" />
+                                    </div>
+                                  </div>
+                                ) : note.attachment_type === 'video' ? (
+                                  <div className="relative inline-block group cursor-pointer" onClick={() => setEnlargedVideo(note.attachment_url!)}>
+                                    <video 
+                                      src={note.attachment_url} 
+                                      className="w-full max-w-xs rounded border" 
+                                      controls
+                                    />
+                                    <div className="absolute top-2 right-2 bg-black/60 rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Maximize2 className="w-4 h-4 text-white" />
+                                    </div>
+                                  </div>
                                 ) : (
-                                  <video 
-                                    src={note.attachment_url} 
-                                    className="w-full max-w-xs rounded border" 
-                                    controls
-                                  />
+                                  <a 
+                                    href={note.attachment_url} 
+                                    download={note.attachment_name}
+                                    className="flex items-center gap-2 p-2 bg-muted rounded border hover:bg-muted/80 transition-colors text-sm"
+                                  >
+                                    <FileText className="w-4 h-4 text-muted-foreground" />
+                                    <span className="truncate">{note.attachment_name || 'Download file'}</span>
+                                    <Download className="w-4 h-4 text-muted-foreground ml-auto" />
+                                  </a>
                                 )}
                               </div>
                             )}
@@ -426,10 +519,8 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
         </ScrollArea>
       </div>
     );
-  }
-
-  return isMobile ? (
-    // MOBILE: Compact vertical stack (when NOT in sheet)
+  } else if (isMobile) {
+    mainContent = (
     <div className="border rounded-lg overflow-hidden">
       {/* Quick Add Form - Top Priority */}
       <div className="p-2 bg-muted/20 border-b">
@@ -437,8 +528,13 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
           <div className="mb-1 relative">
             {attachmentType === 'image' ? (
               <img src={attachmentPreview} alt="Preview" className="w-full h-20 object-cover rounded" />
-            ) : (
+            ) : attachmentType === 'video' ? (
               <video src={attachmentPreview} className="w-full h-20 object-cover rounded" controls />
+            ) : (
+              <div className="flex items-center gap-2 p-1 bg-muted rounded border">
+                <FileText className="w-3 h-3 text-muted-foreground" />
+                <span className="text-[10px] truncate">{attachmentFileName}</span>
+              </div>
             )}
             <Button
               variant="destructive"
@@ -478,6 +574,22 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
             >
               <Video className="w-2.5 h-2.5" />
             </Button>
+            <Button
+              onClick={() => document.getElementById('file-upload-mobile')?.click()}
+              disabled={isUploading}
+              size="sm"
+              variant="outline"
+              className="px-1 h-6"
+            >
+              <Paperclip className="w-2.5 h-2.5" />
+            </Button>
+            <input
+              id="file-upload-mobile"
+              type="file"
+              className="hidden"
+              onChange={handleFileSelect}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+            />
             <Button
               onClick={handleAddNote}
               disabled={addNoteMutation.isPending || !noteText.trim() || isUploading}
@@ -573,17 +685,37 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                           {note.attachment_url && (
                             <div className="mt-1">
                               {note.attachment_type === 'image' ? (
-                                <img 
-                                  src={note.attachment_url} 
-                                  alt="Note attachment" 
-                                  className="w-full max-w-[120px] rounded border"
-                                />
+                                <div className="relative inline-block group cursor-pointer" onClick={() => setEnlargedImage(note.attachment_url!)}>
+                                  <img 
+                                    src={note.attachment_url} 
+                                    alt="Note attachment" 
+                                    className="w-full max-w-[120px] rounded border hover:opacity-90 transition-opacity"
+                                  />
+                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded">
+                                    <Maximize2 className="w-4 h-4 text-white" />
+                                  </div>
+                                </div>
+                              ) : note.attachment_type === 'video' ? (
+                                <div className="relative inline-block group cursor-pointer" onClick={() => setEnlargedVideo(note.attachment_url!)}>
+                                  <video 
+                                    src={note.attachment_url} 
+                                    className="w-full max-w-[120px] rounded border" 
+                                    controls
+                                  />
+                                  <div className="absolute top-1 right-1 bg-black/60 rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Maximize2 className="w-3 h-3 text-white" />
+                                  </div>
+                                </div>
                               ) : (
-                                <video 
-                                  src={note.attachment_url} 
-                                  className="w-full max-w-[120px] rounded border" 
-                                  controls
-                                />
+                                <a 
+                                  href={note.attachment_url} 
+                                  download={note.attachment_name}
+                                  className="flex items-center gap-1 p-1 bg-muted rounded border hover:bg-muted/80 transition-colors text-[10px]"
+                                >
+                                  <FileText className="w-3 h-3 text-muted-foreground" />
+                                  <span className="truncate">{note.attachment_name || 'Download'}</span>
+                                  <Download className="w-3 h-3 text-muted-foreground ml-auto" />
+                                </a>
                               )}
                             </div>
                           )}
@@ -600,8 +732,9 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
         </div>
       </ScrollArea>
     </div>
-  ) : (
-    // DESKTOP: Side-by-side resizable layout
+    );
+  } else {
+    mainContent = (
     <ResizablePanelGroup direction="horizontal" className="min-h-[300px] rounded-lg border">
       {/* Left Panel: Note History */}
       <ResizablePanel defaultSize={60} minSize={40}>
@@ -690,17 +823,37 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                               {note.attachment_url && (
                                 <div className="mt-1.5">
                                   {note.attachment_type === 'image' ? (
-                                    <img 
-                                      src={note.attachment_url} 
-                                      alt="Note attachment" 
-                                      className="w-full max-w-[200px] rounded border"
-                                    />
+                                    <div className="relative inline-block group cursor-pointer" onClick={() => setEnlargedImage(note.attachment_url!)}>
+                                      <img 
+                                        src={note.attachment_url} 
+                                        alt="Note attachment" 
+                                        className="w-full max-w-[200px] rounded border hover:opacity-90 transition-opacity"
+                                      />
+                                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded">
+                                        <Maximize2 className="w-5 h-5 text-white" />
+                                      </div>
+                                    </div>
+                                  ) : note.attachment_type === 'video' ? (
+                                    <div className="relative inline-block group cursor-pointer" onClick={() => setEnlargedVideo(note.attachment_url!)}>
+                                      <video 
+                                        src={note.attachment_url} 
+                                        className="w-full max-w-[200px] rounded border" 
+                                        controls
+                                      />
+                                      <div className="absolute top-2 right-2 bg-black/60 rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Maximize2 className="w-4 h-4 text-white" />
+                                      </div>
+                                    </div>
                                   ) : (
-                                    <video 
-                                      src={note.attachment_url} 
-                                      className="w-full max-w-[200px] rounded border" 
-                                      controls
-                                    />
+                                    <a 
+                                      href={note.attachment_url} 
+                                      download={note.attachment_name}
+                                      className="flex items-center gap-2 p-1.5 bg-muted rounded border hover:bg-muted/80 transition-colors text-xs"
+                                    >
+                                      <FileText className="w-4 h-4 text-muted-foreground" />
+                                      <span className="truncate">{note.attachment_name || 'Download file'}</span>
+                                      <Download className="w-4 h-4 text-muted-foreground ml-auto" />
+                                    </a>
                                   )}
                                 </div>
                               )}
@@ -735,8 +888,13 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
             <div className="mb-2 relative">
               {attachmentType === 'image' ? (
                 <img src={attachmentPreview} alt="Preview" className="w-full h-24 object-cover rounded" />
-              ) : (
+              ) : attachmentType === 'video' ? (
                 <video src={attachmentPreview} className="w-full h-24 object-cover rounded" controls />
+              ) : (
+                <div className="flex items-center gap-2 p-2 bg-muted rounded border">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs truncate">{attachmentFileName}</span>
+                </div>
               )}
               <Button
                 variant="destructive"
@@ -778,6 +936,23 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
               <Video className="w-3 h-3 mr-1" />
               Video
             </Button>
+            <Button
+              onClick={() => document.getElementById('file-upload-desktop')?.click()}
+              disabled={isUploading}
+              size="sm"
+              variant="outline"
+              className="flex-1"
+            >
+              <Paperclip className="w-3 h-3 mr-1" />
+              File
+            </Button>
+            <input
+              id="file-upload-desktop"
+              type="file"
+              className="hidden"
+              onChange={handleFileSelect}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+            />
           </div>
           
           <Button
@@ -792,5 +967,60 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
         </div>
       </ResizablePanel>
     </ResizablePanelGroup>
+    );
+  }
+
+  return (
+    <>
+      {mainContent}
+      
+      {/* Image Lightbox */}
+      {enlargedImage && (
+        <div 
+          className="fixed inset-0 bg-background z-50 flex items-center justify-center"
+          onClick={() => setEnlargedImage(null)}
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-4 right-4 h-10 w-10 z-10"
+            onClick={() => setEnlargedImage(null)}
+          >
+            <X className="h-5 w-5" />
+          </Button>
+          <img
+            src={enlargedImage}
+            alt="Enlarged note attachment"
+            className="max-h-[90vh] max-w-[90vw] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+      
+      {/* Video Lightbox */}
+      {enlargedVideo && (
+        <div 
+          className="fixed inset-0 bg-background z-50 flex items-center justify-center"
+          onClick={() => setEnlargedVideo(null)}
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-4 right-4 h-10 w-10 z-10"
+            onClick={() => setEnlargedVideo(null)}
+          >
+            <X className="h-5 w-5" />
+          </Button>
+          <video
+            src={enlargedVideo}
+            className="max-h-[90vh] max-w-[90vw]"
+            controls
+            autoPlay
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
   );
 }
+
