@@ -38,7 +38,7 @@ export const ExpenseBulkActions = ({
       const { data, error } = await supabase
         .from("projects")
         .select("*")
-        .order("project_name");
+        .order("project_number", { ascending: false });
       
       if (error) throw error;
       setProjects(data || []);
