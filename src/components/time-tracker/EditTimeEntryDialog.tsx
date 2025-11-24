@@ -48,8 +48,14 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
   const [loading, setLoading] = useState(false);
 
   const isOwner = entry?.user_id === currentUserId;
-  const canEdit = !entry?.is_locked && entry?.approval_status !== 'approved' && (isOwner || isAdmin || isManager);
-  const canDelete = !entry?.is_locked && entry?.approval_status !== 'approved' && (isOwner || isAdmin || isManager);
+  const canEdit = !entry?.is_locked && (
+    (isAdmin || isManager) || 
+    (isOwner && entry?.approval_status !== 'approved')
+  );
+  const canDelete = !entry?.is_locked && (
+    (isAdmin || isManager) || 
+    (isOwner && entry?.approval_status !== 'approved')
+  );
 
   useEffect(() => {
     const loadUser = async () => {
