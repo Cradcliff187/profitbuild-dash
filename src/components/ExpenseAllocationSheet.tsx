@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -8,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Building, Search, CheckCircle, DollarSign, Zap } from 'lucide-react';
+import { Building, Search, CheckCircle, DollarSign, Zap, User, AlertTriangle, X } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { 
   suggestLineItemAllocation, 
@@ -39,7 +38,12 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
   const [suggestedLineItemId, setSuggestedLineItemId] = useState<string | undefined>();
   const [confidenceScore, setConfidenceScore] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'estimates' | 'quotes' | 'change_orders'>('estimates');
+  const [selectedLineItem, setSelectedLineItem] = useState<LineItemForMatching | null>(null);
+  const [currentAllocation, setCurrentAllocation] = useState<{
+    id: string;
+    lineItem: LineItemForMatching;
+    correlationType: string;
+  } | null>(null);
 
   const loadExpenseData = async () => {
     if (!expenseId) return;
@@ -93,12 +97,21 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
           id,
           quote_number,
           project_id,
+          status,
           projects(project_name),
           payees(payee_name),
-          total_amount
+          total_amount,
+          quote_line_items(
+            id,
+            estimate_line_item_id,
+            category,
+            description,
+            total_cost,
+            quantity,
+            cost_per_unit
+          )
         `)
-        .eq('project_id', projectId)
-        .eq('status', 'accepted');
+        .eq('project_id', projectId);
       
       if (quotesError) throw quotesError;
       
@@ -123,36 +136,57 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
         .from('expense_line_item_correlations')
         .select('*');
       
-      // Transform to LineItemForMatching format
-      const estimateLineItems: LineItemForMatching[] = [];
-      estimates?.forEach(est => {
-        est.estimate_line_items?.forEach((item: any) => {
-          estimateLineItems.push({
-            id: item.id,
-            type: 'estimate',
-            source_id: est.id,
-            project_id: est.project_id,
-            project_name: est.projects?.project_name || '',
-            category: item.category,
-            description: item.description,
-            total: item.total_cost || (item.cost_per_unit * item.quantity) || 0,
-            allocated_amount: 0, // Will calculate below
-          });
+      // Filter to accepted quotes only
+      const acceptedQuotes = quotes?.filter(q => q.status === 'accepted') || [];
+      
+      // Build a Set of estimate line item IDs that have accepted quotes
+      // These estimate lines should NOT be shown because we have actual quoted costs
+      const estimateLineItemsWithQuotes = new Set<string>();
+      acceptedQuotes.forEach(quote => {
+        (quote.quote_line_items || []).forEach((qli: any) => {
+          if (qli.estimate_line_item_id) {
+            estimateLineItemsWithQuotes.add(qli.estimate_line_item_id);
+          }
         });
       });
       
-      const quoteLineItems: LineItemForMatching[] = quotes?.map(q => ({
-        id: q.id,
-        type: 'quote',
-        source_id: q.id,
-        project_id: q.project_id,
-        project_name: q.projects?.project_name || '',
-        category: 'SUBCONTRACTOR' as LineItemCategory,
-        description: `Quote #${q.quote_number}`,
-        total: q.total_amount || 0,
-        allocated_amount: 0,
-        payee_name: q.payees?.payee_name
-      })) || [];
+      // Transform to LineItemForMatching format
+      // Only include estimate line items that DON'T have accepted quotes
+      // If a quote exists, we'll show the quote instead (actual committed cost)
+      const estimateLineItems: LineItemForMatching[] = [];
+      estimates?.forEach(est => {
+        est.estimate_line_items?.forEach((item: any) => {
+          if (!estimateLineItemsWithQuotes.has(item.id)) {
+            estimateLineItems.push({
+              id: item.id,
+              type: 'estimate',
+              source_id: est.id,
+              project_id: est.project_id,
+              project_name: est.projects?.project_name || '',
+              category: item.category,
+              description: item.description,
+              total: item.total_cost || (item.cost_per_unit * item.quantity) || 0,
+              allocated_amount: 0, // Will calculate below
+            });
+          }
+        });
+      });
+      
+      // Use accepted quotes only (these are the actual committed costs)
+      const quoteLineItems: LineItemForMatching[] = acceptedQuotes.flatMap(quote => 
+        (quote.quote_line_items || []).map((item: any) => ({
+          id: item.id,
+          type: 'quote' as const,
+          source_id: quote.id,
+          project_id: quote.project_id,
+          project_name: quote.projects?.project_name || '',
+          category: item.category as LineItemCategory,
+          description: item.description,
+          total: item.total_cost || (item.cost_per_unit * item.quantity) || 0,
+          allocated_amount: 0,
+          payee_name: quote.payees?.payee_name
+        }))
+      );
       
       const changeOrderLineItems: LineItemForMatching[] = [];
       changeOrders?.forEach(co => {
@@ -213,6 +247,28 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
         }
       });
       
+      // Check if this expense is already allocated
+      const existingCorrelation = correlations?.find(c => c.expense_id === expenseId);
+      
+      if (existingCorrelation) {
+        // Find the line item this expense is allocated to
+        const allocatedLineItem = allLineItems.find(li => 
+          li.id === existingCorrelation.estimate_line_item_id ||
+          (existingCorrelation.quote_id && li.source_id === existingCorrelation.quote_id && li.type === 'quote') ||
+          li.id === existingCorrelation.change_order_line_item_id
+        );
+        
+        if (allocatedLineItem) {
+          setCurrentAllocation({
+            id: existingCorrelation.id,
+            lineItem: allocatedLineItem,
+            correlationType: existingCorrelation.correlation_type
+          });
+        }
+      } else {
+        setCurrentAllocation(null);
+      }
+      
       setLineItems(allLineItems);
       
       // 3. Calculate suggestions
@@ -221,15 +277,6 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       
       setSuggestedLineItemId(suggested);
       setConfidenceScore(confidence);
-      
-      // Auto-select the tab with suggestions
-      if (suggested) {
-        const suggestedItem = allLineItems.find(li => li.id === suggested);
-        if (suggestedItem) {
-          setActiveTab(suggestedItem.type === 'estimate' ? 'estimates' : 
-                       suggestedItem.type === 'quote' ? 'quotes' : 'change_orders');
-        }
-      }
       
     } catch (error) {
       console.error('Error loading expense data:', error);
@@ -258,22 +305,67 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       if (e.key === 'Escape') {
         onOpenChange(false);
       }
-      
-      // Enter on suggested match to allocate
-      if (e.key === 'Enter' && suggestedLineItemId && !isLoading) {
-        const suggested = lineItems.find(li => li.id === suggestedLineItemId);
-        if (suggested) {
-          handleAllocate(suggested);
-        }
-      }
     };
     
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [open, suggestedLineItemId, lineItems, isLoading]);
+  }, [open]);
 
-  const handleAllocate = async (lineItem: LineItemForMatching) => {
-    if (!expense) return;
+  const handleLineItemClick = (lineItem: LineItemForMatching) => {
+    setSelectedLineItem(lineItem);
+    // Scroll to bottom to show confirmation bar
+    setTimeout(() => {
+      const sheetContent = document.querySelector('[data-sheet-content]');
+      if (sheetContent) {
+        sheetContent.scrollTop = sheetContent.scrollHeight;
+      }
+    }, 100);
+  };
+
+  const handleDeallocate = async () => {
+    if (!currentAllocation || !expense || isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      // Delete the correlation
+      const { error: deleteError } = await supabase
+        .from('expense_line_item_correlations')
+        .delete()
+        .eq('id', currentAllocation.id);
+      
+      if (deleteError) throw deleteError;
+      
+      // Update expense to mark as unplanned
+      const { error: updateError } = await supabase
+        .from('expenses')
+        .update({ is_planned: false })
+        .eq('id', expense.id);
+      
+      if (updateError) throw updateError;
+      
+      toast({
+        title: "Allocation Removed",
+        description: `Removed allocation from ${currentAllocation.lineItem.description}`
+      });
+      
+      setCurrentAllocation(null);
+      onSuccess();
+      onOpenChange(false);
+      
+    } catch (error) {
+      console.error('Error removing allocation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove allocation.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmAllocation = async () => {
+    if (!expense || !selectedLineItem || isLoading) return;
     
     setIsLoading(true);
     try {
@@ -281,11 +373,11 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       const correlation = {
         expense_id: expense.id,
         expense_split_id: null,
-        estimate_line_item_id: lineItem.type === 'estimate' ? lineItem.id : null,
-        quote_id: lineItem.type === 'quote' ? lineItem.source_id : null,
-        change_order_line_item_id: lineItem.type === 'change_order' ? lineItem.id : null,
-        correlation_type: lineItem.type === 'estimate' ? 'estimated' : 
-                         lineItem.type === 'quote' ? 'quoted' : 'change_order',
+        estimate_line_item_id: selectedLineItem.type === 'estimate' ? selectedLineItem.id : null,
+        quote_id: selectedLineItem.type === 'quote' ? selectedLineItem.source_id : null,
+        change_order_line_item_id: selectedLineItem.type === 'change_order' ? selectedLineItem.id : null,
+        correlation_type: selectedLineItem.type === 'estimate' ? 'estimated' : 
+                         selectedLineItem.type === 'quote' ? 'quoted' : 'change_order',
         auto_correlated: false,
         notes: 'Manually assigned via inline allocation sheet'
       };
@@ -306,9 +398,10 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       
       toast({
         title: "Allocation Complete",
-        description: `Allocated ${formatCurrency(expense.amount)} to ${lineItem.type} line item.`
+        description: `Allocated ${formatCurrency(expense.amount)} to ${selectedLineItem.type} line item.`
       });
       
+      setSelectedLineItem(null);
       onSuccess();
       onOpenChange(false);
       
@@ -328,13 +421,17 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-[900px] flex flex-col p-0 overflow-hidden">
         <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b shrink-0">
-          <SheetTitle>Match Expense to Line Items</SheetTitle>
+          <SheetTitle>
+            {currentAllocation ? 'Change Allocation' : 'Match Expense to Line Items'}
+          </SheetTitle>
           <SheetDescription>
-            Select a line item to allocate this expense
+            {currentAllocation 
+              ? 'Currently allocated - you can change or remove this allocation'
+              : 'Select a line item to allocate this expense'}
           </SheetDescription>
         </SheetHeader>
         
-        <ScrollArea className="flex-1 px-6 py-4">
+        <ScrollArea className="flex-1 px-6 py-4" data-sheet-content>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -367,38 +464,6 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
                 </div>
               </div>
 
-              {/* Suggested Matches */}
-              {suggestedLineItemId && (
-                <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-300 mb-2">
-                    <Zap className="h-4 w-4" />
-                    Suggested Match ({confidenceScore}% confidence)
-                  </div>
-                  {(() => {
-                    const suggested = lineItems.find(li => li.id === suggestedLineItemId);
-                    if (!suggested) return null;
-                    
-                    return (
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm">
-                          <div className="font-medium">{suggested.description}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {CATEGORY_DISPLAY_MAP[suggested.category]} • {formatCurrency(suggested.total)}
-                            {suggested.allocated_amount > 0 && ` • ${formatCurrency(suggested.allocated_amount)} allocated`}
-                          </div>
-                        </div>
-                        <Button size="sm" onClick={() => handleAllocate(suggested)}>
-                          Allocate Here
-                        </Button>
-                      </div>
-                    );
-                  })()}
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Press Enter to quickly allocate to suggested match
-                  </div>
-                </div>
-              )}
-
               {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -410,197 +475,238 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
                 />
               </div>
 
-              {/* Tabs for Line Item Types */}
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="estimates">
-                    Estimates ({lineItems.filter(li => li.type === 'estimate').length})
-                  </TabsTrigger>
-                  <TabsTrigger value="quotes">
-                    Quotes ({lineItems.filter(li => li.type === 'quote').length})
-                  </TabsTrigger>
-                  <TabsTrigger value="change_orders">
-                    Change Orders ({lineItems.filter(li => li.type === 'change_order').length})
-                  </TabsTrigger>
-                </TabsList>
-
-                {/* Filter line items based on search */}
-                {(() => {
-                  const filtered = lineItems.filter(li => {
-                    if (searchTerm) {
-                      const search = searchTerm.toLowerCase();
-                      return li.description.toLowerCase().includes(search) ||
-                             li.category.toLowerCase().includes(search);
+              {/* All Line Items - Unified List */}
+              {(() => {
+                // Smart filtering and sorting
+                const filteredLineItems = (() => {
+                  let items = lineItems;
+                  
+                  // Apply search filter
+                  if (searchTerm) {
+                    const search = searchTerm.toLowerCase();
+                    items = items.filter(li => 
+                      li.description.toLowerCase().includes(search) ||
+                      li.category.toLowerCase().includes(search) ||
+                      li.payee_name?.toLowerCase().includes(search)
+                    );
+                  }
+                  
+                  // Smart sorting:
+                  // 1. Suggested item first
+                  // 2. Same category as expense (if we have expense category)
+                  // 3. Quotes/COs with matching payee
+                  // 4. Rest by type (quotes, change orders, estimates)
+                  return items.sort((a, b) => {
+                    // Suggested item goes first
+                    if (a.id === suggestedLineItemId) return -1;
+                    if (b.id === suggestedLineItemId) return 1;
+                    
+                    // If we have expense, prioritize matching category
+                    if (expense) {
+                      const expenseCategory = expense.category;
+                      const categoryMap: Record<ExpenseCategory, LineItemCategory[]> = {
+                        'LABOR': ['LABOR'],
+                        'SUBCONTRACTOR': ['SUBCONTRACTOR'],
+                        'MATERIALS': ['MATERIALS'],
+                        'EQUIPMENT': ['EQUIPMENT'],
+                        'PERMITS': ['PERMITS'],
+                        'MANAGEMENT': ['MANAGEMENT'],
+                        'TOOLS': ['EQUIPMENT'],
+                        'SOFTWARE': ['MANAGEMENT'],
+                        'VEHICLE_MAINTENANCE': ['EQUIPMENT'],
+                        'GAS': ['EQUIPMENT'],
+                        'MEALS': ['MANAGEMENT'],
+                        'OTHER': ['OTHER']
+                      };
+                      
+                      const matchingCategories = categoryMap[expenseCategory] || [];
+                      const aMatches = matchingCategories.includes(a.category);
+                      const bMatches = matchingCategories.includes(b.category);
+                      
+                      if (aMatches && !bMatches) return -1;
+                      if (!aMatches && bMatches) return 1;
                     }
-                    return true;
+                    
+                    // Then by type priority (quotes first, then COs, then estimates)
+                    const typeOrder = { quote: 0, change_order: 1, estimate: 2 };
+                    const aOrder = typeOrder[a.type];
+                    const bOrder = typeOrder[b.type];
+                    if (aOrder !== bOrder) return aOrder - bOrder;
+                    
+                    // Finally by description alphabetically
+                    return a.description.localeCompare(b.description);
                   });
+                })();
 
-                  return (
-                    <>
-                      <TabsContent value="estimates" className="space-y-2 mt-4">
-                        {filtered.filter(li => li.type === 'estimate').length === 0 ? (
-                          <div className="text-center py-8 text-muted-foreground text-sm">
-                            No estimate line items found
+                return (
+                  <div className="space-y-3">
+                    {currentAllocation && (
+                      <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                              Currently Allocated To
+                            </div>
+                            <div className="text-xs text-blue-700 dark:text-blue-300">
+                              This expense is already allocated. You can change it by selecting a different line item below, 
+                              or remove the allocation entirely.
+                            </div>
                           </div>
-                        ) : (
-                          filtered.filter(li => li.type === 'estimate').map(item => (
-                            <div
-                              key={item.id}
-                              className={cn(
-                                "p-3 border rounded-lg transition-all hover:border-primary hover:shadow-sm",
-                                item.id === suggestedLineItemId && "border-green-500 bg-green-50/50 dark:bg-green-950/10"
-                              )}
+                        </div>
+                        
+                        <div className="p-3 bg-white dark:bg-gray-900 rounded border">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className="font-medium text-sm">{currentAllocation.lineItem.description}</div>
+                                <Badge 
+                                  variant="secondary" 
+                                  className={cn(
+                                    "text-[10px] h-4 px-1.5",
+                                    currentAllocation.lineItem.type === 'estimate' && "bg-blue-100 text-blue-700",
+                                    currentAllocation.lineItem.type === 'quote' && "bg-purple-100 text-purple-700",
+                                    currentAllocation.lineItem.type === 'change_order' && "bg-orange-100 text-orange-700"
+                                  )}
+                                >
+                                  {currentAllocation.lineItem.type === 'estimate' ? 'E' : 
+                                   currentAllocation.lineItem.type === 'quote' ? 'Q' : 'CO'}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {CATEGORY_DISPLAY_MAP[currentAllocation.lineItem.category]} • {formatCurrency(currentAllocation.lineItem.total)}
+                              </div>
+                            </div>
+                            
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={handleDeallocate}
+                              disabled={isLoading}
                             >
-                              <div className="flex justify-between items-start mb-2">
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm">{item.description}</div>
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    {CATEGORY_DISPLAY_MAP[item.category]}
+                              {isLoading ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                  Removing...
+                                </>
+                              ) : (
+                                <>
+                                  <X className="h-3 w-3 mr-1" />
+                                  Remove
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                      <div>
+                        <span className="font-medium text-foreground">{filteredLineItems.length}</span> line items
+                        {suggestedLineItemId && <span className="ml-2">• ★ = Suggested</span>}
+                      </div>
+                      <div className="flex gap-2">
+                        <span>E=Estimate • Q=Quote • CO=Change Order</span>
+                      </div>
+                    </div>
+
+                    {filteredLineItems.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="text-muted-foreground text-sm mb-3">
+                          No line items found for this project
+                        </div>
+                        <div className="text-xs text-muted-foreground mb-4">
+                          {searchTerm 
+                            ? 'Try adjusting your search terms'
+                            : 'Create an estimate, quote, or change order first'}
+                        </div>
+                        {!searchTerm && expense && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              window.location.href = `/projects/${expense.project_id}`;
+                            }}
+                          >
+                            View Project
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-[500px] pr-4">
+                        <div className="space-y-1">
+                          {filteredLineItems.map(item => {
+                            const isSuggested = item.id === suggestedLineItemId;
+                            
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => handleLineItemClick(item)}
+                                className={cn(
+                                  "relative flex items-center justify-between p-3 border rounded cursor-pointer transition-all",
+                                  "hover:border-primary hover:bg-accent/50",
+                                  "group",
+                                  isSuggested && "border-l-4 border-l-green-500 bg-green-50/30 dark:bg-green-950/10",
+                                  selectedLineItem?.id === item.id && "border-primary border-2 bg-primary/5"
+                                )}
+                              >
+                                <div className="flex-1 min-w-0 pr-4">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <div className="font-medium text-sm truncate">{item.description}</div>
+                                    
+                                    <Badge 
+                                      variant="secondary" 
+                                      className={cn(
+                                        "text-[10px] h-4 px-1.5 flex-shrink-0",
+                                        item.type === 'estimate' && "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+                                        item.type === 'quote' && "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
+                                        item.type === 'change_order' && "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
+                                      )}
+                                    >
+                                      {item.type === 'estimate' ? 'E' : item.type === 'quote' ? 'Q' : 'CO'}
+                                    </Badge>
+                                    
+                                    {isSuggested && (
+                                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-green-500 text-green-600 flex-shrink-0">
+                                        ★ {confidenceScore}%
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="text-xs text-muted-foreground flex items-center gap-3">
+                                    <span>{CATEGORY_DISPLAY_MAP[item.category]}</span>
+                                    {item.payee_name && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="truncate">{item.payee_name}</span>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="text-right ml-3">
-                                  <div className="text-sm font-medium">{formatCurrency(item.total)}</div>
-                                  {item.allocated_amount > 0 && (
-                                    <div className="text-xs text-muted-foreground">
-                                      {formatCurrency(item.allocated_amount)} allocated
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <Button
-                                size="sm"
-                                className="w-full"
-                                onClick={() => handleAllocate(item)}
-                                disabled={isLoading}
-                              >
-                                {isLoading ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                                    Allocating...
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Allocate to This Item
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          ))
-                        )}
-                      </TabsContent>
-
-                      <TabsContent value="quotes" className="space-y-2 mt-4">
-                        {filtered.filter(li => li.type === 'quote').length === 0 ? (
-                          <div className="text-center py-8 text-muted-foreground text-sm">
-                            No quote line items found
-                          </div>
-                        ) : (
-                          filtered.filter(li => li.type === 'quote').map(item => (
-                            <div
-                              key={item.id}
-                              className={cn(
-                                "p-3 border rounded-lg transition-all hover:border-primary hover:shadow-sm",
-                                item.id === suggestedLineItemId && "border-green-500 bg-green-50/50 dark:bg-green-950/10"
-                              )}
-                            >
-                              <div className="flex justify-between items-start mb-2">
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm">{item.description}</div>
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    {item.payee_name && `${item.payee_name} • `}
-                                    {CATEGORY_DISPLAY_MAP[item.category]}
+                                
+                                <div className="flex items-center gap-4 flex-shrink-0">
+                                  <div className="text-right">
+                                    <div className="text-sm font-semibold">{formatCurrency(item.total)}</div>
+                                    {item.allocated_amount > 0 && (
+                                      <div className="text-xs text-muted-foreground">
+                                        {formatCurrency(item.allocated_amount)} used
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <CheckCircle className="h-4 w-4 text-primary" />
                                   </div>
                                 </div>
-                                <div className="text-right ml-3">
-                                  <div className="text-sm font-medium">{formatCurrency(item.total)}</div>
-                                  {item.allocated_amount > 0 && (
-                                    <div className="text-xs text-muted-foreground">
-                                      {formatCurrency(item.allocated_amount)} allocated
-                                    </div>
-                                  )}
-                                </div>
                               </div>
-                              <Button
-                                size="sm"
-                                className="w-full"
-                                onClick={() => handleAllocate(item)}
-                                disabled={isLoading}
-                              >
-                                {isLoading ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                                    Allocating...
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Allocate to This Item
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          ))
-                        )}
-                      </TabsContent>
-
-                      <TabsContent value="change_orders" className="space-y-2 mt-4">
-                        {filtered.filter(li => li.type === 'change_order').length === 0 ? (
-                          <div className="text-center py-8 text-muted-foreground text-sm">
-                            No change order line items found
-                          </div>
-                        ) : (
-                          filtered.filter(li => li.type === 'change_order').map(item => (
-                            <div
-                              key={item.id}
-                              className={cn(
-                                "p-3 border rounded-lg transition-all hover:border-primary hover:shadow-sm",
-                                item.id === suggestedLineItemId && "border-green-500 bg-green-50/50 dark:bg-green-950/10"
-                              )}
-                            >
-                              <div className="flex justify-between items-start mb-2">
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm">{item.description}</div>
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    CO #{item.change_order_number} • {CATEGORY_DISPLAY_MAP[item.category]}
-                                    {item.change_order_status && ` • ${item.change_order_status}`}
-                                  </div>
-                                </div>
-                                <div className="text-right ml-3">
-                                  <div className="text-sm font-medium">{formatCurrency(item.total)}</div>
-                                  {item.allocated_amount > 0 && (
-                                    <div className="text-xs text-muted-foreground">
-                                      {formatCurrency(item.allocated_amount)} allocated
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <Button
-                                size="sm"
-                                className="w-full"
-                                onClick={() => handleAllocate(item)}
-                                disabled={isLoading}
-                              >
-                                {isLoading ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                                    Allocating...
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Allocate to This Item
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          ))
-                        )}
-                      </TabsContent>
-                    </>
-                  );
-                })()}
-              </Tabs>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
@@ -609,10 +715,98 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
           )}
         </ScrollArea>
 
-        <div className="px-6 py-4 border-t flex space-x-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-            Cancel
-          </Button>
+        {/* Sticky Confirmation Bar */}
+        <div className="border-t bg-background">
+          {selectedLineItem ? (
+            // Confirmation state - show selected item + actions
+            <div className="px-6 py-4 space-y-3">
+              {/* Selected Line Item Preview */}
+              <div className="p-3 bg-primary/5 border border-primary rounded-lg">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      Allocating to:
+                    </div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="font-medium text-sm truncate">
+                        {selectedLineItem.description}
+                      </div>
+                      <Badge 
+                        variant="secondary" 
+                        className={cn(
+                          "text-[10px] h-4 px-1.5 flex-shrink-0",
+                          selectedLineItem.type === 'estimate' && "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+                          selectedLineItem.type === 'quote' && "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
+                          selectedLineItem.type === 'change_order' && "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
+                        )}
+                      >
+                        {selectedLineItem.type === 'estimate' ? 'E' : 
+                         selectedLineItem.type === 'quote' ? 'Q' : 'CO'}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {CATEGORY_DISPLAY_MAP[selectedLineItem.category]} • {formatCurrency(selectedLineItem.total)}
+                      {selectedLineItem.allocated_amount > 0 && (
+                        <> • {formatCurrency(selectedLineItem.allocated_amount)} allocated</>
+                      )}
+                    </div>
+                    
+                    {/* Over-allocation warning */}
+                    {expense && selectedLineItem.allocated_amount + expense.amount > selectedLineItem.total && (
+                      <div className="flex items-center gap-1 mt-2 text-xs text-yellow-600 dark:text-yellow-400">
+                        <AlertTriangle className="h-3 w-3" />
+                        <span>
+                          Will exceed budget by {formatCurrency(
+                            (selectedLineItem.allocated_amount + expense.amount) - selectedLineItem.total
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setSelectedLineItem(null)}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleConfirmAllocation}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Allocating...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Confirm Allocation
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            // Default state - just close button
+            <div className="px-6 py-4">
+              <Button 
+                variant="outline" 
+                onClick={() => onOpenChange(false)} 
+                className="w-full"
+              >
+                Close
+              </Button>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>

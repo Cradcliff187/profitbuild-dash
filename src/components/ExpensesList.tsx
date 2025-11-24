@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableFooter } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,13 +26,15 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { EntityTableTemplate } from "./EntityTableTemplate";
 import { ExpenseBulkActions } from "./ExpenseBulkActions";
 import { ReassignExpenseProjectDialog } from "./ReassignExpenseProjectDialog";
 import { ExpenseSplitDialog } from "./ExpenseSplitDialog";
 import { ExpenseAllocationSheet } from "./ExpenseAllocationSheet";
 import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
+import { usePagination } from '@/hooks/usePagination';
+import { CompletePagination } from '@/components/ui/complete-pagination';
 import { cn } from "@/lib/utils";
+import { format } from 'date-fns';
 import {
   Expense,
   ExpenseCategory,
@@ -40,6 +43,7 @@ import {
   EXPENSE_CATEGORY_DISPLAY,
   TRANSACTION_TYPE_DISPLAY,
 } from "@/types/expense";
+import { PayeeType } from "@/types/payee";
 import { isOperationalProject } from "@/types/project";
 import { formatCurrency } from "@/lib/utils";
 import { getExpenseSplits, calculateProjectExpenses } from "@/utils/expenseSplits";
@@ -51,6 +55,33 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+interface ColumnDefinition {
+  key: string;
+  label: string;
+  required?: boolean;
+  defaultVisible?: boolean;
+  width?: string;
+  align?: 'left' | 'right' | 'center';
+  sortable?: boolean;
+}
+
+const EXPENSE_COLUMNS: ColumnDefinition[] = [
+  { key: 'checkbox', label: 'Select', required: true, width: 'w-10', defaultVisible: true },
+  { key: 'split', label: '', required: false, width: 'w-8', defaultVisible: true },
+  { key: 'date', label: 'Date', required: false, width: 'w-24', sortable: true, defaultVisible: true },
+  { key: 'project', label: 'Project', required: false, width: 'w-48', sortable: true, defaultVisible: true },
+  { key: 'payee', label: 'Payee', required: false, width: 'w-48', sortable: true, defaultVisible: true },
+  { key: 'description', label: 'Description', required: false, defaultVisible: true },
+  { key: 'category', label: 'Category', required: false, width: 'w-32', defaultVisible: true },
+  { key: 'transaction_type', label: 'Type', required: false, width: 'w-24', defaultVisible: false },
+  { key: 'amount', label: 'Amount', required: false, width: 'w-24', align: 'right', sortable: true, defaultVisible: true },
+  { key: 'invoice_number', label: 'Invoice #', required: false, width: 'w-28', defaultVisible: false },
+  { key: 'status_assigned', label: 'Assigned', required: false, width: 'w-20', align: 'center', defaultVisible: true },
+  { key: 'status_allocated', label: 'Allocated', required: false, width: 'w-20', align: 'center', defaultVisible: true },
+  { key: 'approval_status', label: 'Approval', required: false, width: 'w-24', align: 'center', defaultVisible: false },
+  { key: 'actions', label: 'Actions', required: true, width: 'w-16', align: 'center', defaultVisible: true },
+];
+
 interface ExpensesListProps {
   expenses: Expense[];
   projectId?: string;
@@ -59,6 +90,10 @@ interface ExpensesListProps {
   onRefresh: () => void;
   enablePagination?: boolean;
   pageSize?: number;
+  visibleColumns?: string[];
+  onVisibleColumnsChange?: (columns: string[]) => void;
+  columnOrder?: string[];
+  onColumnOrderChange?: (order: string[]) => void;
 }
 
 export interface ExpensesListRef {
@@ -66,8 +101,9 @@ export interface ExpensesListRef {
 }
 
 export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>(
-  ({ expenses, projectId, onEdit, onDelete, onRefresh, enablePagination = true, pageSize = 25 }, ref) => {
+  ({ expenses, projectId, onEdit, onDelete, onRefresh, enablePagination = true, pageSize: initialPageSize = 25, visibleColumns: externalVisibleColumns, onVisibleColumnsChange, columnOrder: externalColumnOrder, onColumnOrderChange }, ref) => {
     const navigate = useNavigate();
+    const [pageSize, setPageSize] = useState(initialPageSize);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterCategories, setFilterCategories] = useState<string[]>([]);
     const [filterTransactionTypes, setFilterTransactionTypes] = useState<string[]>([]);
@@ -75,8 +111,11 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     const [filterMatchStatuses, setFilterMatchStatuses] = useState<string[]>([]);
     const [filterApprovalStatuses, setFilterApprovalStatuses] = useState<string[]>([]);
     const [filterSplitStatuses, setFilterSplitStatuses] = useState<string[]>([]);
+    const [filterPayees, setFilterPayees] = useState<string[]>([]);
+    const [filterPayeeTypes, setFilterPayeeTypes] = useState<string[]>([]);
     const [selectedExpenses, setSelectedExpenses] = useState<string[]>([]);
     const [projects, setProjects] = useState<any[]>([]);
+    const [payees, setPayees] = useState<any[]>([]);
     const [expenseMatches, setExpenseMatches] = useState<
       Record<string, { matched: boolean; type?: "estimate" | "quote" | "change_order" }>
     >({});
@@ -91,6 +130,72 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     const [expenseToAllocate, setExpenseToAllocate] = useState<string | null>(null);
     const { toast } = useToast();
 
+    // Column visibility state - use external if provided, otherwise internal with localStorage
+    const [internalVisibleColumns, setInternalVisibleColumns] = useState<string[]>(() => {
+      const saved = localStorage.getItem('expenses-visible-columns');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // Invalid JSON, use defaults
+        }
+      }
+      // Default visible columns
+      return EXPENSE_COLUMNS
+        .filter(col => col.defaultVisible)
+        .map(col => col.key);
+    });
+
+    // Column order state - use external if provided, otherwise internal with localStorage
+    const [internalColumnOrder, setInternalColumnOrder] = useState<string[]>(() => {
+      const saved = localStorage.getItem('expenses-column-order');
+      if (saved) {
+        try {
+          const savedOrder = JSON.parse(saved);
+          // Add any new columns not in saved order
+          const newColumns = EXPENSE_COLUMNS
+            .map(col => col.key)
+            .filter(key => !savedOrder.includes(key));
+          return [...savedOrder, ...newColumns];
+        } catch {
+          // Invalid JSON, use defaults
+        }
+      }
+      return EXPENSE_COLUMNS.map(col => col.key);
+    });
+
+    // Use external state if provided, otherwise use internal
+    const visibleColumns = externalVisibleColumns ?? internalVisibleColumns;
+    const columnOrder = externalColumnOrder ?? internalColumnOrder;
+
+    const setVisibleColumns = (columns: string[]) => {
+      if (onVisibleColumnsChange) {
+        onVisibleColumnsChange(columns);
+      } else {
+        setInternalVisibleColumns(columns);
+        localStorage.setItem('expenses-visible-columns', JSON.stringify(columns));
+      }
+    };
+
+    const setColumnOrder = (order: string[]) => {
+      if (onColumnOrderChange) {
+        onColumnOrderChange(order);
+      } else {
+        setInternalColumnOrder(order);
+        localStorage.setItem('expenses-column-order', JSON.stringify(order));
+      }
+    };
+
+    // Helper to check if column is visible
+    const isColumnVisible = (key: string) => {
+      return visibleColumns.includes(key);
+    };
+
+    // Get ordered columns
+    const orderedColumns = columnOrder
+      .map(key => EXPENSE_COLUMNS.find(col => col.key === key))
+      .filter((col): col is ColumnDefinition => col !== undefined);
+
     const getActiveFilterCount = (): number => {
       let count = 0;
       if (searchTerm) count++;
@@ -100,6 +205,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       if (filterMatchStatuses.length > 0) count++;
       if (filterApprovalStatuses.length > 0) count++;
       if (filterSplitStatuses.length > 0) count++;
+      if (filterPayees.length > 0) count++;
+      if (filterPayeeTypes.length > 0) count++;
       return count;
     };
 
@@ -115,6 +222,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       setFilterMatchStatuses([]);
       setFilterApprovalStatuses([]);
       setFilterSplitStatuses([]);
+      setFilterPayees([]);
+      setFilterPayeeTypes([]);
     };
 
     // Toggle helper functions for multi-select
@@ -166,6 +275,22 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       );
     };
 
+    const togglePayee = (payeeId: string) => {
+      setFilterPayees(prev => 
+        prev.includes(payeeId)
+          ? prev.filter(id => id !== payeeId)
+          : [...prev, payeeId]
+      );
+    };
+
+    const togglePayeeType = (type: string) => {
+      setFilterPayeeTypes(prev =>
+        prev.includes(type)
+          ? prev.filter(t => t !== type)
+          : [...prev, type]
+      );
+    };
+
     React.useImperativeHandle(ref, () => ({
       exportToCsv,
     }));
@@ -187,6 +312,26 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       };
 
       fetchProjects();
+    }, []);
+
+    // Load payees for filter dropdown
+    useEffect(() => {
+      const fetchPayees = async () => {
+        try {
+          const { data, error } = await supabase
+            .from("payees")
+            .select("id, payee_name, payee_type")
+            .eq("is_active", true)
+            .order("payee_name");
+
+          if (error) throw error;
+          setPayees(data || []);
+        } catch (error) {
+          console.error("Error fetching payees:", error);
+        }
+      };
+
+      fetchPayees();
     }, []);
 
     // Load expense line item matches and splits
@@ -267,15 +412,29 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     // Filter expenses based on search term and filters
     const filteredExpenses = useMemo(() => {
       return displayableExpenses.filter((expense) => {
-        const matchesSearch =
-          expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          expense.payee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          expense.project_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          expense.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase());
+        // Search logic - includes amount
+        let matchesSearch = true;
+        if (searchTerm) {
+          const searchLower = searchTerm.toLowerCase();
+          const amountStr = formatCurrency(expense.amount).toLowerCase();
+          const amountNum = expense.amount.toString();
+          
+          matchesSearch =
+            expense.description?.toLowerCase().includes(searchLower) ||
+            expense.payee_name?.toLowerCase().includes(searchLower) ||
+            expense.project_name?.toLowerCase().includes(searchLower) ||
+            (expense.project_number && expense.project_number.toLowerCase().includes(searchLower)) ||
+            expense.invoice_number?.toLowerCase().includes(searchLower) ||
+            amountStr.includes(searchLower) ||
+            amountNum.includes(searchTerm.replace(/[^0-9.]/g, ''));
+        }
 
         const matchesCategory = filterCategories.length === 0 || filterCategories.includes(expense.category);
         const matchesType = filterTransactionTypes.length === 0 || filterTransactionTypes.includes(expense.transaction_type);
         const matchesProject = filterProjects.length === 0 || filterProjects.includes(expense.project_id);
+        const matchesPayee = filterPayees.length === 0 || (expense.payee_id && filterPayees.includes(expense.payee_id));
+        const matchesPayeeType = filterPayeeTypes.length === 0 || 
+          (expense.payee_type && filterPayeeTypes.includes(expense.payee_type));
         const matchesApprovalStatus = filterApprovalStatuses.length === 0 || 
           filterApprovalStatuses.includes(expense.approval_status || "pending");
 
@@ -310,6 +469,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           matchesCategory &&
           matchesType &&
           matchesProject &&
+          matchesPayee &&
+          matchesPayeeType &&
           matchesMatchStatus &&
           matchesApprovalStatus &&
           matchesSplitStatus
@@ -321,6 +482,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       filterCategories,
       filterTransactionTypes,
       filterProjects,
+      filterPayees,
+      filterPayeeTypes,
       filterMatchStatuses,
       filterApprovalStatuses,
       filterSplitStatuses,
@@ -617,6 +780,15 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
       return result;
     }, [filteredExpenses, expandedExpenses, expenseSplits]);
+
+    // Pagination
+    const pagination = usePagination({
+      totalItems: displayData.filter(r => !r._isSplitRow).length,
+      pageSize: pageSize,
+      initialPage: 1,
+    });
+
+    const paginatedData = displayData.slice(pagination.startIndex, pagination.endIndex);
 
     const columns = [
       {
@@ -980,15 +1152,13 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
               </DropdownMenuItem>
             )}
 
-            {!isAllocated && (
-              <DropdownMenuItem onClick={() => {
-                setExpenseToAllocate(row.id);
-                setAllocationSheetOpen(true);
-              }}>
-                <Target className="h-3 w-3 mr-2" />
-                Match to Line Items
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem onClick={() => {
+              setExpenseToAllocate(row.id);
+              setAllocationSheetOpen(true);
+            }}>
+              <Target className="h-3 w-3 mr-2" />
+              {isAllocated ? 'View/Change Allocation' : 'Match to Line Items'}
+            </DropdownMenuItem>
 
             <DropdownMenuItem onClick={() => handleDelete(row.id)} className="text-destructive focus:text-destructive">
               <Trash2 className="h-3 w-3 mr-2" />
@@ -1016,6 +1186,249 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           </DropdownMenuContent>
         </DropdownMenu>
       );
+    };
+
+    const renderCell = (row: DisplayRow, columnKey: string) => {
+      switch (columnKey) {
+        case 'checkbox':
+          return (
+            <Checkbox
+              checked={selectedExpenses.includes(row.id)}
+              onCheckedChange={() => {
+                if (!row._isSplitRow) {
+                  handleSelectExpense(row.id);
+                }
+              }}
+              disabled={row._isSplitRow}
+            />
+          );
+        
+        case 'split':
+          if (row._isSplitRow) return <div className="pl-4" />;
+          if (!row.is_split) return null;
+          return (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={() => toggleExpanded(row.id)}
+            >
+              {expandedExpenses.has(row.id) ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+            </Button>
+          );
+        
+        case 'date':
+          if (row._isSplitRow && row._splitData) {
+            return (
+              <span className="text-muted-foreground font-mono text-xs">
+                {row._splitData.split_percentage?.toFixed(1)}%
+              </span>
+            );
+          }
+          return (
+            <span className="font-mono text-muted-foreground text-xs">
+              {format(new Date(row.expense_date), 'M/d/yy')}
+            </span>
+          );
+        
+        case 'project':
+          if (row._isSplitRow && row._splitData) {
+            return (
+              <div className="text-muted-foreground pl-2">
+                <div className="text-xs leading-tight">
+                  <div className="font-medium">{row._splitData.project_number || "-"}</div>
+                  <div className="text-muted-foreground text-[10px]">{row._splitData.project_name || ""}</div>
+                </div>
+              </div>
+            );
+          }
+          
+          // Always show project - never hide it
+          return (
+            <div className={cn(
+              "text-xs leading-tight",
+              row.project_name?.includes("Unassigned") && "text-muted-foreground italic"
+            )}>
+              <div className="font-medium">{row.project_number || "-"}</div>
+              <div className="text-muted-foreground text-[10px]">{row.project_name || ""}</div>
+            </div>
+          );
+        
+        case 'payee':
+          if (row._isSplitRow) return null;
+          return (
+            <div className="text-xs">
+              {row.payee_name || (
+                <span className="text-muted-foreground italic">No payee</span>
+              )}
+            </div>
+          );
+        
+        case 'description':
+          if (row._isSplitRow) return null;
+          return (
+            <div className="text-xs text-muted-foreground truncate max-w-xs">
+              {row.description || '-'}
+            </div>
+          );
+        
+        case 'category':
+          if (row._isSplitRow) return null;
+          return (
+            <Badge variant={getCategoryBadgeVariant(row.category)} className="text-[10px] px-1.5 py-0 h-4">
+              {EXPENSE_CATEGORY_DISPLAY[row.category]}
+            </Badge>
+          );
+        
+        case 'transaction_type':
+          if (row._isSplitRow) return null;
+          return (
+            <span className="text-xs text-muted-foreground">
+              {TRANSACTION_TYPE_DISPLAY[row.transaction_type]}
+            </span>
+          );
+        
+        case 'amount':
+          if (row._isSplitRow && row._splitData) {
+            return (
+              <span className="font-mono font-medium text-muted-foreground">
+                {formatCurrency(row._splitData.split_amount, { showCents: true })}
+              </span>
+            );
+          }
+          // For split expenses in project view, show allocated amount
+          if (row.is_split && projectId && row.project_id !== projectId) {
+            const splitForThisProject = expenseSplits[row.id]?.find((s) => s.project_id === projectId);
+            if (splitForThisProject) {
+              return (
+                <div>
+                  <div className="font-mono font-medium">
+                    {formatCurrency(splitForThisProject.split_amount, { showCents: true })}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    of {formatCurrency(row.amount, { showCents: true })}
+                  </div>
+                </div>
+              );
+            }
+          }
+          return (
+            <span className="font-mono font-medium">
+              {formatCurrency(row.amount, { showCents: true })}
+            </span>
+          );
+        
+        case 'invoice_number':
+          if (row._isSplitRow) return null;
+          return (
+            <span className="text-xs font-mono text-muted-foreground">
+              {row.invoice_number || '-'}
+            </span>
+          );
+        
+        case 'status_assigned':
+          if (row._isSplitRow) return null;
+          
+          // Show "-" for 001-GAS (gas expenses are never assigned/allocated)
+          if (row.project_number === "001-GAS" || row.project_name?.includes("Gas Expense")) {
+            return (
+              <div className="flex items-center justify-center">
+                <span className="text-xs text-muted-foreground">-</span>
+              </div>
+            );
+          }
+          
+          const isPlaceholder =
+            row.project_number === "000-UNASSIGNED" ||
+            row.project_number === "SYS-000" ||
+            (row.project_number && isOperationalProject(row.project_number));
+          
+          if (row.is_split) {
+            return (
+              <div className="flex items-center justify-center">
+                <AlertTriangle className="h-4 w-4 text-blue-600" />
+              </div>
+            );
+          }
+          
+          if (isPlaceholder) {
+            return (
+              <div className="flex items-center justify-center">
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              </div>
+            );
+          }
+          
+          return (
+            <div className="flex items-center justify-center">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+            </div>
+          );
+        
+        case 'status_allocated':
+          if (row._isSplitRow) return null;
+          
+          // Show "-" for 001-GAS (gas expenses are never assigned/allocated)
+          if (row.project_number === "001-GAS" || row.project_name?.includes("Gas Expense")) {
+            return (
+              <div className="flex items-center justify-center">
+                <span className="text-xs text-muted-foreground">-</span>
+              </div>
+            );
+          }
+          
+          const isAllocated = expenseMatches[row.id]?.matched;
+          return (
+            <div className="flex items-center justify-center">
+              {isAllocated ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              )}
+            </div>
+          );
+        
+        case 'approval_status':
+          if (row._isSplitRow) return null;
+          const status = row.approval_status || "pending";
+          if (!status || status === "pending") {
+            return (
+              <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-yellow-50 text-yellow-700 border-yellow-300">
+                Pending
+              </Badge>
+            );
+          }
+          if (status === "approved") {
+            return (
+              <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-green-50 text-green-700 border-green-300">
+                Approved
+              </Badge>
+            );
+          }
+          if (status === "rejected") {
+            return (
+              <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-red-50 text-red-700 border-red-300">
+                Rejected
+              </Badge>
+            );
+          }
+          return (
+            <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Badge>
+          );
+        
+        case 'actions':
+          if (row._isSplitRow) return null;
+          return renderActions(row);
+        
+        default:
+          return null;
+      }
     };
 
     return (
@@ -1093,7 +1506,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
             <div className="md:col-span-4">
               <Input
-                placeholder="Search by payee, description, invoice, project..."
+                placeholder="Search by payee, description, invoice, project, amount..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="h-9"
@@ -1479,45 +1892,287 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                 </div>
               </PopoverContent>
             </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-9 w-full justify-between text-xs"
+                >
+                  <span className="truncate">
+                    {filterPayees.length === 0 
+                      ? "All Payees" 
+                      : `${filterPayees.length} selected`
+                    }
+                  </span>
+                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search payees..." className="h-9" />
+                  <CommandEmpty>No payee found.</CommandEmpty>
+                  <CommandGroup className="max-h-64 overflow-auto">
+                    <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs px-2"
+                        onClick={() => setFilterPayees(payees.map(p => p.id))}
+                      >
+                        Select All
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs px-2"
+                        onClick={() => setFilterPayees([])}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                    {payees.map((payee) => (
+                      <CommandItem
+                        key={payee.id}
+                        value={payee.payee_name}
+                        onSelect={() => togglePayee(payee.id)}
+                        className="text-sm"
+                      >
+                        <div className="flex items-center gap-2 w-full">
+                          <Checkbox
+                            checked={filterPayees.includes(payee.id)}
+                            onCheckedChange={() => togglePayee(payee.id)}
+                            className="h-4 w-4"
+                          />
+                          <span className="text-sm truncate">
+                            {payee.payee_name}
+                          </span>
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-9 w-full justify-between text-xs"
+                >
+                  <span className="truncate">
+                    {filterPayeeTypes.length === 0 
+                      ? "All Payee Types" 
+                      : `${filterPayeeTypes.length} selected`
+                    }
+                  </span>
+                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="start">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => setFilterPayeeTypes(Object.values(PayeeType))}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => setFilterPayeeTypes([])}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  
+                  {[
+                    { value: PayeeType.SUBCONTRACTOR, label: "Subcontractor" },
+                    { value: PayeeType.MATERIAL_SUPPLIER, label: "Material Supplier" },
+                    { value: PayeeType.EQUIPMENT_RENTAL, label: "Equipment Rental" },
+                    { value: PayeeType.INTERNAL_LABOR, label: "Internal Labor" },
+                    { value: PayeeType.MANAGEMENT, label: "Management" },
+                    { value: PayeeType.PERMIT_AUTHORITY, label: "Permit Authority" },
+                    { value: PayeeType.OTHER, label: "Other" }
+                  ].map(({ value, label }) => (
+                    <div 
+                      key={value}
+                      className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                      onClick={() => togglePayeeType(value)}
+                    >
+                      <Checkbox
+                        checked={filterPayeeTypes.includes(value)}
+                        onCheckedChange={() => togglePayeeType(value)}
+                        className="h-4 w-4"
+                      />
+                      <label className="text-sm cursor-pointer flex-1">
+                        {label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </CollapsibleFilterSection>
 
-        <EntityTableTemplate
-          title={projectId ? "Project Expenses" : "All Expenses"}
-          description={`${filteredExpenses.length} expense${filteredExpenses.length !== 1 ? "s" : ""} • Total: ${formatCurrency(calculatedTotal, { showCents: true })}${projectId && filteredExpenses.some((e) => e.is_split && e.project_id !== projectId) ? " • Split expenses show allocation for this project" : ""}`}
-          data={displayData}
-          columns={columns}
-          isLoading={false}
-          selectedItems={selectedExpenses}
-          onSelectItem={(itemId) => {
-            // Only allow selection of parent expenses, not split rows
-            const row = displayData.find((d) => d.id === itemId);
-            if (!row?._isSplitRow) {
-              handleSelectExpense(itemId);
-            }
-          }}
-          onSelectAll={handleSelectAll}
-          renderActions={renderActions}
-          enablePagination={enablePagination}
-          pageSize={pageSize}
-          enableSorting={true}
-          defaultSortColumn="expense_date"
-          defaultSortDirection="desc"
-          bulkActions={
-            selectedExpenses.length > 0 ? (
-              <ExpenseBulkActions
-                selectedExpenseIds={selectedExpenses}
-                onSelectionChange={(newSet) => setSelectedExpenses(Array.from(newSet))}
-                onComplete={() => {
-                  setSelectedExpenses([]);
-                  onRefresh();
-                }}
-              />
-            ) : null
-          }
-          emptyMessage="No expenses found. Add your first expense to get started."
-          noResultsMessage="No expenses match your current filters."
-        />
+        {/* Bulk Actions */}
+        {selectedExpenses.length > 0 && (
+          <div className="mb-3">
+            <ExpenseBulkActions
+              selectedExpenseIds={selectedExpenses}
+              onSelectionChange={(newSet) => setSelectedExpenses(Array.from(newSet))}
+              onComplete={() => {
+                setSelectedExpenses([]);
+                onRefresh();
+              }}
+            />
+          </div>
+        )}
+
+        {/* Expenses Table */}
+        {displayData.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            {filteredExpenses.length === 0 
+              ? "No expenses found. Add your first expense to get started."
+              : "No expenses match your current filters."}
+          </div>
+        ) : (
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="overflow-auto -mx-2 px-2 sm:mx-0 sm:px-0" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+                <Table className="min-w-[1200px]">
+                  <TableHeader className="sticky top-0 bg-muted z-20 border-b">
+                    <TableRow className="h-8">
+                      {orderedColumns.map(column => {
+                        if (!isColumnVisible(column.key)) return null;
+                        
+                        return (
+                          <TableHead 
+                            key={column.key}
+                            className={cn(
+                              "h-8 p-2 text-xs font-medium",
+                              column.width,
+                              column.align === 'right' && "text-right",
+                              column.align === 'center' && "text-center",
+                              column.align !== 'right' && column.align !== 'center' && "text-left"
+                            )}
+                          >
+                            {column.key === 'checkbox' ? (
+                              <Checkbox
+                                checked={selectedExpenses.length === filteredExpenses.length && filteredExpenses.length > 0}
+                                onCheckedChange={handleSelectAll}
+                              />
+                            ) : (
+                              column.label
+                            )}
+                          </TableHead>
+                        );
+                      })}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedData.map((row, index) => {
+                      const isEvenRow = index % 2 === 0;
+                      return (
+                        <TableRow 
+                          key={row.id}
+                          className={cn(
+                            "h-9 hover:bg-muted/50",
+                            row._isSplitRow ? "bg-muted/10 hover:bg-muted/30" : isEvenRow && "bg-muted/20"
+                          )}
+                        >
+                          {orderedColumns.map(column => {
+                            if (!isColumnVisible(column.key)) return null;
+                            
+                            return (
+                              <TableCell 
+                                key={column.key}
+                                className={cn(
+                                  "p-1.5 text-xs",
+                                  column.align === 'right' && "text-right font-mono font-medium",
+                                  column.align === 'center' && "text-center"
+                                )}
+                              >
+                                {renderCell(row, column.key)}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                  
+                  {/* Footer with totals */}
+                  <TableFooter className="border-t bg-muted/30">
+                    <TableRow>
+                      {orderedColumns.map((column) => {
+                        if (!isColumnVisible(column.key)) return null;
+                        
+                        if (column.key === 'project') {
+                          return (
+                            <TableCell key={column.key} className="p-2 font-medium text-xs">
+                              Total ({displayData.filter(r => !r._isSplitRow).length} expenses):
+                            </TableCell>
+                          );
+                        } else if (column.key === 'amount') {
+                          return (
+                            <TableCell key={column.key} className="p-2 text-right font-mono font-medium text-xs">
+                              {formatCurrency(
+                                displayData
+                                  .filter(r => !r._isSplitRow)
+                                  .reduce((sum, r) => sum + r.amount, 0),
+                                { showCents: true }
+                              )}
+                            </TableCell>
+                          );
+                        } else {
+                          return <TableCell key={column.key}></TableCell>;
+                        }
+                      })}
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              </div>
+
+              {/* Pagination */}
+              {enablePagination && displayData.filter(r => !r._isSplitRow).length > 0 && (
+                <div className="p-3 border-t flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Rows per page:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        pagination.goToPage(1);
+                      }}
+                      className="border rounded px-2 py-1 text-sm"
+                    >
+                      <option value="25">25</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                      <option value="200">200</option>
+                    </select>
+                  </div>
+                  {displayData.filter(r => !r._isSplitRow).length > pageSize && (
+                    <CompletePagination
+                      currentPage={pagination.currentPage}
+                      totalPages={Math.ceil(displayData.filter(r => !r._isSplitRow).length / pageSize)}
+                      onPageChange={pagination.goToPage}
+                    />
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <ReassignExpenseProjectDialog
           open={reassignDialogOpen}

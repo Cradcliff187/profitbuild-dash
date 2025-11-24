@@ -15,10 +15,7 @@ export interface ReceiptFilters {
   status: string[];
   payeeIds: string[];
   projectIds: string[];
-  amountRange: {
-    min: number | null;
-    max: number | null;
-  };
+  amount: string | null;
 }
 
 interface ReceiptSearchFiltersProps {
@@ -76,7 +73,7 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
     if (filters.payeeIds.length > 0) count++;
     if (filters.projectIds.length > 0) count++;
     if (filters.dateFrom || filters.dateTo) count++;
-    if (filters.amountRange.min !== null || filters.amountRange.max !== null) count++;
+    if (filters.amount) count++;
     return count;
   };
 
@@ -330,33 +327,16 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
           </PopoverContent>
         </Popover>
 
-        {/* Amount Range */}
-        <div className="flex gap-2 md:col-span-2">
-          <Input
-            type="number"
-            placeholder="Min $"
-            value={filters.amountRange.min || ''}
-            onChange={(e) => updateFilters({ 
-              amountRange: { 
-                ...filters.amountRange, 
-                min: e.target.value ? parseFloat(e.target.value) : null 
-              }
-            })}
-            className="h-9 text-xs"
-          />
-          <Input
-            type="number"
-            placeholder="Max $"
-            value={filters.amountRange.max || ''}
-            onChange={(e) => updateFilters({ 
-              amountRange: { 
-                ...filters.amountRange, 
-                max: e.target.value ? parseFloat(e.target.value) : null 
-              }
-            })}
-            className="h-9 text-xs"
-          />
-        </div>
+        {/* Amount Filter */}
+        <Input
+          type="text"
+          placeholder="Filter by amount..."
+          value={filters.amount || ''}
+          onChange={(e) => updateFilters({ 
+            amount: e.target.value || null
+          })}
+          className="h-9 text-xs"
+        />
       </div>
     </CollapsibleFilterSection>
   );

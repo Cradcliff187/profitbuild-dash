@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ClipboardCheck,
   Download,
@@ -52,8 +52,9 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ColumnSelector } from "@/components/ui/column-selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ReceiptsManagement } from "@/components/ReceiptsManagement";
+import { ReceiptsManagement, ReceiptsManagementRef } from "@/components/ReceiptsManagement";
 import { CreateTimeEntryDialog } from "@/components/time-tracker/CreateTimeEntryDialog";
+import { AddReceiptModal } from "@/components/time-tracker/AddReceiptModal";
 import { useRoles } from "@/contexts/RoleContext";
 
 // Define column metadata for selector (must be outside component for state initialization)
@@ -114,8 +115,44 @@ const TimeEntries = () => {
   const [receiptCount, setReceiptCount] = useState(0);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [addReceiptModalOpen, setAddReceiptModalOpen] = useState(false);
   const { isAdmin, isManager } = useRoles();
   const canCreateTimeEntry = isAdmin || isManager;
+  const receiptsManagementRef = useRef<ReceiptsManagementRef>(null);
+  
+  // Receipt column definitions
+  const receiptColumnDefinitions = [
+    { key: 'preview', label: 'Preview', required: true },
+    { key: 'type', label: 'Type', required: false },
+    { key: 'payee', label: 'Vendor', required: true },
+    { key: 'project', label: 'Project', required: true },
+    { key: 'date', label: 'Date', required: true },
+    { key: 'amount', label: 'Amount', required: false },
+    { key: 'status', label: 'Status', required: false },
+    { key: 'submitted_at', label: 'Submitted At', required: false },
+    { key: 'submitted_by', label: 'Submitted By', required: false },
+    { key: 'description', label: 'Description', required: false },
+    { key: 'actions', label: 'Actions', required: true },
+  ];
+  
+  // Receipt column state (will be synced from ReceiptsManagement via ref)
+  const [receiptVisibleColumns, setReceiptVisibleColumns] = useState<string[]>([]);
+  const [receiptColumnOrder, setReceiptColumnOrder] = useState<string[]>([]);
+  
+  // Sync receipt column state from ref when tab changes to receipts
+  useEffect(() => {
+    if (activeTab === "receipts") {
+      // Use a small timeout to ensure the ref is ready after component mount
+      const timer = setTimeout(() => {
+        if (receiptsManagementRef.current) {
+          const columnState = receiptsManagementRef.current.getColumnState();
+          setReceiptVisibleColumns(columnState.visibleColumns);
+          setReceiptColumnOrder(columnState.columnOrder);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab]);
 
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
@@ -476,12 +513,77 @@ const TimeEntries = () => {
     <div className="w-full overflow-x-hidden px-2 sm:px-4 py-2 space-y-2">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <div>
-          <h1 className="text-lg font-bold flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Time Entry Management
-          </h1>
-          <p className="text-xs text-muted-foreground">Review time entries and manage receipts</p>
+        <div className="flex items-center space-x-3">
+          <Clock className="h-5 w-5 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Employee Time and Receipt Management</h1>
+            <p className="text-muted-foreground">Review time entries and manage receipts</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {canCreateTimeEntry && activeTab === "entries" && (
+            <Button onClick={handleCreateTimeEntry} size="sm" className="flex items-center gap-1">
+              <Plus className="h-4 w-4" />
+              Create Time Entry
+            </Button>
+          )}
+          {activeTab === "receipts" && (
+            <Button onClick={() => setAddReceiptModalOpen(true)} size="sm" className="flex items-center gap-1">
+              <Plus className="h-4 w-4" />
+              Add Receipt
+            </Button>
+          )}
+          {activeTab === "entries" && (
+            <ColumnSelector
+              columns={columnDefinitions}
+              visibleColumns={visibleColumns}
+              onVisibilityChange={setVisibleColumns}
+              columnOrder={columnOrder}
+              onColumnOrderChange={setColumnOrder}
+            />
+          )}
+          {activeTab === "entries" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowExportModal(true)}
+              disabled={entries.length === 0}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Export
+            </Button>
+          )}
+          {activeTab === "receipts" && receiptsManagementRef.current && (
+            <ColumnSelector
+              columns={receiptColumnDefinitions}
+              visibleColumns={receiptVisibleColumns}
+              onVisibilityChange={(cols) => {
+                setReceiptVisibleColumns(cols);
+                const columnState = receiptsManagementRef.current?.getColumnState();
+                if (columnState) {
+                  columnState.setVisibleColumns(cols);
+                }
+              }}
+              columnOrder={receiptColumnOrder}
+              onColumnOrderChange={(order) => {
+                setReceiptColumnOrder(order);
+                const columnState = receiptsManagementRef.current?.getColumnState();
+                if (columnState) {
+                  columnState.setColumnOrder(order);
+                }
+              }}
+            />
+          )}
+          {activeTab === "receipts" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => receiptsManagementRef.current?.exportToCSV()}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Export CSV
+            </Button>
+          )}
         </div>
       </div>
 
@@ -540,40 +642,6 @@ const TimeEntries = () => {
 
         {/* Time Entries Tab */}
         <TabsContent value="entries" className="space-y-2">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-semibold">Time Entry Management</h3>
-              <p className="text-xs text-muted-foreground">
-                Review, approve, and manage time entries for all projects and employees
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {canCreateTimeEntry && (
-                <Button onClick={handleCreateTimeEntry} size="sm" className="flex items-center gap-1">
-                  <Plus className="h-3 w-3" />
-                  Create Time Entry
-                </Button>
-              )}
-              <ColumnSelector
-                columns={columnDefinitions}
-                visibleColumns={visibleColumns}
-                onVisibilityChange={setVisibleColumns}
-                columnOrder={columnOrder}
-                onColumnOrderChange={setColumnOrder}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowExportModal(true)}
-                disabled={entries.length === 0}
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Export
-              </Button>
-            </div>
-          </div>
-
           {/* Statistics Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2">
             <Card>
@@ -647,9 +715,9 @@ const TimeEntries = () => {
           {/* Table */}
           <Card className="overflow-hidden">
             <CardContent className="p-0">
-              <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+              <div className="overflow-auto -mx-2 px-2 sm:mx-0 sm:px-0" style={{ maxHeight: 'calc(100vh - 400px)' }}>
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 bg-muted z-20 border-b">
                     <TableRow className="h-8">
                       <TableHead className="w-10 p-2">
                         <Checkbox
@@ -935,7 +1003,7 @@ const TimeEntries = () => {
               </div>
 
               {/* Pagination */}
-              {totalCount > pageSize && (
+              {totalCount > 0 && (
                 <div className="p-3 border-t flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Rows per page:</span>
@@ -950,14 +1018,17 @@ const TimeEntries = () => {
                       <option value="25">25</option>
                       <option value="50">50</option>
                       <option value="100">100</option>
+                      <option value="200">200</option>
                     </select>
                   </div>
 
-                  <CompletePagination
-                    currentPage={pagination.currentPage}
-                    totalPages={Math.ceil(totalCount / pageSize)}
-                    onPageChange={pagination.goToPage}
-                  />
+                  {totalCount > pageSize && (
+                    <CompletePagination
+                      currentPage={pagination.currentPage}
+                      totalPages={Math.ceil(totalCount / pageSize)}
+                      onPageChange={pagination.goToPage}
+                    />
+                  )}
                 </div>
               )}
             </CardContent>
@@ -966,7 +1037,7 @@ const TimeEntries = () => {
 
         {/* Receipts Tab */}
         <TabsContent value="receipts">
-          <ReceiptsManagement />
+          <ReceiptsManagement ref={receiptsManagementRef} />
         </TabsContent>
       </Tabs>
 
@@ -1027,6 +1098,17 @@ const TimeEntries = () => {
         onClose={() => setShowExportModal(false)}
         entries={entries}
         filters={filters}
+      />
+
+      {/* Add Receipt Modal */}
+      <AddReceiptModal
+        open={addReceiptModalOpen}
+        onClose={() => setAddReceiptModalOpen(false)}
+        onSuccess={() => {
+          setAddReceiptModalOpen(false);
+          receiptsManagementRef.current?.refresh();
+          fetchReceiptCount();
+        }}
       />
     </div>
   );

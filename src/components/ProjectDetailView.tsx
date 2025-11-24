@@ -12,7 +12,6 @@ import { EstimateForm } from "@/components/EstimateForm";
 import { QuoteForm } from "@/components/QuoteForm";
 import { ExpensesList } from "@/components/ExpensesList";
 import { LineItemControlDashboard } from "@/components/LineItemControlDashboard";
-import { GlobalExpenseAllocation } from "@/components/GlobalExpenseMatching";
 import { ChangeOrdersList } from "@/components/ChangeOrdersList";
 import { ChangeOrderForm } from "@/components/ChangeOrderForm";
 import { ProjectMediaGallery } from "@/components/ProjectMediaGallery";
@@ -518,7 +517,7 @@ export const ProjectDetailView = () => {
                       variant="outline"
                       size="sm"
                       className={cn(
-                        "h-10 gap-2 truncate border-border focus-visible:ring-2 focus-visible:ring-primary/40", 
+                        "h-10 gap-2 truncate border-border focus-visible:border-2 focus-visible:border-foreground/40 focus-visible:ring-2 focus-visible:ring-foreground/20 focus-visible:ring-offset-0", 
                         isMobile ? "w-full justify-between" : "justify-between max-w-[320px]"
                       )}
                     >
@@ -534,7 +533,7 @@ export const ProjectDetailView = () => {
                   <PopoverContent className="w-[320px] max-h-[320px] overflow-auto p-0 border border-border rounded-lg shadow-md" align="start">
                     <Command className="bg-background">
                       <div className="px-2 py-2">
-                        <CommandInput placeholder="Search projects..." className="h-9 text-sm rounded-md border border-border focus-visible:ring-2 focus-visible:ring-primary/40" />
+                        <CommandInput placeholder="Search projects..." className="h-9 text-sm rounded-md border border-border focus-visible:border-2 focus-visible:border-foreground/40 focus-visible:ring-2 focus-visible:ring-foreground/20 focus-visible:ring-offset-0" />
                       </div>
                       <CommandEmpty>No projects found.</CommandEmpty>
                       <CommandList>
@@ -702,16 +701,6 @@ export const ProjectDetailView = () => {
               
               <Route path="control" element={
                 <LineItemControlDashboard projectId={project.id} project={project} />
-              } />
-              
-              <Route path="matching" element={
-                <GlobalExpenseAllocation 
-                  projectId={project.id} 
-                  onClose={() => {
-                    navigate(`/projects/${projectId}`);
-                    loadProjectData();
-                  }}
-                />
               } />
               
               <Route path="changes" element={

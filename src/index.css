@@ -947,12 +947,12 @@ body:has(.group[data-state="collapsed"]) .nav-logo-project-detail {
    PDF PREVIEW DIALOG Z-INDEX
    ================================= */
 
-/* Ensure PDF preview dialog appears above Sheet components (Sheet uses z-50) */
+/* Ensure PDF preview dialog appears above Sheet components (Sheet uses z-[60]) */
 /* When both Sheet and Dialog are open, Dialog should be on top */
 [data-state="open"][data-radix-dialog-overlay] {
-  z-index: 60 !important;
+  z-index: 65 !important;
 }
 
 [data-state="open"][data-radix-dialog-content] {
-  z-index: 60 !important;
+  z-index: 65 !important;
 }

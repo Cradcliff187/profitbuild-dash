@@ -14,6 +14,7 @@ import { TimesheetGridView } from "@/components/TimesheetGridView";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ColumnSelector } from "@/components/ui/column-selector";
 
 type ViewMode = "overview" | "list";
 
@@ -43,6 +44,76 @@ const Expenses = () => {
   const [showExportModal, setShowExportModal] = useState(false);
   const expensesListRef = useRef<ExpensesListRef>(null);
   const { toast } = useToast();
+
+  // Column visibility state with localStorage persistence
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem('expenses-visible-columns');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // Invalid JSON, use defaults
+      }
+    }
+    // Default visible columns - matching ExpensesList defaults
+    const defaultColumns = [
+      'checkbox', 'split', 'date', 'project', 'payee', 'description', 
+      'category', 'amount', 'status_assigned', 'status_allocated', 'actions'
+    ];
+    return defaultColumns;
+  });
+
+  // Column order state with localStorage persistence
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem('expenses-column-order');
+    if (saved) {
+      try {
+        const savedOrder = JSON.parse(saved);
+        // Add any new columns not in saved order
+        const allColumns = [
+          'checkbox', 'split', 'date', 'project', 'payee', 'description', 
+          'category', 'transaction_type', 'amount', 'invoice_number', 
+          'status_assigned', 'status_allocated', 'approval_status', 'actions'
+        ];
+        const newColumns = allColumns.filter(key => !savedOrder.includes(key));
+        return [...savedOrder, ...newColumns];
+      } catch {
+        // Invalid JSON, use defaults
+      }
+    }
+    return [
+      'checkbox', 'split', 'date', 'project', 'payee', 'description', 
+      'category', 'transaction_type', 'amount', 'invoice_number', 
+      'status_assigned', 'status_allocated', 'approval_status', 'actions'
+    ];
+  });
+
+  // Save to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('expenses-visible-columns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  useEffect(() => {
+    localStorage.setItem('expenses-column-order', JSON.stringify(columnOrder));
+  }, [columnOrder]);
+
+  // Column definitions for ColumnSelector
+  const expenseColumnDefinitions = [
+    { key: 'checkbox', label: 'Select', required: true },
+    { key: 'split', label: '', required: false },
+    { key: 'date', label: 'Date', required: false },
+    { key: 'project', label: 'Project', required: false },
+    { key: 'payee', label: 'Payee', required: false },
+    { key: 'description', label: 'Description', required: false },
+    { key: 'category', label: 'Category', required: false },
+    { key: 'transaction_type', label: 'Type', required: false },
+    { key: 'amount', label: 'Amount', required: false },
+    { key: 'invoice_number', label: 'Invoice #', required: false },
+    { key: 'status_assigned', label: 'Assigned', required: false },
+    { key: 'status_allocated', label: 'Allocated', required: false },
+    { key: 'approval_status', label: 'Approval', required: false },
+    { key: 'actions', label: 'Actions', required: true },
+  ];
 
   // Load expenses from Supabase
   useEffect(() => {
@@ -153,27 +224,32 @@ const Expenses = () => {
             <p className="text-muted-foreground">Track project costs and manage expenses</p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button onClick={() => navigate("/expenses/matching")} size="sm">
-            <Target className="h-4 w-4 mr-2" />
-            <span>Match Expenses</span>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleCreateNew} size="sm" className="flex items-center gap-1">
+            <Plus className="h-4 w-4" />
+            Add Expense
           </Button>
-          <Button onClick={handleCreateNew} size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            <span>Add Expense</span>
+          <Button onClick={() => setShowImportModal(true)} variant="outline" size="sm" className="flex items-center gap-1">
+            <Upload className="h-4 w-4" />
+            Import
           </Button>
-          <Button onClick={() => setShowImportModal(true)} variant="outline" size="sm">
-            <Upload className="h-4 w-4 mr-2" />
-            <span>Import</span>
+          <Button onClick={() => setShowExportModal(true)} variant="outline" size="sm" className="flex items-center gap-1">
+            <FileDown className="h-4 w-4" />
+            Export
           </Button>
-          <Button onClick={() => setShowExportModal(true)} variant="outline" size="sm">
-            <FileDown className="h-4 w-4 mr-2" />
-            <span>Export</span>
+          <Button onClick={() => setShowTimesheetModal(true)} variant="outline" size="sm" className="flex items-center gap-1">
+            <Clock className="h-4 w-4" />
+            Timesheet
           </Button>
-          <Button onClick={() => setShowTimesheetModal(true)} variant="outline" size="sm">
-            <Clock className="h-4 w-4 mr-2" />
-            <span>Timesheet</span>
-          </Button>
+          {viewMode === "list" && (
+            <ColumnSelector
+              columns={expenseColumnDefinitions}
+              visibleColumns={visibleColumns}
+              onVisibilityChange={setVisibleColumns}
+              columnOrder={columnOrder}
+              onColumnOrderChange={setColumnOrder}
+            />
+          )}
         </div>
       </div>
 
@@ -230,6 +306,10 @@ const Expenses = () => {
               onEdit={handleEditExpense}
               onDelete={handleDeleteExpense}
               onRefresh={fetchData}
+              visibleColumns={visibleColumns}
+              onVisibleColumnsChange={setVisibleColumns}
+              columnOrder={columnOrder}
+              onColumnOrderChange={setColumnOrder}
             />
           </TabsContent>
         </Tabs>

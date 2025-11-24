@@ -24,7 +24,6 @@ const TimeEntries = lazy(() => import("./pages/TimeEntries"));
 const Estimates = lazy(() => import("./pages/Estimates"));
 const Quotes = lazy(() => import("./pages/Quotes"));
 const Expenses = lazy(() => import("./pages/Expenses"));
-const ExpenseMatching = lazy(() => import("./pages/ExpenseMatching"));
 const Payees = lazy(() => import("./pages/Payees"));
 const Clients = lazy(() => import("./pages/Clients"));
 const ProfitAnalysis = lazy(() => import("./pages/ProfitAnalysis"));
@@ -93,7 +92,6 @@ const App = () => (
                   <Route path="quotes" element={<LazyRoute component={Quotes} />} />
                   <Route path="reports" element={<LazyRoute component={Reports} />} />
                   <Route path="expenses" element={<LazyRoute component={Expenses} />} />
-                  <Route path="expenses/matching" element={<LazyRoute component={ExpenseMatching} />} />
                   <Route path="payees" element={<LazyRoute component={Payees} />} />
                   <Route path="clients" element={<LazyRoute component={Clients} />} />
                   <Route path="profit-analysis" element={<LazyRoute component={ProfitAnalysis} />} />

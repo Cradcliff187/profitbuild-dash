@@ -203,7 +203,7 @@ export function PayeeSelector({
           </SelectTrigger>
           <SelectContent>
             {/* Search Input INSIDE Dropdown */}
-            <div className="flex items-center border-b px-3 pb-2 pt-2">
+            <div className="flex items-center border-b border-border px-3 pb-2 pt-2 focus-within:border-2 focus-within:border-foreground/30 focus-within:ring-2 focus-within:ring-foreground/20 focus-within:ring-offset-0 transition-colors">
               <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
               <Input
                 placeholder="Search payees..."

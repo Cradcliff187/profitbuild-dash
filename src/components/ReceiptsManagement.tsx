@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Image, Download, Trash2, FileImage, MoreHorizontal, CheckCircle, XCircle, Clock, Edit } from 'lucide-react';
@@ -47,12 +47,13 @@ import {
 const receiptColumnDefinitions = [
   { key: 'preview', label: 'Preview', required: true, hiddenOnMobile: false },
   { key: 'type', label: 'Type', required: false, hiddenOnMobile: true },
-  { key: 'payee', label: 'Payee/Worker', required: true, hiddenOnMobile: false },
+  { key: 'payee', label: 'Vendor', required: true, hiddenOnMobile: false },
   { key: 'project', label: 'Project', required: true, hiddenOnMobile: true },
   { key: 'date', label: 'Date', required: true, hiddenOnMobile: false },
   { key: 'amount', label: 'Amount', required: false, hiddenOnMobile: false },
   { key: 'status', label: 'Status', required: false, hiddenOnMobile: true },
   { key: 'submitted_at', label: 'Submitted At', required: false, hiddenOnMobile: true },
+  { key: 'submitted_by', label: 'Submitted By', required: false, hiddenOnMobile: true },
   { key: 'description', label: 'Description', required: false, hiddenOnMobile: true },
   { key: 'actions', label: 'Actions', required: true, hiddenOnMobile: false },
 ];
@@ -77,9 +78,21 @@ interface UnifiedReceipt {
   submitted_for_approval_at?: string;
   user_id?: string;
   captured_at?: string;
+  submitted_by_name?: string;
 }
 
-export const ReceiptsManagement: React.FC = () => {
+export interface ReceiptsManagementRef {
+  exportToCSV: () => void;
+  getColumnState: () => {
+    visibleColumns: string[];
+    columnOrder: string[];
+    setVisibleColumns: (cols: string[]) => void;
+    setColumnOrder: (order: string[]) => void;
+  };
+  refresh: () => void;
+}
+
+export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref) => {
   const isMobile = useIsMobile();
   const [allReceipts, setAllReceipts] = useState<UnifiedReceipt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,13 +102,11 @@ export const ReceiptsManagement: React.FC = () => {
     status: [],
     payeeIds: [],
     projectIds: [],
-    amountRange: {
-      min: null,
-      max: null,
-    },
+    amount: null,
   });
   const [payees, setPayees] = useState<Array<{ id: string; name: string }>>([]);
   const [projects, setProjects] = useState<Array<{ id: string; number: string; name: string }>>([]);
+  const [pageSize, setPageSize] = useState(25);
   
   // Preview modal state
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -130,6 +141,7 @@ export const ReceiptsManagement: React.FC = () => {
       'amount',
       'status',
       'submitted_at',
+      'submitted_by',
       'description',
       'actions'
     ];
@@ -222,18 +234,9 @@ export const ReceiptsManagement: React.FC = () => {
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'expenses',
-        filter: 'category=eq.labor_internal'
-      }, () => {
-        console.log('Time entry receipt updated');
-        loadReceipts();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
         table: 'receipts'
       }, () => {
-        console.log('Standalone receipt updated');
+        console.log('Receipt updated');
         loadReceipts();
       })
       .subscribe();
@@ -246,74 +249,51 @@ export const ReceiptsManagement: React.FC = () => {
   const loadReceipts = async () => {
     setLoading(true);
     try {
-      // Fetch both types in parallel
-      const [timeEntryResult, standaloneResult] = await Promise.all([
-        supabase
-          .from('expenses')
-          .select(`
-            id,
-            expense_date,
-            amount,
-            attachment_url,
-            start_time,
-            end_time,
-            payee_id,
-            project_id,
-            payees!inner(payee_name),
-            projects!inner(project_number, project_name)
-          `)
-          .eq('category', 'labor_internal')
-          .not('attachment_url', 'is', null)
-          .order('expense_date', { ascending: false }),
+      // Fetch only standalone receipts from receipts table
+      const { data: receiptsData, error: receiptsError } = await supabase
+        .from('receipts')
+        .select(`
+          id,
+          image_url,
+          amount,
+          description,
+          captured_at,
+          approval_status,
+          approved_by,
+          approved_at,
+          submitted_for_approval_at,
+          rejection_reason,
+          payee_id,
+          project_id,
+          user_id,
+          payees(payee_name),
+          projects(project_number, project_name)
+        `)
+        .order('captured_at', { ascending: false });
+
+      if (receiptsError) throw receiptsError;
+
+      // Fetch user profiles for receipts
+      const userIds = [...new Set((receiptsData || [])
+        .filter((r: any) => r.user_id)
+        .map((r: any) => r.user_id))];
+      
+      let profilesMap = new Map<string, string>();
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds);
         
-        supabase
-          .from('receipts')
-          .select(`
-            id,
-            image_url,
-            amount,
-            description,
-            captured_at,
-            approval_status,
-            approved_by,
-            approved_at,
-            submitted_for_approval_at,
-            rejection_reason,
-            payee_id,
-            project_id,
-            user_id,
-            payees(payee_name),
-            projects(project_number, project_name)
-          `)
-          .order('captured_at', { ascending: false })
-      ]);
-
-      if (timeEntryResult.error) throw timeEntryResult.error;
-      if (standaloneResult.error) throw standaloneResult.error;
-
-      // Transform time entry receipts
-      const timeEntryReceipts: UnifiedReceipt[] = (timeEntryResult.data || []).map((expense: any) => {
-        const hours = expense.start_time && expense.end_time
-          ? (new Date(expense.end_time).getTime() - new Date(expense.start_time).getTime()) / (1000 * 60 * 60)
-          : 0;
-
-        return {
-          id: expense.id,
-          type: 'time_entry' as const,
-          image_url: expense.attachment_url,
-          payee_id: expense.payee_id || '',
-          payee_name: expense.payees?.payee_name || 'Unknown',
-          project_id: expense.project_id || '',
-          project_number: expense.projects?.project_number || '',
-          project_name: expense.projects?.project_name || '',
-          date: expense.expense_date,
-          amount: expense.amount,
-          hours,
-        };
-      });
+        if (profilesData) {
+          profilesData.forEach((p: any) => {
+            profilesMap.set(p.id, p.full_name || 'Unknown');
+          });
+        }
+      }
 
       // Transform standalone receipts
-      const standaloneReceipts: UnifiedReceipt[] = (standaloneResult.data || []).map((receipt: any) => ({
+      const standaloneReceipts: UnifiedReceipt[] = (receiptsData || []).map((receipt: any) => ({
         id: receipt.id,
         type: 'standalone' as const,
         image_url: receipt.image_url,
@@ -332,10 +312,11 @@ export const ReceiptsManagement: React.FC = () => {
         submitted_for_approval_at: receipt.submitted_for_approval_at,
         user_id: receipt.user_id,
         captured_at: receipt.captured_at,
+        submitted_by_name: receipt.user_id ? profilesMap.get(receipt.user_id) : undefined,
       }));
 
-      // Merge and sort by date (most recent first)
-      const unified = [...timeEntryReceipts, ...standaloneReceipts]
+      // Sort by date (most recent first)
+      const unified = standaloneReceipts
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       setAllReceipts(unified);
@@ -478,9 +459,18 @@ export const ReceiptsManagement: React.FC = () => {
     const receiptStatus = r.approval_status || 'pending';
     if (filters.status.length > 0 && !filters.status.includes(receiptStatus)) return false;
     
-    // Amount range filter
-    if (filters.amountRange.min !== null && r.amount < filters.amountRange.min) return false;
-    if (filters.amountRange.max !== null && r.amount > filters.amountRange.max) return false;
+    // Amount filter - matches formatted currency string or numeric value
+    if (filters.amount) {
+      const amountStr = filters.amount.toLowerCase();
+      const formattedAmount = formatCurrency(r.amount).toLowerCase();
+      const numericAmount = r.amount.toString();
+      const numericSearch = amountStr.replace(/[^0-9.]/g, '');
+      
+      if (!formattedAmount.includes(amountStr) && 
+          !numericAmount.includes(numericSearch)) {
+        return false;
+      }
+    }
     
     // Payee filter
     if (filters.payeeIds.length > 0 && !filters.payeeIds.includes(r.payee_id)) return false;
@@ -520,7 +510,7 @@ export const ReceiptsManagement: React.FC = () => {
   // Pagination
   const pagination = usePagination({
     totalItems: filteredReceipts.length,
-    pageSize: 25,
+    pageSize: pageSize,
     initialPage: 1,
   });
 
@@ -654,12 +644,25 @@ export const ReceiptsManagement: React.FC = () => {
       status: [],
       payeeIds: [],
       projectIds: [],
-      amountRange: {
-        min: null,
-        max: null,
-      },
+      amount: null,
     });
   };
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    exportToCSV: () => {
+      exportReceiptsToCSV(filteredReceipts);
+    },
+    getColumnState: () => ({
+      visibleColumns,
+      columnOrder,
+      setVisibleColumns,
+      setColumnOrder,
+    }),
+    refresh: () => {
+      loadReceipts();
+    },
+  }), [filteredReceipts, visibleColumns, columnOrder]);
 
   if (loading) {
     return <BrandedLoader message="Loading receipts..." />;
@@ -667,33 +670,6 @@ export const ReceiptsManagement: React.FC = () => {
 
   return (
     <div className="space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-base font-semibold">Receipt Management</h3>
-          <p className="text-xs text-muted-foreground">
-            View and manage all receipts from time entries and standalone uploads
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <ColumnSelector
-            columns={receiptColumnDefinitions}
-            visibleColumns={visibleColumns}
-            onVisibilityChange={setVisibleColumns}
-            columnOrder={columnOrder}
-            onColumnOrderChange={setColumnOrder}
-          />
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => exportReceiptsToCSV(filteredReceipts)}
-            disabled={filteredReceipts.length === 0}
-          >
-            <Download className="h-3 w-3 mr-1" />
-            Export CSV
-          </Button>
-        </div>
-      </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -796,8 +772,9 @@ export const ReceiptsManagement: React.FC = () => {
         <div className={isMobile ? "min-w-[900px]" : ""}>
           <Card>
             <CardContent className="p-0">
-              <Table className="text-xs">
-                <TableHeader>
+              <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+                <Table className="text-xs">
+                  <TableHeader className="sticky top-0 bg-muted z-20 border-b">
                   <TableRow className="h-8">
                     <TableHead className="w-10 p-2 text-xs">
                       <Checkbox
@@ -817,6 +794,7 @@ export const ReceiptsManagement: React.FC = () => {
                     amount: 'w-24',
                     status: 'w-24',
                     submitted_at: 'w-36',
+                    submitted_by: 'w-32',
                     description: 'max-w-xs',
                     actions: 'w-20'
                   };
@@ -829,12 +807,13 @@ export const ReceiptsManagement: React.FC = () => {
                   const labels: Record<string, string> = {
                     preview: 'Preview',
                     type: 'Type',
-                    payee: 'Payee/Worker',
+                    payee: 'Vendor',
                     project: 'Project',
                     date: 'Date',
                     amount: 'Amount',
                     status: 'Status',
                     submitted_at: 'Submitted At',
+                    submitted_by: 'Submitted By',
                     description: 'Description',
                     actions: 'Actions'
                   };
@@ -895,10 +874,10 @@ export const ReceiptsManagement: React.FC = () => {
                           return (
                             <TableCell key={colKey} className="p-1.5">
                               <Badge 
-                                variant={receipt.type === 'time_entry' ? 'default' : 'secondary'}
+                                variant="secondary"
                                 className="text-[10px] h-4 px-1.5"
                               >
-                                {receipt.type === 'time_entry' ? 'Time Entry' : 'Standalone'}
+                                Standalone
                               </Badge>
                             </TableCell>
                           );
@@ -952,13 +931,18 @@ export const ReceiptsManagement: React.FC = () => {
                             </TableCell>
                           );
                         
+                        case 'submitted_by':
+                          return (
+                            <TableCell key={colKey} className="p-1.5 text-xs">
+                              {receipt.submitted_by_name || '-'}
+                            </TableCell>
+                          );
+                        
                         case 'description':
                           return (
                             <TableCell key={colKey} className="p-1.5 text-xs text-muted-foreground">
                               <div className="truncate max-w-[300px]">
-                                {receipt.type === 'time_entry' && receipt.hours !== undefined
-                                  ? `${receipt.hours.toFixed(2)} hrs`
-                                  : receipt.description || '-'}
+                                {receipt.description || '-'}
                               </div>
                             </TableCell>
                           );
@@ -1040,25 +1024,41 @@ export const ReceiptsManagement: React.FC = () => {
                 ))
               )}
             </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-        </div>
-      </div>
+                </Table>
+              </div>
 
-      {/* Pagination */}
-      {filteredReceipts.length > 0 && (
-        <div className="flex items-center justify-between px-2 py-2">
-          <div className="text-xs text-muted-foreground">
-            Showing {pagination.startIndex + 1} to {Math.min(pagination.endIndex, filteredReceipts.length)} of {filteredReceipts.length} receipts
+              {/* Pagination */}
+              {filteredReceipts.length > 0 && (
+                <div className="p-3 border-t flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Rows per page:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                pagination.goToPage(1);
+              }}
+              className="border rounded px-2 py-1 text-sm"
+            >
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+            </select>
           </div>
-          <CompletePagination
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            onPageChange={pagination.goToPage}
-          />
+          {filteredReceipts.length > pageSize && (
+            <CompletePagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={pagination.goToPage}
+            />
+          )}
         </div>
       )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Preview Modal */}
       <ReceiptPreviewModal
@@ -1121,4 +1121,6 @@ export const ReceiptsManagement: React.FC = () => {
       </AlertDialog>
     </div>
   );
-};
+});
+
+ReceiptsManagement.displayName = 'ReceiptsManagement';

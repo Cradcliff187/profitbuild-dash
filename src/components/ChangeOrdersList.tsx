@@ -494,7 +494,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                               </DropdownMenuItem>
                             )}
                             {changeOrder.status === 'approved' && (
-                              <DropdownMenuItem onClick={() => navigate('/expenses?tab=matching')}>
+                              <DropdownMenuItem onClick={() => navigate('/expenses')}>
                                 <LinkIcon className="h-4 w-4 mr-2" />
                                 Match Expenses
                               </DropdownMenuItem>

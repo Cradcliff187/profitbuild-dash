@@ -378,7 +378,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
                 <p className="text-[11px] leading-tight text-blue-800 dark:text-blue-200">
                   1. Add line items and assign vendors/workers<br />
                   2. Approve the change order<br />
-                  3. Use "Match Expenses" to link actual costs to these line items
+                  3. Use "Match to Line Items" in the expense actions menu to link actual costs to these line items
                 </p>
               </div>
               <ChangeOrderLineItemTable
