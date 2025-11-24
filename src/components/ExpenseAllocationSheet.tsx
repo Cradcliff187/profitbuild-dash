@@ -505,18 +505,18 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
                     if (expense) {
                       const expenseCategory = expense.category;
   const categoryMap: Record<ExpenseCategory, LineItemCategory[]> = {
-    [ExpenseCategory.LABOR]: ['LABOR'],
-    [ExpenseCategory.SUBCONTRACTOR]: ['SUBCONTRACTOR'],
-    [ExpenseCategory.MATERIALS]: ['MATERIALS'],
-    [ExpenseCategory.EQUIPMENT]: ['EQUIPMENT'],
-    [ExpenseCategory.PERMITS]: ['PERMITS'],
-    [ExpenseCategory.MANAGEMENT]: ['MANAGEMENT'],
-    [ExpenseCategory.TOOLS]: ['EQUIPMENT'],
-    [ExpenseCategory.SOFTWARE]: ['MANAGEMENT'],
-    [ExpenseCategory.VEHICLE_MAINTENANCE]: ['EQUIPMENT'],
-    [ExpenseCategory.GAS]: ['EQUIPMENT'],
-    [ExpenseCategory.MEALS]: ['MANAGEMENT'],
-    [ExpenseCategory.OTHER]: ['OTHER']
+    [ExpenseCategory.LABOR]: [LineItemCategory.LABOR],
+    [ExpenseCategory.SUBCONTRACTOR]: [LineItemCategory.SUBCONTRACTOR],
+    [ExpenseCategory.MATERIALS]: [LineItemCategory.MATERIALS],
+    [ExpenseCategory.EQUIPMENT]: [LineItemCategory.EQUIPMENT],
+    [ExpenseCategory.PERMITS]: [LineItemCategory.PERMITS],
+    [ExpenseCategory.MANAGEMENT]: [LineItemCategory.MANAGEMENT],
+    [ExpenseCategory.TOOLS]: [LineItemCategory.EQUIPMENT],
+    [ExpenseCategory.SOFTWARE]: [LineItemCategory.MANAGEMENT],
+    [ExpenseCategory.VEHICLE_MAINTENANCE]: [LineItemCategory.EQUIPMENT],
+    [ExpenseCategory.GAS]: [LineItemCategory.EQUIPMENT],
+    [ExpenseCategory.MEALS]: [LineItemCategory.MANAGEMENT],
+    [ExpenseCategory.OTHER]: [LineItemCategory.OTHER]
   };
                       
                       const matchingCategories = categoryMap[expenseCategory] || [];
