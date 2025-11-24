@@ -8,6 +8,11 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableFooter } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { formatCurrency, cn } from "@/lib/utils";
+import { Database } from "@/integrations/supabase/types";
+import { isOverheadProject, ProjectCategory, isOperationalProject, isSystemProjectByCategory } from "@/types/project";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Search,
@@ -24,8 +29,6 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { ExpenseBulkActions } from "./ExpenseBulkActions";
 import { ReassignExpenseProjectDialog } from "./ReassignExpenseProjectDialog";
 import { ExpenseSplitDialog } from "./ExpenseSplitDialog";
@@ -33,7 +36,6 @@ import { ExpenseAllocationSheet } from "./ExpenseAllocationSheet";
 import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
 import { usePagination } from '@/hooks/usePagination';
 import { CompletePagination } from '@/components/ui/complete-pagination';
-import { cn } from "@/lib/utils";
 import { format } from 'date-fns';
 import {
   Expense,
@@ -44,13 +46,6 @@ import {
   TRANSACTION_TYPE_DISPLAY,
 } from "@/types/expense";
 import { PayeeType } from "@/types/payee";
-import { 
-  isOperationalProject,
-  isSystemProjectByCategory, 
-  isOverheadProject,
-  ProjectCategory 
-} from "@/types/project";
-import { formatCurrency } from "@/lib/utils";
 import { getExpenseSplits, calculateProjectExpenses } from "@/utils/expenseSplits";
 import {
   DropdownMenu,
@@ -476,11 +471,11 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
               return expense.project_number === "000-UNASSIGNED";
             } else if (status === "unmatched") {
               // Only show as unallocated if it's a real construction project
-              // Exclude: 000-UNASSIGNED, SYS-000, and operational projects (001-GAS, 002-GA, etc.)
+              // Exclude: 000-UNASSIGNED, SYS-000, and overhead projects (001-GAS, 002-GA, etc.)
               const isNonAllocatableProject = 
                 expense.project_number === "000-UNASSIGNED" ||
                 expense.project_number === "SYS-000" ||
-                (expense.project_number && isOperationalProject(expense.project_number));
+                isOverheadProject(expense.project_category as ProjectCategory);
               
               return !isNonAllocatableProject && expenseMatches[expense.id]?.matched === false;
             } else if (status === "matched") {
