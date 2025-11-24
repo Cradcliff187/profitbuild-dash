@@ -480,7 +480,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
               const isNonAllocatableProject = 
                 expense.project_number === "000-UNASSIGNED" ||
                 expense.project_number === "SYS-000" ||
-                isOverheadProject(expense.project_category);
+                isOverheadProject(expense.project_category as ProjectCategory);
               
               return !isNonAllocatableProject && expenseMatches[expense.id]?.matched === false;
             } else if (status === "matched") {
