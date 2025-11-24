@@ -35,6 +35,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ExpenseCategory, EXPENSE_CATEGORY_DISPLAY, type ExpenseSplit } from '@/types/expense';
 import { LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
+import { ProjectCategory } from '@/types/project';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { BrandedLoader } from '@/components/ui/branded-loader';
@@ -146,7 +147,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
               .select(`
                 *,
                 payees (payee_name),
-                projects (project_name, project_number)
+                projects (project_name, project_number, category)
               `)
               .eq('project_id', projectId)
           : supabase
@@ -154,7 +155,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                .select(`
                  *,
                  payees (payee_name),
-                 projects (project_name, project_number)
+                 projects (project_name, project_number, category)
                `),
         // Load expense splits with project information
         projectId
@@ -411,7 +412,8 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
               updated_at: new Date(s.updated_at)
             }));
 
-          return {
+          // Create temporary EnhancedExpense for function calls
+          const tempExpense: EnhancedExpense = {
             id: expense.id,
             amount: expense.amount,
             expense_date: new Date(expense.expense_date),
@@ -422,16 +424,26 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
             project_id: expense.project_id,
             project_name: expense.projects?.project_name,
             project_number: expense.projects?.project_number,
+            project_category: expense.projects?.category as ProjectCategory | undefined,
             match_status: matchStatus,
-            suggested_line_item_id: suggestLineItemAllocation(expense, allLineItems),
-            confidence_score: calculateMatchConfidence(expense, allLineItems),
-            is_split: expense.is_split || false,
+            is_split: expense.is_split || false
+          };
+
+          return {
+            ...tempExpense,
+            suggested_line_item_id: suggestLineItemAllocation(tempExpense, allLineItems),
+            confidence_score: calculateMatchConfidence(tempExpense, allLineItems),
             splits: expenseSplits
           };
         })
         .filter(expense => {
           // Only show expenses that CAN be correlated
-          const validation = canCorrelateExpense(expense);
+          const validation = canCorrelateExpense({
+            is_split: expense.is_split || false,
+            project_id: expense.project_id,
+            project_number: expense.project_number,
+            category: expense.project_category
+          });
           return validation.isValid;
         });
 
@@ -515,7 +527,14 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       // Validate expenses before allocation - prevent correlating split parents
       if (expenseIds.length > 0) {
         const expensesToValidate = expenses.filter(e => expenseIds.includes(e.id));
-        const { valid, invalid } = validateExpensesForCorrelation(expensesToValidate);
+        const { valid, invalid } = validateExpensesForCorrelation(
+          expensesToValidate.map(e => ({
+            is_split: e.is_split || false,
+            project_id: e.project_id,
+            project_number: e.project_number,
+            category: e.project_category
+          }))
+        );
         
         if (invalid.length > 0) {
           toast({
@@ -535,8 +554,14 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
           }
         }
         
-        // Update expenseIds to only include valid ones
-        expenseIds = valid.map(e => e.id);
+        // Update expenseIds to only include valid ones - match by mapping back to original expenses
+        const validSet = new Set(valid.map(v => `${v.project_id}-${v.project_number}-${v.is_split}-${v.category}`));
+        expenseIds = expensesToValidate
+          .filter(e => {
+            const key = `${e.project_id}-${e.project_number}-${e.is_split || false}-${e.project_category}`;
+            return validSet.has(key);
+          })
+          .map(e => e.id);
       }
       // Validate split allocations - splits can only be allocated to line items in the same project
       if (splitIds.length > 0) {
@@ -1012,7 +1037,12 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                       setExpandedExpenses(newExpanded);
                     } else {
                       // Validate before allowing selection
-                      const validation = canCorrelateExpense(expense);
+                      const validation = canCorrelateExpense({
+                        is_split: expense.is_split || false,
+                        project_id: expense.project_id,
+                        project_number: expense.project_number,
+                        category: expense.project_category
+                      });
                       if (!validation.isValid) {
                         toast({
                           title: "Cannot select",

@@ -1,5 +1,6 @@
-import { ExpenseCategory } from '@/types/expense';
+import { ExpenseCategory, ExpenseSplit } from '@/types/expense';
 import { LineItemCategory } from '@/types/estimate';
+import { ProjectCategory } from '@/types/project';
 import { fuzzyMatchPayee, type PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 
 export interface LineItemForMatching {
@@ -22,17 +23,19 @@ export interface EnhancedExpense {
   amount: number;
   expense_date: Date;
   description?: string;
-  category: ExpenseCategory;
+  category: ExpenseCategory; // Expense category (equipment, gas, etc.)
   payee_id?: string;
   payee_name?: string;
   project_id: string;
   project_name?: string;
   project_number?: string;
+  project_category?: ProjectCategory; // Project category (construction, overhead, system)
   match_status: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' | 'allocated_to_change_order';
   suggested_line_item_id?: string;
   suggested_quote_id?: string;
   confidence_score?: number;
   is_split?: boolean;
+  splits?: ExpenseSplit[]; // Add splits property
 }
 
 export function suggestLineItemAllocation(expense: EnhancedExpense, lineItems: LineItemForMatching[]): string | undefined {

@@ -12,9 +12,11 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { 
   suggestLineItemAllocation, 
   calculateMatchConfidence,
-  LineItemForMatching 
+  LineItemForMatching,
+  EnhancedExpense
 } from '@/utils/expenseAllocation';
 import { ExpenseCategory, EXPENSE_CATEGORY_DISPLAY } from '@/types/expense';
+import { ProjectCategory } from '@/types/project';
 import { LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { format } from 'date-fns';
 
@@ -56,21 +58,12 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
         .select(`
           *,
           payees(payee_name),
-          projects(project_name, project_number)
+          projects(project_name, project_number, category)
         `)
         .eq('id', expenseId)
         .single();
       
       if (expenseError) throw expenseError;
-      
-      const enhancedExpense = {
-        ...expenseData,
-        payee_name: expenseData.payees?.payee_name,
-        project_name: expenseData.projects?.project_name,
-        project_number: expenseData.projects?.project_number
-      };
-      
-      setExpense(enhancedExpense);
       
       // 2. Load line items for this project only
       const projectId = expenseData.project_id;
@@ -250,6 +243,34 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       // Check if this expense is already allocated
       const existingCorrelation = correlations?.find(c => c.expense_id === expenseId);
       
+      let matchStatus: 'unallocated' | 'allocated_to_estimate' | 'allocated_to_quote' | 'allocated_to_change_order' = 'unallocated';
+      if (existingCorrelation) {
+        if (existingCorrelation.estimate_line_item_id) {
+          matchStatus = 'allocated_to_estimate';
+        } else if (existingCorrelation.quote_id) {
+          matchStatus = 'allocated_to_quote';
+        } else if (existingCorrelation.change_order_line_item_id) {
+          matchStatus = 'allocated_to_change_order';
+        }
+      }
+      
+      // Create EnhancedExpense object
+      const enhancedExpense: EnhancedExpense = {
+        id: expenseData.id,
+        amount: expenseData.amount,
+        expense_date: new Date(expenseData.expense_date),
+        description: expenseData.description,
+        category: expenseData.category as ExpenseCategory,
+        payee_id: expenseData.payee_id,
+        payee_name: expenseData.payees?.payee_name,
+        project_id: expenseData.project_id,
+        project_name: expenseData.projects?.project_name,
+        project_number: expenseData.projects?.project_number,
+        project_category: expenseData.projects?.category as ProjectCategory | undefined,
+        match_status: matchStatus,
+        is_split: expenseData.is_split || false
+      };
+      
       if (existingCorrelation) {
         // Find the line item this expense is allocated to
         const allocatedLineItem = allLineItems.find(li => 
@@ -270,6 +291,7 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       }
       
       setLineItems(allLineItems);
+      setExpense(enhancedExpense);
       
       // 3. Calculate suggestions
       const suggested = suggestLineItemAllocation(enhancedExpense, allLineItems);
