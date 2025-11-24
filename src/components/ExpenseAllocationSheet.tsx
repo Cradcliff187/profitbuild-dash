@@ -504,20 +504,20 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
                     // If we have expense, prioritize matching category
                     if (expense) {
                       const expenseCategory = expense.category;
-                      const categoryMap: Record<ExpenseCategory, LineItemCategory[]> = {
-                        'LABOR': ['LABOR'],
-                        'SUBCONTRACTOR': ['SUBCONTRACTOR'],
-                        'MATERIALS': ['MATERIALS'],
-                        'EQUIPMENT': ['EQUIPMENT'],
-                        'PERMITS': ['PERMITS'],
-                        'MANAGEMENT': ['MANAGEMENT'],
-                        'TOOLS': ['EQUIPMENT'],
-                        'SOFTWARE': ['MANAGEMENT'],
-                        'VEHICLE_MAINTENANCE': ['EQUIPMENT'],
-                        'GAS': ['EQUIPMENT'],
-                        'MEALS': ['MANAGEMENT'],
-                        'OTHER': ['OTHER']
-                      };
+    const categoryMap: Record<ExpenseCategory, LineItemCategory[]> = {
+      [ExpenseCategory.LABOR]: [LineItemCategory.LABOR],
+      [ExpenseCategory.SUBCONTRACTOR]: [LineItemCategory.SUBCONTRACTOR],
+      [ExpenseCategory.MATERIALS]: [LineItemCategory.MATERIALS],
+      [ExpenseCategory.EQUIPMENT]: [LineItemCategory.EQUIPMENT],
+      [ExpenseCategory.PERMITS]: [LineItemCategory.PERMITS],
+      [ExpenseCategory.MANAGEMENT]: [LineItemCategory.MANAGEMENT],
+      [ExpenseCategory.TOOLS]: [LineItemCategory.EQUIPMENT],
+      [ExpenseCategory.SOFTWARE]: [LineItemCategory.MANAGEMENT],
+      [ExpenseCategory.VEHICLE_MAINTENANCE]: [LineItemCategory.EQUIPMENT],
+      [ExpenseCategory.GAS]: [LineItemCategory.EQUIPMENT],
+      [ExpenseCategory.MEALS]: [LineItemCategory.MANAGEMENT],
+      [ExpenseCategory.OTHER]: [LineItemCategory.OTHER]
+    };
                       
                       const matchingCategories = categoryMap[expenseCategory] || [];
                       const aMatches = matchingCategories.includes(a.category);
