@@ -476,11 +476,11 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
               return expense.project_number === "000-UNASSIGNED";
             } else if (status === "unmatched") {
               // Only show as unallocated if it's a real construction project
-              // Exclude: 000-UNASSIGNED, SYS-000, and operational projects (001-GAS, 002-GA, etc.)
+              // Exclude: 000-UNASSIGNED, SYS-000, and overhead projects (uses category field)
               const isNonAllocatableProject = 
                 expense.project_number === "000-UNASSIGNED" ||
                 expense.project_number === "SYS-000" ||
-                (expense.project_number && isOperationalProject(expense.project_number));
+                isOverheadProject(expense.project_category);
               
               return !isNonAllocatableProject && expenseMatches[expense.id]?.matched === false;
             } else if (status === "matched") {

@@ -504,20 +504,20 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
                     // If we have expense, prioritize matching category
                     if (expense) {
                       const expenseCategory = expense.category;
-                      const categoryMap: Record<ExpenseCategory, LineItemCategory[]> = {
-                        'LABOR': ['LABOR'],
-                        'SUBCONTRACTOR': ['SUBCONTRACTOR'],
-                        'MATERIALS': ['MATERIALS'],
-                        'EQUIPMENT': ['EQUIPMENT'],
-                        'PERMITS': ['PERMITS'],
-                        'MANAGEMENT': ['MANAGEMENT'],
-                        'TOOLS': ['EQUIPMENT'],
-                        'SOFTWARE': ['MANAGEMENT'],
-                        'VEHICLE_MAINTENANCE': ['EQUIPMENT'],
-                        'GAS': ['EQUIPMENT'],
-                        'MEALS': ['MANAGEMENT'],
-                        'OTHER': ['OTHER']
-                      };
+  const categoryMap: Record<ExpenseCategory, LineItemCategory[]> = {
+    [ExpenseCategory.LABOR]: ['LABOR'],
+    [ExpenseCategory.SUBCONTRACTOR]: ['SUBCONTRACTOR'],
+    [ExpenseCategory.MATERIALS]: ['MATERIALS'],
+    [ExpenseCategory.EQUIPMENT]: ['EQUIPMENT'],
+    [ExpenseCategory.PERMITS]: ['PERMITS'],
+    [ExpenseCategory.MANAGEMENT]: ['MANAGEMENT'],
+    [ExpenseCategory.TOOLS]: ['EQUIPMENT'],
+    [ExpenseCategory.SOFTWARE]: ['MANAGEMENT'],
+    [ExpenseCategory.VEHICLE_MAINTENANCE]: ['EQUIPMENT'],
+    [ExpenseCategory.GAS]: ['EQUIPMENT'],
+    [ExpenseCategory.MEALS]: ['MANAGEMENT'],
+    [ExpenseCategory.OTHER]: ['OTHER']
+  };
                       
                       const matchingCategories = categoryMap[expenseCategory] || [];
                       const aMatches = matchingCategories.includes(a.category);
