@@ -73,6 +73,30 @@ const Quotes = () => {
     }
   }, [searchParams]);
 
+  // Real-time updates for quotes
+  useEffect(() => {
+    const channel = supabase
+      .channel('quotes-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'quotes'
+        },
+        (payload) => {
+          console.log('Quote change detected:', payload);
+          // Refresh data when any quote changes
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Auto-open quote creation form when navigating from project details
   useEffect(() => {
     const projectIdParam = searchParams.get('projectId');
@@ -745,6 +769,7 @@ const Quotes = () => {
             onCompare={handleCompareQuote}
             onExpire={handleExpireQuotes}
             onCreateNew={() => setView('create')}
+            onRefresh={fetchData}
           />
         </>
       )}

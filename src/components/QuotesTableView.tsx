@@ -43,6 +43,7 @@ interface QuotesTableViewProps {
   onDelete: (quoteId: string) => void;
   onCompare: (quote: Quote) => void;
   onCreateNew: () => void;
+  onRefresh?: () => void;
 }
 
 // Column definitions for the column selector
@@ -69,7 +70,8 @@ export const QuotesTableView = ({
   onView, 
   onDelete, 
   onCompare, 
-  onCreateNew 
+  onCreateNew,
+  onRefresh 
 }: QuotesTableViewProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState<string | null>(null);
@@ -770,12 +772,8 @@ export const QuotesTableView = ({
           quote={quoteToDuplicate}
           estimates={estimates}
           onSuccess={(newQuoteId) => {
-            // Navigate to edit the new quote
-            const newQuote = localQuotes.find(q => q.id === newQuoteId);
-            if (newQuote) {
-              onEdit(newQuote);
-            }
-            // Refresh data would happen via parent component
+            setDuplicateModalOpen(false);
+            onRefresh?.(); // Trigger parent refresh
           }}
         />
       )}
