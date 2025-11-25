@@ -673,11 +673,11 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
               <CardTitle>
                 {isViewMode ? 'Quote Details' : (initialQuote ? 'Edit Quote' : 'New Quote')}
               </CardTitle>
-              {selectedEstimate && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {selectedEstimate.project_name} • {selectedEstimate.client_name}
-                </p>
-              )}
+        {selectedEstimate && (
+          <p className="text-sm text-muted-foreground mt-1">
+            {selectedEstimate.project_name} • {selectedEstimate.client_name} • <span className="font-medium text-foreground">{selectedEstimate.estimate_number}</span>
+          </p>
+        )}
             </div>
             {initialQuote && (
               <Badge variant="outline">{initialQuote.quoteNumber}</Badge>
