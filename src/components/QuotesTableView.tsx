@@ -81,7 +81,7 @@ export const QuotesTableView = ({
   // Column visibility and order state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
     const stored = localStorage.getItem('quotes-visible-columns');
-    return stored ? JSON.parse(stored) : [
+    const defaultColumns = [
       'quote_number',
       'estimate',
       'payee', 
@@ -92,11 +92,33 @@ export const QuotesTableView = ({
       'cost_variance_amount',
       'actions'
     ];
+    
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Ensure 'estimate' column is included if missing from old preferences
+      if (!parsed.includes('estimate')) {
+        const insertIndex = parsed.indexOf('quote_number') + 1;
+        parsed.splice(insertIndex, 0, 'estimate');
+      }
+      return parsed;
+    }
+    return defaultColumns;
   });
 
   const [columnOrder, setColumnOrder] = useState<string[]>(() => {
     const stored = localStorage.getItem('quotes-column-order');
-    return stored ? JSON.parse(stored) : columnDefinitions.map(c => c.key);
+    const defaultOrder = columnDefinitions.map(c => c.key);
+    
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Ensure 'estimate' column is included if missing from old preferences
+      if (!parsed.includes('estimate')) {
+        const insertIndex = parsed.indexOf('quote_number') + 1;
+        parsed.splice(insertIndex, 0, 'estimate');
+      }
+      return parsed;
+    }
+    return defaultOrder;
   });
 
   // Persist column preferences to localStorage
