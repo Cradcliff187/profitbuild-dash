@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  Target
+  Target,
+  RefreshCcw
 } from "lucide-react";
 import { ProjectFinancialSummary } from "@/types/revenue";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,7 @@ export const ProjectFinancialReconciliation: React.FC<ProjectFinancialReconcilia
   const [financialData, setFinancialData] = useState<ProjectFinancialSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<ProjectFinancialSummary | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -65,6 +67,35 @@ export const ProjectFinancialReconciliation: React.FC<ProjectFinancialReconcilia
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefreshFinancials = async () => {
+    if (!projectId) return;
+    
+    setIsRefreshing(true);
+    try {
+      const { error } = await supabase.rpc('calculate_project_margins', { 
+        project_id_param: projectId 
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Financials Updated",
+        description: "Project financial calculations have been refreshed.",
+      });
+      
+      await fetchFinancialData();
+    } catch (error) {
+      console.error('Error refreshing financials:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh financials. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -321,9 +352,22 @@ export const ProjectFinancialReconciliation: React.FC<ProjectFinancialReconcilia
               <h2 className="text-2xl font-bold">{selectedProject.project_name}</h2>
               <p className="text-muted-foreground">{selectedProject.project_number}</p>
             </div>
-            <Button variant="outline" onClick={() => setSelectedProject(null)}>
-              Back to All Projects
-            </Button>
+            <div className="flex gap-2">
+              {projectId && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleRefreshFinancials}
+                  disabled={isRefreshing}
+                >
+                  <RefreshCcw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  Refresh Financials
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => setSelectedProject(null)}>
+                Back to All Projects
+              </Button>
+            </div>
           </div>
 
           {renderOverviewCards(selectedProject)}
