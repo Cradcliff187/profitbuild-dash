@@ -1046,11 +1046,18 @@ export const ProjectsTableView = ({
       label: 'Projected Margin %',
       align: 'right' as const,
       sortable: true,
-      getSortValue: (project) => project.margin_percentage || 0,
+      getSortValue: (project) => {
+        const contract = project.contracted_amount || 0;
+        return contract > 0 ? ((project.projected_margin || 0) / contract) * 100 : 0;
+      },
       render: (project: ProjectWithFinancials) => {
-        const projectedMarginPct = project.margin_percentage || 0;
+        // Calculate projected margin percentage as: Projected Margin / Contract * 100
+        const contract = project.contracted_amount || 0;
+        const projectedMarginPct = contract > 0 
+          ? ((project.projected_margin || 0) / contract) * 100 
+          : 0;
         
-        const tooltipContent = `Projected Margin Percentage: ${projectedMarginPct.toFixed(1)}%. Server-calculated value from database. Calculated as Projected Margin ÷ Contract Value × 100.`;
+        const tooltipContent = `Projected Margin Percentage: ${projectedMarginPct.toFixed(1)}%. Calculated as Projected Margin ($${formatCurrency(project.projected_margin || 0)}) ÷ Contract Value ($${formatCurrency(contract)}) × 100.`;
         
         return (
           <Tooltip>
