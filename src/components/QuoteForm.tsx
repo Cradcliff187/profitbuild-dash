@@ -310,7 +310,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       }
 
       try {
-        const { data: quotes, error } = await supabase
+        let query = supabase
           .from('quotes')
           .select(`
             id,
@@ -321,8 +321,14 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
               total_cost
             )
           `)
-          .eq('estimate_id', selectedEstimate.id)
-          .neq('id', initialQuote?.id || '');
+          .eq('estimate_id', selectedEstimate.id);
+
+        // Only exclude current quote if editing an existing quote
+        if (initialQuote?.id) {
+          query = query.neq('id', initialQuote.id);
+        }
+
+        const { data: quotes, error } = await query;
 
         if (error) {
           console.error('Error fetching existing quotes:', error);
