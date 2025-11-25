@@ -878,9 +878,15 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                   <Button 
                     variant="outline" 
                     onClick={() => {
-                      setSelectedEstimate(undefined);
-                      setShowLineItemSelection(false);
-                      setSelectedLineItemIds([]);
+                      // If estimate was pre-selected (came from another page), navigate back
+                      if (preSelectedEstimateId) {
+                        onCancel();
+                      } else {
+                        // Otherwise, reset form to allow selecting a different estimate
+                        setSelectedEstimate(undefined);
+                        setShowLineItemSelection(false);
+                        setSelectedLineItemIds([]);
+                      }
                     }}
                   >
                     Back

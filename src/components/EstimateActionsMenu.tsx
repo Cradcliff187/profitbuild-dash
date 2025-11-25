@@ -26,6 +26,7 @@ type EstimateWithQuotes = {
   id: string;
   estimate_number: string;
   status: EstimateStatus;
+  project_id: string;
   lineItems?: any[];
   total_amount: number;
 };
@@ -143,8 +144,10 @@ export const EstimateActionsMenu = ({
   };
 
   const createQuote = () => {
-    // Navigate to quotes page with estimate pre-selected
-    window.location.href = `/quotes?estimateId=${estimate.id}`;
+    // Navigate to quotes page with estimate and project pre-selected
+    // Include returnUrl to go back to estimates page
+    const returnUrl = encodeURIComponent('/estimates');
+    window.location.href = `/quotes?projectId=${estimate.project_id}&estimateId=${estimate.id}&returnUrl=${returnUrl}`;
   };
 
   const hasLineItems = estimate.lineItems && estimate.lineItems.length > 0;

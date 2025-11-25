@@ -529,7 +529,7 @@ export const ProjectDetailView = () => {
                       <ChevronsUpDown className="h-3 w-3 opacity-60" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[320px] max-h-[320px] overflow-auto p-0 border border-border rounded-lg shadow-md" align="start">
+                  <PopoverContent className="w-[320px] overflow-hidden p-0 border border-border rounded-lg shadow-md" align="start">
                     <Command className="bg-background">
                       <div className="px-2 py-2">
                         <CommandInput placeholder="Search projects..." className="h-9 text-sm rounded-md border border-border focus-visible:border-foreground/40 focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.15)]" />

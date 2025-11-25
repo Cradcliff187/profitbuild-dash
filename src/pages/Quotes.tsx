@@ -746,7 +746,7 @@ const Quotes = () => {
                 <BreadcrumbList>
                   <BreadcrumbItem>
                     <BreadcrumbLink onClick={() => navigate(returnUrl)} className="cursor-pointer">
-                      Project Estimates
+                      {returnUrl.includes('/projects/') ? 'Project Estimates' : 'Estimates'}
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator />

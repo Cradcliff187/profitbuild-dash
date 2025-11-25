@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
 import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
+import { extractProjectCounter } from "@/utils/numberGeneration";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
 import { QuoteStatusSelector } from "./QuoteStatusSelector";
 // Removed BudgetComparisonBadge import
@@ -275,14 +276,11 @@ export const QuotesTableView = ({
     quotesByProject[projectId].sort((a, b) => new Date(b.dateReceived).getTime() - new Date(a.dateReceived).getTime());
   });
 
-  // Convert to grouped format for the table and sort by project creation date
+  // Convert to grouped format for the table and sort by project number
   const groupedData: FinancialTableGroup<QuoteWithEstimate>[] = Object.entries(quotesByProject)
     .map(([projectId, projectQuotes]) => {
-      // Use earliest quote's createdAt as proxy for project creation date
-      const projectCreatedAt = projectQuotes.reduce((earliest, quote) => {
-        const quoteDate = new Date(quote.createdAt).getTime();
-        return quoteDate < earliest ? quoteDate : earliest;
-      }, new Date(projectQuotes[0].createdAt).getTime());
+      // Extract project number counter for sorting (e.g., "225-047" -> 47)
+      const projectNumberCounter = extractProjectCounter(projectQuotes[0].project_number);
 
       return {
         groupKey: projectId,
@@ -290,10 +288,10 @@ export const QuotesTableView = ({
         items: projectQuotes,
         isCollapsible: true,
         defaultExpanded: false,
-        sortKey: projectCreatedAt,
+        sortKey: projectNumberCounter,
       };
     })
-    // Sort groups by project creation date (newest first)
+    // Sort groups by project number (descending - highest number first)
     .sort((a, b) => (b.sortKey as number) - (a.sortKey as number));
 
   const handleDeleteClick = (quoteId: string) => {
