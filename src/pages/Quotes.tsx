@@ -417,6 +417,13 @@ const Quotes = () => {
         }
       });
 
+      // Sort estimates by project number (lowest first)
+      transformedEstimates.sort((a, b) => {
+        const numA = a.project_number || '';
+        const numB = b.project_number || '';
+        return numA.localeCompare(numB, undefined, { numeric: true });
+      });
+
       setQuotes(transformedQuotes);
       setEstimates(transformedEstimates);
     } catch (error) {
