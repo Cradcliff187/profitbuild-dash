@@ -253,9 +253,9 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
         side={isMobile ? "bottom" : "right"}
       >
         <SheetHeader className="space-y-1 px-6 pt-4 pb-3 border-b shrink-0">
-          <SheetTitle className={isMobile ? "text-lg" : ""}>Add Receipt</SheetTitle>
+          <SheetTitle className={isMobile ? "text-xl font-semibold" : "text-lg font-semibold"}>Add Receipt</SheetTitle>
           {!isMobile && (
-            <SheetDescription>
+            <SheetDescription className="text-sm">
               Capture a receipt and assign it to a vendor and project
             </SheetDescription>
           )}
@@ -319,7 +319,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
             {/* Amount (Required) */}
             <div className="space-y-2">
-              <Label htmlFor="amount" className={isMobile ? "text-sm font-medium" : "text-sm"}>
+              <Label htmlFor="amount" className={cn("text-sm font-medium", isMobile && "text-base")}>
                 Amount *
               </Label>
               <Input
@@ -331,7 +331,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
                 required
-                className={cn(isMobile && "h-12")}
+                className={cn(isMobile && "h-12 text-base")}
                 style={{ fontSize: isMobile ? '16px' : undefined }}
               />
             </div>
@@ -357,11 +357,12 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
               defaultPayeeType={PayeeType.MATERIAL_SUPPLIER}
               defaultIsInternal={false}
               compact={!isMobile}
+              isMobile={isMobile}
             />
 
             {/* Project Assignment (Optional) */}
             <div className="space-y-2">
-              <Label htmlFor="project" className={cn("text-sm text-muted-foreground", isMobile && "font-medium")}>
+              <Label htmlFor="project" className={cn("text-sm font-medium text-muted-foreground", isMobile && "text-base")}>
                 Assign to Project (Optional)
               </Label>
               <Select
@@ -371,11 +372,16 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                   setProjectSearchQuery(''); // Clear search on selection
                 }}
               >
-                <SelectTrigger className={cn(isMobile && "h-12")}>
-                  <SelectValue placeholder="Select a project">
+                <SelectTrigger className={cn(isMobile && "h-12 text-base")}>
+                  <SelectValue placeholder="Select a project" className={cn(isMobile && "text-base")}>
                     {selectedProjectId ? (
-                      <span className="truncate">
-                        {projects.find(p => p.id === selectedProjectId)?.project_number} - {projects.find(p => p.id === selectedProjectId)?.project_name}
+                      <span className={cn("truncate", isMobile && "text-base")}>
+                        {(() => {
+                          const project = projects.find(p => p.id === selectedProjectId);
+                          return project?.category === 'overhead' 
+                            ? project.project_name 
+                            : `${project?.project_number} - ${project?.project_name}`;
+                        })()}
                       </span>
                     ) : (
                       "Unassigned"
@@ -384,13 +390,14 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   {/* Search Input INSIDE Dropdown */}
-                  <div className="flex items-center border-b border-border px-3 pb-2 pt-2 focus-within:border-2 focus-within:border-foreground/30 focus-within:ring-2 focus-within:ring-foreground/20 focus-within:ring-offset-0 transition-colors">
+                  <div className="flex items-center border-b border-border px-3 pb-2 pt-2 focus-within:border-b-2 focus-within:border-foreground/40 transition-colors">
                     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                     <Input
                       placeholder="Search projects..."
                       value={projectSearchQuery}
                       onChange={(e) => setProjectSearchQuery(e.target.value)}
-                      className="h-8 border-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="h-8 border-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
+                      style={{ fontSize: '16px' }}
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     />
@@ -403,7 +410,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                   {filteredProjects.length > 0 ? (
                     filteredProjects.map((project) => (
                       <SelectItem key={project.id} value={project.id}>
-                        {project.project_number === '001-GAS' 
+                        {project.category === 'overhead' 
                           ? project.project_name 
                           : `${project.project_number} - ${project.project_name}`
                         }
@@ -420,7 +427,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
             {/* Description (Optional) */}
             <div className="space-y-2">
-              <Label htmlFor="description" className={cn("text-sm text-muted-foreground", isMobile && "font-medium")}>
+              <Label htmlFor="description" className={cn("text-sm font-medium text-muted-foreground", isMobile && "text-base")}>
                 Notes (Optional)
               </Label>
               <Textarea
@@ -429,7 +436,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add notes about this receipt..."
                 rows={isMobile ? 4 : 3}
-                className={cn(isMobile && "text-base")}
+                className={cn("text-sm", isMobile && "text-base")}
                 style={{ fontSize: isMobile ? '16px' : undefined }}
               />
             </div>

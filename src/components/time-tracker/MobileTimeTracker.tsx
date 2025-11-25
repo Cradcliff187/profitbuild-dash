@@ -357,7 +357,7 @@ export const MobileTimeTracker: React.FC = () => {
       .select('id, project_number, project_name, client_name, address, category')
       .in('status', ['approved', 'in_progress'])
       .eq('category', 'construction')
-        .order('project_number', { ascending: false })
+        .order('project_number', { ascending: true })
         .limit(20);
 
       if (projectsError) throw projectsError;

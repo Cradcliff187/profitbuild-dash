@@ -173,24 +173,27 @@ All colors MUST be HSL.
 
 /* Enhanced focus indicators for accessibility */
 *:focus-visible {
+  outline: none;
+}
+
+/* Explicit focus for interactive elements */
+button:focus-visible,
+a:focus-visible {
   outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* Remove default browser focus outline */
-*:focus:not(:focus-visible) {
-  outline: none;
-}
-
-/* Ensure keyboard navigation is always visible */
-button:focus-visible,
-a:focus-visible,
+/* Input elements use shadow-based focus (handled in component classes) */
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid hsl(var(--primary));
-  outline-offset: 2px;
+  outline: none;
+}
+
+/* Remove default browser focus outline */
+*:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* =================================

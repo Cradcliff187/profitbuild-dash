@@ -516,7 +516,7 @@ export const ProjectDetailView = () => {
                       variant="outline"
                       size="sm"
                       className={cn(
-                        "h-10 gap-2 truncate border-border focus-visible:border-2 focus-visible:border-foreground/40 focus-visible:ring-2 focus-visible:ring-foreground/20 focus-visible:ring-offset-0", 
+                        "h-10 gap-2 truncate border-border focus-visible:border-foreground/40 focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.15)]", 
                         isMobile ? "w-full justify-between" : "justify-between max-w-[320px]"
                       )}
                     >
@@ -532,7 +532,7 @@ export const ProjectDetailView = () => {
                   <PopoverContent className="w-[320px] max-h-[320px] overflow-auto p-0 border border-border rounded-lg shadow-md" align="start">
                     <Command className="bg-background">
                       <div className="px-2 py-2">
-                        <CommandInput placeholder="Search projects..." className="h-9 text-sm rounded-md border border-border focus-visible:border-2 focus-visible:border-foreground/40 focus-visible:ring-2 focus-visible:ring-foreground/20 focus-visible:ring-offset-0" />
+                        <CommandInput placeholder="Search projects..." className="h-9 text-sm rounded-md border border-border focus-visible:border-foreground/40 focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.15)]" />
                       </div>
                       <CommandEmpty>No projects found.</CommandEmpty>
                       <CommandList>

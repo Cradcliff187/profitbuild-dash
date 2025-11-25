@@ -36,6 +36,7 @@ interface PayeeSelectorProps {
   onBlur?: () => void;
   sortByUsage?: boolean;
   usageSource?: 'receipts' | 'expenses' | 'both';
+  isMobile?: boolean;
 }
 
 export function PayeeSelector({
@@ -56,6 +57,7 @@ export function PayeeSelector({
   onBlur,
   sortByUsage = false,
   usageSource = 'receipts',
+  isMobile = false,
 }: PayeeSelectorProps) {
   const [showPayeeForm, setShowPayeeForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -173,7 +175,7 @@ export function PayeeSelector({
   return (
     <div className={cn(showLabel && "space-y-2")}>
       {label && (showLabel !== false) && (
-        <Label className={cn(compact ? 'text-xs' : 'text-sm', required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
+        <Label className={cn("text-sm font-medium", isMobile && "text-base", required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
           {label}
         </Label>
       )}
@@ -187,7 +189,7 @@ export function PayeeSelector({
           }}
         >
           <SelectTrigger 
-            className={cn("flex-1", compact ? 'h-8 text-xs' : 'h-9 text-sm', error && "border-destructive")}
+            className={cn("flex-1", compact ? 'h-8 text-xs' : isMobile ? 'h-12 text-base' : 'h-9 text-sm', error && "border-destructive")}
             onBlur={onBlur}
           >
             <SelectValue placeholder={placeholder}>
@@ -203,7 +205,7 @@ export function PayeeSelector({
           </SelectTrigger>
           <SelectContent>
             {/* Search Input INSIDE Dropdown */}
-            <div className="flex items-center border-b border-border px-3 pb-2 pt-2 focus-within:border-2 focus-within:border-foreground/30 focus-within:ring-2 focus-within:ring-foreground/20 focus-within:ring-offset-0 transition-colors">
+            <div className="flex items-center border-b border-border px-3 pb-2 pt-2 focus-within:border-b-2 focus-within:border-foreground/40 transition-colors">
               <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
               <Input
                 placeholder="Search payees..."

@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Camera } from 'lucide-react';
+import { Camera, Check, User, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { NativeSelect } from '@/components/ui/native-select';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -68,6 +67,8 @@ export const TimeEntryForm = ({
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [signedReceiptUrl, setSignedReceiptUrl] = useState<string>('');
+  const [showWorkerSelect, setShowWorkerSelect] = useState(false);
+  const [showProjectSelect, setShowProjectSelect] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -130,7 +131,7 @@ export const TimeEntryForm = ({
         .select('id, project_name, project_number, category')
         .in('status', ['approved', 'in_progress'])
         .eq('category', 'construction')
-        .order('project_number', { ascending: false }),
+        .order('project_number', { ascending: true }),
       supabase.auth.getUser(),
     ]);
     
@@ -208,42 +209,125 @@ export const TimeEntryForm = ({
 
       <div className="space-y-2">
         <Label htmlFor="worker" className={isMobile ? "text-sm font-medium" : "text-sm"}>
+          <User className="w-4 h-4 inline mr-1" />
           Team Member *
         </Label>
-        <NativeSelect
-          id="worker"
-          value={workerId || ""}
-          onValueChange={setWorkerId}
-          disabled={disabled}
-          className={cn(isMobile ? "h-12 text-base" : "h-10")}
-        >
-          <option value="" disabled>Select team member</option>
-          {workers.map(w => (
-            <option key={w.id} value={w.id}>
-              {showRates ? `${w.name} - $${w.rate}/hr` : w.name}
-            </option>
-          ))}
-        </NativeSelect>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setShowProjectSelect(false);
+              setShowWorkerSelect(!showWorkerSelect);
+            }}
+            disabled={disabled}
+            className={cn(
+              "w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]",
+              isMobile ? "text-base" : "text-sm"
+            )}
+          >
+            {workerId ? (
+              <div className="font-semibold text-foreground">
+                {showRates 
+                  ? `${workers.find(w => w.id === workerId)?.name || ''} - $${workers.find(w => w.id === workerId)?.rate || 0}/hr`
+                  : workers.find(w => w.id === workerId)?.name || 'Select team member...'
+                }
+              </div>
+            ) : (
+              <div className="text-muted-foreground">Select team member...</div>
+            )}
+          </button>
+          
+          {showWorkerSelect && !disabled && (
+            <div className="mt-2 border rounded-lg bg-card shadow-md relative z-50 max-h-64 overflow-y-auto">
+              {workers.map(worker => (
+                <button
+                  key={worker.id}
+                  type="button"
+                  onClick={() => {
+                    setWorkerId(worker.id);
+                    setShowWorkerSelect(false);
+                  }}
+                  className={cn(
+                    "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
+                    workerId === worker.id
+                      ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
+                      : "hover:bg-muted"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold">
+                      {showRates ? `${worker.name} - $${worker.rate}/hr` : worker.name}
+                    </div>
+                    {workerId === worker.id && (
+                      <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="project" className={isMobile ? "text-sm font-medium" : "text-sm"}>
+          <MapPin className="w-4 h-4 inline mr-1" />
           Project *
         </Label>
-        <NativeSelect
-          id="project"
-          value={projectId || ""}
-          onValueChange={setProjectId}
-          disabled={disabled}
-          className={cn(isMobile ? "h-12 text-base" : "h-10")}
-        >
-          <option value="" disabled>Select project</option>
-          {projects.map(p => (
-            <option key={p.id} value={p.id}>
-              {p.number} - {p.name}
-            </option>
-          ))}
-        </NativeSelect>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setShowWorkerSelect(false);
+              setShowProjectSelect(!showProjectSelect);
+            }}
+            disabled={disabled}
+            className={cn(
+              "w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]",
+              isMobile ? "text-base" : "text-sm"
+            )}
+          >
+            {projectId ? (
+              <div className="font-semibold text-foreground">
+                {projects.find(p => p.id === projectId)?.number} - {projects.find(p => p.id === projectId)?.name}
+              </div>
+            ) : (
+              <div className="text-muted-foreground">Select project...</div>
+            )}
+          </button>
+          
+          {showProjectSelect && !disabled && (
+            <div className="mt-2 border rounded-lg bg-card shadow-md relative z-50 max-h-64 overflow-y-auto">
+              {projects.map(project => (
+                <button
+                  key={project.id}
+                  type="button"
+                  onClick={() => {
+                    setProjectId(project.id);
+                    setShowProjectSelect(false);
+                  }}
+                  className={cn(
+                    "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
+                    projectId === project.id
+                      ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
+                      : "hover:bg-muted"
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold truncate">
+                        {project.number} - {project.name}
+                      </div>
+                    </div>
+                    {projectId === project.id && (
+                      <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="space-y-2">
