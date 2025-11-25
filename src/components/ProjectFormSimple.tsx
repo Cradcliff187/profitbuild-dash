@@ -33,9 +33,10 @@ interface ProjectFormSimpleProps {
   onSave: (project: any) => void;
   onCancel: () => void;
   disableNavigate?: boolean;
+  defaultProjectType?: 'construction_project' | 'work_order';
 }
 
-export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false }: ProjectFormSimpleProps) {
+export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, defaultProjectType = 'construction_project' }: ProjectFormSimpleProps) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -47,8 +48,8 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false }:
       client_id: "",
       address: "",
       customer_po_number: "",
-      project_type: "construction_project",
-      status: "estimating",
+      project_type: defaultProjectType,
+      status: defaultProjectType === 'work_order' ? "in_progress" : "estimating",
       job_type: "",
       payment_terms: "Net 30",
       minimum_margin_threshold: 10,

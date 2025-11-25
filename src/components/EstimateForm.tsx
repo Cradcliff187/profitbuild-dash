@@ -33,13 +33,14 @@ interface EstimateFormProps {
   mode?: 'create' | 'edit' | 'view'; // Mode: create, edit, or view
   initialEstimate?: Estimate; // For editing mode
   preselectedProjectId?: string; // For linking from project page
+  preselectedProjectType?: 'construction_project' | 'work_order'; // For work order creation flow
   availableEstimates?: Estimate[]; // For showing copy options
   onSave: (estimate: Estimate) => void;
   onCancel: () => void;
   hideNavigationButtons?: boolean; // Hide navigation and status buttons (for project-specific views)
 }
 
-export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjectId, availableEstimates = [], onSave, onCancel, hideNavigationButtons = false }: EstimateFormProps) => {
+export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjectId, preselectedProjectType, availableEstimates = [], onSave, onCancel, hideNavigationButtons = false }: EstimateFormProps) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
@@ -1383,6 +1384,7 @@ useEffect(() => {
           </SheetHeader>
           <ProjectFormSimple
             disableNavigate={true}
+            defaultProjectType={preselectedProjectType}
             onSave={(project) => {
               handleCreateNewProject(project);
               setShowProjectCreation(false);

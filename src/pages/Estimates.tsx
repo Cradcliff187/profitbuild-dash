@@ -54,16 +54,19 @@ const EstimatesPage = () => {
 
   // Get preselected project ID from URL params
   const preselectedProjectId = searchParams.get("projectId");
+  // Get preselected project type from URL params (for work order creation flow)
+  const createParam = searchParams.get("create");
+  const preselectedProjectType = createParam === "work_order" ? "work_order" : undefined;
 
   useEffect(() => {
     loadEstimates();
     loadClients();
 
-    // Check for preselected project from URL params
-    if (preselectedProjectId && viewMode === "list") {
+    // Check for preselected project from URL params or work order creation
+    if ((preselectedProjectId || createParam === "work_order") && viewMode === "list") {
       setViewMode("create");
     }
-  }, [preselectedProjectId]);
+  }, [preselectedProjectId, createParam]);
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
@@ -599,6 +602,7 @@ const EstimatesPage = () => {
           mode={viewMode as "create" | "edit" | "view"}
           initialEstimate={selectedEstimate}
           preselectedProjectId={preselectedProjectId}
+          preselectedProjectType={preselectedProjectType}
           onSave={handleSaveEstimate}
           onCancel={handleCancel}
         />

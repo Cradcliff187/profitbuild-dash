@@ -85,9 +85,9 @@ const Projects = () => {
     try {
       setIsLoading(true);
       
-      // Load all related data (exclude unassigned project)
+      // Load all related data (exclude unassigned project and work orders)
       const [projectsRes, estimatesRes, quotesRes, expensesRes, changeOrdersRes] = await Promise.all([
-        supabase.from('projects').select('*').eq('category', 'construction').order('created_at', { ascending: false }),
+        supabase.from('projects').select('*').eq('category', 'construction').or('project_type.eq.construction_project,project_type.is.null').order('created_at', { ascending: false }),
         supabase.from('estimates').select('*'),
         supabase.from('quotes').select('*'),
         supabase.from('expenses').select(`

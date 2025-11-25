@@ -111,8 +111,8 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
       return false;
     }
 
-    // Validate status change workflow
-    if (status === 'approved') {
+    // Validate status change workflow (only for construction projects, not work orders)
+    if (status === 'approved' && projectType !== 'work_order') {
       // Check if project has an approved estimate
       const { data: estimates } = await supabase
         .from('estimates')
