@@ -80,6 +80,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
     // Try to resolve immediately from provided estimates
     return estimates.find(e => e.id === initialQuote.estimate_id) || undefined;
   });
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
   const [selectedLineItemIds, setSelectedLineItemIds] = useState<string[]>([]);
   const [selectedPayee, setSelectedPayee] = useState<Payee>();
   const [dateReceived, setDateReceived] = useState<Date>(new Date());
@@ -101,10 +102,35 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
     if (preSelectedEstimateId && !selectedEstimate && !initialQuote) {
       const estimate = estimates.find(e => e.id === preSelectedEstimateId);
       if (estimate) {
-        setSelectedEstimate(estimate);
+        setSelectedProjectId(estimate.project_id); // Auto-select project
+        setSelectedEstimate(estimate); // Auto-select estimate
       }
     }
   }, [preSelectedEstimateId, estimates, selectedEstimate, initialQuote]);
+
+  // Create unique project list from estimates
+  const uniqueProjects = useMemo(() => {
+    const projectMap = new Map();
+    estimates.forEach(est => {
+      if (est.project_id && !projectMap.has(est.project_id)) {
+        projectMap.set(est.project_id, {
+          id: est.project_id,
+          project_number: est.project_number,
+          project_name: est.project_name,
+          client_name: est.client_name
+        });
+      }
+    });
+    return Array.from(projectMap.values()).sort((a, b) => 
+      (a.project_number || '').localeCompare(b.project_number || '', undefined, { numeric: true })
+    );
+  }, [estimates]);
+
+  // Filter estimates by selected project
+  const projectEstimates = useMemo(() => {
+    if (!selectedProjectId) return [];
+    return estimates.filter(est => est.project_id === selectedProjectId);
+  }, [estimates, selectedProjectId]);
 
   const generateQuoteNumber = async (projectId: string, projectNumber: string, estimateId: string) => {
     try {
@@ -673,11 +699,11 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
               <CardTitle>
                 {isViewMode ? 'Quote Details' : (initialQuote ? 'Edit Quote' : 'New Quote')}
               </CardTitle>
-        {selectedEstimate && (
-          <p className="text-sm text-muted-foreground mt-1">
-            {selectedEstimate.project_name} • {selectedEstimate.client_name} • <span className="font-medium text-foreground">{selectedEstimate.estimate_number}</span>
-          </p>
-        )}
+              {selectedEstimate && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {selectedEstimate.project_name} • {selectedEstimate.client_name}
+                </p>
+              )}
             </div>
             {initialQuote && (
               <Badge variant="outline">{initialQuote.quoteNumber}</Badge>
@@ -686,18 +712,60 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
         </CardHeader>
         
         <CardContent className="space-y-6">
-          {/* Row 1: Estimate Selector (if new quote) */}
+          {/* Row 1: Project Selection → Estimate Selection */}
           {!initialQuote && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                Project Estimate <span className="text-destructive">*</span>
-              </Label>
-              <EstimateSelector
-                estimates={estimates}
-                selectedEstimate={selectedEstimate}
-                onSelect={setSelectedEstimate}
-                placeholder="Select an estimate to quote against..."
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Project Dropdown */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Project <span className="text-destructive">*</span>
+                </Label>
+                <Select 
+                  value={selectedProjectId} 
+                  onValueChange={(value) => {
+                    setSelectedProjectId(value);
+                    setSelectedEstimate(undefined); // Reset estimate when project changes
+                  }}
+                  disabled={isViewMode}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select project..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {uniqueProjects.map(project => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.project_number} - {project.project_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Estimate Dropdown (only enabled after project selected) */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Estimate <span className="text-destructive">*</span>
+                </Label>
+                <Select 
+                  value={selectedEstimate?.id} 
+                  onValueChange={(value) => {
+                    const estimate = estimates.find(e => e.id === value);
+                    if (estimate) setSelectedEstimate(estimate);
+                  }}
+                  disabled={!selectedProjectId || isViewMode}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={selectedProjectId ? "Select estimate..." : "Select project first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projectEstimates.map(estimate => (
+                      <SelectItem key={estimate.id} value={estimate.id}>
+                        {estimate.estimate_number} (v{estimate.version_number})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 
