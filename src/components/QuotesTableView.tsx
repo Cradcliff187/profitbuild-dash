@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal, Copy, ChevronsUpDown } from "lucide-react";
+import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal, Copy, ChevronsUpDown, Files } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +19,7 @@ import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
 import { extractProjectCounter } from "@/utils/numberGeneration";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
 import { QuoteStatusSelector } from "./QuoteStatusSelector";
+import { DuplicateQuoteModal } from "./DuplicateQuoteModal";
 // Removed BudgetComparisonBadge import
 import { cn } from "@/lib/utils";
 import {
@@ -71,6 +72,8 @@ export const QuotesTableView = ({
 }: QuotesTableViewProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState<string | null>(null);
+  const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
+  const [quoteToDuplicate, setQuoteToDuplicate] = useState<Quote | null>(null);
   const [localQuotes, setLocalQuotes] = useState(quotes);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
@@ -582,6 +585,13 @@ export const QuotesTableView = ({
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              setQuoteToDuplicate(quote);
+              setDuplicateModalOpen(true);
+            }}>
+              <Files className="h-4 w-4 mr-2" />
+              Duplicate for Estimate...
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={() => handleDeleteClick(quote.id)}
@@ -708,6 +718,24 @@ export const QuotesTableView = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Duplicate Quote Modal */}
+      {quoteToDuplicate && (
+        <DuplicateQuoteModal
+          open={duplicateModalOpen}
+          onOpenChange={setDuplicateModalOpen}
+          quote={quoteToDuplicate}
+          estimates={estimates}
+          onSuccess={(newQuoteId) => {
+            // Navigate to edit the new quote
+            const newQuote = localQuotes.find(q => q.id === newQuoteId);
+            if (newQuote) {
+              onEdit(newQuote);
+            }
+            // Refresh data would happen via parent component
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -2198,6 +2198,10 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: undefined
       }
+      duplicate_quote_for_estimate: {
+        Args: { source_quote_id: string; target_estimate_id: string }
+        Returns: string
+      }
       execute_simple_report: {
         Args: {
           p_data_source: string
