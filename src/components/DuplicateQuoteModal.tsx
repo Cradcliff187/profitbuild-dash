@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Quote } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
@@ -73,19 +73,19 @@ export const DuplicateQuoteModal = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-[600px] flex flex-col p-0">
+        <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b">
+          <SheetTitle className="flex items-center gap-2">
             <Copy className="h-5 w-5" />
             Duplicate Quote for Different Estimate
-          </DialogTitle>
-          <DialogDescription>
+          </SheetTitle>
+          <SheetDescription>
             Create a copy of this quote for a different estimate version in the same project.
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {/* Source Quote Info */}
           <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
             <div className="text-sm font-medium">Source Quote</div>
@@ -140,7 +140,7 @@ export const DuplicateQuoteModal = ({
           </Alert>
         </div>
 
-        <DialogFooter>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-background">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -154,8 +154,8 @@ export const DuplicateQuoteModal = ({
           >
             {duplicating ? "Duplicating..." : "Duplicate Quote"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
