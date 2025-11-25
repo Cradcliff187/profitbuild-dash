@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { ProjectNote } from "@/types/projectNote";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCameraCapture } from "@/hooks/useCameraCapture";
 import { useVideoCapture } from "@/hooks/useVideoCapture";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 interface ProjectNotesTimelineProps {
   projectId: string;
@@ -41,6 +42,60 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
   const isMobile = useIsMobile();
   const { capturePhoto, isCapturing: isCapturingPhoto } = useCameraCapture();
   const { startRecording, isRecording } = useVideoCapture();
+
+  // Swipe handlers for image lightbox
+  const { 
+    handleTouchStart: imageSwipeStart, 
+    handleTouchMove: imageSwipeMove, 
+    handleTouchEnd: imageSwipeEnd 
+  } = useSwipeGesture({
+    onSwipeLeft: () => setEnlargedImage(null),
+    onSwipeRight: () => setEnlargedImage(null),
+    minSwipeDistance: 50
+  });
+
+  // Swipe handlers for video lightbox
+  const { 
+    handleTouchStart: videoSwipeStart, 
+    handleTouchMove: videoSwipeMove, 
+    handleTouchEnd: videoSwipeEnd 
+  } = useSwipeGesture({
+    onSwipeLeft: () => setEnlargedVideo(null),
+    onSwipeRight: () => setEnlargedVideo(null),
+    minSwipeDistance: 50
+  });
+
+  // Attach touch listeners to image lightbox
+  useEffect(() => {
+    const container = document.getElementById('image-lightbox-container');
+    if (!container) return;
+
+    container.addEventListener('touchstart', imageSwipeStart as any);
+    container.addEventListener('touchmove', imageSwipeMove as any);
+    container.addEventListener('touchend', imageSwipeEnd as any);
+
+    return () => {
+      container.removeEventListener('touchstart', imageSwipeStart as any);
+      container.removeEventListener('touchmove', imageSwipeMove as any);
+      container.removeEventListener('touchend', imageSwipeEnd as any);
+    };
+  }, [imageSwipeStart, imageSwipeMove, imageSwipeEnd, enlargedImage]);
+
+  // Attach touch listeners to video lightbox
+  useEffect(() => {
+    const container = document.getElementById('video-lightbox-container');
+    if (!container) return;
+
+    container.addEventListener('touchstart', videoSwipeStart as any);
+    container.addEventListener('touchmove', videoSwipeMove as any);
+    container.addEventListener('touchend', videoSwipeEnd as any);
+
+    return () => {
+      container.removeEventListener('touchstart', videoSwipeStart as any);
+      container.removeEventListener('touchmove', videoSwipeMove as any);
+      container.removeEventListener('touchend', videoSwipeEnd as any);
+    };
+  }, [videoSwipeStart, videoSwipeMove, videoSwipeEnd, enlargedVideo]);
 
   const formatTimestamp = (utcTimestamp: string | null | undefined) => {
     if (!utcTimestamp) return "No date";
@@ -977,6 +1032,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
       {/* Image Lightbox */}
       {enlargedImage && (
         <div 
+          id="image-lightbox-container"
           className="fixed inset-0 bg-background z-50 flex items-center justify-center"
           onClick={() => setEnlargedImage(null)}
         >
@@ -1000,6 +1056,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
       {/* Video Lightbox */}
       {enlargedVideo && (
         <div 
+          id="video-lightbox-container"
           className="fixed inset-0 bg-background z-50 flex items-center justify-center"
           onClick={() => setEnlargedVideo(null)}
         >
