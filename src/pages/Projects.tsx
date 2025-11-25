@@ -391,13 +391,9 @@ const Projects = () => {
       {/* Header - Matches Quotes page format */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-xl font-bold">
-            {viewMode === 'list' ? 'Projects' : 'Create New Project'}
-          </h1>
+          <h1 className="text-xl font-bold">Projects</h1>
           <p className="text-muted-foreground">
-            {viewMode === 'list' 
-              ? 'Manage construction projects and track financials' 
-              : 'Fill in the project details below'}
+            Manage construction projects and track financials
           </p>
         </div>
         
@@ -419,17 +415,6 @@ const Projects = () => {
         )}
       </div>
 
-      {viewMode === 'create' && (
-        <div className="flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold">Create New Project</h1>
-            <p className="text-sm text-muted-foreground">
-              Fill in the project details below
-            </p>
-          </div>
-        </div>
-      )}
 
       {viewMode === 'list' && (
         <>
