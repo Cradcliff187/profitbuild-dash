@@ -730,6 +730,10 @@ export const QuotesTableView = ({
             onColumnOrderChange={setColumnOrder}
           />
           {collapseButton}
+          <Button onClick={onCreateNew} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            New Quote
+          </Button>
         </div>
       </div>
       <QuotesTable

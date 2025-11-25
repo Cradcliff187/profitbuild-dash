@@ -497,15 +497,24 @@ export const ProjectDetailView = () => {
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className={cn("flex flex-col gap-2", isMobile ? "w-full" : "min-w-0")}
               >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate('/projects')}
-                  className="self-start inline-flex h-8"
-                >
-                  <ArrowLeftCircle className="h-4 w-4 mr-2" />
-                  Back to Projects
-                </Button>
+                <Breadcrumb>
+                  <BreadcrumbList className="text-xs sm:text-sm">
+                    <BreadcrumbItem>
+                      <BreadcrumbLink 
+                        onClick={() => navigate('/projects')}
+                        className="cursor-pointer hover:text-foreground"
+                      >
+                        Projects
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage className="font-medium">
+                        {formatProjectLabel(project.project_number, project.project_name)}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
               </div>
 
               <div className={cn("flex items-center gap-2", isMobile ? "w-full" : "min-w-0")}
@@ -673,6 +682,7 @@ export const ProjectDetailView = () => {
                 <Route path="quotes/new" element={
                   <QuoteForm
                     estimates={estimates}
+                    preSelectedEstimateId={estimates.find((e) => e.status === "approved" || e.is_current_version)?.id}
                     onSave={() => {
                       loadProjectData();
                       const searchParams = new URLSearchParams(window.location.search);
