@@ -48,6 +48,7 @@ interface QuotesTableViewProps {
 // Column definitions for the column selector
 const columnDefinitions = [
   { key: 'quote_number', label: 'Quote #', required: true },
+  { key: 'estimate', label: 'Estimate', required: false },
   { key: 'line_items', label: 'Line Items', required: false },
   { key: 'payee', label: 'Quoted By', required: false },
   { key: 'status', label: 'Status', required: true },
@@ -82,6 +83,7 @@ export const QuotesTableView = ({
     const stored = localStorage.getItem('quotes-visible-columns');
     return stored ? JSON.parse(stored) : [
       'quote_number',
+      'estimate',
       'payee', 
       'status',
       'date_received',
@@ -336,6 +338,28 @@ export const QuotesTableView = ({
           {quote.quoteNumber}
         </div>
       ),
+    },
+    {
+      key: 'estimate',
+      label: 'Estimate',
+      align: 'left',
+      width: '140px',
+      sortable: true,
+      getSortValue: (quote) => quote.estimate?.estimate_number || '',
+      render: (quote) => {
+        const estimate = quote.estimate;
+        if (!estimate) {
+          return <span className="text-xs text-muted-foreground">Not linked</span>;
+        }
+        return (
+          <div className="text-xs font-mono">
+            <div className="text-foreground/80">{estimate.estimate_number}</div>
+            {estimate.version_number && estimate.version_number > 1 && (
+              <div className="text-muted-foreground text-[10px]">v{estimate.version_number}</div>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'line_items',
