@@ -230,7 +230,7 @@ const Quotes = () => {
         .from('estimates')
         .select(`
           *,
-          projects(project_name, client_name),
+          projects(project_number, project_name, client_name),
           estimate_line_items(*)
         `);
 
@@ -343,11 +343,15 @@ const Quotes = () => {
             return isNaN(date.getTime()) ? new Date() : date;
           };
 
+          // Handle nested Supabase response (could be object, array, or null)
+          const projectData = Array.isArray(estimate.projects) ? estimate.projects[0] : estimate.projects;
+
           return {
             id: estimate.id || '',
             project_id: estimate.project_id || '',
-            project_name: estimate.projects?.project_name || '',
-            client_name: estimate.projects?.client_name || '',
+            project_name: projectData?.project_name || '',
+            client_name: projectData?.client_name || '',
+            project_number: projectData?.project_number || undefined,
             estimate_number: estimate.estimate_number || '',
             revision_number: safeNumber(estimate.revision_number, 1),
             date: safeDate(estimate.date_created),

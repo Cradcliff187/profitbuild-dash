@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Save, Calendar as CalendarIcon, Plus, ArrowRight, TrendingUp, TrendingDown, Check, Search, X, ArrowLeft } from "lucide-react";
+import { Save, Calendar as CalendarIcon, Plus, TrendingUp, TrendingDown } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn, formatCurrency } from "@/lib/utils";
 import { ProjectSelector } from "./ProjectSelector";
 import { PayeeSelector } from "./PayeeSelector";
-import { PdfUpload } from "./PdfUpload";
+import { EstimateSelector } from "./EstimateSelector";
+import { QuoteAttachmentUpload } from "./QuoteAttachmentUpload";
+import { Info } from "lucide-react";
 import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 import { Quote, QuoteLineItem, QuoteStatus } from "@/types/quote";
 import { Payee, PayeeType } from "@/types/payee";
@@ -79,7 +81,6 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
     return estimates.find(e => e.id === initialQuote.estimate_id) || undefined;
   });
   const [selectedLineItemIds, setSelectedLineItemIds] = useState<string[]>([]);
-  const [showLineItemSelection, setShowLineItemSelection] = useState(false);
   const [selectedPayee, setSelectedPayee] = useState<Payee>();
   const [dateReceived, setDateReceived] = useState<Date>(new Date());
   const [status, setStatus] = useState<QuoteStatus>(QuoteStatus.PENDING);
@@ -88,8 +89,12 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
   const [attachmentUrl, setAttachmentUrl] = useState<string>("");
   const [lineItems, setLineItems] = useState<QuoteLineItem[]>([]);
   const [validationErrors, setValidationErrors] = useState<Record<string, QuoteValidationResult>>({});
-  const [estimateSearchQuery, setEstimateSearchQuery] = useState('');
   const [changeOrderLineItems, setChangeOrderLineItems] = useState<any[]>([]);
+  const [existingQuotesCoverage, setExistingQuotesCoverage] = useState<Record<string, {
+    count: number;
+    lowestCost: number | null;
+    hasAccepted: boolean;
+  }>>({});
 
   // Auto-select estimate when navigating from project details
   useEffect(() => {
@@ -97,7 +102,6 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       const estimate = estimates.find(e => e.id === preSelectedEstimateId);
       if (estimate) {
         setSelectedEstimate(estimate);
-        setShowLineItemSelection(true);
       }
     }
   }, [preSelectedEstimateId, estimates, selectedEstimate, initialQuote]);
@@ -254,7 +258,6 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       };
       
       fetchChangeOrders();
-      setShowLineItemSelection(true);
       
       // Set default valid until date
       const defaultValidUntil = new Date();
@@ -263,60 +266,123 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
     }
   }, [selectedEstimate, initialQuote]);
 
-  // Scroll to top when transitioning from line item selection to quote form
+  // Auto-select eligible line items when estimate is selected
   useEffect(() => {
-    if (!showLineItemSelection && selectedEstimate) {
-      const mainElement = document.querySelector('main');
-      if (mainElement) {
-        mainElement.scrollTop = 0;
+    if (selectedEstimate && !initialQuote) {
+      // Auto-select all eligible line items (exclude internal labor/management)
+      const eligibleItems = selectedEstimate.lineItems.filter(item => 
+        item.category !== LineItemCategory.LABOR && 
+        item.category !== LineItemCategory.MANAGEMENT
+      );
+      
+      const eligibleIds = eligibleItems.map(item => item.id);
+      setSelectedLineItemIds(eligibleIds);
+      
+      // Create quote line items from selected estimate items
+      const quoteLineItems = eligibleItems.map(item => 
+        createQuoteLineItemFromSource(item, 'estimate')
+      );
+      setLineItems(quoteLineItems);
+    }
+  }, [selectedEstimate?.id, initialQuote]);
+
+  // Fetch existing quotes coverage when estimate is selected
+  useEffect(() => {
+    const fetchExistingQuotes = async () => {
+      if (!selectedEstimate) {
+        setExistingQuotesCoverage({});
+        return;
       }
+
+      try {
+        const { data: quotes, error } = await supabase
+          .from('quotes')
+          .select(`
+            id,
+            status,
+            quote_line_items (
+              estimate_line_item_id,
+              cost_per_unit,
+              total_cost
+            )
+          `)
+          .eq('estimate_id', selectedEstimate.id)
+          .neq('id', initialQuote?.id || '');
+
+        if (error) {
+          console.error('Error fetching existing quotes:', error);
+          return;
+        }
+
+        // Calculate coverage per line item
+        const coverage: Record<string, {
+          count: number;
+          lowestCost: number | null;
+          hasAccepted: boolean;
+        }> = {};
+
+        quotes?.forEach((quote: any) => {
+          const quoteLineItems = quote.quote_line_items || [];
+          quoteLineItems.forEach((qli: any) => {
+            if (qli.estimate_line_item_id) {
+              const lineItemId = qli.estimate_line_item_id;
+              if (!coverage[lineItemId]) {
+                coverage[lineItemId] = {
+                  count: 0,
+                  lowestCost: null,
+                  hasAccepted: false
+                };
+              }
+              coverage[lineItemId].count++;
+              const cost = qli.total_cost || (qli.cost_per_unit || 0);
+              if (coverage[lineItemId].lowestCost === null || cost < coverage[lineItemId].lowestCost!) {
+                coverage[lineItemId].lowestCost = cost;
+              }
+              if (quote.status === QuoteStatus.ACCEPTED) {
+                coverage[lineItemId].hasAccepted = true;
+              }
+            }
+          });
+        });
+
+        setExistingQuotesCoverage(coverage);
+      } catch (error) {
+        console.error('Error processing existing quotes:', error);
+      }
+    };
+
+    fetchExistingQuotes();
+  }, [selectedEstimate?.id, initialQuote?.id]);
+
+  // Update line items when selection changes
+  useEffect(() => {
+    if (selectedEstimate && !initialQuote && selectedLineItemIds.length > 0) {
+      // Combine all sources
+      const allItems = [
+        ...selectedEstimate.lineItems.map(item => ({ ...item, source: 'estimate' as const })),
+        ...changeOrderLineItems
+      ];
+      
+      const selectedItems = allItems.filter(item => 
+        selectedLineItemIds.includes(item.id)
+      );
+
+      // Filter out internal labor items
+      const validItems = selectedItems.filter(item => 
+        !(item.source === 'estimate' && (
+          item.category === LineItemCategory.LABOR || 
+          item.category === LineItemCategory.MANAGEMENT
+        ))
+      );
+
+      const quoteLineItems = validItems.map(item => 
+        createQuoteLineItemFromSource(item, item.source)
+      );
+      setLineItems(quoteLineItems);
+    } else if (selectedEstimate && !initialQuote && selectedLineItemIds.length === 0) {
+      setLineItems([]);
     }
-  }, [showLineItemSelection, selectedEstimate]);
-
-  const handleLineItemSelection = () => {
-    if (selectedLineItemIds.length === 0) {
-      toast({
-        title: "No Line Items Selected",
-        description: "Please select at least one line item to quote.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Combine all sources
-    const allItems = [
-      ...selectedEstimate!.lineItems.map(item => ({ ...item, source: 'estimate' as const })),
-      ...changeOrderLineItems
-    ];
-    
-    const selectedItems = allItems.filter(item => 
-      selectedLineItemIds.includes(item.id)
-    );
-
-    // Validate: prevent internal labor from being quoted
-    const internalItems = selectedItems.filter(item => 
-      item.source === 'estimate' && (
-        item.category === LineItemCategory.LABOR || 
-        item.category === LineItemCategory.MANAGEMENT
-      )
-    );
-
-    if (internalItems.length > 0) {
-      const internalNames = internalItems.map(item => item.description).join(', ');
-      toast({
-        title: "Cannot Quote Internal Labor",
-        description: `The following items are internal labor/management and cannot have external vendor quotes: ${internalNames}. Please change their category to Subcontractors first.`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const quoteLineItems = selectedItems.map(item => 
-      createQuoteLineItemFromSource(item, item.source)
-    );
-    setLineItems(quoteLineItems);
-    setShowLineItemSelection(false);
-  };
+  }, [selectedLineItemIds, selectedEstimate, changeOrderLineItems, initialQuote]);
 
   const toggleLineItemSelection = (lineItemId: string) => {
     setSelectedLineItemIds(prev => 
@@ -327,8 +393,12 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
   };
 
   const selectAllLineItems = () => {
+    // Only select eligible items (exclude internal labor/management)
+    const eligibleEstimateIds = selectedEstimate?.lineItems
+      .filter(item => item.category !== LineItemCategory.LABOR && item.category !== LineItemCategory.MANAGEMENT)
+      .map(item => item.id) || [];
     const allIds = [
-      ...(selectedEstimate?.lineItems.map(item => item.id) || []),
+      ...eligibleEstimateIds,
       ...changeOrderLineItems.map(item => item.id)
     ];
     setSelectedLineItemIds(allIds);
@@ -453,6 +523,16 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       description: "Processing quote details...",
     });
 
+    // Only validate line item selection if we have an estimate (not for change order quotes)
+    if (selectedEstimate && selectedLineItemIds.length === 0) {
+      toast({
+        title: "No Line Items Selected",
+        description: "Please select at least one line item to quote.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (lineItems.every(item => !item.description.trim())) {
       toast({
         title: "Missing Line Items",
@@ -564,39 +644,10 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
     // Success toast moved to Quotes.tsx handleSaveQuote (shown after DB confirms save)
   };
 
-  const filteredAndSortedEstimates = useMemo(() => {
-    return estimates
-      // Filter by search query
-      .filter(estimate => {
-        if (!estimateSearchQuery.trim()) return true;
-        
-        const query = estimateSearchQuery.toLowerCase();
-        return (
-          estimate.project_name?.toLowerCase().includes(query) ||
-          estimate.client_name?.toLowerCase().includes(query) ||
-          estimate.estimate_number?.toLowerCase().includes(query)
-        );
-      })
-      // Sort by estimate number descending (EST-005 before EST-004)
-      .sort((a, b) => {
-        // Extract numeric part from estimate number (EST-005 -> 5)
-        const getNumber = (estNum: string) => {
-          const match = estNum?.match(/\d+$/);
-          return match ? parseInt(match[0], 10) : 0;
-        };
-        
-        const numA = getNumber(a.estimate_number);
-        const numB = getNumber(b.estimate_number);
-        
-        return numB - numA; // Descending order
-      });
-  }, [estimates, estimateSearchQuery]);
-
+  // Change order quotes don't need an estimate - show loading only if we're expecting an estimate
   if (!selectedEstimate) {
-    // Change order quotes don't need an estimate
     const isChangeOrderQuote = isEdit && initialQuote && !initialQuote.estimate_id;
     
-    // In edit mode, show loading only if we're expecting an estimate (not for change order quotes)
     if (isEdit && !isChangeOrderQuote) {
       return (
         <Card className="compact-card">
@@ -609,299 +660,6 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
         </Card>
       );
     }
-    
-    // If it's a change order quote, continue to render the form below
-    if (!isChangeOrderQuote) {
-      // New quote flow - show estimate selection
-      return (
-        <Card className="compact-card">
-          <CardHeader className="p-compact">
-            <CardTitle className="text-interface">Create New Quote</CardTitle>
-          </CardHeader>
-          <CardContent className="p-compact">
-            <div className="form-dense">
-              <div className="space-y-2">
-                <Label className="text-label">Select Project Estimate</Label>
-                
-                {/* Search Input */}
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder="Search by project, client, or estimate number..."
-                    value={estimateSearchQuery}
-                    onChange={(e) => setEstimateSearchQuery(e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                  {estimateSearchQuery && (
-                    <button
-                      onClick={() => setEstimateSearchQuery('')}
-                      className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-                
-                {/* Results count when searching */}
-                {estimateSearchQuery && (
-                  <p className="text-xs text-muted-foreground">
-                    Found {filteredAndSortedEstimates.length} estimate{filteredAndSortedEstimates.length !== 1 ? 's' : ''}
-                  </p>
-                )}
-
-                <div className="space-y-2">
-                  {estimates.length === 0 ? (
-                    <div className="text-center py-6 text-muted-foreground">
-                      <p className="text-label">No estimates available</p>
-                      <p className="text-label">Create an estimate first to generate quotes</p>
-                    </div>
-                  ) : filteredAndSortedEstimates.length === 0 ? (
-                    <div className="text-center py-6 text-muted-foreground">
-                      <p className="text-label">No estimates match your search</p>
-                      <button 
-                        onClick={() => setEstimateSearchQuery('')}
-                        className="text-primary hover:underline text-sm mt-2"
-                      >
-                        Clear search
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid gap-2">
-                      {filteredAndSortedEstimates.map((estimate) => (
-                          <Card 
-                            key={estimate.id} 
-                            className="cursor-pointer hover:bg-accent transition-colors compact-card"
-                            onClick={() => setSelectedEstimate(estimate)}
-                          >
-                            <CardContent className="p-compact">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="text-interface font-medium">{estimate.project_name}</div>
-                                  <div className="text-label text-muted-foreground">{estimate.client_name}</div>
-                                  <div className="text-label text-muted-foreground">
-                                    {estimate.estimate_number} • {format(new Date(estimate.date_created), "MMM d, yyyy")}
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-interface font-medium font-mono">{formatCurrency(estimate.total_amount)}</div>
-                                  <div className="text-label text-muted-foreground">
-                                    {estimate.lineItems.length} line item{estimate.lineItems.length !== 1 ? 's' : ''}
-                                  </div>
-                                  <Badge variant={estimate.lineItems.length > 0 ? "default" : "secondary"} className="compact-badge">
-                                    {estimate.lineItems.length > 0 ? "Ready" : "Empty"}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-1">
-                <Button variant="outline" onClick={onCancel} size="sm" className="h-btn-compact text-label">Cancel</Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      );
-    }
-  }
-
-  // Line Item Selection Step
-  if (showLineItemSelection) {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Select Line Items to Quote</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {selectedEstimate.project_name} • {selectedEstimate.client_name}
-              </p>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => {
-                setSelectedEstimate(undefined);
-                setShowLineItemSelection(false);
-                setSelectedLineItemIds([]);
-              }}
-            >
-              Change Estimate
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {selectedEstimate.lineItems.length === 0 && changeOrderLineItems.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>This estimate has no line items and there are no approved change orders.</p>
-              <p className="text-sm">Add line items to the estimate or create change orders first.</p>
-              <div className="mt-4">
-                <Button variant="outline" onClick={() => setSelectedEstimate(undefined)}>
-                  Select Different Estimate
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                  Select the line items you want to include in this quote ({selectedLineItemIds.length} selected)
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={selectAllLineItems}>
-                    Select All
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={clearAllLineItems}>
-                    Clear All
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Estimate Line Items Section */}
-              {selectedEstimate.lineItems.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 px-1">
-                    <Badge variant="outline" className="text-xs">Estimate</Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {selectedEstimate.lineItems.length} item{selectedEstimate.lineItems.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {selectedEstimate.lineItems.map((item) => {
-                      const isInternalCategory = item.category === LineItemCategory.LABOR || 
-                                                item.category === LineItemCategory.MANAGEMENT;
-                      
-                      return (
-                        <div 
-                          key={item.id} 
-                          className={cn(
-                            "flex items-center space-x-3 p-3 border rounded-lg",
-                            isInternalCategory && "opacity-50 bg-muted/30"
-                          )}
-                        >
-                          <Checkbox
-                            checked={selectedLineItemIds.includes(item.id)}
-                            onCheckedChange={() => toggleLineItemSelection(item.id)}
-                            disabled={isInternalCategory}
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="font-medium">{item.description}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  <span className="inline-flex items-center gap-1">
-                                    <Badge 
-                                      variant="outline" 
-                                      className={cn(
-                                        "text-xs",
-                                        isInternalCategory && "border-amber-500 text-amber-700 bg-amber-50"
-                                      )}
-                                    >
-                                      {CATEGORY_DISPLAY_MAP[item.category]}
-                                    </Badge>
-                                    {item.quantity} {item.unit || 'units'} × {formatCurrency(item.pricePerUnit)}
-                                  </span>
-                                  {isInternalCategory && (
-                                    <span className="block text-xs text-amber-700 mt-1">
-                                      Cannot quote internal labor - use time entries instead
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="font-medium">{formatCurrency(item.total)}</div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              
-              {/* Change Order Line Items Section */}
-              {changeOrderLineItems.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 px-1">
-                    <Badge variant="secondary" className="text-xs">Change Orders</Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {changeOrderLineItems.length} item{changeOrderLineItems.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {changeOrderLineItems.map((item) => (
-                      <div 
-                        key={item.id} 
-                        className="flex items-center space-x-3 p-3 border rounded-lg"
-                      >
-                        <Checkbox
-                          checked={selectedLineItemIds.includes(item.id)}
-                          onCheckedChange={() => toggleLineItemSelection(item.id)}
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <div className="font-medium">{item.description}</div>
-                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
-                                  {item.change_order_number}
-                                </Badge>
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                <span className="inline-flex items-center gap-1">
-                                  <Badge variant="outline" className="text-xs">
-                                    {CATEGORY_DISPLAY_MAP[item.category]}
-                                  </Badge>
-                                  {item.quantity} {item.unit || 'units'} × {formatCurrency(item.pricePerUnit)}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-medium">{formatCurrency(item.total)}</div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              <div className="flex justify-between pt-4">
-                <Button variant="outline" onClick={onCancel}>Cancel</Button>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      // If estimate was pre-selected (came from another page), navigate back
-                      if (preSelectedEstimateId) {
-                        onCancel();
-                      } else {
-                        // Otherwise, reset form to allow selecting a different estimate
-                        setSelectedEstimate(undefined);
-                        setShowLineItemSelection(false);
-                        setSelectedLineItemIds([]);
-                      }
-                    }}
-                  >
-                    Back
-                  </Button>
-                  <Button onClick={handleLineItemSelection}>
-                    <ArrowRight className="h-4 w-4 mr-2" />
-                    Continue with Selected Items ({selectedLineItemIds.length})
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
   }
 
   // Filter estimate line items to only include those that correspond to quote line items
@@ -917,59 +675,63 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
   const profitStatus = getProfitStatus(profitMargin);
 
   return (
-    <div className="form-dense space-y-2">
-      {/* Header with Project Info */}
+    <div className="space-y-4">
+      {/* Main Form Card */}
       <Card>
-        <CardHeader>
-          {/* Back button - show when editing in project context */}
-          {initialQuote && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onCancel}
-              className="w-fit mb-2"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Quotes
-            </Button>
-          )}
+        <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>{isViewMode ? 'View Quote' : (initialQuote ? 'Edit Quote' : 'Create Quote')}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {selectedEstimate 
-                  ? `${selectedEstimate.project_name} • ${selectedEstimate.client_name}`
-                  : initialQuote
-                    ? `${initialQuote.projectName} • ${initialQuote.client}`
-                    : 'No project selected'
-                }
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
+              <CardTitle>
+                {isViewMode ? 'Quote Details' : (initialQuote ? 'Edit Quote' : 'New Quote')}
+              </CardTitle>
               {selectedEstimate && (
-                <Badge variant="outline">
-                  {selectedEstimate.estimate_number}
-                </Badge>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {selectedEstimate.project_name} • {selectedEstimate.client_name}
+                </p>
               )}
             </div>
+            {initialQuote && (
+              <Badge variant="outline">{initialQuote.quoteNumber}</Badge>
+            )}
           </div>
         </CardHeader>
-        <CardContent className="p-3">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <PayeeSelector
-              value={selectedPayee?.id || ''}
-              onValueChange={(payeeId, payeeName, payee) => {
-                if (payee && !isViewMode) setSelectedPayee(payee);
-              }}
-              placeholder="Select vendor/subcontractor..."
-              label="Vendor/Payee"
-              filterInternal={false}
-              defaultPayeeType={PayeeType.SUBCONTRACTOR}
-              defaultIsInternal={false}
-            />
+        
+        <CardContent className="space-y-6">
+          {/* Row 1: Estimate Selector (if new quote) */}
+          {!initialQuote && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Project Estimate <span className="text-destructive">*</span>
+              </Label>
+              <EstimateSelector
+                estimates={estimates}
+                selectedEstimate={selectedEstimate}
+                onSelect={setSelectedEstimate}
+                placeholder="Select an estimate to quote against..."
+              />
+            </div>
+          )}
+
+          {/* Row 2: Vendor, Date, Status - 3 column grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Vendor <span className="text-destructive">*</span>
+              </Label>
+              <PayeeSelector
+                value={selectedPayee?.id || ''}
+                onValueChange={(payeeId, payeeName, payee) => {
+                  if (payee && !isViewMode) setSelectedPayee(payee);
+                }}
+                placeholder="Select vendor..."
+                filterInternal={false}
+                defaultPayeeType={PayeeType.SUBCONTRACTOR}
+                defaultIsInternal={false}
+              />
+            </div>
             
             <div className="space-y-2">
-              <Label>Date Received</Label>
+              <Label className="text-sm font-medium">Date Received</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -981,7 +743,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateReceived ? format(dateReceived, "PPP") : "Pick date"}
+                    {dateReceived ? format(dateReceived, "PPP") : "Select date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -996,8 +758,12 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
             </div>
 
             <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={(value: QuoteStatus) => setStatus(value)} disabled={isViewMode}>
+              <Label className="text-sm font-medium">Status</Label>
+              <Select 
+                value={status} 
+                onValueChange={(value: QuoteStatus) => setStatus(value)} 
+                disabled={isViewMode}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -1010,319 +776,247 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
               </Select>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Financial Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {selectedEstimate && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground">Your Estimate</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(estimateFinancials.totalAmount)}</div>
-              <div className="text-sm text-muted-foreground">Original estimated price</div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-muted-foreground">Vendor Cost</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(quoteFinancials.totalCost)}</div>
-            <div className="text-sm text-muted-foreground">{selectedPayee?.payee_name || 'Total cost'}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-muted-foreground">Profit Potential</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold flex items-center gap-2 ${getProfitColor(totalProfit)}`}>
-              {getProfitIcon(totalProfit)}
-              {formatCurrency(totalProfit)}
-            </div>
-            <div className={`text-sm flex items-center gap-1 ${getProfitColor(totalProfit)}`}>
-              {profitMargin.toFixed(1)}% margin • {profitStatus}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Line Items Comparison */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{selectedEstimate ? 'Line Items Comparison' : 'Quote Line Items'}</CardTitle>
-              <CardDescription className="text-xs mt-1">
-                {selectedEstimate 
-                  ? 'Compare your estimate with vendor quote'
-                  : 'Line items for this change order quote'
-                }
-              </CardDescription>
-            </div>
-            {!isViewMode && (
-              <Button size="sm" onClick={addLineItem}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Item
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {lineItems.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-muted-foreground mb-4">
-                <p className="text-lg font-medium">No line items available</p>
-                <p className="text-sm">
-                  {selectedEstimate && selectedEstimate.lineItems.length === 0 
-                    ? "This estimate has no line items. Add your first item to get started."
-                    : "Quote line items will appear here when you add them."
-                  }
+          {/* Vendor Context Banner */}
+          {selectedPayee && !isViewMode && (
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex items-start gap-3">
+              <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  Quote from {selectedPayee.payee_name}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Select only the line items this vendor is bidding on. Other vendors can submit separate quotes.
                 </p>
               </div>
-              <div className="flex justify-center gap-2">
-                <Button onClick={addLineItem}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add First Item
-                </Button>
-                {selectedEstimate && selectedEstimate.lineItems.length === 0 && (
-                  <Button variant="outline" onClick={() => setSelectedEstimate(undefined)}>
-                    Change Estimate
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {lineItems.map((item, index) => {
-              const estimateItem = selectedEstimate?.lineItems.find(e => e.id === item.estimateLineItemId);
-              
-              return (
-                <div key={item.id} className="border rounded-lg p-3 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline">{CATEGORY_DISPLAY_MAP[item.category]}</Badge>
-                    {!estimateItem && !isViewMode && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => removeLineItem(item.id)}
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Side-by-side table format */}
-                  <div className="mobile-table-wrapper">
-                    <table className="w-full border-collapse min-w-[600px]">
-                      <thead>
-                        <tr className="border-b bg-muted/30">
-                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Field</th>
-                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Your Estimate</th>
-                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Vendor Input</th>
-                          <th className="text-left p-3 font-medium text-sm text-muted-foreground">Profit</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {/* Description Row */}
-                        <tr className="border-b hover:bg-muted/20">
-                          <td className="p-3 font-medium text-sm">Description</td>
-                          <td className="p-3 text-sm">{estimateItem?.description || 'N/A'}</td>
-                          <td className="p-3">
-                            <Input
-                              value={item.description}
-                              onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
-                              placeholder="Item description"
-                              className="h-8"
-                              disabled={isViewMode}
-                            />
-                          </td>
-                          <td className="p-3 text-sm text-muted-foreground">—</td>
-                        </tr>
-
-                        {/* Quantity Row */}
-                        <tr className="border-b hover:bg-muted/20">
-                          <td className="p-3 font-medium text-sm">Quantity</td>
-                          <td className="p-3 text-sm">{estimateItem?.quantity || 'N/A'}</td>
-                          <td className="p-3">
-                            <Input
-                              type="number"
-                              value={item.quantity}
-                              min="0"
-                              step="0.01"
-                              onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                              className="h-8"
-                              disabled={isViewMode}
-                            />
-                          </td>
-                          <td className="p-3 text-sm">
-                            {estimateItem ? (
-                              <span className={item.quantity !== estimateItem.quantity ? "text-amber-600" : "text-muted-foreground"}>
-                                {(item.quantity - estimateItem.quantity) > 0 ? '+' : ''}{(item.quantity - estimateItem.quantity).toFixed(2)}
-                              </span>
-                            ) : '—'}
-                          </td>
-                        </tr>
-
-                        {/* Cost Per Unit Row - Now the main vendor input */}
-                        <tr className="border-b hover:bg-muted/20 bg-blue-50/30">
-                          <td className="p-3 font-medium text-sm">Vendor Cost per Unit</td>
-                          <td className="p-3 text-sm">{formatCurrency(estimateItem?.costPerUnit || 0) || 'N/A'}</td>
-                           <td className="p-3">
-                             <div className="space-y-2">
-                               <Input
-                                 type="number"
-                                 value={item.costPerUnit}
-                                 min="0"
-                                 step="0.01"
-                                 onChange={(e) => updateLineItem(item.id, 'costPerUnit', parseFloat(e.target.value) || 0)}
-                                 placeholder="0.00"
-                                 className={cn(
-                                   "h-8 border-blue-300 focus:border-blue-500",
-                                   validationErrors[item.id] && !validationErrors[item.id].isValid && 
-                                   validationErrors[item.id].severity === 'critical' && "border-destructive focus:border-destructive",
-                                   validationErrors[item.id] && !validationErrors[item.id].isValid && 
-                                   validationErrors[item.id].severity === 'warning' && "border-amber-500 focus:border-amber-500"
-                                 )}
-                               />
-                               {validationErrors[item.id] && !validationErrors[item.id].isValid && (
-                                 <div className={cn(
-                                   "text-xs p-2 rounded-md",
-                                   validationErrors[item.id].severity === 'critical' 
-                                     ? "bg-destructive/10 text-destructive border border-destructive/20" 
-                                     : "bg-amber-50 text-amber-700 border border-amber-200"
-                                 )}>
-                                   {validationErrors[item.id].error}
-                                 </div>
-                               )}
-                             </div>
-                           </td>
-                          <td className="p-3 text-sm">
-                            {estimateItem ? (
-                              <span className={`flex items-center gap-1 font-medium ${getProfitColor(estimateItem.pricePerUnit - item.costPerUnit)}`}>
-                                {getProfitIcon(estimateItem.pricePerUnit - item.costPerUnit)}
-                                {formatCurrency(estimateItem.pricePerUnit - item.costPerUnit)} per unit
-                              </span>
-                            ) : '—'}
-                          </td>
-                        </tr>
-
-                        {/* Markup Row (Estimate only) */}
-                        {estimateItem && (
-                          <tr className="border-b hover:bg-muted/20">
-                            <td className="p-3 font-medium text-sm">Markup</td>
-                            <td className="p-3 text-sm">
-                              {estimateItem.markupPercent !== null ? `${estimateItem.markupPercent}%` : formatCurrency(estimateItem.markupAmount || 0)}
-                            </td>
-                            <td className="p-3 text-sm text-muted-foreground">Not disclosed</td>
-                            <td className="p-3 text-sm text-muted-foreground">—</td>
-                          </tr>
-                        )}
-
-                        {/* Price Per Unit Row - Now locked to estimate */}
-                        <tr className="border-b hover:bg-muted/20">
-                          <td className="p-3 font-medium text-sm">Price per Unit</td>
-                          <td className="p-3 text-sm">{formatCurrency(estimateItem?.pricePerUnit || 0) || 'N/A'}</td>
-                          <td className="p-3">
-                            <div className="flex items-center h-8 px-3 py-2 bg-muted rounded-md text-sm font-medium border">
-                              {formatCurrency(item.pricePerUnit)} (locked)
-                            </div>
-                          </td>
-                          <td className="p-3 text-sm text-muted-foreground">
-                            Locked to estimate
-                          </td>
-                        </tr>
-
-                        {/* Total Row */}
-                        <tr className="border-b bg-muted/10">
-                          <td className="p-3 font-medium text-sm">Revenue</td>
-                          <td className="p-3 text-sm font-medium">{formatCurrency(estimateItem?.total || 0) || 'N/A'}</td>
-                          <td className="p-3">
-                            <div className="flex items-center h-8 px-3 py-2 bg-muted rounded-md text-sm font-medium">
-                              {formatCurrency(item.total)}
-                            </div>
-                          </td>
-                          <td className="p-3 text-sm">
-                            {estimateItem ? (
-                              <span className={`flex items-center gap-1 font-bold ${getProfitColor((estimateItem.pricePerUnit - item.costPerUnit) * item.quantity)}`}>
-                                {getProfitIcon((estimateItem.pricePerUnit - item.costPerUnit) * item.quantity)}
-                                {formatProfit(estimateItem.pricePerUnit, item.costPerUnit, item.quantity)}
-                              </span>
-                            ) : '—'}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                );
-              })}
             </div>
           )}
-        </CardContent>
-      </Card>
 
-      {/* Notes and Attachments */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Notes</CardTitle>
-          </CardHeader>
-          <CardContent>
+          {/* Line Items Section - Only show when estimate is selected */}
+          {selectedEstimate && (
+            <>
+              <Separator />
+              
+              {/* Line Items Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">
+                    {selectedPayee ? 'Select line items this vendor is bidding on' : 'Line Items'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {!selectedPayee ? (
+                      <span className="text-orange-600">Select a vendor first to choose line items</span>
+                    ) : (
+                      `${selectedLineItemIds.length} of ${selectedEstimate.lineItems.length} items selected`
+                    )}
+                  </p>
+                </div>
+                {selectedPayee && (
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={selectAllLineItems}
+                      disabled={isViewMode || !selectedPayee}
+                    >
+                      Select All
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={clearAllLineItems}
+                      disabled={isViewMode || !selectedPayee}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Line Items Table */}
+              <div className={cn(
+                "border rounded-lg overflow-hidden",
+                !selectedPayee && "opacity-50"
+              )}>
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="w-10 p-3 text-left"></th>
+                      <th className="p-3 text-left font-medium">Description</th>
+                      <th className="p-3 text-left font-medium">Category</th>
+                      <th className="p-3 text-right font-medium">Est. Cost</th>
+                      <th className="p-3 text-right font-medium">Existing Quotes</th>
+                      <th className="p-3 text-right font-medium">Quote Cost</th>
+                      <th className="p-3 text-right font-medium">Variance</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {selectedEstimate.lineItems.map((item) => {
+                      const isInternal = item.category === LineItemCategory.LABOR || 
+                                        item.category === LineItemCategory.MANAGEMENT;
+                      const isSelected = selectedLineItemIds.includes(item.id);
+                      const quoteItem = lineItems.find(li => li.estimateLineItemId === item.id);
+                      const variance = quoteItem 
+                        ? (item.totalCost || 0) - (quoteItem.totalCost || 0)
+                        : 0;
+                      const coverage = existingQuotesCoverage[item.id] || { count: 0, lowestCost: null, hasAccepted: false };
+
+                      return (
+                        <tr 
+                          key={item.id}
+                          className={cn(
+                            "transition-colors",
+                            isInternal && "bg-muted/30 text-muted-foreground",
+                            isSelected && !isInternal && "bg-primary/5",
+                            !selectedPayee && "cursor-not-allowed"
+                          )}
+                        >
+                          <td className="p-3">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => selectedPayee && toggleLineItemSelection(item.id)}
+                              disabled={isInternal || isViewMode || !selectedPayee}
+                            />
+                          </td>
+                          <td className="p-3">
+                            <div className="font-medium">{item.description}</div>
+                            {isInternal && (
+                              <div className="text-xs text-orange-600">
+                                Internal labor - use time entries
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="outline" className="text-xs">
+                              {CATEGORY_DISPLAY_MAP[item.category]}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-right font-mono">
+                            {formatCurrency(item.totalCost || 0)}
+                          </td>
+                          <td className="p-3 text-right">
+                            {coverage.count > 0 ? (
+                              <div className="space-y-1">
+                                <div className="text-xs text-muted-foreground">
+                                  {coverage.count} quote{coverage.count !== 1 ? 's' : ''}
+                                </div>
+                                {coverage.lowestCost !== null && (
+                                  <div className="text-xs font-mono">
+                                    Lowest: {formatCurrency(coverage.lowestCost)}
+                                  </div>
+                                )}
+                                {coverage.hasAccepted && (
+                                  <Badge variant="default" className="bg-green-600 text-white text-xs">
+                                    Accepted
+                                  </Badge>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">No quotes yet</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-right">
+                            {isSelected && quoteItem ? (
+                              <Input
+                                type="number"
+                                value={quoteItem.costPerUnit}
+                                onChange={(e) => updateLineItem(quoteItem.id, 'costPerUnit', e.target.value)}
+                                className="w-24 h-8 text-right font-mono ml-auto"
+                                disabled={isViewMode || !selectedPayee}
+                              />
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className={cn(
+                            "p-3 text-right font-mono",
+                            variance > 0 && "text-green-600",
+                            variance < 0 && "text-destructive"
+                          )}>
+                            {isSelected && quoteItem ? formatCurrency(variance) : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Totals Summary */}
+              <div className="flex justify-end">
+                <div className="w-64 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Estimated Cost:</span>
+                    <span className="font-mono">{formatCurrency(estimateFinancials.totalCost)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Quote Total:</span>
+                    <span className="font-mono">{formatCurrency(quoteFinancials.totalCost)}</span>
+                  </div>
+                  <Separator />
+                  <div className={cn(
+                    "flex justify-between font-medium",
+                    totalProfit > 0 && "text-green-600",
+                    totalProfit < 0 && "text-destructive"
+                  )}>
+                    <span>Profit:</span>
+                    <span className="font-mono">{formatCurrency(totalProfit)} ({profitMargin.toFixed(1)}%)</span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Notes</Label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any notes about this quote..."
-              rows={4}
+              placeholder="Optional notes about this quote..."
+              rows={2}
               disabled={isViewMode}
             />
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Attachment</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isViewMode ? (
-              attachmentUrl ? (
-                <div className="text-sm">
-                  <a href={attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                    View Attachment
-                  </a>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No attachment</p>
-              )
-            ) : (
-              <PdfUpload
-                onUpload={(url, fileName) => setAttachmentUrl(url)}
-                existingFile={attachmentUrl ? { url: attachmentUrl, name: "Quote Attachment" } : undefined}
+          {/* Quote Document Upload */}
+          {selectedEstimate && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Quote Document</Label>
+              <QuoteAttachmentUpload
+                projectId={selectedEstimate.project_id}
+                onUploadSuccess={(url) => setAttachmentUrl(url)}
                 onRemove={() => setAttachmentUrl("")}
+                existingFile={attachmentUrl ? { url: attachmentUrl, name: "Quote Attachment" } : undefined}
+                disabled={isViewMode}
+                relatedQuoteId={initialQuote?.id}
               />
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </div>
+          )}
+        </CardContent>
 
-      {/* Actions */}
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={onCancel}>
-          {isViewMode ? 'Back to Quotes' : 'Cancel'}
-        </Button>
-        {!isViewMode && (
-          <Button onClick={handleSave}>
-            <Save className="h-4 w-4 mr-2" />
-            {initialQuote ? 'Update Quote' : 'Save Quote'}
-          </Button>
-        )}
-      </div>
+        {/* Footer Actions */}
+        <div className="flex justify-between items-center px-6 py-4 border-t bg-muted/30">
+          <div className="flex flex-col">
+            <Button variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+            {!isViewMode && !initialQuote && (
+              <p className="text-xs text-muted-foreground mt-2">
+                To add quotes from other vendors, save this quote first
+              </p>
+            )}
+          </div>
+          {!isViewMode && (
+            <Button 
+              onClick={handleSave}
+              disabled={(!selectedEstimate && !initialQuote) || !selectedPayee || (selectedEstimate && selectedLineItemIds.length === 0)}
+            >
+              {initialQuote ? 'Update Quote' : 'Create Quote'}
+            </Button>
+          )}
+        </div>
+      </Card>
     </div>
   );
 };
