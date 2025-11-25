@@ -1,8 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Upload, File, X, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { isIOSPWA } from '@/utils/platform';
 
 interface QuoteAttachmentUploadProps {
   projectId: string;
@@ -34,6 +36,8 @@ export function QuoteAttachmentUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
 
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_FILE_SIZE) {
@@ -67,7 +71,26 @@ export function QuoteAttachmentUpload({
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleFile(file);
+    if (file) {
+      handleFile(file);
+      // Auto-upload on mobile for better UX
+      if (isMobile) {
+        setTimeout(() => uploadFile(), 100);
+      }
+    }
+  };
+
+  const handleSelectFile = () => {
+    if (disabled) return;
+    
+    if (isIOSPWA()) {
+      toast({
+        title: "Device upload tip",
+        description: "Select Take Photo or Video, Photo Library, or Browse from your iPhone's sheet.",
+        duration: 4000,
+      });
+    }
+    fileInputRef.current?.click();
   };
 
   const uploadFile = async () => {
@@ -167,40 +190,57 @@ export function QuoteAttachmentUpload({
 
   return (
     <div className="space-y-3">
+      {/* Hidden input OUTSIDE drag-drop area */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFileInput}
+        accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
+        disabled={disabled}
+      />
+      
       {!selectedFile ? (
-        <div
-          onDragOver={(e) => { e.preventDefault(); if (!disabled) setIsDragging(true); }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-            isDragging ? 'border-primary bg-primary/5' : 'border-border'
-          } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-        >
-          <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground mb-2">
-            Drag and drop or click to upload quote document
-          </p>
-          <p className="text-xs text-muted-foreground mb-3">
-            PDF, JPEG, PNG, WebP (max 20MB)
-          </p>
-          <input
-            type="file"
-            id="quote-attachment-upload"
-            className="hidden"
-            onChange={handleFileInput}
-            accept=".pdf,.jpg,.jpeg,.png,.webp"
-            disabled={disabled}
-          />
+        isMobile ? (
+          // Mobile: Simple button with large touch target
           <Button
             type="button"
+            onClick={handleSelectFile}
             variant="outline"
-            size="sm"
-            onClick={() => !disabled && document.getElementById('quote-attachment-upload')?.click()}
+            className="w-full h-16 text-base"
             disabled={disabled}
           >
-            Select File
+            <Upload className="w-5 h-5 mr-2" />
+            Upload Quote Document
           </Button>
-        </div>
+        ) : (
+          // Desktop: Keep drag-and-drop area
+          <div
+            onDragOver={(e) => { e.preventDefault(); if (!disabled) setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              isDragging ? 'border-primary bg-primary/5' : 'border-border'
+            } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground mb-2">
+              Drag and drop or click to upload quote document
+            </p>
+            <p className="text-xs text-muted-foreground mb-3">
+              PDF, JPEG, PNG, WebP (max 20MB)
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSelectFile}
+              disabled={disabled}
+            >
+              Select File
+            </Button>
+          </div>
+        )
       ) : (
         <div className="border rounded-lg p-3 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
@@ -223,7 +263,7 @@ export function QuoteAttachmentUpload({
         </div>
       )}
 
-      {selectedFile && (
+      {selectedFile && !isMobile && (
         <Button
           onClick={uploadFile}
           disabled={isUploading || disabled}
@@ -232,6 +272,11 @@ export function QuoteAttachmentUpload({
         >
           {isUploading ? 'Uploading...' : 'Upload Quote Document'}
         </Button>
+      )}
+      
+      {/* Show uploading state on mobile */}
+      {selectedFile && isMobile && isUploading && (
+        <p className="text-sm text-center text-muted-foreground">Uploading...</p>
       )}
     </div>
   );
