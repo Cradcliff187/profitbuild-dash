@@ -266,23 +266,12 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
     }
   }, [selectedEstimate, initialQuote]);
 
-  // Auto-select eligible line items when estimate is selected
+  // Default to no line items selected - user must manually select
   useEffect(() => {
     if (selectedEstimate && !initialQuote) {
-      // Auto-select all eligible line items (exclude internal labor/management)
-      const eligibleItems = selectedEstimate.lineItems.filter(item => 
-        item.category !== LineItemCategory.LABOR && 
-        item.category !== LineItemCategory.MANAGEMENT
-      );
-      
-      const eligibleIds = eligibleItems.map(item => item.id);
-      setSelectedLineItemIds(eligibleIds);
-      
-      // Create quote line items from selected estimate items
-      const quoteLineItems = eligibleItems.map(item => 
-        createQuoteLineItemFromSource(item, 'estimate')
-      );
-      setLineItems(quoteLineItems);
+      // Default to no line items selected
+      setSelectedLineItemIds([]);
+      setLineItems([]);
     }
   }, [selectedEstimate?.id, initialQuote]);
 
