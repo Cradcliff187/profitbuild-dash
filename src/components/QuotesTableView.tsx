@@ -374,12 +374,9 @@ export const QuotesTableView = ({
           return <span className="text-xs text-muted-foreground">Not linked</span>;
         }
         return (
-          <div className="text-xs font-mono">
-            <div className="text-foreground/80">{estimate.estimate_number}</div>
-            {estimate.version_number && estimate.version_number > 1 && (
-              <div className="text-muted-foreground text-[10px]">v{estimate.version_number}</div>
-            )}
-          </div>
+          <span className="text-xs font-mono text-foreground/80">
+            {estimate.estimate_number}
+          </span>
         );
       },
     },
