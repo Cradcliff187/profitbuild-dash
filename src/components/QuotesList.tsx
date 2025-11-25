@@ -36,9 +36,10 @@ interface QuotesListProps {
   onCompare: (quote: Quote) => void;
   onExpire?: (expiredQuoteIds: string[]) => void;
   onCreateNew?: () => void;
+  onRefresh?: () => void;
 }
 
-export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onCompare, onExpire, onCreateNew }: QuotesListProps) => {
+export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onCompare, onExpire, onCreateNew, onRefresh }: QuotesListProps) => {
   const isMobile = useIsMobile();
   const [sortBy, setSortBy] = useState<'date' | 'project' | 'total'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -254,6 +255,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
         onDelete={onDelete}
         onCompare={onCompare}
         onCreateNew={onCreateNew || (() => {})}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -541,10 +543,8 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
           quote={quoteToDuplicate}
           estimates={estimates}
           onSuccess={(newQuoteId) => {
-            // Navigate to edit the new quote  
-            // Parent will handle refresh
             setDuplicateModalOpen(false);
-            window.location.reload(); // Simple refresh to show new quote
+            onRefresh?.(); // Trigger parent refresh instead of page reload
           }}
         />
       )}
