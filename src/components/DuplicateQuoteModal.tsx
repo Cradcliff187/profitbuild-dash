@@ -134,8 +134,7 @@ export const DuplicateQuoteModal = ({
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              <strong>Important:</strong> The duplicated quote will copy all line items, but the links to estimate line items will be cleared. 
-              You'll need to manually re-link them to the new estimate's line items after duplication.
+              Creates an exact copy of this quote for the selected estimate version.
             </AlertDescription>
           </Alert>
         </div>
