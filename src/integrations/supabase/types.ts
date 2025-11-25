@@ -2179,7 +2179,7 @@ export type Database = {
         Returns: number
       }
       calculate_project_margins: {
-        Args: { project_id_param: string }
+        Args: { project_id_param?: string }
         Returns: undefined
       }
       can_access_project: {
