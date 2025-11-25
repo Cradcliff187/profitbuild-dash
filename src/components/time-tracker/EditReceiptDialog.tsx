@@ -385,7 +385,7 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
                 <img 
                   src={capturedPhoto} 
                   alt="Receipt" 
-                  className="w-full h-auto max-h-48 object-contain"
+                  className="w-full h-48 object-cover"
                 />
               </div>
             )}
