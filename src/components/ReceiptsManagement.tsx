@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Image, Download, Trash2, FileImage, MoreHorizontal, CheckCircle, XCircle, Clock, Edit } from 'lucide-react';
+import { Eye, Download, Trash2, Edit, CheckCircle, XCircle, ChevronDown, ChevronUp, ChevronsUpDown, Clock, FileImage, Image as ImageIcon, MoreHorizontal } from "lucide-react";
 import { ReceiptSearchFilters, ReceiptFilters } from '@/components/ReceiptSearchFilters';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -47,15 +47,15 @@ import {
 
 const receiptColumnDefinitions = [
   { key: 'preview', label: 'Preview', required: true, hiddenOnMobile: false },
-  { key: 'type', label: 'Type', required: false, hiddenOnMobile: true },
-  { key: 'payee', label: 'Vendor', required: true, hiddenOnMobile: false },
-  { key: 'project', label: 'Project', required: true, hiddenOnMobile: true },
-  { key: 'date', label: 'Date', required: true, hiddenOnMobile: false },
-  { key: 'amount', label: 'Amount', required: false, hiddenOnMobile: false },
-  { key: 'status', label: 'Status', required: false, hiddenOnMobile: true },
-  { key: 'submitted_at', label: 'Submitted At', required: false, hiddenOnMobile: true },
-  { key: 'submitted_by', label: 'Submitted By', required: false, hiddenOnMobile: true },
-  { key: 'description', label: 'Description', required: false, hiddenOnMobile: true },
+  { key: 'type', label: 'Type', required: false, hiddenOnMobile: true, sortable: true },
+  { key: 'payee', label: 'Vendor', required: true, hiddenOnMobile: false, sortable: true },
+  { key: 'project', label: 'Project', required: true, hiddenOnMobile: true, sortable: true },
+  { key: 'date', label: 'Date', required: true, hiddenOnMobile: false, sortable: true },
+  { key: 'amount', label: 'Amount', required: false, hiddenOnMobile: false, sortable: true },
+  { key: 'status', label: 'Status', required: false, hiddenOnMobile: true, sortable: true },
+  { key: 'submitted_at', label: 'Submitted At', required: false, hiddenOnMobile: true, sortable: true },
+  { key: 'submitted_by', label: 'Submitted By', required: false, hiddenOnMobile: true, sortable: true },
+  { key: 'description', label: 'Description', required: false, hiddenOnMobile: true, sortable: true },
   { key: 'actions', label: 'Actions', required: true, hiddenOnMobile: false },
 ];
 
@@ -125,6 +125,10 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
   
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  
+  // Sorting state
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
@@ -449,6 +453,30 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
     }
   };
 
+  const handleSort = (columnKey: string) => {
+    const column = receiptColumnDefinitions.find(col => col.key === columnKey);
+    if (!column?.sortable) return;
+    
+    if (sortColumn === columnKey) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection('asc');
+    }
+  };
+
+  const renderSortIcon = (columnKey: string) => {
+    const column = receiptColumnDefinitions.find(col => col.key === columnKey);
+    if (!column?.sortable) return null;
+    
+    if (sortColumn !== columnKey) {
+      return <ChevronsUpDown className="h-3 w-3 ml-1 text-muted-foreground/50" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ChevronUp className="h-3 w-3 ml-1" /> 
+      : <ChevronDown className="h-3 w-3 ml-1" />;
+  };
+
   // Filter receipts based on all filter criteria
   const filteredReceipts = allReceipts.filter(r => {
     // Date range filter
@@ -514,7 +542,66 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
     initialPage: 1,
   });
 
-  const paginatedReceipts = filteredReceipts.slice(
+  const sortedReceipts = useMemo(() => {
+    if (!sortColumn) return filteredReceipts;
+    
+    return [...filteredReceipts].sort((a, b) => {
+      let aValue, bValue;
+      switch (sortColumn) {
+        case 'type':
+          aValue = a.type;
+          bValue = b.type;
+          break;
+        case 'payee':
+          aValue = a.payee_name || '';
+          bValue = b.payee_name || '';
+          break;
+        case 'project':
+          aValue = a.project_number || '';
+          bValue = b.project_number || '';
+          break;
+        case 'date':
+          aValue = new Date(a.date).getTime();
+          bValue = new Date(b.date).getTime();
+          break;
+        case 'amount':
+          aValue = a.amount;
+          bValue = b.amount;
+          break;
+        case 'status':
+          aValue = a.approval_status || 'pending';
+          bValue = b.approval_status || 'pending';
+          break;
+        case 'submitted_at':
+          aValue = a.submitted_for_approval_at ? new Date(a.submitted_for_approval_at).getTime() : 0;
+          bValue = b.submitted_for_approval_at ? new Date(b.submitted_for_approval_at).getTime() : 0;
+          break;
+        case 'submitted_by':
+          aValue = a.submitted_by_name || '';
+          bValue = b.submitted_by_name || '';
+          break;
+        case 'description':
+          aValue = a.description || '';
+          bValue = b.description || '';
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+      
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      return sortDirection === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+    });
+  }, [filteredReceipts, sortColumn, sortDirection]);
+
+  const paginatedReceipts = sortedReceipts.slice(
     pagination.startIndex,
     pagination.endIndex
   );
@@ -784,6 +871,9 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
                     </TableHead>
                     {displayColumns.map(colKey => {
                       if (!visibleColumns.includes(colKey)) return null;
+                      
+                      const column = receiptColumnDefinitions.find(c => c.key === colKey);
+                      const isSortable = column?.sortable;
                   
                   const widths: Record<string, string> = {
                     preview: 'w-12',
@@ -821,9 +911,19 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
                   return (
                     <TableHead 
                       key={colKey} 
-                      className={`p-2 text-xs font-medium h-8 ${widths[colKey]} ${alignments[colKey] || ''}`}
+                      className={cn(
+                        `p-2 text-xs font-medium h-8 ${widths[colKey]} ${alignments[colKey] || ''}`,
+                        isSortable && "cursor-pointer hover:text-foreground select-none"
+                      )}
+                      onClick={() => isSortable && handleSort(colKey)}
                     >
-                      {labels[colKey]}
+                      <div className={cn(
+                        "flex items-center",
+                        alignments[colKey] === 'text-right' && "justify-end"
+                      )}>
+                        {labels[colKey]}
+                        {renderSortIcon(colKey)}
+                      </div>
                     </TableHead>
                   );
                 })}
@@ -865,7 +965,7 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
                                 className="h-6 w-6 p-0"
                                 onClick={() => handleViewReceipt(receipt)}
                               >
-                                <Image className="h-3 w-3 text-blue-600" />
+                                <ImageIcon className="h-3 w-3 text-blue-600" />
                               </Button>
                             </TableCell>
                           );
@@ -958,7 +1058,7 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => handleViewReceipt(receipt)}>
-                                    <Image className="h-3 w-3 mr-2" />
+                                    <ImageIcon className="h-3 w-3 mr-2" />
                                     View Receipt
                                   </DropdownMenuItem>
                                   

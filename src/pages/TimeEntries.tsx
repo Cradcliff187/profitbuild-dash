@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   ClipboardCheck,
   Download,
@@ -12,6 +12,9 @@ import {
   Paperclip,
   Trash2,
   Plus,
+  ChevronDown,
+  ChevronUp,
+  ChevronsUpDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +45,7 @@ import { format } from "date-fns";
 import { usePagination } from "@/hooks/usePagination";
 import { CompletePagination } from "@/components/ui/complete-pagination";
 import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,18 +63,18 @@ import { useRoles } from "@/contexts/RoleContext";
 
 // Define column metadata for selector (must be outside component for state initialization)
 const columnDefinitions = [
-  { key: "worker", label: "Worker", required: true },
-  { key: "employee_number", label: "Employee #", required: false },
-  { key: "project", label: "Project", required: true },
-  { key: "address", label: "Project Address", required: false },
-  { key: "date", label: "Date", required: true },
-  { key: "start", label: "Start Time", required: false },
-  { key: "end", label: "End Time", required: false },
-  { key: "hours", label: "Hours", required: false },
-  { key: "amount", label: "Amount", required: false },
-  { key: "receipt", label: "Receipt", required: false },
-  { key: "status", label: "Status", required: false },
-  { key: "submitted_at", label: "Submitted At", required: false },
+  { key: "worker", label: "Worker", required: true, sortable: true },
+  { key: "employee_number", label: "Employee #", required: false, sortable: true },
+  { key: "project", label: "Project", required: true, sortable: true },
+  { key: "address", label: "Project Address", required: false, sortable: true },
+  { key: "date", label: "Date", required: true, sortable: true },
+  { key: "start", label: "Start Time", required: false, sortable: true },
+  { key: "end", label: "End Time", required: false, sortable: true },
+  { key: "hours", label: "Hours", required: false, sortable: true },
+  { key: "amount", label: "Amount", required: false, sortable: true },
+  { key: "receipt", label: "Receipt", required: false, sortable: true },
+  { key: "status", label: "Status", required: false, sortable: true },
+  { key: "submitted_at", label: "Submitted At", required: false, sortable: true },
   { key: "actions", label: "Actions", required: true },
 ];
 
@@ -119,6 +123,8 @@ const TimeEntries = () => {
   const { isAdmin, isManager } = useRoles();
   const canCreateTimeEntry = isAdmin || isManager;
   const receiptsManagementRef = useRef<ReceiptsManagementRef>(null);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Receipt column definitions
   const receiptColumnDefinitions = [
@@ -486,6 +492,101 @@ const TimeEntries = () => {
     });
   };
 
+  const handleSort = (columnKey: string) => {
+    const column = columnDefinitions.find(col => col.key === columnKey);
+    if (!column?.sortable) return;
+    
+    if (sortColumn === columnKey) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection('asc');
+    }
+  };
+
+  const renderSortIcon = (columnKey: string) => {
+    const column = columnDefinitions.find(col => col.key === columnKey);
+    if (!column?.sortable) return null;
+    
+    if (sortColumn !== columnKey) {
+      return <ChevronsUpDown className="h-3 w-3 ml-1 text-muted-foreground/50" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ChevronUp className="h-3 w-3 ml-1" /> 
+      : <ChevronDown className="h-3 w-3 ml-1" />;
+  };
+
+  const sortedEntries = useMemo(() => {
+    if (!sortColumn) return entries;
+    
+    return [...entries].sort((a, b) => {
+      let aValue, bValue;
+      switch (sortColumn) {
+        case 'worker':
+          aValue = a.worker_name || '';
+          bValue = b.worker_name || '';
+          break;
+        case 'employee_number':
+          aValue = a.payee?.employee_number || '';
+          bValue = b.payee?.employee_number || '';
+          break;
+        case 'project':
+          aValue = a.project_number || '';
+          bValue = b.project_number || '';
+          break;
+        case 'address':
+          aValue = a.project_address || '';
+          bValue = b.project_address || '';
+          break;
+        case 'date':
+          aValue = new Date(a.expense_date).getTime();
+          bValue = new Date(b.expense_date).getTime();
+          break;
+        case 'start':
+          aValue = a.start_time ? new Date(a.start_time).getTime() : 0;
+          bValue = b.start_time ? new Date(b.start_time).getTime() : 0;
+          break;
+        case 'end':
+          aValue = a.end_time ? new Date(a.end_time).getTime() : 0;
+          bValue = b.end_time ? new Date(b.end_time).getTime() : 0;
+          break;
+        case 'hours':
+          aValue = a.hours;
+          bValue = b.hours;
+          break;
+        case 'amount':
+          aValue = a.amount;
+          bValue = b.amount;
+          break;
+        case 'receipt':
+          aValue = a.attachment_url ? 1 : 0;
+          bValue = b.attachment_url ? 1 : 0;
+          break;
+        case 'status':
+          aValue = a.approval_status || 'pending';
+          bValue = b.approval_status || 'pending';
+          break;
+        case 'submitted_at':
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+      
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      return sortDirection === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+    });
+  }, [entries, sortColumn, sortDirection]);
+
   const getStatusBadge = (status: string | null) => {
     if (!status || status === "pending") {
       return (
@@ -723,12 +824,15 @@ const TimeEntries = () => {
                     <TableRow className="h-8">
                       <TableHead className="w-10 p-2">
                         <Checkbox
-                          checked={selectedIds.length === entries.length && entries.length > 0}
+                          checked={selectedIds.length === sortedEntries.length && sortedEntries.length > 0}
                           onCheckedChange={handleSelectAll}
                         />
                       </TableHead>
                       {columnOrder.map((colKey) => {
                         if (!visibleColumns.includes(colKey)) return null;
+                        
+                        const column = columnDefinitions.find(col => col.key === colKey);
+                        const isSortable = column?.sortable;
 
                         const widths: Record<string, string> = {
                           worker: "w-32",
@@ -745,101 +849,49 @@ const TimeEntries = () => {
                           submitted_at: "w-36",
                           actions: "w-20",
                         };
+                        
+                        const alignments: Record<string, string> = {
+                          hours: "text-right",
+                          amount: "text-right",
+                          receipt: "text-center",
+                          actions: "text-right",
+                        };
+                        
+                        const labels: Record<string, string> = {
+                          worker: "Worker",
+                          employee_number: "Employee #",
+                          project: "Project",
+                          address: "Address",
+                          date: "Date",
+                          start: "Start",
+                          end: "End",
+                          hours: "Hours",
+                          amount: "Amount",
+                          receipt: "Receipt",
+                          status: "Status",
+                          submitted_at: "Submitted At",
+                          actions: "Actions",
+                        };
 
-                        switch (colKey) {
-                          case "worker":
-                            return (
-                              <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>
-                                Worker
-                              </TableHead>
-                            );
-                          case "employee_number":
-                            return (
-                              <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>
-                                Employee #
-                              </TableHead>
-                            );
-                          case "project":
-                            return (
-                              <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>
-                                Project
-                              </TableHead>
-                            );
-                          case "address":
-                            return (
-                              <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>
-                                Address
-                              </TableHead>
-                            );
-                          case "date":
-                            return (
-                              <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>
-                                Date
-                              </TableHead>
-                            );
-                          case "start":
-                            return (
-                              <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>
-                                Start
-                              </TableHead>
-                            );
-                          case "end":
-                            return (
-                              <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>
-                                End
-                              </TableHead>
-                            );
-                          case "hours":
-                            return (
-                              <TableHead
-                                key={colKey}
-                                className={`p-2 text-xs font-medium h-8 text-right ${widths[colKey]}`}
-                              >
-                                Hours
-                              </TableHead>
-                            );
-                          case "amount":
-                            return (
-                              <TableHead
-                                key={colKey}
-                                className={`p-2 text-xs font-medium h-8 text-right ${widths[colKey]}`}
-                              >
-                                Amount
-                              </TableHead>
-                            );
-                          case "receipt":
-                            return (
-                              <TableHead
-                                key={colKey}
-                                className={`p-2 text-xs font-medium h-8 text-center ${widths[colKey]}`}
-                              >
-                                Receipt
-                              </TableHead>
-                            );
-                          case "status":
-                            return (
-                              <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>
-                                Status
-                              </TableHead>
-                            );
-                          case "submitted_at":
-                            return (
-                              <TableHead key={colKey} className={`p-2 text-xs font-medium h-8 ${widths[colKey]}`}>
-                                Submitted At
-                              </TableHead>
-                            );
-                          case "actions":
-                            return (
-                              <TableHead
-                                key={colKey}
-                                className={`p-2 text-xs font-medium h-8 text-right ${widths[colKey]}`}
-                              >
-                                Actions
-                              </TableHead>
-                            );
-                          default:
-                            return null;
-                        }
+                        return (
+                          <TableHead 
+                            key={colKey} 
+                            className={cn(
+                              `p-2 text-xs font-medium h-8 ${widths[colKey]} ${alignments[colKey] || ''}`,
+                              isSortable && "cursor-pointer hover:text-foreground select-none"
+                            )}
+                            onClick={() => isSortable && handleSort(colKey)}
+                          >
+                            <div className={cn(
+                              "flex items-center",
+                              alignments[colKey] === "text-right" && "justify-end",
+                              alignments[colKey] === "text-center" && "justify-center"
+                            )}>
+                              {labels[colKey]}
+                              {renderSortIcon(colKey)}
+                            </div>
+                          </TableHead>
+                        );
                       })}
                     </TableRow>
                   </TableHeader>
@@ -860,7 +912,7 @@ const TimeEntries = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      entries.map((entry) => (
+                      sortedEntries.map((entry) => (
                         <TableRow key={entry.id} className="h-9 hover:bg-muted/50 even:bg-muted/20">
                           <TableCell className="p-1.5">
                             <Checkbox
