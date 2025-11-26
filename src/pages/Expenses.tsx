@@ -101,7 +101,7 @@ const Expenses = () => {
   // Column definitions for ColumnSelector
   const expenseColumnDefinitions = [
     { key: 'checkbox', label: 'Select', required: true },
-    { key: 'split', label: '', required: false },
+    { key: 'split', label: 'Split', required: false },
     { key: 'date', label: 'Date', required: false },
     { key: 'project', label: 'Project', required: false },
     { key: 'payee', label: 'Payee', required: false },
