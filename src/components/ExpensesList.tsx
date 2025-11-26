@@ -67,7 +67,7 @@ interface ColumnDefinition {
 
 const EXPENSE_COLUMNS: ColumnDefinition[] = [
   { key: 'checkbox', label: 'Select', required: true, width: 'w-10', defaultVisible: true },
-  { key: 'split', label: '', required: false, width: 'w-8', defaultVisible: true },
+  { key: 'split', label: 'Split', required: false, width: 'w-8', defaultVisible: true },
   { key: 'date', label: 'Date', required: false, width: 'w-24', sortable: true, defaultVisible: true },
   { key: 'project', label: 'Project', required: false, width: 'w-48', sortable: true, defaultVisible: true },
   { key: 'payee', label: 'Payee', required: false, width: 'w-48', sortable: true, defaultVisible: true },
