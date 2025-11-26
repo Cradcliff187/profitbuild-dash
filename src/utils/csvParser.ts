@@ -209,7 +209,13 @@ export interface QBImportResult {
     transaction: QBTransaction;
     reason: string;
   }>;
-  duplicatesDetected: number;
+  duplicatesDetected: number;          // In-file duplicates (existing)
+  databaseDuplicates: Array<{
+    transaction: QBTransaction;
+    existingExpenseId: string;
+    matchKey: string;
+  }>;
+  databaseDuplicatesSkipped: number;   // Count of DB duplicates skipped
   mappingStats: {
     databaseMapped: number;
     staticMapped: number;
@@ -277,6 +283,86 @@ const createPayeeFromTransaction = async (
     console.error('Error creating payee from transaction:', error);
     return null;
   }
+};
+
+/**
+ * Creates a composite key for expense matching
+ */
+const createExpenseKey = (
+  date: string | Date,
+  amount: number,
+  payeeId: string | null
+): string => {
+  const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
+  const normalizedAmount = Math.round(amount * 100) / 100; // Ensure 2 decimal precision
+  return `${dateStr}|${normalizedAmount}|${payeeId || 'null'}`.toLowerCase();
+};
+
+/**
+ * Creates a composite key using description (fallback when no payee)
+ */
+const createExpenseKeyWithDescription = (
+  date: string | Date,
+  amount: number,
+  description: string
+): string => {
+  const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
+  const normalizedAmount = Math.round(amount * 100) / 100;
+  const normalizedDesc = description.toLowerCase().trim().substring(0, 50);
+  return `desc|${dateStr}|${normalizedAmount}|${normalizedDesc}`;
+};
+
+/**
+ * Fetches existing expenses from database for duplicate detection
+ * @param startDate - Earliest date in the import batch
+ * @param endDate - Latest date in the import batch
+ * @returns Map of composite keys to existing expense IDs
+ */
+const fetchExistingExpenses = async (
+  startDate: string,
+  endDate: string
+): Promise<Map<string, { id: string; description: string }>> => {
+  const { data: existingExpenses, error } = await supabase
+    .from('expenses')
+    .select('id, expense_date, amount, payee_id, description')
+    .gte('expense_date', startDate)
+    .lte('expense_date', endDate)
+    .eq('is_split', false); // Only check non-split parent expenses
+
+  if (error) {
+    console.error('Error fetching existing expenses for duplicate check:', error);
+    return new Map();
+  }
+
+  const existingMap = new Map<string, { id: string; description: string }>();
+  
+  for (const expense of existingExpenses || []) {
+    // Primary key: date-amount-payeeId
+    const primaryKey = createExpenseKey(
+      expense.expense_date,
+      expense.amount,
+      expense.payee_id
+    );
+    existingMap.set(primaryKey, { 
+      id: expense.id, 
+      description: expense.description || '' 
+    });
+    
+    // Secondary key for null payee: date-amount-description (normalized)
+    if (!expense.payee_id && expense.description) {
+      const secondaryKey = createExpenseKeyWithDescription(
+        expense.expense_date,
+        expense.amount,
+        expense.description
+      );
+      existingMap.set(secondaryKey, { 
+        id: expense.id, 
+        description: expense.description 
+      });
+    }
+  }
+
+  return existingMap;
 };
 
 /**
@@ -403,6 +489,8 @@ export const mapQuickBooksToExpenses = async (
     lowConfidenceMatches: [],
     duplicates,
     duplicatesDetected: duplicateCount,
+    databaseDuplicates: [],
+    databaseDuplicatesSkipped: 0,
     mappingStats: {
       databaseMapped: 0,
       staticMapped: 0,
@@ -416,6 +504,30 @@ export const mapQuickBooksToExpenses = async (
   };
 
   try {
+    // === Calculate date range and fetch existing expenses for duplicate detection ===
+    const dates = uniqueTransactions
+      .map(t => t.date)
+      .filter(d => d && d.trim() !== '')
+      .map(d => new Date(d))
+      .filter(d => !isNaN(d.getTime()));
+    
+    let existingExpenses = new Map<string, { id: string; description: string }>();
+    
+    if (dates.length > 0) {
+      const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+      const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+      
+      // Add buffer days to catch edge cases
+      minDate.setDate(minDate.getDate() - 1);
+      maxDate.setDate(maxDate.getDate() + 1);
+      
+      existingExpenses = await fetchExistingExpenses(
+        minDate.toISOString().split('T')[0],
+        maxDate.toISOString().split('T')[0]
+      );
+    }
+    // === END duplicate detection setup ===
+
     // Load projects, payees, and account mappings for matching
     const [projectsResponse, payeesResponse, mappingsResponse] = await Promise.all([
       supabase.from('projects').select('id, project_number, project_name'),
@@ -519,6 +631,30 @@ export const mapQuickBooksToExpenses = async (
             }
           }
         }
+
+        // === Check for database duplicate ===
+        const dateStr = expense_date.toISOString().split('T')[0];
+        const primaryKey = createExpenseKey(dateStr, amount, payeeId || null);
+        const descriptionKey = createExpenseKeyWithDescription(
+          dateStr, 
+          amount, 
+          transaction.name || ''
+        );
+        
+        const existingByPrimaryKey = existingExpenses.get(primaryKey);
+        const existingByDescription = !payeeId ? existingExpenses.get(descriptionKey) : null;
+        const existingExpense = existingByPrimaryKey || existingByDescription;
+        
+        if (existingExpense) {
+          result.databaseDuplicates.push({
+            transaction,
+            existingExpenseId: existingExpense.id,
+            matchKey: existingByPrimaryKey ? primaryKey : descriptionKey
+          });
+          result.databaseDuplicatesSkipped++;
+          continue; // Skip this transaction - already exists in database
+        }
+        // === END database duplicate check ===
 
         // Categorize with enhanced logic
         const category = categorizeExpense(

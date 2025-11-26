@@ -47,6 +47,27 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     category_mappings_used: Record<string, string>;
     errors: string[];
     successCount: number;
+    databaseDuplicatesSkipped?: number;
+    inFileDuplicatesSkipped?: number;
+    fuzzyMatches?: Array<{
+      qbName: string;
+      matchedPayee: any;
+      confidence: number;
+      matchType: 'exact' | 'fuzzy' | 'auto';
+    }>;
+    autoCreatedPayees?: Array<{
+      qbName: string;
+      payeeId: string;
+      payeeType: any;
+    }>;
+    autoCreatedCount?: number;
+    mappingStats?: {
+      databaseMapped: number;
+      staticMapped: number;
+      descriptionMapped: number;
+      unmapped: number;
+    };
+    unmappedAccounts?: string[];
   } | null>(null);
   const [validationResults, setValidationResults] = useState<{
     matchedProjects: number;
@@ -55,6 +76,24 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     unmatchedPayees: number;
     unmatchedProjectNumbers: string[];
     unmatchedPayeeNames: string[];
+    databaseDuplicatesSkipped?: number;
+    databaseDuplicates?: Array<{
+      transaction: TransactionCSVRow;
+      existingExpenseId: string;
+      matchKey: string;
+    }>;
+    inFileDuplicatesSkipped?: number;
+    inFileDuplicates?: Array<{
+      transaction: TransactionCSVRow;
+      reason: string;
+    }>;
+    reconciliation?: {
+      totalExistingNonLaborExpenses: number;
+      totalDuplicateAmount: number;
+      difference: number;
+      isAligned: boolean;
+      threshold: number;
+    };
   } | null>(null);
   const { toast } = useToast();
 
@@ -93,6 +132,93 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     const unmatchedProjectNumbers = new Set<string>();
     const unmatchedPayeeNames = new Set<string>();
     
+    // === Check for in-file duplicates ===
+    const seenInFile = new Map<string, TransactionCSVRow>();
+    const inFileDuplicates: Array<{ transaction: TransactionCSVRow; reason: string }> = [];
+    
+    data.forEach(row => {
+      // Only check expenses for duplicates (not invoices/revenues)
+      if (row['Transaction type']?.toLowerCase() === 'invoice') {
+        return;
+      }
+      
+      const date = row['Date'] ? new Date(row['Date']).toISOString().split('T')[0] : '';
+      const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
+      const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
+      const name = row['Name']?.trim().toLowerCase() || '';
+      
+      // Create key: date|amount|name
+      const key = `${date}|${normalizedAmount}|${name}`.toLowerCase();
+      
+      if (seenInFile.has(key)) {
+        const firstOccurrence = seenInFile.get(key)!;
+        inFileDuplicates.push({
+          transaction: row,
+          reason: `Duplicate of: ${firstOccurrence['Name']} on ${firstOccurrence['Date']}`
+        });
+      } else {
+        seenInFile.set(key, row);
+      }
+    });
+    // === END in-file duplicate detection ===
+    
+    // Check for database duplicates
+    const dates = data
+      .map(row => row['Date'])
+      .filter(d => d && d.trim() !== '')
+      .map(d => {
+        const date = new Date(d);
+        return isNaN(date.getTime()) ? null : date;
+      })
+      .filter((d): d is Date => d !== null);
+    
+    let existingExpenses = new Map<string, { id: string; description: string }>();
+    const databaseDuplicates: Array<{
+      transaction: TransactionCSVRow;
+      existingExpenseId: string;
+      matchKey: string;
+    }> = [];
+    
+    if (dates.length > 0) {
+      const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+      const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+      
+      // Add buffer days to catch edge cases
+      minDate.setDate(minDate.getDate() - 1);
+      maxDate.setDate(maxDate.getDate() + 1);
+      
+      const { data: existingExpensesData, error } = await supabase
+        .from('expenses')
+        .select('id, expense_date, amount, payee_id, description')
+        .gte('expense_date', minDate.toISOString().split('T')[0])
+        .lte('expense_date', maxDate.toISOString().split('T')[0])
+        .eq('is_split', false);
+      
+      if (!error && existingExpensesData) {
+        const payeeMap = new Map<string, string>();
+        payees?.forEach(payee => {
+          payeeMap.set(payee.id, payee.payee_name.toLowerCase().trim());
+        });
+        
+        for (const expense of existingExpensesData) {
+          const primaryKey = `${expense.expense_date}|${Math.round(expense.amount * 100) / 100}|${expense.payee_id || 'null'}`.toLowerCase();
+          existingExpenses.set(primaryKey, { 
+            id: expense.id, 
+            description: expense.description || '' 
+          });
+          
+          if (!expense.payee_id && expense.description) {
+            const normalizedDesc = expense.description.toLowerCase().trim().substring(0, 50);
+            const secondaryKey = `desc|${expense.expense_date}|${Math.round(expense.amount * 100) / 100}|${normalizedDesc}`;
+            existingExpenses.set(secondaryKey, { 
+              id: expense.id, 
+              description: expense.description 
+            });
+          }
+        }
+      }
+    }
+    
     data.forEach(row => {
       const projectWO = row['Project/WO #']?.trim().toLowerCase();
       const name = row['Name']?.trim().toLowerCase();
@@ -118,7 +244,90 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
           unmatchedPayeeNames.add(row['Name']?.trim() || '');
         }
       }
+      
+      // Check for database duplicate (only for expenses, not invoices)
+      if (row['Transaction type'] !== 'Invoice') {
+        const date = row['Date'] ? new Date(row['Date']).toISOString().split('T')[0] : '';
+        const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
+        const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
+        
+        // Find payee ID for this row
+        let payeeId: string | null = null;
+        if (name) {
+          const foundPayee = payees?.find(p => 
+            p.payee_name.toLowerCase().trim() === name || 
+            p.full_name?.toLowerCase().trim() === name
+          );
+          payeeId = foundPayee?.id || null;
+        }
+        
+        const primaryKey = `${date}|${normalizedAmount}|${payeeId || 'null'}`.toLowerCase();
+        const descriptionKey = `desc|${date}|${normalizedAmount}|${name.substring(0, 50).toLowerCase()}`;
+        
+        const existingByPrimaryKey = existingExpenses.get(primaryKey);
+        const existingByDescription = !payeeId ? existingExpenses.get(descriptionKey) : null;
+        const existingExpense = existingByPrimaryKey || existingByDescription;
+        
+        if (existingExpense) {
+          databaseDuplicates.push({
+            transaction: row,
+            existingExpenseId: existingExpense.id,
+            matchKey: existingByPrimaryKey ? primaryKey : descriptionKey
+          });
+        }
+      }
     });
+    
+    // === Calculate reconciliation ===
+    // Get unique expense IDs from database duplicates (in-file duplicates don't have existingExpenseId)
+    const expenseIds = databaseDuplicates
+      .map(dup => dup.existingExpenseId)
+      .filter((id): id is string => !!id)
+      .filter((id, index, self) => self.indexOf(id) === index); // Remove duplicates
+    
+    let reconciliation = {
+      totalExistingNonLaborExpenses: 0,
+      totalDuplicateAmount: 0,
+      difference: 0,
+      isAligned: true,
+      threshold: 0.01
+    };
+    
+    if (expenseIds.length > 0 || databaseDuplicates.length > 0 || inFileDuplicates.length > 0) {
+      // Query database for the specific expenses that match the duplicates
+      let totalExistingNonLaborExpenses = 0;
+      if (expenseIds.length > 0) {
+        const { data: expensesData, error: expensesError } = await supabase
+          .from('expenses')
+          .select('id, amount, category')
+          .in('id', expenseIds)
+          .neq('category', ExpenseCategory.LABOR)
+          .eq('is_split', false);
+        
+        if (!expensesError && expensesData) {
+          totalExistingNonLaborExpenses = expensesData.reduce((sum, exp) => sum + Math.abs(exp.amount || 0), 0);
+        }
+      }
+      
+      // Sum amounts from all duplicate transactions (both in-file and database duplicates)
+      let totalDuplicateAmount = 0;
+      for (const dup of [...databaseDuplicates, ...inFileDuplicates]) {
+        const amount = parseFloat(dup.transaction['Amount']?.replace(/[,$]/g, '') || '0');
+        totalDuplicateAmount += Math.abs(amount);
+      }
+      
+      const difference = Math.abs(totalExistingNonLaborExpenses - totalDuplicateAmount);
+      const isAligned = difference <= reconciliation.threshold;
+      
+      reconciliation = {
+        totalExistingNonLaborExpenses,
+        totalDuplicateAmount,
+        difference,
+        isAligned,
+        threshold: reconciliation.threshold
+      };
+    }
+    // === END reconciliation calculation ===
     
     return {
       matchedProjects,
@@ -126,7 +335,12 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       matchedPayees,
       unmatchedPayees,
       unmatchedProjectNumbers: Array.from(unmatchedProjectNumbers),
-      unmatchedPayeeNames: Array.from(unmatchedPayeeNames)
+      unmatchedPayeeNames: Array.from(unmatchedPayeeNames),
+      databaseDuplicatesSkipped: databaseDuplicates.length,
+      databaseDuplicates,
+      inFileDuplicatesSkipped: inFileDuplicates.length,
+      inFileDuplicates,
+      reconciliation
     };
   };
 
@@ -227,16 +441,35 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         unassociated_revenues: result.unassociated_revenues,
         category_mappings_used: result.category_mappings_used,
         errors: errorMessages,
-        successCount
+        successCount,
+        databaseDuplicatesSkipped: result.databaseDuplicatesSkipped,
+        inFileDuplicatesSkipped: result.inFileDuplicatesSkipped,
+        fuzzyMatches: result.fuzzyMatches,
+        autoCreatedPayees: result.autoCreatedPayees,
+        autoCreatedCount: result.autoCreatedCount,
+        mappingStats: result.mappingStats,
+        unmappedAccounts: result.unmappedAccounts
       };
 
       setImportResults(finalResults);
       setStep('complete');
 
       if (successCount > 0) {
+        const duplicateInfo = [];
+        if (finalResults.databaseDuplicatesSkipped && finalResults.databaseDuplicatesSkipped > 0) {
+          duplicateInfo.push(`${finalResults.databaseDuplicatesSkipped} database duplicate(s)`);
+        }
+        if (finalResults.inFileDuplicatesSkipped && finalResults.inFileDuplicatesSkipped > 0) {
+          duplicateInfo.push(`${finalResults.inFileDuplicatesSkipped} in-file duplicate(s)`);
+        }
+        const duplicateText = duplicateInfo.length > 0 ? ` Skipped ${duplicateInfo.join(', ')}.` : '';
+        const autoCreatedText = finalResults.autoCreatedCount && finalResults.autoCreatedCount > 0 
+          ? ` Auto-created ${finalResults.autoCreatedCount} payee(s).` 
+          : '';
         toast({
           title: "Import completed",
-          description: `Successfully imported ${successCount} transaction${successCount === 1 ? '' : 's'}${errorMessages.length > 0 ? ` with ${errorMessages.length} error${errorMessages.length === 1 ? '' : 's'}` : ''}`,
+          description: `Successfully imported ${successCount} transaction${successCount === 1 ? '' : 's'}.${duplicateText}${autoCreatedText}${errorMessages.length > 0 ? ` ${errorMessages.length} failed.` : ''}`,
+          variant: errorMessages.length > 0 ? "destructive" : "default"
         });
         onSuccess();
       }
@@ -417,6 +650,138 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                       </div>
                     </div>
                   </div>
+                  
+                  {/* In-File Duplicates Warning */}
+                  {validationResults.inFileDuplicatesSkipped !== undefined && validationResults.inFileDuplicatesSkipped > 0 && (
+                    <div className="p-4 rounded-lg border bg-orange-50 border-orange-200">
+                      <div className="flex items-start gap-2 mb-2">
+                        <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <h4 className="font-medium text-sm">Duplicate Transactions in File</h4>
+                          <p className="text-sm mt-1">
+                            <span className="font-medium text-orange-700">
+                              {validationResults.inFileDuplicatesSkipped} transaction(s)
+                            </span>
+                            {' '}appear multiple times in the uploaded file and will be skipped.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {validationResults.inFileDuplicates && validationResults.inFileDuplicates.length > 0 && (
+                        <details className="mt-2">
+                          <summary className="text-xs cursor-pointer text-orange-700 hover:underline">
+                            View duplicate transactions
+                          </summary>
+                          <div className="mt-2 max-h-32 overflow-y-auto text-xs bg-white rounded border border-orange-200 p-2">
+                            {validationResults.inFileDuplicates.slice(0, 10).map((dup, idx) => (
+                              <div key={idx} className="py-1 border-b border-orange-100 last:border-0">
+                                {dup.transaction['Date']} - {dup.transaction['Name']} - {formatCurrency(parseFloat(dup.transaction['Amount']?.replace(/[,$]/g, '') || '0'))}
+                              </div>
+                            ))}
+                            {validationResults.inFileDuplicates.length > 10 && (
+                              <div className="pt-1 text-orange-600">
+                                ...and {validationResults.inFileDuplicates.length - 10} more
+                              </div>
+                            )}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Database Duplicates Warning */}
+                  {validationResults.databaseDuplicatesSkipped !== undefined && validationResults.databaseDuplicatesSkipped > 0 && (
+                    <div className="p-4 rounded-lg border bg-amber-50 border-amber-200">
+                      <div className="flex items-start gap-2 mb-2">
+                        <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <h4 className="font-medium text-sm">Existing Transactions Found</h4>
+                          <p className="text-sm mt-1">
+                            <span className="font-medium text-amber-700">
+                              {validationResults.databaseDuplicatesSkipped} transaction(s)
+                            </span>
+                            {' '}already exist in the database and will be skipped.
+                          </p>
+                          <p className="text-xs text-amber-600 mt-1 italic">
+                            These were likely imported in a previous upload.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Optional: Expandable list of duplicates */}
+                      {validationResults.databaseDuplicates && validationResults.databaseDuplicates.length > 0 && (
+                        <details className="mt-2">
+                          <summary className="text-xs cursor-pointer text-amber-700 hover:underline">
+                            View duplicate transactions
+                          </summary>
+                          <div className="mt-2 max-h-32 overflow-y-auto text-xs bg-white rounded border border-amber-200 p-2">
+                            {validationResults.databaseDuplicates.slice(0, 10).map((dup, idx) => (
+                              <div key={idx} className="py-1 border-b border-amber-100 last:border-0">
+                                {dup.transaction['Date']} - {dup.transaction['Name']} - {formatCurrency(parseFloat(dup.transaction['Amount']?.replace(/[,$]/g, '') || '0'))}
+                              </div>
+                            ))}
+                            {validationResults.databaseDuplicates.length > 10 && (
+                              <div className="pt-1 text-amber-600">
+                                ...and {validationResults.databaseDuplicates.length - 10} more
+                              </div>
+                            )}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Reconciliation Display */}
+                  {validationResults.reconciliation && (validationResults.reconciliation.totalDuplicateAmount > 0 || validationResults.reconciliation.totalExistingNonLaborExpenses > 0) && (
+                    <div className={cn(
+                      "p-4 rounded-lg border",
+                      validationResults.reconciliation.isAligned
+                        ? "bg-green-50 border-green-200"
+                        : "bg-red-50 border-red-200"
+                    )}>
+                      <div className="flex items-start gap-2 mb-2">
+                        {validationResults.reconciliation.isAligned ? (
+                          <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <h4 className="font-medium text-sm">
+                            {validationResults.reconciliation.isAligned ? 'Reconciliation Aligned' : 'Reconciliation Failed'}
+                          </h4>
+                          <div className="mt-2 space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Matching Expenses in System:</span>
+                              <span className="font-medium">{formatCurrency(validationResults.reconciliation.totalExistingNonLaborExpenses)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Total Duplicate Amount:</span>
+                              <span className="font-medium">{formatCurrency(validationResults.reconciliation.totalDuplicateAmount)}</span>
+                            </div>
+                            <div className="flex justify-between border-t pt-1">
+                              <span className={cn(
+                                "font-medium",
+                                validationResults.reconciliation.isAligned ? "text-green-700" : "text-red-700"
+                              )}>
+                                Difference:
+                              </span>
+                              <span className={cn(
+                                "font-bold",
+                                validationResults.reconciliation.isAligned ? "text-green-700" : "text-red-700"
+                              )}>
+                                {formatCurrency(validationResults.reconciliation.difference)}
+                              </span>
+                            </div>
+                          </div>
+                          {!validationResults.reconciliation.isAligned && (
+                            <p className="text-xs text-red-600 mt-2 italic">
+                              Reconciliation failed: Totals do not match. Please review duplicates before importing.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -460,8 +825,18 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
               <Button variant="outline" onClick={() => setStep('upload')}>
                 Back
               </Button>
-              <Button onClick={handleImport} disabled={isImporting}>
-                {isImporting ? 'Importing...' : `Import ${csvData.length} Transactions`}
+              <Button 
+                onClick={handleImport} 
+                disabled={isImporting || (validationResults?.reconciliation && !validationResults.reconciliation.isAligned)}
+              >
+                {(() => {
+                  if (isImporting) return 'Importing...';
+                  const duplicatesSkipped = (validationResults?.databaseDuplicatesSkipped || 0) + (validationResults?.inFileDuplicatesSkipped || 0);
+                  const actualImportCount = csvData.length - duplicatesSkipped;
+                  return duplicatesSkipped > 0 
+                    ? `Import ${actualImportCount} Transactions (${duplicatesSkipped} duplicates skipped)`
+                    : `Import ${actualImportCount} Transactions`;
+                })()}
               </Button>
             </div>
           </div>
@@ -489,7 +864,70 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                 <div>
                   <span className="font-medium">Unassigned to "000-UNASSIGNED":</span> {importResults.unassociated_expenses + importResults.unassociated_revenues}
                 </div>
+                {importResults.databaseDuplicatesSkipped !== undefined && importResults.databaseDuplicatesSkipped > 0 && (
+                  <div>
+                    <span className="font-medium">Database Duplicates Skipped:</span> {importResults.databaseDuplicatesSkipped}
+                  </div>
+                )}
+                {importResults.inFileDuplicatesSkipped !== undefined && importResults.inFileDuplicatesSkipped > 0 && (
+                  <div>
+                    <span className="font-medium">In-File Duplicates Skipped:</span> {importResults.inFileDuplicatesSkipped}
+                  </div>
+                )}
+                {importResults.autoCreatedCount !== undefined && importResults.autoCreatedCount > 0 && (
+                  <div>
+                    <span className="font-medium">Payees Auto-Created:</span> {importResults.autoCreatedCount}
+                  </div>
+                )}
+                {importResults.fuzzyMatches && importResults.fuzzyMatches.length > 0 && (
+                  <div>
+                    <span className="font-medium">Fuzzy Matches Applied:</span> {importResults.fuzzyMatches.length}
+                  </div>
+                )}
               </div>
+              
+              {/* Mapping Statistics */}
+              {importResults.mappingStats && (
+                <div className="mt-4 pt-4 border-t border-green-200">
+                  <h5 className="font-medium text-sm mb-2">Category Mapping Statistics</h5>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>Database Mappings: {importResults.mappingStats.databaseMapped}</div>
+                    <div>Static Mappings: {importResults.mappingStats.staticMapped}</div>
+                    <div>Description-Based: {importResults.mappingStats.descriptionMapped}</div>
+                    <div>Unmapped: {importResults.mappingStats.unmapped}</div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Auto-Created Payees */}
+              {importResults.autoCreatedPayees && importResults.autoCreatedPayees.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-green-200">
+                  <h5 className="font-medium text-sm mb-2">Auto-Created Payees</h5>
+                  <div className="text-xs space-y-1">
+                    {importResults.autoCreatedPayees.slice(0, 5).map((payee, idx) => (
+                      <div key={idx} className="text-green-700">
+                        • {payee.qbName}
+                      </div>
+                    ))}
+                    {importResults.autoCreatedPayees.length > 5 && (
+                      <div className="text-green-600 italic">
+                        ...and {importResults.autoCreatedPayees.length - 5} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Unmapped Accounts */}
+              {importResults.unmappedAccounts && importResults.unmappedAccounts.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-green-200">
+                  <h5 className="font-medium text-sm mb-2">Unmapped Accounts</h5>
+                  <div className="text-xs text-amber-700">
+                    {importResults.unmappedAccounts.slice(0, 5).join(', ')}
+                    {importResults.unmappedAccounts.length > 5 && ` +${importResults.unmappedAccounts.length - 5} more`}
+                  </div>
+                </div>
+              )}
               
               {(importResults.unassociated_expenses + importResults.unassociated_revenues) > 0 && (
                 <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
