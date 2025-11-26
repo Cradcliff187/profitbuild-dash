@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Receipt, Plus, Upload, BarChart3, List, Target, Clock, FileDown } from "lucide-react";
+import { Plus, Upload, BarChart3, List, Clock, FileDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +15,7 @@ import { Expense, ExpenseCategory } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ColumnSelector } from "@/components/ui/column-selector";
+import { MobileResponsiveHeader } from "@/components/ui/mobile-responsive-header";
 
 type ViewMode = "overview" | "list";
 
@@ -217,46 +218,40 @@ const Expenses = () => {
 
   return (
     <div className="w-full overflow-x-hidden space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Receipt className="h-5 w-5 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Expenses</h1>
-            <p className="text-muted-foreground">Track project costs and manage expenses</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={handleCreateNew} size="sm" className="flex items-center gap-1">
-            <Plus className="h-4 w-4" />
-            Add Expense
-          </Button>
-          <Button onClick={() => setShowImportModal(true)} variant="outline" size="sm" className="flex items-center gap-1">
-            <Upload className="h-4 w-4" />
-            Import
-          </Button>
-          <Button onClick={() => setShowExportModal(true)} variant="outline" size="sm" className="flex items-center gap-1">
-            <FileDown className="h-4 w-4" />
-            Export
-          </Button>
-          <Button onClick={() => setShowTimesheetModal(true)} variant="outline" size="sm" className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
-            Timesheet
-          </Button>
-          {viewMode === "list" && (
-            <ColumnSelector
-              columns={expenseColumnDefinitions}
-              visibleColumns={visibleColumns}
-              onVisibilityChange={setVisibleColumns}
-              columnOrder={columnOrder}
-              onColumnOrderChange={setColumnOrder}
-            />
-          )}
-        </div>
-      </div>
+      <MobileResponsiveHeader
+        title="Expenses"
+        subtitle="Track project costs and manage expenses"
+        primaryAction={{
+          label: "Add Expense",
+          icon: <Plus className="h-4 w-4" />,
+          onClick: handleCreateNew,
+        }}
+        actions={[
+          {
+            label: "Import",
+            icon: <Upload className="h-4 w-4" />,
+            onClick: () => setShowImportModal(true),
+            variant: "outline",
+          },
+          {
+            label: "Export",
+            icon: <FileDown className="h-4 w-4" />,
+            onClick: () => setShowExportModal(true),
+            variant: "outline",
+          },
+          {
+            label: "Timesheet",
+            icon: <Clock className="h-4 w-4" />,
+            onClick: () => setShowTimesheetModal(true),
+            variant: "outline",
+          },
+        ]}
+        maxVisibleActions={3}
+      />
 
       <Tabs value={viewMode} onValueChange={handleTabChange}>
           <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="w-full sm:w-auto">
+            <div className="w-full sm:w-auto sm:order-1">
               <div className="sm:hidden">
                 <Select value={viewMode} onValueChange={handleTabChange}>
                   <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
@@ -294,6 +289,17 @@ const Expenses = () => {
                 })}
               </TabsList>
             </div>
+            {viewMode === "list" && (
+              <div className="flex justify-end sm:order-2">
+                <ColumnSelector
+                  columns={expenseColumnDefinitions}
+                  visibleColumns={visibleColumns}
+                  onVisibilityChange={setVisibleColumns}
+                  columnOrder={columnOrder}
+                  onColumnOrderChange={setColumnOrder}
+                />
+              </div>
+            )}
           </div>
 
           <TabsContent value="overview">
