@@ -730,6 +730,7 @@ export type Database = {
           default_markup_percent: number | null
           estimate_number: string
           id: string
+          is_auto_generated: boolean | null
           is_current_version: boolean | null
           is_draft: boolean
           notes: string | null
@@ -756,6 +757,7 @@ export type Database = {
           default_markup_percent?: number | null
           estimate_number: string
           id?: string
+          is_auto_generated?: boolean | null
           is_current_version?: boolean | null
           is_draft?: boolean
           notes?: string | null
@@ -782,6 +784,7 @@ export type Database = {
           default_markup_percent?: number | null
           estimate_number?: string
           id?: string
+          is_auto_generated?: boolean | null
           is_current_version?: boolean | null
           is_draft?: boolean
           notes?: string | null

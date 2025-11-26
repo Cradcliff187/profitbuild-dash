@@ -13,7 +13,7 @@ import { WorkOrderFilters, WorkOrderSearchFilters } from "@/components/WorkOrder
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { Project, ProjectStatus } from "@/types/project";
+import { Project, ProjectStatus, PROJECT_STATUSES } from "@/types/project";
 import { useToast } from "@/hooks/use-toast";
 import { ExpenseFormSheet } from "@/components/ExpenseFormSheet";
 import { Expense } from "@/types/expense";
@@ -204,7 +204,8 @@ const WorkOrders = () => {
             estimates!left (
               id,
               total_amount,
-              status
+              status,
+              is_auto_generated
             ),
             expenses!left (
               id,
