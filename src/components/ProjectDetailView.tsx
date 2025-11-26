@@ -32,6 +32,7 @@ import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { ProjectWithFinancials } from "@/utils/projectFinancials";
 import type { Database } from "@/integrations/supabase/types";
 import { BrandedLoader } from "@/components/ui/branded-loader";
@@ -466,6 +467,72 @@ export const ProjectDetailView = () => {
     }
   };
 
+  const handleSaveQuote = async (quote: Quote) => {
+    try {
+      // Extract sequence number from quote_number (e.g., "225-012-QTE-01-02" → 2)
+      const sequenceNumber = parseInt(quote.quoteNumber.split('-').pop() || '1', 10);
+      
+      // Insert quote into database
+      const { data: quoteData, error } = await supabase
+        .from('quotes')
+        .insert({
+          project_id: quote.project_id,
+          estimate_id: quote.estimate_id,
+          payee_id: quote.payee_id,
+          quote_number: quote.quoteNumber,
+          sequence_number: sequenceNumber,
+          date_received: quote.dateReceived.toISOString().split('T')[0],
+          status: quote.status,
+          accepted_date: quote.accepted_date ? quote.accepted_date.toISOString().split('T')[0] : null,
+          valid_until: quote.valid_until ? quote.valid_until.toISOString().split('T')[0] : null,
+          includes_materials: quote.includes_materials,
+          includes_labor: quote.includes_labor,
+          total_amount: quote.total,
+          notes: quote.notes,
+          attachment_url: quote.attachment_url
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Insert line items
+      if (quote.lineItems.length > 0) {
+        const { error: lineItemsError } = await supabase
+          .from('quote_line_items')
+          .insert(quote.lineItems.map(item => ({
+            quote_id: quoteData.id,
+            estimate_line_item_id: item.estimateLineItemId,
+            category: item.category,
+            description: item.description,
+            quantity: item.quantity,
+            rate: item.pricePerUnit,
+            cost_per_unit: item.costPerUnit || 0,
+            markup_percent: item.markupPercent,
+            markup_amount: item.markupAmount,
+            sort_order: 0
+          })));
+
+        if (lineItemsError) throw lineItemsError;
+      }
+
+      toast({
+        title: "Quote saved",
+        description: `Quote ${quote.quoteNumber} has been created successfully.`,
+      });
+
+      await loadProjectData();
+      navigate(`/projects/${projectId}/estimates?tab=quotes`);
+    } catch (error) {
+      console.error('Error saving quote:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save quote. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return <BrandedLoader message="Loading project details..." />;
   }
@@ -497,15 +564,24 @@ export const ProjectDetailView = () => {
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className={cn("flex flex-col gap-2", isMobile ? "w-full" : "min-w-0")}
               >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate('/projects')}
-                  className="self-start inline-flex h-8"
-                >
-                  <ArrowLeftCircle className="h-4 w-4 mr-2" />
-                  Back to Projects
-                </Button>
+                <Breadcrumb>
+                  <BreadcrumbList className="text-xs sm:text-sm">
+                    <BreadcrumbItem>
+                      <BreadcrumbLink 
+                        onClick={() => navigate('/projects')}
+                        className="cursor-pointer hover:text-foreground"
+                      >
+                        Projects
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage className="font-medium">
+                        {formatProjectLabel(project.project_number, project.project_name)}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
               </div>
 
               <div className={cn("flex items-center gap-2", isMobile ? "w-full" : "min-w-0")}
@@ -673,12 +749,8 @@ export const ProjectDetailView = () => {
                 <Route path="quotes/new" element={
                   <QuoteForm
                     estimates={estimates}
-                    onSave={() => {
-                      loadProjectData();
-                      const searchParams = new URLSearchParams(window.location.search);
-                      const tab = searchParams.get('tab') || 'quotes';
-                      navigate(`/projects/${projectId}/estimates?tab=${tab}`);
-                    }}
+                    preSelectedEstimateId={estimates.find((e) => e.status === "approved" || e.is_current_version)?.id}
+                    onSave={handleSaveQuote}
                     onCancel={() => {
                       const searchParams = new URLSearchParams(window.location.search);
                       const tab = searchParams.get('tab') || 'quotes';

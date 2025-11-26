@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal, Copy, ChevronsUpDown } from "lucide-react";
+import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal, Copy, ChevronsUpDown, Files } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +19,7 @@ import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
 import { extractProjectCounter } from "@/utils/numberGeneration";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
 import { QuoteStatusSelector } from "./QuoteStatusSelector";
+import { DuplicateQuoteModal } from "./DuplicateQuoteModal";
 // Removed BudgetComparisonBadge import
 import { cn } from "@/lib/utils";
 import {
@@ -42,11 +43,13 @@ interface QuotesTableViewProps {
   onDelete: (quoteId: string) => void;
   onCompare: (quote: Quote) => void;
   onCreateNew: () => void;
+  onRefresh?: () => void;
 }
 
 // Column definitions for the column selector
 const columnDefinitions = [
   { key: 'quote_number', label: 'Quote #', required: true },
+  { key: 'estimate', label: 'Estimate', required: false },
   { key: 'line_items', label: 'Line Items', required: false },
   { key: 'payee', label: 'Quoted By', required: false },
   { key: 'status', label: 'Status', required: true },
@@ -67,18 +70,22 @@ export const QuotesTableView = ({
   onView, 
   onDelete, 
   onCompare, 
-  onCreateNew 
+  onCreateNew,
+  onRefresh 
 }: QuotesTableViewProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState<string | null>(null);
+  const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
+  const [quoteToDuplicate, setQuoteToDuplicate] = useState<Quote | null>(null);
   const [localQuotes, setLocalQuotes] = useState(quotes);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   // Column visibility and order state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
     const stored = localStorage.getItem('quotes-visible-columns');
-    return stored ? JSON.parse(stored) : [
+    const defaultColumns = [
       'quote_number',
+      'estimate',
       'payee', 
       'status',
       'date_received',
@@ -87,11 +94,33 @@ export const QuotesTableView = ({
       'cost_variance_amount',
       'actions'
     ];
+    
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Ensure 'estimate' column is included if missing from old preferences
+      if (!parsed.includes('estimate')) {
+        const insertIndex = parsed.indexOf('quote_number') + 1;
+        parsed.splice(insertIndex, 0, 'estimate');
+      }
+      return parsed;
+    }
+    return defaultColumns;
   });
 
   const [columnOrder, setColumnOrder] = useState<string[]>(() => {
     const stored = localStorage.getItem('quotes-column-order');
-    return stored ? JSON.parse(stored) : columnDefinitions.map(c => c.key);
+    const defaultOrder = columnDefinitions.map(c => c.key);
+    
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Ensure 'estimate' column is included if missing from old preferences
+      if (!parsed.includes('estimate')) {
+        const insertIndex = parsed.indexOf('quote_number') + 1;
+        parsed.splice(insertIndex, 0, 'estimate');
+      }
+      return parsed;
+    }
+    return defaultOrder;
   });
 
   // Persist column preferences to localStorage
@@ -333,6 +362,25 @@ export const QuotesTableView = ({
           {quote.quoteNumber}
         </div>
       ),
+    },
+    {
+      key: 'estimate',
+      label: 'Estimate',
+      align: 'left',
+      width: '140px',
+      sortable: true,
+      getSortValue: (quote) => quote.estimate?.estimate_number || '',
+      render: (quote) => {
+        const estimate = quote.estimate;
+        if (!estimate) {
+          return <span className="text-xs text-muted-foreground">Not linked</span>;
+        }
+        return (
+          <span className="text-xs font-mono text-foreground/80">
+            {estimate.estimate_number}
+          </span>
+        );
+      },
     },
     {
       key: 'line_items',
@@ -582,6 +630,13 @@ export const QuotesTableView = ({
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              setQuoteToDuplicate(quote);
+              setDuplicateModalOpen(true);
+            }}>
+              <Files className="h-4 w-4 mr-2" />
+              Duplicate for Estimate...
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={() => handleDeleteClick(quote.id)}
@@ -675,6 +730,10 @@ export const QuotesTableView = ({
             onColumnOrderChange={setColumnOrder}
           />
           {collapseButton}
+          <Button onClick={onCreateNew} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            New Quote
+          </Button>
         </div>
       </div>
       <QuotesTable
@@ -708,6 +767,20 @@ export const QuotesTableView = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Duplicate Quote Modal */}
+      {quoteToDuplicate && (
+        <DuplicateQuoteModal
+          open={duplicateModalOpen}
+          onOpenChange={setDuplicateModalOpen}
+          quote={quoteToDuplicate}
+          estimates={estimates}
+          onSuccess={(newQuoteId) => {
+            setDuplicateModalOpen(false);
+            onRefresh?.(); // Trigger parent refresh
+          }}
+        />
+      )}
     </div>
   );
 };

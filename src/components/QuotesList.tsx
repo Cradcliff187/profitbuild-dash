@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Eye, FileText, Trash2, ArrowUpDown, Edit, ChevronDown, Plus } from "lucide-react";
+import { Eye, FileText, Trash2, ArrowUpDown, Edit, ChevronDown, Plus, Files } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import { Estimate } from "@/types/estimate";
 import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
 import { QuoteStatusBadge } from "./QuoteStatusBadge";
 import { QuotesTableView } from "./QuotesTableView";
+import { DuplicateQuoteModal } from "./DuplicateQuoteModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -35,14 +36,17 @@ interface QuotesListProps {
   onCompare: (quote: Quote) => void;
   onExpire?: (expiredQuoteIds: string[]) => void;
   onCreateNew?: () => void;
+  onRefresh?: () => void;
 }
 
-export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onCompare, onExpire, onCreateNew }: QuotesListProps) => {
+export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onCompare, onExpire, onCreateNew, onRefresh }: QuotesListProps) => {
   const isMobile = useIsMobile();
   const [sortBy, setSortBy] = useState<'date' | 'project' | 'total'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const { toast } = useToast();
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
+  const [quoteToDuplicate, setQuoteToDuplicate] = useState<Quote | null>(null);
 
   const toggleCard = (quoteId: string) => {
     setExpandedCards(prev => {
@@ -251,6 +255,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
         onDelete={onDelete}
         onCompare={onCompare}
         onCreateNew={onCreateNew || (() => {})}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -479,6 +484,18 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => {
+                          setQuoteToDuplicate(quote);
+                          setDuplicateModalOpen(true);
+                        }}
+                        className="h-btn-compact text-label flex-1"
+                      >
+                        <Files className="h-3 w-3 mr-1" />
+                        Duplicate
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => onCompare(quote)}
                         disabled={!estimate}
                         className="h-btn-compact text-label flex-1"
@@ -517,6 +534,20 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
           );
         })}
       </div>
+
+      {/* Duplicate Quote Modal */}
+      {quoteToDuplicate && (
+        <DuplicateQuoteModal
+          open={duplicateModalOpen}
+          onOpenChange={setDuplicateModalOpen}
+          quote={quoteToDuplicate}
+          estimates={estimates}
+          onSuccess={(newQuoteId) => {
+            setDuplicateModalOpen(false);
+            onRefresh?.(); // Trigger parent refresh instead of page reload
+          }}
+        />
+      )}
     </div>
   );
 };

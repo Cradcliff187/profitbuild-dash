@@ -55,8 +55,8 @@ export const ProjectEstimatesView = ({ projectId, estimates, quotes, onRefresh }
   };
 
   const handleCreateQuote = () => {
-    const returnUrl = `/projects/${projectId}/estimates?tab=quotes`;
-    navigate(`/quotes?projectId=${projectId}&estimateId=${currentEstimate?.id}&returnUrl=${encodeURIComponent(returnUrl)}`);
+    // Navigate within project context to keep breadcrumb navigation
+    navigate(`/projects/${projectId}/estimates/quotes/new`);
   };
 
   const tabOptions = [
@@ -263,6 +263,7 @@ export const ProjectEstimatesView = ({ projectId, estimates, quotes, onRefresh }
             onDelete={() => onRefresh()}
             onCompare={() => {}}
             onCreateNew={handleCreateQuote}
+            onRefresh={onRefresh}
           />
         </TabsContent>
 
