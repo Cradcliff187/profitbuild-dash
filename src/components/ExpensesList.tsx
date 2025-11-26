@@ -28,6 +28,8 @@ import {
   Info,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
+  ChevronsUpDown,
 } from "lucide-react";
 import { ExpenseBulkActions } from "./ExpenseBulkActions";
 import { ReassignExpenseProjectDialog } from "./ReassignExpenseProjectDialog";
@@ -67,18 +69,18 @@ interface ColumnDefinition {
 
 const EXPENSE_COLUMNS: ColumnDefinition[] = [
   { key: 'checkbox', label: 'Select', required: true, width: 'w-10', defaultVisible: true },
-  { key: 'split', label: 'Split', required: false, width: 'w-8', defaultVisible: true },
+  { key: 'split', label: 'Split', required: false, width: 'w-8', sortable: true, defaultVisible: true },
   { key: 'date', label: 'Date', required: false, width: 'w-24', sortable: true, defaultVisible: true },
   { key: 'project', label: 'Project', required: false, width: 'w-48', sortable: true, defaultVisible: true },
   { key: 'payee', label: 'Payee', required: false, width: 'w-48', sortable: true, defaultVisible: true },
-  { key: 'description', label: 'Description', required: false, defaultVisible: true },
-  { key: 'category', label: 'Category', required: false, width: 'w-32', defaultVisible: true },
-  { key: 'transaction_type', label: 'Type', required: false, width: 'w-24', defaultVisible: false },
+  { key: 'description', label: 'Description', required: false, sortable: true, defaultVisible: true },
+  { key: 'category', label: 'Category', required: false, width: 'w-32', sortable: true, defaultVisible: true },
+  { key: 'transaction_type', label: 'Type', required: false, width: 'w-24', sortable: true, defaultVisible: false },
   { key: 'amount', label: 'Amount', required: false, width: 'w-24', align: 'right', sortable: true, defaultVisible: true },
-  { key: 'invoice_number', label: 'Invoice #', required: false, width: 'w-28', defaultVisible: false },
-  { key: 'status_assigned', label: 'Assigned', required: false, width: 'w-20', align: 'center', defaultVisible: true },
-  { key: 'status_allocated', label: 'Allocated', required: false, width: 'w-20', align: 'center', defaultVisible: true },
-  { key: 'approval_status', label: 'Approval', required: false, width: 'w-24', align: 'center', defaultVisible: false },
+  { key: 'invoice_number', label: 'Invoice #', required: false, width: 'w-28', sortable: true, defaultVisible: false },
+  { key: 'status_assigned', label: 'Assigned', required: false, width: 'w-20', align: 'center', sortable: true, defaultVisible: true },
+  { key: 'status_allocated', label: 'Allocated', required: false, width: 'w-20', align: 'center', sortable: true, defaultVisible: true },
+  { key: 'approval_status', label: 'Approval', required: false, width: 'w-24', align: 'center', sortable: true, defaultVisible: false },
   { key: 'actions', label: 'Actions', required: true, width: 'w-16', align: 'center', defaultVisible: true },
 ];
 
@@ -128,6 +130,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     const [calculatedTotal, setCalculatedTotal] = useState<number>(0);
     const [allocationSheetOpen, setAllocationSheetOpen] = useState(false);
     const [expenseToAllocate, setExpenseToAllocate] = useState<string | null>(null);
+    const [sortColumn, setSortColumn] = useState<string | null>(null);
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const { toast } = useToast();
 
     // Column visibility state - use external if provided, otherwise internal with localStorage
@@ -815,14 +819,117 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       return result;
     }, [filteredExpenses, expandedExpenses, expenseSplits]);
 
+    // Sorting functions
+    const handleSort = (columnKey: string) => {
+      const column = EXPENSE_COLUMNS.find(col => col.key === columnKey);
+      if (!column?.sortable) return;
+      
+      if (sortColumn === columnKey) {
+        setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      } else {
+        setSortColumn(columnKey);
+        setSortDirection('asc');
+      }
+    };
+
+    const renderSortIcon = (columnKey: string) => {
+      const column = EXPENSE_COLUMNS.find(col => col.key === columnKey);
+      if (!column?.sortable) return null;
+      
+      if (sortColumn !== columnKey) {
+        return <ChevronsUpDown className="h-3 w-3 ml-1 text-muted-foreground/50" />;
+      }
+      return sortDirection === 'asc' 
+        ? <ChevronUp className="h-3 w-3 ml-1" /> 
+        : <ChevronDown className="h-3 w-3 ml-1" />;
+    };
+
+    // Apply sorting to displayData
+    const sortedDisplayData = useMemo(() => {
+      if (!sortColumn) return displayData;
+      
+      return [...displayData].sort((a, b) => {
+        // Split rows always stay with their parent, don't sort them independently
+        if (a._isSplitRow || b._isSplitRow) return 0;
+        
+        let aValue: any, bValue: any;
+        
+        switch (sortColumn) {
+          case 'split':
+            aValue = a.is_split ? 1 : 0;
+            bValue = b.is_split ? 1 : 0;
+            break;
+          case 'date':
+            aValue = new Date(a.expense_date).getTime();
+            bValue = new Date(b.expense_date).getTime();
+            break;
+          case 'project':
+            aValue = a.project_number || '';
+            bValue = b.project_number || '';
+            break;
+          case 'payee':
+            aValue = a.payee_name || '';
+            bValue = b.payee_name || '';
+            break;
+          case 'description':
+            aValue = a.description || '';
+            bValue = b.description || '';
+            break;
+          case 'category':
+            aValue = a.category || '';
+            bValue = b.category || '';
+            break;
+          case 'transaction_type':
+            aValue = a.transaction_type || '';
+            bValue = b.transaction_type || '';
+            break;
+          case 'amount':
+            aValue = a.amount;
+            bValue = b.amount;
+            break;
+          case 'invoice_number':
+            aValue = a.invoice_number || '';
+            bValue = b.invoice_number || '';
+            break;
+          case 'status_assigned':
+            aValue = a.project_name?.includes('Unassigned') ? 0 : 1;
+            bValue = b.project_name?.includes('Unassigned') ? 0 : 1;
+            break;
+          case 'status_allocated':
+            aValue = expenseMatches[a.id]?.matched ? 1 : 0;
+            bValue = expenseMatches[b.id]?.matched ? 1 : 0;
+            break;
+          case 'approval_status':
+            aValue = a.approval_status || '';
+            bValue = b.approval_status || '';
+            break;
+          default:
+            return 0;
+        }
+        
+        // Handle nulls
+        if (aValue == null) return 1;
+        if (bValue == null) return -1;
+        
+        // Compare values
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+        }
+        
+        const aStr = String(aValue).toLowerCase();
+        const bStr = String(bValue).toLowerCase();
+        return sortDirection === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+      });
+    }, [displayData, sortColumn, sortDirection, expenseMatches]);
+
     // Pagination
     const pagination = usePagination({
-      totalItems: displayData.filter(r => !r._isSplitRow).length,
+      totalItems: sortedDisplayData.filter(r => !r._isSplitRow).length,
       pageSize: pageSize,
       initialPage: 1,
     });
 
-    const paginatedData = displayData.slice(pagination.startIndex, pagination.endIndex);
+    const paginatedData = sortedDisplayData.slice(pagination.startIndex, pagination.endIndex);
 
     const columns = [
       {
@@ -2112,10 +2219,19 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                               column.width,
                               column.align === 'right' && "text-right",
                               column.align === 'center' && "text-center",
-                              column.align !== 'right' && column.align !== 'center' && "text-left"
+                              column.align !== 'right' && column.align !== 'center' && "text-left",
+                              column.sortable && "cursor-pointer hover:text-foreground select-none"
                             )}
+                            onClick={() => column.sortable && handleSort(column.key)}
                           >
-                            {column.label}
+                            <div className={cn(
+                              "flex items-center",
+                              column.align === 'right' && "justify-end",
+                              column.align === 'center' && "justify-center"
+                            )}>
+                              {column.label}
+                              {renderSortIcon(column.key)}
+                            </div>
                           </TableHead>
                         );
                       })}
