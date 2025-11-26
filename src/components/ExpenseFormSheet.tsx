@@ -8,6 +8,8 @@ interface ExpenseFormSheetProps {
   onOpenChange: (open: boolean) => void;
   expense?: Expense;
   onSave: (expense: Expense) => void;
+  defaultProjectId?: string;
+  projectName?: string;
 }
 
 export const ExpenseFormSheet: React.FC<ExpenseFormSheetProps> = ({
@@ -15,6 +17,8 @@ export const ExpenseFormSheet: React.FC<ExpenseFormSheetProps> = ({
   onOpenChange,
   expense,
   onSave,
+  defaultProjectId,
+  projectName,
 }) => {
   const handleSave = (savedExpense: Expense) => {
     onSave(savedExpense);
@@ -29,10 +33,14 @@ export const ExpenseFormSheet: React.FC<ExpenseFormSheetProps> = ({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-[700px] flex flex-col p-0 overflow-hidden">
         <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b shrink-0">
-          <SheetTitle>{expense ? 'Edit Expense' : 'Add New Expense'}</SheetTitle>
+          <SheetTitle>
+            {expense ? 'Edit Expense' : projectName ? `Add Expense for ${projectName}` : 'Add New Expense'}
+          </SheetTitle>
           <SheetDescription>
             {expense 
               ? 'Update expense details and save changes' 
+              : projectName
+              ? 'Enter expense information to track project costs'
               : 'Enter expense information to track project costs'}
           </SheetDescription>
         </SheetHeader>
@@ -41,7 +49,8 @@ export const ExpenseFormSheet: React.FC<ExpenseFormSheetProps> = ({
           <ExpenseForm 
             expense={expense} 
             onSave={handleSave} 
-            onCancel={handleCancel} 
+            onCancel={handleCancel}
+            defaultProjectId={defaultProjectId}
           />
         </div>
       </SheetContent>

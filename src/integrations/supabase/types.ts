@@ -1597,6 +1597,7 @@ export type Database = {
           created_at: string | null
           current_margin: number | null
           customer_po_number: string | null
+          do_not_exceed: number | null
           end_date: string | null
           id: string
           job_type: string | null
@@ -1633,6 +1634,7 @@ export type Database = {
           created_at?: string | null
           current_margin?: number | null
           customer_po_number?: string | null
+          do_not_exceed?: number | null
           end_date?: string | null
           id?: string
           job_type?: string | null
@@ -1669,6 +1671,7 @@ export type Database = {
           created_at?: string | null
           current_margin?: number | null
           customer_po_number?: string | null
+          do_not_exceed?: number | null
           end_date?: string | null
           id?: string
           job_type?: string | null

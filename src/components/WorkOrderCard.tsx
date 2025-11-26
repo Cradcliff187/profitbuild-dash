@@ -22,6 +22,7 @@ import { formatCurrency } from '@/lib/utils';
 interface WorkOrderCardProps {
   workOrder: Project & {
     has_estimate: boolean;
+    is_auto_generated_estimate: boolean;
     total_expenses: number;
     expense_count: number;
     estimate_amount: number | null;
@@ -59,7 +60,8 @@ const WorkOrderCard = ({ workOrder, onUpdate }: WorkOrderCardProps) => {
   };
 
   const handleViewEstimate = () => {
-    if (workOrder.has_estimate) {
+    // If estimate is auto-generated, treat it as no estimate and navigate to create
+    if (workOrder.has_estimate && !workOrder.is_auto_generated_estimate) {
       navigate(`/estimates?project=${workOrder.id}`);
     } else {
       navigate(`/estimates?create=true&project=${workOrder.id}`);
@@ -157,9 +159,17 @@ const WorkOrderCard = ({ workOrder, onUpdate }: WorkOrderCardProps) => {
           </div>
           <div>
             <p className="text-muted-foreground">Has Estimate</p>
-            <Badge variant={workOrder.has_estimate ? "default" : "secondary"}>
-              {workOrder.has_estimate ? "Yes" : "No"}
-            </Badge>
+            {workOrder.has_estimate ? (
+              workOrder.is_auto_generated_estimate ? (
+                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-300">
+                  System
+                </Badge>
+              ) : (
+                <Badge variant="default">Yes</Badge>
+              )
+            ) : (
+              <Badge variant="secondary">No</Badge>
+            )}
           </div>
           <div>
             <p className="text-muted-foreground">Total Expenses</p>
@@ -192,7 +202,7 @@ const WorkOrderCard = ({ workOrder, onUpdate }: WorkOrderCardProps) => {
             className="gap-1"
           >
             <FileText className="h-3 w-3" />
-            {workOrder.has_estimate ? 'View Estimate' : 'Add Estimate'}
+            {workOrder.has_estimate && !workOrder.is_auto_generated_estimate ? 'View Estimate' : 'Create Estimate'}
           </Button>
           
           {workOrder.status !== 'complete' && (

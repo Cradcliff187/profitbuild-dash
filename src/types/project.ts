@@ -28,6 +28,7 @@ export interface Project {
   original_est_costs?: number | null;
   notes?: string | null;
   customer_po_number?: string | null;
+  do_not_exceed?: number | null;
   created_at: Date;
   updated_at: Date;
 }

@@ -43,9 +43,10 @@ interface ExpenseFormProps {
   expense?: Expense;
   onSave: (expense: Expense) => void;
   onCancel: () => void;
+  defaultProjectId?: string;
 }
 
-export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCancel }) => {
+export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCancel, defaultProjectId }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedPayee, setSelectedPayee] = useState<Payee | null>(null);
   const [loading, setLoading] = useState(false);
@@ -70,7 +71,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
-      project_id: expense?.project_id || '',
+      project_id: expense?.project_id || defaultProjectId || '',
       description: expense?.description || '',
       category: expense?.category || ExpenseCategory.MATERIALS,
       transaction_type: expense?.transaction_type || 'expense',
@@ -648,10 +649,10 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
             </div>
 
             <div className="flex gap-1 justify-end mt-2">
-              <Button type="submit" disabled={loading} size="sm" className="h-btn-compact text-label">
+              <Button type="submit" disabled={loading} size="sm" className="h-btn-compact">
                 {loading ? 'Saving...' : (expense ? 'Update Expense' : 'Add Expense')}
               </Button>
-              <Button type="button" variant="outline" onClick={onCancel} size="sm" className="h-btn-compact text-label">
+              <Button type="button" variant="outline" onClick={onCancel} size="sm" className="h-btn-compact">
                 Cancel
               </Button>
             </div>
