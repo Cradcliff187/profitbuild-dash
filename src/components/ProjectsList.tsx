@@ -465,7 +465,7 @@ export const ProjectsList = ({
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="w-full justify-between px-3 py-2 h-auto hover:bg-muted/50 border-t"
+                    className="w-full justify-between px-3 py-2 h-auto hover:bg-muted/50 border-t bg-background relative z-10"
                   >
                     <span className="text-sm font-medium">
                       {formatCurrency(projectedMargin)} • {marginPctToShow.toFixed(1)}%
@@ -475,9 +475,9 @@ export const ProjectsList = ({
                 </CollapsibleTrigger>
 
                 {/* EXPANDED VIEW - Full card content */}
-                <CollapsibleContent>
+                <CollapsibleContent className="relative z-0">
                   <div className="space-y-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                    <CardContent className="p-compact space-y-2">
+                    <CardContent className="p-compact space-y-2 bg-background">
                       {/* Financial Summary - 3-Column Grid (matching quotes style) */}
                         {(project.contracted_amount || project.original_margin !== null) && (() => {
                           const changeOrderRevenue = project.changeOrderRevenue || 0;
