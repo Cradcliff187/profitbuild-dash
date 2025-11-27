@@ -21,8 +21,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 const KPI_GUIDE_METADATA = {
   lastUpdated: '2024-11-27',
-  version: '1.1',
+  version: '1.2',
   changelog: [
+    { date: '2024-11-27', version: '1.2', changes: 'Added Revenue section (6 metrics) - project_revenues and project_financial_summary fields' },
     { date: '2024-11-27', version: '1.1', changes: 'Added Work Orders section (9 metrics), project type/category fields, is_auto_generated estimate field' },
     { date: '2024-11-26', version: '1.0', changes: 'Initial release with 57 measures across 6 categories' },
   ]
@@ -98,6 +99,15 @@ const expenseKPIs: KPIMeasure[] = [
   { name: 'Split Amount', source: 'database', field: 'expense_splits.split_amount', formula: 'Portion allocated to specific project', whereUsed: 'Split expense calculations' },
   { name: 'Split Percentage', source: 'database', field: 'expense_splits.split_percentage', formula: '(split_amount / parent_expense.amount) × 100', whereUsed: 'Allocation display' },
   { name: 'Total Expense by Project', source: 'frontend', field: 'calculateProjectExpenses()', formula: 'SUM(expenses.amount) + SUM(expense_splits.split_amount)', whereUsed: 'Project financial views', notes: 'Combines direct and split expenses' },
+];
+
+const revenueKPIs: KPIMeasure[] = [
+  { name: 'Invoice Amount', source: 'database', field: 'project_revenues.amount', formula: 'Direct DB field - individual invoice amount', whereUsed: 'ProjectFinancialReconciliation, financial reports', notes: 'Stored per invoice record' },
+  { name: 'Invoice Date', source: 'database', field: 'project_revenues.invoice_date', formula: 'Direct DB field - when invoice was issued', whereUsed: 'Revenue tracking, cash flow', notes: 'Stored per invoice record' },
+  { name: 'Invoice Number', source: 'database', field: 'project_revenues.invoice_number', formula: 'Direct DB field - QuickBooks invoice reference', whereUsed: 'Invoice lookup, reconciliation', notes: 'Stored per invoice record' },
+  { name: 'Total Invoiced', source: 'database', field: 'project_financial_summary.total_invoiced', formula: 'SUM(project_revenues.amount)', whereUsed: 'Project financial summary, dashboards', notes: 'View-calculated aggregate' },
+  { name: 'Invoice Count', source: 'database', field: 'project_financial_summary.invoice_count', formula: 'COUNT(project_revenues)', whereUsed: 'Project financial summary', notes: 'View-calculated aggregate' },
+  { name: 'Revenue Variance', source: 'database', field: 'project_financial_summary.revenue_variance', formula: 'total_estimated - total_invoiced', whereUsed: 'Variance analysis, financial dashboards', notes: 'View-calculated - shows billing gap' },
 ];
 
 const changeOrderKPIs: KPIMeasure[] = [
@@ -201,9 +211,9 @@ export default function KPIGuide() {
     );
   };
 
-  const totalMeasures = projectFinancialKPIs.length + estimateKPIs.length + quoteKPIs.length + expenseKPIs.length + changeOrderKPIs.length + workOrderKPIs.length + deprecatedKPIs.length;
-  const dbMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, changeOrderKPIs, workOrderKPIs].flat().filter(k => k.source === 'database').length;
-  const frontendMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, changeOrderKPIs, workOrderKPIs].flat().filter(k => k.source === 'frontend').length;
+  const totalMeasures = projectFinancialKPIs.length + estimateKPIs.length + quoteKPIs.length + expenseKPIs.length + revenueKPIs.length + changeOrderKPIs.length + workOrderKPIs.length + deprecatedKPIs.length;
+  const dbMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, revenueKPIs, changeOrderKPIs, workOrderKPIs].flat().filter(k => k.source === 'database').length;
+  const frontendMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, revenueKPIs, changeOrderKPIs, workOrderKPIs].flat().filter(k => k.source === 'frontend').length;
 
   return (
     <div className="w-full overflow-x-hidden px-2 sm:px-4 py-2 space-y-3">
@@ -273,11 +283,12 @@ export default function KPIGuide() {
 
       {/* Tabs */}
       <Tabs defaultValue="project" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 h-auto">
+        <TabsList className="grid w-full grid-cols-5 md:grid-cols-9 h-auto">
           <TabsTrigger value="project" className="text-xs">Project</TabsTrigger>
           <TabsTrigger value="estimates" className="text-xs">Estimates</TabsTrigger>
           <TabsTrigger value="quotes" className="text-xs">Quotes</TabsTrigger>
           <TabsTrigger value="expenses" className="text-xs">Expenses</TabsTrigger>
+          <TabsTrigger value="revenue" className="text-xs">Revenue</TabsTrigger>
           <TabsTrigger value="change-orders" className="text-xs">Change Orders</TabsTrigger>
           <TabsTrigger value="work-orders" className="text-xs">Work Orders</TabsTrigger>
           <TabsTrigger value="reference" className="text-xs">Reference</TabsTrigger>
@@ -328,6 +339,18 @@ export default function KPIGuide() {
             </CardHeader>
             <CardContent className="p-0">
               {renderKPITable(expenseKPIs)}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="revenue" className="mt-3">
+          <Card>
+            <CardHeader className="p-3">
+              <CardTitle className="text-sm">Revenue Measures ({revenueKPIs.length})</CardTitle>
+              <CardDescription className="text-xs">Invoice tracking and revenue aggregation from project_revenues table</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {renderKPITable(revenueKPIs)}
             </CardContent>
           </Card>
         </TabsContent>
