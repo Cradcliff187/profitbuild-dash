@@ -1,4 +1,4 @@
-import { AlertTriangle, Clock, Camera, FileEdit, AlertCircle, FileText, Wrench } from 'lucide-react';
+import { AlertTriangle, Clock, Camera, FileEdit, AlertCircle, FileText, Wrench, CalendarX2, PauseCircle, TrendingDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,9 @@ interface NeedsAttentionCardProps {
   expiringQuotes: number;
   draftEstimates: number;
   workOrdersWithoutEstimates?: number;
+  overdueWorkOrders?: number;
+  workOrdersOnHold?: number;
+  workOrdersOverBudget?: number;
 }
 
 export function NeedsAttentionCard({
@@ -26,7 +29,10 @@ export function NeedsAttentionCard({
   pendingChangeOrders,
   expiringQuotes,
   draftEstimates,
-  workOrdersWithoutEstimates = 0
+  workOrdersWithoutEstimates = 0,
+  overdueWorkOrders = 0,
+  workOrdersOnHold = 0,
+  workOrdersOverBudget = 0
 }: NeedsAttentionCardProps) {
   const navigate = useNavigate();
 
@@ -72,6 +78,27 @@ export function NeedsAttentionCard({
       count: workOrdersWithoutEstimates,
       path: '/work-orders',
       color: 'text-amber-600'
+    },
+    {
+      icon: <CalendarX2 className="h-3.5 w-3.5" />,
+      label: 'WOs overdue',
+      count: overdueWorkOrders,
+      path: '/work-orders?filter=overdue',
+      color: 'text-red-600'
+    },
+    {
+      icon: <PauseCircle className="h-3.5 w-3.5" />,
+      label: 'WOs on hold',
+      count: workOrdersOnHold,
+      path: '/work-orders?status=on_hold',
+      color: 'text-yellow-600'
+    },
+    {
+      icon: <TrendingDown className="h-3.5 w-3.5" />,
+      label: 'WOs over budget',
+      count: workOrdersOverBudget,
+      path: '/work-orders?filter=over_budget',
+      color: 'text-red-600'
     }
   ].filter(item => item.count > 0);
 
