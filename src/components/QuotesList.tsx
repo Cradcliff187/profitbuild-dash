@@ -339,26 +339,29 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
               </CardHeader>
               
               <CardContent className="p-compact space-y-2">
-                <Collapsible open={expandedCards.has(quote.id)}>
-                <CollapsibleTrigger asChild>
+                {/* Always visible row with amount and payee */}
+                <div className="flex items-center justify-between px-3 py-2 border-t">
+                  <span className="text-sm font-medium">
+                    {formatCurrency(quote.total)} • {quote.quotedBy}
+                  </span>
                   <Button
                     variant="ghost"
+                    size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleCard(quote.id);
                     }}
-                    className="w-full justify-between px-3 py-2 h-auto hover:bg-muted/50 border-t"
+                    className="h-8 w-8 p-0"
                   >
-                    <span className="text-sm font-medium">
-                      {formatCurrency(quote.total)} • {quote.quotedBy}
-                    </span>
                     <ChevronDown className={`h-4 w-4 transition-transform ${
                       expandedCards.has(quote.id) ? 'rotate-180' : ''
                     }`} />
                   </Button>
-                </CollapsibleTrigger>
+                </div>
                 
-                <CollapsibleContent>
+                {/* Collapsible content */}
+                <Collapsible open={expandedCards.has(quote.id)}>
+                  <CollapsibleContent>
                   <div className="space-y-2 pt-2">
                     {/* Financial Summary - 3 key numbers */}
                     <div className="grid grid-cols-3 gap-2 text-label bg-muted/30 p-3 rounded-lg">
@@ -527,8 +530,8 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
                       </AlertDialog>
                     </div>
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
+                  </CollapsibleContent>
+                </Collapsible>
             </CardContent>
             </Card>
           );
