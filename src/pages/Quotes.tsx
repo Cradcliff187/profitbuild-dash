@@ -714,22 +714,25 @@ const Quotes = () => {
       )}
       
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold">
-            {view === 'list' ? 'Quotes' : 
-             view === 'create' ? 'Create New Quote' :
-             view === 'edit' ? 'Edit Quote' :
-             view === 'view' ? 'View Quote' :
-             'Compare Quote'}
-          </h1>
-          <p className="text-muted-foreground">
-            {view === 'list' ? 'Manage project quotes and compare against estimates' :
-             view === 'create' ? 'Enter quote details below' :
-             view === 'edit' ? 'Update quote details' :
-             view === 'view' ? 'Review quote details' :
-             selectedQuote ? `Compare quote ${selectedQuote.quoteNumber} against estimate` : ''}
-          </p>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center space-x-3">
+          <FileText className="h-5 w-5 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold text-foreground">
+              {view === 'list' ? 'Quotes' : 
+               view === 'create' ? 'Create New Quote' :
+               view === 'edit' ? 'Edit Quote' :
+               view === 'view' ? 'View Quote' :
+               'Compare Quote'}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {view === 'list' ? 'Manage project quotes and compare against estimates' :
+               view === 'create' ? 'Enter quote details below' :
+               view === 'edit' ? 'Update quote details' :
+               view === 'view' ? 'Review quote details' :
+               selectedQuote ? `Compare quote ${selectedQuote.quoteNumber} against estimate` : ''}
+            </p>
+          </div>
         </div>
         
         {view === 'list' && (

@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Estimate } from "@/types/estimate";
-import { Plus, BarChart3, Download } from "lucide-react";
+import { Plus, BarChart3, Download, Calculator } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -512,10 +512,13 @@ const EstimatesPage = () => {
         </Breadcrumb>
       )}
 
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold">Estimates</h1>
-          <p className="text-muted-foreground">Manage project estimates, versions, and approvals</p>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center space-x-3">
+          <Calculator className="h-5 w-5 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Estimates</h1>
+            <p className="text-sm text-muted-foreground">Manage project estimates, versions, and approvals</p>
+          </div>
         </div>
 
         {viewMode === "list" && (
