@@ -645,35 +645,37 @@ const WorkOrders = () => {
   return (
     <div className="w-full overflow-x-hidden px-2 sm:px-4 py-2 space-y-2">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center space-x-3">
-          <Wrench className="h-5 w-5 text-primary" />
-          <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+        <div className="flex items-center space-x-3 min-w-0">
+          <Wrench className="h-5 w-5 text-primary shrink-0" />
+          <div className="min-w-0">
             <h1 className="text-xl font-bold text-foreground">Work Orders</h1>
-            <p className="text-muted-foreground">Manage your work orders and track progress</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Manage your work orders and track progress</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={handleCreateNew} size="sm" className="flex items-center gap-1">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <Button onClick={handleCreateNew} size="sm" className="flex items-center gap-1 flex-1 sm:flex-initial">
             <Plus className="h-4 w-4" />
             Create Work Order
           </Button>
-          <ColumnSelector
-            columns={columnDefinitions}
-            visibleColumns={visibleColumns}
-            onVisibilityChange={setVisibleColumns}
-            columnOrder={columnOrder}
-            onColumnOrderChange={setColumnOrder}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={sortedWorkOrders.length === 0}
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Export
-          </Button>
+          <div className="hidden sm:flex items-center gap-2">
+            <ColumnSelector
+              columns={columnDefinitions}
+              visibleColumns={visibleColumns}
+              onVisibilityChange={setVisibleColumns}
+              columnOrder={columnOrder}
+              onColumnOrderChange={setColumnOrder}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={sortedWorkOrders.length === 0}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Export
+            </Button>
+          </div>
         </div>
       </div>
 
