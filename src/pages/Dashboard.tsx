@@ -399,10 +399,10 @@ const Dashboard = () => {
         isRefreshing={isRefreshing}
       />
 
-      {/* Main Content: 3-Column Layout (Activity Feed 50%, Projects 25%, Work Orders 25%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mt-4">
+      {/* Main Content: 2-Column Layout (Activity Feed 50%, Right Column 50%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
         {/* Activity Feed - 50% width on desktop */}
-        <div className="lg:col-span-2 order-2 lg:order-1">
+        <div className="order-2 lg:order-1">
           <Card>
             <CardHeader className="p-3 pb-2">
               <CardTitle className="text-sm font-semibold">Activity Feed</CardTitle>
@@ -413,7 +413,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Projects Column - 25% width on desktop */}
+        {/* Right Column - 50% width on desktop */}
         <div className="space-y-3 order-1 lg:order-2">
           <NeedsAttentionCard
             pendingTimeEntries={pendingApprovals.timeEntries}
@@ -435,10 +435,7 @@ const Dashboard = () => {
             activeGrossMargin={activeGrossMargin}
             activeGrossMarginPercent={activeGrossMarginPercent}
           />
-        </div>
 
-        {/* Work Orders Column - 25% width on desktop */}
-        <div className="space-y-3 order-3">
           <WorkOrderStatusCard
             statusCounts={workOrderStatusCounts}
             activeContractValue={workOrderContractValue}
