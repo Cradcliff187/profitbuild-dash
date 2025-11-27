@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck, Camera, FileImage, FolderOpen, BarChart3, LayoutDashboard } from "lucide-react";
+import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck, Camera, FileImage, FolderOpen, BarChart3, LayoutDashboard, BookOpen } from "lucide-react";
 const logoFullDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Full%20Horizontal%20Logo%20-%201500x500.png';
 const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png';
 import { getCompanyBranding } from '@/utils/companyBranding';
@@ -113,6 +113,7 @@ const Navigation = () => {
     { to: "/expenses", label: "Expenses", icon: Receipt, show: hasFinancialAccess },
     { to: "/field-media", label: "Field Media", icon: Camera, show: isAdmin || isFieldWorker },
     { to: "/reports", label: "Reports", icon: BarChart3, show: hasFinancialAccess },
+    { to: "/kpi-guide", label: "KPI Guide", icon: FileText, show: isAdmin || isManager },
     { to: "/payees", label: "Payees", icon: Users, show: hasClientAccess },
     { to: "/clients", label: "Clients", icon: UserCheck, show: hasClientAccess },
     { to: "/profit-analysis", label: "Profit Analysis", icon: TrendingUp, show: hasFinancialAccess },
