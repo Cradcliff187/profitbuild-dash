@@ -462,17 +462,21 @@ export const ProjectsList = ({
                   </div>
                 </CardHeader>
 
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-between px-3 py-2 h-auto hover:bg-muted/50 border-t bg-background relative z-10"
-                  >
-                    <span className="text-sm font-medium">
-                      {formatCurrency(projectedMargin)} • {marginPctToShow.toFixed(1)}%
-                    </span>
-                    <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                  </Button>
-                </CollapsibleTrigger>
+                <div className="flex items-center justify-between px-3 py-2 border-t">
+                  <span className="text-sm font-medium">
+                    {formatCurrency(projectedMargin)} • {marginPctToShow.toFixed(1)}%
+                  </span>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
 
                 {/* EXPANDED VIEW - Full card content */}
                 <CollapsibleContent className="relative z-0">
