@@ -215,10 +215,10 @@ const Dashboard = () => {
     const completedWorkOrders = data?.filter(wo => wo.status === 'complete') || [];
     const totalCompleted = completedWorkOrders.reduce((sum, wo) => sum + (wo.contracted_amount || 0), 0);
 
-    // Count work orders without proper estimates
+    // Count work orders with NO estimates at all
     const withoutEstimates = data?.filter(wo => {
       const estimates = wo.estimates || [];
-      return estimates.length === 0 || estimates.every(est => est.is_auto_generated);
+      return estimates.length === 0;
     }).length || 0;
 
     setWorkOrderContractValue(totalContractValue);

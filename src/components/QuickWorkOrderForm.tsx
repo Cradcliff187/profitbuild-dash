@@ -98,6 +98,7 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
           start_date: data.start_date.toISOString().split('T')[0],
           end_date: data.end_date ? data.end_date.toISOString().split('T')[0] : null,
           original_est_costs: data.estimated_cost ? parseFloat(data.estimated_cost) : null,
+          adjusted_est_costs: data.estimated_cost ? parseFloat(data.estimated_cost) : null,
           contracted_amount: data.quoted_price ? parseFloat(data.quoted_price) : null,
           do_not_exceed: data.do_not_exceed ? parseFloat(data.do_not_exceed) : null,
           notes: data.notes || null,
@@ -119,6 +120,7 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
           .insert({
             project_id: project.id,
             estimate_number: estimateNumber,
+            total_cost: parseFloat(data.estimated_cost),
             total_amount: parseFloat(data.estimated_cost),
             status: 'approved',
             date_created: new Date().toISOString().split('T')[0],
