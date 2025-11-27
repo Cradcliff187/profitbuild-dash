@@ -67,6 +67,17 @@ export interface TransactionImportResult {
     reason: string;
   }>;
   inFileDuplicatesSkipped: number;
+  revenueDatabaseDuplicates: Array<{
+    transaction: TransactionCSVRow;
+    existingRevenueId: string;
+    matchKey: string;
+  }>;
+  revenueDatabaseDuplicatesSkipped: number;
+  revenueInFileDuplicates: Array<{
+    transaction: TransactionCSVRow;
+    reason: string;
+  }>;
+  revenueInFileDuplicatesSkipped: number;
   fuzzyMatches: PayeeMatchInfo[];
   lowConfidenceMatches: Array<{
     qbName: string;
@@ -171,8 +182,9 @@ export const parseTransactionCSV = (file: File): Promise<ParsedTransactionData> 
 export const processTransactionImport = async (
   data: TransactionCSVRow[]
 ): Promise<TransactionImportResult> => {
-  // === Phase 1: Detect in-file duplicates ===
-  const { unique: uniqueTransactions, duplicates: inFileDuplicates } = detectInFileDuplicates(data);
+  // === Phase 1: Detect in-file duplicates for both expenses and revenues ===
+  const { unique: uniqueExpenseTransactions, duplicates: inFileDuplicates } = detectInFileDuplicates(data);
+  const { unique: uniqueRevenueTransactions, duplicates: revenueInFileDuplicates } = detectRevenueInFileDuplicates(data);
   
   const expenses: ExpenseImportData[] = [];
   const revenues: RevenueImportData[] = [];
@@ -181,6 +193,11 @@ export const processTransactionImport = async (
   const databaseDuplicates: Array<{
     transaction: TransactionCSVRow;
     existingExpenseId: string;
+    matchKey: string;
+  }> = [];
+  const revenueDatabaseDuplicates: Array<{
+    transaction: TransactionCSVRow;
+    existingRevenueId: string;
     matchKey: string;
   }> = [];
   const fuzzyMatches: PayeeMatchInfo[] = [];
@@ -209,7 +226,7 @@ export const processTransactionImport = async (
   const UNASSIGNED_PROJECT_ID = '00000000-0000-0000-0000-000000000002';
   const UNASSIGNED_CLIENT_ID = '00000000-0000-0000-0000-000000000001';
 
-  // === Calculate date range and fetch existing expenses for duplicate detection ===
+  // === Calculate date range and fetch existing expenses + revenues for duplicate detection ===
   const dates = data
     .map(row => row['Date'])
     .filter(d => d && d.trim() !== '')
@@ -220,6 +237,7 @@ export const processTransactionImport = async (
     .filter((d): d is Date => d !== null);
   
   let existingExpenses = new Map<string, { id: string; description: string }>();
+  let existingRevenues = new Map<string, { id: string; description: string }>();
   
   if (dates.length > 0) {
     const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
@@ -229,10 +247,16 @@ export const processTransactionImport = async (
     minDate.setDate(minDate.getDate() - 1);
     maxDate.setDate(maxDate.getDate() + 1);
     
-    existingExpenses = await fetchExistingExpenses(
-      minDate.toISOString().split('T')[0],
-      maxDate.toISOString().split('T')[0]
-    );
+    [existingExpenses, existingRevenues] = await Promise.all([
+      fetchExistingExpenses(
+        minDate.toISOString().split('T')[0],
+        maxDate.toISOString().split('T')[0]
+      ),
+      fetchExistingRevenues(
+        minDate.toISOString().split('T')[0],
+        maxDate.toISOString().split('T')[0]
+      )
+    ]);
   }
   // === END duplicate detection setup ===
 
@@ -279,10 +303,14 @@ export const processTransactionImport = async (
   let unassociated_expenses = 0;
   let unassociated_revenues = 0;
 
-  // Process only unique transactions (skip in-file duplicates)
-  for (const row of uniqueTransactions) {
+  // Process unique expense transactions
+  for (const row of uniqueExpenseTransactions) {
     try {
       const transactionType = row['Transaction type']?.toLowerCase();
+      
+      // Skip invoices (revenues) - they're processed separately
+      if (transactionType === 'invoice') continue;
+      
       const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
       const date = formatDateForDB(row['Date']);
       const name = row['Name']?.trim() || '';
@@ -291,7 +319,7 @@ export const processTransactionImport = async (
       const accountName = row['Account name']?.trim() || '';
 
       // Find project if specified
-      let project_id: string = UNASSIGNED_PROJECT_ID; // Default to unassigned project
+      let project_id: string = UNASSIGNED_PROJECT_ID;
       let isUnassigned = true;
       
       if (projectWO) {
@@ -302,153 +330,184 @@ export const processTransactionImport = async (
         }
       }
 
-      if (transactionType === 'invoice') {
-        // This is revenue
-        const client_id = clientMap.get(normalizeString(name)) || (isUnassigned ? UNASSIGNED_CLIENT_ID : undefined);
+      // === Fuzzy payee matching ===
+      let payee_id: string | undefined;
+      if (name) {
+        const matchResult = fuzzyMatchPayee(name, partialPayees);
         
-        const revenue: RevenueImportData = {
-          project_id,
-          client_id,
-          amount: Math.abs(amount), // Ensure positive for revenue
-          invoice_date: date,
-          description: `Invoice from ${name}${isUnassigned ? ' (Unassigned)' : ''}`,
-          account_name: accountName,
-          account_full_name: accountFullName,
-        };
-
-        revenues.push(revenue);
-        
-        if (isUnassigned) {
-          unassociated_revenues++;
-        }
-      } else {
-        // This is an expense
-        // === Fuzzy payee matching ===
-        let payee_id: string | undefined;
-        if (name) {
-          const matchResult = fuzzyMatchPayee(name, partialPayees);
+        if (matchResult.bestMatch) {
+          payee_id = matchResult.bestMatch.payee.id;
           
-          if (matchResult.bestMatch) {
-            payee_id = matchResult.bestMatch.payee.id;
-            
-            // Record the match info
-            fuzzyMatches.push({
-              qbName: name,
-              matchedPayee: matchResult.bestMatch.payee,
-              confidence: matchResult.bestMatch.confidence,
-              matchType: matchResult.bestMatch.confidence >= 75 ? 'auto' : 
-                        matchResult.bestMatch.matchType === 'exact' ? 'exact' : 'fuzzy'
-            });
-          } else if (matchResult.matches.length > 0) {
-            // Has suggestions but no auto-match
-            const suggestions = matchResult.matches
-              .filter(match => match.confidence >= 40)
-              .slice(0, 3) // Top 3 suggestions
-              .map(match => ({
-                payee: match.payee,
-                confidence: match.confidence
-              }));
-            
-            if (suggestions.length > 0) {
-              lowConfidenceMatches.push({
-                qbName: name,
-                suggestions
-              });
-            }
-          } else {
-            // No matches found - attempt to auto-create payee
-            const createdPayeeId = await createPayeeFromTransaction(name, accountFullName);
-            if (createdPayeeId) {
-              payee_id = createdPayeeId;
-              const payeeType = detectPayeeTypeFromAccount(accountFullName);
-              autoCreatedPayees.push({
-                qbName: name,
-                payeeId: createdPayeeId,
-                payeeType
-              });
-              // Update partialPayees for subsequent matches
-              partialPayees.push({
-                id: createdPayeeId,
-                payee_name: name,
-                full_name: name
-              });
-            }
-          }
-        }
-
-        // === Enhanced categorization with multi-tier logic ===
-        const category = categorizeExpense(
-          name,
-          accountFullName,
-          dbMappings
-        );
-
-        // Track mapping statistics
-        if (accountFullName && dbMappings.some(m => 
-          m.qb_account_full_path.toLowerCase() === accountFullName.toLowerCase()
-        )) {
-          mappingStats.databaseMapped++;
-        } else if (accountFullName && mapAccountToCategory(accountFullName) !== null) {
-          mappingStats.staticMapped++;
-        } else if (accountFullName && resolveQBAccountCategory(accountFullName) !== ExpenseCategory.OTHER) {
-          mappingStats.staticMapped++;
-        } else if (category !== ExpenseCategory.OTHER) {
-          mappingStats.descriptionMapped++;
-        } else {
-          mappingStats.unmapped++;
-          if (accountFullName && !unmappedAccounts.includes(accountFullName)) {
-            unmappedAccounts.push(accountFullName);
-          }
-        }
-
-        if (category) {
-          categoryMappingsUsed[accountFullName] = category;
-        }
-        
-        const txType = mapTransactionType(transactionType);
-
-        // === Check for database duplicate ===
-        const primaryKey = createExpenseKey(date, Math.abs(amount), payee_id || null);
-        const descriptionKey = createExpenseKeyWithDescription(
-          date, 
-          Math.abs(amount), 
-          name
-        );
-        
-        const existingByPrimaryKey = existingExpenses.get(primaryKey);
-        const existingByDescription = !payee_id ? existingExpenses.get(descriptionKey) : null;
-        const existingExpense = existingByPrimaryKey || existingByDescription;
-        
-        if (existingExpense) {
-          databaseDuplicates.push({
-            transaction: row,
-            existingExpenseId: existingExpense.id,
-            matchKey: existingByPrimaryKey ? primaryKey : descriptionKey
+          fuzzyMatches.push({
+            qbName: name,
+            matchedPayee: matchResult.bestMatch.payee,
+            confidence: matchResult.bestMatch.confidence,
+            matchType: matchResult.bestMatch.confidence >= 75 ? 'auto' : 
+                      matchResult.bestMatch.matchType === 'exact' ? 'exact' : 'fuzzy'
           });
-          continue; // Skip this transaction - already exists in database
-        }
-        // === END database duplicate check ===
-
-        const expense: ExpenseImportData = {
-          project_id,
-          description: `${transactionType} - ${name}${isUnassigned ? ' (Unassigned)' : ''}`,
-          category: category || ExpenseCategory.MANAGEMENT,
-          transaction_type: txType,
-          amount: Math.abs(amount), // Ensure positive for expenses
-          expense_date: date,
-          payee_id,
-          account_name: accountName,
-          account_full_name: accountFullName,
-        };
-
-        expenses.push(expense);
-
-        if (isUnassigned) {
-          unassociated_expenses++;
+        } else if (matchResult.matches.length > 0) {
+          const suggestions = matchResult.matches
+            .filter(match => match.confidence >= 40)
+            .slice(0, 3)
+            .map(match => ({
+              payee: match.payee,
+              confidence: match.confidence
+            }));
+          
+          if (suggestions.length > 0) {
+            lowConfidenceMatches.push({
+              qbName: name,
+              suggestions
+            });
+          }
+        } else {
+          const createdPayeeId = await createPayeeFromTransaction(name, accountFullName);
+          if (createdPayeeId) {
+            payee_id = createdPayeeId;
+            const payeeType = detectPayeeTypeFromAccount(accountFullName);
+            autoCreatedPayees.push({
+              qbName: name,
+              payeeId: createdPayeeId,
+              payeeType
+            });
+            partialPayees.push({
+              id: createdPayeeId,
+              payee_name: name,
+              full_name: name
+            });
+          }
         }
       }
+
+      const category = categorizeExpense(name, accountFullName, dbMappings);
+
+      // Track mapping statistics
+      if (accountFullName && dbMappings.some(m => 
+        m.qb_account_full_path.toLowerCase() === accountFullName.toLowerCase()
+      )) {
+        mappingStats.databaseMapped++;
+      } else if (accountFullName && mapAccountToCategory(accountFullName) !== null) {
+        mappingStats.staticMapped++;
+      } else if (accountFullName && resolveQBAccountCategory(accountFullName) !== ExpenseCategory.OTHER) {
+        mappingStats.staticMapped++;
+      } else if (category !== ExpenseCategory.OTHER) {
+        mappingStats.descriptionMapped++;
+      } else {
+        mappingStats.unmapped++;
+        if (accountFullName && !unmappedAccounts.includes(accountFullName)) {
+          unmappedAccounts.push(accountFullName);
+        }
+      }
+
+      if (category) {
+        categoryMappingsUsed[accountFullName] = category;
+      }
+      
+      const txType = mapTransactionType(transactionType);
+
+      // === Check for database duplicate ===
+      const primaryKey = createExpenseKey(date, Math.abs(amount), payee_id || null);
+      const descriptionKey = createExpenseKeyWithDescription(date, Math.abs(amount), name);
+      
+      const existingByPrimaryKey = existingExpenses.get(primaryKey);
+      const existingByDescription = !payee_id ? existingExpenses.get(descriptionKey) : null;
+      const existingExpense = existingByPrimaryKey || existingByDescription;
+      
+      if (existingExpense) {
+        databaseDuplicates.push({
+          transaction: row,
+          existingExpenseId: existingExpense.id,
+          matchKey: existingByPrimaryKey ? primaryKey : descriptionKey
+        });
+        continue;
+      }
+      // === END database duplicate check ===
+
+      const expense: ExpenseImportData = {
+        project_id,
+        description: `${transactionType} - ${name}${isUnassigned ? ' (Unassigned)' : ''}`,
+        category: category || ExpenseCategory.MANAGEMENT,
+        transaction_type: txType,
+        amount: Math.abs(amount),
+        expense_date: date,
+        payee_id,
+        account_name: accountName,
+        account_full_name: accountFullName,
+      };
+
+      expenses.push(expense);
+
+      if (isUnassigned) {
+        unassociated_expenses++;
+      }
     } catch (error) {
-      errors.push(`Error processing row: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      errors.push(`Error processing expense row: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Process unique revenue transactions
+  for (const row of uniqueRevenueTransactions) {
+    try {
+      const transactionType = row['Transaction type']?.toLowerCase();
+      
+      // Only process invoices (revenues)
+      if (transactionType !== 'invoice') continue;
+      
+      const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
+      const date = formatDateForDB(row['Date']);
+      const name = row['Name']?.trim() || '';
+      const projectWO = row['Project/WO #']?.trim() || '';
+      const accountFullName = row['Account full name']?.trim() || '';
+      const accountName = row['Account name']?.trim() || '';
+      const invoiceNumber = row['Invoice #']?.trim() || '';
+
+      // Find project if specified
+      let project_id: string = UNASSIGNED_PROJECT_ID;
+      let isUnassigned = true;
+      
+      if (projectWO) {
+        const foundProjectId = projectMap.get(normalizeString(projectWO));
+        if (foundProjectId) {
+          project_id = foundProjectId;
+          isUnassigned = false;
+        }
+      }
+
+      const client_id = clientMap.get(normalizeString(name)) || (isUnassigned ? UNASSIGNED_CLIENT_ID : undefined);
+      const description = `Invoice from ${name}${isUnassigned ? ' (Unassigned)' : ''}`;
+
+      // === Check for database duplicate ===
+      const revenueKey = createRevenueKey(Math.abs(amount), date, invoiceNumber, description);
+      const existingRevenue = existingRevenues.get(revenueKey);
+      
+      if (existingRevenue) {
+        revenueDatabaseDuplicates.push({
+          transaction: row,
+          existingRevenueId: existingRevenue.id,
+          matchKey: revenueKey
+        });
+        continue;
+      }
+      // === END database duplicate check ===
+      
+      const revenue: RevenueImportData = {
+        project_id,
+        client_id,
+        amount: Math.abs(amount),
+        invoice_date: date,
+        description,
+        invoice_number: invoiceNumber || undefined,
+        account_name: accountName,
+        account_full_name: accountFullName,
+      };
+
+      revenues.push(revenue);
+      
+      if (isUnassigned) {
+        unassociated_revenues++;
+      }
+    } catch (error) {
+      errors.push(`Error processing revenue row: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -458,11 +517,9 @@ export const processTransactionImport = async (
     const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
     const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
     
-    // Add buffer days to match duplicate detection
     minDate.setDate(minDate.getDate() - 1);
     maxDate.setDate(maxDate.getDate() + 1);
     
-    // Combine all duplicates for reconciliation
     const allDuplicates = [
       ...inFileDuplicates.map(d => ({ transaction: d.transaction, reason: d.reason })),
       ...databaseDuplicates.map(d => ({ 
@@ -490,6 +547,10 @@ export const processTransactionImport = async (
     databaseDuplicatesSkipped: databaseDuplicates.length,
     inFileDuplicates,
     inFileDuplicatesSkipped: inFileDuplicates.length,
+    revenueDatabaseDuplicates,
+    revenueDatabaseDuplicatesSkipped: revenueDatabaseDuplicates.length,
+    revenueInFileDuplicates,
+    revenueInFileDuplicatesSkipped: revenueInFileDuplicates.length,
     fuzzyMatches,
     lowConfidenceMatches,
     autoCreatedPayees,
@@ -531,7 +592,7 @@ const mapTransactionType = (transactionType: string): TransactionType => {
 };
 
 /**
- * Detects duplicates within the CSV file itself
+ * Detects expense duplicates within the CSV file itself
  */
 const detectInFileDuplicates = (
   data: TransactionCSVRow[]
@@ -560,6 +621,47 @@ const detectInFileDuplicates = (
       duplicates.push({
         transaction: row,
         reason: `Duplicate of: ${firstOccurrence['Name']} on ${firstOccurrence['Date']}`
+      });
+    } else {
+      seen.set(key, row);
+      unique.push(row);
+    }
+  }
+
+  return { unique, duplicates };
+};
+
+/**
+ * Detects revenue duplicates within the CSV file itself
+ */
+const detectRevenueInFileDuplicates = (
+  data: TransactionCSVRow[]
+): { unique: TransactionCSVRow[]; duplicates: Array<{ transaction: TransactionCSVRow; reason: string }> } => {
+  const seen = new Map<string, TransactionCSVRow>();
+  const duplicates: Array<{ transaction: TransactionCSVRow; reason: string }> = [];
+  const unique: TransactionCSVRow[] = [];
+
+  for (const row of data) {
+    // Only check invoices/revenues for duplicates
+    if (row['Transaction type']?.toLowerCase() !== 'invoice') {
+      unique.push(row);
+      continue;
+    }
+
+    const date = formatDateForDB(row['Date']);
+    const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
+    const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
+    const name = row['Name']?.trim() || '';
+    const invoiceNumber = row['Invoice #']?.trim() || '';
+
+    // Create key: amount|date|invoice#|description (matching database constraint)
+    const key = createRevenueKey(normalizedAmount, date, invoiceNumber, name);
+
+    if (seen.has(key)) {
+      const firstOccurrence = seen.get(key)!;
+      duplicates.push({
+        transaction: row,
+        reason: `Duplicate revenue: ${firstOccurrence['Name']} on ${firstOccurrence['Date']}`
       });
     } else {
       seen.set(key, row);
@@ -769,6 +871,21 @@ const createExpenseKeyWithDescription = (
 };
 
 /**
+ * Creates a composite key for revenue matching
+ * Based on database constraint: (amount, invoice_date, invoice_number, description)
+ */
+const createRevenueKey = (
+  amount: number,
+  date: string | Date,
+  invoiceNumber: string,
+  description: string
+): string => {
+  const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
+  const normalizedAmount = Math.round(amount * 100) / 100;
+  return `${normalizedAmount}|${dateStr}|${invoiceNumber || ''}|${description}`.toLowerCase();
+};
+
+/**
  * Fetches existing expenses from database for duplicate detection
  * @param startDate - Earliest date in the import batch
  * @param endDate - Latest date in the import batch
@@ -816,6 +933,46 @@ const fetchExistingExpenses = async (
         description: expense.description 
       });
     }
+  }
+
+  return existingMap;
+};
+
+/**
+ * Fetches existing revenues from database for duplicate detection
+ * @param startDate - Earliest date in the import batch
+ * @param endDate - Latest date in the import batch
+ * @returns Map of composite keys to existing revenue IDs
+ */
+const fetchExistingRevenues = async (
+  startDate: string,
+  endDate: string
+): Promise<Map<string, { id: string; description: string }>> => {
+  const { data: existingRevenues, error } = await supabase
+    .from('project_revenues')
+    .select('id, invoice_date, amount, invoice_number, description')
+    .gte('invoice_date', startDate)
+    .lte('invoice_date', endDate);
+
+  if (error) {
+    console.error('Error fetching existing revenues for duplicate check:', error);
+    return new Map();
+  }
+
+  const existingMap = new Map<string, { id: string; description: string }>();
+  
+  for (const revenue of existingRevenues || []) {
+    // Key: amount|date|invoice#|description (matching database constraint)
+    const key = createRevenueKey(
+      revenue.amount,
+      revenue.invoice_date,
+      revenue.invoice_number || '',
+      revenue.description || ''
+    );
+    existingMap.set(key, { 
+      id: revenue.id, 
+      description: revenue.description || '' 
+    });
   }
 
   return existingMap;
