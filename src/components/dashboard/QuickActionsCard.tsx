@@ -15,46 +15,48 @@ export function QuickActionsCard() {
           <CardTitle className="text-sm font-semibold">Quick Actions</CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="p-3 pt-0 space-y-2">
-        <Button
-          onClick={() => navigate('/projects')}
-          variant="outline"
-          size="sm"
-          className="w-full justify-start gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          New Project
-        </Button>
-        
-        <Button
-          onClick={() => navigate('/time-tracker')}
-          variant="outline"
-          size="sm"
-          className="w-full justify-start gap-2"
-        >
-          <Clock className="h-4 w-4" />
-          Time Entry
-        </Button>
-        
-        <Button
-          onClick={() => navigate('/time-tracker')}
-          variant="outline"
-          size="sm"
-          className="w-full justify-start gap-2"
-        >
-          <Camera className="h-4 w-4" />
-          Upload Receipt
-        </Button>
-        
-        <Button
-          onClick={() => navigate('/expenses')}
-          variant="outline"
-          size="sm"
-          className="w-full justify-start gap-2"
-        >
-          <DollarSign className="h-4 w-4" />
-          Add Expense
-        </Button>
+      <CardContent className="p-3 pt-0">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <Button
+            onClick={() => navigate('/projects')}
+            variant="outline"
+            size="sm"
+            className="justify-start gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New Project
+          </Button>
+          
+          <Button
+            onClick={() => navigate('/time-tracker')}
+            variant="outline"
+            size="sm"
+            className="justify-start gap-2"
+          >
+            <Clock className="h-4 w-4" />
+            Time Entry
+          </Button>
+          
+          <Button
+            onClick={() => navigate('/time-tracker')}
+            variant="outline"
+            size="sm"
+            className="justify-start gap-2"
+          >
+            <Camera className="h-4 w-4" />
+            Upload Receipt
+          </Button>
+          
+          <Button
+            onClick={() => navigate('/expenses')}
+            variant="outline"
+            size="sm"
+            className="justify-start gap-2"
+          >
+            <DollarSign className="h-4 w-4" />
+            Add Expense
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

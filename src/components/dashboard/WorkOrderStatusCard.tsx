@@ -1,4 +1,4 @@
-import { Wrench, DollarSign, AlertCircle } from 'lucide-react';
+import { Wrench, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
@@ -12,15 +12,19 @@ interface WorkOrderStatusCount {
 interface WorkOrderStatusCardProps {
   statusCounts: WorkOrderStatusCount[];
   activeContractValue: number;
-  activeWorkOrderCount: number;
-  workOrdersWithoutEstimates?: number;
+  activeEstimatedCosts: number;
+  completedContractValue: number;
+  activeGrossMargin: number;
+  activeGrossMarginPercent: number;
 }
 
 export function WorkOrderStatusCard({ 
   statusCounts,
   activeContractValue,
-  activeWorkOrderCount,
-  workOrdersWithoutEstimates = 0
+  activeEstimatedCosts,
+  completedContractValue,
+  activeGrossMargin,
+  activeGrossMarginPercent
 }: WorkOrderStatusCardProps) {
   const navigate = useNavigate();
 
@@ -29,7 +33,7 @@ export function WorkOrderStatusCard({
       <CardHeader className="p-3 pb-2">
         <div className="flex items-center gap-2">
           <Wrench className="h-4 w-4" />
-          <CardTitle className="text-sm font-semibold">Work Orders</CardTitle>
+          <CardTitle className="text-sm font-semibold">Work Order Status</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="p-3 pt-0 space-y-3">
@@ -50,31 +54,43 @@ export function WorkOrderStatusCard({
           <div className="flex items-start gap-2">
             <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-muted-foreground">Active WO Value</div>
+              <div className="text-xs text-muted-foreground">Active WO Contract Value</div>
               <div className="text-sm font-semibold truncate">{formatCurrency(activeContractValue)}</div>
             </div>
           </div>
           
           <div className="flex items-start gap-2">
-            <Wrench className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-muted-foreground">Active Work Orders</div>
-              <div className="text-sm font-semibold">{activeWorkOrderCount}</div>
+              <div className="text-xs text-muted-foreground">Active WO Est. Costs</div>
+              <div className="text-sm font-semibold truncate">{formatCurrency(activeEstimatedCosts)}</div>
             </div>
           </div>
-
-          {workOrdersWithoutEstimates > 0 && (
-            <button
-              onClick={() => navigate('/work-orders')}
-              className="flex items-start gap-2 w-full p-2 rounded hover:bg-muted text-left transition-colors"
-            >
-              <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <div className="text-xs text-muted-foreground">Need Estimates</div>
-                <div className="text-sm font-semibold text-amber-600">{workOrdersWithoutEstimates}</div>
+          
+          <div className="flex items-start gap-2">
+            <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-muted-foreground">Active WO Projected Margin</div>
+              <div className="text-sm font-semibold truncate">
+                {formatCurrency(activeGrossMargin)}
+                <span className={`ml-2 text-xs ${
+                  activeGrossMarginPercent >= 20 ? 'text-green-600' :
+                  activeGrossMarginPercent >= 10 ? 'text-yellow-600' :
+                  'text-red-600'
+                }`}>
+                  ({activeGrossMarginPercent.toFixed(1)}%)
+                </span>
               </div>
-            </button>
-          )}
+            </div>
+          </div>
+          
+          <div className="flex items-start gap-2">
+            <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-muted-foreground">Completed WO Value</div>
+              <div className="text-sm font-semibold text-green-600 truncate">{formatCurrency(completedContractValue)}</div>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

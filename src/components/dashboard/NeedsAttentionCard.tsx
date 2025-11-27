@@ -1,4 +1,4 @@
-import { AlertTriangle, Clock, Camera, FileEdit, AlertCircle, FileText } from 'lucide-react';
+import { AlertTriangle, Clock, Camera, FileEdit, AlertCircle, FileText, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,7 @@ interface NeedsAttentionCardProps {
   pendingChangeOrders: number;
   expiringQuotes: number;
   draftEstimates: number;
+  workOrdersWithoutEstimates?: number;
 }
 
 export function NeedsAttentionCard({
@@ -24,7 +25,8 @@ export function NeedsAttentionCard({
   pendingReceipts,
   pendingChangeOrders,
   expiringQuotes,
-  draftEstimates
+  draftEstimates,
+  workOrdersWithoutEstimates = 0
 }: NeedsAttentionCardProps) {
   const navigate = useNavigate();
 
@@ -62,6 +64,13 @@ export function NeedsAttentionCard({
       label: 'Draft estimates',
       count: draftEstimates,
       path: '/estimates?status=draft',
+      color: 'text-amber-600'
+    },
+    {
+      icon: <Wrench className="h-3.5 w-3.5" />,
+      label: 'WOs need estimates',
+      count: workOrdersWithoutEstimates,
+      path: '/work-orders',
       color: 'text-amber-600'
     }
   ].filter(item => item.count > 0);
