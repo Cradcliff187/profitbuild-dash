@@ -1,10 +1,11 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck, Camera, FileImage, FolderOpen, BarChart3, LayoutDashboard, BookOpen } from "lucide-react";
+import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck, Camera, FileImage, FolderOpen, BarChart3, LayoutDashboard, BookOpen, Shield, Package } from "lucide-react";
 const logoFullDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Full%20Horizontal%20Logo%20-%201500x500.png';
 const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png';
 import { getCompanyBranding } from '@/utils/companyBranding';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
@@ -108,18 +109,64 @@ const Navigation = () => {
 
   // Secondary items (grouped under "More" dropdown)
   const secondaryItems = [
-    { to: "/branch-bids", label: "Bids", icon: FolderOpen, show: isAdmin || isManager },
+    { to: "/branch-bids", label: "Bids", icon: Package, show: isAdmin || isManager },
     { to: "/time-tracker", label: "Time Tracker", icon: Clock, show: true },
     { to: "/expenses", label: "Expenses", icon: Receipt, show: hasFinancialAccess },
     { to: "/field-media", label: "Field Media", icon: Camera, show: isAdmin || isFieldWorker },
     { to: "/reports", label: "Reports", icon: BarChart3, show: hasFinancialAccess },
-    { to: "/kpi-guide", label: "KPI Guide", icon: FileText, show: isAdmin || isManager },
     { to: "/payees", label: "Payees", icon: Users, show: hasClientAccess },
     { to: "/clients", label: "Clients", icon: UserCheck, show: hasClientAccess },
     { to: "/profit-analysis", label: "Profit Analysis", icon: TrendingUp, show: hasFinancialAccess },
     { to: "/settings", label: "Settings", icon: Settings, show: true },
-    { to: "/role-management", label: "Role Management", icon: Settings, show: isAdmin },
+    { to: "/role-management", label: "Role Management", icon: Shield, show: isAdmin },
+    { to: "/kpi-guide", label: "KPI Guide", icon: BookOpen, show: isAdmin || isManager },
   ].filter(item => item.show);
+
+  // Grouped navigation for mobile sidebar
+  const mobileNavGroups = [
+    {
+      label: "Core",
+      items: [
+        { to: "/", label: "Dashboard", icon: LayoutDashboard, show: hasFinancialAccess },
+        { to: "/projects", label: "Projects", icon: Building2, show: hasFinancialAccess },
+        { to: "/estimates", label: "Estimates", icon: Calculator, show: hasFinancialAccess },
+        { to: "/quotes", label: "Quotes", icon: FileText, show: hasFinancialAccess },
+        { to: "/work-orders", label: "Work Orders", icon: Wrench, show: hasFinancialAccess },
+      ]
+    },
+    {
+      label: "Time & Expenses",
+      items: [
+        { to: "/time-entries", label: "Time Management", icon: Clock, show: isAdmin || isManager },
+        { to: "/time-tracker", label: "Time Tracker", icon: Clock, show: true },
+        { to: "/expenses", label: "Expenses", icon: Receipt, show: hasFinancialAccess },
+      ]
+    },
+    {
+      label: "Workflows",
+      items: [
+        { to: "/branch-bids", label: "Bids", icon: Package, show: isAdmin || isManager },
+        { to: "/field-media", label: "Field Media", icon: Camera, show: isAdmin || isFieldWorker },
+        { to: "/reports", label: "Reports", icon: BarChart3, show: hasFinancialAccess },
+        { to: "/profit-analysis", label: "Profit Analysis", icon: TrendingUp, show: hasFinancialAccess },
+      ]
+    },
+    {
+      label: "Contacts",
+      items: [
+        { to: "/payees", label: "Payees", icon: Users, show: hasClientAccess },
+        { to: "/clients", label: "Clients", icon: UserCheck, show: hasClientAccess },
+      ]
+    },
+    {
+      label: "Administration",
+      items: [
+        { to: "/settings", label: "Settings", icon: Settings, show: true },
+        { to: "/role-management", label: "Role Management", icon: Shield, show: isAdmin },
+        { to: "/kpi-guide", label: "KPI Guide", icon: BookOpen, show: isAdmin || isManager },
+      ]
+    }
+  ];
 
   const allItems = [...primaryItems, ...secondaryItems];
 
@@ -206,46 +253,70 @@ const Navigation = () => {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-64">
-                <div className="flex flex-col space-y-2 mt-6">
-                {allItems.map(({ to, label, icon: Icon }) => (
-                  <NavItem 
-                    key={to} 
-                    to={to} 
-                    label={label} 
-                    icon={Icon} 
-                    onClick={() => setMobileMenuOpen(false)}
-                  />
-                ))}
-                
-                {/* Install Link for Mobile */}
-                {!isInstalled && showIOSInstall && (
-                  <NavItem 
-                    to="/install" 
-                    label="Install App" 
-                    icon={Download} 
-                    onClick={() => setMobileMenuOpen(false)}
-                  />
-                )}
-                
-                {/* Mobile User Section */}
-                <div className="border-t border-border pt-4 mt-4">
-                  <div className="px-4 py-2 text-sm text-muted-foreground">
-                    {user?.email}
+              <SheetContent side="left" className="w-64 p-0">
+                <div className="flex flex-col h-full">
+                  <nav className="flex-1 overflow-y-auto py-4">
+                    {mobileNavGroups.map((group, idx) => {
+                      const visibleItems = group.items.filter(item => item.show !== false);
+                      if (visibleItems.length === 0) return null;
+                      
+                      return (
+                        <div key={group.label}>
+                          {idx > 0 && <Separator className="my-3" />}
+                          <div className="px-4 mb-2">
+                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              {group.label}
+                            </h3>
+                          </div>
+                          <div className="space-y-1 px-2 mb-2">
+                            {visibleItems.map((item) => (
+                              <NavItem 
+                                key={item.to}
+                                to={item.to}
+                                label={item.label}
+                                icon={item.icon}
+                                onClick={() => setMobileMenuOpen(false)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {/* Install Link for Mobile */}
+                    {!isInstalled && showIOSInstall && (
+                      <>
+                        <Separator className="my-3" />
+                        <div className="px-2">
+                          <NavItem 
+                            to="/install" 
+                            label="Install App" 
+                            icon={Download} 
+                            onClick={() => setMobileMenuOpen(false)}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </nav>
+                  
+                  {/* Mobile User Section */}
+                  <div className="border-t border-border p-4">
+                    <div className="px-2 py-1 text-sm text-muted-foreground mb-2">
+                      {user?.email}
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-muted-foreground hover:bg-muted hover:text-foreground"
+                      onClick={() => {
+                        signOut();
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start text-muted-foreground hover:bg-muted hover:text-foreground"
-                    onClick={() => {
-                      signOut();
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </Button>
                 </div>
-              </div>
               </SheetContent>
             </Sheet>
           ) : (
