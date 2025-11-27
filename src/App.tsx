@@ -25,6 +25,7 @@ const Estimates = lazy(() => import("./pages/Estimates"));
 const Quotes = lazy(() => import("./pages/Quotes"));
 const Expenses = lazy(() => import("./pages/Expenses"));
 const Payees = lazy(() => import("./pages/Payees"));
+const KPIGuide = lazy(() => import("./pages/KPIGuide"));
 const Clients = lazy(() => import("./pages/Clients"));
 const ProfitAnalysis = lazy(() => import("./pages/ProfitAnalysis"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -97,6 +98,7 @@ const App = () => (
                   <Route path="profit-analysis" element={<LazyRoute component={ProfitAnalysis} />} />
                   <Route path="settings" element={<LazyRoute component={Settings} />} />
                   <Route path="role-management" element={<LazyRoute component={RoleManagement} />} />
+                  <Route path="kpi-guide" element={<LazyRoute component={KPIGuide} />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
