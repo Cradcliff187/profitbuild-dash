@@ -16,6 +16,17 @@ import {
 import { useRoles } from '@/contexts/RoleContext';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { format, parseISO } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+const KPI_GUIDE_METADATA = {
+  lastUpdated: '2024-11-27',
+  version: '1.1',
+  changelog: [
+    { date: '2024-11-27', version: '1.1', changes: 'Added Work Orders section (9 metrics), project type/category fields, is_auto_generated estimate field' },
+    { date: '2024-11-26', version: '1.0', changes: 'Initial release with 57 measures across 6 categories' },
+  ]
+};
 
 interface KPIMeasure {
   name: string;
@@ -201,14 +212,30 @@ export default function KPIGuide() {
         <div className="flex items-center space-x-3">
           <BookOpen className="h-5 w-5 text-primary" />
           <div>
-            <h1 className="text-xl font-bold text-foreground">KPI & Measurement Guide</h1>
-            <p className="text-sm text-muted-foreground">Reference for financial calculations and metrics</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-foreground">KPI & Measurement Guide</h1>
+              <Badge variant="outline" className="text-xs">
+                v{KPI_GUIDE_METADATA.version}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Reference for financial calculations and metrics • Last updated: {format(parseISO(KPI_GUIDE_METADATA.lastUpdated), 'MMMM d, yyyy')}
+            </p>
           </div>
         </div>
-        <Button onClick={handleDownload} variant="outline" size="sm">
-          <Download className="h-4 w-4" />
-          Download Excel
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={handleDownload} variant="outline" size="sm">
+                <Download className="h-4 w-4" />
+                Download Excel
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">Static Excel file may not reflect latest updates</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Summary Cards */}
@@ -395,6 +422,25 @@ export default function KPIGuide() {
                     <li><strong className="text-foreground">DNE tracking:</strong> do_not_exceed field is critical for work order budget control. Monitor expense utilization against this limit.</li>
                     <li><strong className="text-foreground">Cost fields:</strong> original_est_costs (immutable) vs adjusted_est_costs (updated with change orders) enable variance tracking.</li>
                   </ul>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Version History</h3>
+                  <div className="space-y-2">
+                    {KPI_GUIDE_METADATA.changelog.map((entry, idx) => (
+                      <div key={idx} className="flex items-start gap-3 pb-2 border-b border-border/50 last:border-0">
+                        <Badge variant="outline" className="text-xs shrink-0">v{entry.version}</Badge>
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-foreground">
+                            {format(parseISO(entry.date), 'MMM d, yyyy')}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">{entry.changes}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3 italic">
+                    App Build: {import.meta.env.VITE_APP_VERSION || 'Unknown'}
+                  </p>
                 </div>
               </CardContent>
             </Card>
