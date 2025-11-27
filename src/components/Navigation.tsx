@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck, Camera, FileImage, FolderOpen, BarChart3 } from "lucide-react";
+import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck, Camera, FileImage, FolderOpen, BarChart3, LayoutDashboard } from "lucide-react";
 const logoFullDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Full%20Horizontal%20Logo%20-%201500x500.png';
 const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png';
 import { getCompanyBranding } from '@/utils/companyBranding';
@@ -98,7 +98,7 @@ const Navigation = () => {
   
   // Primary items (always visible on larger screens)
   const primaryItems = [
-    { to: "/", label: "Dashboard", icon: Building2, show: hasFinancialAccess },
+    { to: "/", label: "Dashboard", icon: LayoutDashboard, show: hasFinancialAccess },
     { to: "/projects", label: "Projects", icon: Building2, show: hasFinancialAccess },
     { to: "/estimates", label: "Estimates", icon: Calculator, show: hasFinancialAccess },
     { to: "/quotes", label: "Quotes", icon: FileText, show: hasFinancialAccess },
