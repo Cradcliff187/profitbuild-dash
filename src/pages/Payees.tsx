@@ -46,23 +46,25 @@ const Payees = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Building className="h-5 w-5 text-primary" />
-          <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center space-x-3 min-w-0">
+          <Building className="h-5 w-5 text-primary shrink-0" />
+          <div className="min-w-0">
             <h1 className="text-xl font-bold text-foreground">Payees</h1>
-            <p className="text-sm text-muted-foreground">Manage your construction payees</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Manage your construction payees</p>
           </div>
         </div>
-        <div className="flex space-x-2">
-          <Button onClick={handleAddNew}>
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <Button onClick={handleAddNew} className="flex-1 sm:flex-initial">
             <Plus className="h-4 w-4 mr-2" />
             Add Payee
           </Button>
-          <Button variant="outline" onClick={() => setShowImportModal(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            Import CSV
-          </Button>
+          <div className="hidden sm:flex">
+            <Button variant="outline" onClick={() => setShowImportModal(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Import CSV
+            </Button>
+          </div>
         </div>
       </div>
 

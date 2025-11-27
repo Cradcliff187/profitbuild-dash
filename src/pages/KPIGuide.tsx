@@ -208,17 +208,17 @@ export default function KPIGuide() {
   return (
     <div className="w-full overflow-x-hidden px-2 sm:px-4 py-2 space-y-3">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center space-x-3">
-          <BookOpen className="h-5 w-5 text-primary" />
-          <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+        <div className="flex items-center space-x-3 min-w-0">
+          <BookOpen className="h-5 w-5 text-primary shrink-0" />
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-foreground">KPI & Measurement Guide</h1>
               <Badge variant="outline" className="text-xs">
                 v{KPI_GUIDE_METADATA.version}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Reference for financial calculations and metrics • Last updated: {format(parseISO(KPI_GUIDE_METADATA.lastUpdated), 'MMMM d, yyyy')}
             </p>
           </div>

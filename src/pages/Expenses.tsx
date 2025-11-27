@@ -219,31 +219,33 @@ const Expenses = () => {
   return (
     <div className="w-full overflow-x-hidden space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Receipt className="h-5 w-5 text-primary" />
-          <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+        <div className="flex items-center space-x-3 min-w-0">
+          <Receipt className="h-5 w-5 text-primary shrink-0" />
+          <div className="min-w-0">
             <h1 className="text-xl font-bold text-foreground">Expenses</h1>
-            <p className="text-sm text-muted-foreground">Track project costs and manage expenses</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Track project costs and manage expenses</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleCreateNew} size="sm">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <Button onClick={handleCreateNew} size="sm" className="flex-1 sm:flex-initial">
             <Plus className="h-4 w-4 mr-2" />
             Add Expense
           </Button>
-          <Button variant="outline" onClick={() => setShowImportModal(true)} size="sm">
-            <Upload className="h-4 w-4 mr-2" />
-            Import
-          </Button>
-          <Button variant="outline" onClick={() => setShowExportModal(true)} size="sm">
-            <FileDown className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button variant="outline" onClick={() => setShowTimesheetModal(true)} size="sm">
-            <Clock className="h-4 w-4 mr-2" />
-            Timesheet
-          </Button>
+          <div className="hidden sm:flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowImportModal(true)} size="sm">
+              <Upload className="h-4 w-4 mr-2" />
+              Import
+            </Button>
+            <Button variant="outline" onClick={() => setShowExportModal(true)} size="sm">
+              <FileDown className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button variant="outline" onClick={() => setShowTimesheetModal(true)} size="sm">
+              <Clock className="h-4 w-4 mr-2" />
+              Timesheet
+            </Button>
+          </div>
         </div>
       </div>
 
