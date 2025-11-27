@@ -38,6 +38,15 @@ const projectFinancialKPIs: KPIMeasure[] = [
   { name: 'Contingency Percentage', source: 'database', field: 'projects.contingency_percent', formula: '(Contingency Amount / Contracted Amount) × 100', whereUsed: 'Budget analysis' },
   { name: 'Contingency Used', source: 'database', field: 'projects.contingency_used', formula: 'Sum of allocated contingency from expenses', whereUsed: 'ContingencyAllocation, financial dashboards' },
   { name: 'Total Actual Costs', source: 'database', field: 'Calculated', formula: 'SUM(expenses.amount WHERE project_id = X)', whereUsed: 'All financial views, margin calculations', notes: 'Aggregated from expenses table' },
+  { name: 'Project Type', source: 'database', field: 'projects.project_type', formula: "'construction_project' | 'work_order'", whereUsed: 'Project creation, WorkOrders page', notes: 'Distinguishes work orders from full projects' },
+  { name: 'Project Category', source: 'database', field: 'projects.category', formula: "'construction' | 'system' | 'overhead'", whereUsed: 'All project queries, filtering', notes: 'Controls visibility in different contexts' },
+  { name: 'Do Not Exceed', source: 'database', field: 'projects.do_not_exceed', formula: 'Maximum billable amount', whereUsed: 'WorkOrders table, QuickWorkOrderForm', notes: 'Critical for work order budget control' },
+  { name: 'Customer PO Number', source: 'database', field: 'projects.customer_po_number', formula: 'Client reference number', whereUsed: 'WorkOrders table, invoicing', notes: 'Client-provided PO for billing' },
+  { name: 'Work Order Counter', source: 'database', field: 'projects.work_order_counter', formula: 'Auto-incrementing per project', whereUsed: 'Work order number generation', notes: 'Used by generateWorkOrderNumber()' },
+  { name: 'Original Estimated Costs', source: 'database', field: 'projects.original_est_costs', formula: 'Initial cost estimate at project creation', whereUsed: 'WorkOrders table, margin comparison', notes: 'Immutable after initial set' },
+  { name: 'Adjusted Estimated Costs', source: 'database', field: 'projects.adjusted_est_costs', formula: 'Original Est. Costs + Change Order Costs', whereUsed: 'WorkOrders table, current cost tracking', notes: 'Updated when change orders approved' },
+  { name: 'Projected Margin', source: 'database', field: 'projects.projected_margin', formula: 'Contracted Amount - Adjusted Est. Costs', whereUsed: 'WorkOrders table, margin dashboards', notes: 'Expected profit based on estimates' },
+  { name: 'Original Margin', source: 'database', field: 'projects.original_margin', formula: 'Contracted Amount - Original Est. Costs', whereUsed: 'Variance analysis', notes: 'Initial expected profit' },
   { name: 'Margin At Risk', source: 'frontend', field: 'calculateProjectMargin()', formula: 'Current Margin < Minimum Margin', whereUsed: 'Dashboard alerts, ProjectProfitMargin' },
   { name: 'Margin Efficiency', source: 'frontend', field: 'getMarginEfficiency()', formula: '(Current Margin % / Target Margin %) × 100', whereUsed: 'Performance metrics' },
   { name: 'Contingency Utilization', source: 'frontend', field: 'getContingencyUtilization()', formula: '(Contingency Used / Contingency Amount) × 100', whereUsed: 'ContingencyAllocation' },
@@ -51,6 +60,7 @@ const estimateKPIs: KPIMeasure[] = [
   { name: 'Contingency Percent', source: 'database', field: 'estimates.contingency_percent', formula: '(Contingency Amount / Total Amount) × 100', whereUsed: 'Budget display' },
   { name: 'Default Markup Percent', source: 'database', field: 'estimates.default_markup_percent', formula: 'User-defined default for line items', whereUsed: 'LineItemTable auto-fill' },
   { name: 'Target Margin Percent', source: 'database', field: 'estimates.target_margin_percent', formula: 'User-defined profitability goal', whereUsed: 'EstimateForm, performance tracking' },
+  { name: 'Is Auto Generated', source: 'database', field: 'estimates.is_auto_generated', formula: 'Boolean flag', whereUsed: 'WorkOrders table, estimate filtering', notes: 'True when created from Quick Work Order form' },
   { name: 'Line Item Total', source: 'database', field: 'estimate_line_items.total', formula: 'quantity × price_per_unit', whereUsed: 'LineItemTable calculations' },
   { name: 'Line Item Total Cost', source: 'database', field: 'estimate_line_items.total_cost', formula: 'quantity × cost_per_unit', whereUsed: 'Cost analysis' },
   { name: 'Line Item Markup Amount', source: 'database', field: 'estimate_line_items.markup_amount', formula: 'total - total_cost', whereUsed: 'Profitability by item' },
@@ -86,6 +96,18 @@ const changeOrderKPIs: KPIMeasure[] = [
   { name: 'Margin Impact', source: 'database', field: 'change_orders.margin_impact', formula: 'client_amount - cost_impact', whereUsed: 'Profitability tracking' },
   { name: 'Contingency Billed to Client', source: 'database', field: 'change_orders.contingency_billed_to_client', formula: 'Portion of contingency recovered', whereUsed: 'ContingencyAllocation' },
   { name: 'Includes Contingency', source: 'database', field: 'change_orders.includes_contingency', formula: 'Boolean flag', whereUsed: 'Budget tracking' },
+];
+
+const workOrderKPIs: KPIMeasure[] = [
+  { name: 'Work Order Count', source: 'frontend', field: 'statistics.total', formula: "COUNT(projects WHERE project_type = 'work_order')", whereUsed: 'WorkOrders dashboard' },
+  { name: 'Pending/In Progress', source: 'frontend', field: 'statistics.pendingInProgress', formula: "COUNT(WOs WHERE status IN ('in_progress', 'estimating', 'quoted'))", whereUsed: 'WorkOrders stats cards' },
+  { name: 'Completed This Week', source: 'frontend', field: 'statistics.completedThisWeek', formula: "COUNT(WOs WHERE status = 'complete' AND end_date >= weekStart)", whereUsed: 'WorkOrders stats cards' },
+  { name: 'Completed This Month', source: 'frontend', field: 'statistics.completedThisMonth', formula: "COUNT(WOs WHERE status = 'complete' AND end_date >= monthStart)", whereUsed: 'WorkOrders stats cards' },
+  { name: 'Has Real Estimate', source: 'frontend', field: 'has_estimate && !is_auto_generated_estimate', formula: 'Excludes system-created placeholder estimates', whereUsed: 'WorkOrders table badge' },
+  { name: 'Total Expenses', source: 'frontend', field: 'workOrder.total_expenses', formula: 'SUM(expenses.amount WHERE project_id = WO)', whereUsed: 'WorkOrders table', notes: 'Aggregated at query time' },
+  { name: 'Expense Count', source: 'frontend', field: 'workOrder.expense_count', formula: 'COUNT(expenses WHERE project_id = WO)', whereUsed: 'WorkOrders details' },
+  { name: 'DNE Utilization %', source: 'frontend', field: 'calculateDNEUtilization()', formula: '(Total Expenses / Do Not Exceed) × 100', whereUsed: 'Budget alerts (proposed)', notes: 'Not yet implemented' },
+  { name: 'Work Order Number', source: 'frontend', field: 'generateWorkOrderNumber()', formula: '{project_number}-WO-{counter}', whereUsed: 'numberGeneration.ts', notes: 'For sub-work-orders under projects' },
 ];
 
 const deprecatedKPIs: KPIMeasure[] = [
@@ -168,9 +190,9 @@ export default function KPIGuide() {
     );
   };
 
-  const totalMeasures = projectFinancialKPIs.length + estimateKPIs.length + quoteKPIs.length + expenseKPIs.length + changeOrderKPIs.length + deprecatedKPIs.length;
-  const dbMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, changeOrderKPIs].flat().filter(k => k.source === 'database').length;
-  const frontendMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, changeOrderKPIs].flat().filter(k => k.source === 'frontend').length;
+  const totalMeasures = projectFinancialKPIs.length + estimateKPIs.length + quoteKPIs.length + expenseKPIs.length + changeOrderKPIs.length + workOrderKPIs.length + deprecatedKPIs.length;
+  const dbMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, changeOrderKPIs, workOrderKPIs].flat().filter(k => k.source === 'database').length;
+  const frontendMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, changeOrderKPIs, workOrderKPIs].flat().filter(k => k.source === 'frontend').length;
 
   return (
     <div className="w-full overflow-x-hidden px-2 sm:px-4 py-2 space-y-3">
@@ -224,12 +246,13 @@ export default function KPIGuide() {
 
       {/* Tabs */}
       <Tabs defaultValue="project" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 h-auto">
+        <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 h-auto">
           <TabsTrigger value="project" className="text-xs">Project</TabsTrigger>
           <TabsTrigger value="estimates" className="text-xs">Estimates</TabsTrigger>
           <TabsTrigger value="quotes" className="text-xs">Quotes</TabsTrigger>
           <TabsTrigger value="expenses" className="text-xs">Expenses</TabsTrigger>
           <TabsTrigger value="change-orders" className="text-xs">Change Orders</TabsTrigger>
+          <TabsTrigger value="work-orders" className="text-xs">Work Orders</TabsTrigger>
           <TabsTrigger value="reference" className="text-xs">Reference</TabsTrigger>
           <TabsTrigger value="deprecated" className="text-xs">Deprecated</TabsTrigger>
         </TabsList>
@@ -294,6 +317,18 @@ export default function KPIGuide() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="work-orders" className="mt-3">
+          <Card>
+            <CardHeader className="p-3">
+              <CardTitle className="text-sm">Work Order Measures ({workOrderKPIs.length})</CardTitle>
+              <CardDescription className="text-xs">Work order specific metrics, budget tracking, and statistics</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {renderKPITable(workOrderKPIs)}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="reference" className="mt-3">
           <div className="space-y-3">
             <Card>
@@ -351,6 +386,15 @@ export default function KPIGuide() {
                       </TableRow>
                     </TableBody>
                   </Table>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Work Order Guidance</h3>
+                  <ul className="text-xs text-muted-foreground space-y-2 list-disc list-inside">
+                    <li><strong className="text-foreground">project_type vs category:</strong> Use project_type = 'work_order' to identify work orders. Category controls visibility (construction/system/overhead).</li>
+                    <li><strong className="text-foreground">Auto-generated estimates:</strong> Quick Work Order form creates estimates with is_auto_generated = true. These are placeholders until real estimates are created.</li>
+                    <li><strong className="text-foreground">DNE tracking:</strong> do_not_exceed field is critical for work order budget control. Monitor expense utilization against this limit.</li>
+                    <li><strong className="text-foreground">Cost fields:</strong> original_est_costs (immutable) vs adjusted_est_costs (updated with change orders) enable variance tracking.</li>
+                  </ul>
                 </div>
               </CardContent>
             </Card>
