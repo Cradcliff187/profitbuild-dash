@@ -5,6 +5,7 @@ import { ActivityFeedList } from '@/components/ActivityFeedList';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { NeedsAttentionCard } from '@/components/dashboard/NeedsAttentionCard';
 import { ProjectStatusCard } from '@/components/dashboard/ProjectStatusCard';
+import { WorkOrderStatusCard } from '@/components/dashboard/WorkOrderStatusCard';
 import { QuickActionsCard } from '@/components/dashboard/QuickActionsCard';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
@@ -24,6 +25,12 @@ const Dashboard = () => {
   // Operational metrics
   const [activeProjectCount, setActiveProjectCount] = useState(0);
   const [projectStatusCounts, setProjectStatusCounts] = useState<ProjectStatusCount[]>([]);
+  
+  // Work Order metrics
+  const [workOrderStatusCounts, setWorkOrderStatusCounts] = useState<ProjectStatusCount[]>([]);
+  const [workOrderContractValue, setWorkOrderContractValue] = useState(0);
+  const [activeWorkOrderCount, setActiveWorkOrderCount] = useState(0);
+  const [workOrdersWithoutEstimates, setWorkOrdersWithoutEstimates] = useState(0);
   
   // Needs Attention metrics
   const [pendingApprovals, setPendingApprovals] = useState({
@@ -81,6 +88,7 @@ const Dashboard = () => {
       await Promise.all([
         loadActiveProjectCount(),
         loadProjectStatusCounts(),
+        loadWorkOrderStatusCounts(),
         loadPendingApprovals(),
         loadNeedsAttentionData(),
         loadFinancialMetrics()
@@ -115,7 +123,8 @@ const Dashboard = () => {
     const { data, error } = await supabase
       .from('projects')
       .select('status, category')
-      .eq('category', 'construction');
+      .eq('category', 'construction')
+      .neq('project_type', 'work_order');
 
     if (error) {
       console.error('Error loading project status counts:', error);
@@ -147,6 +156,64 @@ const Dashboard = () => {
       }));
 
     setProjectStatusCounts(formattedCounts);
+  };
+
+  const loadWorkOrderStatusCounts = async () => {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('status, category, contracted_amount, estimates!left(id, is_auto_generated)')
+      .eq('category', 'construction')
+      .eq('project_type', 'work_order');
+
+    if (error) {
+      console.error('Error loading work order status counts:', error);
+      return;
+    }
+
+    const counts = data?.reduce((acc: Record<string, number>, project) => {
+      acc[project.status] = (acc[project.status] || 0) + 1;
+      return acc;
+    }, {}) || {};
+
+    const statusOrder = ['estimating', 'approved', 'in_progress', 'complete', 'cancelled', 'quoted', 'on_hold'];
+    const statusLabels: Record<string, string> = {
+      'in_progress': 'In Progress',
+      'estimating': 'Estimating',
+      'quoted': 'Quoted',
+      'approved': 'Approved',
+      'complete': 'Complete',
+      'on_hold': 'On Hold',
+      'cancelled': 'Cancelled'
+    };
+
+    const formattedCounts = statusOrder
+      .filter(status => counts[status] > 0)
+      .map(status => ({
+        status,
+        count: counts[status],
+        label: statusLabels[status]
+      }));
+
+    setWorkOrderStatusCounts(formattedCounts);
+
+    // Calculate active work order count and contract value
+    const activeCount = data?.filter(wo => 
+      ['in_progress', 'approved'].includes(wo.status)
+    ).length || 0;
+
+    const totalContractValue = data
+      ?.filter(wo => ['in_progress', 'approved'].includes(wo.status))
+      .reduce((sum, wo) => sum + (wo.contracted_amount || 0), 0) || 0;
+
+    // Count work orders without proper estimates
+    const withoutEstimates = data?.filter(wo => {
+      const estimates = wo.estimates || [];
+      return estimates.length === 0 || estimates.every(est => est.is_auto_generated);
+    }).length || 0;
+
+    setActiveWorkOrderCount(activeCount);
+    setWorkOrderContractValue(totalContractValue);
+    setWorkOrdersWithoutEstimates(withoutEstimates);
   };
 
   const loadPendingApprovals = async () => {
@@ -273,9 +340,9 @@ const Dashboard = () => {
         isRefreshing={isRefreshing}
       />
 
-      {/* Main Content: Activity Feed (2/3) + Sidebar (1/3) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
-        {/* Activity Feed - Main Content */}
+      {/* Main Content: 3-Column Layout (Activity Feed 50%, Projects 25%, Work Orders 25%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mt-4">
+        {/* Activity Feed - 50% width on desktop */}
         <div className="lg:col-span-2 order-2 lg:order-1">
           <Card>
             <CardHeader className="p-3 pb-2">
@@ -287,7 +354,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Sidebar */}
+        {/* Projects Column - 25% width on desktop */}
         <div className="space-y-3 order-1 lg:order-2">
           <NeedsAttentionCard
             pendingTimeEntries={pendingApprovals.timeEntries}
@@ -304,6 +371,16 @@ const Dashboard = () => {
             completedContractValue={completedContractValue}
             activeGrossMargin={activeGrossMargin}
             activeGrossMarginPercent={activeGrossMarginPercent}
+          />
+        </div>
+
+        {/* Work Orders Column - 25% width on desktop */}
+        <div className="space-y-3 order-3">
+          <WorkOrderStatusCard
+            statusCounts={workOrderStatusCounts}
+            activeContractValue={workOrderContractValue}
+            activeWorkOrderCount={activeWorkOrderCount}
+            workOrdersWithoutEstimates={workOrdersWithoutEstimates}
           />
           
           <QuickActionsCard />
