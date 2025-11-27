@@ -342,7 +342,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
                 {/* Always visible row with amount and payee */}
                 <div className="flex items-center justify-between px-3 py-2 border-t">
                   <span className="text-sm font-medium">
-                    {formatCurrency(quote.total)} • {quote.quotedBy}
+                    {formatCurrency(getQuotedCost(quote))} • {quote.quotedBy}
                   </span>
                   <Button
                     variant="ghost"
