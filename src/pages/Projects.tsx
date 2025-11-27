@@ -389,12 +389,15 @@ const Projects = () => {
       )}
       
       {/* Header - Matches Quotes page format */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold">Projects</h1>
-          <p className="text-muted-foreground">
-            Manage construction projects and track financials
-          </p>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center space-x-3">
+          <Building2 className="h-5 w-5 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Projects</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage construction projects and track financials
+            </p>
+          </div>
         </div>
         
         {viewMode === 'list' && (
