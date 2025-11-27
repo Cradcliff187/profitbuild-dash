@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Upload, Building } from "lucide-react";
 import { PayeeForm } from "@/components/PayeeForm";
 import { PayeesList } from "@/components/PayeesList";
 import { PayeeImportModal } from "@/components/PayeeImportModal";
@@ -47,9 +47,12 @@ const Payees = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Payees</h1>
-          <p className="text-muted-foreground">Manage your construction payees</p>
+        <div className="flex items-center space-x-3">
+          <Building className="h-5 w-5 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Payees</h1>
+            <p className="text-sm text-muted-foreground">Manage your construction payees</p>
+          </div>
         </div>
         <div className="flex space-x-2">
           <Button onClick={handleAddNew}>

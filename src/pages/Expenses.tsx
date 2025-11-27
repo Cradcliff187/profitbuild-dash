@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Upload, BarChart3, List, Clock, FileDown } from "lucide-react";
+import { Plus, Upload, BarChart3, List, Clock, FileDown, Receipt } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -218,36 +218,34 @@ const Expenses = () => {
 
   return (
     <div className="w-full overflow-x-hidden space-y-4">
-      <MobileResponsiveHeader
-        title="Expenses"
-        subtitle="Track project costs and manage expenses"
-        primaryAction={{
-          label: "Add Expense",
-          icon: <Plus className="h-4 w-4" />,
-          onClick: handleCreateNew,
-        }}
-        actions={[
-          {
-            label: "Import",
-            icon: <Upload className="h-4 w-4" />,
-            onClick: () => setShowImportModal(true),
-            variant: "outline",
-          },
-          {
-            label: "Export",
-            icon: <FileDown className="h-4 w-4" />,
-            onClick: () => setShowExportModal(true),
-            variant: "outline",
-          },
-          {
-            label: "Timesheet",
-            icon: <Clock className="h-4 w-4" />,
-            onClick: () => setShowTimesheetModal(true),
-            variant: "outline",
-          },
-        ]}
-        maxVisibleActions={3}
-      />
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <Receipt className="h-5 w-5 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Expenses</h1>
+            <p className="text-sm text-muted-foreground">Track project costs and manage expenses</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={handleCreateNew} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Expense
+          </Button>
+          <Button variant="outline" onClick={() => setShowImportModal(true)} size="sm">
+            <Upload className="h-4 w-4 mr-2" />
+            Import
+          </Button>
+          <Button variant="outline" onClick={() => setShowExportModal(true)} size="sm">
+            <FileDown className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Button variant="outline" onClick={() => setShowTimesheetModal(true)} size="sm">
+            <Clock className="h-4 w-4 mr-2" />
+            Timesheet
+          </Button>
+        </div>
+      </div>
 
       <Tabs value={viewMode} onValueChange={handleTabChange}>
           <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

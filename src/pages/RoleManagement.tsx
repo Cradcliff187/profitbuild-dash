@@ -327,9 +327,12 @@ export default function RoleManagement() {
     <div className="w-full overflow-x-hidden px-2 sm:px-3 py-2 sm:py-4 max-w-7xl mx-auto">
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center space-x-3">
             <ShieldCheck className="h-5 w-5 text-primary" />
-            <h1 className="text-xl font-semibold">Role Management</h1>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Role Management</h1>
+              <p className="text-sm text-muted-foreground">Manage user accounts, roles and permissions</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button onClick={() => setCreateUserOpen(true)} size="sm" className="h-8 text-xs">
@@ -338,9 +341,6 @@ export default function RoleManagement() {
             </Button>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Manage user accounts, roles and permissions
-        </p>
       </div>
 
       {/* Search and Bulk Actions Bar */}

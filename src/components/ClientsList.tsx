@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { Plus, Upload, MoreHorizontal, Eye, Edit2, Trash2, ChevronDown, Mail, Phone, MapPin, Building2 } from "lucide-react";
+import { Plus, Upload, MoreHorizontal, Eye, Edit2, Trash2, ChevronDown, Mail, Phone, MapPin, Building2, Users } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
@@ -260,11 +260,12 @@ export const ClientsList = () => {
   return (
     <div className="dense-spacing">
       <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-interface font-bold">Clients</h1>
-          <p className="text-muted-foreground text-label mt-1">
-            Manage your client database and contact information
-          </p>
+        <div className="flex items-center space-x-3">
+          <Users className="h-5 w-5 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Clients</h1>
+            <p className="text-sm text-muted-foreground">Manage your client database and contact information</p>
+          </div>
         </div>
         <div className="flex gap-1">
           <Button 
