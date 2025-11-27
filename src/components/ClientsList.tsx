@@ -259,35 +259,37 @@ export const ClientsList = () => {
 
   return (
     <div className="dense-spacing">
-      <div className="flex justify-between items-start">
-        <div className="flex items-center space-x-3">
-          <Users className="h-5 w-5 text-primary" />
-          <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center space-x-3 min-w-0">
+          <Users className="h-5 w-5 text-primary shrink-0" />
+          <div className="min-w-0">
             <h1 className="text-xl font-bold text-foreground">Clients</h1>
-            <p className="text-sm text-muted-foreground">Manage your client database and contact information</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Manage your client database and contact information</p>
           </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           <Button 
             onClick={() => {
               setEditingClient(null);
               setShowForm(true);
             }} 
             size="sm" 
-            className="h-btn-compact text-label text-white"
+            className="h-btn-compact text-label text-white flex-1 sm:flex-initial"
           >
             <Plus className="h-3 w-3 mr-1" />
             Add Client
           </Button>
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={() => setShowImportModal(true)}
-            className="h-btn-compact text-label"
-          >
-            <Upload className="h-3 w-3 mr-1" />
-            Import CSV
-          </Button>
+          <div className="hidden sm:flex">
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImportModal(true)}
+              className="h-btn-compact text-label"
+            >
+              <Upload className="h-3 w-3 mr-1" />
+              Import CSV
+            </Button>
+          </div>
         </div>
       </div>
 

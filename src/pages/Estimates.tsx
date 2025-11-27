@@ -512,25 +512,27 @@ const EstimatesPage = () => {
         </Breadcrumb>
       )}
 
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center space-x-3">
-          <Calculator className="h-5 w-5 text-primary" />
-          <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+        <div className="flex items-center space-x-3 min-w-0">
+          <Calculator className="h-5 w-5 text-primary shrink-0" />
+          <div className="min-w-0">
             <h1 className="text-xl font-bold text-foreground">Estimates</h1>
-            <p className="text-sm text-muted-foreground">Manage project estimates, versions, and approvals</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Manage project estimates, versions, and approvals</p>
           </div>
         </div>
 
         {viewMode === "list" && (
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setShowExportModal(true)}>
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            <Button onClick={handleCreateNew} size="sm">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button onClick={handleCreateNew} size="sm" className="flex-1 sm:flex-initial">
               <Plus className="h-4 w-4 mr-2" />
               {getCreateButtonText()}
             </Button>
+            <div className="hidden sm:flex">
+              <Button variant="ghost" size="sm" onClick={() => setShowExportModal(true)}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </div>
         )}
       </div>

@@ -714,10 +714,10 @@ const Quotes = () => {
       )}
       
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center space-x-3">
-          <FileText className="h-5 w-5 text-primary" />
-          <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+        <div className="flex items-center space-x-3 min-w-0">
+          <FileText className="h-5 w-5 text-primary shrink-0" />
+          <div className="min-w-0">
             <h1 className="text-xl font-bold text-foreground">
               {view === 'list' ? 'Quotes' : 
                view === 'create' ? 'Create New Quote' :
@@ -725,7 +725,7 @@ const Quotes = () => {
                view === 'view' ? 'View Quote' :
                'Compare Quote'}
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               {view === 'list' ? 'Manage project quotes and compare against estimates' :
                view === 'create' ? 'Enter quote details below' :
                view === 'edit' ? 'Update quote details' :
@@ -736,19 +736,21 @@ const Quotes = () => {
         </div>
         
         {view === 'list' && (
-          <div className="flex gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setShowExportModal(true)}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            <Button onClick={() => setView('create')} size="sm">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button onClick={() => setView('create')} size="sm" className="flex-1 sm:flex-initial">
               <Plus className="h-4 w-4 mr-2" />
               New Quote
             </Button>
+            <div className="hidden sm:flex">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowExportModal(true)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </div>
         )}
       </div>
