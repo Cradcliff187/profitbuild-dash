@@ -276,14 +276,6 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
 
   return (
     <div className="dense-spacing">
-      {/* Create New Quote Button */}
-      {onCreateNew && (
-        <Button onClick={onCreateNew} size="sm" className="w-full mb-3">
-          <Plus className="h-4 w-4 mr-2" />
-          New Quote
-        </Button>
-      )}
-      
       {/* Sort Controls */}
       <Card className="compact-card">
         <CardHeader className="p-compact pb-2">
