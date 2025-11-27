@@ -6,7 +6,6 @@ import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { NeedsAttentionCard } from '@/components/dashboard/NeedsAttentionCard';
 import { ProjectStatusCard } from '@/components/dashboard/ProjectStatusCard';
 import { WorkOrderStatusCard } from '@/components/dashboard/WorkOrderStatusCard';
-import { QuickActionsCard } from '@/components/dashboard/QuickActionsCard';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 
@@ -399,10 +398,10 @@ const Dashboard = () => {
         isRefreshing={isRefreshing}
       />
 
-      {/* Main Content: 2-Column Layout (Activity Feed 50%, Right Column 50%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-        {/* Activity Feed - 50% width on desktop */}
-        <div className="order-2 lg:order-1">
+      {/* Main Content: 2-Column Layout (Activity Feed 60%, Right Column 40%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mt-4">
+        {/* Activity Feed - 60% width on desktop */}
+        <div className="lg:col-span-3 order-2 lg:order-1">
           <Card>
             <CardHeader className="p-3 pb-2">
               <CardTitle className="text-sm font-semibold">Activity Feed</CardTitle>
@@ -413,8 +412,8 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Right Column - 50% width on desktop */}
-        <div className="space-y-3 order-1 lg:order-2">
+        {/* Right Column - 40% width on desktop */}
+        <div className="lg:col-span-2 space-y-3 order-1 lg:order-2">
           <NeedsAttentionCard
             pendingTimeEntries={pendingApprovals.timeEntries}
             pendingReceipts={pendingApprovals.receipts}
@@ -445,11 +444,6 @@ const Dashboard = () => {
             activeGrossMarginPercent={workOrderGrossMarginPercent}
           />
         </div>
-      </div>
-
-      {/* Quick Actions - Full Width Below Grid */}
-      <div className="mt-4">
-        <QuickActionsCard />
       </div>
     </MobilePageWrapper>
   );

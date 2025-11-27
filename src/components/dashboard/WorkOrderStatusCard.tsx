@@ -30,50 +30,50 @@ export function WorkOrderStatusCard({
 
   return (
     <Card>
-      <CardHeader className="p-3 pb-2">
-        <div className="flex items-center gap-2">
-          <Wrench className="h-4 w-4" />
-          <CardTitle className="text-sm font-semibold">Work Order Status</CardTitle>
+      <CardHeader className="p-2 pb-1.5">
+        <div className="flex items-center gap-1.5">
+          <Wrench className="h-3.5 w-3.5" />
+          <CardTitle className="text-xs font-semibold">Work Order Status</CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="p-3 pt-0 space-y-3">
-        <div className="space-y-1">
+      <CardContent className="p-2 pt-0 space-y-2">
+        <div className="space-y-0.5">
           {statusCounts.map((item) => (
             <button
               key={item.status}
               onClick={() => navigate(`/work-orders?status=${item.status}`)}
-              className="flex items-center justify-between w-full p-2 rounded hover:bg-muted text-left transition-colors h-8"
+              className="flex items-center justify-between w-full px-1.5 py-1 rounded hover:bg-muted text-left transition-colors h-7"
             >
-              <span className="text-sm">{item.label}</span>
-              <span className="text-sm font-semibold">{item.count}</span>
+              <span className="text-xs">{item.label}</span>
+              <span className="text-xs font-semibold">{item.count}</span>
             </button>
           ))}
         </div>
 
-        <div className="pt-2 border-t space-y-2">
-          <div className="flex items-start gap-2">
-            <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
+        <div className="pt-1.5 border-t space-y-1.5">
+          <div className="flex items-start gap-1.5">
+            <DollarSign className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-muted-foreground">Active WO Contract Value</div>
-              <div className="text-sm font-semibold truncate">{formatCurrency(activeContractValue)}</div>
+              <div className="text-[10px] text-muted-foreground">Active WO Contract Value</div>
+              <div className="text-xs font-semibold truncate">{formatCurrency(activeContractValue)}</div>
             </div>
           </div>
           
-          <div className="flex items-start gap-2">
-            <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
+          <div className="flex items-start gap-1.5">
+            <DollarSign className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-muted-foreground">Active WO Est. Costs</div>
-              <div className="text-sm font-semibold truncate">{formatCurrency(activeEstimatedCosts)}</div>
+              <div className="text-[10px] text-muted-foreground">Active WO Est. Costs</div>
+              <div className="text-xs font-semibold truncate">{formatCurrency(activeEstimatedCosts)}</div>
             </div>
           </div>
           
-          <div className="flex items-start gap-2">
-            <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
+          <div className="flex items-start gap-1.5">
+            <DollarSign className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-muted-foreground">Active WO Projected Margin</div>
-              <div className="text-sm font-semibold truncate">
+              <div className="text-[10px] text-muted-foreground">Active WO Projected Margin</div>
+              <div className="text-xs font-semibold truncate">
                 {formatCurrency(activeGrossMargin)}
-                <span className={`ml-2 text-xs ${
+                <span className={`ml-1.5 text-[10px] ${
                   activeGrossMarginPercent >= 20 ? 'text-green-600' :
                   activeGrossMarginPercent >= 10 ? 'text-yellow-600' :
                   'text-red-600'
@@ -84,11 +84,11 @@ export function WorkOrderStatusCard({
             </div>
           </div>
           
-          <div className="flex items-start gap-2">
-            <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
+          <div className="flex items-start gap-1.5">
+            <DollarSign className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-muted-foreground">Completed WO Value</div>
-              <div className="text-sm font-semibold text-green-600 truncate">{formatCurrency(completedContractValue)}</div>
+              <div className="text-[10px] text-muted-foreground">Completed WO Value</div>
+              <div className="text-xs font-semibold text-green-600 truncate">{formatCurrency(completedContractValue)}</div>
             </div>
           </div>
         </div>
