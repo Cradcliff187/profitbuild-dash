@@ -2,53 +2,86 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Plus, Trash2, ExternalLink, FolderOpen, Grid, Table as TableIcon, ArrowUpDown, Download } from 'lucide-react';
-import { format } from 'date-fns';
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage } from '@/components/ui/breadcrumb';
+import { FolderOpen, Plus, Download, FileText, Users, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
 import { BrandedLoader } from '@/components/ui/branded-loader';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
 import { ClientSelector } from '@/components/ClientSelector';
 import { BidExportModal } from '@/components/BidExportModal';
+import { BidFilters, BidSearchFilters } from '@/components/BidFilters';
+import { BidsTableView } from '@/components/BidsTableView';
+import { BidBulkActions } from '@/components/BidBulkActions';
+import { ColumnSelector } from '@/components/ui/column-selector';
 import type { BranchBid } from '@/types/bid';
 
-type DisplayMode = 'cards' | 'table';
-type SortOption = 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc';
+// Define column metadata for selector
+const columnDefinitions = [
+  { key: "name", label: "Bid Name", required: true, sortable: true },
+  { key: "client_name", label: "Client", required: false, sortable: true },
+  { key: "created_at", label: "Created", required: false, sortable: true },
+  { key: "project", label: "Linked Project", required: false, sortable: false },
+  { key: "created_by", label: "Created By", required: false, sortable: true },
+  { key: "actions", label: "Actions", required: true },
+];
 
 export default function BranchBids() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [selectedBid, setSelectedBid] = useState<BranchBid | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [displayMode, setDisplayMode] = useState<DisplayMode>(isMobile ? 'cards' : 'table');
-  const [sortOption, setSortOption] = useState<SortOption>('date-desc');
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Form state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [clientId, setClientId] = useState('');
 
-  // Auto-switch to cards on mobile
-  useEffect(() => {
-    if (isMobile && displayMode === 'table') {
-      setDisplayMode('cards');
+  // Column visibility state with localStorage persistence
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("bids-visible-columns");
+    if (saved) {
+      return JSON.parse(saved);
     }
-  }, [isMobile, displayMode]);
+    return ["name", "client_name", "created_at", "project", "created_by", "actions"];
+  });
+
+  // Column order state with localStorage persistence
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem("bids-column-order");
+    if (saved) {
+      const savedOrder = JSON.parse(saved);
+      const validOrder = savedOrder.filter((key: string) => columnDefinitions.some((col) => col.key === key));
+      const newColumns = columnDefinitions.map((col) => col.key).filter((key) => !validOrder.includes(key));
+      return [...validOrder, ...newColumns];
+    }
+    return columnDefinitions.map((col) => col.key);
+  });
+
+  // Save visibility to localStorage
+  useEffect(() => {
+    localStorage.setItem("bids-visible-columns", JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  // Save column order to localStorage
+  useEffect(() => {
+    localStorage.setItem("bids-column-order", JSON.stringify(columnOrder));
+  }, [columnOrder]);
+
+  const [filters, setFilters] = useState<BidSearchFilters>({
+    searchText: "",
+    clientName: [],
+    hasProject: null,
+    dateRange: { start: null, end: null },
+  });
 
   // Fetch all bids
   const { data: bids, isLoading } = useQuery({
@@ -74,7 +107,6 @@ export default function BranchBids() {
           .select('id, full_name, email')
           .in('id', userIds);
         
-        // Map profiles to bids
         return data.map(bid => ({
           ...bid as any,
           profiles: profiles?.find(p => p.id === bid.created_by),
@@ -84,6 +116,21 @@ export default function BranchBids() {
       return (data || []).map(bid => ({
         ...bid as any,
       })) as BranchBid[];
+    },
+  });
+
+  // Load clients for filter
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, client_name')
+        .eq('is_active', true)
+        .order('client_name', { ascending: true });
+      
+      if (error) throw error;
+      return data || [];
     },
   });
 
@@ -106,7 +153,6 @@ export default function BranchBids() {
 
       if (error) throw error;
       
-      // Fetch user profile separately
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name, email')
@@ -122,7 +168,6 @@ export default function BranchBids() {
       setName('');
       setDescription('');
       setClientId('');
-      // Navigate to the detail page
       navigate(`/branch-bids/${data.id}`);
     },
     onError: (error: Error) => {
@@ -145,8 +190,6 @@ export default function BranchBids() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branch-bids'] });
       toast.success('Bid deleted successfully');
-      setShowDeleteDialog(false);
-      setSelectedBid(null);
     },
     onError: (error: Error) => {
       toast.error('Failed to delete bid', {
@@ -155,34 +198,161 @@ export default function BranchBids() {
     },
   });
 
-  // Filter and sort bids
-  const filteredAndSortedBids = useMemo(() => {
-    let result = bids?.filter(bid => 
-      bid.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      bid.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      bid.projects?.project_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      bid.clients?.client_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      bid.clients?.company_name?.toLowerCase().includes(searchQuery.toLowerCase())
-    ) || [];
+  // Calculate statistics
+  const statistics = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // Apply sorting
-    result.sort((a, b) => {
-      switch (sortOption) {
-        case 'date-desc':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case 'date-asc':
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        case 'name-asc':
-          return a.name.localeCompare(b.name);
-        case 'name-desc':
-          return b.name.localeCompare(a.name);
+    const totalBids = bids?.length || 0;
+    const pendingBids = bids?.filter(bid => !bid.project_id).length || 0;
+    const withClients = bids?.filter(bid => bid.client_id).length || 0;
+    const thisMonth = bids?.filter(bid => {
+      const createdAt = new Date(bid.created_at);
+      return createdAt >= monthStart;
+    }).length || 0;
+
+    return {
+      totalBids,
+      pendingBids,
+      withClients,
+      thisMonth,
+    };
+  }, [bids]);
+
+  // Filter bids based on search criteria
+  const filteredBids = useMemo(() => {
+    return bids?.filter(bid => {
+      // Search text filter
+      if (filters.searchText) {
+        const searchLower = filters.searchText.toLowerCase();
+        const matchesSearch = 
+          bid.name.toLowerCase().includes(searchLower) ||
+          bid.description?.toLowerCase().includes(searchLower) ||
+          bid.clients?.client_name?.toLowerCase().includes(searchLower) ||
+          bid.clients?.company_name?.toLowerCase().includes(searchLower) ||
+          bid.projects?.project_name?.toLowerCase().includes(searchLower);
+        
+        if (!matchesSearch) return false;
+      }
+
+      // Client name filter
+      if (filters.clientName.length > 0 && bid.clients) {
+        if (!filters.clientName.includes(bid.clients.client_name)) {
+          return false;
+        }
+      }
+
+      // Has project filter
+      if (filters.hasProject !== null) {
+        if (filters.hasProject && !bid.project_id) return false;
+        if (!filters.hasProject && bid.project_id) return false;
+      }
+
+      // Date range filter
+      if (filters.dateRange.start || filters.dateRange.end) {
+        const bidDate = new Date(bid.created_at);
+        if (filters.dateRange.start && bidDate < filters.dateRange.start) return false;
+        if (filters.dateRange.end && bidDate > filters.dateRange.end) return false;
+      }
+
+      return true;
+    }) || [];
+  }, [bids, filters]);
+
+  // Sort bids
+  const sortedBids = useMemo(() => {
+    if (!sortColumn) return filteredBids;
+
+    return [...filteredBids].sort((a, b) => {
+      let aVal: any, bVal: any;
+
+      switch (sortColumn) {
+        case 'name':
+          aVal = a.name;
+          bVal = b.name;
+          break;
+        case 'client_name':
+          aVal = a.clients?.client_name || '';
+          bVal = b.clients?.client_name || '';
+          break;
+        case 'created_at':
+          aVal = new Date(a.created_at).getTime();
+          bVal = new Date(b.created_at).getTime();
+          break;
+        case 'created_by':
+          aVal = a.profiles?.full_name || '';
+          bVal = b.profiles?.full_name || '';
+          break;
         default:
           return 0;
       }
-    });
 
-    return result;
-  }, [bids, searchQuery, sortOption]);
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredBids, sortColumn, sortDirection]);
+
+  const handleSort = (columnKey: string) => {
+    const column = columnDefinitions.find(col => col.key === columnKey);
+    if (!column?.sortable) return;
+    
+    if (sortColumn === columnKey) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection('asc');
+    }
+  };
+
+  const renderSortIcon = (columnKey: string) => {
+    const column = columnDefinitions.find(col => col.key === columnKey);
+    if (!column?.sortable) return null;
+    
+    if (sortColumn !== columnKey) {
+      return <ChevronsUpDown className="h-3 w-3 ml-1 text-muted-foreground/50" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ChevronUp className="h-3 w-3 ml-1" /> 
+      : <ChevronDown className="h-3 w-3 ml-1" />;
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(sortedBids.map((bid) => bid.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds([...selectedIds, id]);
+    } else {
+      setSelectedIds(selectedIds.filter((sid) => sid !== id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from('branch_bids')
+        .update({ deleted_at: new Date().toISOString() })
+        .in('id', selectedIds);
+
+      if (error) throw error;
+
+      toast.success(`${selectedIds.length} ${selectedIds.length === 1 ? 'bid' : 'bids'} deleted successfully`);
+      setSelectedIds([]);
+      setBulkDeleteDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['branch-bids'] });
+    } catch (error: any) {
+      console.error('Error deleting bids:', error);
+      toast.error(error.message || "Failed to delete bids");
+    }
+  };
 
   const handleCreateBid = () => {
     if (!name.trim()) {
@@ -192,34 +362,14 @@ export default function BranchBids() {
     createMutation.mutate();
   };
 
-  const handleDeleteClick = (bid: BranchBid) => {
-    setSelectedBid(bid);
-    setShowDeleteDialog(true);
-  };
-
-  const handleConfirmDelete = () => {
-    if (selectedBid) {
-      deleteMutation.mutate(selectedBid.id);
-    }
-  };
-
   if (isLoading) {
     return <BrandedLoader message="Loading bids..." />;
   }
 
   return (
-    <div className="space-y-4 p-4 md:p-6">
-      {/* Breadcrumb */}
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbPage>Bids</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
+    <div className="w-full overflow-x-hidden px-2 sm:px-4 py-2 space-y-2">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-3">
           <FolderOpen className="h-5 w-5 text-primary" />
           <div>
@@ -227,230 +377,107 @@ export default function BranchBids() {
             <p className="text-sm text-muted-foreground">Pre-estimate workspace for gathering project information</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setShowCreateDialog(true)} size="sm">
+            <Plus className="h-3 w-3 mr-1" />
+            New Bid
+          </Button>
+          <ColumnSelector 
+            columns={columnDefinitions}
+            visibleColumns={visibleColumns}
+            onVisibilityChange={setVisibleColumns}
+            columnOrder={columnOrder}
+            onColumnOrderChange={setColumnOrder}
+          />
           <Button 
             onClick={() => setShowExportModal(true)} 
             variant="outline" 
-            size="lg"
+            size="sm"
             disabled={!bids || bids.length === 0}
           >
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="h-3 w-3 mr-1" />
             Export
           </Button>
-          <Button onClick={() => setShowCreateDialog(true)} size="lg">
-            <Plus className="h-4 w-4 mr-2" />
-            New Bid
-          </Button>
         </div>
       </div>
 
-      {/* Search and Controls */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Input
-          placeholder="Search bids..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full sm:max-w-md"
-        />
-        
-        <div className="flex gap-2">
-          {/* Sort */}
-          <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
-            <SelectTrigger className="w-[180px]">
-              <ArrowUpDown className="h-4 w-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date-desc">Newest First</SelectItem>
-              <SelectItem value="date-asc">Oldest First</SelectItem>
-              <SelectItem value="name-asc">Name (A-Z)</SelectItem>
-              <SelectItem value="name-desc">Name (Z-A)</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* View Toggle */}
-          {!isMobile && (
-            <div className="flex gap-1 border rounded-md p-1">
-              <Button
-                variant={displayMode === 'table' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setDisplayMode('table')}
-                className="h-8 px-3"
-              >
-                <TableIcon className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={displayMode === 'cards' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setDisplayMode('cards')}
-                className="h-8 px-3"
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Bids List */}
-      {filteredAndSortedBids.length === 0 ? (
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2">
         <Card>
-          <CardContent className="p-12 text-center">
-            <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <h3 className="text-lg font-semibold mb-2">No bids found</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {searchQuery
-                ? 'No bids match your search criteria'
-                : 'Create your first bid to start gathering project information'}
-            </p>
-            {!searchQuery && (
-              <Button onClick={() => setShowCreateDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Bid
-              </Button>
-            )}
+          <CardContent className="p-3">
+            <div className="flex items-center space-x-2">
+              <FileText className="h-4 w-4 text-primary" />
+              <div>
+                <p className="text-xs text-muted-foreground">Total Bids</p>
+                <p className="text-xl font-bold">{statistics.totalBids}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      ) : displayMode === 'table' ? (
         <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Linked Project</TableHead>
-                <TableHead>Created By</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredAndSortedBids.map((bid) => (
-                <TableRow 
-                  key={bid.id} 
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => navigate(`/branch-bids/${bid.id}`)}
-                >
-                  <TableCell className="font-medium">
-                    <div>
-                      <div className="font-semibold">{bid.name}</div>
-                      {bid.description && (
-                        <div className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
-                          {bid.description}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {bid.clients ? (
-                      <div className="text-sm">
-                        <div className="font-medium">{bid.clients.client_name}</div>
-                        {bid.clients.company_name && (
-                          <div className="text-xs text-muted-foreground">{bid.clients.company_name}</div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {format(new Date(bid.created_at), 'MMM d, yyyy')}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {bid.projects ? (
-                      <Badge variant="secondary" className="w-fit text-xs">
-                        {bid.projects.project_number}
-                      </Badge>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {bid.profiles?.full_name || 'Unknown'}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteClick(bid);
-                      }}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <CardContent className="p-3">
+            <div className="flex items-center space-x-2">
+              <ExternalLink className="h-4 w-4 text-yellow-600" />
+              <div>
+                <p className="text-xs text-muted-foreground">Pending</p>
+                <p className="text-xl font-bold">{statistics.pendingBids}</p>
+              </div>
+            </div>
+          </CardContent>
         </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredAndSortedBids.map((bid) => (
-            <Card key={bid.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/branch-bids/${bid.id}`)}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">{bid.name}</CardTitle>
-                    <CardDescription className="mt-1">
-                      Created {format(new Date(bid.created_at), 'MMM d, yyyy')}
-                    </CardDescription>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteClick(bid);
-                    }}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {bid.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {bid.description}
-                  </p>
-                )}
-                
-                {bid.clients && (
-                  <div className="text-sm">
-                    <span className="font-medium">{bid.clients.client_name}</span>
-                    {bid.clients.company_name && (
-                      <span className="text-muted-foreground"> • {bid.clients.company_name}</span>
-                    )}
-                  </div>
-                )}
-                
-                {bid.projects && (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      {bid.projects.project_number}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {bid.projects.project_name}
-                    </span>
-                  </div>
-                )}
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex items-center space-x-2">
+              <Users className="h-4 w-4 text-blue-600" />
+              <div>
+                <p className="text-xs text-muted-foreground">With Clients</p>
+                <p className="text-xl font-bold">{statistics.withClients}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex items-center space-x-2">
+              <FileText className="h-4 w-4 text-green-600" />
+              <div>
+                <p className="text-xs text-muted-foreground">This Month</p>
+                <p className="text-xl font-bold">{statistics.thisMonth}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-                <div className="text-xs text-muted-foreground">
-                  By {bid.profiles?.full_name || 'Unknown'}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      {/* Filters */}
+      <BidFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        resultCount={filteredBids.length}
+        clients={clients}
+      />
+
+      {/* Bulk Actions */}
+      <BidBulkActions
+        selectedCount={selectedIds.length}
+        onDelete={() => setBulkDeleteDialogOpen(true)}
+        onCancel={() => setSelectedIds([])}
+      />
+
+      {/* Table */}
+      <BidsTableView
+        bids={sortedBids}
+        onDelete={(id) => deleteMutation.mutate(id)}
+        selectedIds={selectedIds}
+        onSelectAll={handleSelectAll}
+        onSelectOne={handleSelectOne}
+        visibleColumns={visibleColumns}
+        columnOrder={columnOrder}
+        sortColumn={sortColumn}
+        sortDirection={sortDirection}
+        onSort={handleSort}
+        renderSortIcon={renderSortIcon}
+      />
 
       {/* Create Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -472,21 +499,21 @@ export default function BranchBids() {
               />
             </div>
             <div className="space-y-2">
-              <ClientSelector
-                value={clientId}
-                onValueChange={(id) => setClientId(id)}
-                placeholder="Select a client"
-                required={false}
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                placeholder="Add any initial notes about this bid..."
+                placeholder="Add any notes or details about this bid..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={4}
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="client">Client (Optional)</Label>
+              <ClientSelector
+                value={clientId}
+                onValueChange={setClientId}
+                placeholder="Select a client..."
               />
             </div>
           </div>
@@ -501,37 +528,32 @@ export default function BranchBids() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      {/* Bulk Delete Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Bid?</AlertDialogTitle>
+            <AlertDialogTitle>Delete {selectedIds.length} {selectedIds.length === 1 ? 'Bid' : 'Bids'}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{selectedBid?.name}"? This action cannot be undone.
-              All associated notes, media, and documents will also be deleted.
+              Are you sure you want to delete {selectedIds.length} selected {selectedIds.length === 1 ? 'bid' : 'bids'}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedBid(null)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Export Modal */}
-      <BidExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        bids={filteredAndSortedBids || []}
-      />
+      {showExportModal && (
+        <BidExportModal
+          isOpen={showExportModal}
+          bids={bids || []}
+          onClose={() => setShowExportModal(false)}
+        />
+      )}
     </div>
   );
 }
-
