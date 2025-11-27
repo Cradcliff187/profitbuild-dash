@@ -49,6 +49,8 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     successCount: number;
     databaseDuplicatesSkipped?: number;
     inFileDuplicatesSkipped?: number;
+    revenueDatabaseDuplicatesSkipped?: number;
+    revenueInFileDuplicatesSkipped?: number;
     fuzzyMatches?: Array<{
       qbName: string;
       matchedPayee: any;
@@ -444,6 +446,8 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         successCount,
         databaseDuplicatesSkipped: result.databaseDuplicatesSkipped,
         inFileDuplicatesSkipped: result.inFileDuplicatesSkipped,
+        revenueDatabaseDuplicatesSkipped: result.revenueDatabaseDuplicatesSkipped,
+        revenueInFileDuplicatesSkipped: result.revenueInFileDuplicatesSkipped,
         fuzzyMatches: result.fuzzyMatches,
         autoCreatedPayees: result.autoCreatedPayees,
         autoCreatedCount: result.autoCreatedCount,
@@ -457,10 +461,16 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       if (successCount > 0) {
         const duplicateInfo = [];
         if (finalResults.databaseDuplicatesSkipped && finalResults.databaseDuplicatesSkipped > 0) {
-          duplicateInfo.push(`${finalResults.databaseDuplicatesSkipped} database duplicate(s)`);
+          duplicateInfo.push(`${finalResults.databaseDuplicatesSkipped} expense database duplicate(s)`);
         }
         if (finalResults.inFileDuplicatesSkipped && finalResults.inFileDuplicatesSkipped > 0) {
-          duplicateInfo.push(`${finalResults.inFileDuplicatesSkipped} in-file duplicate(s)`);
+          duplicateInfo.push(`${finalResults.inFileDuplicatesSkipped} expense in-file duplicate(s)`);
+        }
+        if (finalResults.revenueDatabaseDuplicatesSkipped && finalResults.revenueDatabaseDuplicatesSkipped > 0) {
+          duplicateInfo.push(`${finalResults.revenueDatabaseDuplicatesSkipped} revenue database duplicate(s)`);
+        }
+        if (finalResults.revenueInFileDuplicatesSkipped && finalResults.revenueInFileDuplicatesSkipped > 0) {
+          duplicateInfo.push(`${finalResults.revenueInFileDuplicatesSkipped} revenue in-file duplicate(s)`);
         }
         const duplicateText = duplicateInfo.length > 0 ? ` Skipped ${duplicateInfo.join(', ')}.` : '';
         const autoCreatedText = finalResults.autoCreatedCount && finalResults.autoCreatedCount > 0 
@@ -866,12 +876,22 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                 </div>
                 {importResults.databaseDuplicatesSkipped !== undefined && importResults.databaseDuplicatesSkipped > 0 && (
                   <div>
-                    <span className="font-medium">Database Duplicates Skipped:</span> {importResults.databaseDuplicatesSkipped}
+                    <span className="font-medium">Expense DB Duplicates Skipped:</span> {importResults.databaseDuplicatesSkipped}
                   </div>
                 )}
                 {importResults.inFileDuplicatesSkipped !== undefined && importResults.inFileDuplicatesSkipped > 0 && (
                   <div>
-                    <span className="font-medium">In-File Duplicates Skipped:</span> {importResults.inFileDuplicatesSkipped}
+                    <span className="font-medium">Expense In-File Duplicates Skipped:</span> {importResults.inFileDuplicatesSkipped}
+                  </div>
+                )}
+                {importResults.revenueDatabaseDuplicatesSkipped !== undefined && importResults.revenueDatabaseDuplicatesSkipped > 0 && (
+                  <div>
+                    <span className="font-medium">Revenue DB Duplicates Skipped:</span> {importResults.revenueDatabaseDuplicatesSkipped}
+                  </div>
+                )}
+                {importResults.revenueInFileDuplicatesSkipped !== undefined && importResults.revenueInFileDuplicatesSkipped > 0 && (
+                  <div>
+                    <span className="font-medium">Revenue In-File Duplicates Skipped:</span> {importResults.revenueInFileDuplicatesSkipped}
                   </div>
                 )}
                 {importResults.autoCreatedCount !== undefined && importResults.autoCreatedCount > 0 && (
