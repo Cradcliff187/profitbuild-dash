@@ -103,7 +103,7 @@ const Navigation = () => {
     { to: "/estimates", label: "Estimates", icon: Calculator, show: hasFinancialAccess },
     { to: "/quotes", label: "Quotes", icon: FileText, show: hasFinancialAccess },
     { to: "/work-orders", label: "Work Orders", icon: Wrench, show: hasFinancialAccess },
-    { to: "/time-entries", label: "Time Management", icon: ClipboardCheck, show: isAdmin || isManager },
+    { to: "/time-entries", label: "Time Management", icon: Clock, show: isAdmin || isManager },
   ].filter(item => item.show);
 
   // Secondary items (grouped under "More" dropdown)
