@@ -268,6 +268,17 @@ export const ClientsList = () => {
         </div>
         <div className="flex gap-1">
           <Button 
+            onClick={() => {
+              setEditingClient(null);
+              setShowForm(true);
+            }} 
+            size="sm" 
+            className="h-btn-compact text-label text-white"
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Add Client
+          </Button>
+          <Button 
             variant="outline"
             size="sm"
             onClick={() => setShowImportModal(true)}
@@ -275,17 +286,6 @@ export const ClientsList = () => {
           >
             <Upload className="h-3 w-3 mr-1" />
             Import CSV
-          </Button>
-          <Button 
-            onClick={() => {
-              setEditingClient(null);
-              setShowForm(true);
-            }} 
-            size="sm" 
-            className="h-btn-compact text-label"
-          >
-            <Plus className="h-3 w-3 mr-1" />
-            Add Client
           </Button>
         </div>
       </div>
