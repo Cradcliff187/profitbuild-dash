@@ -43,6 +43,9 @@ const Dashboard = () => {
   const [pendingChangeOrders, setPendingChangeOrders] = useState(0);
   const [expiringQuotes, setExpiringQuotes] = useState(0);
   const [draftEstimates, setDraftEstimates] = useState(0);
+  const [overdueWorkOrders, setOverdueWorkOrders] = useState(0);
+  const [workOrdersOnHold, setWorkOrdersOnHold] = useState(0);
+  const [workOrdersOverBudget, setWorkOrdersOverBudget] = useState(0);
 
   // Financial metrics
   const [activeContractValue, setActiveContractValue] = useState(0);
@@ -275,13 +278,58 @@ const Dashboard = () => {
       .select('*', { count: 'exact', head: true })
       .eq('status', 'draft');
 
+    // Overdue work orders
+    const today = new Date().toISOString().split('T')[0];
+    const { count: overdueCount, error: overdueError } = await supabase
+      .from('projects')
+      .select('*', { count: 'exact', head: true })
+      .eq('project_type', 'work_order')
+      .eq('status', 'in_progress')
+      .lt('end_date', today);
+
+    // Work orders on hold
+    const { count: onHoldCount, error: onHoldError } = await supabase
+      .from('projects')
+      .select('*', { count: 'exact', head: true })
+      .eq('project_type', 'work_order')
+      .eq('status', 'on_hold');
+
+    // Work orders over budget
+    const { data: inProgressWOs, error: budgetError } = await supabase
+      .from('projects')
+      .select('id, adjusted_est_costs')
+      .eq('project_type', 'work_order')
+      .eq('status', 'in_progress')
+      .gt('adjusted_est_costs', 0);
+
+    let overBudgetCount = 0;
+    if (inProgressWOs && !budgetError) {
+      for (const wo of inProgressWOs) {
+        const { data: expenses } = await supabase
+          .from('expenses')
+          .select('amount')
+          .eq('project_id', wo.id);
+        
+        const totalExpenses = expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
+        if (totalExpenses > wo.adjusted_est_costs) {
+          overBudgetCount++;
+        }
+      }
+    }
+
     if (coError) console.error('Error loading pending change orders:', coError);
     if (quotesError) console.error('Error loading expiring quotes:', quotesError);
     if (estimatesError) console.error('Error loading draft estimates:', estimatesError);
+    if (overdueError) console.error('Error loading overdue work orders:', overdueError);
+    if (onHoldError) console.error('Error loading on hold work orders:', onHoldError);
+    if (budgetError) console.error('Error loading work order budget data:', budgetError);
 
     setPendingChangeOrders(changeOrdersCount || 0);
     setExpiringQuotes(quotesCount || 0);
     setDraftEstimates(estimatesCount || 0);
+    setOverdueWorkOrders(overdueCount || 0);
+    setWorkOrdersOnHold(onHoldCount || 0);
+    setWorkOrdersOverBudget(overBudgetCount);
   };
 
   const loadFinancialMetrics = async () => {
@@ -374,6 +422,9 @@ const Dashboard = () => {
             expiringQuotes={expiringQuotes}
             draftEstimates={draftEstimates}
             workOrdersWithoutEstimates={workOrdersWithoutEstimates}
+            overdueWorkOrders={overdueWorkOrders}
+            workOrdersOnHold={workOrdersOnHold}
+            workOrdersOverBudget={workOrdersOverBudget}
           />
           
           <ProjectStatusCard 
