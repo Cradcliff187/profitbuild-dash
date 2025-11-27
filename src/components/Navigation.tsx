@@ -104,7 +104,6 @@ const Navigation = () => {
     { to: "/quotes", label: "Quotes", icon: FileText, show: hasFinancialAccess },
     { to: "/work-orders", label: "Work Orders", icon: Wrench, show: hasFinancialAccess },
     { to: "/time-entries", label: "Time Management", icon: ClipboardCheck, show: isAdmin || isManager },
-    { to: "/field-media", label: "Field Media", icon: Camera, show: isFieldWorker },
   ].filter(item => item.show);
 
   // Secondary items (grouped under "More" dropdown)
@@ -112,6 +111,7 @@ const Navigation = () => {
     { to: "/branch-bids", label: "Bids", icon: FolderOpen, show: isAdmin || isManager },
     { to: "/time-tracker", label: "Time Tracker", icon: Clock, show: true },
     { to: "/expenses", label: "Expenses", icon: Receipt, show: hasFinancialAccess },
+    { to: "/field-media", label: "Field Media", icon: Camera, show: isAdmin || isFieldWorker },
     { to: "/reports", label: "Reports", icon: BarChart3, show: hasFinancialAccess },
     { to: "/payees", label: "Payees", icon: Users, show: hasClientAccess },
     { to: "/clients", label: "Clients", icon: UserCheck, show: hasClientAccess },
