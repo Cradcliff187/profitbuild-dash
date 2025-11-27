@@ -58,6 +58,7 @@ export const ActivityFeedList = ({
   const [activities, setActivities] = useState<ActivityFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activityTypeFilter, setActivityTypeFilter] = useState<string>("all");
+  const [displayLimit, setDisplayLimit] = useState(limit);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -89,7 +90,7 @@ export const ActivityFeedList = ({
           project:projects(project_number, project_name)
         `)
         .order('created_at', { ascending: false })
-        .limit(limit);
+        .limit(displayLimit);
 
       if (projectId) {
         query = query.eq('project_id', projectId);
@@ -111,7 +112,7 @@ export const ActivityFeedList = ({
         .from('activity_feed')
         .select('*', { count: 'exact', head: true });
       
-      setHasMore((count || 0) > limit);
+      setHasMore((count || 0) > displayLimit);
     } catch (err: any) {
       clearTimeout(timeoutId);
       if (err.name !== 'AbortError') {
@@ -127,7 +128,7 @@ export const ActivityFeedList = ({
 
   useEffect(() => {
     loadActivities();
-  }, [limit, projectId, activityTypeFilter]);
+  }, [displayLimit, projectId, activityTypeFilter]);
 
   // Clear activities when filter changes to prevent showing stale data
   useEffect(() => {
@@ -346,7 +347,7 @@ export const ActivityFeedList = ({
             variant="ghost"
             size="sm"
             className="text-xs h-6"
-            onClick={() => loadActivities()}
+            onClick={() => setDisplayLimit(prev => prev + limit)}
           >
             Load more
           </Button>
