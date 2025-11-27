@@ -220,14 +220,12 @@ export default function BranchBids() {
 
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-            <FolderOpen className="h-7 w-7" />
-            Bids
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Pre-estimate workspace for gathering project information
-          </p>
+        <div className="flex items-center space-x-3">
+          <FolderOpen className="h-5 w-5 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Bids</h1>
+            <p className="text-sm text-muted-foreground">Pre-estimate workspace for gathering project information</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button 

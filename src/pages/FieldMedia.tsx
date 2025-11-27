@@ -62,11 +62,12 @@ export default function FieldMedia() {
     <MobilePageWrapper>
       <div className="space-y-4">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-semibold">Field Media</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Capture and view project photos and videos
-          </p>
+        <div className="flex items-center space-x-3">
+          <Camera className="h-5 w-5 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Field Media</h1>
+            <p className="text-sm text-muted-foreground">Capture and view project photos and videos</p>
+          </div>
         </div>
 
         {/* Project Selector */}

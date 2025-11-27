@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, FileBarChart } from "lucide-react";
 import { NewTemplateGallery } from "@/components/reports/NewTemplateGallery";
 import { SimpleReportBuilder } from "@/components/reports/SimpleReportBuilder";
 import { ReportViewer } from "@/components/reports/ReportViewer";
@@ -22,6 +22,17 @@ import { Badge } from "@/components/ui/badge";
 
 const ReportsPage = () => {
   const isMobile = useIsMobile();
+  
+  // Render header section
+  const renderHeader = () => (
+    <div className="flex items-center space-x-3 mb-4">
+      <FileBarChart className="h-5 w-5 text-primary" />
+      <div>
+        <h1 className="text-xl font-bold text-foreground">Reports</h1>
+        <p className="text-sm text-muted-foreground">Generate and export custom reports</p>
+      </div>
+    </div>
+  );
   const [showBuilder, setShowBuilder] = useState(false);
   const [hasResults, setHasResults] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
@@ -201,12 +212,7 @@ const ReportsPage = () => {
 
   return (
     <div className="container mx-auto p-4 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Reports</h1>
-          <p className="text-muted-foreground">Generate custom reports from your project data</p>
-        </div>
-      </div>
+      {renderHeader()}
 
       {hasResults ? (
         <div className="space-y-4">
