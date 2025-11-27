@@ -29,7 +29,10 @@ const Dashboard = () => {
   // Work Order metrics
   const [workOrderStatusCounts, setWorkOrderStatusCounts] = useState<ProjectStatusCount[]>([]);
   const [workOrderContractValue, setWorkOrderContractValue] = useState(0);
-  const [activeWorkOrderCount, setActiveWorkOrderCount] = useState(0);
+  const [workOrderEstimatedCosts, setWorkOrderEstimatedCosts] = useState(0);
+  const [workOrderCompletedValue, setWorkOrderCompletedValue] = useState(0);
+  const [workOrderGrossMargin, setWorkOrderGrossMargin] = useState(0);
+  const [workOrderGrossMarginPercent, setWorkOrderGrossMarginPercent] = useState(0);
   const [workOrdersWithoutEstimates, setWorkOrdersWithoutEstimates] = useState(0);
   
   // Needs Attention metrics
@@ -161,7 +164,7 @@ const Dashboard = () => {
   const loadWorkOrderStatusCounts = async () => {
     const { data, error } = await supabase
       .from('projects')
-      .select('status, category, contracted_amount, estimates!left(id, is_auto_generated)')
+      .select('status, category, contracted_amount, adjusted_est_costs, projected_margin, margin_percentage, estimates!left(id, is_auto_generated)')
       .eq('category', 'construction')
       .eq('project_type', 'work_order');
 
@@ -196,14 +199,19 @@ const Dashboard = () => {
 
     setWorkOrderStatusCounts(formattedCounts);
 
-    // Calculate active work order count and contract value
-    const activeCount = data?.filter(wo => 
-      ['in_progress', 'approved'].includes(wo.status)
-    ).length || 0;
+    // Calculate active work order metrics
+    const activeWorkOrders = data?.filter(wo => ['in_progress', 'approved'].includes(wo.status)) || [];
+    
+    const totalContractValue = activeWorkOrders.reduce((sum, wo) => sum + (wo.contracted_amount || 0), 0);
+    const totalEstCosts = activeWorkOrders.reduce((sum, wo) => sum + (wo.adjusted_est_costs || 0), 0);
+    const totalProjectedMargin = activeWorkOrders.reduce((sum, wo) => sum + (wo.projected_margin || 0), 0);
+    const aggregateMarginPercent = totalContractValue > 0 
+      ? (totalProjectedMargin / totalContractValue) * 100 
+      : 0;
 
-    const totalContractValue = data
-      ?.filter(wo => ['in_progress', 'approved'].includes(wo.status))
-      .reduce((sum, wo) => sum + (wo.contracted_amount || 0), 0) || 0;
+    // Calculate completed work orders value
+    const completedWorkOrders = data?.filter(wo => wo.status === 'complete') || [];
+    const totalCompleted = completedWorkOrders.reduce((sum, wo) => sum + (wo.contracted_amount || 0), 0);
 
     // Count work orders without proper estimates
     const withoutEstimates = data?.filter(wo => {
@@ -211,8 +219,11 @@ const Dashboard = () => {
       return estimates.length === 0 || estimates.every(est => est.is_auto_generated);
     }).length || 0;
 
-    setActiveWorkOrderCount(activeCount);
     setWorkOrderContractValue(totalContractValue);
+    setWorkOrderEstimatedCosts(totalEstCosts);
+    setWorkOrderGrossMargin(totalProjectedMargin);
+    setWorkOrderGrossMarginPercent(aggregateMarginPercent);
+    setWorkOrderCompletedValue(totalCompleted);
     setWorkOrdersWithoutEstimates(withoutEstimates);
   };
 
@@ -362,6 +373,7 @@ const Dashboard = () => {
             pendingChangeOrders={pendingChangeOrders}
             expiringQuotes={expiringQuotes}
             draftEstimates={draftEstimates}
+            workOrdersWithoutEstimates={workOrdersWithoutEstimates}
           />
           
           <ProjectStatusCard 
@@ -379,12 +391,17 @@ const Dashboard = () => {
           <WorkOrderStatusCard
             statusCounts={workOrderStatusCounts}
             activeContractValue={workOrderContractValue}
-            activeWorkOrderCount={activeWorkOrderCount}
-            workOrdersWithoutEstimates={workOrdersWithoutEstimates}
+            activeEstimatedCosts={workOrderEstimatedCosts}
+            completedContractValue={workOrderCompletedValue}
+            activeGrossMargin={workOrderGrossMargin}
+            activeGrossMarginPercent={workOrderGrossMarginPercent}
           />
-          
-          <QuickActionsCard />
         </div>
+      </div>
+
+      {/* Quick Actions - Full Width Below Grid */}
+      <div className="mt-4">
+        <QuickActionsCard />
       </div>
     </MobilePageWrapper>
   );
