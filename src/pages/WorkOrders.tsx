@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Download, ClipboardCheck, Clock, CheckCircle, XCircle, FileText, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { Plus, Download, Wrench, Clock, CheckCircle, XCircle, FileText, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -647,7 +647,7 @@ const WorkOrders = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-3">
-          <ClipboardCheck className="h-5 w-5 text-primary" />
+          <Wrench className="h-5 w-5 text-primary" />
           <div>
             <h1 className="text-xl font-bold text-foreground">Work Orders</h1>
             <p className="text-muted-foreground">Manage your work orders and track progress</p>
