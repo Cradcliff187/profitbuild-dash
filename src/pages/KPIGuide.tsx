@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { BookOpen, Download, Search } from 'lucide-react';
+import { BookOpen, Download, Search, Building, Calculator, FileText, Receipt, DollarSign, RefreshCw, Clipboard, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -18,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const KPI_GUIDE_METADATA = {
   lastUpdated: '2024-11-27',
@@ -141,6 +143,24 @@ export default function KPIGuide() {
   const { isAdmin, isManager, loading } = useRoles();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('project');
+  const isMobile = useIsMobile();
+
+  const tabOptions = [
+    { value: 'project', label: 'Project', icon: Building },
+    { value: 'estimates', label: 'Estimates', icon: Calculator },
+    { value: 'quotes', label: 'Quotes', icon: FileText },
+    { value: 'expenses', label: 'Expenses', icon: Receipt },
+    { value: 'revenue', label: 'Revenue', icon: DollarSign },
+    { value: 'change-orders', label: 'Change Orders', icon: RefreshCw },
+    { value: 'work-orders', label: 'Work Orders', icon: Clipboard },
+    { value: 'reference', label: 'Reference', icon: BookOpen },
+    { value: 'deprecated', label: 'Deprecated', icon: Archive },
+  ];
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
 
   useEffect(() => {
     if (!loading && !isAdmin && !isManager) {
@@ -282,17 +302,38 @@ export default function KPIGuide() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="project" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 md:grid-cols-9 h-auto">
-          <TabsTrigger value="project" className="text-xs">Project</TabsTrigger>
-          <TabsTrigger value="estimates" className="text-xs">Estimates</TabsTrigger>
-          <TabsTrigger value="quotes" className="text-xs">Quotes</TabsTrigger>
-          <TabsTrigger value="expenses" className="text-xs">Expenses</TabsTrigger>
-          <TabsTrigger value="revenue" className="text-xs">Revenue</TabsTrigger>
-          <TabsTrigger value="change-orders" className="text-xs">Change Orders</TabsTrigger>
-          <TabsTrigger value="work-orders" className="text-xs">Work Orders</TabsTrigger>
-          <TabsTrigger value="reference" className="text-xs">Reference</TabsTrigger>
-          <TabsTrigger value="deprecated" className="text-xs">Deprecated</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        {/* Mobile Dropdown */}
+        <div className="sm:hidden">
+          <Select value={activeTab} onValueChange={handleTabChange}>
+            <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {tabOptions.map((tab) => (
+                <SelectItem key={tab.value} value={tab.value}>
+                  <div className="flex items-center gap-2">
+                    <tab.icon className="h-4 w-4" />
+                    <span>{tab.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Desktop Orange Pills */}
+        <TabsList className="hidden sm:flex w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1">
+          {tabOptions.map((tab) => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <tab.icon className="h-4 w-4" />
+              <span>{tab.label}</span>
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="project" className="mt-3">
