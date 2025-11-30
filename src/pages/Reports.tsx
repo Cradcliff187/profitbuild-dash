@@ -40,6 +40,19 @@ const ReportsPage = () => {
   const { savedReports } = useReportTemplates();
 
   // Convert filters object to array for FilterSummary
+  const handleCategoryChange = (category: ReportCategory) => {
+    setSelectedCategory(category);
+    // Clear current report view when navigating to a new category
+    setHasResults(false);
+    setShowBuilder(false);
+    setSelectedTemplate(null);
+    setReportData([]);
+    setReportFields([]);
+    setReportName('');
+    setCurrentConfig(null);
+    setCurrentFilters([]);
+  };
+
   const filtersObjectToArray = (filters: Record<string, ReportFilter>): ReportFilter[] => {
     return Object.values(filters).filter(filter => filter && filter.field && filter.operator);
   };
@@ -249,7 +262,7 @@ const ReportsPage = () => {
       <div className="min-h-screen flex w-full no-horizontal-scroll pt-16">
         <ReportsSidebar 
           selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
+          onCategoryChange={handleCategoryChange}
         />
         <SidebarInset className="flex-1 flex flex-col no-horizontal-scroll overflow-hidden">
           {/* Compact Header */}
