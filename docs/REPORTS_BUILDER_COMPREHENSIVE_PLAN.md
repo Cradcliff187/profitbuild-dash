@@ -160,15 +160,24 @@ remaining_contingency = total_contingency - used_contingency - change_order_cont
 
 ### 2.4 Database Views
 
-**View:** `project_financial_summary`
+**View:** `reporting.project_financials`
 
-Aggregates:
+**Location:** `reporting` schema
+
+**Purpose:** Comprehensive reporting view that aggregates project-level financial metrics, expenses, quotes, change orders, and revenue data. This is the primary data source for the report builder system.
+
+**Aggregates:**
 - Estimate totals and contingency
-- Revenue/invoice totals
-- Expense totals
+- Revenue/invoice totals (including `total_invoiced` and `invoice_count`)
+- Expense totals (handles split expenses correctly)
 - Accepted quote totals
 - Change order impacts
 - Calculated profit and margins
+- **Revenue variance** (`revenue_variance` and `revenue_variance_percent`) - compares estimated revenue (contracted_amount) vs actual revenue (total_invoiced)
+- Cost variance calculations
+- Budget utilization metrics
+
+**Note:** This view replaces the older `project_financial_summary` view. All new reporting should use `reporting.project_financials`.
 
 ---
 
@@ -287,8 +296,10 @@ calculateProjectFinancials(project, estimates, expenses)
   - Contracted Amount (base + change orders)
   - Original Contract Amount
   - Change Order Revenue
-  - Total Invoiced/Revenue
-  - Revenue Variance (estimated vs actual)
+  - Total Invoiced/Revenue (`total_invoiced` - sum of all project_revenues.amount)
+  - Invoice Count (`invoice_count` - number of invoice/revenue records)
+  - Revenue Variance (`revenue_variance` - contracted_amount - total_invoiced)
+  - Revenue Variance Percent (`revenue_variance_percent` - variance as percentage of contracted amount)
 
 - **Cost Metrics:**
   - Original Estimated Costs
@@ -1028,6 +1039,14 @@ SELECT
   
   -- Calculated fields
   (p.contracted_amount - COALESCE(exp_summary.total_expenses, 0)) as remaining_budget,
+  
+  -- Revenue variance calculations
+  (p.contracted_amount - COALESCE(rev_summary.total_invoiced, 0)) as revenue_variance,
+  CASE 
+    WHEN p.contracted_amount > 0 
+    THEN ((p.contracted_amount - COALESCE(rev_summary.total_invoiced, 0)) / p.contracted_amount) * 100
+    ELSE 0
+  END as revenue_variance_percent,
   CASE 
     WHEN p.contracted_amount > 0 
     THEN (COALESCE(exp_summary.total_expenses, 0) / p.contracted_amount) * 100

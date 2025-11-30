@@ -41,6 +41,7 @@
 | `client_name` | TEXT | No | Client/customer name | Display, group by |
 | `status` | ENUM | No | Project status | Filter, group by |
 | `project_type` | ENUM | No | 'construction_project' or 'work_order' | Filter |
+| `category` | ENUM | No | 'construction', 'system', or 'overhead' | Filter, visibility control |
 | `job_type` | TEXT | No | Commercial, Residential, etc. | Group by, filter |
 | `start_date` | DATE | No | Project start | Date range |
 | `end_date` | DATE | No | Project end | Date range, duration calc |
@@ -465,9 +466,18 @@ GROUP BY p.id;
 ## Reporting Best Practices
 
 ### Always Filter System Projects
+
+**Recommended (Category-Based):**
+```sql
+WHERE category = 'construction'::project_category
+```
+
+**Legacy (Project Number-Based):**
 ```sql
 WHERE project_number NOT IN ('SYS-000', '000-UNASSIGNED')
 ```
+
+**Note:** The category-based approach is preferred as it's more maintainable and scalable. The `category` field replaces hardcoded project number filtering. Categories: `'construction'` (visible everywhere), `'system'` (hidden), `'overhead'` (visible in expenses/receipts only).
 
 ### Use Calculated Fields from Projects Table
 ```sql
@@ -522,13 +532,98 @@ CREATE INDEX idx_projects_status_dates ON projects(status, start_date, end_date)
 
 ---
 
+---
+
+## Reporting View: `reporting.project_financials`
+
+**Purpose:** Comprehensive reporting view that aggregates project-level financial metrics, expenses, quotes, change orders, and revenue data. This is the primary data source for the report builder system.
+
+**Location:** `reporting` schema
+
+**Base Tables:** `projects`, `estimates`, `expenses`, `expense_splits`, `quotes`, `change_orders`, `project_revenues`
+
+**Filtering:** Currently uses legacy filtering `WHERE p.project_number NOT IN ('SYS-000', '000-UNASSIGNED')`. Future updates should migrate to `WHERE p.category = 'construction'::project_category`.
+
+### Available Fields
+
+**Base Project Fields:**
+- `id`, `project_number`, `project_name`, `client_name`, `status`, `project_type`, `job_type`
+- `start_date`, `end_date`, `created_at`, `updated_at`
+
+**Financial Calculated Fields (from projects table):**
+- `contracted_amount` - Total contract value including approved estimates and change orders
+- `current_margin` - Revenue minus actual expenses
+- `margin_percentage` - Margin as percentage of revenue
+- `projected_margin` - Expected final margin
+- `original_margin` - Margin from original estimate
+- `contingency_remaining` - Unused contingency
+- `total_accepted_quotes` - Sum of accepted quotes
+- `adjusted_est_costs` - Costs with accepted quotes applied
+- `original_est_costs` - Original estimated costs
+
+**Estimate Data:**
+- `estimate_total` - Total amount from approved estimate
+- `estimate_cost` - Total cost from approved estimate
+- `contingency_amount` - Total contingency allocated
+- `contingency_used` - Contingency already used
+- `estimate_number` - Estimate identifier
+
+**Expense Aggregations:**
+- `total_expenses` - Sum of all expenses (handles split expenses correctly)
+- `expense_count` - Number of expense records
+- `expenses_by_category` - JSONB object with expenses grouped by category
+
+**Quote Aggregations:**
+- `accepted_quotes_total` - Sum of accepted quote amounts
+- `accepted_quote_count` - Number of accepted quotes
+
+**Change Order Aggregations:**
+- `change_order_revenue` - Sum of approved change order client amounts
+- `change_order_cost` - Sum of approved change order cost impacts
+- `change_order_count` - Number of approved change orders
+
+**Revenue Aggregations:**
+- `total_invoiced` - Sum of all project_revenues.amount (actual revenue received) | NUMERIC | **YES** | Sum of all invoices/revenue records | Display, sum
+- `invoice_count` - Number of invoice/revenue records
+
+**Calculated Variance Fields:**
+- `remaining_budget` - Contracted amount minus total expenses
+- `budget_utilization_percent` - Percentage of budget spent
+- `cost_variance` - Actual expenses minus estimated costs
+- `cost_variance_percent` - Cost variance as percentage of estimated costs
+- `revenue_variance` - Contracted amount minus total invoiced (estimated vs actual revenue) | NUMERIC | **YES** | Difference between estimated and actual revenue | Display, sum, filter
+- `revenue_variance_percent` - Revenue variance as percentage of contracted amount | NUMERIC | **YES** | Revenue variance as percentage | Display, avg, filter
+- `contingency_utilization_percent` - Percentage of contingency used
+
+**Usage Example:**
+```sql
+SELECT 
+  project_number,
+  project_name,
+  contracted_amount,
+  total_invoiced,
+  revenue_variance,
+  revenue_variance_percent,
+  current_margin,
+  margin_percentage
+FROM reporting.project_financials
+WHERE status IN ('in_progress', 'complete')
+ORDER BY revenue_variance_percent DESC;
+```
+
+**Access:** `GRANT SELECT ON reporting.project_financials TO authenticated;`
+
+---
+
 ## Summary
 
 - **14 core tables** for reporting
 - **100+ reportable fields**
 - **Most calculations done in database** (efficient!)
 - **Key table: projects** - has all calculated financial fields
+- **Key view: reporting.project_financials** - comprehensive aggregated metrics for reporting
 - **Critical for accuracy:** Handle split expenses correctly
 - **Best practice:** Use database views for complex aggregations
+- **Project filtering:** Use `category = 'construction'` instead of hardcoded project numbers
 
 **Next:** See [REPORTS_BUILDER_COMPREHENSIVE_PLAN.md](./REPORTS_BUILDER_COMPREHENSIVE_PLAN.md) for full implementation plan.

@@ -24,6 +24,7 @@
 | `expense_category` | `labor_internal`, `subcontractors`, `materials`, `equipment`, `other`, `permits`, `management`, `office_expenses`, `vehicle_expenses` | Shared classification across estimates, quotes, expenses. |
 | `project_status` | `estimating`, `quoted`, `approved`, `in_progress`, `complete`, `on_hold`, `cancelled` | `projects.status`. |
 | `project_type` | `construction_project`, `work_order` | `projects.project_type`. |
+| `project_category` | `construction`, `system`, `overhead` | `projects.category`. Used for filtering project visibility across the application. |
 | `quote_status` | `pending`, `accepted`, `rejected`, `expired` | `quotes.status`. |
 | `sync_status` | `success`, `failed`, `pending` | Sync tracking tables. |
 | `sync_type` | `import`, `export` | `quickbooks_sync_log.sync_type`. |
@@ -31,9 +32,70 @@
 
 ## Database View
 
-### `project_financial_summary`
+### `reporting.project_financials`
 
-Materialized-like view built in SQL migrations to aggregate project-level metrics (accepted quotes, profit, variances, etc.). Many FKs in the introspected schema reference this view in addition to the base table to simplify row-level security decisions. The view is read-only and relies on tables such as `projects`, `estimates`, `expenses`, `quotes`, and `project_revenues`.
+Comprehensive reporting view that aggregates project-level financial metrics, expenses, quotes, change orders, and revenue data. This view is the primary data source for the report builder system and provides calculated fields for variance analysis.
+
+**Location:** `reporting` schema
+
+**Base Tables:** `projects`, `estimates`, `expenses`, `expense_splits`, `quotes`, `change_orders`, `project_revenues`
+
+**Filtering:** Currently uses legacy filtering `WHERE p.project_number NOT IN ('SYS-000', '000-UNASSIGNED')`. Future updates should migrate to category-based filtering using `WHERE p.category = 'construction'::project_category`.
+
+**Key Fields:**
+
+**Base Project Fields:**
+- `id`, `project_number`, `project_name`, `client_name`, `status`, `project_type`, `job_type`
+- `start_date`, `end_date`, `created_at`, `updated_at`
+
+**Financial Calculated Fields (from projects table):**
+- `contracted_amount` - Total contract value including approved estimates and change orders
+- `current_margin` - Revenue minus actual expenses
+- `margin_percentage` - Margin as percentage of revenue
+- `projected_margin` - Expected final margin
+- `original_margin` - Margin from original estimate
+- `contingency_remaining` - Unused contingency
+- `total_accepted_quotes` - Sum of accepted quotes
+- `adjusted_est_costs` - Costs with accepted quotes applied
+- `original_est_costs` - Original estimated costs
+
+**Estimate Data:**
+- `estimate_total` - Total amount from approved estimate
+- `estimate_cost` - Total cost from approved estimate
+- `contingency_amount` - Total contingency allocated
+- `contingency_used` - Contingency already used
+- `estimate_number` - Estimate identifier
+
+**Expense Aggregations:**
+- `total_expenses` - Sum of all expenses (handles split expenses correctly)
+- `expense_count` - Number of expense records
+- `expenses_by_category` - JSONB object with expenses grouped by category
+
+**Quote Aggregations:**
+- `accepted_quotes_total` - Sum of accepted quote amounts
+- `accepted_quote_count` - Number of accepted quotes
+
+**Change Order Aggregations:**
+- `change_order_revenue` - Sum of approved change order client amounts
+- `change_order_cost` - Sum of approved change order cost impacts
+- `change_order_count` - Number of approved change orders
+
+**Revenue Aggregations:**
+- `total_invoiced` - Sum of all project_revenues.amount (actual revenue received)
+- `invoice_count` - Number of invoice/revenue records
+
+**Calculated Variance Fields:**
+- `remaining_budget` - Contracted amount minus total expenses
+- `budget_utilization_percent` - Percentage of budget spent
+- `cost_variance` - Actual expenses minus estimated costs
+- `cost_variance_percent` - Cost variance as percentage of estimated costs
+- `revenue_variance` - Contracted amount minus total invoiced (estimated vs actual revenue)
+- `revenue_variance_percent` - Revenue variance as percentage of contracted amount
+- `contingency_utilization_percent` - Percentage of contingency used
+
+**Access:** `GRANT SELECT ON reporting.project_financials TO authenticated;`
+
+**Note:** This view replaces the older `project_financial_summary` view. All new reporting should use `reporting.project_financials`.
 
 ## Tables
 
@@ -79,9 +141,10 @@ Materialized-like view built in SQL migrations to aggregate project-level metric
 #### `projects`
 
 - **Purpose:** Primary project entities with financial baselines.
-- **Columns:** `id` uuid PK (default `gen_random_uuid()`), `project_number` text (unique), `project_name` text, `client_name` text, `project_type` enum default `'construction_project'`, `status` enum default `'estimating'`, `start_date` date nullable, `end_date` date nullable, `address` text nullable, `project_id` relationships to client, `customer_po_number` text nullable, `contracted_amount` numeric nullable, `contingency_remaining` numeric nullable, `target_margin` numeric nullable, `current_margin` numeric nullable, `margin_percentage` numeric nullable, `original_est_costs` numeric nullable, `adjusted_est_costs` numeric nullable, `projected_margin` numeric nullable, `total_accepted_quotes` numeric nullable, QuickBooks linkage fields (`quickbooks_job_id`, `qb_formatted_number`), `minimum_margin_threshold` numeric nullable, `sequence_number` integer nullable, `work_order_counter` integer nullable, timestamps.
+- **Columns:** `id` uuid PK (default `gen_random_uuid()`), `project_number` text (unique), `project_name` text, `client_name` text, `project_type` enum default `'construction_project'`, `status` enum default `'estimating'`, `category` enum `project_category` default `'construction'`, `start_date` date nullable, `end_date` date nullable, `address` text nullable, `project_id` relationships to client, `customer_po_number` text nullable, `contracted_amount` numeric nullable, `contingency_remaining` numeric nullable, `target_margin` numeric nullable, `current_margin` numeric nullable, `margin_percentage` numeric nullable, `original_est_costs` numeric nullable, `adjusted_est_costs` numeric nullable, `projected_margin` numeric nullable, `total_accepted_quotes` numeric nullable, QuickBooks linkage fields (`quickbooks_job_id`, `qb_formatted_number`), `minimum_margin_threshold` numeric nullable, `sequence_number` integer nullable, `work_order_counter` integer nullable, timestamps.
 - **Foreign Keys:** `client_id` → `clients.id`.
-- **Indexes:** `idx_projects_number`, `idx_projects_client_id`, `idx_projects_quickbooks_id` (legacy name but still relevant).
+- **Indexes:** `idx_projects_number`, `idx_projects_client_id`, `idx_projects_quickbooks_id` (legacy name but still relevant), `idx_projects_category`.
+- **Category System:** The `category` field replaces hardcoded project number filtering. Values: `'construction'` (default, visible everywhere), `'system'` (hidden internal projects like SYS-000, 000-UNASSIGNED), `'overhead'` (visible only in expense/receipt contexts like 001-GAS, 002-GA). See `docs/project-category-implementation/` for full details.
 
 #### `project_assignments`
 
@@ -218,9 +281,12 @@ Materialized-like view built in SQL migrations to aggregate project-level metric
 
 #### `admin_actions` already covered under Activity.
 
-#### `project_financial_summary` view consumers
+#### `reporting.project_financials` view usage
 
-- `activity_feed`, `change_orders`, `estimates`, `expense_splits`, etc. have redundant FK metadata pointing to the view; actual FK enforcement is against the base table.
+- Primary data source for the report builder system (`execute_simple_report` RPC function)
+- Used by financial dashboards and reporting components
+- Provides aggregated metrics without requiring complex joins in application code
+- All FK relationships reference the base `projects` table; the view is read-only for reporting purposes
 
 #### Archival Table `estimate_line_items_backup_20251030`
 

@@ -42,6 +42,9 @@ A comprehensive full-stack web application built for construction companies to m
 - Profit analysis by project and phase
 - Estimate accuracy tracking
 - Activity feed with audit trails
+- **Custom report builder** with field selection, filtering, and sorting
+- **Report templates** for common analysis scenarios (profitability, revenue reconciliation, billing progress)
+- **Revenue variance analysis** comparing estimated vs actual revenue
 - PDF export for quotes and reports
 
 ---
@@ -165,7 +168,7 @@ src/
 ## Database Schema
 
 ### Core Tables
-- **projects**: Project master records with financial summaries
+- **projects**: Project master records with financial summaries and category-based filtering (`construction`, `system`, `overhead`)
 - **estimates**: Cost estimates with hierarchical line items
 - **estimate_line_items**: Individual line items with quantities & rates
 - **quotes**: Customer-facing quotes generated from estimates
@@ -175,6 +178,11 @@ src/
 - **payees**: Vendor/subcontractor records
 - **project_media**: Photos/videos with GPS metadata
 - **work_orders**: Task assignments and tracking
+- **saved_reports**: Custom report configurations and templates
+- **report_execution_log**: Audit trail for report executions
+
+### Reporting Views
+- **reporting.project_financials**: Comprehensive aggregated view with financial metrics, expenses, quotes, change orders, and revenue data. Primary data source for the report builder system.
 
 ### Key Relationships
 ```
