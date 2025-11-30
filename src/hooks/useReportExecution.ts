@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Json } from '@/integrations/supabase/types';
 
 export interface ReportFilter {
   field: string;
@@ -10,9 +11,18 @@ export interface ReportFilter {
 export interface ReportConfig {
   data_source: 'projects' | 'expenses' | 'quotes' | 'time_entries' | 'estimate_line_items' | 'internal_costs';
   filters?: Record<string, ReportFilter>;
+  fields?: string[];
   sort_by?: string;
   sort_dir?: 'ASC' | 'DESC';
   limit?: number;
+}
+
+interface RPCResponse {
+  data?: any[];
+  metadata?: {
+    row_count?: number;
+    execution_time_ms?: number;
+  };
 }
 
 export interface ReportResult {
@@ -57,11 +67,13 @@ export function useReportExecution() {
         throw error;
       }
 
+      const typedData = data as RPCResponse | null;
+
       const result: ReportResult = {
-        data: (data?.data || []).map((item: any) => item.row_to_json || item),
+        data: (typedData?.data || []).map((item: any) => item.row_to_json || item),
         metadata: {
-          row_count: data?.metadata?.row_count || 0,
-          execution_time_ms: data?.metadata?.execution_time_ms || 0,
+          row_count: typedData?.metadata?.row_count || 0,
+          execution_time_ms: typedData?.metadata?.execution_time_ms || 0,
           data_source: config.data_source
         }
       };
@@ -87,7 +99,7 @@ export function useReportExecution() {
       const { data: { user } } = await supabase.auth.getUser();
       await supabase.from('report_execution_log').insert({
         executed_by: user?.id,
-        config_used: config,
+        config_used: config as unknown as Json,
         row_count: result.metadata.row_count,
         execution_time_ms: result.metadata.execution_time_ms,
         export_format: null
