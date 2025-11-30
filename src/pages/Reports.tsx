@@ -9,7 +9,7 @@ import { ExportControls } from "@/components/reports/ExportControls";
 import { FilterSummary } from "@/components/reports/FilterSummary";
 import { SimpleFilterPanel } from "@/components/reports/SimpleFilterPanel";
 import { useReportExecution, ReportConfig, ReportFilter } from "@/hooks/useReportExecution";
-import { ReportTemplate } from "@/hooks/useReportTemplates";
+import { ReportTemplate, useReportTemplates } from "@/hooks/useReportTemplates";
 import { ReportField } from "@/utils/reportExporter";
 import { useToast } from "@/hooks/use-toast";
 import { BrandedLoader } from "@/components/ui/branded-loader";
@@ -19,20 +19,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFo
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { ReportsSidebar, ReportCategory } from "@/components/reports/ReportsSidebar";
 
 const ReportsPage = () => {
   const isMobile = useIsMobile();
-  
-  // Render header section
-  const renderHeader = () => (
-    <div className="flex items-center space-x-3 mb-4">
-      <FileBarChart className="h-5 w-5 text-primary" />
-      <div>
-        <h1 className="text-xl font-bold text-foreground">Reports</h1>
-        <p className="text-sm text-muted-foreground">Generate and export custom reports</p>
-      </div>
-    </div>
-  );
+  const [selectedCategory, setSelectedCategory] = useState<ReportCategory>('standard');
   const [showBuilder, setShowBuilder] = useState(false);
   const [hasResults, setHasResults] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
@@ -45,6 +37,7 @@ const ReportsPage = () => {
   const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
   const { executeReport, isLoading } = useReportExecution();
   const { toast } = useToast();
+  const { savedReports } = useReportTemplates();
 
   // Convert filters object to array for FilterSummary
   const filtersObjectToArray = (filters: Record<string, ReportFilter>): ReportFilter[] => {
@@ -151,7 +144,36 @@ const ReportsPage = () => {
 
     if (result) {
       // Extract fields from template config
-      const fields: ReportField[] = templateConfig.fields?.map((f: any) => {
+      let templateFields = templateConfig.fields || [];
+      
+      // Ensure project_number is included if project_name is present
+      const hasProjectName = templateFields.some((f: any) => {
+        const fieldKey = typeof f === 'string' ? f : (f.key || f.source_field || f.field || f);
+        return fieldKey === 'project_name';
+      });
+      
+      const hasProjectNumber = templateFields.some((f: any) => {
+        const fieldKey = typeof f === 'string' ? f : (f.key || f.source_field || f.field || f);
+        return fieldKey === 'project_number';
+      });
+      
+      // If project_name exists but project_number doesn't, add project_number before project_name
+      if (hasProjectName && !hasProjectNumber) {
+        const projectNameIndex = templateFields.findIndex((f: any) => {
+          const fieldKey = typeof f === 'string' ? f : (f.key || f.source_field || f.field || f);
+          return fieldKey === 'project_name';
+        });
+        
+        // Insert project_number before project_name
+        templateFields = [
+          ...templateFields.slice(0, projectNameIndex),
+          'project_number',
+          ...templateFields.slice(projectNameIndex)
+        ];
+      }
+      
+      // Ensure project_number always comes before project_name in the final field list
+      let fields: ReportField[] = templateFields.map((f: any) => {
         // Handle both string field names and field objects
         if (typeof f === 'string') {
           // Find field metadata from AVAILABLE_FIELDS
@@ -170,7 +192,19 @@ const ReportsPage = () => {
           label: f.label || f.display_name || f.field || f,
           type: f.type || 'text'
         };
-      }) || [];
+      });
+
+      // Ensure project_number always appears before project_name
+      const projectNumberIndex = fields.findIndex(f => f.key === 'project_number');
+      const projectNameIndex = fields.findIndex(f => f.key === 'project_name');
+      
+      if (projectNameIndex >= 0 && projectNumberIndex >= 0 && projectNumberIndex > projectNameIndex) {
+        // Swap them so project_number comes first
+        const projectNumberField = fields[projectNumberIndex];
+        const projectNameField = fields[projectNameIndex];
+        fields[projectNameIndex] = projectNumberField;
+        fields[projectNumberIndex] = projectNameField;
+      }
 
       setReportFields(fields);
       setReportData(result.data);
@@ -211,12 +245,32 @@ const ReportsPage = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      {renderHeader()}
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full no-horizontal-scroll pt-16">
+        <ReportsSidebar 
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+        />
+        <SidebarInset className="flex-1 flex flex-col no-horizontal-scroll overflow-hidden">
+          {/* Compact Header */}
+          <header className="sticky top-0 z-10 flex h-auto flex-col gap-3 border-b bg-background px-3 py-3 sm:h-16 sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger />
+              <div className="flex items-center space-x-2">
+                <FileBarChart className="h-5 w-5 text-primary" />
+                <div>
+                  <h1 className="text-lg font-semibold text-foreground">Reports & Analytics</h1>
+                </div>
+              </div>
+            </div>
+          </header>
+          
+          <div className="flex-1 overflow-auto">
+            <div className="p-4 sm:p-6 space-y-4">
 
-      {hasResults ? (
-        <div className="space-y-4">
-          <Card>
+            {hasResults ? (
+              <div className="space-y-4">
+                <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -342,46 +396,42 @@ const ReportsPage = () => {
                   />
                 </>
               )}
-            </CardContent>
-          </Card>
-        </div>
-      ) : showBuilder ? (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Create Custom Report</CardTitle>
-                <CardDescription>
-                  Build your own report step by step
-                </CardDescription>
+                </CardContent>
+              </Card>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setShowBuilder(false)}>
-                <FileText className="h-4 w-4 mr-2" />
-                Back to Templates
-              </Button>
+            ) : showBuilder ? (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Create Custom Report</CardTitle>
+                      <CardDescription>
+                        Build your own report step by step
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setShowBuilder(false)}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Back to Templates
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <SimpleReportBuilder onRunReport={handleRunReport} />
+                </CardContent>
+              </Card>
+            ) : (
+              <NewTemplateGallery 
+                onSelectTemplate={handleUseTemplate}
+                onCustomBuilder={() => setShowBuilder(true)}
+                selectedCategory={selectedCategory}
+                savedReports={savedReports}
+              />
+            )}
             </div>
-          </CardHeader>
-          <CardContent>
-            <SimpleReportBuilder onRunReport={handleRunReport} />
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Report Templates</CardTitle>
-            <CardDescription>
-              Choose from pre-built report templates organized by category
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <NewTemplateGallery 
-              onSelectTemplate={handleUseTemplate}
-              onCustomBuilder={() => setShowBuilder(true)}
-            />
-          </CardContent>
-        </Card>
-      )}
-    </div>
+          </div>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 };
 

@@ -53,7 +53,10 @@ function formatValue(value: any, type?: string): string {
   }
 }
 
-export function ReportViewer({ data, fields, isLoading, pageSize = 25 }: ReportViewerProps) {
+export function ReportViewer({ data, fields, isLoading, pageSize: initialPageSize = 50 }: ReportViewerProps) {
+  // Page size state
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  
   // Sorting state
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -173,6 +176,12 @@ export function ReportViewer({ data, fields, isLoading, pageSize = 25 }: ReportV
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortColumn]);
 
+  // Reset to first page when page size changes
+  useEffect(() => {
+    goToPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageSize]);
+
   const paginatedData = useMemo(() => {
     return sortedData.slice(startIndex, endIndex);
   }, [sortedData, startIndex, endIndex]);
@@ -272,17 +281,42 @@ export function ReportViewer({ data, fields, isLoading, pageSize = 25 }: ReportV
       </div>
       
       {/* Pagination Info and Controls */}
-      {data.length > pageSize && (
-        <div className="space-y-2">
-          <div className="text-sm text-muted-foreground text-center">
-            Showing {startIndex + 1}-{endIndex} of {data.length} rows
-          </div>
-          <div className="flex justify-center">
-            <CompletePagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={goToPage}
-            />
+      {data.length > 0 && (
+        <div className="space-y-2 border-t pt-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Rows per page:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                }}
+                className="border rounded px-2 py-1 text-sm bg-background"
+              >
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="200">200</option>
+              </select>
+            </div>
+            
+            {data.length > pageSize && (
+              <div className="flex items-center gap-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1}-{endIndex} of {data.length} rows
+                </div>
+                <CompletePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={goToPage}
+                />
+              </div>
+            )}
+            {data.length <= pageSize && (
+              <div className="text-sm text-muted-foreground">
+                Showing {data.length} of {data.length} rows
+              </div>
+            )}
           </div>
         </div>
       )}

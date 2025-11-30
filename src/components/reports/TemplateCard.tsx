@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, TrendingUp, Users, Building2, Info } from "lucide-react";
+import { FileText, TrendingUp, Users, Building2, Info, DollarSign, Clock } from "lucide-react";
 import { ReportTemplate } from "@/hooks/useReportTemplates";
 import {
   Tooltip,
@@ -8,10 +8,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface TemplateCardProps {
   template: ReportTemplate;
   onUse: (template: ReportTemplate) => void;
+  variant?: 'default' | 'compact';
 }
 
 const categoryIcons = {
@@ -19,7 +21,19 @@ const categoryIcons = {
   operational: Building2,
   client: Users,
   vendor: Users,
-  schedule: FileText
+  schedule: FileText,
+  cost: DollarSign,
+  labor: Clock,
+  other: FileText
+};
+
+// Map old categories to new ones
+const categoryMap: Record<string, keyof typeof categoryIcons> = {
+  'financial': 'financial',
+  'operational': 'operational',
+  'client': 'other',
+  'vendor': 'other',
+  'schedule': 'operational'
 };
 
 const categoryColors = {
@@ -27,12 +41,46 @@ const categoryColors = {
   operational: 'bg-green-50 border-green-200 text-green-900',
   client: 'bg-purple-50 border-purple-200 text-purple-900',
   vendor: 'bg-orange-50 border-orange-200 text-orange-900',
-  schedule: 'bg-gray-50 border-gray-200 text-gray-900'
+  schedule: 'bg-gray-50 border-gray-200 text-gray-900',
+  cost: 'bg-amber-50 border-amber-200 text-amber-900',
+  labor: 'bg-indigo-50 border-indigo-200 text-indigo-900',
+  other: 'bg-gray-50 border-gray-200 text-gray-900'
 };
 
-export function TemplateCard({ template, onUse }: TemplateCardProps) {
-  const Icon = categoryIcons[template.category] || FileText;
-  const colorClass = categoryColors[template.category] || categoryColors.financial;
+export function TemplateCard({ template, onUse, variant = 'default' }: TemplateCardProps) {
+  const mappedCategory = categoryMap[template.category] || 'other';
+  const Icon = categoryIcons[mappedCategory] || FileText;
+  const colorClass = categoryColors[mappedCategory] || categoryColors.financial;
+
+  if (variant === 'compact') {
+    return (
+      <div
+        className={cn(
+          "flex items-center gap-3 px-3 py-2 hover:bg-accent/50 rounded-md transition-colors cursor-pointer",
+          colorClass
+        )}
+        onClick={() => onUse(template)}
+      >
+        <Icon className="h-4 w-4 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium truncate">{template.name}</div>
+          {template.description && (
+            <div className="text-xs opacity-80 truncate">{template.description}</div>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant="default"
+          onClick={(e) => {
+            e.stopPropagation();
+            onUse(template);
+          }}
+        >
+          Use
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <TooltipProvider>

@@ -75,7 +75,11 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
     
     if (dataSource === 'projects') {
       fields['Project Composition'] = nonUniversalFields.filter(f => f.group === 'composition');
-      fields['Financial Metrics'] = nonUniversalFields.filter(f => f.group === 'financial' && ['contracted_amount', 'current_margin', 'margin_percentage', 'total_expenses'].includes(f.key));
+      fields['Financial Metrics'] = nonUniversalFields.filter(f => f.group === 'financial');
+      fields['Change Orders'] = nonUniversalFields.filter(f => f.group === 'change_orders');
+      fields['Invoicing'] = nonUniversalFields.filter(f => f.group === 'invoicing');
+      fields['Contingency'] = nonUniversalFields.filter(f => f.group === 'contingency');
+      fields['Estimates'] = nonUniversalFields.filter(f => f.group === 'estimates');
     } else if (dataSource === 'expenses') {
       fields['Category & Payee'] = nonUniversalFields.filter(f => ['category', 'payee_name'].includes(f.key));
       fields['Amount'] = nonUniversalFields.filter(f => f.key === 'amount');

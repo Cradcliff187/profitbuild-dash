@@ -4,14 +4,19 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SimpleFilterPanel } from "./SimpleFilterPanel";
 import { FilterSummary } from "./FilterSummary";
 import { ReportViewer } from "./ReportViewer";
 import { ExportControls } from "./ExportControls";
 import { useReportExecution, ReportFilter, ReportConfig } from "@/hooks/useReportExecution";
+import { useReportTemplates } from "@/hooks/useReportTemplates";
 import { ReportField } from "@/utils/reportExporter";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Save } from "lucide-react";
 import { BrandedLoader } from "@/components/ui/branded-loader";
+import { useToast } from "@/hooks/use-toast";
 import { Constants } from "@/integrations/supabase/types";
 
 export interface FieldMetadata {
@@ -20,7 +25,7 @@ export interface FieldMetadata {
   type: ReportField['type'];
   enumValues?: string[];
   dataSource?: 'clients' | 'payees' | 'workers' | 'projects';
-  group?: 'financial' | 'project_info' | 'dates' | 'status' | 'employee' | 'time' | 'composition';
+  group?: 'financial' | 'project_info' | 'dates' | 'status' | 'employee' | 'time' | 'composition' | 'change_orders' | 'invoicing' | 'contingency' | 'estimates';
   helpText?: string;
   allowedOperators?: ReportFilter['operator'][];
 }
@@ -40,13 +45,39 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'project_name', label: 'Project Name', type: 'text', group: 'project_info' },
     { key: 'client_name', label: 'Client', type: 'text', group: 'project_info', dataSource: 'clients', allowedOperators: ['equals', 'in', 'contains'] },
     { key: 'status', label: 'Status', type: 'text', group: 'status', enumValues: [...Constants.public.Enums.project_status], allowedOperators: ['equals', 'not_equals', 'in'] },
-    { key: 'contracted_amount', label: 'Contract Amount', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'contracted_amount', label: 'Contract Amount (Estimated)', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total contract value including approved estimates and change orders (estimated revenue)' },
     { key: 'current_margin', label: 'Current Margin', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'margin_percentage', label: 'Margin %', type: 'percent', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'total_expenses', label: 'Total Expenses', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'target_margin', label: 'Target Margin', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'minimum_margin', label: 'Minimum Margin', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'projected_margin', label: 'Projected Margin', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'original_margin', label: 'Original Margin', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'original_est_costs', label: 'Original Est. Costs', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'adjusted_est_costs', label: 'Adjusted Est. Costs', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'total_accepted_quotes', label: 'Total Accepted Quotes', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'remaining_budget', label: 'Remaining Budget', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'cost_variance', label: 'Cost Variance', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'budget_utilization_percent', label: 'Budget Utilization %', type: 'percent', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'cost_variance_percent', label: 'Cost Variance %', type: 'percent', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'revenue_variance', label: 'Revenue Variance', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Difference between estimated contract amount and actual invoiced amount (contracted_amount - total_invoiced)' },
+    { key: 'revenue_variance_percent', label: 'Revenue Variance %', type: 'percent', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Percentage difference between estimated and actual revenue (shows billing progress)' },
     { key: 'contingency_remaining', label: 'Contingency Remaining', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'start_date', label: 'Start Date', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'end_date', label: 'End Date', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'change_order_revenue', label: 'Change Order Revenue', type: 'currency', group: 'change_orders', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'change_order_cost', label: 'Change Order Cost', type: 'currency', group: 'change_orders', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'change_order_count', label: 'Change Order Count', type: 'number', group: 'change_orders', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'total_invoiced', label: 'Total Invoiced (Actual)', type: 'currency', group: 'invoicing', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Sum of all invoices from project_revenues table (actual revenue received)' },
+    { key: 'invoice_count', label: 'Invoice Count', type: 'number', group: 'invoicing', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'contingency_amount', label: 'Contingency Amount', type: 'currency', group: 'contingency', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'contingency_used', label: 'Contingency Used', type: 'currency', group: 'contingency', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'contingency_utilization_percent', label: 'Contingency Utilization %', type: 'percent', group: 'contingency', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'estimate_number', label: 'Estimate Number', type: 'text', group: 'estimates' },
+    { key: 'estimate_total', label: 'Estimate Total', type: 'currency', group: 'estimates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'estimate_cost', label: 'Estimate Cost', type: 'currency', group: 'estimates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'expense_count', label: 'Expense Count', type: 'number', group: 'estimates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'total_line_items', label: 'Total Line Items', type: 'number', group: 'estimates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'category_list', label: 'Line Item Categories', type: 'text', group: 'composition', enumValues: [...Constants.public.Enums.expense_category], allowedOperators: ['contains_any', 'contains_only', 'contains_all'], helpText: 'Filter by line item category composition' },
     { key: 'has_labor_internal', label: 'Has Internal Labor', type: 'boolean', group: 'composition', helpText: 'Project has internal labor line items' },
     { key: 'only_labor_internal', label: 'Only Internal Labor', type: 'boolean', group: 'composition', helpText: 'Project has ONLY internal labor line items' },
@@ -134,6 +165,12 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
   const { executeReport, isLoading, error } = useReportExecution();
   const [reportData, setReportData] = useState<any[]>([]);
   const [reportFields, setReportFields] = useState<ReportField[]>([]);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const [saveDescription, setSaveDescription] = useState('');
+  const [saveCategory, setSaveCategory] = useState<'financial' | 'operational' | 'client' | 'vendor' | 'schedule'>('operational');
+  const { saveReport, loadSavedReports } = useReportTemplates();
+  const { toast } = useToast();
 
   const availableFields = (AVAILABLE_FIELDS[dataSource] || []).map(f => ({
     key: f.key,
@@ -142,11 +179,66 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
   }));
 
   const handleFieldToggle = (fieldKey: string) => {
-    setSelectedFields(prev => 
-      prev.includes(fieldKey)
-        ? prev.filter(k => k !== fieldKey)
-        : [...prev, fieldKey]
-    );
+    setSelectedFields(prev => {
+      const isSelected = prev.includes(fieldKey);
+      
+      if (fieldKey === 'project_name') {
+        // When selecting project_name, also select project_number if not already selected
+        if (!isSelected) {
+          const hasProjectNumber = prev.includes('project_number');
+          if (!hasProjectNumber) {
+            // Add project_number before project_name
+            return ['project_number', ...prev, 'project_name'];
+          }
+          return [...prev, 'project_name'];
+        } else {
+          // When deselecting project_name, also deselect project_number
+          return prev.filter(k => k !== 'project_name' && k !== 'project_number');
+        }
+      } else if (fieldKey === 'project_number') {
+        // When deselecting project_number, also deselect project_name
+        if (isSelected) {
+          return prev.filter(k => k !== 'project_number' && k !== 'project_name');
+        } else {
+          // When selecting project_number, ensure it comes before project_name
+          const hasProjectName = prev.includes('project_name');
+          if (hasProjectName) {
+            const withoutBoth = prev.filter(k => k !== 'project_name' && k !== 'project_number');
+            return ['project_number', 'project_name', ...withoutBoth];
+          }
+          // If project_name is not selected, just add project_number at the start if it's a project field
+          const projectNumberIndex = prev.findIndex(k => k === 'project_name' || k.startsWith('project_'));
+          if (projectNumberIndex >= 0) {
+            return [
+              ...prev.slice(0, projectNumberIndex),
+              'project_number',
+              ...prev.slice(projectNumberIndex)
+            ];
+          }
+          return ['project_number', ...prev];
+        }
+      } else {
+        // For other fields, just toggle normally
+        return isSelected
+          ? prev.filter(k => k !== fieldKey)
+          : [...prev, fieldKey];
+      }
+    });
+  };
+
+  // Helper function to ensure project_number comes before project_name
+  const sortFields = (fields: string[]): string[] => {
+    const projectNumberIndex = fields.indexOf('project_number');
+    const projectNameIndex = fields.indexOf('project_name');
+    
+    if (projectNameIndex >= 0 && projectNumberIndex >= 0 && projectNumberIndex > projectNameIndex) {
+      // Swap them so project_number comes first
+      const sorted = [...fields];
+      sorted[projectNameIndex] = 'project_number';
+      sorted[projectNumberIndex] = 'project_name';
+      return sorted;
+    }
+    return fields;
   };
 
   const handlePreview = async () => {
@@ -154,7 +246,10 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
       return;
     }
 
-    const fields: ReportField[] = selectedFields.map(key => {
+    // Ensure proper field ordering
+    const sortedFields = sortFields(selectedFields);
+
+    const fields: ReportField[] = sortedFields.map(key => {
       const field = availableFields.find(f => f.key === key);
       return {
         key,
@@ -185,7 +280,10 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
   };
 
   const handleRunReport = async () => {
-    const fields: ReportField[] = selectedFields.map(key => {
+    // Ensure proper field ordering
+    const sortedFields = sortFields(selectedFields);
+
+    const fields: ReportField[] = sortedFields.map(key => {
       const field = availableFields.find(f => f.key === key);
       return {
         key,
@@ -208,6 +306,68 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
     };
 
     onRunReport(config, fields);
+  };
+
+  const handleSaveReport = async () => {
+    if (!saveName.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter a name for the report",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Ensure proper field ordering
+    const sortedFields = sortFields(selectedFields);
+
+    const fields: ReportField[] = sortedFields.map(key => {
+      const field = availableFields.find(f => f.key === key);
+      return {
+        key,
+        label: field?.label || key,
+        type: field?.type
+      };
+    });
+
+    const filterMap: Record<string, ReportFilter> = {};
+    filters.forEach((filter, index) => {
+      filterMap[`filter_${index}`] = filter;
+    });
+
+    const config: ReportConfig = {
+      data_source: dataSource,
+      fields: sortedFields,
+      filters: filterMap,
+      sort_by: sortBy,
+      sort_dir: sortDir
+    };
+
+    const reportId = await saveReport(
+      saveName.trim(),
+      saveDescription.trim() || null,
+      saveCategory,
+      config,
+      false // isTemplate = false for custom reports
+    );
+
+    if (reportId) {
+      toast({
+        title: "Report saved",
+        description: "Your custom report has been saved successfully",
+      });
+      setSaveDialogOpen(false);
+      setSaveName('');
+      setSaveDescription('');
+      // Refresh saved reports list
+      await loadSavedReports();
+    } else {
+      toast({
+        title: "Failed to save",
+        description: "Could not save the report. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -402,6 +562,10 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
                     <Button variant="outline" onClick={() => setStep(3)}>
                       Back
                     </Button>
+                    <Button variant="outline" onClick={() => setSaveDialogOpen(true)}>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Report
+                    </Button>
                     <Button onClick={handleRunReport} className="flex-1">
                       Run Full Report
                     </Button>
@@ -412,6 +576,62 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
           </Card>
         </div>
       )}
+
+      {/* Save Report Dialog */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Custom Report</DialogTitle>
+            <DialogDescription>
+              Save this report configuration for future use
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="save-name">Report Name *</Label>
+              <Input
+                id="save-name"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                placeholder="Enter report name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="save-description">Description</Label>
+              <Textarea
+                id="save-description"
+                value={saveDescription}
+                onChange={(e) => setSaveDescription(e.target.value)}
+                placeholder="Optional description"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="save-category">Category</Label>
+              <Select value={saveCategory} onValueChange={(value: any) => setSaveCategory(value)}>
+                <SelectTrigger id="save-category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="financial">Financial</SelectItem>
+                  <SelectItem value="operational">Operational</SelectItem>
+                  <SelectItem value="client">Client</SelectItem>
+                  <SelectItem value="vendor">Vendor</SelectItem>
+                  <SelectItem value="schedule">Schedule</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveReport} disabled={!saveName.trim()}>
+              Save Report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

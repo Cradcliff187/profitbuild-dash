@@ -28,6 +28,8 @@ const Navigation = () => {
   
   // Check if we're on a project detail page
   const isProjectDetailPage = /^\/projects\/[^/]+/.test(location.pathname);
+  const isReportsPage = location.pathname === '/reports' || location.pathname.startsWith('/reports');
+  const hasSidebar = isProjectDetailPage || isReportsPage;
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -198,9 +200,9 @@ const Navigation = () => {
           {/* Logo */}
           <div className={cn(
             "flex items-center py-2 transition-all duration-200",
-            // Add left padding on project detail pages to account for sidebar
+            // Add left padding on pages with sidebars to account for sidebar
             // Expanded sidebar is 16rem (256px), collapsed is 3rem (48px)
-            isProjectDetailPage && !isMobile && "nav-logo-project-detail"
+            hasSidebar && !isMobile && "nav-logo-project-detail"
           )}>
             {/* Desktop: Full horizontal logo */}
             <img 

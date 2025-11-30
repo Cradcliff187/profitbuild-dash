@@ -45,14 +45,23 @@ export function useReportExecution() {
         });
       }
 
-      // TODO: RPC function not yet available - temporarily return empty data
-      console.warn('execute_simple_report RPC function not yet available');
-      
+      const { data, error } = await supabase.rpc('execute_simple_report', {
+        p_data_source: config.data_source,
+        p_filters: filtersJsonb,
+        p_sort_by: config.sort_by || 'created_at',
+        p_sort_dir: config.sort_dir || 'DESC',
+        p_limit: config.limit || 100
+      });
+
+      if (error) {
+        throw error;
+      }
+
       const result: ReportResult = {
-        data: [],
+        data: (data?.data || []).map((item: any) => item.row_to_json || item),
         metadata: {
-          row_count: 0,
-          execution_time_ms: 0,
+          row_count: data?.metadata?.row_count || 0,
+          execution_time_ms: data?.metadata?.execution_time_ms || 0,
           data_source: config.data_source
         }
       };
@@ -75,11 +84,13 @@ export function useReportExecution() {
 
   const logReportExecution = async (config: ReportConfig, result: ReportResult) => {
     try {
-      // TODO: report_execution_log table not yet available
-      console.log('Report execution log (table not available):', {
-        config,
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('report_execution_log').insert({
+        executed_by: user?.id,
+        config_used: config,
         row_count: result.metadata.row_count,
-        execution_time_ms: result.metadata.execution_time_ms
+        execution_time_ms: result.metadata.execution_time_ms,
+        export_format: null
       });
     } catch (err) {
       // Log silently - don't fail report execution if logging fails
