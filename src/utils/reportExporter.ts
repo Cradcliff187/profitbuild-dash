@@ -19,13 +19,19 @@ function formatValue(value: any, type?: string): string {
   }
 
   switch (type) {
-    case 'currency':
-      return new Intl.NumberFormat('en-US', {
+    case 'currency': {
+      const numValue = Number(value);
+      const isNegative = numValue < 0;
+      const absValue = Math.abs(numValue);
+      const formatted = new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD',
         minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(Number(value));
+        maximumFractionDigits: 2,
+        signDisplay: 'never'
+      }).format(absValue);
+      return isNegative ? `(${formatted})` : formatted;
+    }
     
     case 'percent':
       return `${Number(value).toFixed(1)}%`;
