@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -70,7 +71,20 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       unmapped: number;
     };
     unmappedAccounts?: string[];
+    revenueReconciliation?: {
+      totalExistingRevenues: number;
+      totalDuplicateAmount: number;
+      difference: number;
+      isAligned: boolean;
+      threshold: number;
+    };
   } | null>(null);
+  const [overrideDuplicates, setOverrideDuplicates] = useState({
+    expenseDatabase: false,
+    expenseInFile: false,
+    revenueDatabase: false,
+    revenueInFile: false
+  });
   const [validationResults, setValidationResults] = useState<{
     matchedProjects: number;
     unmatchedProjects: number;
@@ -96,6 +110,24 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       isAligned: boolean;
       threshold: number;
     };
+    revenueReconciliation?: {
+      totalExistingRevenues: number;
+      totalDuplicateAmount: number;
+      difference: number;
+      isAligned: boolean;
+      threshold: number;
+    };
+    revenueDatabaseDuplicatesSkipped?: number;
+    revenueDatabaseDuplicates?: Array<{
+      transaction: TransactionCSVRow;
+      existingRevenueId: string;
+      matchKey: string;
+    }>;
+    revenueInFileDuplicatesSkipped?: number;
+    revenueInFileDuplicates?: Array<{
+      transaction: TransactionCSVRow;
+      reason: string;
+    }>;
   } | null>(null);
   const { toast } = useToast();
 
@@ -109,6 +141,12 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     setStep('upload');
     setImportResults(null);
     setValidationResults(null);
+    setOverrideDuplicates({
+      expenseDatabase: false,
+      expenseInFile: false,
+      revenueDatabase: false,
+      revenueInFile: false
+    });
   };
 
   const handleClose = () => {
@@ -331,6 +369,147 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     }
     // === END reconciliation calculation ===
     
+    // === Revenue in-file duplicate detection ===
+    const revenueSeenInFile = new Map<string, TransactionCSVRow>();
+    const revenueInFileDuplicates: Array<{ transaction: TransactionCSVRow; reason: string }> = [];
+    
+    data.forEach(row => {
+      // Only check invoices/revenues for duplicates
+      if (row['Transaction type']?.toLowerCase() !== 'invoice') {
+        return;
+      }
+      
+      const date = row['Date'] ? new Date(row['Date']).toISOString().split('T')[0] : '';
+      const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
+      const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
+      const invoiceNumber = row['Invoice #']?.trim() || '';
+      const name = row['Name']?.trim() || '';
+      
+      // Create key: amount|date|invoice#|description (matching database constraint)
+      const key = `${normalizedAmount}|${date}|${invoiceNumber}|${name}`.toLowerCase();
+      
+      if (revenueSeenInFile.has(key)) {
+        const firstOccurrence = revenueSeenInFile.get(key)!;
+        revenueInFileDuplicates.push({
+          transaction: row,
+          reason: `Duplicate revenue: ${firstOccurrence['Name']} on ${firstOccurrence['Date']}`
+        });
+      } else {
+        revenueSeenInFile.set(key, row);
+      }
+    });
+    // === END revenue in-file duplicate detection ===
+    
+    // === Revenue database duplicate detection ===
+    let existingRevenues = new Map<string, { id: string; description: string }>();
+    const revenueDatabaseDuplicates: Array<{
+      transaction: TransactionCSVRow;
+      existingRevenueId: string;
+      matchKey: string;
+    }> = [];
+    
+    if (dates.length > 0) {
+      const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+      const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+      
+      minDate.setDate(minDate.getDate() - 1);
+      maxDate.setDate(maxDate.getDate() + 1);
+      
+      const { data: existingRevenuesData, error: revenuesError } = await supabase
+        .from('project_revenues')
+        .select('id, invoice_date, amount, invoice_number, description')
+        .gte('invoice_date', minDate.toISOString().split('T')[0])
+        .lte('invoice_date', maxDate.toISOString().split('T')[0]);
+      
+      if (!revenuesError && existingRevenuesData) {
+        for (const revenue of existingRevenuesData) {
+          const normalizedAmount = Math.round(Math.abs(revenue.amount) * 100) / 100;
+          const key = `${normalizedAmount}|${revenue.invoice_date}|${revenue.invoice_number || ''}|${revenue.description || ''}`.toLowerCase();
+          existingRevenues.set(key, { 
+            id: revenue.id, 
+            description: revenue.description || '' 
+          });
+        }
+      }
+      
+      // Check for revenue database duplicates
+      data.forEach(row => {
+        if (row['Transaction type']?.toLowerCase() !== 'invoice') {
+          return;
+        }
+        
+        const date = row['Date'] ? new Date(row['Date']).toISOString().split('T')[0] : '';
+        const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
+        const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
+        const invoiceNumber = row['Invoice #']?.trim() || '';
+        const name = row['Name']?.trim() || '';
+        const projectWO = row['Project/WO #']?.trim() || '';
+        
+        // Build description the same way as the importer does (matches database format)
+        const isUnassigned = !projectWO || !projectNumbers.has(projectWO.toLowerCase());
+        const description = `Invoice from ${name}${isUnassigned ? ' (Unassigned)' : ''}`;
+        
+        // Use description in key to match database format (same as fetchExistingRevenues)
+        const key = `${normalizedAmount}|${date}|${invoiceNumber}|${description}`.toLowerCase();
+        const existingRevenue = existingRevenues.get(key);
+        
+        if (existingRevenue) {
+          revenueDatabaseDuplicates.push({
+            transaction: row,
+            existingRevenueId: existingRevenue.id,
+            matchKey: key
+          });
+        }
+      });
+    }
+    // === END revenue database duplicate detection ===
+    
+    // === Calculate revenue reconciliation ===
+    const revenueIds = revenueDatabaseDuplicates
+      .map(dup => dup.existingRevenueId)
+      .filter((id): id is string => !!id)
+      .filter((id, index, self) => self.indexOf(id) === index);
+    
+    let revenueReconciliation = {
+      totalExistingRevenues: 0,
+      totalDuplicateAmount: 0,
+      difference: 0,
+      isAligned: true,
+      threshold: 0.01
+    };
+    
+    if (revenueIds.length > 0 || revenueDatabaseDuplicates.length > 0 || revenueInFileDuplicates.length > 0) {
+      let totalExistingRevenues = 0;
+      if (revenueIds.length > 0) {
+        const { data: revenuesData, error: revenuesError } = await supabase
+          .from('project_revenues')
+          .select('id, amount')
+          .in('id', revenueIds);
+        
+        if (!revenuesError && revenuesData) {
+          totalExistingRevenues = revenuesData.reduce((sum, rev) => sum + Math.abs(rev.amount || 0), 0);
+        }
+      }
+      
+      let totalDuplicateAmount = 0;
+      for (const dup of [...revenueDatabaseDuplicates, ...revenueInFileDuplicates]) {
+        const amount = parseFloat(dup.transaction['Amount']?.replace(/[,$]/g, '') || '0');
+        totalDuplicateAmount += Math.abs(amount);
+      }
+      
+      const difference = Math.abs(totalExistingRevenues - totalDuplicateAmount);
+      const isAligned = difference <= revenueReconciliation.threshold;
+      
+      revenueReconciliation = {
+        totalExistingRevenues,
+        totalDuplicateAmount,
+        difference,
+        isAligned,
+        threshold: revenueReconciliation.threshold
+      };
+    }
+    // === END revenue reconciliation calculation ===
+    
     return {
       matchedProjects,
       unmatchedProjects,
@@ -342,7 +521,12 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       databaseDuplicates,
       inFileDuplicatesSkipped: inFileDuplicates.length,
       inFileDuplicates,
-      reconciliation
+      reconciliation,
+      revenueReconciliation,
+      revenueDatabaseDuplicatesSkipped: revenueDatabaseDuplicates.length,
+      revenueDatabaseDuplicates,
+      revenueInFileDuplicatesSkipped: revenueInFileDuplicates.length,
+      revenueInFileDuplicates
     };
   };
 
@@ -395,12 +579,48 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     try {
       const result = await processTransactionImport(csvData);
       
+      // Process overridden duplicates if any
+      let overrideExpenses: ExpenseImportData[] = [];
+      let overrideRevenues: RevenueImportData[] = [];
+      
+      if (overrideDuplicates.expenseDatabase && validationResults?.databaseDuplicates && validationResults.databaseDuplicates.length > 0) {
+        const overrideResult = await processTransactionImport(
+          validationResults.databaseDuplicates.map(d => d.transaction)
+        );
+        overrideExpenses.push(...overrideResult.expenses);
+      }
+      
+      if (overrideDuplicates.expenseInFile && validationResults?.inFileDuplicates && validationResults.inFileDuplicates.length > 0) {
+        const overrideResult = await processTransactionImport(
+          validationResults.inFileDuplicates.map(d => d.transaction)
+        );
+        overrideExpenses.push(...overrideResult.expenses);
+      }
+      
+      if (overrideDuplicates.revenueDatabase && validationResults?.revenueDatabaseDuplicates && validationResults.revenueDatabaseDuplicates.length > 0) {
+        const overrideResult = await processTransactionImport(
+          validationResults.revenueDatabaseDuplicates.map(d => d.transaction)
+        );
+        overrideRevenues.push(...overrideResult.revenues);
+      }
+      
+      if (overrideDuplicates.revenueInFile && validationResults?.revenueInFileDuplicates && validationResults.revenueInFileDuplicates.length > 0) {
+        const overrideResult = await processTransactionImport(
+          validationResults.revenueInFileDuplicates.map(d => d.transaction)
+        );
+        overrideRevenues.push(...overrideResult.revenues);
+      }
+      
+      // Combine regular results with overridden duplicates
+      const allExpenses = [...result.expenses, ...overrideExpenses];
+      const allRevenues = [...result.revenues, ...overrideRevenues];
+      
       // Import expenses
       let successCount = 0;
       const errorMessages: string[] = [...result.errors];
 
-      if (result.expenses.length > 0) {
-        for (const expense of result.expenses) {
+      if (allExpenses.length > 0) {
+        for (const expense of allExpenses) {
           try {
             const { error } = await supabase
               .from('expenses')
@@ -418,8 +638,8 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       }
 
       // Import revenues
-      if (result.revenues.length > 0) {
-        for (const revenue of result.revenues) {
+      if (allRevenues.length > 0) {
+        for (const revenue of allRevenues) {
           try {
             const { error } = await supabase
               .from('project_revenues')
@@ -437,8 +657,8 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       }
 
       const finalResults = {
-        expenses: result.expenses,
-        revenues: result.revenues,
+        expenses: allExpenses,
+        revenues: allRevenues,
         unassociated_expenses: result.unassociated_expenses,
         unassociated_revenues: result.unassociated_revenues,
         category_mappings_used: result.category_mappings_used,
@@ -452,7 +672,8 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         autoCreatedPayees: result.autoCreatedPayees,
         autoCreatedCount: result.autoCreatedCount,
         mappingStats: result.mappingStats,
-        unmappedAccounts: result.unmappedAccounts
+        unmappedAccounts: result.unmappedAccounts,
+        revenueReconciliation: result.revenueReconciliation
       };
 
       setImportResults(finalResults);
@@ -696,6 +917,20 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                           </div>
                         </details>
                       )}
+                      
+                      {/* Override checkbox */}
+                      <div className="mt-3 pt-3 border-t border-orange-200">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={overrideDuplicates.expenseInFile}
+                            onCheckedChange={(checked) => setOverrideDuplicates(prev => ({
+                              ...prev,
+                              expenseInFile: checked === true
+                            }))}
+                          />
+                          <span className="text-orange-800 font-medium">Import these duplicates anyway</span>
+                        </label>
+                      </div>
                     </div>
                   )}
                   
@@ -738,6 +973,74 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                           </div>
                         </details>
                       )}
+                      
+                      {/* Override checkbox */}
+                      <div className="mt-3 pt-3 border-t border-amber-200">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={overrideDuplicates.expenseDatabase}
+                            onCheckedChange={(checked) => setOverrideDuplicates(prev => ({
+                              ...prev,
+                              expenseDatabase: checked === true
+                            }))}
+                          />
+                          <span className="text-amber-800 font-medium">Import these duplicates anyway</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Revenue Database Duplicates Warning */}
+                  {validationResults.revenueDatabaseDuplicatesSkipped && validationResults.revenueDatabaseDuplicatesSkipped > 0 && (
+                    <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <h4 className="font-medium text-amber-800 text-sm">
+                            {validationResults.revenueDatabaseDuplicatesSkipped} invoice(s) already exist in the system
+                          </h4>
+                          <p className="text-sm text-amber-700 mt-1">
+                            These invoices will be skipped during import.
+                          </p>
+                          <p className="text-xs text-amber-600 mt-1 italic">
+                            These were likely imported in a previous upload.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {validationResults.revenueDatabaseDuplicates && validationResults.revenueDatabaseDuplicates.length > 0 && (
+                        <details className="mt-2">
+                          <summary className="text-xs cursor-pointer text-amber-700 hover:underline">
+                            View duplicate invoices
+                          </summary>
+                          <div className="mt-2 max-h-32 overflow-y-auto text-xs bg-white rounded border border-amber-200 p-2">
+                            {validationResults.revenueDatabaseDuplicates.slice(0, 10).map((dup, idx) => (
+                              <div key={idx} className="py-1 border-b border-amber-100 last:border-0">
+                                {dup.transaction['Date']} - {dup.transaction['Name']} - {formatCurrency(parseFloat(dup.transaction['Amount']?.replace(/[,$]/g, '') || '0'))}
+                              </div>
+                            ))}
+                            {validationResults.revenueDatabaseDuplicates.length > 10 && (
+                              <div className="pt-1 text-amber-600">
+                                ...and {validationResults.revenueDatabaseDuplicates.length - 10} more
+                              </div>
+                            )}
+                          </div>
+                        </details>
+                      )}
+                      
+                      {/* Override checkbox */}
+                      <div className="mt-3 pt-3 border-t border-amber-200">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={overrideDuplicates.revenueDatabase}
+                            onCheckedChange={(checked) => setOverrideDuplicates(prev => ({
+                              ...prev,
+                              revenueDatabase: checked === true
+                            }))}
+                          />
+                          <span className="text-amber-800 font-medium">Import these duplicates anyway</span>
+                        </label>
+                      </div>
                     </div>
                   )}
                   
@@ -792,6 +1095,58 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                       </div>
                     </div>
                   )}
+                  
+                  {/* Revenue/Invoice Reconciliation Display */}
+                  {validationResults.revenueReconciliation && (validationResults.revenueReconciliation.totalDuplicateAmount > 0 || validationResults.revenueReconciliation.totalExistingRevenues > 0) && (
+                    <div className={cn(
+                      "p-4 rounded-lg border",
+                      validationResults.revenueReconciliation.isAligned
+                        ? "bg-green-50 border-green-200"
+                        : "bg-red-50 border-red-200"
+                    )}>
+                      <div className="flex items-start gap-2 mb-2">
+                        {validationResults.revenueReconciliation.isAligned ? (
+                          <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <h4 className="font-medium text-sm">
+                            {validationResults.revenueReconciliation.isAligned ? 'Invoice Reconciliation Aligned' : 'Invoice Reconciliation Failed'}
+                          </h4>
+                          <div className="mt-2 space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Matching Invoices in System:</span>
+                              <span className="font-medium">{formatCurrency(validationResults.revenueReconciliation.totalExistingRevenues)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Total Duplicate Invoice Amount:</span>
+                              <span className="font-medium">{formatCurrency(validationResults.revenueReconciliation.totalDuplicateAmount)}</span>
+                            </div>
+                            <div className="flex justify-between border-t pt-1">
+                              <span className={cn(
+                                "font-medium",
+                                validationResults.revenueReconciliation.isAligned ? "text-green-700" : "text-red-700"
+                              )}>
+                                Difference:
+                              </span>
+                              <span className={cn(
+                                "font-bold",
+                                validationResults.revenueReconciliation.isAligned ? "text-green-700" : "text-red-700"
+                              )}>
+                                {formatCurrency(validationResults.revenueReconciliation.difference)}
+                              </span>
+                            </div>
+                          </div>
+                          {!validationResults.revenueReconciliation.isAligned && (
+                            <p className="text-xs text-red-600 mt-2 italic">
+                              Invoice reconciliation failed: Totals do not match. Please review duplicate invoices before importing.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -837,14 +1192,48 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
               </Button>
               <Button 
                 onClick={handleImport} 
-                disabled={isImporting || (validationResults?.reconciliation && !validationResults.reconciliation.isAligned)}
+                disabled={isImporting || (
+                  // Disable only if expense reconciliation failed AND no overrides are checked at all
+                  validationResults?.reconciliation && 
+                  !validationResults.reconciliation.isAligned &&
+                  !overrideDuplicates.expenseDatabase &&
+                  !overrideDuplicates.expenseInFile &&
+                  !overrideDuplicates.revenueDatabase &&
+                  !overrideDuplicates.revenueInFile
+                )}
               >
                 {(() => {
                   if (isImporting) return 'Importing...';
-                  const duplicatesSkipped = (validationResults?.databaseDuplicatesSkipped || 0) + (validationResults?.inFileDuplicatesSkipped || 0);
-                  const actualImportCount = csvData.length - duplicatesSkipped;
-                  return duplicatesSkipped > 0 
-                    ? `Import ${actualImportCount} Transactions (${duplicatesSkipped} duplicates skipped)`
+                  
+                  // Calculate how many duplicates will actually be skipped (accounting for overrides)
+                  let expenseDBSkipped = validationResults?.databaseDuplicatesSkipped || 0;
+                  let expenseInFileSkipped = validationResults?.inFileDuplicatesSkipped || 0;
+                  let revenueDBSkipped = validationResults?.revenueDatabaseDuplicatesSkipped || 0;
+                  let revenueInFileSkipped = validationResults?.revenueInFileDuplicatesSkipped || 0;
+                  
+                  if (overrideDuplicates.expenseDatabase) expenseDBSkipped = 0;
+                  if (overrideDuplicates.expenseInFile) expenseInFileSkipped = 0;
+                  if (overrideDuplicates.revenueDatabase) revenueDBSkipped = 0;
+                  if (overrideDuplicates.revenueInFile) revenueInFileSkipped = 0;
+                  
+                  const totalSkipped = expenseDBSkipped + expenseInFileSkipped + revenueDBSkipped + revenueInFileSkipped;
+                  const actualImportCount = csvData.length - totalSkipped;
+                  
+                  const overrideCount = [
+                    overrideDuplicates.expenseDatabase && validationResults?.databaseDuplicatesSkipped,
+                    overrideDuplicates.expenseInFile && validationResults?.inFileDuplicatesSkipped,
+                    overrideDuplicates.revenueDatabase && validationResults?.revenueDatabaseDuplicatesSkipped,
+                    overrideDuplicates.revenueInFile && validationResults?.revenueInFileDuplicatesSkipped
+                  ].filter(Boolean).length;
+                  
+                  if (overrideCount > 0) {
+                    return totalSkipped > 0
+                      ? `Import ${actualImportCount} Transactions (${totalSkipped} duplicates skipped, ${overrideCount} override${overrideCount > 1 ? 's' : ''})`
+                      : `Import ${actualImportCount} Transactions (${overrideCount} override${overrideCount > 1 ? 's' : ''})`;
+                  }
+                  
+                  return totalSkipped > 0 
+                    ? `Import ${actualImportCount} Transactions (${totalSkipped} duplicates skipped)`
                     : `Import ${actualImportCount} Transactions`;
                 })()}
               </Button>

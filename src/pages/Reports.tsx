@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, FileBarChart } from "lucide-react";
+import { Plus, FileText, FileBarChart, Receipt, DollarSign } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { NewTemplateGallery } from "@/components/reports/NewTemplateGallery";
 import { SimpleReportBuilder } from "@/components/reports/SimpleReportBuilder";
 import { ReportViewer } from "@/components/reports/ReportViewer";
@@ -23,6 +24,7 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { ReportsSidebar, ReportCategory } from "@/components/reports/ReportsSidebar";
 
 const ReportsPage = () => {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [selectedCategory, setSelectedCategory] = useState<ReportCategory>('standard');
   const [showBuilder, setShowBuilder] = useState(false);
@@ -433,12 +435,54 @@ const ReportsPage = () => {
                 </CardContent>
               </Card>
             ) : (
-              <NewTemplateGallery 
-                onSelectTemplate={handleUseTemplate}
-                onCustomBuilder={() => setShowBuilder(true)}
-                selectedCategory={selectedCategory}
-                savedReports={savedReports}
-              />
+              <div className="space-y-6">
+                {/* Quick Access Line Item Reports */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quick Access Reports</CardTitle>
+                    <CardDescription>
+                      Direct access to all expense and revenue line items
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button
+                        variant="outline"
+                        className="h-auto p-4 flex flex-col items-start gap-2"
+                        onClick={() => navigate('/reports/all-expenses-line-items')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Receipt className="h-5 w-5 text-primary" />
+                          <span className="font-semibold">All Expenses Line Items</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground text-left">
+                          View complete listing of all expense transactions
+                        </span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-auto p-4 flex flex-col items-start gap-2"
+                        onClick={() => navigate('/reports/all-revenues-line-items')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-5 w-5 text-primary" />
+                          <span className="font-semibold">All Revenues Line Items</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground text-left">
+                          View complete listing of all revenue/invoice transactions
+                        </span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <NewTemplateGallery 
+                  onSelectTemplate={handleUseTemplate}
+                  onCustomBuilder={() => setShowBuilder(true)}
+                  selectedCategory={selectedCategory}
+                  savedReports={savedReports}
+                />
+              </div>
             )}
             </div>
           </div>

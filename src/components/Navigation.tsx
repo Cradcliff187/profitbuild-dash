@@ -113,7 +113,7 @@ const Navigation = () => {
   const secondaryItems = [
     { to: "/branch-bids", label: "Bids", icon: Package, show: isAdmin || isManager },
     { to: "/time-tracker", label: "Time Tracker", icon: Clock, show: true },
-    { to: "/expenses", label: "Expenses", icon: Receipt, show: hasFinancialAccess },
+    { to: "/expenses", label: "Expenses & Invoices", icon: Receipt, show: hasFinancialAccess },
     { to: "/field-media", label: "Field Media", icon: Camera, show: isAdmin || isFieldWorker },
     { to: "/reports", label: "Reports", icon: BarChart3, show: hasFinancialAccess },
     { to: "/payees", label: "Payees", icon: Users, show: hasClientAccess },
@@ -141,7 +141,7 @@ const Navigation = () => {
       items: [
         { to: "/time-entries", label: "Time Management", icon: Clock, show: isAdmin || isManager },
         { to: "/time-tracker", label: "Time Tracker", icon: Clock, show: true },
-        { to: "/expenses", label: "Expenses", icon: Receipt, show: hasFinancialAccess },
+        { to: "/expenses", label: "Expenses & Invoices", icon: Receipt, show: hasFinancialAccess },
       ]
     },
     {

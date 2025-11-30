@@ -40,6 +40,8 @@ const FieldSchedule = lazy(() => import("./pages/FieldSchedule"));
 const BranchBids = lazy(() => import("./pages/BranchBids"));
 const BranchBidDetail = lazy(() => import("./pages/BranchBidDetail"));
 const Reports = lazy(() => import("./pages/Reports"));
+const AllExpensesLineItemsReport = lazy(() => import("./pages/AllExpensesLineItemsReport"));
+const AllRevenuesLineItemsReport = lazy(() => import("./pages/AllRevenuesLineItemsReport"));
 
 const queryClient = new QueryClient();
 
@@ -92,6 +94,8 @@ const App = () => (
                   <Route path="estimates" element={<LazyRoute component={Estimates} />} />
                   <Route path="quotes" element={<LazyRoute component={Quotes} />} />
                   <Route path="reports" element={<LazyRoute component={Reports} />} />
+                  <Route path="reports/all-expenses-line-items" element={<LazyRoute component={AllExpensesLineItemsReport} />} />
+                  <Route path="reports/all-revenues-line-items" element={<LazyRoute component={AllRevenuesLineItemsReport} />} />
                   <Route path="expenses" element={<LazyRoute component={Expenses} />} />
                   <Route path="payees" element={<LazyRoute component={Payees} />} />
                   <Route path="clients" element={<LazyRoute component={Clients} />} />

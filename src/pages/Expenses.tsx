@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Upload, BarChart3, List, Clock, FileDown, Receipt } from "lucide-react";
+import { Plus, Upload, BarChart3, List, Clock, FileDown, Receipt, DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,13 +11,16 @@ import { ExpensesList, ExpensesListRef } from "@/components/ExpensesList";
 import { ExpenseImportModal } from "@/components/ExpenseImportModal";
 import { ExpenseExportModal } from "@/components/ExpenseExportModal";
 import { TimesheetGridView } from "@/components/TimesheetGridView";
+import { RevenueFormSheet } from "@/components/RevenueFormSheet";
+import { RevenuesList } from "@/components/RevenuesList";
 import { Expense, ExpenseCategory } from "@/types/expense";
+import { ProjectRevenue } from "@/types/revenue";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ColumnSelector } from "@/components/ui/column-selector";
 import { MobileResponsiveHeader } from "@/components/ui/mobile-responsive-header";
 
-type ViewMode = "overview" | "list";
+type ViewMode = "overview" | "list" | "invoices";
 
 // Helper to filter out all split parent expenses (defensive)
 const filterDisplayableExpenses = (expenses: Expense[]): Expense[] => {
@@ -32,12 +35,16 @@ const Expenses = () => {
   const navigate = useNavigate();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [estimates, setEstimates] = useState<any[]>([]);
+  const [revenues, setRevenues] = useState<ProjectRevenue[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("overview");
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
+  const [selectedRevenue, setSelectedRevenue] = useState<ProjectRevenue | undefined>();
   const [expenseFormOpen, setExpenseFormOpen] = useState(false);
+  const [revenueFormOpen, setRevenueFormOpen] = useState(false);
   const tabOptions = [
     { value: "overview", label: "Overview", icon: BarChart3 },
     { value: "list", label: "All Expenses", icon: List },
+    { value: "invoices", label: "Invoices", icon: DollarSign },
   ];
   const [loading, setLoading] = useState(true);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -116,9 +123,90 @@ const Expenses = () => {
     { key: 'actions', label: 'Actions', required: true },
   ];
 
-  // Load expenses from Supabase
+  // Column visibility state for revenues with localStorage persistence
+  const [revenueVisibleColumns, setRevenueVisibleColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem('revenues-visible-columns');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Ensure checkbox is always included
+        if (!parsed.includes('checkbox')) {
+          return ['checkbox', ...parsed];
+        }
+        return parsed;
+      } catch {
+        // Invalid JSON, use defaults
+      }
+    }
+    // Default visible columns
+    return [
+      'checkbox', 'date', 'invoice_number', 'project', 'client', 'description', 'amount', 'account', 'quickbooks_id', 'actions'
+    ];
+  });
+
+  // Column order state for revenues with localStorage persistence
+  const [revenueColumnOrder, setRevenueColumnOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem('revenues-column-order');
+    if (saved) {
+      try {
+        const savedOrder = JSON.parse(saved);
+        // Add any new columns not in saved order
+        const allColumns = [
+          'checkbox', 'date', 'invoice_number', 'project', 'client', 'description', 'amount', 'account', 'quickbooks_id', 'actions'
+        ];
+        const newColumns = allColumns.filter(key => !savedOrder.includes(key));
+        // Ensure checkbox is always first
+        const merged = [...savedOrder, ...newColumns];
+        // Move checkbox to front if it exists
+        if (merged.includes('checkbox')) {
+          return ['checkbox', ...merged.filter(key => key !== 'checkbox')];
+        }
+        return merged;
+      } catch {
+        // Invalid JSON, use defaults
+      }
+    }
+    return [
+      'checkbox', 'date', 'invoice_number', 'project', 'client', 'description', 'amount', 'account', 'quickbooks_id', 'actions'
+    ];
+  });
+
+  // Wrapper for setRevenueVisibleColumns to ensure checkbox is always included
+  const handleRevenueVisibleColumnsChange = (columns: string[]) => {
+    // Ensure checkbox is always included (it's required)
+    const columnsWithCheckbox = columns.includes('checkbox') 
+      ? columns 
+      : ['checkbox', ...columns];
+    setRevenueVisibleColumns(columnsWithCheckbox);
+  };
+
+  // Save revenue columns to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('revenues-visible-columns', JSON.stringify(revenueVisibleColumns));
+  }, [revenueVisibleColumns]);
+
+  useEffect(() => {
+    localStorage.setItem('revenues-column-order', JSON.stringify(revenueColumnOrder));
+  }, [revenueColumnOrder]);
+
+  // Column definitions for revenue ColumnSelector
+  const revenueColumnDefinitions = [
+    { key: 'checkbox', label: 'Select', required: true },
+    { key: 'date', label: 'Date', required: false },
+    { key: 'invoice_number', label: 'Invoice #', required: false },
+    { key: 'project', label: 'Project', required: false },
+    { key: 'client', label: 'Client', required: false },
+    { key: 'description', label: 'Description', required: false },
+    { key: 'amount', label: 'Amount', required: false },
+    { key: 'account', label: 'Account', required: false },
+    { key: 'quickbooks_id', label: 'QB ID', required: false },
+    { key: 'actions', label: 'Actions', required: true },
+  ];
+
+  // Load expenses and revenues from Supabase
   useEffect(() => {
     fetchData();
+    fetchRevenues();
   }, []);
 
   const fetchData = async () => {
@@ -206,8 +294,110 @@ const Expenses = () => {
     setExpenseFormOpen(true);
   };
 
+  const fetchRevenues = async () => {
+    try {
+      // Query revenues without joins (no FK relationship exists)
+      const { data: revenuesData, error: revenuesError } = await supabase
+        .from("project_revenues")
+        .select(`
+          id,
+          invoice_date,
+          invoice_number,
+          amount,
+          description,
+          account_name,
+          account_full_name,
+          quickbooks_transaction_id,
+          project_id,
+          client_id
+        `)
+        .order('invoice_date', { ascending: false });
+
+      if (revenuesError) throw revenuesError;
+
+      // Get unique project IDs and client IDs
+      const projectIds = [...new Set((revenuesData || []).map(r => r.project_id).filter(Boolean))];
+      const clientIds = [...new Set((revenuesData || []).map(r => r.client_id).filter(Boolean))];
+
+      // Fetch projects separately
+      const projectsMap = new Map();
+      if (projectIds.length > 0) {
+        const { data: projectsData, error: projectsError } = await supabase
+          .from("projects")
+          .select("id, project_number, project_name, client_name")
+          .in('id', projectIds);
+
+        if (projectsError) throw projectsError;
+        
+        (projectsData || []).forEach(p => {
+          projectsMap.set(p.id, p);
+        });
+      }
+
+      // Fetch clients separately
+      const clientsMap = new Map();
+      if (clientIds.length > 0) {
+        const { data: clientsData, error: clientsError } = await supabase
+          .from("clients")
+          .select("id, client_name")
+          .in('id', clientIds);
+
+        if (!clientsError && clientsData) {
+          clientsData.forEach(c => {
+            clientsMap.set(c.id, c.client_name);
+          });
+        }
+      }
+
+      // Transform and merge data
+      const transformedRevenues: ProjectRevenue[] = (revenuesData || []).map((revenue: any) => {
+        const project = projectsMap.get(revenue.project_id);
+        
+        return {
+          ...revenue,
+          invoice_date: new Date(revenue.invoice_date),
+          created_at: new Date(revenue.created_at),
+          updated_at: new Date(revenue.updated_at),
+          project_number: project?.project_number || 'Unassigned',
+          project_name: project?.project_name || 'Unassigned',
+          client_name: clientsMap.get(revenue.client_id) || project?.client_name || null,
+        } as ProjectRevenue;
+      });
+
+      setRevenues(transformedRevenues);
+    } catch (error: any) {
+      console.error("Error loading revenues:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load invoices: " + (error.message || "Unknown error"),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveRevenue = (revenue: ProjectRevenue) => {
+    // Refresh the revenues list
+    fetchRevenues();
+    setSelectedRevenue(undefined);
+  };
+
+  const handleEditRevenue = (revenue: ProjectRevenue) => {
+    setSelectedRevenue(revenue);
+    setRevenueFormOpen(true);
+  };
+
+  const handleDeleteRevenue = (id: string) => {
+    setRevenues(revenues.filter((r) => r.id !== id));
+    fetchRevenues();
+  };
+
+  const handleCreateNewRevenue = () => {
+    setSelectedRevenue(undefined);
+    setRevenueFormOpen(true);
+  };
+
   const handleTabChange = (value: string) => {
-    if (value === "overview" || value === "list") {
+    if (value === "overview" || value === "list" || value === "invoices") {
       setViewMode(value as ViewMode);
     }
   };
@@ -223,14 +413,18 @@ const Expenses = () => {
         <div className="flex items-center space-x-3 min-w-0">
           <Receipt className="h-5 w-5 text-primary shrink-0" />
           <div className="min-w-0">
-            <h1 className="text-xl font-bold text-foreground">Expenses</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Track project costs and manage expenses</p>
+            <h1 className="text-xl font-bold text-foreground">Expenses & Invoices</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">Track project costs, manage expenses, and invoices</p>
           </div>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <Button onClick={handleCreateNew} size="sm" className="flex-1 sm:flex-initial">
+          <Button 
+            onClick={viewMode === "invoices" ? handleCreateNewRevenue : handleCreateNew} 
+            size="sm" 
+            className="flex-1 sm:flex-initial"
+          >
             <Plus className="h-4 w-4 mr-2" />
-            Add Expense
+            {viewMode === "invoices" ? "Add Invoice" : "Add Expense"}
           </Button>
           <div className="hidden sm:flex items-center gap-2">
             <Button variant="outline" onClick={() => setShowImportModal(true)} size="sm">
@@ -289,14 +483,14 @@ const Expenses = () => {
                 })}
               </TabsList>
             </div>
-            {viewMode === "list" && (
+            {(viewMode === "list" || viewMode === "invoices") && (
               <div className="flex justify-end sm:order-2">
                 <ColumnSelector
-                  columns={expenseColumnDefinitions}
-                  visibleColumns={visibleColumns}
-                  onVisibilityChange={setVisibleColumns}
-                  columnOrder={columnOrder}
-                  onColumnOrderChange={setColumnOrder}
+                  columns={viewMode === "invoices" ? revenueColumnDefinitions : expenseColumnDefinitions}
+                  visibleColumns={viewMode === "invoices" ? revenueVisibleColumns : visibleColumns}
+                  onVisibilityChange={viewMode === "invoices" ? handleRevenueVisibleColumnsChange : setVisibleColumns}
+                  columnOrder={viewMode === "invoices" ? revenueColumnOrder : columnOrder}
+                  onColumnOrderChange={viewMode === "invoices" ? setRevenueColumnOrder : setColumnOrder}
                 />
               </div>
             )}
@@ -317,6 +511,19 @@ const Expenses = () => {
               onVisibleColumnsChange={setVisibleColumns}
               columnOrder={columnOrder}
               onColumnOrderChange={setColumnOrder}
+            />
+          </TabsContent>
+
+          <TabsContent value="invoices">
+            <RevenuesList
+              revenues={revenues}
+              onEdit={handleEditRevenue}
+              onDelete={handleDeleteRevenue}
+              onRefresh={fetchRevenues}
+              visibleColumns={revenueVisibleColumns}
+              onVisibleColumnsChange={setRevenueVisibleColumns}
+              columnOrder={revenueColumnOrder}
+              onColumnOrderChange={setRevenueColumnOrder}
             />
           </TabsContent>
         </Tabs>
@@ -345,6 +552,13 @@ const Expenses = () => {
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
         expenses={expenses}
+      />
+
+      <RevenueFormSheet
+        open={revenueFormOpen}
+        onOpenChange={setRevenueFormOpen}
+        revenue={selectedRevenue}
+        onSave={handleSaveRevenue}
       />
     </div>
   );

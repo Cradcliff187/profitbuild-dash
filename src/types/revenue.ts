@@ -14,6 +14,7 @@ export interface ProjectRevenue {
   // Display fields populated from joins
   client_name?: string;
   project_name?: string;
+  project_number?: string;
 }
 
 export interface CreateProjectRevenueData {

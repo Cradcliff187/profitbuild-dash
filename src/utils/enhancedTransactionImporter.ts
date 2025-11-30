@@ -106,6 +106,13 @@ export interface TransactionImportResult {
     isAligned: boolean;                     // True if difference is within threshold
     threshold: number;                      // Tolerance threshold (default $0.01)
   };
+  revenueReconciliation?: {
+    totalExistingRevenues: number;
+    totalDuplicateAmount: number;
+    difference: number;
+    isAligned: boolean;
+    threshold: number;
+  };
 }
 
 // Account mapping from QuickBooks account paths to expense categories
@@ -536,6 +543,31 @@ export const processTransactionImport = async (
     );
   }
 
+  // === Calculate REVENUE reconciliation ===
+  let revenueReconciliation;
+  if (dates.length > 0 && (revenueDatabaseDuplicates.length > 0 || revenueInFileDuplicates.length > 0)) {
+    const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+    
+    minDate.setDate(minDate.getDate() - 1);
+    maxDate.setDate(maxDate.getDate() + 1);
+    
+    const allRevenueDuplicates = [
+      ...revenueInFileDuplicates.map(d => ({ transaction: d.transaction, reason: d.reason })),
+      ...revenueDatabaseDuplicates.map(d => ({ 
+        transaction: d.transaction, 
+        existingRevenueId: d.existingRevenueId, 
+        matchKey: d.matchKey 
+      }))
+    ];
+    
+    revenueReconciliation = await calculateRevenueReconciliation(
+      minDate.toISOString().split('T')[0],
+      maxDate.toISOString().split('T')[0],
+      allRevenueDuplicates
+    );
+  }
+
   return {
     expenses,
     revenues,
@@ -557,7 +589,8 @@ export const processTransactionImport = async (
     autoCreatedCount: autoCreatedPayees.length,
     mappingStats,
     unmappedAccounts,
-    reconciliation
+    reconciliation,
+    revenueReconciliation
   };
 };
 
@@ -784,6 +817,62 @@ const calculateReconciliation = async (
 
   return {
     totalExistingNonLaborExpenses,
+    totalDuplicateAmount,
+    difference,
+    isAligned,
+    threshold
+  };
+};
+
+/**
+ * Calculates reconciliation between matching revenues in database and duplicate invoice totals
+ */
+const calculateRevenueReconciliation = async (
+  startDate: string,
+  endDate: string,
+  allRevenueDuplicates: Array<{
+    transaction: TransactionCSVRow;
+    existingRevenueId?: string;
+    matchKey?: string;
+    reason?: string;
+  }>
+): Promise<{
+  totalExistingRevenues: number;
+  totalDuplicateAmount: number;
+  difference: number;
+  isAligned: boolean;
+  threshold: number;
+}> => {
+  const revenueIds = allRevenueDuplicates
+    .filter(dup => dup.existingRevenueId)
+    .map(dup => dup.existingRevenueId!)
+    .filter((id, index, self) => self.indexOf(id) === index);
+
+  let totalExistingRevenues = 0;
+  
+  if (revenueIds.length > 0) {
+    const { data: revenuesData, error } = await supabase
+      .from('project_revenues')
+      .select('id, amount')
+      .in('id', revenueIds);
+
+    if (!error && revenuesData) {
+      totalExistingRevenues = revenuesData.reduce((sum, rev) => sum + Math.abs(rev.amount || 0), 0);
+    }
+  }
+
+  let totalDuplicateAmount = 0;
+  for (const dup of allRevenueDuplicates) {
+    const amount = parseFloat(dup.transaction['Amount']?.replace(/[,$]/g, '') || '0');
+    totalDuplicateAmount += Math.abs(amount);
+  }
+
+  const difference = Math.abs(totalExistingRevenues - totalDuplicateAmount);
+  const threshold = 0.01;
+  const isAligned = difference <= threshold;
+
+  return {
+    totalExistingRevenues,
     totalDuplicateAmount,
     difference,
     isAligned,
