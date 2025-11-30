@@ -51,7 +51,8 @@ const AllRevenuesLineItemsReport = () => {
           account_full_name,
           quickbooks_transaction_id,
           project_id,
-          client_id
+          client_id,
+          is_split
         `)
         .order('invoice_date', { ascending: false });
 

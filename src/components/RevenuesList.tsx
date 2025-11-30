@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Edit, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal } from "lucide-react";
+import { Edit, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, Split, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
 import { usePagination } from '@/hooks/usePagination';
 import { RevenueBulkActions } from "./RevenueBulkActions";
+import { RevenueSplitDialog } from "./RevenueSplitDialog";
+import { getRevenueSplits } from "@/utils/revenueSplits";
+import { RevenueSplit } from "@/types/revenue";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,27 +93,34 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
   const [projects, setProjects] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [selectedRevenues, setSelectedRevenues] = useState<string[]>([]);
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+  const [revenueToSplit, setRevenueToSplit] = useState<ProjectRevenue | null>(null);
+  const [expandedRevenues, setExpandedRevenues] = useState<Set<string>>(new Set());
+  const [revenueSplits, setRevenueSplits] = useState<Record<string, RevenueSplit[]>>({});
 
   // Column visibility state - use external if provided, otherwise internal with localStorage
   const [internalVisibleColumns, setInternalVisibleColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem('revenues-visible-columns');
+    const defaultColumns = REVENUE_COLUMNS
+      .filter(col => col.defaultVisible)
+      .map(col => col.key);
+    
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure checkbox is always included (it's required)
+        // Ensure checkbox is always included
         if (!parsed.includes('checkbox')) {
-          return ['checkbox', ...parsed];
+          parsed.unshift('checkbox');
         }
-        return parsed;
+        // Merge with defaults to include any new columns (like 'split')
+        const merged = [...new Set([...defaultColumns, ...parsed])];
+        // Preserve order: defaults first, then saved order for others
+        return merged;
       } catch {
         // Invalid JSON, use defaults
       }
     }
-    // Default visible columns
-    const defaultColumns = REVENUE_COLUMNS
-      .filter(col => col.defaultVisible)
-      .map(col => col.key);
-    // Ensure checkbox is always included
+    // Ensure checkbox is always first
     if (!defaultColumns.includes('checkbox')) {
       defaultColumns.unshift('checkbox');
     }
@@ -114,19 +130,31 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
   // Column order state - use external if provided, otherwise internal with localStorage
   const [internalColumnOrder, setInternalColumnOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('revenues-column-order');
+    const allColumnKeys = REVENUE_COLUMNS.map(col => col.key);
+    
     if (saved) {
       try {
         const savedOrder = JSON.parse(saved);
-        // Add any new columns not in saved order
+        // Add any new columns not in saved order (like 'split')
         const newColumns = REVENUE_COLUMNS
           .map(col => col.key)
           .filter(key => !savedOrder.includes(key));
-        return [...savedOrder, ...newColumns];
+        
+        // Insert new columns in their default positions
+        const merged = [...savedOrder];
+        newColumns.forEach(newKey => {
+          const defaultIndex = allColumnKeys.indexOf(newKey);
+          if (defaultIndex > 0) {
+            merged.splice(defaultIndex, 0, newKey);
+          }
+        });
+        
+        return merged;
       } catch {
         // Invalid JSON, use defaults
       }
     }
-    return REVENUE_COLUMNS.map(col => col.key);
+    return allColumnKeys;
   });
 
   // Use external state if provided, otherwise use internal
@@ -193,6 +221,43 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
     setClients(Array.from(uniqueClients).map(name => ({ name })));
   }, [revenues]);
 
+  // Fetch revenue splits for split revenues
+  useEffect(() => {
+    const fetchRevenueSplits = async () => {
+      const splitRevenues = revenues.filter((r) => r.is_split);
+      if (splitRevenues.length === 0) return;
+
+      try {
+        const splitsData: Record<string, RevenueSplit[]> = {};
+        await Promise.all(
+          splitRevenues.map(async (revenue) => {
+            if (revenue.id) {
+              const splits = await getRevenueSplits(revenue.id);
+              splitsData[revenue.id] = splits;
+            }
+          })
+        );
+        setRevenueSplits(splitsData);
+      } catch (error) {
+        console.error("Error fetching revenue splits:", error);
+      }
+    };
+
+    fetchRevenueSplits();
+  }, [revenues]);
+
+  const toggleExpanded = (revenueId: string) => {
+    setExpandedRevenues(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(revenueId)) {
+        newSet.delete(revenueId);
+      } else {
+        newSet.add(revenueId);
+      }
+      return newSet;
+    });
+  };
+
   // Filter revenues
   const filteredRevenues = useMemo(() => {
     let filtered = revenues;
@@ -236,6 +301,10 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
       let bVal: any;
 
       switch (sortColumn) {
+        case 'split':
+          aVal = a.is_split ? 1 : 0;
+          bVal = b.is_split ? 1 : 0;
+          break;
         case 'date':
         case 'invoice_date':
           aVal = new Date(a.invoice_date).getTime();
@@ -271,16 +340,45 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
     return sorted;
   }, [filteredRevenues, sortColumn, sortDirection]);
 
-  // Pagination
+  // Create display rows with split rows included
+  const displayRows = useMemo(() => {
+    const rows: Array<ProjectRevenue & { _isSplitRow?: boolean; _splitData?: RevenueSplit }> = [];
+    
+    sortedRevenues.forEach(revenue => {
+      // Add parent revenue row
+      rows.push(revenue);
+      
+      // If expanded and has splits, add split rows
+      if (revenue.is_split && revenue.id && expandedRevenues.has(revenue.id)) {
+        const splits = revenueSplits[revenue.id] || [];
+        splits.forEach(split => {
+          rows.push({
+            ...revenue,
+            id: `${revenue.id}_split_${split.id}`,
+            _isSplitRow: true,
+            _splitData: split,
+            project_id: split.project_id,
+            project_name: split.project_name,
+            project_number: split.project_number,
+            amount: split.split_amount,
+          });
+        });
+      }
+    });
+    
+    return rows;
+  }, [sortedRevenues, expandedRevenues, revenueSplits]);
+
+  // Pagination - use displayRows for count, but only count parent rows
   const pagination = usePagination({
     totalItems: sortedRevenues.length,
     pageSize: pageSize,
     initialPage: 1,
   });
 
-  const paginatedRevenues = enablePagination
-    ? sortedRevenues.slice(pagination.startIndex, pagination.endIndex)
-    : sortedRevenues;
+  const paginatedRows = enablePagination
+    ? displayRows.slice(pagination.startIndex, pagination.endIndex)
+    : displayRows;
 
   const handleSort = (columnKey: string) => {
     const column = REVENUE_COLUMNS.find(col => col.key === columnKey);
@@ -400,17 +498,19 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
   const totalAmount = sortedRevenues.reduce((sum, rev) => sum + rev.amount, 0);
 
   // Render cell content based on column key
-  const renderCell = (revenue: ProjectRevenue, columnKey: string) => {
+  const renderCell = (revenue: ProjectRevenue & { _isSplitRow?: boolean; _splitData?: RevenueSplit }, columnKey: string) => {
+    const isSplitRow = revenue._isSplitRow;
+    const splitData = revenue._splitData;
+    
     switch (columnKey) {
-      case 'checkbox':
-        return (
-          <Checkbox
-            checked={selectedRevenues.includes(revenue.id)}
-            onCheckedChange={() => handleSelectRevenue(revenue.id)}
-          />
-        );
-      
       case 'date':
+        if (isSplitRow && splitData) {
+          return (
+            <span className="text-muted-foreground font-mono text-xs">
+              {splitData.split_percentage?.toFixed(1)}%
+            </span>
+          );
+        }
         return (
           <span className="font-mono text-muted-foreground text-xs">
             {format(new Date(revenue.invoice_date), 'M/d/yy')}
@@ -425,6 +525,22 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
         );
       
       case 'project':
+        if (isSplitRow) {
+          return (
+            <div className="text-xs leading-tight pl-4">
+              <div className="font-medium">{revenue.project_number || '-'}</div>
+              <div className="text-muted-foreground text-[10px]">{revenue.project_name || ''}</div>
+            </div>
+          );
+        }
+        // For split parents, show "SPLIT" instead of project number
+        if (revenue.is_split) {
+          return (
+            <div className="text-xs leading-tight">
+              <div className="font-medium">SPLIT</div>
+            </div>
+          );
+        }
         return (
           <div className="text-xs leading-tight">
             <div className="font-medium">{revenue.project_number || '-'}</div>
@@ -433,6 +549,9 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
         );
       
       case 'client':
+        if (isSplitRow) {
+          return <span className="text-xs text-muted-foreground pl-4">—</span>;
+        }
         return (
           <span className="text-xs">
             {revenue.client_name || '-'}
@@ -440,6 +559,13 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
         );
       
       case 'description':
+        if (isSplitRow && splitData?.notes) {
+          return (
+            <span className="text-xs text-muted-foreground italic pl-4">
+              {splitData.notes}
+            </span>
+          );
+        }
         return (
           <span className="text-xs text-muted-foreground truncate max-w-xs">
             {revenue.description || '-'}
@@ -447,6 +573,13 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
         );
       
       case 'amount':
+        if (isSplitRow && splitData) {
+          return (
+            <span className="font-mono font-medium text-green-600 text-sm">
+              {formatCurrency(splitData.split_amount, { showCents: true })}
+            </span>
+          );
+        }
         return (
           <span className="font-mono font-medium text-green-600">
             {formatCurrency(revenue.amount, { showCents: true })}
@@ -468,6 +601,8 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
         );
       
       case 'actions':
+        // Don't show actions on split rows
+        if (isSplitRow) return null;
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -480,6 +615,28 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                 <Edit className="h-3 w-3 mr-2" />
                 Edit Invoice
               </DropdownMenuItem>
+              {!revenue.is_split && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setRevenueToSplit(revenue);
+                    setSplitDialogOpen(true);
+                  }}
+                >
+                  <Split className="h-3 w-3 mr-2" />
+                  Split Invoice
+                </DropdownMenuItem>
+              )}
+              {revenue.is_split && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setRevenueToSplit(revenue);
+                    setSplitDialogOpen(true);
+                  }}
+                >
+                  <Edit className="h-3 w-3 mr-2" />
+                  Manage Splits
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem 
                 onClick={() => handleDeleteClick(revenue)} 
                 className="text-destructive focus:text-destructive"
@@ -687,7 +844,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                     )}
                     {orderedColumns.map(column => {
                       if (!isColumnVisible(column.key)) return null;
-                      if (column.key === 'checkbox') return null; // Skip checkbox column in loop
+                      if (column.key === 'checkbox') return null; // Skip checkbox column in loop (handled separately)
                       
                       return (
                         <TableHead 
@@ -716,7 +873,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedRevenues.length === 0 ? (
+                  {paginatedRows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={(isColumnVisible('checkbox') ? 1 : 0) + orderedColumns.filter(col => isColumnVisible(col.key) && col.key !== 'checkbox').length} className="text-center text-muted-foreground py-8">
                         {searchTerm || filterProjects.length > 0 || filterClients.length > 0
@@ -725,28 +882,65 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                       </TableCell>
                     </TableRow>
                   ) : (
-                    paginatedRevenues.map((revenue, index) => {
+                    paginatedRows.map((revenue, index) => {
                       const isEvenRow = index % 2 === 0;
+                      const isSplitRow = revenue._isSplitRow;
                       return (
                         <TableRow 
                           key={revenue.id}
                           className={cn(
                             "h-9 hover:bg-muted/50",
-                            isEvenRow && "bg-muted/20"
+                            isEvenRow && "bg-muted/20",
+                            isSplitRow && "bg-muted/10"
                           )}
                         >
-                          {/* Selection Checkbox - always visible */}
+                          {/* Selection Checkbox - always visible, but not on split rows */}
                           {isColumnVisible('checkbox') && (
                             <TableCell className="p-1.5">
-                              <Checkbox
-                                checked={selectedRevenues.includes(revenue.id)}
-                                onCheckedChange={() => handleSelectRevenue(revenue.id)}
-                              />
+                              {isSplitRow ? (
+                                <div className="pl-4" />
+                              ) : (
+                                <div className="flex items-center gap-1">
+                                  <Checkbox
+                                    checked={selectedRevenues.includes(revenue.id)}
+                                    onCheckedChange={() => handleSelectRevenue(revenue.id)}
+                                  />
+                                  {revenue.is_split && (() => {
+                                    const splits = revenueSplits[revenue.id] || [];
+                                    const splitSummary = splits.length > 0 
+                                      ? `Split across ${splits.length} project${splits.length > 1 ? 's' : ''}`
+                                      : 'Split invoice';
+                                    return (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-6 w-6 p-0"
+                                              onClick={() => toggleExpanded(revenue.id)}
+                                            >
+                                              {expandedRevenues.has(revenue.id) ? (
+                                                <ChevronDown className="h-3 w-3" />
+                                              ) : (
+                                                <ChevronRight className="h-3 w-3" />
+                                              )}
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>{splitSummary}</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    );
+                                  })()}
+                                </div>
+                              )}
                             </TableCell>
                           )}
                           {orderedColumns.map(column => {
                             if (!isColumnVisible(column.key)) return null;
-                            if (column.key === 'checkbox') return null; // Skip checkbox column in loop
+                            if (column.key === 'checkbox') return null; // Skip checkbox column in loop (handled separately)
                             
                             return (
                               <TableCell 
@@ -775,7 +969,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                     )}
                     {orderedColumns.map((column) => {
                       if (!isColumnVisible(column.key)) return null;
-                      if (column.key === 'checkbox') return null;
+                      if (column.key === 'checkbox') return null; // Skip checkbox column in loop (handled separately)
                       
                       if (column.key === 'project') {
                         return (
@@ -860,6 +1054,23 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Split Invoice Dialog */}
+      {revenueToSplit && (
+        <RevenueSplitDialog
+          revenue={revenueToSplit}
+          open={splitDialogOpen}
+          onClose={() => {
+            setSplitDialogOpen(false);
+            setRevenueToSplit(null);
+          }}
+          onSuccess={() => {
+            onRefresh();
+            setSplitDialogOpen(false);
+            setRevenueToSplit(null);
+          }}
+        />
+      )}
     </div>
   );
 };

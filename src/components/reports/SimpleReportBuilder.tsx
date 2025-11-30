@@ -68,7 +68,7 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'change_order_revenue', label: 'Change Order Revenue', type: 'currency', group: 'change_orders', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'change_order_cost', label: 'Change Order Cost', type: 'currency', group: 'change_orders', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'change_order_count', label: 'Change Order Count', type: 'number', group: 'change_orders', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
-    { key: 'total_invoiced', label: 'Total Invoiced (Actual)', type: 'currency', group: 'invoicing', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Sum of all invoices from project_revenues table (actual revenue received)' },
+    { key: 'total_invoiced', label: 'Total Invoiced (Actual)', type: 'currency', group: 'invoicing', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Sum of all invoices from reporting.project_financials view (split-aware: includes revenue_splits for accurate project totals)' },
     { key: 'invoice_count', label: 'Invoice Count', type: 'number', group: 'invoicing', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'contingency_amount', label: 'Contingency Amount', type: 'currency', group: 'contingency', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'contingency_used', label: 'Contingency Used', type: 'currency', group: 'contingency', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },

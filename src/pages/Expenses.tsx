@@ -65,7 +65,7 @@ const Expenses = () => {
     }
     // Default visible columns - matching ExpensesList defaults
     const defaultColumns = [
-      'checkbox', 'split', 'date', 'project', 'payee', 'description', 
+      'checkbox', 'date', 'project', 'payee', 'description', 
       'category', 'amount', 'status_assigned', 'status_allocated', 'actions'
     ];
     return defaultColumns;
@@ -79,7 +79,7 @@ const Expenses = () => {
         const savedOrder = JSON.parse(saved);
         // Add any new columns not in saved order
         const allColumns = [
-          'checkbox', 'split', 'date', 'project', 'payee', 'description', 
+          'checkbox', 'date', 'project', 'payee', 'description', 
           'category', 'transaction_type', 'amount', 'invoice_number', 
           'status_assigned', 'status_allocated', 'approval_status', 'actions'
         ];
@@ -90,7 +90,7 @@ const Expenses = () => {
       }
     }
     return [
-      'checkbox', 'split', 'date', 'project', 'payee', 'description', 
+      'checkbox', 'date', 'project', 'payee', 'description', 
       'category', 'transaction_type', 'amount', 'invoice_number', 
       'status_assigned', 'status_allocated', 'approval_status', 'actions'
     ];
@@ -108,7 +108,6 @@ const Expenses = () => {
   // Column definitions for ColumnSelector
   const expenseColumnDefinitions = [
     { key: 'checkbox', label: 'Select', required: true },
-    { key: 'split', label: 'Split', required: false },
     { key: 'date', label: 'Date', required: false },
     { key: 'project', label: 'Project', required: false },
     { key: 'payee', label: 'Payee', required: false },
@@ -126,38 +125,55 @@ const Expenses = () => {
   // Column visibility state for revenues with localStorage persistence
   const [revenueVisibleColumns, setRevenueVisibleColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem('revenues-visible-columns');
+    const defaultColumns = [
+      'checkbox', 'date', 'invoice_number', 'project', 'client', 'description', 'amount', 'account', 'quickbooks_id', 'actions'
+    ];
+    
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        // Remove 'split' if it exists (no longer a column)
+        const cleaned = parsed.filter((key: string) => key !== 'split');
         // Ensure checkbox is always included
-        if (!parsed.includes('checkbox')) {
-          return ['checkbox', ...parsed];
+        if (!cleaned.includes('checkbox')) {
+          cleaned.unshift('checkbox');
         }
-        return parsed;
+        // Merge with defaults to include any new columns
+        const merged = [...new Set([...defaultColumns, ...cleaned])];
+        return merged;
       } catch {
         // Invalid JSON, use defaults
       }
     }
     // Default visible columns
-    return [
-      'checkbox', 'date', 'invoice_number', 'project', 'client', 'description', 'amount', 'account', 'quickbooks_id', 'actions'
-    ];
+    return defaultColumns;
   });
 
   // Column order state for revenues with localStorage persistence
   const [revenueColumnOrder, setRevenueColumnOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('revenues-column-order');
+    const allColumns = [
+      'checkbox', 'date', 'invoice_number', 'project', 'client', 'description', 'amount', 'account', 'quickbooks_id', 'actions'
+    ];
+    
     if (saved) {
       try {
         const savedOrder = JSON.parse(saved);
+        // Remove 'split' if it exists (no longer a column)
+        const cleaned = savedOrder.filter((key: string) => key !== 'split');
         // Add any new columns not in saved order
-        const allColumns = [
-          'checkbox', 'date', 'invoice_number', 'project', 'client', 'description', 'amount', 'account', 'quickbooks_id', 'actions'
-        ];
-        const newColumns = allColumns.filter(key => !savedOrder.includes(key));
+        const newColumns = allColumns.filter(key => !cleaned.includes(key));
+        
+        // Insert new columns in their default positions
+        const merged = [...cleaned];
+        newColumns.forEach(newKey => {
+          const defaultIndex = allColumns.indexOf(newKey);
+          if (defaultIndex > 0) {
+            merged.splice(defaultIndex, 0, newKey);
+          }
+        });
+        
         // Ensure checkbox is always first
-        const merged = [...savedOrder, ...newColumns];
-        // Move checkbox to front if it exists
         if (merged.includes('checkbox')) {
           return ['checkbox', ...merged.filter(key => key !== 'checkbox')];
         }
@@ -166,9 +182,7 @@ const Expenses = () => {
         // Invalid JSON, use defaults
       }
     }
-    return [
-      'checkbox', 'date', 'invoice_number', 'project', 'client', 'description', 'amount', 'account', 'quickbooks_id', 'actions'
-    ];
+    return allColumns;
   });
 
   // Wrapper for setRevenueVisibleColumns to ensure checkbox is always included
@@ -309,7 +323,8 @@ const Expenses = () => {
           account_full_name,
           quickbooks_transaction_id,
           project_id,
-          client_id
+          client_id,
+          is_split
         `)
         .order('invoice_date', { ascending: false });
 

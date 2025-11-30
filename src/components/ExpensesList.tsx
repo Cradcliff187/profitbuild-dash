@@ -69,7 +69,6 @@ interface ColumnDefinition {
 
 const EXPENSE_COLUMNS: ColumnDefinition[] = [
   { key: 'checkbox', label: 'Select', required: true, width: 'w-10', defaultVisible: true },
-  { key: 'split', label: 'Split', required: false, width: 'w-8', sortable: true, defaultVisible: true },
   { key: 'date', label: 'Date', required: false, width: 'w-24', sortable: true, defaultVisible: true },
   { key: 'project', label: 'Project', required: false, width: 'w-48', sortable: true, defaultVisible: true },
   { key: 'payee', label: 'Payee', required: false, width: 'w-48', sortable: true, defaultVisible: true },
@@ -855,10 +854,6 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         let aValue: any, bValue: any;
         
         switch (sortColumn) {
-          case 'split':
-            aValue = a.is_split ? 1 : 0;
-            bValue = b.is_split ? 1 : 0;
-            break;
           case 'date':
             aValue = new Date(a.expense_date).getTime();
             bValue = new Date(b.expense_date).getTime();
@@ -933,27 +928,6 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
     const columns = [
       {
-        key: "split_indicator",
-        label: "",
-        sortable: false,
-        render: (row: DisplayRow) => {
-          if (row._isSplitRow) {
-            return <div className="pl-6" />; // Indent for split rows
-          }
-
-          if (!row.is_split) return null;
-
-          const isExpanded = expandedExpenses.has(row.id);
-          const splits = expenseSplits[row.id] || [];
-
-          return (
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => toggleExpanded(row.id)}>
-              {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-            </Button>
-          );
-        },
-      },
-      {
         key: "expense_date",
         label: "Date",
         sortable: true,
@@ -983,6 +957,15 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
               <div className="text-sm text-muted-foreground">
                 {row._splitData.project_number && <span className="font-mono">{row._splitData.project_number} • </span>}
                 {row._splitData.project_name}
+              </div>
+            );
+          }
+
+          // For split parents, show "SPLIT" instead of project number
+          if (row.is_split) {
+            return (
+              <div className="text-sm">
+                <span className="font-medium">SPLIT</span>
               </div>
             );
           }
@@ -1352,24 +1335,6 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
               }}
               disabled={row._isSplitRow}
             />
-          );
-        
-        case 'split':
-          if (row._isSplitRow) return <div className="pl-4" />;
-          if (!row.is_split) return null;
-          return (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0"
-              onClick={() => toggleExpanded(row.id)}
-            >
-              {expandedExpenses.has(row.id) ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronRight className="h-3 w-3" />
-              )}
-            </Button>
           );
         
         case 'date':
@@ -2251,16 +2216,32 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                           {/* Selection Checkbox - always visible */}
                           <TableCell className="p-1.5">
                             {!row._isSplitRow ? (
-                              <Checkbox
-                                checked={selectedExpenses.includes(row.id)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setSelectedExpenses([...selectedExpenses, row.id]);
-                                  } else {
-                                    setSelectedExpenses(selectedExpenses.filter((id) => id !== row.id));
-                                  }
-                                }}
-                              />
+                              <div className="flex items-center gap-1">
+                                <Checkbox
+                                  checked={selectedExpenses.includes(row.id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedExpenses([...selectedExpenses, row.id]);
+                                    } else {
+                                      setSelectedExpenses(selectedExpenses.filter((id) => id !== row.id));
+                                    }
+                                  }}
+                                />
+                                {row.is_split && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-6 w-6 p-0" 
+                                    onClick={() => toggleExpanded(row.id)}
+                                  >
+                                    {expandedExpenses.has(row.id) ? (
+                                      <ChevronDown className="h-3 w-3" />
+                                    ) : (
+                                      <ChevronRight className="h-3 w-3" />
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
                             ) : (
                               <div className="w-4 h-4" />
                             )}

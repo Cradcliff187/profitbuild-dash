@@ -208,27 +208,20 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
       let result;
       if (revenue?.id) {
         // Update existing revenue
-        // Don't update project_id if revenue is split (it's set to SYS-000)
-        const updateData: any = {
-          invoice_date: revenueData.invoice_date.toISOString().split('T')[0],
-          invoice_number: revenueData.invoice_number || null,
-          amount: revenueData.amount,
-          description: revenueData.description || null,
-          account_name: revenueData.account_name || null,
-          account_full_name: revenueData.account_full_name || null,
-          quickbooks_transaction_id:
-            revenueData.quickbooks_transaction_id || null,
-          client_id: revenueData.client_id || null,
-        };
-        
-        // Only update project_id if revenue is not split
-        if (!revenue.is_split) {
-          updateData.project_id = revenueData.project_id;
-        }
-        
         const { data: updatedRevenue, error } = await supabase
           .from('project_revenues')
-          .update(updateData)
+          .update({
+            project_id: revenueData.project_id,
+            invoice_date: revenueData.invoice_date.toISOString().split('T')[0],
+            invoice_number: revenueData.invoice_number || null,
+            amount: revenueData.amount,
+            description: revenueData.description || null,
+            account_name: revenueData.account_name || null,
+            account_full_name: revenueData.account_full_name || null,
+            quickbooks_transaction_id:
+              revenueData.quickbooks_transaction_id || null,
+            client_id: revenueData.client_id || null,
+          })
           .eq('id', revenue.id)
           .select()
           .single();
@@ -266,7 +259,6 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
         invoice_date: new Date(result.invoice_date),
         created_at: new Date(result.created_at),
         updated_at: new Date(result.updated_at),
-        is_split: result.is_split || false, // Preserve is_split flag
         project_name: selectedProject?.project_name,
         project_number: selectedProject?.project_number,
         client_name: selectedProject?.client_name,
@@ -293,61 +285,14 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
     }
   };
 
-  const handleSplitsUpdated = async () => {
-    if (!revenue?.id) {
-      setShowSplitDialog(false);
-      return;
-    }
-
+  const handleSplitsUpdated = () => {
+    // Refresh form to reflect split changes
+    // In a real implementation, you might want to refetch the revenue data
     setShowSplitDialog(false);
-    
-    try {
-      // Refetch updated revenue data from database
-      const { data: updatedRevenue, error } = await supabase
-        .from('project_revenues')
-        .select(`
-          *,
-          projects (
-            project_name,
-            project_number,
-            client_name
-          )
-        `)
-        .eq('id', revenue.id)
-        .single();
-
-      if (error) throw error;
-      if (!updatedRevenue) {
-        throw new Error('Revenue not found');
-      }
-
-      // Transform to match ProjectRevenue interface
-      const transformedRevenue: ProjectRevenue = {
-        ...updatedRevenue,
-        invoice_date: new Date(updatedRevenue.invoice_date),
-        created_at: new Date(updatedRevenue.created_at),
-        updated_at: new Date(updatedRevenue.updated_at),
-        is_split: updatedRevenue.is_split || false,
-        project_name: updatedRevenue.projects?.project_name,
-        project_number: updatedRevenue.projects?.project_number,
-        client_name: updatedRevenue.projects?.client_name,
-      };
-
-      // Call onSave to trigger parent refresh
-      onSave(transformedRevenue);
-
-      toast({
-        title: 'Splits Updated',
-        description: 'Invoice allocation has been updated successfully.',
-      });
-    } catch (error) {
-      console.error('Error refreshing revenue after split update:', error);
-      toast({
-        title: 'Warning',
-        description: 'Splits were updated, but failed to refresh invoice data. Please refresh the page.',
-        variant: 'destructive',
-      });
-    }
+    toast({
+      title: 'Splits Updated',
+      description: 'Invoice allocation has been updated.',
+    });
   };
 
   // ============================================================================
