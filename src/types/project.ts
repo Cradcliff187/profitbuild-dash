@@ -4,6 +4,7 @@ export interface Project {
   project_number: string;
   qb_formatted_number?: string;
   client_name: string;
+  client_id?: string;
   address?: string;
   project_type: ProjectType;
   job_type?: string;

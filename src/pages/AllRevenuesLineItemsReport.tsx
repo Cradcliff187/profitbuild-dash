@@ -172,7 +172,6 @@ const AllRevenuesLineItemsReport = () => {
         <ExportControls
           data={exportData}
           fields={reportFields}
-          filename="all-revenues-line-items"
           reportName="All Revenues Line Items"
         />
       </div>
