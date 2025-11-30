@@ -304,6 +304,7 @@ const Quotes = () => {
             lineItems: (quote.quote_line_items || []).map((item: any) => ({
               id: item.id || '',
               estimateLineItemId: item.estimate_line_item_id || undefined,
+              changeOrderLineItemId: item.change_order_line_item_id || undefined,
               category: item.category,
               description: item.description || '',
               quantity: safeNumber(item.quantity, 1),
@@ -503,6 +504,7 @@ const Quotes = () => {
             .insert(quote.lineItems.map(item => ({
               quote_id: quote.id,
               estimate_line_item_id: item.estimateLineItemId,
+              change_order_line_item_id: item.changeOrderLineItemId || null,
               category: item.category,
               description: item.description,
               quantity: item.quantity,
@@ -588,6 +590,7 @@ const Quotes = () => {
             .insert(quote.lineItems.map(item => ({
               quote_id: quoteData.id,
               estimate_line_item_id: item.estimateLineItemId,
+              change_order_line_item_id: item.changeOrderLineItemId || null,
               category: item.category,
               description: item.description,
               quantity: item.quantity,

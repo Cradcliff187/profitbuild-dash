@@ -220,6 +220,18 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       setNotes(initialQuote.notes || "");
       setLineItems(initialQuote.lineItems);
       setAttachmentUrl(initialQuote.attachment_url || "");
+      
+      // Set selected line item IDs from existing quote line items
+      const selectedIds: string[] = [];
+      initialQuote.lineItems.forEach(item => {
+        if (item.estimateLineItemId) {
+          selectedIds.push(item.estimateLineItemId);
+        }
+        if (item.changeOrderLineItemId) {
+          selectedIds.push(item.changeOrderLineItemId);
+        }
+      });
+      setSelectedLineItemIds(selectedIds);
     }
   }, [initialQuote, estimates]);
 
@@ -240,8 +252,8 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
   }, [isEdit, initialQuote?.payee_id]);
 
   useEffect(() => {
-    if (selectedEstimate && !initialQuote) {
-      // Fetch approved change orders for the same project
+    if (selectedEstimate) {
+      // Fetch approved change orders for the same project (both for new and edit modes)
       const fetchChangeOrders = async () => {
         const { data, error } = await supabase
           .from('change_orders')
@@ -285,10 +297,12 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       
       fetchChangeOrders();
       
-      // Set default valid until date
-      const defaultValidUntil = new Date();
-      defaultValidUntil.setDate(defaultValidUntil.getDate() + 30);
-      setValidUntil(defaultValidUntil);
+      // Set default valid until date only for new quotes
+      if (!initialQuote) {
+        const defaultValidUntil = new Date();
+        defaultValidUntil.setDate(defaultValidUntil.getDate() + 30);
+        setValidUntil(defaultValidUntil);
+      }
     }
   }, [selectedEstimate, initialQuote]);
 
@@ -870,7 +884,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                     {!selectedPayee ? (
                       <span className="text-orange-600">Select a vendor first to choose line items</span>
                     ) : (
-                      `${selectedLineItemIds.length} of ${selectedEstimate.lineItems.length} items selected`
+                      `${selectedLineItemIds.length} of ${selectedEstimate.lineItems.length + changeOrderLineItems.length} items selected`
                     )}
                   </p>
                 </div>
@@ -914,6 +928,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                     </tr>
                   </thead>
                   <tbody className="divide-y">
+                    {/* Estimate Line Items */}
                     {selectedEstimate.lineItems.map((item) => {
                       const isInternal = item.category === LineItemCategory.LABOR || 
                                         item.category === LineItemCategory.MANAGEMENT;
@@ -977,6 +992,74 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                             ) : (
                               <span className="text-muted-foreground text-xs">No quotes yet</span>
                             )}
+                          </td>
+                          <td className="p-3 text-right">
+                            {isSelected && quoteItem ? (
+                              <Input
+                                type="number"
+                                value={quoteItem.costPerUnit}
+                                onChange={(e) => updateLineItem(quoteItem.id, 'costPerUnit', e.target.value)}
+                                className="w-24 h-8 text-right font-mono ml-auto"
+                                disabled={isViewMode || !selectedPayee}
+                              />
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className={cn(
+                            "p-3 text-right font-mono",
+                            variance > 0 && "text-green-600",
+                            variance < 0 && "text-destructive"
+                          )}>
+                            {isSelected && quoteItem ? formatCurrency(variance) : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {/* Change Order Line Items */}
+                    {changeOrderLineItems.map((item) => {
+                      const isSelected = selectedLineItemIds.includes(item.id);
+                      const quoteItem = lineItems.find(li => li.changeOrderLineItemId === item.id);
+                      // For change orders, variance is calculated against the change order's estimated cost
+                      const variance = quoteItem 
+                        ? (item.totalCost || 0) - (quoteItem.totalCost || 0)
+                        : 0;
+
+                      return (
+                        <tr 
+                          key={item.id}
+                          className={cn(
+                            "transition-colors",
+                            isSelected && "bg-primary/5",
+                            !selectedPayee && "cursor-not-allowed",
+                            "bg-blue-50/30"
+                          )}
+                        >
+                          <td className="p-3">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => selectedPayee && toggleLineItemSelection(item.id)}
+                              disabled={isViewMode || !selectedPayee}
+                            />
+                          </td>
+                          <td className="p-3">
+                            <div className="font-medium">
+                              <Badge variant="outline" className="mr-2 text-xs bg-blue-100">
+                                {item.change_order_number}
+                              </Badge>
+                              {item.description}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="outline" className="text-xs">
+                              {CATEGORY_DISPLAY_MAP[item.category]}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-right font-mono">
+                            {formatCurrency(item.totalCost || 0)}
+                          </td>
+                          <td className="p-3 text-right">
+                            <span className="text-muted-foreground text-xs">—</span>
                           </td>
                           <td className="p-3 text-right">
                             {isSelected && quoteItem ? (
