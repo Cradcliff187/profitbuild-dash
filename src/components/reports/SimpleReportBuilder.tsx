@@ -154,14 +154,14 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'end_time', label: 'End Time', type: 'text', group: 'time', helpText: 'End time (for internal labor with time tracking)' }
   ],
   internal_labor_hours: [
-    { key: 'project_id', label: 'Project ID', type: 'text', group: 'project' }, // Added for internal use
-    { key: 'project_number', label: 'Project #', type: 'text', group: 'project' },
-    { key: 'project_name', label: 'Project Name', type: 'text', group: 'project' },
-    { key: 'client_name', label: 'Client', type: 'text', group: 'project', dataSource: 'clients', allowedOperators: ['equals', 'in', 'contains'] },
+    { key: 'project_id', label: 'Project ID', type: 'text', group: 'project_info' }, // Added for internal use
+    { key: 'project_number', label: 'Project #', type: 'text', group: 'project_info' },
+    { key: 'project_name', label: 'Project Name', type: 'text', group: 'project_info' },
+    { key: 'client_name', label: 'Client', type: 'text', group: 'project_info', dataSource: 'clients', allowedOperators: ['equals', 'in', 'contains'] },
     { key: 'status', label: 'Status', type: 'text', group: 'status', enumValues: [...Constants.public.Enums.project_status], allowedOperators: ['equals', 'not_equals', 'in'] },
-    { key: 'estimated_hours', label: 'Estimated Hours', type: 'number', group: 'hours', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total hours from approved estimate line items' },
-    { key: 'actual_hours', label: 'Actual Hours', type: 'number', group: 'hours', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total hours from expense records' },
-    { key: 'hours_variance', label: 'Hours Variance', type: 'number', group: 'hours', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Difference between estimated and actual hours' },
+    { key: 'estimated_hours', label: 'Estimated Hours', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total hours from approved estimate line items' },
+    { key: 'actual_hours', label: 'Actual Hours', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total hours from expense records' },
+    { key: 'hours_variance', label: 'Hours Variance', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Difference between estimated and actual hours' },
     { key: 'estimated_cost', label: 'Estimated Cost', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total cost from approved estimate line items' },
     { key: 'actual_cost', label: 'Actual Cost', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total cost from expense records' },
     { key: 'cost_variance', label: 'Cost Variance', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Difference between estimated and actual costs' }

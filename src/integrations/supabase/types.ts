@@ -1554,6 +1554,7 @@ export type Database = {
           id: string
           invoice_date: string
           invoice_number: string | null
+          is_split: boolean | null
           project_id: string
           quickbooks_transaction_id: string | null
           updated_at: string
@@ -1568,6 +1569,7 @@ export type Database = {
           id?: string
           invoice_date?: string
           invoice_number?: string | null
+          is_split?: boolean | null
           project_id: string
           quickbooks_transaction_id?: string | null
           updated_at?: string
@@ -1582,11 +1584,70 @@ export type Database = {
           id?: string
           invoice_date?: string
           invoice_number?: string | null
+          is_split?: boolean | null
           project_id?: string
           quickbooks_transaction_id?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      revenue_splits: {
+        Row: {
+          id: string
+          revenue_id: string
+          project_id: string
+          split_amount: number
+          split_percentage: number | null
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          revenue_id: string
+          project_id: string
+          split_amount: number
+          split_percentage?: number | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          revenue_id?: string
+          project_id?: string
+          split_amount?: number
+          split_percentage?: number | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_splits_revenue_id_fkey"
+            columns: ["revenue_id"]
+            isOneToOne: false
+            referencedRelation: "project_revenues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_splits_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_splits_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -2257,6 +2318,42 @@ export type Database = {
           total_expenses: number
           total_invoiced: number
           total_quoted: number
+        }[]
+      }
+      get_profit_analysis_data: {
+        Args: { status_filter?: string[] }
+        Returns: {
+          id: string
+          project_number: string
+          project_name: string
+          client_name: string
+          status: string
+          job_type: string | null
+          start_date: string | null
+          end_date: string | null
+          contracted_amount: number
+          total_invoiced: number
+          invoice_count: number
+          change_order_revenue: number
+          original_margin: number
+          projected_margin: number
+          current_margin: number
+          actual_margin: number
+          margin_percentage: number
+          original_est_costs: number
+          adjusted_est_costs: number
+          total_expenses: number
+          cost_variance: number
+          cost_variance_percent: number
+          budget_utilization_percent: number
+          total_accepted_quotes: number
+          accepted_quote_count: number
+          change_order_cost: number
+          change_order_count: number
+          contingency_amount: number
+          contingency_used: number
+          contingency_remaining: number
+          expenses_by_category: Json
         }[]
       }
       get_user_auth_status: {
