@@ -993,7 +993,7 @@ export type Database = {
           is_split: boolean
           local_id: string | null
           lunch_duration_minutes: number | null
-          lunch_taken: boolean
+          lunch_taken: boolean | null
           payee_id: string | null
           project_id: string
           quickbooks_transaction_id: string | null
@@ -1028,7 +1028,7 @@ export type Database = {
           is_split?: boolean
           local_id?: string | null
           lunch_duration_minutes?: number | null
-          lunch_taken?: boolean
+          lunch_taken?: boolean | null
           payee_id?: string | null
           project_id: string
           quickbooks_transaction_id?: string | null
@@ -1063,7 +1063,7 @@ export type Database = {
           is_split?: boolean
           local_id?: string | null
           lunch_duration_minutes?: number | null
-          lunch_taken?: boolean
+          lunch_taken?: boolean | null
           payee_id?: string | null
           project_id?: string
           quickbooks_transaction_id?: string | null
