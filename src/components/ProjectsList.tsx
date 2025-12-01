@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText, Info, ChevronDown } from "lucide-react";
+import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText, Info, ChevronDown, Eye, ChevronRight } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { format } from "date-fns";
@@ -455,10 +455,11 @@ export const ProjectsList = ({
                   <div className="space-y-0.5">
                     <div className="flex items-center justify-between gap-2">
                       <CardTitle className="text-interface truncate flex-1">{project.project_name}</CardTitle>
-                      <div className="flex items-center gap-1 flex-shrink-0">
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
                         <Badge className={`compact-badge ${getStatusColor(project.status)}`}>
                           {project.status.replace('_', ' ').toUpperCase()}
                         </Badge>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </div>
                     </div>
                     <div className="text-label text-muted-foreground truncate">
@@ -468,10 +469,7 @@ export const ProjectsList = ({
                 </CardHeader>
 
                 <div className="flex items-center justify-between px-3 py-2 border-t">
-                  <span 
-                    className="text-sm font-medium flex-1 cursor-pointer"
-                    onClick={() => navigateToProjectDetail(project.id)}
-                  >
+                  <span className="text-sm font-medium">
                     {formatCurrency(projectedMargin)} • {marginPctToShow.toFixed(1)}%
                   </span>
                   <CollapsibleTrigger asChild>
@@ -603,7 +601,16 @@ export const ProjectsList = ({
 
                           return (
                             <>
-                              {!hasEstimates ? (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => navigateToProjectDetail(project.id)}
+                                className="h-btn-compact text-label flex-1"
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                View
+                              </Button>
+                              {!hasEstimates && (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -611,17 +618,7 @@ export const ProjectsList = ({
                                   className="h-btn-compact text-label flex-1"
                                 >
                                   <Calculator className="h-3 w-3 mr-1" />
-                                  Create Estimate
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => window.location.href = `/projects/${project.id}`}
-                                  className="h-btn-compact text-label flex-1"
-                                >
-                                  <FileText className="h-3 w-3 mr-1" />
-                                  Details
+                                  Estimate
                                 </Button>
                               )}
                               <Button
