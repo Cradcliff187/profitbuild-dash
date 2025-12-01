@@ -605,7 +605,7 @@ export const ProjectsList = ({
                                 variant="default"
                                 size="sm"
                                 onClick={() => navigateToProjectDetail(project.id)}
-                                className="h-btn-compact text-label flex-1"
+                                className="h-btn-compact flex-1"
                               >
                                 <Eye className="h-3 w-3 mr-1" />
                                 View
