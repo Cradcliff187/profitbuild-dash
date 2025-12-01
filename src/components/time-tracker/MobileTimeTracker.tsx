@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check, AlertTriangle, BarChart3 } from 'lucide-react';
+import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check, AlertTriangle, BarChart3, Coffee } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { getCompanyBranding } from '@/utils/companyBranding';
@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { checkTimeOverlap, validateTimeEntryHours, checkStaleTimer } from '@/utils/timeEntryValidation';
+import { calculateTimeEntryHours, calculateTimeEntryAmount, DEFAULT_LUNCH_DURATION } from '@/utils/timeEntryCalculations';
+import { LunchToggle } from './LunchToggle';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { BrandedLoader } from '@/components/ui/branded-loader';
@@ -109,6 +111,9 @@ export const MobileTimeTracker: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showStaleTimerWarning, setShowStaleTimerWarning] = useState(false);
   const [showScheduleSelector, setShowScheduleSelector] = useState(false);
+  const [showLunchPrompt, setShowLunchPrompt] = useState(false);
+  const [lunchTaken, setLunchTaken] = useState(false);
+  const [lunchDuration, setLunchDuration] = useState(DEFAULT_LUNCH_DURATION);
 
   // Apply URL parameters to set initial view
   useEffect(() => {
@@ -790,13 +795,34 @@ export const MobileTimeTracker: React.FC = () => {
     setPendingReceiptExpenseId(null);
   };
 
-  const completeClockOut = async (): Promise<string | null> => {
+  const completeClockOut = async (
+    lunchTaken: boolean = false,
+    lunchDurationMinutes: number = DEFAULT_LUNCH_DURATION
+  ): Promise<string | null> => {
     if (!activeTimer) return null;
 
     setLoading(true);
     try {
       const endTime = new Date();
-      const hours = (endTime.getTime() - activeTimer.startTime.getTime()) / (1000 * 60 * 60);
+      
+      // Calculate hours with lunch adjustment
+      const { grossHours, netHours } = calculateTimeEntryHours(
+        activeTimer.startTime,
+        endTime,
+        lunchTaken,
+        lunchDurationMinutes
+      );
+
+      // Validate net hours are reasonable
+      if (netHours <= 0) {
+        toast({
+          title: 'Invalid Time Entry',
+          description: 'Lunch duration cannot exceed shift duration',
+          variant: 'destructive'
+        });
+        setLoading(false);
+        return null;
+      }
 
       // Validate hours are reasonable
       const hoursValidation = validateTimeEntryHours(activeTimer.startTime, endTime);
@@ -831,7 +857,7 @@ export const MobileTimeTracker: React.FC = () => {
         }
       }
 
-      const amount = hours * activeTimer.teamMember.hourly_rate;
+      const amount = calculateTimeEntryAmount(netHours, activeTimer.teamMember.hourly_rate);
 
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
@@ -860,7 +886,7 @@ export const MobileTimeTracker: React.FC = () => {
         category: 'labor_internal' as const,
         transaction_type: 'expense' as const,
         amount: amount,
-        expense_date: `${activeTimer.startTime.getFullYear()}-${String(activeTimer.startTime.getMonth() + 1).padStart(2, '0')}-${String(activeTimer.startTime.getDate()).padStart(2, '0')}`,
+        expense_date: format(activeTimer.startTime, 'yyyy-MM-dd'),
         description: '',
         is_planned: false,
         created_offline: !isOnline,
@@ -868,7 +894,9 @@ export const MobileTimeTracker: React.FC = () => {
         user_id: user?.id,
         updated_by: user?.id,
         start_time: activeTimer.startTime.toISOString(),
-        end_time: endTime.toISOString()
+        end_time: endTime.toISOString(),
+        lunch_taken: lunchTaken,
+        lunch_duration_minutes: lunchTaken ? lunchDurationMinutes : null,
       };
 
       if (isOnline) {
@@ -894,7 +922,9 @@ export const MobileTimeTracker: React.FC = () => {
               end_time: endTime.toISOString(),
               amount: amount,
               updated_by: user?.id,
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
+              lunch_taken: lunchTaken,
+              lunch_duration_minutes: lunchTaken ? lunchDurationMinutes : null,
             })
             .eq('id', existingTimer.id)
             .select()
@@ -921,7 +951,9 @@ export const MobileTimeTracker: React.FC = () => {
         // Keep toast for accessibility
         toast({
           title: 'Clocked Out',
-          description: `Saved ${hours.toFixed(2)} hours`,
+          description: lunchTaken 
+            ? `Saved ${netHours.toFixed(2)} hours (${lunchDurationMinutes}min lunch)`
+            : `Saved ${netHours.toFixed(2)} hours`,
         });
 
         await loadTodayEntries();
@@ -944,7 +976,7 @@ export const MobileTimeTracker: React.FC = () => {
           id: localId,
           teamMember: activeTimer.teamMember,
           project: activeTimer.project,
-          hours,
+          hours: netHours,
           startTime: activeTimer.startTime,
           endTime: endTime
         };
@@ -957,7 +989,9 @@ export const MobileTimeTracker: React.FC = () => {
         // Keep toast for accessibility
         toast({
           title: 'Clocked Out (Offline)',
-          description: `Saved ${hours.toFixed(2)} hours - will sync when online`,
+          description: lunchTaken
+            ? `Saved ${netHours.toFixed(2)} hours (${lunchDurationMinutes}min lunch) - will sync when online`
+            : `Saved ${netHours.toFixed(2)} hours - will sync when online`,
         });
 
         setActiveTimer(null);
@@ -985,18 +1019,43 @@ export const MobileTimeTracker: React.FC = () => {
   };
 
   const handleClockOut = async () => {
-    // Capture project before completing clock out
+    // Step 1: Show lunch prompt instead of immediately clocking out
+    // DO NOT call completeClockOut here - that happens in confirmClockOut
+    setShowLunchPrompt(true);
+  };
+
+  const confirmClockOut = async () => {
+    setShowLunchPrompt(false);
+    
+    // Capture project before completing clock out (same as original)
     const projectId = activeTimer?.project.id;
     
-    // Save time entry immediately
-    const expenseId = await completeClockOut();
+    // Pass lunch info to completeClockOut
+    const expenseId = await completeClockOut(lunchTaken, lunchDuration);
     
-    // Then ask if user wants to add receipt
+    // Reset lunch state for next entry
+    setLunchTaken(false);
+    setLunchDuration(DEFAULT_LUNCH_DURATION);
+    
+    // PRESERVE EXISTING RECEIPT FLOW - This code is unchanged from original
+    // The receipt prompt shows AFTER clock-out completes and lunch dialog closes
     if (expenseId && isOnline && projectId) {
       setPendingReceiptExpenseId(expenseId);
       setPendingReceiptProjectId(projectId);
       setShowReceiptPrompt(true);
     }
+  };
+
+  const calculateNetHours = (): number => {
+    if (!activeTimer) return 0;
+    const endTime = new Date();
+    const { netHours } = calculateTimeEntryHours(
+      activeTimer.startTime,
+      endTime,
+      lunchTaken,
+      lunchDuration
+    );
+    return netHours;
   };
 
   const formatTime = (date: Date) => {
@@ -1515,6 +1574,71 @@ export const MobileTimeTracker: React.FC = () => {
 
       {/* Receipts View */}
       {view === 'receipts' && <ReceiptsList />}
+
+      {/* Lunch Prompt Dialog */}
+      <AlertDialog open={showLunchPrompt} onOpenChange={setShowLunchPrompt}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Coffee className="w-5 h-5" />
+              Clock Out
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <div className="text-sm text-foreground">
+                  {activeTimer && (
+                    <div className="bg-muted rounded-lg p-3 mb-4">
+                      <div className="text-lg font-bold text-primary">
+                        {getElapsedTime()} on site
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {activeTimer.project.project_number} - {activeTimer.project.client_name}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <LunchToggle
+                  lunchTaken={lunchTaken}
+                  onLunchTakenChange={setLunchTaken}
+                  lunchDuration={lunchDuration}
+                  onLunchDurationChange={setLunchDuration}
+                  compact={true}
+                />
+                
+                {lunchTaken && activeTimer && (
+                  <div className="bg-primary/10 rounded-lg p-3 text-sm">
+                    <div className="flex justify-between">
+                      <span>Shift duration:</span>
+                      <span>{getElapsedTime()}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Lunch:</span>
+                      <span>-{lunchDuration} min</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-primary border-t mt-2 pt-2">
+                      <span>Worked hours:</span>
+                      <span>{calculateNetHours().toFixed(2)} hrs</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmClockOut}
+              className="w-full sm:w-auto bg-red-500 hover:bg-red-600"
+            >
+              <Square className="w-4 h-4 mr-2" />
+              Clock Out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Receipt Prompt Confirmation */}
       <AlertDialog open={showReceiptPrompt} onOpenChange={setShowReceiptPrompt}>

@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { LunchToggle } from './LunchToggle';
+import { calculateTimeEntryHours, DEFAULT_LUNCH_DURATION } from '@/utils/timeEntryCalculations';
 
 interface Worker {
   id: string;
@@ -34,6 +36,10 @@ interface TimeEntryFormProps {
   setEndTime: (time: string) => void;
   hours: string;
   setHours: (hours: string) => void;
+  lunchTaken?: boolean;
+  setLunchTaken?: (value: boolean) => void;
+  lunchDuration?: number;
+  setLunchDuration?: (value: number) => void;
   receiptUrl?: string;
   onCaptureReceipt?: () => void;
   onRemoveReceipt?: () => void;
@@ -56,6 +62,10 @@ export const TimeEntryForm = ({
   setEndTime,
   hours,
   setHours,
+  lunchTaken = false,
+  setLunchTaken,
+  lunchDuration = DEFAULT_LUNCH_DURATION,
+  setLunchDuration,
   receiptUrl,
   onCaptureReceipt,
   onRemoveReceipt,
@@ -392,7 +402,37 @@ export const TimeEntryForm = ({
           className={cn(isMobile ? "h-12" : "h-10")}
           style={{ fontSize: isMobile ? '16px' : undefined }}
         />
+        {lunchTaken && startTime && endTime && date && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {(() => {
+              try {
+                const startDateTime = new Date(`${date}T${startTime}`);
+                const endDateTime = new Date(`${date}T${endTime}`);
+                const { grossHours, netHours } = calculateTimeEntryHours(
+                  startDateTime,
+                  endDateTime,
+                  lunchTaken,
+                  lunchDuration
+                );
+                return `Shift: ${grossHours.toFixed(1)}h - Lunch: ${(lunchDuration / 60).toFixed(1)}h = ${netHours.toFixed(1)}h worked`;
+              } catch {
+                return '';
+              }
+            })()}
+          </p>
+        )}
       </div>
+
+      {setLunchTaken && setLunchDuration && (
+        <LunchToggle
+          lunchTaken={lunchTaken}
+          onLunchTakenChange={setLunchTaken}
+          lunchDuration={lunchDuration}
+          onLunchDurationChange={setLunchDuration}
+          disabled={disabled}
+          isMobile={isMobile}
+        />
+      )}
 
       {showReceipt && (
         <div>

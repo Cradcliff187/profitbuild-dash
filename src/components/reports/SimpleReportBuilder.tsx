@@ -117,7 +117,10 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'description', label: 'Description', type: 'text', group: 'project_info', allowedOperators: ['equals', 'contains'] },
     { key: 'approval_status', label: 'Approval Status', type: 'text', group: 'status', enumValues: ['pending', 'approved', 'rejected'], allowedOperators: ['equals', 'not_equals', 'in'], helpText: 'Time entry approval status' },
     { key: 'start_time', label: 'Start Time', type: 'text', group: 'time', helpText: 'Time entry start time' },
-    { key: 'end_time', label: 'End Time', type: 'text', group: 'time', helpText: 'Time entry end time' }
+    { key: 'end_time', label: 'End Time', type: 'text', group: 'time', helpText: 'Time entry end time' },
+    { key: 'lunch_taken', label: 'Lunch Taken', type: 'boolean', group: 'time', helpText: 'Whether lunch was taken' },
+    { key: 'lunch_duration_minutes', label: 'Lunch Duration', type: 'number', group: 'time', helpText: 'Lunch duration in minutes' },
+    { key: 'gross_hours', label: 'Gross Hours', type: 'number', group: 'time', helpText: 'Total shift duration before lunch deduction' }
   ],
   estimate_line_items: [
     { key: 'estimate_number', label: 'Estimate #', type: 'text', group: 'project_info' },
@@ -164,7 +167,10 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'hours_variance', label: 'Hours Variance', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Difference between estimated and actual hours' },
     { key: 'estimated_cost', label: 'Estimated Cost', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total cost from approved estimate line items' },
     { key: 'actual_cost', label: 'Actual Cost', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total cost from expense records' },
-    { key: 'cost_variance', label: 'Cost Variance', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Difference between estimated and actual costs' }
+    { key: 'cost_variance', label: 'Cost Variance', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Difference between estimated and actual costs' },
+    { key: 'lunch_taken', label: 'Lunch Taken', type: 'boolean', group: 'time', helpText: 'Whether lunch was taken' },
+    { key: 'lunch_duration_minutes', label: 'Lunch Duration', type: 'number', group: 'time', helpText: 'Lunch duration in minutes' },
+    { key: 'gross_hours', label: 'Gross Hours', type: 'number', group: 'time', helpText: 'Total shift duration before lunch deduction' }
   ]
 };
 

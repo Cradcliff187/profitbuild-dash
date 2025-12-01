@@ -21,6 +21,9 @@ export interface TimeEntryListItem {
   payee_id: string | null;
   project_id: string | null;
   is_locked?: boolean;
+  lunch_taken: boolean;
+  lunch_duration_minutes: number | null;
+  gross_hours: number;
   payee?: {
     employee_number?: string;
   };

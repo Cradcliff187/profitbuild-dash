@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Clock, Square, AlertTriangle } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { checkStaleTimer } from '@/utils/timeEntryValidation';
+import { LunchToggle } from '@/components/time-tracker/LunchToggle';
+import { DEFAULT_LUNCH_DURATION } from '@/utils/timeEntryCalculations';
 
 interface ActiveTimer {
   id: string;
@@ -32,6 +34,8 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
   const [selectedTimer, setSelectedTimer] = useState<ActiveTimer | null>(null);
   const [endTime, setEndTime] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [lunchTaken, setLunchTaken] = useState(false);
+  const [lunchDuration, setLunchDuration] = useState(DEFAULT_LUNCH_DURATION);
   const { toast } = useToast();
 
   const loadActiveTimers = async () => {
@@ -88,6 +92,8 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
     setSelectedTimer(timer);
     // Default to current time
     setEndTime(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+    setLunchTaken(false);
+    setLunchDuration(DEFAULT_LUNCH_DURATION);
     setForceClockOutOpen(true);
   };
 
@@ -109,8 +115,21 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
         return;
       }
 
-      const hours = (endTimeDate.getTime() - startTimeDate.getTime()) / (1000 * 60 * 60);
-      const amount = hours * selectedTimer.hourly_rate;
+      const grossHours = (endTimeDate.getTime() - startTimeDate.getTime()) / (1000 * 60 * 60);
+      const lunchHours = lunchTaken ? lunchDuration / 60 : 0;
+      const netHours = Math.max(0, grossHours - lunchHours);
+      
+      if (netHours <= 0) {
+        toast({
+          title: 'Invalid Time Entry',
+          description: 'Lunch duration cannot exceed shift duration',
+          variant: 'destructive'
+        });
+        setProcessing(false);
+        return;
+      }
+      
+      const amount = netHours * selectedTimer.hourly_rate;
 
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -119,6 +138,8 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
         .update({
           end_time: endTimeDate.toISOString(),
           amount: amount,
+          lunch_taken: lunchTaken,
+          lunch_duration_minutes: lunchTaken ? lunchDuration : null,
           updated_by: user?.id,
           updated_at: new Date().toISOString()
         })
@@ -128,12 +149,16 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
 
       toast({
         title: 'Timer Closed',
-        description: `Clocked out ${selectedTimer.payee_name} (${hours.toFixed(2)} hours)`
+        description: lunchTaken
+          ? `Clocked out ${selectedTimer.payee_name} (${netHours.toFixed(2)} hours, ${lunchDuration}min lunch)`
+          : `Clocked out ${selectedTimer.payee_name} (${netHours.toFixed(2)} hours)`
       });
 
       setForceClockOutOpen(false);
       setSelectedTimer(null);
       setEndTime('');
+      setLunchTaken(false);
+      setLunchDuration(DEFAULT_LUNCH_DURATION);
       await loadActiveTimers();
       onTimerClosed?.();
       
@@ -253,6 +278,14 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
                   Must be after start time and not in the future
                 </p>
               </div>
+              
+              <LunchToggle
+                lunchTaken={lunchTaken}
+                onLunchTakenChange={setLunchTaken}
+                lunchDuration={lunchDuration}
+                onLunchDurationChange={setLunchDuration}
+                compact={true}
+              />
             </div>
           )}
           
@@ -263,6 +296,8 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
                 setForceClockOutOpen(false);
                 setSelectedTimer(null);
                 setEndTime('');
+                setLunchTaken(false);
+                setLunchDuration(DEFAULT_LUNCH_DURATION);
               }}
               disabled={processing}
             >

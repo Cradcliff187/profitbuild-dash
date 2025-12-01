@@ -22,9 +22,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const KPI_GUIDE_METADATA = {
-  lastUpdated: '2024-11-27',
-  version: '1.2',
+  lastUpdated: '2024-12-01',
+  version: '1.3',
   changelog: [
+    { date: '2024-12-01', version: '1.3', changes: 'Added Lunch Tracking section (4 metrics) - lunch_taken, lunch_duration_minutes, gross_hours, net_hours for time entries' },
     { date: '2024-11-27', version: '1.2', changes: 'Added Revenue section (6 metrics) - project_revenues and project_financial_summary fields' },
     { date: '2024-11-27', version: '1.1', changes: 'Added Work Orders section (9 metrics), project type/category fields, is_auto_generated estimate field' },
     { date: '2024-11-26', version: '1.0', changes: 'Initial release with 57 measures across 6 categories' },
@@ -102,6 +103,10 @@ const expenseKPIs: KPIMeasure[] = [
   { name: 'Split Amount', source: 'database', field: 'expense_splits.split_amount', formula: 'Portion allocated to specific project', whereUsed: 'Split expense calculations' },
   { name: 'Split Percentage', source: 'database', field: 'expense_splits.split_percentage', formula: '(split_amount / parent_expense.amount) × 100', whereUsed: 'Allocation display' },
   { name: 'Total Expense by Project', source: 'frontend', field: 'calculateProjectExpenses()', formula: 'SUM(expenses.amount) + SUM(expense_splits.split_amount)', whereUsed: 'Project financial views', notes: 'Combines direct and split expenses' },
+  { name: 'Lunch Taken', source: 'database', field: 'expenses.lunch_taken', formula: 'Boolean - whether lunch break was taken during shift', whereUsed: 'TimeEntries table, time entry forms, reports', notes: 'Only applicable to labor_internal expenses (time entries)' },
+  { name: 'Lunch Duration Minutes', source: 'database', field: 'expenses.lunch_duration_minutes', formula: 'Integer (15-120) - duration of lunch break in minutes', whereUsed: 'TimeEntries table, lunch tracking UI, reports', notes: 'Only meaningful when lunch_taken = true' },
+  { name: 'Gross Hours', source: 'database', field: 'Calculated from start_time/end_time', formula: '(end_time - start_time) / 3600', whereUsed: 'Time entry calculations, reports', notes: 'Total shift duration before lunch deduction' },
+  { name: 'Net Hours (Billable)', source: 'database', field: 'expenses.amount / hourly_rate OR calculated', formula: 'Gross Hours - (Lunch Duration / 60) when lunch_taken = true', whereUsed: 'TimeEntries table, billing calculations, amount calculation', notes: 'Billable hours after lunch deduction. Amount = Net Hours × Hourly Rate' },
 ];
 
 const revenueKPIs: KPIMeasure[] = [

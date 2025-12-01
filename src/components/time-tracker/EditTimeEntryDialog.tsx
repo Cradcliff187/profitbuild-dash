@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useRoles } from '@/contexts/RoleContext';
 import { checkTimeOverlap, validateTimeEntryHours } from '@/utils/timeEntryValidation';
+import { calculateTimeEntryHours, calculateTimeEntryAmount, DEFAULT_LUNCH_DURATION } from '@/utils/timeEntryCalculations';
 
 interface TimeEntry {
   id: string;
@@ -25,6 +26,8 @@ interface TimeEntry {
   approval_status?: string;
   is_locked?: boolean;
   rejection_reason?: string;
+  lunch_taken?: boolean;
+  lunch_duration_minutes?: number | null;
 }
 
 interface EditTimeEntryDialogProps {
@@ -46,6 +49,8 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
   const [receiptUrl, setReceiptUrl] = useState<string | undefined>();
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  const [lunchTaken, setLunchTaken] = useState(false);
+  const [lunchDuration, setLunchDuration] = useState(DEFAULT_LUNCH_DURATION);
 
   const isOwner = entry?.user_id === currentUserId;
   const canEdit = !entry?.is_locked && (
@@ -78,6 +83,8 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
     setProjectId(entry.project_id || '');
     setDate(entry.expense_date);
     setReceiptUrl(entry.attachment_url);
+    setLunchTaken(entry.lunch_taken || false);
+    setLunchDuration(entry.lunch_duration_minutes || DEFAULT_LUNCH_DURATION);
     
     if (entry.start_time && entry.end_time) {
       const start = new Date(entry.start_time);
@@ -141,6 +148,23 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
         }
       }
 
+      const startDateTime = new Date(`${date}T${startTime}`);
+      const endDateTime = new Date(`${date}T${endTime}`);
+
+      // Calculate hours with lunch adjustment
+      const { netHours } = calculateTimeEntryHours(
+        startDateTime,
+        endDateTime,
+        lunchTaken,
+        lunchDuration
+      );
+
+      if (netHours <= 0) {
+        toast.error('Lunch duration cannot exceed shift duration');
+        setLoading(false);
+        return;
+      }
+
       const { data: workerData } = await supabase
         .from('payees')
         .select('hourly_rate')
@@ -148,9 +172,7 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
         .single();
 
       const rate = workerData?.hourly_rate || 75;
-      const amount = hoursNum * rate;
-      const startDateTime = new Date(`${date}T${startTime}`);
-      const endDateTime = new Date(`${date}T${endTime}`);
+      const amount = calculateTimeEntryAmount(netHours, rate);
       const description = '';
       
       const { data: { user } } = await supabase.auth.getUser();
@@ -165,6 +187,8 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
         attachment_url: receiptUrl,
+        lunch_taken: lunchTaken,
+        lunch_duration_minutes: lunchTaken ? lunchDuration : null,
       }).eq('id', entry.id);
 
       if (error) throw error;
@@ -353,6 +377,10 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
           setEndTime={setEndTime}
           hours={hours}
           setHours={setHours}
+          lunchTaken={lunchTaken}
+          setLunchTaken={setLunchTaken}
+          lunchDuration={lunchDuration}
+          setLunchDuration={setLunchDuration}
           receiptUrl={receiptUrl}
           onCaptureReceipt={canEdit ? captureReceipt : undefined}
           onRemoveReceipt={canEdit ? removeReceipt : undefined}

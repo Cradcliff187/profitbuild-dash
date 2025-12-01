@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { checkTimeOverlap, validateTimeEntryHours } from '@/utils/timeEntryValidation';
+import { calculateTimeEntryHours, calculateTimeEntryAmount, DEFAULT_LUNCH_DURATION } from '@/utils/timeEntryCalculations';
 
 interface CreateTimeEntryDialogProps {
   open: boolean;
@@ -23,6 +24,8 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
   const [endTime, setEndTime] = useState('17:00');
   const [hours, setHours] = useState('8');
   const [loading, setLoading] = useState(false);
+  const [lunchTaken, setLunchTaken] = useState(false);
+  const [lunchDuration, setLunchDuration] = useState(DEFAULT_LUNCH_DURATION);
 
   useEffect(() => {
     if (open) {
@@ -37,6 +40,8 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
     setStartTime('08:00');
     setEndTime('17:00');
     setHours('8');
+    setLunchTaken(false);
+    setLunchDuration(DEFAULT_LUNCH_DURATION);
   };
 
   const handleSave = async () => {
@@ -60,6 +65,20 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
       const hoursValidation = validateTimeEntryHours(startDateTime, endDateTime);
       if (!hoursValidation.valid) {
         toast.error(hoursValidation.message);
+        setLoading(false);
+        return;
+      }
+
+      // Calculate hours with lunch adjustment
+      const { netHours } = calculateTimeEntryHours(
+        startDateTime,
+        endDateTime,
+        lunchTaken,
+        lunchDuration
+      );
+
+      if (netHours <= 0) {
+        toast.error('Lunch duration cannot exceed shift duration');
         setLoading(false);
         return;
       }
@@ -89,7 +108,7 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
         .single();
 
       const rate = workerData?.hourly_rate || 75;
-      const amount = hoursNum * rate;
+      const amount = calculateTimeEntryAmount(netHours, rate);
       
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -105,6 +124,8 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
         updated_by: user?.id,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
+        lunch_taken: lunchTaken,
+        lunch_duration_minutes: lunchTaken ? lunchDuration : null,
       });
 
       if (error) throw error;
@@ -140,6 +161,10 @@ export const CreateTimeEntryDialog = ({ open, onOpenChange, onSaved }: CreateTim
         setEndTime={setEndTime}
         hours={hours}
         setHours={setHours}
+        lunchTaken={lunchTaken}
+        setLunchTaken={setLunchTaken}
+        lunchDuration={lunchDuration}
+        setLunchDuration={setLunchDuration}
         disabled={loading}
         isMobile={isMobile}
         showRates={false}

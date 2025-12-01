@@ -32,6 +32,9 @@ interface TimeEntry {
   hours: number;
   start_time?: string;
   end_time?: string;
+  lunch_taken?: boolean;
+  lunch_duration_minutes?: number | null;
+  gross_hours?: number;
   payee: {
     payee_name: string;
   };
@@ -80,12 +83,33 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
 
       if (entriesError) throw entriesError;
 
-      const formattedEntries = entriesData.map(entry => ({
-        ...entry,
-        payee: entry.payees,
-        project: entry.projects,
-        hours: entry.amount / (entry.payees?.hourly_rate || 75) // Calculate from amount and rate
-      }));
+      const formattedEntries = entriesData.map(entry => {
+        // Calculate hours from start/end time with lunch adjustment, or fallback to amount/rate
+        let hours = 0;
+        let grossHours = 0;
+        
+        if (entry.start_time && entry.end_time) {
+          const start = new Date(entry.start_time);
+          const end = new Date(entry.end_time);
+          grossHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+          const lunchHours = entry.lunch_taken && entry.lunch_duration_minutes 
+            ? entry.lunch_duration_minutes / 60 
+            : 0;
+          hours = Math.max(0, grossHours - lunchHours);
+        } else {
+          // Fallback: calculate from amount and rate
+          hours = entry.amount / (entry.payees?.hourly_rate || 75);
+          grossHours = hours;
+        }
+        
+        return {
+          ...entry,
+          payee: entry.payees,
+          project: entry.projects,
+          hours,
+          gross_hours: grossHours
+        };
+      });
 
       setEntries(formattedEntries);
     } catch (error) {
@@ -214,10 +238,20 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
                     </div>
                     
                     <div className="text-right">
-                      {/* Hours */}
-                      <div className="font-bold text-primary">
-                        {entry.hours.toFixed(2)} hrs
+                      {/* Hours with lunch indicator */}
+                      <div className="font-bold text-primary text-lg">
+                        {entry.hours.toFixed(1)}h
+                        {entry.lunch_taken && (
+                          <span className="ml-1 text-xs" title={`${entry.lunch_duration_minutes}min lunch`}>
+                            🍴
+                          </span>
+                        )}
                       </div>
+                      {entry.lunch_taken && entry.gross_hours && (
+                        <div className="text-xs text-muted-foreground">
+                          ({entry.gross_hours.toFixed(1)}h - {entry.lunch_duration_minutes}min)
+                        </div>
+                      )}
                       
                       {/* Status Badge */}
                       {entry.approval_status && (

@@ -71,6 +71,7 @@ const columnDefinitions = [
   { key: "start", label: "Start Time", required: false, sortable: true },
   { key: "end", label: "End Time", required: false, sortable: true },
   { key: "hours", label: "Hours", required: false, sortable: true },
+  { key: "lunch", label: "Lunch", required: false, sortable: false },
   { key: "amount", label: "Amount", required: false, sortable: true },
   { key: "receipt", label: "Receipt", required: false, sortable: true },
   { key: "status", label: "Status", required: false, sortable: true },
@@ -915,6 +916,7 @@ const TimeEntries = () => {
                           start: "w-20",
                           end: "w-20",
                           hours: "w-20",
+                          lunch: "w-16",
                           amount: "w-24",
                           receipt: "w-16",
                           status: "w-24",
@@ -938,6 +940,7 @@ const TimeEntries = () => {
                           start: "Start",
                           end: "End",
                           hours: "Hours",
+                          lunch: "Lunch",
                           amount: "Amount",
                           receipt: "Receipt",
                           status: "Status",
@@ -1045,7 +1048,25 @@ const TimeEntries = () => {
                               case "hours":
                                 return (
                                   <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right">
-                                    {entry.hours.toFixed(2)}
+                                    <span title={entry.lunch_taken 
+                                      ? `Gross: ${entry.gross_hours?.toFixed(2) || entry.hours.toFixed(2)}h - Lunch: ${entry.lunch_duration_minutes}min`
+                                      : undefined
+                                    }>
+                                      {entry.hours.toFixed(2)}
+                                    </span>
+                                  </TableCell>
+                                );
+                              case "lunch":
+                                return (
+                                  <TableCell key={colKey} className="p-1.5 text-center">
+                                    {entry.lunch_taken && (
+                                      <span 
+                                        className="text-xs" 
+                                        title={`${entry.lunch_duration_minutes} min lunch`}
+                                      >
+                                        🍴 {entry.lunch_duration_minutes}m
+                                      </span>
+                                    )}
                                   </TableCell>
                                 );
                               case "amount":
@@ -1137,6 +1158,7 @@ const TimeEntries = () => {
                         
                         const alignments: Record<string, string> = {
                           hours: "text-right",
+                          lunch: "text-center",
                           amount: "text-right",
                           receipt: "text-center",
                           actions: "text-right",

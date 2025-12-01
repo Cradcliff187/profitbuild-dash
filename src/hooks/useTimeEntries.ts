@@ -35,6 +35,8 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           project_id,
           attachment_url,
           is_locked,
+          lunch_taken,
+          lunch_duration_minutes,
           payees!inner(payee_name, hourly_rate, employee_number),
           projects!inner(project_number, project_name, client_name, address)
         `, { count: 'exact' })
@@ -69,8 +71,21 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
       if (error) throw error;
 
       const formattedEntries: TimeEntryListItem[] = (data || []).map((entry: any) => {
-        const hours = calculateHours(entry.start_time, entry.end_time, entry.description);
+        const lunchTaken = entry.lunch_taken || false;
+        const lunchDurationMinutes = entry.lunch_duration_minutes || null;
+        const hours = calculateHours(
+          entry.start_time, 
+          entry.end_time, 
+          entry.description,
+          lunchTaken,
+          lunchDurationMinutes
+        );
         const hourlyRate = entry.payees?.hourly_rate || 0;
+        
+        // Calculate gross hours (total shift duration)
+        const grossHours = entry.start_time && entry.end_time
+          ? (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) / (1000 * 60 * 60)
+          : hours;
         
         return {
           id: entry.id,
@@ -88,13 +103,16 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           project_name: entry.projects?.project_name || '',
           client_name: entry.projects?.client_name || '',
           project_address: entry.projects?.address || null,
-          hours,
+          hours,  // This is now net hours
           hourly_rate: hourlyRate,
           note: entry.description,
           attachment_url: entry.attachment_url,
           payee_id: entry.payee_id,
           project_id: entry.project_id,
           is_locked: entry.is_locked,
+          lunch_taken: lunchTaken,
+          lunch_duration_minutes: lunchDurationMinutes,
+          gross_hours: grossHours,
           payee: entry.payees ? {
             employee_number: entry.payees.employee_number
           } : undefined,
@@ -128,7 +146,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
 
       let statsQuery = supabase
         .from('expenses')
-        .select('approval_status, start_time, end_time, description, expense_date')
+        .select('approval_status, start_time, end_time, description, expense_date, lunch_taken, lunch_duration_minutes')
         .eq('category', 'labor_internal');
 
       // Apply the same filters as the main query (except status filter)
@@ -156,12 +174,24 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           new Date(e.expense_date + 'T12:00:00') >= weekStart
         );
         const approvedThisWeekHours = approvedThisWeek.reduce((sum, e) => 
-          sum + calculateHours(e.start_time, e.end_time, e.description), 0
+          sum + calculateHours(
+            e.start_time, 
+            e.end_time, 
+            e.description,
+            e.lunch_taken || false,
+            e.lunch_duration_minutes || null
+          ), 0
         );
 
         const thisMonth = allEntries.filter(e => new Date(e.expense_date + 'T12:00:00') >= monthStart);
         const totalThisMonthHours = thisMonth.reduce((sum, e) => 
-          sum + calculateHours(e.start_time, e.end_time, e.description), 0
+          sum + calculateHours(
+            e.start_time, 
+            e.end_time, 
+            e.description,
+            e.lunch_taken || false,
+            e.lunch_duration_minutes || null
+          ), 0
         );
 
         setStatistics({
@@ -176,11 +206,19 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
     }
   };
 
-  const calculateHours = (startTime: string | null, endTime: string | null, description: string): number => {
+  const calculateHours = (
+    startTime: string | null, 
+    endTime: string | null, 
+    description: string,
+    lunchTaken: boolean = false,
+    lunchDurationMinutes: number | null = null
+  ): number => {
     if (startTime && endTime) {
       const start = new Date(startTime);
       const end = new Date(endTime);
-      return (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+      const grossHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+      const lunchHours = lunchTaken && lunchDurationMinutes ? lunchDurationMinutes / 60 : 0;
+      return Math.max(0, grossHours - lunchHours);
     }
     
     // Fallback to description parsing for old entries
