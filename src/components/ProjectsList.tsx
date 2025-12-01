@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getMarginThresholdStatus, getThresholdStatusColor, getThresholdStatusLabel, formatContingencyRemaining } from "@/utils/thresholdUtils";
 import { usePagination } from "@/hooks/usePagination";
 import { CompletePagination } from "@/components/ui/complete-pagination";
+import { useSmartNavigation } from "@/hooks/useSmartNavigation";
 
 interface ProjectWithVariance extends Project {
   estimateTotal?: number;
@@ -69,6 +70,7 @@ export const ProjectsList = ({
 }: ProjectsListProps) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { navigateToProjectDetail } = useSmartNavigation();
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   const toggleCard = (projectId: string) => {
@@ -446,7 +448,10 @@ export const ProjectsList = ({
             >
               <Collapsible open={isExpanded} onOpenChange={() => toggleCard(project.id)}>
                 {/* COLLAPSED VIEW - Enhanced header with gradient */}
-                <CardHeader className="p-compact bg-gradient-to-r from-primary/5 to-transparent">
+                <CardHeader 
+                  className="p-compact bg-gradient-to-r from-primary/5 to-transparent cursor-pointer"
+                  onClick={() => navigateToProjectDetail(project.id)}
+                >
                   <div className="space-y-0.5">
                     <div className="flex items-center justify-between gap-2">
                       <CardTitle className="text-interface truncate flex-1">{project.project_name}</CardTitle>
@@ -463,7 +468,10 @@ export const ProjectsList = ({
                 </CardHeader>
 
                 <div className="flex items-center justify-between px-3 py-2 border-t">
-                  <span className="text-sm font-medium">
+                  <span 
+                    className="text-sm font-medium flex-1 cursor-pointer"
+                    onClick={() => navigateToProjectDetail(project.id)}
+                  >
                     {formatCurrency(projectedMargin)} • {marginPctToShow.toFixed(1)}%
                   </span>
                   <CollapsibleTrigger asChild>
