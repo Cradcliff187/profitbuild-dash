@@ -96,6 +96,9 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
     } else if (dataSource === 'internal_costs') {
       fields['Category & Employee'] = nonUniversalFields.filter(f => ['category', 'worker_name'].includes(f.key));
       fields['Amount & Hours'] = nonUniversalFields.filter(f => ['amount', 'hours'].includes(f.key));
+    } else if (dataSource === 'internal_labor_hours') {
+      fields['Hours'] = nonUniversalFields.filter(f => ['estimated_hours', 'actual_hours', 'hours_variance'].includes(f.key));
+      fields['Financial'] = nonUniversalFields.filter(f => ['estimated_cost', 'actual_cost', 'cost_variance'].includes(f.key));
     }
     
     // Remove empty groups

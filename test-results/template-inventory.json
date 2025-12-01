@@ -1,0 +1,175 @@
+{
+  "total_templates": 19,
+  "categories": {
+    "client": 1,
+    "financial": 9,
+    "operational": 7,
+    "vendor": 2
+  },
+  "data_sources": {
+    "projects": 12,
+    "expenses": 2,
+    "quotes": 2,
+    "time_entries": 1,
+    "internal_costs": 1,
+    "estimate_line_items": 0
+  },
+  "templates": [
+    {
+      "id": "5cf80481-9caf-4ea0-a9e2-f4bcc4525e72",
+      "name": "Client Profitability Ranking",
+      "category": "client",
+      "data_source": "projects",
+      "has_filters": false
+    },
+    {
+      "id": "23fbd334-1006-4844-bd13-ea4f531a907c",
+      "name": "Billing Progress by Project",
+      "category": "financial",
+      "data_source": "projects",
+      "has_filters": true
+    },
+    {
+      "id": "ae1472ba-8ca8-4908-aac3-cab07cca156f",
+      "name": "Budget vs Actual by Project",
+      "category": "financial",
+      "data_source": "projects",
+      "has_filters": false
+    },
+    {
+      "id": "82391648-7f8c-4024-b021-5bd6cf81f81f",
+      "name": "Change Order Impact Analysis",
+      "category": "financial",
+      "data_source": "projects",
+      "has_filters": true
+    },
+    {
+      "id": "1f36fc86-0ce9-4e4d-a0b3-0e4e3a396d0a",
+      "name": "Cost Variance Report",
+      "category": "financial",
+      "data_source": "projects",
+      "has_filters": false
+    },
+    {
+      "id": "a8b03330-6260-4445-877c-6539222d9cdf",
+      "name": "Expense Report by Category",
+      "category": "financial",
+      "data_source": "expenses",
+      "has_filters": false
+    },
+    {
+      "id": "b50dc040-584e-4427-8728-43f9f6e0f6fd",
+      "name": "Project Profitability Analysis",
+      "category": "financial",
+      "data_source": "projects",
+      "has_filters": false
+    },
+    {
+      "id": "2aacc850-3c1d-4cc8-95a9-64b4e52d8555",
+      "name": "Project Profitability Summary",
+      "category": "financial",
+      "data_source": "projects",
+      "has_filters": true
+    },
+    {
+      "id": "c265c843-87d1-4bb5-9329-46af8cc0480c",
+      "name": "Revenue Reconciliation",
+      "category": "financial",
+      "data_source": "projects",
+      "has_filters": true
+    },
+    {
+      "id": "558dcc87-e326-4b1c-85a4-9fc60ac73b89",
+      "name": "Active Projects Dashboard",
+      "category": "operational",
+      "data_source": "projects",
+      "has_filters": true
+    },
+    {
+      "id": "422afaf2-5a4e-4e0f-809d-8b9b26ba6231",
+      "name": "Contingency Utilization",
+      "category": "operational",
+      "data_source": "projects",
+      "has_filters": false
+    },
+    {
+      "id": "17f8ba72-0af6-43ec-b4cd-ed0fafaf53f1",
+      "name": "Expense Approval Queue",
+      "category": "operational",
+      "data_source": "expenses",
+      "has_filters": true
+    },
+    {
+      "id": "1ee46516-2523-4d46-a613-b81975b9b7c5",
+      "name": "Internal Labor Costs",
+      "category": "operational",
+      "data_source": "internal_costs",
+      "has_filters": false
+    },
+    {
+      "id": "829f8211-27b1-49eb-b484-d56e897e890b",
+      "name": "Project Status Summary",
+      "category": "operational",
+      "data_source": "projects",
+      "has_filters": false
+    },
+    {
+      "id": "e9ba4990-d6dd-4f1f-bdac-5ba36952e3be",
+      "name": "Projects Summary",
+      "category": "operational",
+      "data_source": "projects",
+      "has_filters": false
+    },
+    {
+      "id": "3c1888ef-0297-4ef6-bb78-fea9d4da03a6",
+      "name": "Quote Acceptance Rate",
+      "category": "operational",
+      "data_source": "quotes",
+      "has_filters": false
+    },
+    {
+      "id": "2e28ff5a-cfbb-42aa-9dd5-f95c42f0ea91",
+      "name": "Time Entries Summary",
+      "category": "operational",
+      "data_source": "time_entries",
+      "has_filters": false
+    },
+    {
+      "id": "9ee8e005-ead7-436d-a15f-17809f551b92",
+      "name": "Quote Comparison",
+      "category": "vendor",
+      "data_source": "quotes",
+      "has_filters": false
+    },
+    {
+      "id": "75706704-d8fc-42d0-9f59-5afd3a515a8e",
+      "name": "Top Vendors by Spend",
+      "category": "vendor",
+      "data_source": "expenses",
+      "has_filters": false
+    }
+  ],
+  "duplicates_removed": [
+    {
+      "name": "Budget vs Actual by Project",
+      "deleted_id": "9b6a7f3a-1051-4425-af57-fea9a799048c",
+      "reason": "Older version with filters, kept newer general version"
+    },
+    {
+      "name": "Change Order Impact Analysis",
+      "deleted_id": "60a4e8c7-62af-4ea5-97d1-03f93df5b7d2",
+      "reason": "Older version, kept newer version with standard filter format"
+    },
+    {
+      "name": "Active Projects Dashboard",
+      "deleted_id": "81c7ca61-8859-4f55-944e-b443b73453a4",
+      "reason": "Older financial version, kept newer operational version"
+    },
+    {
+      "name": "Contingency Utilization",
+      "deleted_id": "80b94f26-219f-4a91-9944-ef943696a437",
+      "reason": "Older financial version with filters, kept newer operational version without filters"
+    }
+  ],
+  "issues_found": []
+}

@@ -24,7 +24,8 @@ receipts
 ### Key Financial Fields on Projects Table
 All calculated automatically by database triggers:
 - `contracted_amount` - Base contract + change orders
-- `current_margin` - Revenue - actual expenses
+- `current_margin` - Contracted Amount - actual expenses
+- `actual_margin` - Total Invoiced - actual expenses (real profit)
 - `margin_percentage` - Margin as % of revenue
 - `projected_margin` - Revenue - projected costs
 - `original_margin` - From approved estimate

@@ -9,7 +9,7 @@ export interface ReportFilter {
 }
 
 export interface ReportConfig {
-  data_source: 'projects' | 'expenses' | 'quotes' | 'time_entries' | 'estimate_line_items' | 'internal_costs';
+  data_source: 'projects' | 'expenses' | 'quotes' | 'time_entries' | 'estimate_line_items' | 'internal_costs' | 'internal_labor_hours';
   filters?: Record<string, ReportFilter>;
   fields?: string[];
   sort_by?: string;

@@ -50,7 +50,8 @@ Comprehensive reporting view that aggregates project-level financial metrics, ex
 
 **Financial Calculated Fields (from projects table):**
 - `contracted_amount` - Total contract value including approved estimates and change orders
-- `current_margin` - Revenue minus actual expenses
+- `current_margin` - Contracted amount minus actual expenses
+- `actual_margin` - Total invoiced minus actual expenses (real profit)
 - `margin_percentage` - Margin as percentage of revenue
 - `projected_margin` - Expected final margin
 - `original_margin` - Margin from original estimate

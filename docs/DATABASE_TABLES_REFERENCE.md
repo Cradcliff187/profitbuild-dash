@@ -46,7 +46,8 @@
 | `start_date` | DATE | No | Project start | Date range |
 | `end_date` | DATE | No | Project end | Date range, duration calc |
 | `contracted_amount` | NUMERIC | **YES** | Total contract value | Display, sum, avg |
-| `current_margin` | NUMERIC | **YES** | Revenue - actual expenses | Display, sum |
+| `current_margin` | NUMERIC | **YES** | Contracted Amount - actual expenses | Display, sum |
+| `actual_margin` | NUMERIC | **YES** | Total Invoiced - actual expenses | Display, sum |
 | `margin_percentage` | NUMERIC | **YES** | Margin as % of revenue | Display, avg, filter |
 | `projected_margin` | NUMERIC | **YES** | Expected final margin | Display, sum |
 | `original_margin` | NUMERIC | **YES** | Margin from original estimate | Comparison |

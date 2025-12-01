@@ -43,6 +43,7 @@ const templateNameMap: Record<string, keyof typeof categoryIcons> = {
   // Time & Labor templates
   'Time Entries Summary': 'labor',
   'Internal Labor Costs': 'labor',
+  'Internal Labor Hours Tracking': 'labor',
 };
 
 const CATEGORY_CONFIG = {

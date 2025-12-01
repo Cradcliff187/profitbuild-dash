@@ -99,6 +99,7 @@ contracted_amount = approved_estimate_total + change_order_client_total
 
 -- Current margin
 current_margin = contracted_amount - total_expenses
+actual_margin = total_invoiced - total_expenses
 
 -- Margin percentage
 margin_percentage = (current_margin / contracted_amount) * 100
@@ -118,17 +119,18 @@ adjusted_est_costs = SUM(
 -- Margin calculations
 original_margin = approved_estimate_total - original_est_costs
 projected_margin = contracted_amount - adjusted_est_costs
+actual_margin = total_invoiced - total_expenses
 ```
 
 **Fields Updated on Projects Table:**
 - `contracted_amount`
 - `total_accepted_quotes`
-- `current_margin`
+- `current_margin` - Contracted Amount - Total Actual Costs
+- `actual_margin` - Total Invoiced - Total Actual Costs (real profit)
 - `margin_percentage`
 - `contingency_remaining`
 - `original_margin`
 - `projected_margin`
-- `actual_margin`
 - `original_est_costs`
 - `adjusted_est_costs`
 

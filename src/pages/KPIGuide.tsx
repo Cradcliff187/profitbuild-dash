@@ -42,7 +42,7 @@ interface KPIMeasure {
 
 const projectFinancialKPIs: KPIMeasure[] = [
   { name: 'Contracted Amount', source: 'database', field: 'projects.contracted_amount', formula: 'Direct DB field - total contract value with client', whereUsed: 'ProjectDetailView, ProjectFinancialReconciliation', notes: 'Primary revenue figure' },
-  { name: 'Current Margin', source: 'database', field: 'projects.current_margin', formula: 'Contracted Amount - Total Actual Costs', whereUsed: 'MarginDashboard, ProjectProfitMargin', notes: 'Real-time profit tracking' },
+  { name: 'Current Margin', source: 'database', field: 'projects.current_margin', formula: 'Contracted Amount - Total Actual Costs', whereUsed: 'MarginDashboard, ProjectProfitMargin', notes: 'Contracted revenue minus expenses (not actual invoices)' },
   { name: 'Current Margin Percentage', source: 'database', field: 'projects.current_margin_percent', formula: '(Current Margin / Contracted Amount) × 100', whereUsed: 'Dashboard cards, financial reports' },
   { name: 'Target Margin', source: 'database', field: 'projects.target_margin', formula: 'User-defined goal amount', whereUsed: 'MarginDashboard, budget planning' },
   { name: 'Target Margin Percentage', source: 'database', field: 'projects.target_margin_percent', formula: '(Target Margin / Contracted Amount) × 100', whereUsed: 'Performance indicators' },
@@ -61,6 +61,7 @@ const projectFinancialKPIs: KPIMeasure[] = [
   { name: 'Adjusted Estimated Costs', source: 'database', field: 'projects.adjusted_est_costs', formula: 'Original Est. Costs + Change Order Costs', whereUsed: 'WorkOrders table, current cost tracking', notes: 'Updated when change orders approved' },
   { name: 'Projected Margin', source: 'database', field: 'projects.projected_margin', formula: 'Contracted Amount - Adjusted Est. Costs', whereUsed: 'WorkOrders table, margin dashboards', notes: 'Expected profit based on estimates' },
   { name: 'Original Margin', source: 'database', field: 'projects.original_margin', formula: 'Contracted Amount - Original Est. Costs', whereUsed: 'Variance analysis', notes: 'Initial expected profit' },
+  { name: 'Actual Margin', source: 'database', field: 'projects.actual_margin', formula: 'Total Invoiced - Total Actual Costs', whereUsed: 'ProfitAnalysis page, MarginAnalysisTable', notes: 'Real profit based on actual invoices and expenses' },
   { name: 'Margin At Risk', source: 'frontend', field: 'calculateProjectMargin()', formula: 'Current Margin < Minimum Margin', whereUsed: 'Dashboard alerts, ProjectProfitMargin' },
   { name: 'Margin Efficiency', source: 'frontend', field: 'getMarginEfficiency()', formula: '(Current Margin % / Target Margin %) × 100', whereUsed: 'Performance metrics' },
   { name: 'Contingency Utilization', source: 'frontend', field: 'getContingencyUtilization()', formula: '(Contingency Used / Contingency Amount) × 100', whereUsed: 'ContingencyAllocation' },
@@ -210,28 +211,30 @@ export default function KPIGuide() {
   const renderKPITable = (kpis: KPIMeasure[]) => {
     const filtered = filterKPIs(kpis);
     return (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[200px]">Measure</TableHead>
-            <TableHead className="w-[120px]">Source</TableHead>
-            <TableHead className="w-[220px]">Field/Function</TableHead>
-            <TableHead>Formula/Calculation</TableHead>
-            <TableHead className="w-[200px]">Where Used</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filtered.map((kpi, idx) => (
-            <TableRow key={idx}>
-              <TableCell className="font-medium text-xs">{kpi.name}</TableCell>
-              <TableCell>{getSourceBadge(kpi.source)}</TableCell>
-              <TableCell className="font-mono text-xs">{kpi.field}</TableCell>
-              <TableCell className="text-xs">{kpi.formula}</TableCell>
-              <TableCell className="text-xs text-muted-foreground">{kpi.whereUsed}</TableCell>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="min-w-[180px] max-w-[220px]">Measure</TableHead>
+              <TableHead className="min-w-[100px] max-w-[130px]">Source</TableHead>
+              <TableHead className="min-w-[200px] max-w-[280px]">Field/Function</TableHead>
+              <TableHead className="min-w-[250px]">Formula/Calculation</TableHead>
+              <TableHead className="min-w-[180px] max-w-[220px]">Where Used</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((kpi, idx) => (
+              <TableRow key={idx}>
+                <TableCell className="font-medium text-xs">{kpi.name}</TableCell>
+                <TableCell>{getSourceBadge(kpi.source)}</TableCell>
+                <TableCell className="font-mono text-xs break-all">{kpi.field}</TableCell>
+                <TableCell className="text-xs">{kpi.formula}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{kpi.whereUsed}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     );
   };
 
@@ -240,7 +243,7 @@ export default function KPIGuide() {
   const frontendMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, revenueKPIs, changeOrderKPIs, workOrderKPIs].flat().filter(k => k.source === 'frontend').length;
 
   return (
-    <div className="w-full overflow-x-hidden px-2 sm:px-4 py-2 space-y-3">
+    <div className="container mx-auto max-w-7xl px-4 sm:px-6 py-4 space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
         <div className="flex items-center space-x-3 min-w-0">
@@ -273,7 +276,7 @@ export default function KPIGuide() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="p-3">
             <CardTitle className="text-sm">Total Measures</CardTitle>
@@ -308,7 +311,7 @@ export default function KPIGuide() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         {/* Mobile Dropdown */}
-        <div className="sm:hidden">
+        <div className="sm:hidden mb-4">
           <Select value={activeTab} onValueChange={handleTabChange}>
             <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
               <SelectValue />
@@ -327,24 +330,28 @@ export default function KPIGuide() {
         </div>
 
         {/* Desktop Orange Pills */}
-        <TabsList className="hidden sm:flex w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1">
-          {tabOptions.map((tab) => (
-            <TabsTrigger
-              key={tab.value}
-              value={tab.value}
-              className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <tab.icon className="h-4 w-4" />
-              <span>{tab.label}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="hidden sm:block mb-4">
+          <div className="overflow-x-auto pb-2 -mx-4 px-4">
+            <TabsList className="inline-flex w-auto flex-nowrap justify-start gap-2 rounded-full bg-muted/40 p-1 min-w-full">
+              {tabOptions.map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shrink-0"
+                >
+                  <tab.icon className="h-4 w-4" />
+                  <span>{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+        </div>
 
-        <TabsContent value="project" className="mt-3">
+        <TabsContent value="project" className="mt-0 sm:mt-4">
           <Card>
-            <CardHeader className="p-3">
-              <CardTitle className="text-sm">Project Financial Measures ({projectFinancialKPIs.length})</CardTitle>
-              <CardDescription className="text-xs">Core project-level financial metrics and margin calculations</CardDescription>
+            <CardHeader className="p-4">
+              <CardTitle className="text-base">Project Financial Measures ({projectFinancialKPIs.length})</CardTitle>
+              <CardDescription className="text-sm">Core project-level financial metrics and margin calculations</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {renderKPITable(projectFinancialKPIs)}
@@ -352,11 +359,11 @@ export default function KPIGuide() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="estimates" className="mt-3">
+        <TabsContent value="estimates" className="mt-0 sm:mt-4">
           <Card>
-            <CardHeader className="p-3">
-              <CardTitle className="text-sm">Estimate Measures ({estimateKPIs.length})</CardTitle>
-              <CardDescription className="text-xs">Estimate and line item calculations, markup, and profitability</CardDescription>
+            <CardHeader className="p-4">
+              <CardTitle className="text-base">Estimate Measures ({estimateKPIs.length})</CardTitle>
+              <CardDescription className="text-sm">Estimate and line item calculations, markup, and profitability</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {renderKPITable(estimateKPIs)}
@@ -364,11 +371,11 @@ export default function KPIGuide() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="quotes" className="mt-3">
+        <TabsContent value="quotes" className="mt-0 sm:mt-4">
           <Card>
-            <CardHeader className="p-3">
-              <CardTitle className="text-sm">Quote Measures ({quoteKPIs.length})</CardTitle>
-              <CardDescription className="text-xs">Quote comparisons, client pricing, and variance analysis</CardDescription>
+            <CardHeader className="p-4">
+              <CardTitle className="text-base">Quote Measures ({quoteKPIs.length})</CardTitle>
+              <CardDescription className="text-sm">Quote comparisons, client pricing, and variance analysis</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {renderKPITable(quoteKPIs)}
@@ -376,11 +383,11 @@ export default function KPIGuide() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="expenses" className="mt-3">
+        <TabsContent value="expenses" className="mt-0 sm:mt-4">
           <Card>
-            <CardHeader className="p-3">
-              <CardTitle className="text-sm">Expense Measures ({expenseKPIs.length})</CardTitle>
-              <CardDescription className="text-xs">Expense tracking, split allocations, and project cost aggregation</CardDescription>
+            <CardHeader className="p-4">
+              <CardTitle className="text-base">Expense Measures ({expenseKPIs.length})</CardTitle>
+              <CardDescription className="text-sm">Expense tracking, split allocations, and project cost aggregation</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {renderKPITable(expenseKPIs)}
@@ -388,11 +395,11 @@ export default function KPIGuide() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="revenue" className="mt-3">
+        <TabsContent value="revenue" className="mt-0 sm:mt-4">
           <Card>
-            <CardHeader className="p-3">
-              <CardTitle className="text-sm">Revenue Measures ({revenueKPIs.length})</CardTitle>
-              <CardDescription className="text-xs">Invoice tracking and revenue aggregation from project_revenues table</CardDescription>
+            <CardHeader className="p-4">
+              <CardTitle className="text-base">Revenue Measures ({revenueKPIs.length})</CardTitle>
+              <CardDescription className="text-sm">Invoice tracking and revenue aggregation from project_revenues table</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {renderKPITable(revenueKPIs)}
@@ -400,11 +407,11 @@ export default function KPIGuide() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="change-orders" className="mt-3">
+        <TabsContent value="change-orders" className="mt-0 sm:mt-4">
           <Card>
-            <CardHeader className="p-3">
-              <CardTitle className="text-sm">Change Order Measures ({changeOrderKPIs.length})</CardTitle>
-              <CardDescription className="text-xs">Change order impacts on cost, margin, and contingency</CardDescription>
+            <CardHeader className="p-4">
+              <CardTitle className="text-base">Change Order Measures ({changeOrderKPIs.length})</CardTitle>
+              <CardDescription className="text-sm">Change order impacts on cost, margin, and contingency</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {renderKPITable(changeOrderKPIs)}
@@ -412,11 +419,11 @@ export default function KPIGuide() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="work-orders" className="mt-3">
+        <TabsContent value="work-orders" className="mt-0 sm:mt-4">
           <Card>
-            <CardHeader className="p-3">
-              <CardTitle className="text-sm">Work Order Measures ({workOrderKPIs.length})</CardTitle>
-              <CardDescription className="text-xs">Work order specific metrics, budget tracking, and statistics</CardDescription>
+            <CardHeader className="p-4">
+              <CardTitle className="text-base">Work Order Measures ({workOrderKPIs.length})</CardTitle>
+              <CardDescription className="text-sm">Work order specific metrics, budget tracking, and statistics</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {renderKPITable(workOrderKPIs)}
@@ -424,13 +431,13 @@ export default function KPIGuide() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="reference" className="mt-3">
-          <div className="space-y-3">
+        <TabsContent value="reference" className="mt-0 sm:mt-4">
+          <div className="space-y-4">
             <Card>
-              <CardHeader className="p-3">
-                <CardTitle className="text-sm">Quick Reference</CardTitle>
+              <CardHeader className="p-4">
+                <CardTitle className="text-base">Quick Reference</CardTitle>
               </CardHeader>
-              <CardContent className="p-3 space-y-4">
+              <CardContent className="p-4 space-y-4">
                 <div>
                   <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                     {getSourceBadge('database')} Use Database Fields For:
@@ -515,29 +522,31 @@ export default function KPIGuide() {
           </div>
         </TabsContent>
 
-        <TabsContent value="deprecated" className="mt-3">
+        <TabsContent value="deprecated" className="mt-0 sm:mt-4">
           <Card>
-            <CardHeader className="p-3">
-              <CardTitle className="text-sm">Deprecated Measures ({deprecatedKPIs.length})</CardTitle>
-              <CardDescription className="text-xs">Legacy fields no longer in use - see notes for replacements</CardDescription>
+            <CardHeader className="p-4">
+              <CardTitle className="text-base">Deprecated Measures ({deprecatedKPIs.length})</CardTitle>
+              <CardDescription className="text-sm">Legacy fields no longer in use - see notes for replacements</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[200px]">Old Field</TableHead>
-                    <TableHead>Notes/Replacement</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {deprecatedKPIs.map((kpi, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-mono text-xs line-through">{kpi.field}</TableCell>
-                      <TableCell className="text-xs">{kpi.notes}</TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[200px] max-w-[300px]">Old Field</TableHead>
+                      <TableHead className="min-w-[300px]">Notes/Replacement</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {deprecatedKPIs.map((kpi, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-mono text-xs line-through break-all">{kpi.field}</TableCell>
+                        <TableCell className="text-xs">{kpi.notes}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
