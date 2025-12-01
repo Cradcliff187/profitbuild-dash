@@ -86,6 +86,9 @@ export interface Expense {
   project_category?: string; // Project category: 'construction', 'system', or 'overhead'
   // For split expenses: the amount allocated to this project (different from parent amount)
   display_amount?: number;
+  // Receipt linking fields
+  receipt_id?: string | null;
+  receipt_image_url?: string; // For display - populated from joins
 }
 
 export interface ProjectExpenseSummary {

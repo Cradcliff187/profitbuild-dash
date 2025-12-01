@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -45,7 +45,7 @@ import { format } from "date-fns";
 import { usePagination } from "@/hooks/usePagination";
 import { CompletePagination } from "@/components/ui/complete-pagination";
 import { useAuth } from "@/contexts/AuthContext";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -242,6 +242,76 @@ const TimeEntries = () => {
     pageSize,
     pagination.currentPage,
   );
+
+  // Calculate totals across all filtered entries (not just current page)
+  const [totalHours, setTotalHours] = useState(0);
+  const [totalAmount, setTotalAmount] = useState(0);
+
+  useEffect(() => {
+    const fetchTotals = async () => {
+      try {
+        let query = supabase
+          .from('expenses')
+          .select(`
+            id,
+            start_time,
+            end_time,
+            amount,
+            description,
+            payees!inner(payee_name, hourly_rate),
+            projects!inner(project_number, project_name)
+          `)
+          .eq('category', 'labor_internal');
+
+        // Apply the same filters as the main query
+        if (filters.dateFrom) {
+          query = query.gte('expense_date', filters.dateFrom);
+        }
+        if (filters.dateTo) {
+          query = query.lte('expense_date', filters.dateTo);
+        }
+        if (filters.status.length > 0) {
+          query = query.in('approval_status', filters.status);
+        }
+        if (filters.workerIds.length > 0) {
+          query = query.in('payee_id', filters.workerIds);
+        }
+        if (filters.projectIds.length > 0) {
+          query = query.in('project_id', filters.projectIds);
+        }
+
+        const { data: allEntries } = await query;
+
+        if (allEntries) {
+          let totalHrs = 0;
+          let totalAmt = 0;
+
+          allEntries.forEach((entry: any) => {
+            // Calculate hours
+            let hours = 0;
+            if (entry.start_time && entry.end_time) {
+              const start = new Date(entry.start_time);
+              const end = new Date(entry.end_time);
+              hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+            } else {
+              // Fallback to description parsing
+              const timeMatch = entry.description?.match(/(\d+\.?\d*)\s*hours?/i);
+              hours = timeMatch ? parseFloat(timeMatch[1]) : 0;
+            }
+            totalHrs += hours;
+            totalAmt += entry.amount || 0;
+          });
+
+          setTotalHours(totalHrs);
+          setTotalAmount(totalAmt);
+        }
+      } catch (error) {
+        console.error('Error fetching totals:', error);
+      }
+    };
+
+    fetchTotals();
+  }, [filters]);
 
   const tabOptions = [
     {
@@ -1055,6 +1125,49 @@ const TimeEntries = () => {
                       ))
                     )}
                   </TableBody>
+                  
+                  {/* Footer with totals */}
+                  <TableFooter className="border-t bg-muted/30">
+                    <TableRow>
+                      {/* Checkbox column - matches header structure */}
+                      <TableCell className="p-1.5"></TableCell>
+                      
+                      {columnOrder.map((colKey) => {
+                        if (!visibleColumns.includes(colKey)) return null;
+                        
+                        const alignments: Record<string, string> = {
+                          hours: "text-right",
+                          amount: "text-right",
+                          receipt: "text-center",
+                          actions: "text-right",
+                        };
+                        
+                        const alignmentClass = alignments[colKey] || '';
+                        
+                        if (colKey === 'project') {
+                          return (
+                            <TableCell key={colKey} className={cn("p-1.5 font-medium text-xs", alignmentClass)}>
+                              Total ({totalCount} {totalCount === 1 ? 'entry' : 'entries'}):
+                            </TableCell>
+                          );
+                        } else if (colKey === 'hours') {
+                          return (
+                            <TableCell key={colKey} className={cn("p-1.5 font-mono font-medium text-xs", alignmentClass)}>
+                              {totalHours.toFixed(2)}
+                            </TableCell>
+                          );
+                        } else if (colKey === 'amount') {
+                          return (
+                            <TableCell key={colKey} className={cn("p-1.5 font-mono font-medium text-xs", alignmentClass)}>
+                              {formatCurrency(totalAmount, { showCents: true })}
+                            </TableCell>
+                          );
+                        } else {
+                          return <TableCell key={colKey} className={cn("p-1.5", alignmentClass)}></TableCell>;
+                        }
+                      })}
+                    </TableRow>
+                  </TableFooter>
                 </Table>
               </div>
 

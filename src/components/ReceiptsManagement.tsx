@@ -33,6 +33,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -993,10 +994,16 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
                           return (
                             <TableCell key={colKey} className="p-1.5">
                               <div className="text-xs">
-                                <div className="font-medium">{receipt.project_number}</div>
-                                <div className="text-muted-foreground text-[10px] truncate max-w-[200px]">
-                                  {receipt.project_name}
-                                </div>
+                                {receipt.project_number === 'SYS-000' ? (
+                                  <div className="font-medium text-muted-foreground">Unassigned</div>
+                                ) : (
+                                  <>
+                                    <div className="font-medium">{receipt.project_number}</div>
+                                    <div className="text-muted-foreground text-[10px] truncate max-w-[200px]">
+                                      {receipt.project_name}
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             </TableCell>
                           );
@@ -1124,6 +1131,42 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
                 ))
               )}
             </TableBody>
+            
+            {/* Footer with totals */}
+            <TableFooter className="border-t bg-muted/30">
+              <TableRow>
+                {/* Checkbox column - matches header structure */}
+                <TableCell className="p-1.5"></TableCell>
+                
+                {displayColumns.map((colKey) => {
+                  if (!visibleColumns.includes(colKey)) return null;
+                  
+                  const alignments: Record<string, string> = {
+                    amount: 'text-right',
+                    actions: 'text-right'
+                  };
+                  
+                  const alignmentClass = alignments[colKey] || '';
+                  
+                  if (colKey === 'project') {
+                    return (
+                      <TableCell key={colKey} className={cn("p-1.5 font-medium text-xs", alignmentClass)}>
+                        Total ({filteredReceipts.length} {filteredReceipts.length === 1 ? 'receipt' : 'receipts'}):
+                      </TableCell>
+                    );
+                  } else if (colKey === 'amount') {
+                    const totalAmount = filteredReceipts.reduce((sum, receipt) => sum + (receipt.amount || 0), 0);
+                    return (
+                      <TableCell key={colKey} className={cn("p-1.5 font-mono font-medium text-xs", alignmentClass)}>
+                        {formatCurrency(totalAmount, { showCents: true })}
+                      </TableCell>
+                    );
+                  } else {
+                    return <TableCell key={colKey} className={cn("p-1.5", alignmentClass)}></TableCell>;
+                  }
+                })}
+              </TableRow>
+            </TableFooter>
                 </Table>
               </div>
 

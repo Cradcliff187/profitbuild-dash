@@ -56,18 +56,21 @@ const Expenses = () => {
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem('expenses-visible-columns');
+    const defaultColumns = [
+      'checkbox', 'date', 'project', 'payee', 'description', 
+      'category', 'amount', 'status_assigned', 'status_allocated', 'receipt', 'actions'
+    ];
+    
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Merge with defaults to include any new columns (like 'receipt')
+        const merged = [...new Set([...defaultColumns, ...parsed])];
+        return merged;
       } catch {
         // Invalid JSON, use defaults
       }
     }
-    // Default visible columns - matching ExpensesList defaults
-    const defaultColumns = [
-      'checkbox', 'date', 'project', 'payee', 'description', 
-      'category', 'amount', 'status_assigned', 'status_allocated', 'actions'
-    ];
     return defaultColumns;
   });
 
@@ -81,7 +84,7 @@ const Expenses = () => {
         const allColumns = [
           'checkbox', 'date', 'project', 'payee', 'description', 
           'category', 'transaction_type', 'amount', 'invoice_number', 
-          'status_assigned', 'status_allocated', 'approval_status', 'actions'
+          'status_assigned', 'status_allocated', 'approval_status', 'receipt', 'actions'
         ];
         const newColumns = allColumns.filter(key => !savedOrder.includes(key));
         return [...savedOrder, ...newColumns];
@@ -92,7 +95,7 @@ const Expenses = () => {
     return [
       'checkbox', 'date', 'project', 'payee', 'description', 
       'category', 'transaction_type', 'amount', 'invoice_number', 
-      'status_assigned', 'status_allocated', 'approval_status', 'actions'
+      'status_assigned', 'status_allocated', 'approval_status', 'receipt', 'actions'
     ];
   });
 
@@ -119,6 +122,7 @@ const Expenses = () => {
     { key: 'status_assigned', label: 'Assigned', required: false },
     { key: 'status_allocated', label: 'Allocated', required: false },
     { key: 'approval_status', label: 'Approval', required: false },
+    { key: 'receipt', label: 'Receipt', required: false },
     { key: 'actions', label: 'Actions', required: true },
   ];
 

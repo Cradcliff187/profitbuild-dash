@@ -59,20 +59,33 @@ export function ColumnSelector({
     onVisibilityChange(requiredColumns);
   };
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination || !onColumnOrderChange) return;
-    
-    const items = Array.from(columnOrder);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    
-    onColumnOrderChange(items);
-  };
-
   // Order columns based on columnOrder array
   const orderedColumns = columnOrder
     .map(key => columns.find(c => c.key === key))
     .filter((col): col is ColumnDefinition => col !== undefined);
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination || !onColumnOrderChange) return;
+    
+    // Map indices from orderedColumns (rendered list) back to columnOrder array
+    // This is necessary because orderedColumns may have fewer items if columnOrder
+    // contains columns that don't exist in the columns prop
+    const orderedColumnKeys = orderedColumns.map(col => col.key);
+    const sourceKey = orderedColumnKeys[result.source.index];
+    const destKey = orderedColumnKeys[result.destination.index];
+    
+    // Find actual indices in columnOrder array
+    const sourceIndex = columnOrder.indexOf(sourceKey);
+    const destIndex = columnOrder.indexOf(destKey);
+    
+    if (sourceIndex === -1 || destIndex === -1) return;
+    
+    const items = Array.from(columnOrder);
+    const [reorderedItem] = items.splice(sourceIndex, 1);
+    items.splice(destIndex, 0, reorderedItem);
+    
+    onColumnOrderChange(items);
+  };
 
   const visibleCount = visibleColumns.length;
   const totalCount = columns.length;

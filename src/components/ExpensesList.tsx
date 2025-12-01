@@ -30,11 +30,19 @@ import {
   ChevronRight,
   ChevronUp,
   ChevronsUpDown,
+  Receipt,
+  Link2,
+  Unlink,
+  Eye,
+  Paperclip,
 } from "lucide-react";
 import { ExpenseBulkActions } from "./ExpenseBulkActions";
 import { ReassignExpenseProjectDialog } from "./ReassignExpenseProjectDialog";
 import { ExpenseSplitDialog } from "./ExpenseSplitDialog";
 import { ExpenseAllocationSheet } from "./ExpenseAllocationSheet";
+import { ReceiptLinkModal } from "./expenses/ReceiptLinkModal";
+import { ReceiptPreviewModal } from "./ReceiptPreviewModal";
+import { unlinkReceiptFromExpense, fetchLinkedReceipt } from "@/utils/receiptLinking";
 import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
 import { usePagination } from '@/hooks/usePagination';
 import { CompletePagination } from '@/components/ui/complete-pagination';
@@ -80,6 +88,7 @@ const EXPENSE_COLUMNS: ColumnDefinition[] = [
   { key: 'status_assigned', label: 'Assigned', required: false, width: 'w-20', align: 'center', sortable: true, defaultVisible: true },
   { key: 'status_allocated', label: 'Allocated', required: false, width: 'w-20', align: 'center', sortable: true, defaultVisible: true },
   { key: 'approval_status', label: 'Approval', required: false, width: 'w-24', align: 'center', sortable: true, defaultVisible: false },
+  { key: 'receipt', label: 'Receipt', required: false, width: 'w-20', align: 'center', sortable: false, defaultVisible: true },
   { key: 'actions', label: 'Actions', required: true, width: 'w-16', align: 'center', defaultVisible: true },
 ];
 
@@ -132,6 +141,13 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const { toast } = useToast();
+    
+    // Receipt linking state
+    const [receiptLinkModalOpen, setReceiptLinkModalOpen] = useState(false);
+    const [expenseToLink, setExpenseToLink] = useState<Expense | null>(null);
+    const [receiptPreviewOpen, setReceiptPreviewOpen] = useState(false);
+    const [previewReceiptUrl, setPreviewReceiptUrl] = useState<string | null>(null);
+    const [previewReceiptDetails, setPreviewReceiptDetails] = useState<any>(null);
 
     // Column visibility state - use external if provided, otherwise internal with localStorage
     const [internalVisibleColumns, setInternalVisibleColumns] = useState<string[]>(() => {
@@ -610,6 +626,64 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           variant: "destructive",
         });
       }
+    };
+
+    // Handle opening receipt link modal
+    const handleLinkReceipt = (expense: Expense) => {
+      setExpenseToLink(expense);
+      setReceiptLinkModalOpen(true);
+    };
+
+    // Handle viewing linked receipt
+    const handleViewReceipt = async (expense: Expense) => {
+      if (!expense.receipt_id) return;
+      
+      try {
+        const receipt = await fetchLinkedReceipt(expense.receipt_id);
+        if (receipt) {
+          setPreviewReceiptUrl(receipt.image_url);
+          setPreviewReceiptDetails({
+            project: expense.project_number || 'Unassigned',
+            date: format(new Date(expense.expense_date), 'MMM d, yyyy'),
+            payee: expense.payee_name,
+            amount: formatCurrency(expense.amount),
+          });
+          setReceiptPreviewOpen(true);
+        }
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to load receipt',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    // Handle unlinking receipt
+    const handleUnlinkReceipt = async (expense: Expense) => {
+      if (!expense.receipt_id) return;
+      
+      try {
+        await unlinkReceiptFromExpense({ expenseId: expense.id });
+        toast({
+          title: 'Receipt Unlinked',
+          description: 'The receipt has been unlinked from this expense.',
+        });
+        onRefresh?.();
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to unlink receipt',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    // Handle successful receipt link
+    const handleReceiptLinkSuccess = () => {
+      setReceiptLinkModalOpen(false);
+      setExpenseToLink(null);
+      onRefresh?.();
     };
 
     const exportToCsv = async () => {
@@ -1304,6 +1378,28 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
               </>
             )}
 
+            <DropdownMenuSeparator />
+            {row.receipt_id ? (
+              <>
+                <DropdownMenuItem onClick={() => handleViewReceipt(row)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Receipt
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleUnlinkReceipt(row)}
+                  className="text-destructive"
+                >
+                  <Unlink className="mr-2 h-4 w-4" />
+                  Unlink Receipt
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem onClick={() => handleLinkReceipt(row)}>
+                <Link2 className="mr-2 h-4 w-4" />
+                Link Receipt
+              </DropdownMenuItem>
+            )}
+
             {row.project_id && (
               <>
                 <DropdownMenuSeparator />
@@ -1535,6 +1631,34 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
             <Badge variant="outline" className="text-[10px] h-4 px-1.5">
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </Badge>
+          );
+        
+        case 'receipt':
+          if (row._isSplitRow) return null;
+          return (
+            <div className="flex justify-center">
+              {row.receipt_id ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                  onClick={() => handleViewReceipt(row)}
+                  title="View linked receipt"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-muted-foreground/50 hover:text-primary"
+                  onClick={() => handleLinkReceipt(row)}
+                  title="Link a receipt"
+                >
+                  <Link2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           );
         
         case 'actions':
@@ -2368,6 +2492,22 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           onOpenChange={setAllocationSheetOpen}
           expenseId={expenseToAllocate}
           onSuccess={handleAllocationSuccess}
+        />
+
+        {/* Receipt Link Modal */}
+        <ReceiptLinkModal
+          open={receiptLinkModalOpen}
+          onOpenChange={setReceiptLinkModalOpen}
+          expense={expenseToLink}
+          onSuccess={handleReceiptLinkSuccess}
+        />
+
+        {/* Receipt Preview Modal */}
+        <ReceiptPreviewModal
+          open={receiptPreviewOpen}
+          onOpenChange={setReceiptPreviewOpen}
+          receiptUrl={previewReceiptUrl}
+          timeEntryDetails={previewReceiptDetails}
         />
       </div>
     );
