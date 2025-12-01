@@ -287,14 +287,14 @@ const ReportsPage = () => {
               <div className="space-y-4">
                 <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <CardTitle>{reportName}</CardTitle>
                   <CardDescription>
                     {reportData.length} rows • {reportFields.length} columns
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                   <Button variant="outline" onClick={() => {
                     setHasResults(false);
                     setShowBuilder(false);
@@ -417,7 +417,7 @@ const ReportsPage = () => {
             ) : showBuilder ? (
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                       <CardTitle>Create Custom Report</CardTitle>
                       <CardDescription>
@@ -453,7 +453,7 @@ const ReportsPage = () => {
                       >
                         <div className="flex items-center gap-2">
                           <Receipt className="h-5 w-5 text-primary" />
-                          <span className="font-semibold">All Expenses Line Items</span>
+                          <span className="font-semibold break-words">All Expenses Line Items</span>
                         </div>
                         <span className="text-sm text-muted-foreground text-left">
                           View complete listing of all expense transactions
@@ -466,7 +466,7 @@ const ReportsPage = () => {
                       >
                         <div className="flex items-center gap-2">
                           <DollarSign className="h-5 w-5 text-primary" />
-                          <span className="font-semibold">All Revenues Line Items</span>
+                          <span className="font-semibold break-words">All Revenues Line Items</span>
                         </div>
                         <span className="text-sm text-muted-foreground text-left">
                           View complete listing of all revenue/invoice transactions
