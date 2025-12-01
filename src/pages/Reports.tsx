@@ -448,27 +448,27 @@ const ReportsPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Button
                         variant="outline"
-                        className="h-auto p-4 flex flex-col items-start gap-2"
+                        className="h-auto p-4 flex flex-col items-start gap-2 w-full overflow-hidden"
                         onClick={() => navigate('/reports/all-expenses-line-items')}
                       >
-                        <div className="flex items-center gap-2">
-                          <Receipt className="h-5 w-5 text-primary" />
-                          <span className="font-semibold break-words">All Expenses Line Items</span>
+                        <div className="flex items-center gap-2 w-full">
+                          <Receipt className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span className="font-semibold break-words flex-1 min-w-0">All Expenses Line Items</span>
                         </div>
-                        <span className="text-sm text-muted-foreground text-left">
+                        <span className="text-sm text-muted-foreground text-left w-full break-words">
                           View complete listing of all expense transactions
                         </span>
                       </Button>
                       <Button
                         variant="outline"
-                        className="h-auto p-4 flex flex-col items-start gap-2"
+                        className="h-auto p-4 flex flex-col items-start gap-2 w-full overflow-hidden"
                         onClick={() => navigate('/reports/all-revenues-line-items')}
                       >
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="h-5 w-5 text-primary" />
-                          <span className="font-semibold break-words">All Revenues Line Items</span>
+                        <div className="flex items-center gap-2 w-full">
+                          <DollarSign className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span className="font-semibold break-words flex-1 min-w-0">All Revenues Line Items</span>
                         </div>
-                        <span className="text-sm text-muted-foreground text-left">
+                        <span className="text-sm text-muted-foreground text-left w-full break-words">
                           View complete listing of all revenue/invoice transactions
                         </span>
                       </Button>
