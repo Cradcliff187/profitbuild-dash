@@ -19,6 +19,7 @@ import { ExpenseCategory, EXPENSE_CATEGORY_DISPLAY } from '@/types/expense';
 import { ProjectCategory } from '@/types/project';
 import { LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { format } from 'date-fns';
+import { parseDateOnly } from '@/utils/dateUtils';
 
 interface ExpenseAllocationSheetProps {
   open: boolean;
@@ -258,7 +259,7 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       const enhancedExpense: EnhancedExpense = {
         id: expenseData.id,
         amount: expenseData.amount,
-        expense_date: new Date(expenseData.expense_date),
+        expense_date: parseDateOnly(expenseData.expense_date),
         description: expenseData.description,
         category: expenseData.category as ExpenseCategory,
         payee_id: expenseData.payee_id,

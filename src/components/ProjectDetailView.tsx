@@ -38,6 +38,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { isFeatureEnabled } from "@/lib/featureFlags";
 import ProjectScheduleView from "@/components/schedule/ProjectScheduleView";
+import { parseDateOnly } from "@/utils/dateUtils";
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 
@@ -397,7 +398,7 @@ export const ProjectDetailView = () => {
       // Format expenses with proper typing
       const formattedExpenses: Expense[] = (expensesData || []).map((expense: any) => ({
         ...expense,
-        expense_date: new Date(expense.expense_date),
+        expense_date: parseDateOnly(expense.expense_date),
         created_at: new Date(expense.created_at),
         updated_at: new Date(expense.updated_at),
         category: expense.category as any,

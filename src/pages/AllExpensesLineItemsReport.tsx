@@ -7,6 +7,7 @@ import { BrandedLoader } from "@/components/ui/branded-loader";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/utils/dateUtils";
 import { ExpenseCategory, TRANSACTION_TYPE_DISPLAY, EXPENSE_CATEGORY_DISPLAY } from "@/types/expense";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -226,7 +227,7 @@ const AllExpensesLineItemsReport = () => {
                 ) : (
                   expenses.map((expense) => (
                     <TableRow key={expense.id}>
-                      <TableCell>{format(new Date(expense.expense_date), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell>{format(parseDateOnly(expense.expense_date), 'MMM dd, yyyy')}</TableCell>
                       <TableCell className="font-mono text-sm">{expense.project_number}</TableCell>
                       <TableCell>{expense.project_name}</TableCell>
                       <TableCell>{expense.payee_name || '-'}</TableCell>

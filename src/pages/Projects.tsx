@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProjectWithFinancials, calculateMultipleProjectFinancials } from "@/utils/projectFinancials";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { parseDateOnly } from "@/utils/dateUtils";
 
 type ViewMode = 'list' | 'create';
 type DisplayMode = 'cards' | 'table';
@@ -201,7 +202,7 @@ const Projects = () => {
         payee_id: expense.payee_id,
         amount: expense.amount,
         description: expense.description,
-        expense_date: new Date(expense.expense_date),
+        expense_date: parseDateOnly(expense.expense_date),
         category: expense.category,
         transaction_type: expense.transaction_type,
         invoice_number: expense.invoice_number,

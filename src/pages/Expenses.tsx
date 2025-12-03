@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ColumnSelector } from "@/components/ui/column-selector";
 import { MobileResponsiveHeader } from "@/components/ui/mobile-responsive-header";
+import { parseDateOnly } from "@/utils/dateUtils";
 
 type ViewMode = "overview" | "list" | "invoices";
 
@@ -255,7 +256,7 @@ const Expenses = () => {
       const transformedExpenses: Expense[] = (expensesResult.data || []).map((expense) => ({
         ...expense,
         category: expense.category as ExpenseCategory,
-        expense_date: new Date(expense.expense_date),
+        expense_date: parseDateOnly(expense.expense_date),
         created_at: new Date(expense.created_at),
         updated_at: new Date(expense.updated_at),
         payee_name: expense.payees?.payee_name,
@@ -374,7 +375,7 @@ const Expenses = () => {
         
         return {
           ...revenue,
-          invoice_date: new Date(revenue.invoice_date),
+          invoice_date: parseDateOnly(revenue.invoice_date),
           created_at: new Date(revenue.created_at),
           updated_at: new Date(revenue.updated_at),
           project_number: project?.project_number || 'Unassigned',

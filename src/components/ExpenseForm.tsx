@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Split } from 'lucide-react';
 import { ExpenseSplitDialog } from '@/components/ExpenseSplitDialog';
+import { parseDateOnly } from '@/utils/dateUtils';
 
 const expenseSchema = z.object({
   project_id: z.string().min(1, 'Project is required'),
@@ -242,7 +243,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
       // Transform result to include payee_name for display
       const transformedExpense: Expense = {
         ...result,
-        expense_date: new Date(result.expense_date),
+        expense_date: parseDateOnly(result.expense_date),
         created_at: new Date(result.created_at),
         updated_at: new Date(result.updated_at),
         payee_name: selectedPayee?.payee_name,

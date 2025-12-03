@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Download, Clock, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { TimeEntryListItem, TimeEntryFilters } from "@/types/timeEntry";
+import { parseDateOnly } from "@/utils/dateUtils";
 
 interface TimeEntryExportModalProps {
   isOpen: boolean;
@@ -105,7 +106,7 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
 
     // Build rows
     const rows = entries.map((entry) => {
-      const entryDate = new Date(entry.expense_date + "T12:00:00");
+      const entryDate = parseDateOnly(entry.expense_date);
       const startTime = entry.start_time ? format(new Date(entry.start_time), "HH:mm") : "";
       const endTime = entry.end_time ? format(new Date(entry.end_time), "HH:mm") : "";
       const submittedAt = format(new Date(entry.created_at), "yyyy-MM-dd HH:mm");

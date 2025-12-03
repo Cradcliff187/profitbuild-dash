@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TimeEntryListItem, TimeEntryFilters, TimeEntryStatistics } from '@/types/timeEntry';
 import { toast } from '@/hooks/use-toast';
+import { parseDateOnly } from '@/utils/dateUtils';
 
 export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25, currentPage: number = 1) => {
   const [entries, setEntries] = useState<TimeEntryListItem[]>([]);
@@ -171,7 +172,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
         
         const approvedThisWeek = allEntries.filter(e => 
           e.approval_status === 'approved' && 
-          new Date(e.expense_date + 'T12:00:00') >= weekStart
+          parseDateOnly(e.expense_date) >= weekStart
         );
         const approvedThisWeekHours = approvedThisWeek.reduce((sum, e) => 
           sum + calculateHours(
@@ -183,7 +184,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           ), 0
         );
 
-        const thisMonth = allEntries.filter(e => new Date(e.expense_date + 'T12:00:00') >= monthStart);
+        const thisMonth = allEntries.filter(e => parseDateOnly(e.expense_date) >= monthStart);
         const totalThisMonthHours = thisMonth.reduce((sum, e) => 
           sum + calculateHours(
             e.start_time, 

@@ -4,6 +4,7 @@ import { Expense, ExpenseCategory, TransactionType } from '@/types/expense';
 import { ProjectRevenue, CreateProjectRevenueData } from '@/types/revenue';
 import { fuzzyMatchPayee, PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 import { Client } from '@/types/client';
+import { parseDateOnly } from '@/utils/dateUtils';
 
 // Enhanced QB transaction interface
 export interface QBTransaction {
@@ -562,7 +563,7 @@ export const processEnhancedQuickBooksImport = async (
 
         result.revenues.push({
           ...insertedRevenue,
-          invoice_date: new Date(insertedRevenue.invoice_date),
+          invoice_date: parseDateOnly(insertedRevenue.invoice_date),
           created_at: new Date(insertedRevenue.created_at),
           updated_at: new Date(insertedRevenue.updated_at)
         });
@@ -644,7 +645,7 @@ export const processEnhancedQuickBooksImport = async (
         const fullExpense: Expense = {
           ...insertedExpense,
           category: insertedExpense.category as ExpenseCategory,
-          expense_date: new Date(insertedExpense.expense_date),
+          expense_date: parseDateOnly(insertedExpense.expense_date),
           created_at: new Date(insertedExpense.created_at),
           updated_at: new Date(insertedExpense.updated_at)
         };

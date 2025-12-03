@@ -47,6 +47,7 @@ import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
 import { usePagination } from '@/hooks/usePagination';
 import { CompletePagination } from '@/components/ui/complete-pagination';
 import { format } from 'date-fns';
+import { parseDateOnly } from '@/utils/dateUtils';
 import {
   Expense,
   ExpenseCategory,
@@ -644,7 +645,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           setPreviewReceiptUrl(receipt.image_url);
           setPreviewReceiptDetails({
             project: expense.project_number || 'Unassigned',
-            date: format(new Date(expense.expense_date), 'MMM d, yyyy'),
+            date: format(parseDateOnly(expense.expense_date), 'MMM d, yyyy'),
             payee: expense.payee_name,
             amount: formatCurrency(expense.amount),
           });
@@ -929,8 +930,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         
         switch (sortColumn) {
           case 'date':
-            aValue = new Date(a.expense_date).getTime();
-            bValue = new Date(b.expense_date).getTime();
+            aValue = parseDateOnly(a.expense_date).getTime();
+            bValue = parseDateOnly(b.expense_date).getTime();
             break;
           case 'project':
             aValue = a.project_number || '';
@@ -1443,7 +1444,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           }
           return (
             <span className="font-mono text-muted-foreground text-xs">
-              {format(new Date(row.expense_date), 'M/d/yy')}
+              {format(parseDateOnly(row.expense_date), 'M/d/yy')}
             </span>
           );
         

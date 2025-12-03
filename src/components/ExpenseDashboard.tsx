@@ -10,6 +10,7 @@ import { formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { isOperationalProject, isOverheadProject, isSystemProjectByCategory, ProjectCategory } from '@/types/project';
+import { parseDateOnly } from '@/utils/dateUtils';
 
 interface ExpenseDashboardProps {
   expenses: Expense[];
@@ -100,7 +101,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
   const unallocatedExpenses = displayableExpenses.filter(e => !allocatedExpenseIds.has(e.id) && canBeAllocated(e)).reduce((sum, e) => sum + getExpenseAmount(e), 0);
   const thisMonthExpenses = displayableExpenses.filter(e => {
     const now = new Date();
-    const expenseDate = new Date(e.expense_date);
+    const expenseDate = parseDateOnly(e.expense_date);
     return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear();
   }).reduce((sum, e) => sum + getExpenseAmount(e), 0);
 

@@ -54,6 +54,7 @@ import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { RevenueSplitDialog } from '@/components/RevenueSplitDialog';
+import { parseDateOnly } from '@/utils/dateUtils';
 
 // ============================================================================
 // SCHEMA
@@ -263,7 +264,7 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
       // Transform result to match ProjectRevenue interface
       const transformedRevenue: ProjectRevenue = {
         ...result,
-        invoice_date: new Date(result.invoice_date),
+        invoice_date: parseDateOnly(result.invoice_date),
         created_at: new Date(result.created_at),
         updated_at: new Date(result.updated_at),
         is_split: result.is_split || false, // Preserve is_split flag
@@ -324,7 +325,7 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
       // Transform to match ProjectRevenue interface
       const transformedRevenue: ProjectRevenue = {
         ...updatedRevenue,
-        invoice_date: new Date(updatedRevenue.invoice_date),
+        invoice_date: parseDateOnly(updatedRevenue.invoice_date),
         created_at: new Date(updatedRevenue.created_at),
         updated_at: new Date(updatedRevenue.updated_at),
         is_split: updatedRevenue.is_split || false,

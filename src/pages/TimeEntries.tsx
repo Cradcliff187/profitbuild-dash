@@ -42,6 +42,7 @@ import { TimeEntryExportModal } from "@/components/TimeEntryExportModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/utils/dateUtils";
 import { usePagination } from "@/hooks/usePagination";
 import { CompletePagination } from "@/components/ui/complete-pagination";
 import { useAuth } from "@/contexts/AuthContext";
@@ -610,8 +611,8 @@ const TimeEntries = () => {
           bValue = b.project_address || '';
           break;
         case 'date':
-          aValue = new Date(a.expense_date).getTime();
-          bValue = new Date(b.expense_date).getTime();
+          aValue = parseDateOnly(a.expense_date).getTime();
+          bValue = parseDateOnly(b.expense_date).getTime();
           break;
         case 'start':
           aValue = a.start_time ? new Date(a.start_time).getTime() : 0;
@@ -1030,7 +1031,7 @@ const TimeEntries = () => {
                               case "date":
                                 return (
                                   <TableCell key={colKey} className="p-1.5 text-xs">
-                                    {format(new Date(entry.expense_date + "T12:00:00"), "MMM dd, yyyy")}
+                                    {format(parseDateOnly(entry.expense_date), "MMM dd, yyyy")}
                                   </TableCell>
                                 );
                               case "start":

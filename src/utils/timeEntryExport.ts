@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { TimeEntryListItem } from "@/types/timeEntry";
+import { parseDateOnly } from "@/utils/dateUtils";
 
 export const exportTimeEntriesToCSV = (entries: TimeEntryListItem[]) => {
   const headers = [
@@ -23,7 +24,7 @@ export const exportTimeEntriesToCSV = (entries: TimeEntryListItem[]) => {
   ];
 
   const rows = entries.map((entry) => {
-    const entryDate = new Date(entry.expense_date + "T12:00:00");
+    const entryDate = parseDateOnly(entry.expense_date);
     const startTime = entry.start_time ? format(new Date(entry.start_time), "HH:mm") : "";
     const endTime = entry.end_time ? format(new Date(entry.end_time), "HH:mm") : "";
     const submittedAt = format(new Date(entry.created_at), "yyyy-MM-dd HH:mm");
