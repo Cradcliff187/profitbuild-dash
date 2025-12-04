@@ -1,12 +1,12 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Upload, FileText, AlertCircle, CheckCircle, X, CheckCircle2 } from 'lucide-react';
+import { Upload, FileText, AlertCircle, CheckCircle, CheckCircle2, ChevronDown, ChevronRight, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -19,6 +19,76 @@ import {
 } from '@/utils/enhancedTransactionImporter';
 import { ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from '@/types/expense';
 import { formatCurrency, cn } from '@/lib/utils';
+
+interface StepperProps {
+  currentStep: 'upload' | 'preview' | 'complete';
+}
+
+const ImportStepper: React.FC<StepperProps> = ({ currentStep }) => {
+  const steps = [
+    { id: 'upload', label: 'Upload', number: 1 },
+    { id: 'preview', label: 'Review', number: 2 },
+    { id: 'complete', label: 'Complete', number: 3 },
+  ];
+
+  const getStepStatus = (stepId: string) => {
+    const stepOrder = ['upload', 'preview', 'complete'];
+    const currentIndex = stepOrder.indexOf(currentStep);
+    const stepIndex = stepOrder.indexOf(stepId);
+    
+    if (stepIndex < currentIndex) return 'completed';
+    if (stepIndex === currentIndex) return 'current';
+    return 'upcoming';
+  };
+
+  return (
+    <div className="flex items-center justify-center mb-6">
+      {steps.map((step, index) => {
+        const status = getStepStatus(step.id);
+        return (
+          <div key={step.id} className="flex items-center">
+            <div className="flex flex-col items-center">
+              <div
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 transition-colors",
+                  status === 'completed' && "bg-green-500 border-green-500 text-white",
+                  status === 'current' && "bg-blue-500 border-blue-500 text-white",
+                  status === 'upcoming' && "bg-gray-100 border-gray-300 text-gray-400"
+                )}
+              >
+                {status === 'completed' ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  step.number
+                )}
+              </div>
+              <span
+                className={cn(
+                  "text-xs mt-1 font-medium",
+                  status === 'current' && "text-blue-600",
+                  status === 'completed' && "text-green-600",
+                  status === 'upcoming' && "text-gray-400"
+                )}
+              >
+                {step.label}
+              </span>
+            </div>
+            {index < steps.length - 1 && (
+              <div
+                className={cn(
+                  "w-16 h-0.5 mx-2 mb-5",
+                  getStepStatus(steps[index + 1].id) !== 'upcoming'
+                    ? "bg-green-500"
+                    : "bg-gray-200"
+                )}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 interface ExpenseImportModalProps {
   open: boolean;
@@ -79,12 +149,6 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       threshold: number;
     };
   } | null>(null);
-  const [overrideDuplicates, setOverrideDuplicates] = useState({
-    expenseDatabase: false,
-    expenseInFile: false,
-    revenueDatabase: false,
-    revenueInFile: false
-  });
   const [validationResults, setValidationResults] = useState<{
     matchedProjects: number;
     unmatchedProjects: number;
@@ -131,6 +195,158 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
   } | null>(null);
   const { toast } = useToast();
 
+  // Separate transactions into new vs already-imported
+  const categorizeTransactions = useMemo(() => {
+    if (!validationResults || !csvData.length) {
+      return {
+        newRecords: csvData,
+        alreadyImported: [],
+        newExpenses: [],
+        newRevenues: [],
+        existingExpenses: [],
+        existingRevenues: [],
+      };
+    }
+
+    // Get all duplicate indices
+    const duplicateIndices = new Set<number>();
+    
+    // In-file duplicates
+    validationResults.inFileDuplicates?.forEach((d: any) => {
+      const idx = csvData.findIndex(row => 
+        row.Date === d.transaction.Date && 
+        row.Amount === d.transaction.Amount && 
+        row.Name === d.transaction.Name
+      );
+      if (idx >= 0) duplicateIndices.add(idx);
+    });
+
+    // Database duplicates (expenses)
+    validationResults.databaseDuplicates?.forEach((d: any) => {
+      const idx = csvData.findIndex(row => 
+        row.Date === d.transaction.Date && 
+        row.Amount === d.transaction.Amount && 
+        row.Name === d.transaction.Name
+      );
+      if (idx >= 0) duplicateIndices.add(idx);
+    });
+
+    // Database duplicates (revenues)
+    validationResults.revenueDatabaseDuplicates?.forEach((d: any) => {
+      const idx = csvData.findIndex(row => 
+        row.Date === d.transaction.Date && 
+        row.Amount === d.transaction.Amount && 
+        row.Name === d.transaction.Name
+      );
+      if (idx >= 0) duplicateIndices.add(idx);
+    });
+
+    // Revenue in-file duplicates
+    validationResults.revenueInFileDuplicates?.forEach((d: any) => {
+      const idx = csvData.findIndex(row => 
+        row.Date === d.transaction.Date && 
+        row.Amount === d.transaction.Amount && 
+        row.Name === d.transaction.Name
+      );
+      if (idx >= 0) duplicateIndices.add(idx);
+    });
+
+    // Separate new from existing
+    const newRecords: TransactionCSVRow[] = [];
+    const alreadyImported: TransactionCSVRow[] = [];
+
+    csvData.forEach((row, index) => {
+      if (duplicateIndices.has(index)) {
+        alreadyImported.push(row);
+      } else {
+        newRecords.push(row);
+      }
+    });
+
+    // Further categorize new records
+    const newExpenses = newRecords.filter(r => r['Transaction type'] !== 'Invoice');
+    const newRevenues = newRecords.filter(r => r['Transaction type'] === 'Invoice');
+    const existingExpenses = alreadyImported.filter(r => r['Transaction type'] !== 'Invoice');
+    const existingRevenues = alreadyImported.filter(r => r['Transaction type'] === 'Invoice');
+
+    return {
+      newRecords,
+      alreadyImported,
+      newExpenses,
+      newRevenues,
+      existingExpenses,
+      existingRevenues,
+    };
+  }, [csvData, validationResults]);
+
+  // Calculate issues ONLY for new records (not duplicates)
+  const newRecordIssues = useMemo(() => {
+    if (!validationResults || !categorizeTransactions.newRecords.length) {
+      return {
+        unassignedProjects: 0,
+        unassignedProjectNames: [] as string[],
+        newPayees: 0,
+        newPayeeNames: [] as string[],
+        assignedProjects: 0,
+        matchedPayees: 0,
+      };
+    }
+
+    const newRecords = categorizeTransactions.newRecords;
+    
+    // Check project assignments for new records only
+    // Use unmatched project numbers from validationResults and check if new records use them
+    const unmatchedProjectNumbers = validationResults.unmatchedProjectNumbers || [];
+    const unmatchedProjectSet = new Set(unmatchedProjectNumbers.map((n: string) => n.toLowerCase().trim()));
+    
+    const unassignedProjectNames = new Set<string>();
+    let assignedCount = 0;
+    let unassignedCount = 0;
+
+    newRecords.forEach(record => {
+      const projectNum = record['Project/WO #']?.trim();
+      if (!projectNum) {
+        unassignedCount++;
+        unassignedProjectNames.add('(blank)');
+      } else if (unmatchedProjectSet.has(projectNum.toLowerCase())) {
+        unassignedCount++;
+        unassignedProjectNames.add(projectNum);
+      } else {
+        assignedCount++;
+      }
+    });
+
+    // Check payee assignments for new records only
+    // Use unmatched payee names from validationResults and check if new records use them
+    const unmatchedPayeeNames = validationResults.unmatchedPayeeNames || [];
+    const unmatchedPayeeSet = new Set(unmatchedPayeeNames.map((n: string) => n.toLowerCase().trim()));
+
+    const newPayeeNames = new Set<string>();
+    let matchedPayeeCount = 0;
+    let newPayeeCount = 0;
+
+    newRecords.forEach(record => {
+      const name = record.Name?.trim();
+      if (!name) {
+        // No payee specified - skip for payee matching
+      } else if (unmatchedPayeeSet.has(name.toLowerCase())) {
+        newPayeeCount++;
+        newPayeeNames.add(name);
+      } else {
+        matchedPayeeCount++;
+      }
+    });
+
+    return {
+      unassignedProjects: unassignedCount,
+      unassignedProjectNames: Array.from(unassignedProjectNames),
+      newPayees: newPayeeCount,
+      newPayeeNames: Array.from(newPayeeNames),
+      assignedProjects: assignedCount,
+      matchedPayees: matchedPayeeCount,
+    };
+  }, [validationResults, categorizeTransactions.newRecords]);
+
   const resetState = () => {
     setSelectedFile(null);
     setCsvData([]);
@@ -141,12 +357,6 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     setStep('upload');
     setImportResults(null);
     setValidationResults(null);
-    setOverrideDuplicates({
-      expenseDatabase: false,
-      expenseInFile: false,
-      revenueDatabase: false,
-      revenueInFile: false
-    });
   };
 
   const handleClose = () => {
@@ -579,48 +789,12 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     try {
       const result = await processTransactionImport(csvData);
       
-      // Process overridden duplicates if any
-      let overrideExpenses: ExpenseImportData[] = [];
-      let overrideRevenues: RevenueImportData[] = [];
-      
-      if (overrideDuplicates.expenseDatabase && validationResults?.databaseDuplicates && validationResults.databaseDuplicates.length > 0) {
-        const overrideResult = await processTransactionImport(
-          validationResults.databaseDuplicates.map(d => d.transaction)
-        );
-        overrideExpenses.push(...overrideResult.expenses);
-      }
-      
-      if (overrideDuplicates.expenseInFile && validationResults?.inFileDuplicates && validationResults.inFileDuplicates.length > 0) {
-        const overrideResult = await processTransactionImport(
-          validationResults.inFileDuplicates.map(d => d.transaction)
-        );
-        overrideExpenses.push(...overrideResult.expenses);
-      }
-      
-      if (overrideDuplicates.revenueDatabase && validationResults?.revenueDatabaseDuplicates && validationResults.revenueDatabaseDuplicates.length > 0) {
-        const overrideResult = await processTransactionImport(
-          validationResults.revenueDatabaseDuplicates.map(d => d.transaction)
-        );
-        overrideRevenues.push(...overrideResult.revenues);
-      }
-      
-      if (overrideDuplicates.revenueInFile && validationResults?.revenueInFileDuplicates && validationResults.revenueInFileDuplicates.length > 0) {
-        const overrideResult = await processTransactionImport(
-          validationResults.revenueInFileDuplicates.map(d => d.transaction)
-        );
-        overrideRevenues.push(...overrideResult.revenues);
-      }
-      
-      // Combine regular results with overridden duplicates
-      const allExpenses = [...result.expenses, ...overrideExpenses];
-      const allRevenues = [...result.revenues, ...overrideRevenues];
-      
       // Import expenses
       let successCount = 0;
       const errorMessages: string[] = [...result.errors];
 
-      if (allExpenses.length > 0) {
-        for (const expense of allExpenses) {
+      if (result.expenses.length > 0) {
+        for (const expense of result.expenses) {
           try {
             const { error } = await supabase
               .from('expenses')
@@ -638,8 +812,8 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       }
 
       // Import revenues
-      if (allRevenues.length > 0) {
-        for (const revenue of allRevenues) {
+      if (result.revenues.length > 0) {
+        for (const revenue of result.revenues) {
           try {
             const { error } = await supabase
               .from('project_revenues')
@@ -657,8 +831,8 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       }
 
       const finalResults = {
-        expenses: allExpenses,
-        revenues: allRevenues,
+        expenses: result.expenses,
+        revenues: result.revenues,
         unassociated_expenses: result.unassociated_expenses,
         unassociated_revenues: result.unassociated_revenues,
         category_mappings_used: result.category_mappings_used,
@@ -716,27 +890,36 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     }
   };
 
+  const calculateImportCount = useCallback(() => {
+    return categorizeTransactions.newRecords.length;
+  }, [categorizeTransactions.newRecords.length]);
+
   const previewData = csvData.slice(0, 10);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle>Import Transactions from CSV</DialogTitle>
         </DialogHeader>
+        
+        <div className="flex-1 overflow-y-auto px-6 py-4">
 
         {step === 'upload' && (
           <div className="space-y-4">
-            <div 
-              className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400"
+            <ImportStepper currentStep={step} />
+            
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
               onDrop={handleDrop}
               onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
               onClick={() => document.getElementById('expense-csv-file-input')?.click()}
             >
               <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-lg font-medium">Drop CSV file here or click to select</p>
+              <p className="text-lg font-medium text-gray-700">
+                Drop your QuickBooks YTD export here
+              </p>
               <p className="text-sm text-gray-500 mt-2">
-                Expected columns: Date, Transaction Type, Amount, Name, Project/WO #, Account Full Name
+                We'll automatically detect which transactions are new
               </p>
               <input
                 id="expense-csv-file-input"
@@ -751,16 +934,17 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
             </div>
             
             {selectedFile && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
                 <FileText className="h-4 w-4" />
                 <span>{selectedFile.name}</span>
-                <span className="text-gray-500">({Math.round(selectedFile.size / 1024)} KB)</span>
+                <span className="text-gray-400">({Math.round(selectedFile.size / 1024)} KB)</span>
               </div>
             )}
             
             {isUploading && (
-              <div className="text-center">
-                <p>Processing CSV file...</p>
+              <div className="text-center py-4">
+                <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+                <p className="text-sm text-gray-600">Analyzing transactions...</p>
               </div>
             )}
 
@@ -780,469 +964,368 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         )}
 
         {step === 'preview' && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-medium mb-2">Preview Import Data</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Showing first {Math.min(10, csvData.length)} of {csvData.length} transactions. 
-                Transactions will be automatically categorized by Account Full Name and split into revenues and expenses by Transaction Type.
-              </p>
-            </div>
+          <div className="flex flex-col h-[calc(90vh-120px)]">
+            {/* Stepper */}
+            <ImportStepper currentStep={step} />
 
-            <div className="space-y-3">
-              {/* Basic Stats */}
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-medium mb-2">Import Summary</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+              
+              {/* Main Summary Card - The Key Message */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-5">
+                <div className="flex items-center justify-between">
                   <div>
-                    <span className="font-medium">Total Transactions:</span> {csvData.length}
+                    <h3 className="text-lg font-semibold text-blue-900">YTD Import Summary</h3>
+                    <p className="text-sm text-blue-600 mt-1">
+                      {csvData.length} transactions in file
+                    </p>
                   </div>
-                  <div>
-                    <span className="font-medium">Revenues (Invoice):</span> {csvData.filter(row => row['Transaction type'] === 'Invoice').length}
+                </div>
+                
+                {/* The Breakdown - Visual Flow */}
+                <div className="mt-4 flex items-center gap-3 text-sm">
+                  <div className="bg-white rounded-lg px-4 py-3 border border-blue-200 text-center min-w-[100px]">
+                    <div className="text-2xl font-bold text-gray-400">{categorizeTransactions.alreadyImported.length}</div>
+                    <div className="text-gray-500 text-xs">Already Imported</div>
                   </div>
-                  <div>
-                    <span className="font-medium">Expenses (Bill/Check/Expense):</span> {csvData.filter(row => row['Transaction type'] !== 'Invoice').length}
+                  
+                  <div className="text-gray-400 text-xl">→</div>
+                  
+                  <div className="bg-white rounded-lg px-4 py-3 border-2 border-green-400 text-center min-w-[100px] shadow-sm">
+                    <div className="text-2xl font-bold text-green-600">{categorizeTransactions.newRecords.length}</div>
+                    <div className="text-green-700 text-xs font-medium">New to Import</div>
+                  </div>
+                  
+                  <div className="ml-auto flex gap-4">
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-blue-600">{categorizeTransactions.newExpenses.length}</div>
+                      <div className="text-blue-600 text-xs">Expenses</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-emerald-600">{categorizeTransactions.newRevenues.length}</div>
+                      <div className="text-emerald-600 text-xs">Revenues</div>
+                    </div>
                   </div>
                 </div>
               </div>
-              
-              {/* Matching Results */}
-              {validationResults && (
-                <>
-                  {/* Project Matching */}
-                  <div className={cn(
-                    "p-4 rounded-lg border",
-                    validationResults.unmatchedProjects === 0 
-                      ? "bg-green-50 border-green-200" 
-                      : "bg-amber-50 border-amber-200"
+
+              {/* New Records Status - Only show if there ARE new records */}
+              {categorizeTransactions.newRecords.length > 0 && (
+                <div className={cn(
+                  "rounded-lg border p-4",
+                  newRecordIssues.unassignedProjects === 0 && newRecordIssues.newPayees === 0
+                    ? "bg-green-50 border-green-200"
+                    : "bg-amber-50 border-amber-200"
+                )}>
+                  <h4 className={cn(
+                    "font-medium mb-3 flex items-center gap-2",
+                    newRecordIssues.unassignedProjects === 0 && newRecordIssues.newPayees === 0
+                      ? "text-green-800"
+                      : "text-amber-800"
                   )}>
-                    <div className="flex items-start gap-2 mb-2">
-                      {validationResults.unmatchedProjects === 0 ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      ) : (
-                        <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                      )}
-                      <div className="flex-1">
-                        <h4 className="font-medium text-sm">Project Assignment</h4>
-                        <p className="text-sm mt-1">
-                          <span className="font-medium text-green-700">{validationResults.matchedProjects} assigned</span>
-                          {validationResults.unmatchedProjects > 0 && (
-                            <span className="font-medium text-amber-700"> • {validationResults.unmatchedProjects} unassigned</span>
-                          )}
-                        </p>
-                        {validationResults.unmatchedProjectNumbers.length > 0 && (
-                          <div className="mt-2 p-2 bg-white rounded border border-amber-300">
-                            <p className="text-xs font-medium mb-1">Unassigned Project Numbers:</p>
-                            <p className="text-xs text-amber-800">
-                              {validationResults.unmatchedProjectNumbers.join(', ')}
-                            </p>
-                            <p className="text-xs text-amber-700 mt-1 italic">
-                              These will be imported to "000-UNASSIGNED" project
-                            </p>
-                          </div>
-                        )}
+                    {newRecordIssues.unassignedProjects === 0 && newRecordIssues.newPayees === 0 ? (
+                      <>
+                        <CheckCircle2 className="h-5 w-5" />
+                        All {categorizeTransactions.newRecords.length} new records ready to import
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-5 w-5" />
+                        New Records Summary
+                      </>
+                    )}
+                  </h4>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    {/* Project Assignment Status */}
+                    <div className="space-y-1">
+                      <div className="font-medium text-gray-700">Project Assignment</div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <span>{newRecordIssues.assignedProjects} assigned to projects</span>
                       </div>
+                      {newRecordIssues.unassignedProjects > 0 && (
+                        <div className="flex items-center gap-2 text-amber-700">
+                          <AlertCircle className="h-4 w-4" />
+                          <span>{newRecordIssues.unassignedProjects} → 000-UNASSIGNED</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Payee Status */}
+                    <div className="space-y-1">
+                      <div className="font-medium text-gray-700">Payee Status</div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <span>{newRecordIssues.matchedPayees} matched to existing</span>
+                      </div>
+                      {newRecordIssues.newPayees > 0 && (
+                        <div className="flex items-center gap-2 text-blue-600">
+                          <Info className="h-4 w-4" />
+                          <span>{newRecordIssues.newPayees} will be auto-created</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  
-                  {/* Payee Matching */}
-                  <div className={cn(
-                    "p-4 rounded-lg border",
-                    validationResults.unmatchedPayees === 0 
-                      ? "bg-green-50 border-green-200" 
-                      : "bg-blue-50 border-blue-200"
-                  )}>
-                    <div className="flex items-start gap-2 mb-2">
-                      {validationResults.unmatchedPayees === 0 ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      ) : (
-                        <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      )}
-                      <div className="flex-1">
-                        <h4 className="font-medium text-sm">Payee Assignment</h4>
-                        <p className="text-sm mt-1">
-                          <span className="font-medium text-green-700">{validationResults.matchedPayees} assigned</span>
-                          {validationResults.unmatchedPayees > 0 && (
-                            <span className="font-medium text-blue-700"> • {validationResults.unmatchedPayees} unassigned</span>
-                          )}
-                        </p>
-                        {validationResults.unmatchedPayeeNames.length > 0 && (
-                          <div className="mt-2 p-2 bg-white rounded border border-blue-300">
-                            <p className="text-xs font-medium mb-1">Unassigned Payee Names:</p>
-                            <p className="text-xs text-blue-800">
-                              {validationResults.unmatchedPayeeNames.slice(0, 5).join(', ')}
-                              {validationResults.unmatchedPayeeNames.length > 5 && ` +${validationResults.unmatchedPayeeNames.length - 5} more`}
-                            </p>
-                            <p className="text-xs text-blue-700 mt-1 italic">
-                              These expenses will import without payee assignment
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* In-File Duplicates Warning */}
-                  {validationResults.inFileDuplicatesSkipped !== undefined && validationResults.inFileDuplicatesSkipped > 0 && (
-                    <div className="p-4 rounded-lg border bg-orange-50 border-orange-200">
-                      <div className="flex items-start gap-2 mb-2">
-                        <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm">Duplicate Transactions in File</h4>
-                          <p className="text-sm mt-1">
-                            <span className="font-medium text-orange-700">
-                              {validationResults.inFileDuplicatesSkipped} transaction(s)
+
+                  {/* Expandable Details */}
+                  {(newRecordIssues.unassignedProjects > 0 || newRecordIssues.newPayees > 0) && (
+                    <Collapsible className="mt-3">
+                      <CollapsibleTrigger className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
+                        <ChevronRight className="h-3 w-3" />
+                        View details
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2 text-xs space-y-2">
+                        {newRecordIssues.unassignedProjects > 0 && (
+                          <div>
+                            <span className="font-medium">Unassigned project codes: </span>
+                            <span className="text-gray-600">
+                              {newRecordIssues.unassignedProjectNames.slice(0, 5).join(', ')}
+                              {newRecordIssues.unassignedProjectNames.length > 5 && 
+                                ` +${newRecordIssues.unassignedProjectNames.length - 5} more`}
                             </span>
-                            {' '}appear multiple times in the uploaded file and will be skipped.
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {validationResults.inFileDuplicates && validationResults.inFileDuplicates.length > 0 && (
-                        <details className="mt-2">
-                          <summary className="text-xs cursor-pointer text-orange-700 hover:underline">
-                            View duplicate transactions
-                          </summary>
-                          <div className="mt-2 max-h-32 overflow-y-auto text-xs bg-white rounded border border-orange-200 p-2">
-                            {validationResults.inFileDuplicates.slice(0, 10).map((dup, idx) => (
-                              <div key={idx} className="py-1 border-b border-orange-100 last:border-0">
-                                {dup.transaction['Date']} - {dup.transaction['Name']} - {formatCurrency(parseFloat(dup.transaction['Amount']?.replace(/[,$]/g, '') || '0'))}
-                              </div>
-                            ))}
-                            {validationResults.inFileDuplicates.length > 10 && (
-                              <div className="pt-1 text-orange-600">
-                                ...and {validationResults.inFileDuplicates.length - 10} more
-                              </div>
-                            )}
                           </div>
-                        </details>
-                      )}
-                      
-                      {/* Override checkbox */}
-                      <div className="mt-3 pt-3 border-t border-orange-200">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <Checkbox
-                            checked={overrideDuplicates.expenseInFile}
-                            onCheckedChange={(checked) => setOverrideDuplicates(prev => ({
-                              ...prev,
-                              expenseInFile: checked === true
-                            }))}
-                          />
-                          <span className="text-orange-800 font-medium">Import these duplicates anyway</span>
-                        </label>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Database Duplicates Warning */}
-                  {validationResults.databaseDuplicatesSkipped !== undefined && validationResults.databaseDuplicatesSkipped > 0 && (
-                    <div className="p-4 rounded-lg border bg-amber-50 border-amber-200">
-                      <div className="flex items-start gap-2 mb-2">
-                        <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm">Existing Transactions Found</h4>
-                          <p className="text-sm mt-1">
-                            <span className="font-medium text-amber-700">
-                              {validationResults.databaseDuplicatesSkipped} transaction(s)
+                        )}
+                        {newRecordIssues.newPayees > 0 && (
+                          <div>
+                            <span className="font-medium">New payees: </span>
+                            <span className="text-gray-600">
+                              {newRecordIssues.newPayeeNames.slice(0, 5).join(', ')}
+                              {newRecordIssues.newPayeeNames.length > 5 && 
+                                ` +${newRecordIssues.newPayeeNames.length - 5} more`}
                             </span>
-                            {' '}already exist in the database and will be skipped.
-                          </p>
-                          <p className="text-xs text-amber-600 mt-1 italic">
-                            These were likely imported in a previous upload.
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {/* Optional: Expandable list of duplicates */}
-                      {validationResults.databaseDuplicates && validationResults.databaseDuplicates.length > 0 && (
-                        <details className="mt-2">
-                          <summary className="text-xs cursor-pointer text-amber-700 hover:underline">
-                            View duplicate transactions
-                          </summary>
-                          <div className="mt-2 max-h-32 overflow-y-auto text-xs bg-white rounded border border-amber-200 p-2">
-                            {validationResults.databaseDuplicates.slice(0, 10).map((dup, idx) => (
-                              <div key={idx} className="py-1 border-b border-amber-100 last:border-0">
-                                {dup.transaction['Date']} - {dup.transaction['Name']} - {formatCurrency(parseFloat(dup.transaction['Amount']?.replace(/[,$]/g, '') || '0'))}
-                              </div>
-                            ))}
-                            {validationResults.databaseDuplicates.length > 10 && (
-                              <div className="pt-1 text-amber-600">
-                                ...and {validationResults.databaseDuplicates.length - 10} more
-                              </div>
-                            )}
                           </div>
-                        </details>
-                      )}
-                      
-                      {/* Override checkbox */}
-                      <div className="mt-3 pt-3 border-t border-amber-200">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <Checkbox
-                            checked={overrideDuplicates.expenseDatabase}
-                            onCheckedChange={(checked) => setOverrideDuplicates(prev => ({
-                              ...prev,
-                              expenseDatabase: checked === true
-                            }))}
-                          />
-                          <span className="text-amber-800 font-medium">Import these duplicates anyway</span>
-                        </label>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Revenue Database Duplicates Warning */}
-                  {validationResults.revenueDatabaseDuplicatesSkipped && validationResults.revenueDatabaseDuplicatesSkipped > 0 && (
-                    <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-amber-800 text-sm">
-                            {validationResults.revenueDatabaseDuplicatesSkipped} invoice(s) already exist in the system
-                          </h4>
-                          <p className="text-sm text-amber-700 mt-1">
-                            These invoices will be skipped during import.
-                          </p>
-                          <p className="text-xs text-amber-600 mt-1 italic">
-                            These were likely imported in a previous upload.
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {validationResults.revenueDatabaseDuplicates && validationResults.revenueDatabaseDuplicates.length > 0 && (
-                        <details className="mt-2">
-                          <summary className="text-xs cursor-pointer text-amber-700 hover:underline">
-                            View duplicate invoices
-                          </summary>
-                          <div className="mt-2 max-h-32 overflow-y-auto text-xs bg-white rounded border border-amber-200 p-2">
-                            {validationResults.revenueDatabaseDuplicates.slice(0, 10).map((dup, idx) => (
-                              <div key={idx} className="py-1 border-b border-amber-100 last:border-0">
-                                {dup.transaction['Date']} - {dup.transaction['Name']} - {formatCurrency(parseFloat(dup.transaction['Amount']?.replace(/[,$]/g, '') || '0'))}
-                              </div>
-                            ))}
-                            {validationResults.revenueDatabaseDuplicates.length > 10 && (
-                              <div className="pt-1 text-amber-600">
-                                ...and {validationResults.revenueDatabaseDuplicates.length - 10} more
-                              </div>
-                            )}
-                          </div>
-                        </details>
-                      )}
-                      
-                      {/* Override checkbox */}
-                      <div className="mt-3 pt-3 border-t border-amber-200">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <Checkbox
-                            checked={overrideDuplicates.revenueDatabase}
-                            onCheckedChange={(checked) => setOverrideDuplicates(prev => ({
-                              ...prev,
-                              revenueDatabase: checked === true
-                            }))}
-                          />
-                          <span className="text-amber-800 font-medium">Import these duplicates anyway</span>
-                        </label>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Reconciliation Display */}
-                  {validationResults.reconciliation && (validationResults.reconciliation.totalDuplicateAmount > 0 || validationResults.reconciliation.totalExistingNonLaborExpenses > 0) && (
-                    <div className={cn(
-                      "p-4 rounded-lg border",
-                      validationResults.reconciliation.isAligned
-                        ? "bg-green-50 border-green-200"
-                        : "bg-red-50 border-red-200"
-                    )}>
-                      <div className="flex items-start gap-2 mb-2">
-                        {validationResults.reconciliation.isAligned ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
                         )}
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm">
-                            {validationResults.reconciliation.isAligned ? 'Reconciliation Aligned' : 'Reconciliation Failed'}
-                          </h4>
-                          <div className="mt-2 space-y-1 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Matching Expenses in System:</span>
-                              <span className="font-medium">{formatCurrency(validationResults.reconciliation.totalExistingNonLaborExpenses)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Total Duplicate Amount:</span>
-                              <span className="font-medium">{formatCurrency(validationResults.reconciliation.totalDuplicateAmount)}</span>
-                            </div>
-                            <div className="flex justify-between border-t pt-1">
-                              <span className={cn(
-                                "font-medium",
-                                validationResults.reconciliation.isAligned ? "text-green-700" : "text-red-700"
-                              )}>
-                                Difference:
-                              </span>
-                              <span className={cn(
-                                "font-bold",
-                                validationResults.reconciliation.isAligned ? "text-green-700" : "text-red-700"
-                              )}>
-                                {formatCurrency(validationResults.reconciliation.difference)}
-                              </span>
-                            </div>
-                          </div>
-                          {!validationResults.reconciliation.isAligned && (
-                            <p className="text-xs text-red-600 mt-2 italic">
-                              Reconciliation failed: Totals do not match. Please review duplicates before importing.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   )}
-                  
-                  {/* Revenue/Invoice Reconciliation Display */}
-                  {validationResults.revenueReconciliation && (validationResults.revenueReconciliation.totalDuplicateAmount > 0 || validationResults.revenueReconciliation.totalExistingRevenues > 0) && (
-                    <div className={cn(
-                      "p-4 rounded-lg border",
-                      validationResults.revenueReconciliation.isAligned
-                        ? "bg-green-50 border-green-200"
-                        : "bg-red-50 border-red-200"
-                    )}>
-                      <div className="flex items-start gap-2 mb-2">
-                        {validationResults.revenueReconciliation.isAligned ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                        )}
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm">
-                            {validationResults.revenueReconciliation.isAligned ? 'Invoice Reconciliation Aligned' : 'Invoice Reconciliation Failed'}
-                          </h4>
-                          <div className="mt-2 space-y-1 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Matching Invoices in System:</span>
-                              <span className="font-medium">{formatCurrency(validationResults.revenueReconciliation.totalExistingRevenues)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Total Duplicate Invoice Amount:</span>
-                              <span className="font-medium">{formatCurrency(validationResults.revenueReconciliation.totalDuplicateAmount)}</span>
-                            </div>
-                            <div className="flex justify-between border-t pt-1">
-                              <span className={cn(
-                                "font-medium",
-                                validationResults.revenueReconciliation.isAligned ? "text-green-700" : "text-red-700"
-                              )}>
-                                Difference:
-                              </span>
-                              <span className={cn(
-                                "font-bold",
-                                validationResults.revenueReconciliation.isAligned ? "text-green-700" : "text-red-700"
-                              )}>
-                                {formatCurrency(validationResults.revenueReconciliation.difference)}
-                              </span>
-                            </div>
-                          </div>
-                          {!validationResults.revenueReconciliation.isAligned && (
-                            <p className="text-xs text-red-600 mt-2 italic">
-                              Invoice reconciliation failed: Totals do not match. Please review duplicate invoices before importing.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
+                </div>
               )}
+
+              {/* No New Records Message */}
+              {categorizeTransactions.newRecords.length === 0 && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                  <CheckCircle2 className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                  <h4 className="font-medium text-gray-700">All caught up!</h4>
+                  <p className="text-sm text-gray-500 mt-1">
+                    All {csvData.length} transactions in this file are already in the system.
+                  </p>
+                </div>
+              )}
+
+              {/* Tabs - Simplified */}
+              {categorizeTransactions.newRecords.length > 0 && (
+                <Tabs defaultValue="new" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="new" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      New Records ({categorizeTransactions.newRecords.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="existing" className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Already Imported ({categorizeTransactions.alreadyImported.length})
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* New Records Tab */}
+                  <TabsContent value="new" className="mt-4">
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-gray-50">
+                            <TableHead className="text-xs font-medium">Date</TableHead>
+                            <TableHead className="text-xs font-medium">Type</TableHead>
+                            <TableHead className="text-xs font-medium">Amount</TableHead>
+                            <TableHead className="text-xs font-medium">Name</TableHead>
+                            <TableHead className="text-xs font-medium">Project</TableHead>
+                            <TableHead className="text-xs font-medium">Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {categorizeTransactions.newRecords.slice(0, 10).map((row, index) => {
+                            const isRevenue = row['Transaction type'] === 'Invoice';
+                            const hasProject = row['Project/WO #']?.trim();
+                            const projectExists = hasProject && validationResults?.unmatchedProjectNumbers && 
+                              !validationResults.unmatchedProjectNumbers.includes(hasProject);
+                            
+                            return (
+                              <TableRow key={index}>
+                                <TableCell className="text-xs py-2">{row.Date}</TableCell>
+                                <TableCell className="text-xs py-2">
+                                  <Badge 
+                                    variant={isRevenue ? "default" : "secondary"} 
+                                    className="text-xs"
+                                  >
+                                    {isRevenue ? 'Revenue' : 'Expense'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-xs py-2 font-mono">{row.Amount}</TableCell>
+                                <TableCell className="text-xs py-2 max-w-[150px] truncate">{row.Name}</TableCell>
+                                <TableCell className="text-xs py-2">
+                                  {hasProject ? (
+                                    <span className={projectExists ? "text-gray-900" : "text-amber-600"}>
+                                      {hasProject}
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400">-</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-xs py-2">
+                                  {projectExists ? (
+                                    <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                                      Ready
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
+                                      Unassigned
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                      {categorizeTransactions.newRecords.length > 10 && (
+                        <div className="text-xs text-gray-500 p-2 text-center border-t bg-gray-50">
+                          Showing 10 of {categorizeTransactions.newRecords.length} new records
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Already Imported Tab */}
+                  <TabsContent value="existing" className="mt-4">
+                    <div className="bg-gray-50 border rounded-lg p-4 mb-4">
+                      <p className="text-sm text-gray-600">
+                        These {categorizeTransactions.alreadyImported.length} transactions are already in your system 
+                        and will be skipped automatically. This is normal for YTD imports.
+                      </p>
+                    </div>
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-gray-50">
+                            <TableHead className="text-xs font-medium">Date</TableHead>
+                            <TableHead className="text-xs font-medium">Type</TableHead>
+                            <TableHead className="text-xs font-medium">Amount</TableHead>
+                            <TableHead className="text-xs font-medium">Name</TableHead>
+                            <TableHead className="text-xs font-medium">Project</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {categorizeTransactions.alreadyImported.slice(0, 10).map((row, index) => {
+                            const isRevenue = row['Transaction type'] === 'Invoice';
+                            return (
+                              <TableRow key={index} className="text-gray-400">
+                                <TableCell className="text-xs py-2">{row.Date}</TableCell>
+                                <TableCell className="text-xs py-2">
+                                  <Badge variant="outline" className="text-xs opacity-50">
+                                    {isRevenue ? 'Revenue' : 'Expense'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-xs py-2 font-mono">{row.Amount}</TableCell>
+                                <TableCell className="text-xs py-2 max-w-[150px] truncate">{row.Name}</TableCell>
+                                <TableCell className="text-xs py-2">{row['Project/WO #'] || '-'}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                      {categorizeTransactions.alreadyImported.length > 10 && (
+                        <div className="text-xs text-gray-500 p-2 text-center border-t bg-gray-50">
+                          Showing 10 of {categorizeTransactions.alreadyImported.length} already imported
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              )}
+
+              {/* Reconciliation - Only show if there's a meaningful difference */}
+              {validationResults?.reconciliation && 
+               !validationResults.reconciliation.isAligned && 
+               Math.abs(validationResults.reconciliation.difference) > 10 && (
+                <Collapsible>
+                  <CollapsibleTrigger className="w-full">
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-amber-800">
+                        <AlertCircle className="h-4 w-4" />
+                        <span className="font-medium text-sm">
+                          Reconciliation variance: {formatCurrency(Math.abs(validationResults.reconciliation.difference))}
+                        </span>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-amber-600" />
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="bg-amber-50 border border-amber-200 border-t-0 rounded-b-lg p-3 text-sm space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-amber-700">System total:</span>
+                        <span className="font-medium">{formatCurrency(validationResults.reconciliation.totalExistingNonLaborExpenses)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-amber-700">File total (matched):</span>
+                        <span className="font-medium">{formatCurrency(validationResults.reconciliation.totalDuplicateAmount)}</span>
+                      </div>
+                      <p className="text-xs text-amber-600 pt-2 border-t border-amber-200">
+                        This may indicate some transactions were modified after import. 
+                        Review if the difference is significant.
+                      </p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
             </div>
-            
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Project/WO #</TableHead>
-                  <TableHead>Account</TableHead>
-                  <TableHead>Category</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {previewData.map((row, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{row.Date}</TableCell>
-                    <TableCell>
-                      <Badge variant={row['Transaction type'] === 'Invoice' ? 'default' : 'secondary'}>
-                        {row['Transaction type']}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{formatCurrency(Math.abs(parseFloat(row.Amount || '0')))}</TableCell>
-                    <TableCell>{row.Name}</TableCell>
-                    <TableCell>{row['Project/WO #'] || <span className="text-gray-400">Unassociated</span>}</TableCell>
-                    <TableCell className="text-xs">{row['Account Full Name']}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {row['Transaction type'] === 'Invoice' ? 'Revenue' : 'Expense'}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            
-            <div className="flex justify-between">
+
+            {/* Sticky Footer */}
+            <div className="sticky bottom-0 bg-white border-t pt-4 mt-4 flex items-center justify-between">
               <Button variant="outline" onClick={() => setStep('upload')}>
                 Back
               </Button>
-              <Button 
-                onClick={handleImport} 
-                disabled={isImporting || (
-                  // Disable only if expense reconciliation failed AND no overrides are checked at all
-                  validationResults?.reconciliation && 
-                  !validationResults.reconciliation.isAligned &&
-                  !overrideDuplicates.expenseDatabase &&
-                  !overrideDuplicates.expenseInFile &&
-                  !overrideDuplicates.revenueDatabase &&
-                  !overrideDuplicates.revenueInFile
+              
+              <div className="flex items-center gap-3">
+                {categorizeTransactions.newRecords.length > 0 ? (
+                  <>
+                    <span className="text-sm text-gray-500">
+                      {categorizeTransactions.newRecords.length} new record{categorizeTransactions.newRecords.length !== 1 ? 's' : ''} will be imported
+                    </span>
+                    <Button
+                      onClick={handleImport}
+                      disabled={isImporting}
+                      className="min-w-[160px]"
+                    >
+                      {isImporting ? (
+                        <>
+                          <span className="animate-spin mr-2">⏳</span>
+                          Importing...
+                        </>
+                      ) : (
+                        <>Import {categorizeTransactions.newRecords.length} New Records</>
+                      )}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm text-gray-500">
+                      No new records to import
+                    </span>
+                    <Button variant="secondary" onClick={handleClose}>
+                      Close
+                    </Button>
+                  </>
                 )}
-              >
-                {(() => {
-                  if (isImporting) return 'Importing...';
-                  
-                  // Calculate how many duplicates will actually be skipped (accounting for overrides)
-                  let expenseDBSkipped = validationResults?.databaseDuplicatesSkipped || 0;
-                  let expenseInFileSkipped = validationResults?.inFileDuplicatesSkipped || 0;
-                  let revenueDBSkipped = validationResults?.revenueDatabaseDuplicatesSkipped || 0;
-                  let revenueInFileSkipped = validationResults?.revenueInFileDuplicatesSkipped || 0;
-                  
-                  if (overrideDuplicates.expenseDatabase) expenseDBSkipped = 0;
-                  if (overrideDuplicates.expenseInFile) expenseInFileSkipped = 0;
-                  if (overrideDuplicates.revenueDatabase) revenueDBSkipped = 0;
-                  if (overrideDuplicates.revenueInFile) revenueInFileSkipped = 0;
-                  
-                  const totalSkipped = expenseDBSkipped + expenseInFileSkipped + revenueDBSkipped + revenueInFileSkipped;
-                  const actualImportCount = csvData.length - totalSkipped;
-                  
-                  const overrideCount = [
-                    overrideDuplicates.expenseDatabase && validationResults?.databaseDuplicatesSkipped,
-                    overrideDuplicates.expenseInFile && validationResults?.inFileDuplicatesSkipped,
-                    overrideDuplicates.revenueDatabase && validationResults?.revenueDatabaseDuplicatesSkipped,
-                    overrideDuplicates.revenueInFile && validationResults?.revenueInFileDuplicatesSkipped
-                  ].filter(Boolean).length;
-                  
-                  if (overrideCount > 0) {
-                    return totalSkipped > 0
-                      ? `Import ${actualImportCount} Transactions (${totalSkipped} duplicates skipped, ${overrideCount} override${overrideCount > 1 ? 's' : ''})`
-                      : `Import ${actualImportCount} Transactions (${overrideCount} override${overrideCount > 1 ? 's' : ''})`;
-                  }
-                  
-                  return totalSkipped > 0 
-                    ? `Import ${actualImportCount} Transactions (${totalSkipped} duplicates skipped)`
-                    : `Import ${actualImportCount} Transactions`;
-                })()}
-              </Button>
+              </div>
             </div>
           </div>
         )}
 
         {step === 'complete' && importResults && (
           <div className="space-y-4">
+            {/* Stepper */}
+            <ImportStepper currentStep={step} />
+            
             <div className="text-center">
               <CheckCircle className="h-16 w-16 mx-auto text-green-500 mb-4" />
               <h3 className="text-lg font-medium mb-2">Import Complete</h3>
@@ -1382,6 +1465,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
             </div>
           </div>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );
