@@ -80,6 +80,7 @@ export interface Expense {
   splits?: ExpenseSplit[]; // Populated when is_split = true
   // Additional fields for display (populated from joins)
   payee_name?: string;
+  payee_full_name?: string;
   payee_type?: string;
   project_name?: string;
   project_number?: string;

@@ -287,15 +287,21 @@ const createPayeeFromTransaction = async (
 
 /**
  * Creates a composite key for expense matching
+ * Uses normalized name (from QuickBooks) instead of payee_id for consistency
+ * 
+ * @param date - Transaction date
+ * @param amount - Transaction amount
+ * @param name - QuickBooks Name field (stable across imports)
  */
 const createExpenseKey = (
   date: string | Date,
   amount: number,
-  payeeId: string | null
+  name: string
 ): string => {
   const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
-  const normalizedAmount = Math.round(amount * 100) / 100; // Ensure 2 decimal precision
-  return `${dateStr}|${normalizedAmount}|${payeeId || 'null'}`.toLowerCase();
+  const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100; // Ensure positive, 2 decimal precision
+  const normalizedName = (name || '').toLowerCase().trim();
+  return `${dateStr}|${normalizedAmount}|${normalizedName}`;
 };
 
 /**
@@ -314,6 +320,7 @@ const createExpenseKeyWithDescription = (
 
 /**
  * Fetches existing expenses from database for duplicate detection
+ * Joins with payees to get the name for matching
  * @param startDate - Earliest date in the import batch
  * @param endDate - Latest date in the import batch
  * @returns Map of composite keys to existing expense IDs
@@ -324,10 +331,19 @@ const fetchExistingExpenses = async (
 ): Promise<Map<string, { id: string; description: string }>> => {
   const { data: existingExpenses, error } = await supabase
     .from('expenses')
-    .select('id, expense_date, amount, payee_id, description')
+    .select(`
+      id, 
+      expense_date, 
+      amount, 
+      payee_id, 
+      description,
+      payees!expenses_payee_id_fkey (
+        payee_name
+      )
+    `)
     .gte('expense_date', startDate)
     .lte('expense_date', endDate)
-    .eq('is_split', false); // Only check non-split parent expenses
+    .eq('is_split', false);
 
   if (error) {
     console.error('Error fetching existing expenses for duplicate check:', error);
@@ -337,27 +353,41 @@ const fetchExistingExpenses = async (
   const existingMap = new Map<string, { id: string; description: string }>();
   
   for (const expense of existingExpenses || []) {
-    // Primary key: date-amount-payeeId
+    // ALWAYS extract from description first (matches CSV format)
+    let extractedName = '';
+    if (expense.description) {
+      // Extract name from description pattern "transaction_type - Name (Unassigned)"
+      const descMatch = expense.description.match(/^(?:bill|check|expense)\s*-\s*(.+?)(?:\s*\(|$)/i);
+      extractedName = descMatch ? descMatch[1].trim() : '';
+    }
+    
+    // Use payee name as fallback if extraction failed
+    const payeeName = (expense.payees as any)?.payee_name || '';
+    if (!extractedName && payeeName) {
+      extractedName = payeeName;
+    }
+    
+    // Create primary key with extracted name (matches CSV format)
     const primaryKey = createExpenseKey(
       expense.expense_date,
-      expense.amount,
-      expense.payee_id
+      Math.abs(expense.amount),
+      extractedName
     );
     existingMap.set(primaryKey, { 
       id: expense.id, 
       description: expense.description || '' 
     });
     
-    // Secondary key for null payee: date-amount-description (normalized)
-    if (!expense.payee_id && expense.description) {
-      const secondaryKey = createExpenseKeyWithDescription(
+    // Also create key with payee name if different (for backwards compatibility)
+    if (payeeName && payeeName.toLowerCase().trim() !== extractedName.toLowerCase().trim()) {
+      const payeeKey = createExpenseKey(
         expense.expense_date,
-        expense.amount,
-        expense.description
+        Math.abs(expense.amount),
+        payeeName
       );
-      existingMap.set(secondaryKey, { 
+      existingMap.set(payeeKey, { 
         id: expense.id, 
-        description: expense.description 
+        description: expense.description || '' 
       });
     }
   }
@@ -634,22 +664,15 @@ export const mapQuickBooksToExpenses = async (
 
         // === Check for database duplicate ===
         const dateStr = expense_date.toISOString().split('T')[0];
-        const primaryKey = createExpenseKey(dateStr, amount, payeeId || null);
-        const descriptionKey = createExpenseKeyWithDescription(
-          dateStr, 
-          amount, 
-          transaction.name || ''
-        );
+        const primaryKey = createExpenseKey(dateStr, amount, transaction.name || '');
         
-        const existingByPrimaryKey = existingExpenses.get(primaryKey);
-        const existingByDescription = !payeeId ? existingExpenses.get(descriptionKey) : null;
-        const existingExpense = existingByPrimaryKey || existingByDescription;
+        const existingExpense = existingExpenses.get(primaryKey);
         
         if (existingExpense) {
           result.databaseDuplicates.push({
             transaction,
             existingExpenseId: existingExpense.id,
-            matchKey: existingByPrimaryKey ? primaryKey : descriptionKey
+            matchKey: primaryKey
           });
           result.databaseDuplicatesSkipped++;
           continue; // Skip this transaction - already exists in database

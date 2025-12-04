@@ -90,6 +90,57 @@ const ImportStepper: React.FC<StepperProps> = ({ currentStep }) => {
   );
 };
 
+const FinancialSnapshot: React.FC<{
+  expenses: { before: number; adding: number; after: number };
+  revenues: { before: number; adding: number; after: number };
+}> = ({ expenses, revenues }) => (
+  <div className="grid grid-cols-2 gap-4">
+    {/* Expenses Card */}
+    <div className="bg-white border rounded-lg p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+        <h4 className="font-medium text-gray-700">Expenses</h4>
+      </div>
+      <div className="space-y-2 text-sm">
+        <div className="flex justify-between text-gray-500">
+          <span>Current in system:</span>
+          <span className="font-mono">{formatCurrency(expenses.before)}</span>
+        </div>
+        <div className="flex justify-between text-green-600">
+          <span>Adding:</span>
+          <span className="font-mono">+{formatCurrency(expenses.adding)}</span>
+        </div>
+        <div className="flex justify-between font-medium text-gray-900 pt-2 border-t">
+          <span>After import:</span>
+          <span className="font-mono">{formatCurrency(expenses.after)}</span>
+        </div>
+      </div>
+    </div>
+
+    {/* Revenues Card */}
+    <div className="bg-white border rounded-lg p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+        <h4 className="font-medium text-gray-700">Revenues</h4>
+      </div>
+      <div className="space-y-2 text-sm">
+        <div className="flex justify-between text-gray-500">
+          <span>Current in system:</span>
+          <span className="font-mono">{formatCurrency(revenues.before)}</span>
+        </div>
+        <div className="flex justify-between text-green-600">
+          <span>Adding:</span>
+          <span className="font-mono">+{formatCurrency(revenues.adding)}</span>
+        </div>
+        <div className="flex justify-between font-medium text-gray-900 pt-2 border-t">
+          <span>After import:</span>
+          <span className="font-mono">{formatCurrency(revenues.after)}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 interface ExpenseImportModalProps {
   open: boolean;
   onClose: () => void;
@@ -347,6 +398,41 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     };
   }, [validationResults, categorizeTransactions.newRecords]);
 
+  // Calculate financial before/after snapshot
+  const financialSnapshot = useMemo(() => {
+    if (!validationResults || !categorizeTransactions.newRecords.length) {
+      return null;
+    }
+
+    // Current system totals (from reconciliation data)
+    const currentExpenseTotal = validationResults.reconciliation?.totalExistingNonLaborExpenses || 0;
+    const currentRevenueTotal = validationResults.revenueReconciliation?.totalExistingRevenues || 0;
+
+    // New amounts being added
+    const newExpenseAmount = categorizeTransactions.newExpenses.reduce((sum, row) => {
+      const amount = parseFloat(String(row.Amount).replace(/[,$()]/g, '')) || 0;
+      return sum + Math.abs(amount);
+    }, 0);
+
+    const newRevenueAmount = categorizeTransactions.newRevenues.reduce((sum, row) => {
+      const amount = parseFloat(String(row.Amount).replace(/[,$()]/g, '')) || 0;
+      return sum + Math.abs(amount);
+    }, 0);
+
+    return {
+      expenses: {
+        before: currentExpenseTotal,
+        adding: newExpenseAmount,
+        after: currentExpenseTotal + newExpenseAmount,
+      },
+      revenues: {
+        before: currentRevenueTotal,
+        adding: newRevenueAmount,
+        after: currentRevenueTotal + newRevenueAmount,
+      },
+    };
+  }, [validationResults, categorizeTransactions]);
+
   const resetState = () => {
     setSelectedFile(null);
     setCsvData([]);
@@ -439,30 +525,53 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       
       const { data: existingExpensesData, error } = await supabase
         .from('expenses')
-        .select('id, expense_date, amount, payee_id, description')
+        .select(`
+          id, 
+          expense_date, 
+          amount, 
+          payee_id, 
+          description,
+          payees!expenses_payee_id_fkey (
+            payee_name
+          )
+        `)
         .gte('expense_date', minDate.toISOString().split('T')[0])
         .lte('expense_date', maxDate.toISOString().split('T')[0])
         .eq('is_split', false);
       
       if (!error && existingExpensesData) {
-        const payeeMap = new Map<string, string>();
-        payees?.forEach(payee => {
-          payeeMap.set(payee.id, payee.payee_name.toLowerCase().trim());
-        });
-        
         for (const expense of existingExpensesData) {
-          const primaryKey = `${expense.expense_date}|${Math.round(expense.amount * 100) / 100}|${expense.payee_id || 'null'}`.toLowerCase();
+          // ALWAYS extract from description first (matches CSV format)
+          let extractedName = '';
+          if (expense.description) {
+            // Extract name from description pattern "transaction_type - Name (Unassigned)"
+            const descMatch = expense.description.match(/^(?:bill|check|expense)\s*-\s*(.+?)(?:\s*\(|$)/i);
+            extractedName = descMatch ? descMatch[1].trim() : '';
+          }
+          
+          // Use payee name as fallback if extraction failed
+          const payeeName = (expense.payees as any)?.payee_name || '';
+          if (!extractedName && payeeName) {
+            extractedName = payeeName;
+          }
+          
+          // Normalize date to ISO format (YYYY-MM-DD) to match CSV date format
+          const normalizedDate = expense.expense_date ? new Date(expense.expense_date).toISOString().split('T')[0] : '';
+          const normalizedAmount = Math.round(Math.abs(expense.amount) * 100) / 100;
+          
+          // Primary key: date|amount|name (using extracted name - matches CSV format)
+          const primaryKey = `${normalizedDate}|${normalizedAmount}|${extractedName.toLowerCase().trim()}`;
           existingExpenses.set(primaryKey, { 
             id: expense.id, 
             description: expense.description || '' 
           });
           
-          if (!expense.payee_id && expense.description) {
-            const normalizedDesc = expense.description.toLowerCase().trim().substring(0, 50);
-            const secondaryKey = `desc|${expense.expense_date}|${Math.round(expense.amount * 100) / 100}|${normalizedDesc}`;
-            existingExpenses.set(secondaryKey, { 
+          // Also create key with payee name if different (for backwards compatibility)
+          if (payeeName && payeeName.toLowerCase().trim() !== extractedName.toLowerCase().trim()) {
+            const payeeKey = `${normalizedDate}|${normalizedAmount}|${payeeName.toLowerCase().trim()}`;
+            existingExpenses.set(payeeKey, { 
               id: expense.id, 
-              description: expense.description 
+              description: expense.description || '' 
             });
           }
         }
@@ -470,12 +579,27 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     }
     
     data.forEach(row => {
-      const projectWO = row['Project/WO #']?.trim().toLowerCase();
+      const projectWO = row['Project/WO #']?.trim() || '';
       const name = row['Name']?.trim().toLowerCase();
       
       // Check project match
       if (projectWO) {
-        if (projectNumbers.has(projectWO)) {
+        // Special project mappings: Fuel/fuel (or variations like "Fuel - Mike") → 001-GAS, GA → 002-GA
+        let mappedProjectWO = projectWO;
+        const normalizedProjectWO = projectWO.toLowerCase().replace(/[^a-z0-9]/g, '');
+        
+        // Check if normalized starts with "fuel" (handles "Fuel", "fuel", "Fuel - Mike", etc.)
+        if (normalizedProjectWO.startsWith('fuel')) {
+          mappedProjectWO = '001-GAS';
+        } else if (normalizedProjectWO === 'ga') {
+          // Exact match for "GA" (case-insensitive)
+          mappedProjectWO = '002-GA';
+        }
+        
+        // Normalize for lookup (same as how projectNumbers Set is created: lowercase + trim)
+        const lookupKey = mappedProjectWO.toLowerCase().trim();
+        
+        if (projectNumbers.has(lookupKey)) {
           matchedProjects++;
         } else {
           unmatchedProjects++;
@@ -500,29 +624,18 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         const date = row['Date'] ? new Date(row['Date']).toISOString().split('T')[0] : '';
         const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
         const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
+        const rowName = row['Name']?.trim() || '';
         
-        // Find payee ID for this row
-        let payeeId: string | null = null;
-        if (name) {
-          const foundPayee = payees?.find(p => 
-            p.payee_name.toLowerCase().trim() === name || 
-            p.full_name?.toLowerCase().trim() === name
-          );
-          payeeId = foundPayee?.id || null;
-        }
+        // Expense: Use name-based key
+        const key = `${date}|${normalizedAmount}|${rowName.toLowerCase().trim()}`;
         
-        const primaryKey = `${date}|${normalizedAmount}|${payeeId || 'null'}`.toLowerCase();
-        const descriptionKey = `desc|${date}|${normalizedAmount}|${name.substring(0, 50).toLowerCase()}`;
-        
-        const existingByPrimaryKey = existingExpenses.get(primaryKey);
-        const existingByDescription = !payeeId ? existingExpenses.get(descriptionKey) : null;
-        const existingExpense = existingByPrimaryKey || existingByDescription;
+        const existingExpense = existingExpenses.get(key);
         
         if (existingExpense) {
           databaseDuplicates.push({
             transaction: row,
             existingExpenseId: existingExpense.id,
-            matchKey: existingByPrimaryKey ? primaryKey : descriptionKey
+            matchKey: key
           });
         }
       }
@@ -595,8 +708,10 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       const invoiceNumber = row['Invoice #']?.trim() || '';
       const name = row['Name']?.trim() || '';
       
-      // Create key: amount|date|invoice#|description (matching database constraint)
-      const key = `${normalizedAmount}|${date}|${invoiceNumber}|${name}`.toLowerCase();
+      // Create key: rev|amount|date|invoice#|name (matching createRevenueKey format)
+      const normalizedInvoice = invoiceNumber.toLowerCase().trim();
+      const normalizedName = name.toLowerCase().trim();
+      const key = `rev|${normalizedAmount}|${date}|${normalizedInvoice}|${normalizedName}`;
       
       if (revenueSeenInFile.has(key)) {
         const firstOccurrence = revenueSeenInFile.get(key)!;
@@ -627,14 +742,33 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       
       const { data: existingRevenuesData, error: revenuesError } = await supabase
         .from('project_revenues')
-        .select('id, invoice_date, amount, invoice_number, description')
+        .select(`
+          id, 
+          invoice_date, 
+          amount, 
+          invoice_number, 
+          description,
+          clients!project_revenues_client_id_fkey (
+            client_name
+          )
+        `)
         .gte('invoice_date', minDate.toISOString().split('T')[0])
         .lte('invoice_date', maxDate.toISOString().split('T')[0]);
       
       if (!revenuesError && existingRevenuesData) {
         for (const revenue of existingRevenuesData) {
+          const clientName = (revenue.clients as any)?.client_name || '';
+          
+          // Extract name from description as fallback
+          const descMatch = revenue.description?.match(/^Invoice from\s+(.+?)(?:\s*\(|$)/i);
+          const extractedName = descMatch ? descMatch[1].trim() : clientName;
+          
           const normalizedAmount = Math.round(Math.abs(revenue.amount) * 100) / 100;
-          const key = `${normalizedAmount}|${revenue.invoice_date}|${revenue.invoice_number || ''}|${revenue.description || ''}`.toLowerCase();
+          const normalizedInvoice = (revenue.invoice_number || '').toLowerCase().trim();
+          const normalizedName = extractedName.toLowerCase().trim();
+          
+          // Key: rev|amount|date|invoice#|name
+          const key = `rev|${normalizedAmount}|${revenue.invoice_date}|${normalizedInvoice}|${normalizedName}`;
           existingRevenues.set(key, { 
             id: revenue.id, 
             description: revenue.description || '' 
@@ -655,12 +789,21 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         const name = row['Name']?.trim() || '';
         const projectWO = row['Project/WO #']?.trim() || '';
         
-        // Build description the same way as the importer does (matches database format)
-        const isUnassigned = !projectWO || !projectNumbers.has(projectWO.toLowerCase());
-        const description = `Invoice from ${name}${isUnassigned ? ' (Unassigned)' : ''}`;
+        // Special project mappings: Fuel/fuel (or variations like "Fuel - Mike") → 001-GAS, GA → 002-GA
+        let mappedProjectWO = projectWO;
+        if (projectWO) {
+          const normalizedProjectWO = projectWO.toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (normalizedProjectWO.startsWith('fuel')) {
+            mappedProjectWO = '001-GAS';
+          } else if (normalizedProjectWO === 'ga') {
+            mappedProjectWO = '002-GA';
+          }
+        }
         
-        // Use description in key to match database format (same as fetchExistingRevenues)
-        const key = `${normalizedAmount}|${date}|${invoiceNumber}|${description}`.toLowerCase();
+        // Use name in key to match database format (same as fetchExistingRevenues)
+        const normalizedInvoice = invoiceNumber.toLowerCase().trim();
+        const normalizedName = name.toLowerCase().trim();
+        const key = `rev|${normalizedAmount}|${date}|${normalizedInvoice}|${normalizedName}`;
         const existingRevenue = existingRevenues.get(key);
         
         if (existingRevenue) {
@@ -1099,6 +1242,17 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                       </CollapsibleContent>
                     </Collapsible>
                   )}
+                </div>
+              )}
+
+              {/* Financial Before/After Snapshot */}
+              {categorizeTransactions.newRecords.length > 0 && financialSnapshot && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-gray-600">Financial Impact</h4>
+                  <FinancialSnapshot 
+                    expenses={financialSnapshot.expenses} 
+                    revenues={financialSnapshot.revenues} 
+                  />
                 </div>
               )}
 

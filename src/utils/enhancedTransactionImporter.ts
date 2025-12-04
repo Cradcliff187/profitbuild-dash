@@ -330,7 +330,20 @@ export const processTransactionImport = async (
       let isUnassigned = true;
       
       if (projectWO) {
-        const foundProjectId = projectMap.get(normalizeString(projectWO));
+        // Special project mappings: Fuel/fuel (or variations like "Fuel - Mike") → 001-GAS, GA → 002-GA
+        let mappedProjectWO = projectWO;
+        const normalizedProjectWO = normalizeString(projectWO);
+        
+        // Check if normalized starts with "fuel" (handles "Fuel", "fuel", "Fuel - Mike", etc.)
+        if (normalizedProjectWO.startsWith('fuel')) {
+          mappedProjectWO = '001-GAS';
+        } else if (normalizedProjectWO === 'ga') {
+          // Exact match for "GA" (case-insensitive)
+          mappedProjectWO = '002-GA';
+        }
+        
+        // Look up the project (either mapped or original)
+        const foundProjectId = projectMap.get(normalizeString(mappedProjectWO));
         if (foundProjectId) {
           project_id = foundProjectId;
           isUnassigned = false;
@@ -412,23 +425,20 @@ export const processTransactionImport = async (
       
       const txType = mapTransactionType(transactionType);
 
-      // === Check for database duplicate ===
-      const primaryKey = createExpenseKey(date, Math.abs(amount), payee_id || null);
-      const descriptionKey = createExpenseKeyWithDescription(date, Math.abs(amount), name);
+      // === DATABASE DUPLICATE CHECK - USE NAME, NOT PAYEE_ID ===
+      const primaryKey = createExpenseKey(date, amount, name);
       
-      const existingByPrimaryKey = existingExpenses.get(primaryKey);
-      const existingByDescription = !payee_id ? existingExpenses.get(descriptionKey) : null;
-      const existingExpense = existingByPrimaryKey || existingByDescription;
+      const existingExpense = existingExpenses.get(primaryKey);
       
       if (existingExpense) {
         databaseDuplicates.push({
           transaction: row,
           existingExpenseId: existingExpense.id,
-          matchKey: existingByPrimaryKey ? primaryKey : descriptionKey
+          matchKey: primaryKey
         });
-        continue;
+        continue; // Skip - already exists
       }
-      // === END database duplicate check ===
+      // === END DUPLICATE CHECK ===
 
       const expense: ExpenseImportData = {
         project_id,
@@ -473,7 +483,20 @@ export const processTransactionImport = async (
       let isUnassigned = true;
       
       if (projectWO) {
-        const foundProjectId = projectMap.get(normalizeString(projectWO));
+        // Special project mappings: Fuel/fuel (or variations like "Fuel - Mike") → 001-GAS, GA → 002-GA
+        let mappedProjectWO = projectWO;
+        const normalizedProjectWO = normalizeString(projectWO);
+        
+        // Check if normalized starts with "fuel" (handles "Fuel", "fuel", "Fuel - Mike", etc.)
+        if (normalizedProjectWO.startsWith('fuel')) {
+          mappedProjectWO = '001-GAS';
+        } else if (normalizedProjectWO === 'ga') {
+          // Exact match for "GA" (case-insensitive)
+          mappedProjectWO = '002-GA';
+        }
+        
+        // Look up the project (either mapped or original)
+        const foundProjectId = projectMap.get(normalizeString(mappedProjectWO));
         if (foundProjectId) {
           project_id = foundProjectId;
           isUnassigned = false;
@@ -484,7 +507,7 @@ export const processTransactionImport = async (
       const description = `Invoice from ${name}${isUnassigned ? ' (Unassigned)' : ''}`;
 
       // === Check for database duplicate ===
-      const revenueKey = createRevenueKey(Math.abs(amount), date, invoiceNumber, description);
+      const revenueKey = createRevenueKey(amount, date, invoiceNumber, name);
       const existingRevenue = existingRevenues.get(revenueKey);
       
       if (existingRevenue) {
@@ -643,17 +666,16 @@ const detectInFileDuplicates = (
 
     const date = formatDateForDB(row['Date']);
     const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
-    const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
-    const name = row['Name']?.trim().toLowerCase() || '';
+    const name = row['Name']?.trim() || '';
 
-    // Create key: date|amount|name
-    const key = `${date}|${normalizedAmount}|${name}`.toLowerCase();
+    // Use the same key function for consistency
+    const key = createExpenseKey(date, amount, name);
 
     if (seen.has(key)) {
       const firstOccurrence = seen.get(key)!;
       duplicates.push({
         transaction: row,
-        reason: `Duplicate of: ${firstOccurrence['Name']} on ${firstOccurrence['Date']}`
+        reason: `Duplicate of: ${firstOccurrence['Name']} on ${firstOccurrence['Date']} for ${firstOccurrence['Amount']}`
       });
     } else {
       seen.set(key, row);
@@ -683,12 +705,11 @@ const detectRevenueInFileDuplicates = (
 
     const date = formatDateForDB(row['Date']);
     const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
-    const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
     const name = row['Name']?.trim() || '';
     const invoiceNumber = row['Invoice #']?.trim() || '';
 
-    // Create key: amount|date|invoice#|description (matching database constraint)
-    const key = createRevenueKey(normalizedAmount, date, invoiceNumber, name);
+    // Use the same key function for consistency
+    const key = createRevenueKey(amount, date, invoiceNumber, name);
 
     if (seen.has(key)) {
       const firstOccurrence = seen.get(key)!;
@@ -934,15 +955,21 @@ const categorizeExpense = (
 
 /**
  * Creates a composite key for expense matching
+ * Uses normalized name (from QuickBooks) instead of payee_id for consistency
+ * 
+ * @param date - Transaction date
+ * @param amount - Transaction amount
+ * @param name - QuickBooks Name field (stable across imports)
  */
 const createExpenseKey = (
   date: string | Date,
   amount: number,
-  payeeId: string | null
+  name: string
 ): string => {
   const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
-  const normalizedAmount = Math.round(amount * 100) / 100; // Ensure 2 decimal precision
-  return `${dateStr}|${normalizedAmount}|${payeeId || 'null'}`.toLowerCase();
+  const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100; // Ensure positive, 2 decimal precision
+  const normalizedName = (name || '').toLowerCase().trim();
+  return `${dateStr}|${normalizedAmount}|${normalizedName}`;
 };
 
 /**
@@ -961,21 +988,29 @@ const createExpenseKeyWithDescription = (
 
 /**
  * Creates a composite key for revenue matching
- * Based on database constraint: (amount, invoice_date, invoice_number, description)
+ * Uses: amount, date, invoice number, and client name
+ * 
+ * @param amount - Revenue amount
+ * @param date - Invoice date
+ * @param invoiceNumber - Invoice number
+ * @param name - QuickBooks Name field (stable across imports)
  */
 const createRevenueKey = (
   amount: number,
   date: string | Date,
   invoiceNumber: string,
-  description: string
+  name: string
 ): string => {
   const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
-  const normalizedAmount = Math.round(amount * 100) / 100;
-  return `${normalizedAmount}|${dateStr}|${invoiceNumber || ''}|${description}`.toLowerCase();
+  const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
+  const normalizedName = (name || '').toLowerCase().trim();
+  const normalizedInvoice = (invoiceNumber || '').toLowerCase().trim();
+  return `rev|${normalizedAmount}|${dateStr}|${normalizedInvoice}|${normalizedName}`;
 };
 
 /**
  * Fetches existing expenses from database for duplicate detection
+ * Joins with payees to get the name for matching
  * @param startDate - Earliest date in the import batch
  * @param endDate - Latest date in the import batch
  * @returns Map of composite keys to existing expense IDs
@@ -986,10 +1021,19 @@ const fetchExistingExpenses = async (
 ): Promise<Map<string, { id: string; description: string }>> => {
   const { data: existingExpenses, error } = await supabase
     .from('expenses')
-    .select('id, expense_date, amount, payee_id, description')
+    .select(`
+      id, 
+      expense_date, 
+      amount, 
+      payee_id, 
+      description,
+      payees!expenses_payee_id_fkey (
+        payee_name
+      )
+    `)
     .gte('expense_date', startDate)
     .lte('expense_date', endDate)
-    .eq('is_split', false); // Only check non-split parent expenses
+    .eq('is_split', false);
 
   if (error) {
     console.error('Error fetching existing expenses for duplicate check:', error);
@@ -999,27 +1043,44 @@ const fetchExistingExpenses = async (
   const existingMap = new Map<string, { id: string; description: string }>();
   
   for (const expense of existingExpenses || []) {
-    // Primary key: date-amount-payeeId
+    // ALWAYS extract from description first (matches CSV format)
+    let extractedName = '';
+    if (expense.description) {
+      // Extract name from description pattern "transaction_type - Name (Unassigned)"
+      const descMatch = expense.description.match(/^(?:bill|check|expense)\s*-\s*(.+?)(?:\s*\(|$)/i);
+      extractedName = descMatch ? descMatch[1].trim() : '';
+    }
+    
+    // Use payee name as fallback if extraction failed
+    const payeeName = (expense.payees as any)?.payee_name || '';
+    if (!extractedName && payeeName) {
+      extractedName = payeeName;
+    }
+    
+    // Normalize date to ISO format to ensure consistent matching
+    const normalizedDate = expense.expense_date ? new Date(expense.expense_date).toISOString().split('T')[0] : expense.expense_date;
+    
+    // Create primary key with extracted name (matches CSV format)
     const primaryKey = createExpenseKey(
-      expense.expense_date,
-      expense.amount,
-      expense.payee_id
+      normalizedDate,
+      Math.abs(expense.amount),
+      extractedName
     );
     existingMap.set(primaryKey, { 
       id: expense.id, 
       description: expense.description || '' 
     });
     
-    // Secondary key for null payee: date-amount-description (normalized)
-    if (!expense.payee_id && expense.description) {
-      const secondaryKey = createExpenseKeyWithDescription(
-        expense.expense_date,
-        expense.amount,
-        expense.description
+    // Also create key with payee name if different (for backwards compatibility)
+    if (payeeName && payeeName.toLowerCase().trim() !== extractedName.toLowerCase().trim()) {
+      const payeeKey = createExpenseKey(
+        normalizedDate,
+        Math.abs(expense.amount),
+        payeeName
       );
-      existingMap.set(secondaryKey, { 
+      existingMap.set(payeeKey, { 
         id: expense.id, 
-        description: expense.description 
+        description: expense.description || '' 
       });
     }
   }
@@ -1029,6 +1090,7 @@ const fetchExistingExpenses = async (
 
 /**
  * Fetches existing revenues from database for duplicate detection
+ * Joins with clients to get the name for matching
  * @param startDate - Earliest date in the import batch
  * @param endDate - Latest date in the import batch
  * @returns Map of composite keys to existing revenue IDs
@@ -1039,7 +1101,16 @@ const fetchExistingRevenues = async (
 ): Promise<Map<string, { id: string; description: string }>> => {
   const { data: existingRevenues, error } = await supabase
     .from('project_revenues')
-    .select('id, invoice_date, amount, invoice_number, description')
+    .select(`
+      id, 
+      invoice_date, 
+      amount, 
+      invoice_number, 
+      description,
+      clients!project_revenues_client_id_fkey (
+        client_name
+      )
+    `)
     .gte('invoice_date', startDate)
     .lte('invoice_date', endDate);
 
@@ -1051,13 +1122,19 @@ const fetchExistingRevenues = async (
   const existingMap = new Map<string, { id: string; description: string }>();
   
   for (const revenue of existingRevenues || []) {
-    // Key: amount|date|invoice#|description (matching database constraint)
+    const clientName = (revenue.clients as any)?.client_name || '';
+    
+    // Extract name from description as fallback
+    const descMatch = revenue.description?.match(/^Invoice from\s+(.+?)(?:\s*\(|$)/i);
+    const extractedName = descMatch ? descMatch[1].trim() : clientName;
+    
     const key = createRevenueKey(
       revenue.amount,
       revenue.invoice_date,
       revenue.invoice_number || '',
-      revenue.description || ''
+      extractedName
     );
+    
     existingMap.set(key, { 
       id: revenue.id, 
       description: revenue.description || '' 

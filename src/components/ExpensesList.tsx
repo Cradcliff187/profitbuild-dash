@@ -460,19 +460,43 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       return displayableExpenses.filter((expense) => {
         // Search logic - includes amount
         let matchesSearch = true;
-        if (searchTerm) {
-          const searchLower = searchTerm.toLowerCase();
+        if (searchTerm && searchTerm.trim()) {
+          const searchLower = searchTerm.toLowerCase().trim();
           const amountStr = formatCurrency(expense.amount).toLowerCase();
           const amountNum = expense.amount.toString();
           
+          // Extract payee name from description as fallback
+          let extractedPayeeName = '';
+          if (expense.description) {
+            // Match pattern: "transaction_type - PayeeName (Unassigned)" or "transaction_type - PayeeName"
+            const descMatch = expense.description.match(/^(?:bill|check|expense|credit_card|cash)\s*-\s*(.+?)(?:\s*\(|$)/i);
+            extractedPayeeName = descMatch ? descMatch[1].trim() : '';
+          }
+          
+          // Check all possible fields for search match - be explicit about each check
+          const descriptionMatch = expense.description ? expense.description.toLowerCase().includes(searchLower) : false;
+          const payeeNameMatch = expense.payee_name ? expense.payee_name.toLowerCase().includes(searchLower) : false;
+          const payeeFullNameMatch = expense.payee_full_name ? expense.payee_full_name.toLowerCase().includes(searchLower) : false;
+          const extractedPayeeMatch = extractedPayeeName ? extractedPayeeName.toLowerCase().includes(searchLower) : false;
+          const projectNameMatch = expense.project_name ? expense.project_name.toLowerCase().includes(searchLower) : false;
+          const projectNumberMatch = expense.project_number ? expense.project_number.toLowerCase().includes(searchLower) : false;
+          const invoiceNumberMatch = expense.invoice_number ? expense.invoice_number.toLowerCase().includes(searchLower) : false;
+          const amountStrMatch = amountStr.includes(searchLower);
+          
+          // Only check amount number match if search term contains numbers
+          const cleanedNumberSearch = searchTerm.replace(/[^0-9.]/g, '');
+          const amountNumMatch = cleanedNumberSearch ? amountNum.includes(cleanedNumberSearch) : false;
+          
           matchesSearch =
-            expense.description?.toLowerCase().includes(searchLower) ||
-            expense.payee_name?.toLowerCase().includes(searchLower) ||
-            expense.project_name?.toLowerCase().includes(searchLower) ||
-            (expense.project_number && expense.project_number.toLowerCase().includes(searchLower)) ||
-            expense.invoice_number?.toLowerCase().includes(searchLower) ||
-            amountStr.includes(searchLower) ||
-            amountNum.includes(searchTerm.replace(/[^0-9.]/g, ''));
+            descriptionMatch ||
+            payeeNameMatch ||
+            payeeFullNameMatch ||
+            extractedPayeeMatch ||
+            projectNameMatch ||
+            projectNumberMatch ||
+            invoiceNumberMatch ||
+            amountStrMatch ||
+            amountNumMatch;
         }
 
         const matchesCategory = filterCategories.length === 0 || filterCategories.includes(expense.category);
