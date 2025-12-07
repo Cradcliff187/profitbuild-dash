@@ -38,6 +38,7 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
   const [notes, setNotes] = useState(project.notes || "");
   const [originalNotes] = useState(project.notes || ""); // Track original to detect changes
   const [customerPoNumber, setCustomerPoNumber] = useState(project.customer_po_number || "");
+  const [doNotExceed, setDoNotExceed] = useState(project.do_not_exceed?.toString() || "");
   const [startDate, setStartDate] = useState<Date | undefined>(project.start_date);
   const [endDate, setEndDate] = useState<Date | undefined>(project.end_date);
   const [isLoading, setIsLoading] = useState(false);
@@ -148,6 +149,7 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
           client_name: clientName,
           address: address.trim() || null,
           customer_po_number: customerPoNumber.trim() || null,
+          do_not_exceed: doNotExceed ? parseFloat(doNotExceed) : null,
           project_type: projectType,
           status: status as any, // Cast to any to avoid Supabase type conflicts
           job_type: jobType.trim() || null,
@@ -256,14 +258,32 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
           </div>
 
           {/* Customer PO Number */}
-          <div className="space-y-2">
-            <Label htmlFor="customerPoNumber">Customer PO Number</Label>
-            <Input
-              id="customerPoNumber"
-              value={customerPoNumber}
-              onChange={(e) => setCustomerPoNumber(e.target.value)}
-              placeholder="Enter PO number (optional)"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="customerPoNumber">Customer PO Number</Label>
+              <Input
+                id="customerPoNumber"
+                value={customerPoNumber}
+                onChange={(e) => setCustomerPoNumber(e.target.value)}
+                placeholder="Enter PO number (optional)"
+              />
+            </div>
+
+            {/* Do Not Exceed - Only for Work Orders */}
+            {projectType === 'work_order' && (
+              <div className="space-y-2">
+                <Label htmlFor="doNotExceed">Do Not Exceed (NTE)</Label>
+                <Input
+                  id="doNotExceed"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={doNotExceed}
+                  onChange={(e) => setDoNotExceed(e.target.value)}
+                  placeholder="Maximum billable amount"
+                />
+              </div>
+            )}
           </div>
 
           {/* Client Details Card */}
