@@ -36,6 +36,7 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
   const [status, setStatus] = useState<ProjectStatus>(project.status);
   const [jobType, setJobType] = useState(project.job_type || "");
   const [notes, setNotes] = useState(project.notes || "");
+  const [originalNotes] = useState(project.notes || ""); // Track original to detect changes
   const [customerPoNumber, setCustomerPoNumber] = useState(project.customer_po_number || "");
   const [startDate, setStartDate] = useState<Date | undefined>(project.start_date);
   const [endDate, setEndDate] = useState<Date | undefined>(project.end_date);
@@ -161,19 +162,43 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
 
       if (error) throw error;
 
+      // If notes changed and has content, add to project_notes timeline
+      const trimmedNotes = notes.trim();
+      if (trimmedNotes && trimmedNotes !== originalNotes.trim()) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from('project_notes')
+            .insert({
+              project_id: project.id,
+              user_id: user.id,
+              note_text: trimmedNotes,
+            });
+          
+          // Clear the notes field from project after syncing to timeline
+          await supabase
+            .from('projects')
+            .update({ notes: null })
+            .eq('id', project.id);
+        }
+      }
+
       const formattedProject: Project = {
         ...updatedProject,
         created_at: new Date(updatedProject.created_at),
         updated_at: new Date(updatedProject.updated_at),
         start_date: updatedProject.start_date ? new Date(updatedProject.start_date) : undefined,
         end_date: updatedProject.end_date ? new Date(updatedProject.end_date) : undefined,
+        notes: trimmedNotes && trimmedNotes !== originalNotes.trim() ? null : updatedProject.notes, // Clear if synced
       };
 
       onSave(formattedProject);
       
       toast({
         title: "Project Updated",
-        description: `Project "${projectName}" has been updated successfully.`
+        description: trimmedNotes && trimmedNotes !== originalNotes.trim() 
+          ? `Project "${projectName}" updated and note added to timeline.`
+          : `Project "${projectName}" has been updated successfully.`
       });
 
     } catch (error) {
@@ -318,6 +343,9 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
               rows={3}
               className="resize-none"
             />
+            <p className="text-xs text-muted-foreground">
+              Notes will be added to the project timeline when saved.
+            </p>
           </div>
 
           {/* Project Type, Status and Job Type */}
