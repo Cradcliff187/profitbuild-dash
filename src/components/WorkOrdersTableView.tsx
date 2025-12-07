@@ -38,6 +38,7 @@ interface WorkOrderWithDetails extends Project {
   total_expenses: number;
   expense_count: number;
   estimate_amount: number | null;
+  total_invoiced: number;
 }
 
 interface WorkOrdersTableViewProps {
@@ -62,6 +63,7 @@ interface WorkOrdersTableViewProps {
   currentPage?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
+  poRunningTotals?: Map<string, number>;
 }
 
 export const WorkOrdersTableView = ({ 
@@ -86,6 +88,7 @@ export const WorkOrdersTableView = ({
   currentPage = 1,
   totalPages = 1,
   onPageChange,
+  poRunningTotals,
 }: WorkOrdersTableViewProps) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -110,6 +113,8 @@ export const WorkOrdersTableView = ({
     { key: "margin_percentage", label: "Projected Margin %", required: false, sortable: true },
     { key: "has_estimate", label: "Has Estimate", required: false, sortable: true },
     { key: "total_expenses", label: "Actual Expenses", required: false, sortable: true },
+    { key: "total_invoiced", label: "Total Invoiced", required: false, sortable: true },
+    { key: "running_po_total", label: "Running PO Total", required: false, sortable: true },
     { key: "start_date", label: "Start Date", required: false, sortable: true },
     { key: "end_date", label: "Target/End Date", required: false, sortable: true },
     { key: "actions", label: "Actions", required: true },
@@ -130,6 +135,8 @@ export const WorkOrdersTableView = ({
     margin_percentage: "w-32",
     has_estimate: "w-24",
     total_expenses: "w-28",
+    total_invoiced: "w-28",
+    running_po_total: "w-32",
     start_date: "w-28",
     end_date: "w-28",
     actions: "w-20",
@@ -145,6 +152,8 @@ export const WorkOrdersTableView = ({
     current_margin: "text-right",
     margin_percentage: "text-right",
     total_expenses: "text-right",
+    total_invoiced: "text-right",
+    running_po_total: "text-right",
     start_date: "text-right",
     end_date: "text-right",
     actions: "text-right",
@@ -165,6 +174,8 @@ export const WorkOrdersTableView = ({
     margin_percentage: "Projected Margin %",
     has_estimate: "Has Estimate",
     total_expenses: "Actual Expenses",
+    total_invoiced: "Total Invoiced",
+    running_po_total: "Running PO Total",
     start_date: "Start Date",
     end_date: "Target/End Date",
     actions: "Actions",
@@ -436,6 +447,21 @@ export const WorkOrdersTableView = ({
                           return (
                             <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right font-semibold">
                               {formatCurrency(workOrder.total_expenses)}
+                            </TableCell>
+                          );
+                        case "total_invoiced":
+                          return (
+                            <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right font-semibold">
+                              {formatCurrency(workOrder.total_invoiced || 0)}
+                            </TableCell>
+                          );
+                        case "running_po_total":
+                          const runningTotal = workOrder.customer_po_number 
+                            ? poRunningTotals?.get(workOrder.customer_po_number) || 0 
+                            : 0;
+                          return (
+                            <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right font-semibold">
+                              {workOrder.customer_po_number ? formatCurrency(runningTotal) : "—"}
                             </TableCell>
                           );
                         case "start_date":
