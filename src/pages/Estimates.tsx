@@ -13,7 +13,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Estimate } from "@/types/estimate";
-import { Plus, BarChart3, Download, Calculator } from "lucide-react";
+import { Plus, BarChart3, Download, Calculator, ChevronsUpDown } from "lucide-react";
+import { ColumnSelector } from "@/components/ui/column-selector";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -524,12 +526,12 @@ const EstimatesPage = () => {
         {viewMode === "list" && (
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <Button onClick={handleCreateNew} size="sm" className="flex-1 sm:flex-initial">
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4 mr-1" />
               {getCreateButtonText()}
             </Button>
-            <div className="hidden sm:flex">
-              <Button variant="ghost" size="sm" onClick={() => setShowExportModal(true)}>
-                <Download className="h-4 w-4 mr-2" />
+            <div className="hidden sm:flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowExportModal(true)}>
+                <Download className="h-4 w-4 mr-1" />
                 Export
               </Button>
             </div>
