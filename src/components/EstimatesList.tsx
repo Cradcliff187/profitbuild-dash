@@ -25,9 +25,25 @@ interface EstimatesListProps {
   onDelete: (id: string) => void;
   onView: (estimate: Estimate) => void;
   onCreateNew: () => void;
+  visibleColumns?: string[];
+  columnOrder?: string[];
+  collapsedGroups?: Set<string>;
+  onCollapsedGroupsChange?: (groups: Set<string>) => void;
+  onAllGroupKeysChange?: (keys: string[]) => void;
 }
 
-export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesListProps) => {
+export const EstimatesList = ({ 
+  estimates, 
+  onEdit, 
+  onDelete, 
+  onView, 
+  onCreateNew,
+  visibleColumns,
+  columnOrder,
+  collapsedGroups,
+  onCollapsedGroupsChange,
+  onAllGroupKeysChange,
+}: EstimatesListProps) => {
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [estimateToDelete, setEstimateToDelete] = useState<string | null>(null);
@@ -38,7 +54,20 @@ export const EstimatesList = ({ estimates, onEdit, onDelete, onView, onCreateNew
     return <EstimatesCardView estimates={estimates} onEdit={onEdit} onDelete={onDelete} onView={onView} onCreateNew={onCreateNew} />;
   }
   
-  return <EstimatesTableView estimates={estimates} onEdit={onEdit} onDelete={onDelete} onView={onView} onCreateNew={onCreateNew} />;
+  return (
+    <EstimatesTableView 
+      estimates={estimates} 
+      onEdit={onEdit} 
+      onDelete={onDelete} 
+      onView={onView} 
+      onCreateNew={onCreateNew}
+      visibleColumns={visibleColumns}
+      columnOrder={columnOrder}
+      collapsedGroups={collapsedGroups}
+      onCollapsedGroupsChange={onCollapsedGroupsChange}
+      onAllGroupKeysChange={onAllGroupKeysChange}
+    />
+  );
 };
 
 // Extract card view into separate component for cleaner organization

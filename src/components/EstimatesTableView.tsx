@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Plus, FileText, AlertTriangle, ChevronsUpDown } from "lucide-react";
-import { ColumnSelector } from "@/components/ui/column-selector";
+import { Plus, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { Estimate, EstimateStatus } from "@/types/estimate";
 import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "./FinancialTableTemplate";
-// Removed BudgetComparisonBadge import
 import { EstimateActionsMenu } from "./EstimateActionsMenu";
 import { EstimateStatusSelector } from "./EstimateStatusSelector";
 import { cn, formatCurrency } from "@/lib/utils";
 import { 
-  calculateEstimateFinancials, 
   getMarginPerformanceStatus, 
   getMarkupPerformanceStatus 
 } from "@/utils/estimateFinancials";
@@ -20,98 +17,70 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 type EstimateWithQuotes = Estimate & { quotes?: Array<{ id: string; total_amount: number; status: string }> };
 
+// Column definitions for the estimates table
+const columnDefinitions = [
+  { key: 'estimate_number', label: 'Estimate #', required: true },
+  { key: 'version_number', label: 'Version', required: false },
+  { key: 'status', label: 'Status', required: true },
+  { key: 'date_created', label: 'Created', required: false },
+  { key: 'total_with_contingency', label: 'Total w/ Cont.', required: false },
+  { key: 'total_amount', label: 'Price', required: true },
+  { key: 'contingency_amount', label: 'Contingency $', required: false },
+  { key: 'total_cost', label: 'Cost', required: false },
+  { key: 'gross_profit', label: 'Profit', required: false },
+  { key: 'gross_margin_percent', label: 'Margin %', required: false },
+  { key: 'markup_amount', label: 'Markup $', required: false },
+  { key: 'markup_percent', label: 'Markup %', required: false },
+  { key: 'variance', label: 'Quote Variance', required: false },
+  { key: 'contingency', label: 'Contingency %', required: false },
+  { key: 'line_items', label: 'Line Items', required: false },
+  { key: 'actions', label: 'Actions', required: true },
+];
+
+const defaultVisibleColumns = [
+  'estimate_number', 'version_number', 'status', 'date_created',
+  'total_with_contingency', 'total_amount', 'contingency_amount',
+  'total_cost', 'gross_profit', 'gross_margin_percent',
+  'markup_amount', 'markup_percent', 'variance', 'contingency',
+  'line_items', 'actions'
+];
+
 interface EstimatesTableViewProps {
   estimates: EstimateWithQuotes[];
   onEdit: (estimate: Estimate) => void;
   onDelete: (id: string) => void;
   onView: (estimate: Estimate) => void;
   onCreateNew: () => void;
+  visibleColumns?: string[];
+  columnOrder?: string[];
+  collapsedGroups?: Set<string>;
+  onCollapsedGroupsChange?: (groups: Set<string>) => void;
+  onAllGroupKeysChange?: (keys: string[]) => void;
 }
 
-export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesTableViewProps) => {
+export const EstimatesTableView = ({ 
+  estimates, 
+  onEdit, 
+  onDelete, 
+  onView, 
+  onCreateNew,
+  visibleColumns: externalVisibleColumns,
+  columnOrder: externalColumnOrder,
+  collapsedGroups: externalCollapsedGroups,
+  onCollapsedGroupsChange,
+  onAllGroupKeysChange,
+}: EstimatesTableViewProps) => {
   const isMobile = useIsMobile();
   const [localEstimates, setLocalEstimates] = useState(estimates);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   
-  // Define column metadata for selector
-  const columnDefinitions = [
-    { key: 'estimate_number', label: 'Estimate #', required: true },
-    { key: 'version_number', label: 'Version', required: false },
-    { key: 'status', label: 'Status', required: true },
-    { key: 'date_created', label: 'Created', required: false },
-    { key: 'total_with_contingency', label: 'Total w/ Cont.', required: false },
-    { key: 'total_amount', label: 'Price', required: true },
-    { key: 'contingency_amount', label: 'Contingency $', required: false },
-    { key: 'total_cost', label: 'Cost', required: false },
-    { key: 'gross_profit', label: 'Profit', required: false },
-    { key: 'gross_margin_percent', label: 'Margin %', required: false },
-    { key: 'markup_amount', label: 'Markup $', required: false },
-    { key: 'markup_percent', label: 'Markup %', required: false },
-    { key: 'variance', label: 'Quote Variance', required: false },
-    { key: 'contingency', label: 'Contingency %', required: false },
-    { key: 'line_items', label: 'Line Items', required: false },
-    { key: 'actions', label: 'Actions', required: true },
-  ];
-
-  // Column visibility state with localStorage persistence
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
-    const saved = localStorage.getItem('estimates-visible-columns');
-    if (saved) {
-      const savedVisible = JSON.parse(saved);
-      // Filter out invalid column keys
-      return savedVisible.filter((key: string) => 
-        columnDefinitions.some(col => col.key === key)
-      );
-    }
-    return [
-      'estimate_number',
-      'version_number',
-      'status',
-      'date_created',
-      'total_with_contingency',
-      'total_amount',
-      'contingency_amount',
-      'total_cost',
-      'gross_profit',
-      'gross_margin_percent',
-      'markup_amount',
-      'markup_percent',
-      'variance',
-      'contingency',
-      'line_items',
-      'actions'
-    ];
-  });
-
-  // Column order state with localStorage persistence
-  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
-    const saved = localStorage.getItem('estimates-column-order');
-    if (saved) {
-      const savedOrder = JSON.parse(saved);
-      // Filter out any invalid column keys that no longer exist
-      const validOrder = savedOrder.filter((key: string) => 
-        columnDefinitions.some(col => col.key === key)
-      );
-      // Add any new columns that aren't in saved order
-      const newColumns = columnDefinitions
-        .map(col => col.key)
-        .filter(key => !validOrder.includes(key));
-      
-      return [...validOrder, ...newColumns];
-    }
-    // Default: use order from columnDefinitions
-    return columnDefinitions.map(col => col.key);
-  });
-
-  // Save visibility to localStorage
-  useEffect(() => {
-    localStorage.setItem('estimates-visible-columns', JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
-
-  // Save order to localStorage
-  useEffect(() => {
-    localStorage.setItem('estimates-column-order', JSON.stringify(columnOrder));
-  }, [columnOrder]);
+  // Use external state if provided, otherwise use internal state
+  const [internalCollapsedGroups, setInternalCollapsedGroups] = useState<Set<string>>(new Set());
+  const collapsedGroups = externalCollapsedGroups ?? internalCollapsedGroups;
+  const setCollapsedGroups = onCollapsedGroupsChange ?? setInternalCollapsedGroups;
+  
+  // Use external column state if provided, otherwise use defaults
+  const visibleColumns = externalVisibleColumns ?? defaultVisibleColumns;
+  const columnOrder = externalColumnOrder ?? columnDefinitions.map(col => col.key);
 
   // Update local state when estimates prop changes
   React.useEffect(() => {
@@ -497,37 +466,12 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       col !== undefined && visibleColumns.includes(col.key)
     );
 
-  const toggleAllGroups = () => {
-    if (collapsedGroups.size > 0) {
-      setCollapsedGroups(new Set());
-    } else {
-      const allKeys = new Set(groupedData.map(g => g.groupKey));
-      setCollapsedGroups(allKeys);
+  // Notify parent of all group keys for expand/collapse all functionality
+  useEffect(() => {
+    if (onAllGroupKeysChange) {
+      onAllGroupKeysChange(groupedData.map(g => g.groupKey));
     }
-  };
-
-  const collapseButton = (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-2"
-            onClick={toggleAllGroups}
-          >
-            <ChevronsUpDown className="h-4 w-4" />
-            <span className="hidden sm:inline">
-              {collapsedGroups.size > 0 ? 'Expand All' : 'Collapse All'}
-            </span>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          {collapsedGroups.size > 0 ? 'Expand all groups' : 'Collapse all groups'}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
+  }, [groupedData.length, onAllGroupKeysChange]);
 
   if (localEstimates.length === 0) {
     return (
@@ -536,13 +480,6 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
           <div className="text-sm text-muted-foreground">
             0 estimates
           </div>
-          <ColumnSelector
-            columns={columnDefinitions}
-            visibleColumns={visibleColumns}
-            onVisibilityChange={setVisibleColumns}
-            columnOrder={columnOrder}
-            onColumnOrderChange={setColumnOrder}
-          />
         </div>
         <div className="text-center py-12">
           <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -564,16 +501,6 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
           {localEstimates.length} {localEstimates.length === 1 ? 'estimate' : 'estimates'} across {groupedData.length} {groupedData.length === 1 ? 'project' : 'projects'}
-        </div>
-        <div className="flex items-center gap-2">
-          <ColumnSelector
-            columns={columnDefinitions}
-            visibleColumns={visibleColumns}
-            onVisibilityChange={setVisibleColumns}
-            columnOrder={columnOrder}
-            onColumnOrderChange={setColumnOrder}
-          />
-          {collapseButton}
         </div>
       </div>
       
