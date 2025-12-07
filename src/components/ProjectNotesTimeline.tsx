@@ -38,6 +38,12 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
   const [isUploading, setIsUploading] = useState(false);
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const [enlargedVideo, setEnlargedVideo] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  
+  // Handler for image load errors - fallback to download link
+  const handleImageError = (noteId: string) => {
+    setFailedImages(prev => new Set(prev).add(noteId));
+  };
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { capturePhoto, isCapturing: isCapturingPhoto } = useCameraCapture();
@@ -205,14 +211,35 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
       const response = await fetch(dataUrl);
       const blob = await response.blob();
       
+      // Detect MIME type from dataUrl prefix for accurate typing
+      const mimeMatch = dataUrl.match(/data:([^;]+);/);
+      const detectedMimeType = mimeMatch ? mimeMatch[1] : blob.type;
+      
+      // Validate that images are actual image formats
+      const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+      if (type === 'image' && !validImageTypes.includes(detectedMimeType)) {
+        console.warn(`Invalid image type detected: ${detectedMimeType}`);
+        toast.error('Invalid image format. Please use JPG, PNG, GIF, or WebP.');
+        return null;
+      }
+      
       let fileExt = 'jpg';
-      let contentType = blob.type;
+      let contentType = detectedMimeType || blob.type;
       
       if (type === 'video') {
         fileExt = 'mp4';
       } else if (type === 'file' && fileName) {
         const ext = fileName.split('.').pop();
         fileExt = ext || 'pdf';
+      } else if (type === 'image') {
+        // Determine extension from detected MIME type
+        const extMap: Record<string, string> = {
+          'image/jpeg': 'jpg',
+          'image/png': 'png',
+          'image/gif': 'gif',
+          'image/webp': 'webp',
+        };
+        fileExt = extMap[detectedMimeType] || 'jpg';
       }
       
       const uploadFileName = `${projectId}/${Date.now()}.${fileExt}`;
@@ -525,12 +552,13 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                             </p>
                             {note.attachment_url && (
                               <div className="mt-2">
-                                {note.attachment_type === 'image' ? (
+                                {note.attachment_type === 'image' && !failedImages.has(note.id) ? (
                                   <div className="relative inline-block group cursor-pointer" onClick={() => setEnlargedImage(note.attachment_url!)}>
                                     <img 
                                       src={note.attachment_url} 
                                       alt="Note attachment" 
                                       className="w-full max-w-xs rounded border hover:opacity-90 transition-opacity"
+                                      onError={() => handleImageError(note.id)}
                                     />
                                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded">
                                       <Maximize2 className="w-6 h-6 text-white" />
@@ -551,6 +579,8 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                                   <a 
                                     href={note.attachment_url} 
                                     download={note.attachment_name}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="flex items-center gap-2 p-2 bg-muted rounded border hover:bg-muted/80 transition-colors text-sm"
                                   >
                                     <FileText className="w-4 h-4 text-muted-foreground" />
@@ -739,12 +769,13 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                           </p>
                           {note.attachment_url && (
                             <div className="mt-1">
-                              {note.attachment_type === 'image' ? (
+                              {note.attachment_type === 'image' && !failedImages.has(note.id) ? (
                                 <div className="relative inline-block group cursor-pointer" onClick={() => setEnlargedImage(note.attachment_url!)}>
                                   <img 
                                     src={note.attachment_url} 
                                     alt="Note attachment" 
                                     className="w-full max-w-[120px] rounded border hover:opacity-90 transition-opacity"
+                                    onError={() => handleImageError(note.id)}
                                   />
                                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded">
                                     <Maximize2 className="w-4 h-4 text-white" />
@@ -765,6 +796,8 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                                 <a 
                                   href={note.attachment_url} 
                                   download={note.attachment_name}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                   className="flex items-center gap-1 p-1 bg-muted rounded border hover:bg-muted/80 transition-colors text-[10px]"
                                 >
                                   <FileText className="w-3 h-3 text-muted-foreground" />
@@ -877,12 +910,13 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                               </p>
                               {note.attachment_url && (
                                 <div className="mt-1.5">
-                                  {note.attachment_type === 'image' ? (
+                                  {note.attachment_type === 'image' && !failedImages.has(note.id) ? (
                                     <div className="relative inline-block group cursor-pointer" onClick={() => setEnlargedImage(note.attachment_url!)}>
                                       <img 
                                         src={note.attachment_url} 
                                         alt="Note attachment" 
                                         className="w-full max-w-[200px] rounded border hover:opacity-90 transition-opacity"
+                                        onError={() => handleImageError(note.id)}
                                       />
                                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded">
                                         <Maximize2 className="w-5 h-5 text-white" />
@@ -903,6 +937,8 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                                     <a 
                                       href={note.attachment_url} 
                                       download={note.attachment_name}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
                                       className="flex items-center gap-2 p-1.5 bg-muted rounded border hover:bg-muted/80 transition-colors text-xs"
                                     >
                                       <FileText className="w-4 h-4 text-muted-foreground" />
