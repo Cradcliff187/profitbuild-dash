@@ -654,7 +654,7 @@ useEffect(() => {
             }
           }
 
-          // Delete removed line items (quotes will be detached naturally via cascade)
+          // Delete removed line items (quote links will be set to NULL automatically)
           if (toDelete.length > 0) {
             const { error: deleteError } = await supabase
               .from('estimate_line_items')
