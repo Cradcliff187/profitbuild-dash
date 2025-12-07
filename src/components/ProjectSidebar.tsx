@@ -3,7 +3,6 @@ import {
   FileText, 
   DollarSign, 
   Target, 
-  Link2, 
   FileEdit,
   Edit,
   Calendar
@@ -64,7 +63,6 @@ const getNavigationGroups = (): NavigationGroup[] => {
       abbrev: "CM",
       items: [
         { title: "Expenses", url: "expenses", icon: DollarSign },
-        { title: "Expense Matching", url: "matching", icon: Link2 },
         { title: "Line Item Control", url: "control", icon: Target },
       ]
     },
