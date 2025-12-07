@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,11 +16,13 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { useLineItemControl, LineItemControlData, QuoteData } from '@/hooks/useLineItemControl';
-import { CATEGORY_DISPLAY_MAP } from '@/types/estimate';
+import { CATEGORY_DISPLAY_MAP, LineItemCategory } from '@/types/estimate';
 import { FinancialTableTemplate, FinancialTableColumn } from '@/components/FinancialTableTemplate';
 import { cn, formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Project } from '@/types/project';
+
+const INTERNAL_CATEGORIES = [LineItemCategory.LABOR, LineItemCategory.MANAGEMENT];
 
 interface LineItemControlDashboardProps {
   projectId: string;
@@ -30,6 +32,24 @@ interface LineItemControlDashboardProps {
 export function LineItemControlDashboard({ projectId, project }: LineItemControlDashboardProps) {
   const { lineItems, summary, isLoading, error, refetch } = useLineItemControl(projectId, project);
   const [selectedLineItem, setSelectedLineItem] = useState<LineItemControlData | null>(null);
+
+  // Sort line items: external items first (by estimated price desc), then internal items (by estimated price desc)
+  const sortedLineItems = useMemo(() => {
+    const external = lineItems.filter(item => 
+      !INTERNAL_CATEGORIES.includes(item.category as LineItemCategory)
+    );
+    const internal = lineItems.filter(item => 
+      INTERNAL_CATEGORIES.includes(item.category as LineItemCategory)
+    );
+    
+    const sortByPrice = (a: LineItemControlData, b: LineItemControlData) => 
+      (b.estimatedPrice || 0) - (a.estimatedPrice || 0);
+    
+    return [
+      ...external.sort(sortByPrice),
+      ...internal.sort(sortByPrice)
+    ];
+  }, [lineItems]);
 
   const getQuoteStatusBadge = (status: LineItemControlData['quoteStatus']) => {
     const variants = {
@@ -68,7 +88,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
 
     const csvContent = [
       headers.join(','),
-      ...lineItems.map(item => {
+      ...sortedLineItems.map(item => {
         const acceptedQuotes = item.quotes.filter(q => q.status === 'accepted');
         const payeeNames = acceptedQuotes.map(q => q.quotedBy).join('; ');
         const payeeNameValue = item.quoteStatus === 'internal' 
@@ -749,7 +769,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
         </div>
 
         <FinancialTableTemplate
-          data={lineItems}
+          data={sortedLineItems}
           columns={columns}
           emptyMessage="No line items found for this project"
           emptyIcon={<AlertTriangle className="h-8 w-8" />}
