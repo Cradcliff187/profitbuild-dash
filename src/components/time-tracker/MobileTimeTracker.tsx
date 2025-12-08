@@ -36,6 +36,8 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { addToQueue } from '@/utils/syncQueue';
 import { ProjectCategory } from '@/types/project';
 
+const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
+
 interface Project {
   id: string;
   project_number: string;
@@ -44,6 +46,14 @@ interface Project {
   address?: string;
   category?: string;
 }
+
+// Helper to get clean display name for projects (PTO shows just name, construction shows number + client)
+const getProjectDisplayName = (project: Project): string => {
+  if (PTO_PROJECT_NUMBERS.includes(project.project_number)) {
+    return project.project_name; // Just "Sick Time", "Vacation Time", etc.
+  }
+  return `${project.project_number} - ${project.client_name}`;
+};
 
 interface TeamMember {
   id: string;
@@ -315,8 +325,6 @@ export const MobileTimeTracker: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // PTO project numbers that should always be allowed in time tracker
-  const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
 
   // Load timer state from localStorage on mount
   useEffect(() => {
@@ -1251,11 +1259,15 @@ export const MobileTimeTracker: React.FC = () => {
                 <div className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
-                    <span>{activeTimer.project.project_number} - {activeTimer.project.client_name}</span>
+                    <span>{getProjectDisplayName(activeTimer.project)}</span>
                   </div>
-                  <span className="text-xs opacity-90 ml-6">{activeTimer.project.project_name}</span>
-                  {activeTimer.project.address && (
-                    <span className="text-xs opacity-90 ml-6">{activeTimer.project.address}</span>
+                  {!PTO_PROJECT_NUMBERS.includes(activeTimer.project.project_number) && (
+                    <>
+                      <span className="text-xs opacity-90 ml-6">{activeTimer.project.project_name}</span>
+                      {activeTimer.project.address && (
+                        <span className="text-xs opacity-90 ml-6">{activeTimer.project.address}</span>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -1344,11 +1356,15 @@ export const MobileTimeTracker: React.FC = () => {
               {selectedProject ? (
                 <div>
                   <div className="font-semibold text-foreground">
-                    {selectedProject.project_number} - {selectedProject.client_name}
+                    {getProjectDisplayName(selectedProject)}
                   </div>
-                  <div className="text-sm text-muted-foreground">{selectedProject.project_name}</div>
-                  {selectedProject.address && (
-                    <div className="text-sm text-muted-foreground">{selectedProject.address}</div>
+                  {!PTO_PROJECT_NUMBERS.includes(selectedProject.project_number) && (
+                    <>
+                      <div className="text-sm text-muted-foreground">{selectedProject.project_name}</div>
+                      {selectedProject.address && (
+                        <div className="text-sm text-muted-foreground">{selectedProject.address}</div>
+                      )}
+                    </>
                   )}
                 </div>
               ) : (
@@ -1375,11 +1391,15 @@ export const MobileTimeTracker: React.FC = () => {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold truncate">
-                          {project.project_number} - {project.client_name}
+                          {getProjectDisplayName(project)}
                         </div>
-                        <div className="text-sm text-muted-foreground truncate">{project.project_name}</div>
-                        {project.address && (
-                          <div className="text-sm text-muted-foreground truncate">{project.address}</div>
+                        {!PTO_PROJECT_NUMBERS.includes(project.project_number) && (
+                          <>
+                            <div className="text-sm text-muted-foreground truncate">{project.project_name}</div>
+                            {project.address && (
+                              <div className="text-sm text-muted-foreground truncate">{project.address}</div>
+                            )}
+                          </>
                         )}
                       </div>
                       {selectedProject?.id === project.id && (
@@ -1538,11 +1558,13 @@ export const MobileTimeTracker: React.FC = () => {
                         
                         {/* SECONDARY: Project Information */}
                         <div className="text-sm text-muted-foreground mt-1">
-                          {entry.project.project_number} - {entry.project.client_name}
+                          {getProjectDisplayName(entry.project)}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {entry.project.project_name}
-                        </div>
+                        {!PTO_PROJECT_NUMBERS.includes(entry.project.project_number) && (
+                          <div className="text-xs text-muted-foreground">
+                            {entry.project.project_name}
+                          </div>
+                        )}
                         
                         {/* STATUS: Approval Badge if Pending */}
                         {entry.approval_status === 'pending' && (
@@ -1616,7 +1638,7 @@ export const MobileTimeTracker: React.FC = () => {
                         {getElapsedTime()} on site
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {activeTimer.project.project_number} - {activeTimer.project.client_name}
+                        {getProjectDisplayName(activeTimer.project)}
                       </div>
                     </div>
                   )}
