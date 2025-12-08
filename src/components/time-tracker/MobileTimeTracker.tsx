@@ -315,6 +315,9 @@ export const MobileTimeTracker: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // PTO project numbers that should always be allowed in time tracker
+  const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
+
   // Load timer state from localStorage on mount
   useEffect(() => {
     const savedTimer = localStorage.getItem('activeTimer');
@@ -322,11 +325,16 @@ export const MobileTimeTracker: React.FC = () => {
       try {
         const parsed = JSON.parse(savedTimer);
         
-        // Sanitize: clear non-construction project if cached
-        const isNonConstructionProject = (category?: string) => 
-          category === 'system' || category === 'overhead';
+        // Sanitize: clear non-construction/non-PTO overhead project if cached
+        const isAllowedProject = (project?: Project) => {
+          if (!project) return false;
+          // PTO projects are always allowed
+          if (PTO_PROJECT_NUMBERS.includes(project.project_number)) return true;
+          // Construction projects are allowed
+          return project.category === 'construction';
+        };
         
-        if (parsed.project && isNonConstructionProject(parsed.project.category)) {
+        if (parsed.project && !isAllowedProject(parsed.project)) {
           parsed.project = null;
         }
         
@@ -356,22 +364,38 @@ export const MobileTimeTracker: React.FC = () => {
   const loadInitialData = async () => {
     setDataLoading(true);
     try {
-      // Load active projects (exclude system projects)
-    const { data: projectsData, error: projectsError } = await supabase
-      .from('projects')
-      .select('id, project_number, project_name, client_name, address, category')
-      .in('status', ['approved', 'in_progress'])
-      .eq('category', 'construction')
+      // Load active construction projects
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('id, project_number, project_name, client_name, address, category')
+        .in('status', ['approved', 'in_progress'])
+        .eq('category', 'construction')
         .order('project_number', { ascending: true })
         .limit(20);
 
       if (projectsError) throw projectsError;
       
-      // Defense-in-depth: filter any non-construction projects
+      // Load PTO overhead projects (always visible in time tracker)
+      const { data: ptoProjectsData, error: ptoProjectsError } = await supabase
+        .from('projects')
+        .select('id, project_number, project_name, client_name, address, category')
+        .eq('category', 'overhead')
+        .in('project_number', PTO_PROJECT_NUMBERS)
+        .eq('status', 'in_progress');
+
+      if (ptoProjectsError) throw ptoProjectsError;
+      
+      // Defense-in-depth: filter construction projects
       const cleanedProjects = (projectsData || []).filter(
         p => p.category === 'construction'
       );
-      setProjects(cleanedProjects);
+      
+      // Combine construction + PTO projects
+      const allProjects = [
+        ...cleanedProjects,
+        ...(ptoProjectsData || [])
+      ];
+      setProjects(allProjects);
 
       // Load internal labor team members
       const { data: teamMembersData, error: teamMembersError } = await supabase
