@@ -333,12 +333,9 @@ export const MobileTimeTracker: React.FC = () => {
       try {
         const parsed = JSON.parse(savedTimer);
         
-        // Sanitize: clear non-construction/non-PTO overhead project if cached
+        // Sanitize: clear non-construction project if cached (PTO not allowed in clock-in)
         const isAllowedProject = (project?: Project) => {
           if (!project) return false;
-          // PTO projects are always allowed
-          if (PTO_PROJECT_NUMBERS.includes(project.project_number)) return true;
-          // Construction projects are allowed
           return project.category === 'construction';
         };
         
@@ -383,27 +380,11 @@ export const MobileTimeTracker: React.FC = () => {
 
       if (projectsError) throw projectsError;
       
-      // Load PTO overhead projects (always visible in time tracker)
-      const { data: ptoProjectsData, error: ptoProjectsError } = await supabase
-        .from('projects')
-        .select('id, project_number, project_name, client_name, address, category')
-        .eq('category', 'overhead')
-        .in('project_number', PTO_PROJECT_NUMBERS)
-        .eq('status', 'in_progress');
-
-      if (ptoProjectsError) throw ptoProjectsError;
-      
-      // Defense-in-depth: filter construction projects
+      // Defense-in-depth: filter construction projects only (PTO handled in manual entry form)
       const cleanedProjects = (projectsData || []).filter(
         p => p.category === 'construction'
       );
-      
-      // Combine construction + PTO projects
-      const allProjects = [
-        ...cleanedProjects,
-        ...(ptoProjectsData || [])
-      ];
-      setProjects(allProjects);
+      setProjects(cleanedProjects);
 
       // Load internal labor team members
       const { data: teamMembersData, error: teamMembersError } = await supabase
