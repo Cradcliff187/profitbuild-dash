@@ -209,7 +209,7 @@ export const TimeEntryForm = ({
           variant="outline" 
           onClick={() => { 
             setStartTime('08:00'); 
-            setEndTime('17:00'); 
+            setEndTime('16:00');
             setHours('8'); 
           }}
           disabled={disabled}
