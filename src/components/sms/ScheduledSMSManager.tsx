@@ -148,7 +148,7 @@ export function ScheduledSMSManager() {
       }
     } else {
       // Success - set data (could be empty array)
-      setSchedules(data || []);
+      setSchedules((data || []) as ScheduledSMS[]);
     }
     setIsLoading(false);
   };
