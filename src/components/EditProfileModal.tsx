@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, UserCog } from 'lucide-react';
@@ -14,6 +15,8 @@ interface EditProfileModalProps {
     id: string;
     email: string;
     full_name: string;
+    phone?: string | null;
+    sms_notifications_enabled?: boolean | null;
   };
   onSuccess: () => void;
 }
@@ -22,6 +25,27 @@ export default function EditProfileModal({ open, onOpenChange, user, onSuccess }
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState(user.full_name || '');
+  const [phone, setPhone] = useState(user.phone || '');
+  const [smsEnabled, setSmsEnabled] = useState(user.sms_notifications_enabled ?? true);
+
+  // Load phone data when modal opens
+  useEffect(() => {
+    if (open) {
+      async function loadPhoneData() {
+        const { data } = await supabase
+          .from('profiles')
+          .select('phone, sms_notifications_enabled')
+          .eq('id', user.id)
+          .single();
+        
+        if (data) {
+          setPhone(data.phone || '');
+          setSmsEnabled(data.sms_notifications_enabled ?? true);
+        }
+      }
+      loadPhoneData();
+    }
+  }, [open, user.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +56,8 @@ export default function EditProfileModal({ open, onOpenChange, user, onSuccess }
         .from('profiles')
         .update({
           full_name: fullName.trim(),
+          phone: phone.trim() || null,
+          sms_notifications_enabled: smsEnabled,
         })
         .eq('id', user.id);
 
@@ -89,6 +115,34 @@ export default function EditProfileModal({ open, onOpenChange, user, onSuccess }
               disabled={loading}
               className="h-8 text-sm"
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="phone" className="text-xs">Mobile Phone (for SMS)</Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(555) 123-4567"
+              disabled={loading}
+              className="h-8 text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              Used for clock-in reminders and team notifications
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="sms-enabled"
+              checked={smsEnabled}
+              onCheckedChange={(checked) => setSmsEnabled(checked === true)}
+              disabled={loading}
+            />
+            <label htmlFor="sms-enabled" className="text-xs cursor-pointer">
+              Receive SMS notifications
+            </label>
           </div>
 
           <div className="flex gap-2 pt-2">

@@ -42,6 +42,7 @@ const BranchBidDetail = lazy(() => import("./pages/BranchBidDetail"));
 const Reports = lazy(() => import("./pages/Reports"));
 const AllExpensesLineItemsReport = lazy(() => import("./pages/AllExpensesLineItemsReport"));
 const AllRevenuesLineItemsReport = lazy(() => import("./pages/AllRevenuesLineItemsReport"));
+const SMSAdmin = lazy(() => import("./pages/SMSAdmin"));
 
 const queryClient = new QueryClient();
 
@@ -102,6 +103,7 @@ const App = () => (
                   <Route path="profit-analysis" element={<LazyRoute component={ProfitAnalysis} />} />
                   <Route path="settings" element={<LazyRoute component={Settings} />} />
                   <Route path="role-management" element={<LazyRoute component={RoleManagement} />} />
+                  <Route path="sms" element={<LazyRoute component={SMSAdmin} />} />
                   <Route path="kpi-guide" element={<LazyRoute component={KPIGuide} />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />

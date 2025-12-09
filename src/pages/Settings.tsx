@@ -26,8 +26,12 @@ const Settings = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [smsEnabled, setSmsEnabled] = useState(true);
   const [originalFirstName, setOriginalFirstName] = useState("");
   const [originalLastName, setOriginalLastName] = useState("");
+  const [originalPhone, setOriginalPhone] = useState("");
+  const [originalSmsEnabled, setOriginalSmsEnabled] = useState(true);
   
   // Preferences state
   const [budgetThreshold, setBudgetThresholdState] = useState<number>(10);
@@ -39,7 +43,11 @@ const Settings = () => {
   const [loadingCounter, setLoadingCounter] = useState(false);
 
   // Track if profile has changes
-  const hasProfileChanges = firstName !== originalFirstName || lastName !== originalLastName;
+  const hasProfileChanges = 
+    firstName !== originalFirstName || 
+    lastName !== originalLastName ||
+    phone !== originalPhone ||
+    smsEnabled !== originalSmsEnabled;
 
   useEffect(() => {
     fetchProfileData();
@@ -57,7 +65,7 @@ const Settings = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, email')
+        .select('full_name, email, phone, sms_notifications_enabled')
         .eq('id', user.id)
         .single();
 
@@ -73,6 +81,10 @@ const Settings = () => {
       setOriginalFirstName(first);
       setOriginalLastName(last);
       setEmail(data?.email || user.email || '');
+      setPhone(data?.phone || '');
+      setSmsEnabled(data?.sms_notifications_enabled ?? true);
+      setOriginalPhone(data?.phone || '');
+      setOriginalSmsEnabled(data?.sms_notifications_enabled ?? true);
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast.error('Failed to load profile data');
@@ -89,13 +101,19 @@ const Settings = () => {
       
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name: fullName })
+        .update({ 
+          full_name: fullName,
+          phone: phone.trim() || null,
+          sms_notifications_enabled: smsEnabled,
+        })
         .eq('id', user.id);
 
       if (error) throw error;
 
       setOriginalFirstName(firstName);
       setOriginalLastName(lastName);
+      setOriginalPhone(phone);
+      setOriginalSmsEnabled(smsEnabled);
       toast.success('Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -282,6 +300,31 @@ const Settings = () => {
                 className="bg-muted cursor-not-allowed"
               />
               <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Mobile Phone (for SMS)</Label>
+              <Input 
+                id="phone" 
+                type="tel"
+                placeholder="(555) 123-4567"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Used for clock-in reminders and team notifications
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="sms-enabled"
+                checked={smsEnabled}
+                onCheckedChange={setSmsEnabled}
+                disabled={loading}
+              />
+              <Label htmlFor="sms-enabled" className="cursor-pointer">
+                Receive SMS notifications
+              </Label>
             </div>
           </CardContent>
         </Card>

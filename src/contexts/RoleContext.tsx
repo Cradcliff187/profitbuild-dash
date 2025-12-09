@@ -23,10 +23,13 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
 
   const loadRoles = async () => {
     if (!user) {
+      console.log('🔒 RoleContext: No user, setting roles to empty');
       setRoles([]);
       setLoading(false);
       return;
     }
+
+    console.log('🔒 RoleContext: Loading roles for user', user.id);
 
     try {
       const { data, error } = await supabase
@@ -34,14 +37,19 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
         .select('role')
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('🔒 RoleContext: Error from Supabase:', error);
+        throw error;
+      }
 
-      setRoles(data?.map(r => r.role as AppRole) || []);
+      const roles = data?.map(r => r.role as AppRole) || [];
+      console.log('🔒 RoleContext: Loaded roles:', roles, 'from data:', data);
+      setRoles(roles);
+      setLoading(false); // Set loading false AFTER setting roles
     } catch (error) {
-      console.error('Error loading roles:', error);
+      console.error('🔒 RoleContext: Error loading roles:', error);
       setRoles([]);
-    } finally {
-      setLoading(false);
+      setLoading(false); // Set loading false AFTER setting empty roles
     }
   };
 
