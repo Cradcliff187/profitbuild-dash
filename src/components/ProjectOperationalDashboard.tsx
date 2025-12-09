@@ -132,8 +132,8 @@ export function ProjectOperationalDashboard({
   );
 
   const scheduleStatus = useMemo(() => 
-    calculateScheduleStatus(scheduleDates.start, scheduleDates.end),
-    [scheduleDates.start, scheduleDates.end]
+    calculateScheduleStatus(scheduleDates.start, scheduleDates.end, project.status),
+    [scheduleDates.start, scheduleDates.end, project.status]
   );
 
   const changeOrderSummary = useMemo(() => {
@@ -319,16 +319,25 @@ export function ProjectOperationalDashboard({
                 </div>
                 <Progress 
                   value={scheduleStatus.percentComplete} 
-                  className={`h-2 ${scheduleStatus.isOverdue ? '[&>div]:bg-destructive' : '[&>div]:bg-primary'}`}
+                  className={`h-2 ${
+                    scheduleStatus.isComplete ? '[&>div]:bg-success' :
+                    scheduleStatus.isOverdue ? '[&>div]:bg-destructive' : 
+                    '[&>div]:bg-primary'
+                  }`}
                 />
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">
                     {scheduleStatus.elapsedDays} of {scheduleStatus.totalDays} days
                   </span>
-                  <span className={`font-medium ${scheduleStatus.isOverdue ? 'text-destructive' : ''}`}>
-                    {scheduleStatus.isOverdue 
-                      ? `Overdue by ${Math.abs(scheduleStatus.remainingDays)} days`
-                      : `${scheduleStatus.remainingDays} days remaining`
+                  <span className={`font-medium ${
+                    scheduleStatus.isComplete ? 'text-success' :
+                    scheduleStatus.isOverdue ? 'text-destructive' : ''
+                  }`}>
+                    {scheduleStatus.isComplete 
+                      ? 'Completed'
+                      : scheduleStatus.isOverdue 
+                        ? `Overdue by ${Math.abs(scheduleStatus.remainingDays)} days`
+                        : `${scheduleStatus.remainingDays} days remaining`
                     }
                   </span>
                 </div>

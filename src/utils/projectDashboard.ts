@@ -16,6 +16,7 @@ export interface ScheduleStatus {
   remainingDays: number;
   percentComplete: number;
   isOverdue: boolean;
+  isComplete: boolean;
 }
 
 /**
@@ -118,7 +119,8 @@ export function calculateBudgetStatus(
 
 export function calculateScheduleStatus(
   startDate?: Date | string | null,
-  endDate?: Date | string | null
+  endDate?: Date | string | null,
+  projectStatus?: string | null
 ): ScheduleStatus | null {
   if (!startDate || !endDate) return null;
   
@@ -127,6 +129,19 @@ export function calculateScheduleStatus(
   const now = new Date();
   
   const totalDays = differenceInDays(end, start);
+  
+  // If project is complete, show as 100% done regardless of dates
+  if (projectStatus === 'complete') {
+    return {
+      totalDays,
+      elapsedDays: totalDays,
+      remainingDays: 0,
+      percentComplete: 100,
+      isOverdue: false,
+      isComplete: true
+    };
+  }
+  
   const elapsedDays = Math.max(0, differenceInDays(now, start));
   const remainingDays = differenceInDays(end, now);
   const percentComplete = totalDays > 0 ? (elapsedDays / totalDays) * 100 : 0;
@@ -136,7 +151,8 @@ export function calculateScheduleStatus(
     elapsedDays,
     remainingDays,
     percentComplete: Math.min(percentComplete, 100),
-    isOverdue: remainingDays < 0
+    isOverdue: remainingDays < 0,
+    isComplete: false
   };
 }
 
