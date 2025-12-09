@@ -147,8 +147,14 @@ export function ScheduledSMSManager() {
         console.error(error);
       }
     } else {
-      // Success - set data (could be empty array)
-      setSchedules(data || []);
+      // Success - set data with proper type casting
+      setSchedules((data || []).map(d => ({
+        ...d,
+        schedule_type: d.schedule_type as 'recurring' | 'one_time',
+        target_type: d.target_type as 'users' | 'roles',
+        target_user_ids: (d.target_user_ids || null) as string[] | null,
+        target_roles: (d.target_roles || null) as string[] | null,
+      })));
     }
     setIsLoading(false);
   };
