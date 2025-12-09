@@ -1258,6 +1258,8 @@ export type Database = {
           id: string
           is_active: boolean
           must_change_password: boolean | null
+          phone: string | null
+          sms_notifications_enabled: boolean | null
           updated_at: string
         }
         Insert: {
@@ -1269,6 +1271,8 @@ export type Database = {
           id: string
           is_active?: boolean
           must_change_password?: boolean | null
+          phone?: string | null
+          sms_notifications_enabled?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -1280,6 +1284,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           must_change_password?: boolean | null
+          phone?: string | null
+          sms_notifications_enabled?: boolean | null
           updated_at?: string
         }
         Relationships: [
@@ -2202,6 +2208,218 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_sms_logs: {
+        Row: {
+          created_at: string | null
+          error_details: Json | null
+          executed_at: string | null
+          failure_count: number | null
+          id: string
+          recipients_count: number | null
+          scheduled_sms_id: string | null
+          success_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_details?: Json | null
+          executed_at?: string | null
+          failure_count?: number | null
+          id?: string
+          recipients_count?: number | null
+          scheduled_sms_id?: string | null
+          success_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          error_details?: Json | null
+          executed_at?: string | null
+          failure_count?: number | null
+          id?: string
+          recipients_count?: number | null
+          scheduled_sms_id?: string | null
+          success_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_sms_logs_scheduled_sms_id_fkey"
+            columns: ["scheduled_sms_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_sms_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_sms_messages: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          cron_expression: string | null
+          id: string
+          is_active: boolean | null
+          last_sent_at: string | null
+          link_type: string | null
+          link_url: string | null
+          message_template: string
+          name: string
+          project_id: string | null
+          schedule_type: string
+          scheduled_datetime: string | null
+          target_roles: Json | null
+          target_type: string
+          target_user_ids: Json | null
+          timezone: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          cron_expression?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sent_at?: string | null
+          link_type?: string | null
+          link_url?: string | null
+          message_template: string
+          name: string
+          project_id?: string | null
+          schedule_type: string
+          scheduled_datetime?: string | null
+          target_roles?: Json | null
+          target_type: string
+          target_user_ids?: Json | null
+          timezone?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          cron_expression?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sent_at?: string | null
+          link_type?: string | null
+          link_url?: string | null
+          message_template?: string
+          name?: string
+          project_id?: string | null
+          schedule_type?: string
+          scheduled_datetime?: string | null
+          target_roles?: Json | null
+          target_type?: string
+          target_user_ids?: Json | null
+          timezone?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_sms_messages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_sms_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "scheduled_sms_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_messages: {
+        Row: {
+          created_at: string | null
+          delivery_status: string | null
+          error_message: string | null
+          id: string
+          link_type: string | null
+          link_url: string | null
+          message_body: string
+          project_id: string | null
+          recipient_name: string | null
+          recipient_phone: string
+          recipient_user_id: string | null
+          sent_at: string | null
+          sent_by: string
+          status_checked_at: string | null
+          textbelt_text_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_status?: string | null
+          error_message?: string | null
+          id?: string
+          link_type?: string | null
+          link_url?: string | null
+          message_body: string
+          project_id?: string | null
+          recipient_name?: string | null
+          recipient_phone: string
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          sent_by: string
+          status_checked_at?: string | null
+          textbelt_text_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delivery_status?: string | null
+          error_message?: string | null
+          id?: string
+          link_type?: string | null
+          link_url?: string | null
+          message_body?: string
+          project_id?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          sent_by?: string
+          status_checked_at?: string | null
+          textbelt_text_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_financial_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "sms_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_messages_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_messages_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_settings: {
         Row: {
           created_at: string
@@ -2294,6 +2512,14 @@ export type Database = {
       check_margin_thresholds: {
         Args: { project_id_param: string }
         Returns: string
+      }
+      check_scheduled_sms_cron_job: {
+        Args: never
+        Returns: {
+          command: string
+          jobid: number
+          schedule: string
+        }[]
       }
       create_estimate_version: {
         Args: { new_version_number?: number; source_estimate_id: string }
@@ -2397,6 +2623,18 @@ export type Database = {
       get_project_revenue_total: {
         Args: { p_project_id: string }
         Returns: number
+      }
+      get_scheduled_sms_recipients: {
+        Args: {
+          p_target_roles: Json
+          p_target_type: string
+          p_target_user_ids: Json
+        }
+        Returns: {
+          full_name: string
+          phone: string
+          user_id: string
+        }[]
       }
       get_user_auth_status: {
         Args: never
