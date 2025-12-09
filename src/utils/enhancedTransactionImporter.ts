@@ -425,16 +425,63 @@ export const processTransactionImport = async (
       
       const txType = mapTransactionType(transactionType);
 
-      // === DATABASE DUPLICATE CHECK - USE NAME, NOT PAYEE_ID ===
-      const primaryKey = createExpenseKey(date, amount, name);
+      // === DATABASE DUPLICATE CHECK - ENHANCED MULTI-KEY MATCHING ===
+      // Try multiple matching strategies to handle empty names and mismatches
+      let existingExpense: { id: string; description: string } | undefined;
+      let matchKey = '';
       
-      const existingExpense = existingExpenses.get(primaryKey);
+      // Strategy 1: Primary key with CSV Name (exact match)
+      const primaryKey = createExpenseKey(date, amount, name);
+      existingExpense = existingExpenses.get(primaryKey);
+      if (existingExpense) {
+        matchKey = primaryKey;
+      }
+      
+      // Strategy 2: If CSV Name is empty, try empty name key
+      // This handles cases where CSV has empty Name but DB expense has empty description (even with payee_name)
+      if (!existingExpense && !name) {
+        const emptyKey = createExpenseKey(date, amount, '');
+        existingExpense = existingExpenses.get(emptyKey);
+        if (existingExpense) {
+          matchKey = emptyKey;
+        }
+      }
+      
+      // Strategy 3: If CSV Name is empty and we have a payee_id from fuzzy matching, try payee_name key
+      // This handles cases where CSV Name is empty but we matched a payee, and DB expense has that payee_name
+      if (!existingExpense && !name && payee_id) {
+        const matchedPayee = partialPayees.find(p => p.id === payee_id);
+        if (matchedPayee) {
+          const payeeKey = createExpenseKey(date, amount, matchedPayee.payee_name);
+          existingExpense = existingExpenses.get(payeeKey);
+          if (existingExpense) {
+            matchKey = payeeKey;
+          }
+        }
+      }
+      
+      // Strategy 4: If CSV has a name but no match, try matching against payee_name keys
+      // This handles cases where CSV Name doesn't match extracted name but matches a payee_name
+      if (!existingExpense && name) {
+        // Try all payee_name keys for this date+amount by checking if name matches any payee
+        // We can't easily iterate the map, but we can try the payee we matched if we have one
+        if (payee_id) {
+          const matchedPayee = partialPayees.find(p => p.id === payee_id);
+          if (matchedPayee && matchedPayee.payee_name.toLowerCase().trim() === name.toLowerCase().trim()) {
+            const payeeKey = createExpenseKey(date, amount, matchedPayee.payee_name);
+            existingExpense = existingExpenses.get(payeeKey);
+            if (existingExpense) {
+              matchKey = payeeKey;
+            }
+          }
+        }
+      }
       
       if (existingExpense) {
         databaseDuplicates.push({
           transaction: row,
           existingExpenseId: existingExpense.id,
-          matchKey: primaryKey
+          matchKey: matchKey || primaryKey
         });
         continue; // Skip - already exists
       }
@@ -967,7 +1014,7 @@ const createExpenseKey = (
   name: string
 ): string => {
   const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
-  const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100; // Ensure positive, 2 decimal precision
+  const normalizedAmount = Math.abs(amount).toFixed(2); // Ensure positive, 2 decimal precision as STRING
   const normalizedName = (name || '').toLowerCase().trim();
   return `${dateStr}|${normalizedAmount}|${normalizedName}`;
 };
@@ -1047,13 +1094,27 @@ const fetchExistingExpenses = async (
     let extractedName = '';
     if (expense.description) {
       // Extract name from description pattern "transaction_type - Name (Unassigned)"
+      // Also handle case where name is empty: "expense - " or "expense -  (Unassigned)"
       const descMatch = expense.description.match(/^(?:bill|check|expense)\s*-\s*(.+?)(?:\s*\(|$)/i);
-      extractedName = descMatch ? descMatch[1].trim() : '';
+      if (descMatch) {
+        let extracted = descMatch[1].trim();
+        // Remove "(Unassigned)" or any other parenthetical suffixes
+        extracted = extracted.replace(/\s*\([^)]*\)\s*/g, '').trim();
+        // If extracted is empty or just whitespace, treat as empty name
+        extractedName = extracted || '';
+      } else {
+        // If pattern doesn't match at all, check if it's just "transaction_type - " (empty name case)
+        const emptyNameMatch = expense.description.match(/^(?:bill|check|expense)\s*-\s*$/i);
+        if (emptyNameMatch) {
+          extractedName = ''; // Explicitly empty name
+        }
+      }
     }
     
-    // Use payee name as fallback if extraction failed
+    // Use payee name as fallback if extraction failed AND description is truly empty
+    // Don't use payee name if description exists but name is empty (that's a valid empty name case)
     const payeeName = (expense.payees as any)?.payee_name || '';
-    if (!extractedName && payeeName) {
+    if (!extractedName && payeeName && (!expense.description || expense.description.trim() === '')) {
       extractedName = payeeName;
     }
     
@@ -1063,7 +1124,7 @@ const fetchExistingExpenses = async (
     // Create primary key with extracted name (matches CSV format)
     const primaryKey = createExpenseKey(
       normalizedDate,
-      Math.abs(expense.amount),
+      expense.amount, // Pass raw amount, function will format it
       extractedName
     );
     existingMap.set(primaryKey, { 
@@ -1071,17 +1132,51 @@ const fetchExistingExpenses = async (
       description: expense.description || '' 
     });
     
-    // Also create key with payee name if different (for backwards compatibility)
-    if (payeeName && payeeName.toLowerCase().trim() !== extractedName.toLowerCase().trim()) {
+    // ALWAYS create key with payee name (not just when different)
+    // This handles cases where CSV Name is empty but DB has payee_name
+    if (payeeName) {
       const payeeKey = createExpenseKey(
         normalizedDate,
-        Math.abs(expense.amount),
+        expense.amount, // Pass raw amount, function will format it
         payeeName
       );
-      existingMap.set(payeeKey, { 
-        id: expense.id, 
-        description: expense.description || '' 
-      });
+      // Only set if different from primary key to avoid overwriting
+      if (payeeKey !== primaryKey) {
+        existingMap.set(payeeKey, { 
+          id: expense.id, 
+          description: expense.description || '' 
+        });
+      }
+    }
+    
+    // Create key with empty name for expenses with empty names (regardless of description format)
+    // This handles cases where CSV has empty Name but DB expense has payee_name
+    // We create this key if:
+    // 1. Description is truly empty, OR
+    // 2. Description matches pattern "expense - " (empty name after extraction), OR
+    // 3. Extracted name looks auto-generated (contains "no vendor", "no payee", etc.)
+    // This allows CSV rows with empty names to match DB expenses that have payee_names or auto-generated text
+    const looksAutoGenerated = extractedName && /no vendor|no payee|unassigned|unknown/i.test(extractedName);
+    const shouldCreateEmptyKey = 
+      !expense.description || 
+      expense.description.trim() === '' ||
+      expense.description.match(/^(?:bill|check|expense)\s*-\s*$/i) !== null ||
+      (extractedName === '' && expense.description.match(/^(?:bill|check|expense)\s*-\s*(?:\s*\(|$)/i) !== null) ||
+      looksAutoGenerated;
+    
+    if (shouldCreateEmptyKey) {
+      const emptyKey = createExpenseKey(
+        normalizedDate,
+        expense.amount, // Pass raw amount, function will format it
+        ''
+      );
+      // Only set if different from primary key to avoid overwriting
+      if (emptyKey !== primaryKey) {
+        existingMap.set(emptyKey, { 
+          id: expense.id, 
+          description: expense.description || '' 
+        });
+      }
     }
   }
 

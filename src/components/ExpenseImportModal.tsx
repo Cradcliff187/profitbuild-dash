@@ -480,11 +480,11 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       
       const date = row['Date'] ? new Date(row['Date']).toISOString().split('T')[0] : '';
       const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
-      const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
+      const amountStr = Math.abs(amount).toFixed(2); // Format as string with 2 decimals
       const name = row['Name']?.trim().toLowerCase() || '';
       
       // Create key: date|amount|name
-      const key = `${date}|${normalizedAmount}|${name}`.toLowerCase();
+      const key = `${date}|${amountStr}|${name}`.toLowerCase();
       
       if (seenInFile.has(key)) {
         const firstOccurrence = seenInFile.get(key)!;
@@ -545,34 +545,79 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
           let extractedName = '';
           if (expense.description) {
             // Extract name from description pattern "transaction_type - Name (Unassigned)"
+            // Also handle case where name is empty: "expense - " or "expense -  (Unassigned)"
             const descMatch = expense.description.match(/^(?:bill|check|expense)\s*-\s*(.+?)(?:\s*\(|$)/i);
-            extractedName = descMatch ? descMatch[1].trim() : '';
+            if (descMatch) {
+              let extracted = descMatch[1].trim();
+              // Remove "(Unassigned)" or any other parenthetical suffixes
+              extracted = extracted.replace(/\s*\([^)]*\)\s*/g, '').trim();
+              // If extracted is empty or just whitespace, treat as empty name
+              extractedName = extracted || '';
+            } else {
+              // If pattern doesn't match at all, check if it's just "transaction_type - " (empty name case)
+              const emptyNameMatch = expense.description.match(/^(?:bill|check|expense)\s*-\s*$/i);
+              if (emptyNameMatch) {
+                extractedName = ''; // Explicitly empty name
+              }
+            }
           }
           
-          // Use payee name as fallback if extraction failed
+          // Use payee name as fallback if extraction failed AND description is truly empty
+          // Don't use payee name if description exists but name is empty (that's a valid empty name case)
           const payeeName = (expense.payees as any)?.payee_name || '';
-          if (!extractedName && payeeName) {
+          if (!extractedName && payeeName && (!expense.description || expense.description.trim() === '')) {
             extractedName = payeeName;
           }
           
           // Normalize date to ISO format (YYYY-MM-DD) to match CSV date format
           const normalizedDate = expense.expense_date ? new Date(expense.expense_date).toISOString().split('T')[0] : '';
-          const normalizedAmount = Math.round(Math.abs(expense.amount) * 100) / 100;
+          // Format amount as string with 2 decimals for consistent key generation
+          const amountStr = Math.abs(expense.amount).toFixed(2);
           
           // Primary key: date|amount|name (using extracted name - matches CSV format)
-          const primaryKey = `${normalizedDate}|${normalizedAmount}|${extractedName.toLowerCase().trim()}`;
+          const primaryKey = `${normalizedDate}|${amountStr}|${extractedName.toLowerCase().trim()}`;
           existingExpenses.set(primaryKey, { 
             id: expense.id, 
             description: expense.description || '' 
           });
           
-          // Also create key with payee name if different (for backwards compatibility)
-          if (payeeName && payeeName.toLowerCase().trim() !== extractedName.toLowerCase().trim()) {
-            const payeeKey = `${normalizedDate}|${normalizedAmount}|${payeeName.toLowerCase().trim()}`;
-            existingExpenses.set(payeeKey, { 
-              id: expense.id, 
-              description: expense.description || '' 
-            });
+          // ALWAYS create key with payee name (not just when different)
+          // This handles cases where CSV Name is empty but DB has payee_name
+          if (payeeName) {
+            const payeeKey = `${normalizedDate}|${amountStr}|${payeeName.toLowerCase().trim()}`;
+            // Only set if different from primary key to avoid overwriting
+            if (payeeKey !== primaryKey) {
+              existingExpenses.set(payeeKey, { 
+                id: expense.id, 
+                description: expense.description || '' 
+              });
+            }
+          }
+          
+          // Create key with empty name for expenses with empty names (regardless of description format)
+          // This handles cases where CSV has empty Name but DB expense has payee_name
+          // We create this key if:
+          // 1. Description is truly empty, OR
+          // 2. Description matches pattern "expense - " (empty name after extraction), OR
+          // 3. Extracted name looks auto-generated (contains "no vendor", "no payee", etc.)
+          // This allows CSV rows with empty names to match DB expenses that have payee_names or auto-generated text
+          const looksAutoGenerated = extractedName && /no vendor|no payee|unassigned|unknown/i.test(extractedName);
+          const shouldCreateEmptyKey = 
+            !expense.description || 
+            expense.description.trim() === '' ||
+            expense.description.match(/^(?:bill|check|expense)\s*-\s*$/i) !== null ||
+            (extractedName === '' && expense.description.match(/^(?:bill|check|expense)\s*-\s*(?:\s*\(|$)/i) !== null) ||
+            looksAutoGenerated;
+          
+          if (shouldCreateEmptyKey) {
+            const emptyKey = `${normalizedDate}|${amountStr}|`;
+            // Only set if different from primary key to avoid overwriting
+            if (emptyKey !== primaryKey) {
+              existingExpenses.set(emptyKey, { 
+                id: expense.id, 
+                description: expense.description || '' 
+              });
+            }
           }
         }
       }
@@ -623,19 +668,35 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       if (row['Transaction type'] !== 'Invoice') {
         const date = row['Date'] ? new Date(row['Date']).toISOString().split('T')[0] : '';
         const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
-        const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
+        const amountStr = Math.abs(amount).toFixed(2); // Format as string with 2 decimals
         const rowName = row['Name']?.trim() || '';
         
-        // Expense: Use name-based key
-        const key = `${date}|${normalizedAmount}|${rowName.toLowerCase().trim()}`;
+        // Try multiple matching strategies to handle empty names and mismatches
+        let existingExpense: { id: string; description: string } | undefined;
+        let matchKey = '';
         
-        const existingExpense = existingExpenses.get(key);
+        // Strategy 1: Primary key with CSV Name (exact match)
+        const primaryKey = `${date}|${amountStr}|${rowName.toLowerCase().trim()}`;
+        existingExpense = existingExpenses.get(primaryKey);
+        if (existingExpense) {
+          matchKey = primaryKey;
+        } else {
+          // Strategy 2: If CSV Name is empty, try empty name key
+          // This handles cases where both CSV and DB have empty names
+          if (!rowName) {
+            const emptyKey = `${date}|${amountStr}|`;
+            existingExpense = existingExpenses.get(emptyKey);
+            if (existingExpense) {
+              matchKey = emptyKey;
+            }
+          }
+        }
         
         if (existingExpense) {
           databaseDuplicates.push({
             transaction: row,
             existingExpenseId: existingExpense.id,
-            matchKey: key
+            matchKey: matchKey || primaryKey
           });
         }
       }
@@ -1368,7 +1429,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {categorizeTransactions.alreadyImported.slice(0, 10).map((row, index) => {
+                          {categorizeTransactions.alreadyImported.map((row, index) => {
                             const isRevenue = row['Transaction type'] === 'Invoice';
                             return (
                               <TableRow key={index} className="text-gray-400">
@@ -1386,9 +1447,9 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                           })}
                         </TableBody>
                       </Table>
-                      {categorizeTransactions.alreadyImported.length > 10 && (
+                      {categorizeTransactions.alreadyImported.length > 0 && (
                         <div className="text-xs text-gray-500 p-2 text-center border-t bg-gray-50">
-                          Showing 10 of {categorizeTransactions.alreadyImported.length} already imported
+                          Showing all {categorizeTransactions.alreadyImported.length} already imported transactions
                         </div>
                       )}
                     </div>
