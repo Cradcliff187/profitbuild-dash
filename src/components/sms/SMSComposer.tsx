@@ -1,14 +1,14 @@
 // src/components/sms/SMSComposer.tsx
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Send, Users, Link, Loader2, RefreshCw } from 'lucide-react';
+import { MessageSquare, Send, Users, Link, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -203,32 +203,42 @@ export function SMSComposer() {
 
   return (
     <Card>
-      <CardContent className="space-y-6 pt-6">
-        {/* Quota Badge */}
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <MessageSquare className="h-5 w-5" />
+          Send SMS to Crew
+        </CardTitle>
+        <CardDescription>
+          Send text messages with app links to field workers
+        </CardDescription>
         {quota !== null && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Badge 
-                variant={quota > 20 ? 'default' : quota > 5 ? 'secondary' : 'destructive'}
-                className={quota > 20 ? 'bg-green-600 hover:bg-green-700' : quota > 5 ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : ''}
-              >
-                {quota} texts remaining
-              </Badge>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={fetchQuota}
-                disabled={isLoadingQuota}
-              >
-                <RefreshCw className={`h-3 w-3 ${isLoadingQuota ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-            {quota < 10 && (
-              <span className="text-xs text-yellow-600 dark:text-yellow-400">
-                Low credits! Purchase more at textbelt.com/purchase
-              </span>
-            )}
+          <div className="flex items-center gap-2 mt-2">
+            <Badge 
+              variant={quota > 20 ? 'default' : quota > 5 ? 'secondary' : 'destructive'}
+              className={quota > 20 ? 'bg-green-600 hover:bg-green-700' : quota > 5 ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : ''}
+            >
+              {quota} texts remaining
+            </Badge>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={fetchQuota}
+              disabled={isLoadingQuota}
+            >
+              <RefreshCw className={`h-3 w-3 ${isLoadingQuota ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
+        )}
+      </CardHeader>
+
+      <CardContent className="space-y-6">
+        {/* Low Quota Warning */}
+        {quota !== null && quota < 10 && (
+          <Alert variant="default" className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
+            <AlertDescription>
+              Low SMS credits! Purchase more at textbelt.com/purchase
+            </AlertDescription>
+          </Alert>
         )}
         {/* Recipients Section */}
         <div className="space-y-3">
