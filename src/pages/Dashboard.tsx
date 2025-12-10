@@ -17,7 +17,6 @@ interface ProjectStatusCount {
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -55,14 +54,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadDashboardData();
-    
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(() => {
-      setRefreshKey(prev => prev + 1);
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [refreshKey]);
+  }, []);
 
   useEffect(() => {
     // Set up real-time subscriptions for pending approvals

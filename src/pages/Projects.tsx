@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Building2, Table, Grid, Plus, ArrowUpAZ, ArrowDownZA, Download, ChevronsUpDown } from "lucide-react";
-import { ColumnSelector } from "@/components/ui/column-selector";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Building2, Table, Grid, Plus, ArrowUpAZ, ArrowDownZA, Download } from "lucide-react";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,91 +48,6 @@ const Projects = () => {
     sortBy: 'date',
     sortOrder: 'desc',
   });
-
-  // Column definitions for the column selector
-  const columnDefinitions = [
-    { key: 'project_number', label: 'Project #', required: true },
-    { key: 'status', label: 'Status', required: true },
-    { key: 'customer_po_number', label: 'Customer PO #', required: false },
-    { key: 'start_date', label: 'Start Date', required: false },
-    { key: 'end_date', label: 'Target/End Date', required: false },
-    { key: 'duration', label: 'Schedule', required: false },
-    { key: 'contracted_amount', label: 'Contract Value', required: false },
-    { key: 'originalContract', label: 'Original Contract', required: false },
-    { key: 'changeOrders', label: 'Change Orders', required: false },
-    { key: 'originalEstimatedCosts', label: 'Original Est. Costs', required: false },
-    { key: 'originalEstimatedMargin', label: 'Original Est. Margin ($)', required: false },
-    { key: 'adjusted_est_costs', label: 'Adjusted Est. Costs', required: false },
-    { key: 'cost_variance', label: 'Cost Variance', required: false },
-    { key: 'projected_margin', label: 'Projected Margin ($)', required: false },
-    { key: 'margin_percentage', label: 'Projected Margin %', required: false },
-    { key: 'actual_expenses', label: 'Actual Expenses', required: false },
-    { key: 'line_items', label: 'Line Items', required: false },
-    { key: 'contingency_remaining', label: 'Contingency Remaining', required: false },
-    { key: 'actions', label: 'Actions', required: true },
-  ];
-
-  // Column visibility state with localStorage persistence (lifted from ProjectsTableView)
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
-    const saved = localStorage.getItem('projects-visible-columns');
-    if (saved) {
-      const savedVisible = JSON.parse(saved);
-      return savedVisible.filter((key: string) => 
-        columnDefinitions.some(col => col.key === key)
-      );
-    }
-    return [
-      'project_number', 'status', 'start_date', 'end_date', 'duration',
-      'contracted_amount', 'changeOrders', 'contingency_remaining',
-      'originalEstimatedMargin', 'projected_margin', 'margin_percentage', 'actions'
-    ];
-  });
-
-  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
-    const saved = localStorage.getItem('projects-column-order');
-    if (saved) {
-      const savedOrder = JSON.parse(saved);
-      const validOrder = savedOrder.filter((key: string) => 
-        columnDefinitions.some(col => col.key === key)
-      );
-      const newColumns = columnDefinitions
-        .map(col => col.key)
-        .filter(key => !validOrder.includes(key));
-      return [...validOrder, ...newColumns];
-    }
-    return columnDefinitions.map(col => col.key);
-  });
-
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
-    // Start with all groups collapsed
-    return new Set();
-  });
-
-  // Persist column preferences to localStorage
-  useEffect(() => {
-    localStorage.setItem('projects-visible-columns', JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
-
-  useEffect(() => {
-    localStorage.setItem('projects-column-order', JSON.stringify(columnOrder));
-  }, [columnOrder]);
-
-  // Initialize all groups as collapsed
-  useEffect(() => {
-    if (projects.length > 0 && collapsedGroups.size === 0) {
-      const allKeys = new Set(projects.map(p => p.id));
-      setCollapsedGroups(allKeys);
-    }
-  }, [projects.length]);
-
-  const toggleAllGroups = () => {
-    if (collapsedGroups.size > 0) {
-      setCollapsedGroups(new Set());
-    } else {
-      const allKeys = new Set(projects.map(p => p.id));
-      setCollapsedGroups(allKeys);
-    }
-  };
 
   // Apply URL parameters to filters on mount
   useEffect(() => {
@@ -491,47 +404,16 @@ const Projects = () => {
         {viewMode === 'list' && (
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <Button onClick={handleCreateNew} size="sm" className="flex-1 sm:flex-initial">
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="h-4 w-4 mr-2" />
               New Project
             </Button>
-            <div className="hidden sm:flex items-center gap-2">
-              {displayMode === 'table' && (
-                <>
-                  <ColumnSelector
-                    columns={columnDefinitions}
-                    visibleColumns={visibleColumns}
-                    onVisibilityChange={setVisibleColumns}
-                    columnOrder={columnOrder}
-                    onColumnOrderChange={setColumnOrder}
-                  />
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 gap-2"
-                          onClick={toggleAllGroups}
-                        >
-                          <ChevronsUpDown className="h-3 w-3" />
-                          <span className="hidden sm:inline">
-                            {collapsedGroups.size > 0 ? 'Expand All' : 'Collapse All'}
-                          </span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {collapsedGroups.size > 0 ? 'Expand all groups' : 'Collapse all groups'}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </>
-              )}
+            <div className="hidden sm:flex">
               <Button 
-                variant="outline" 
+                variant="ghost" 
                 size="sm"
                 onClick={() => setShowExportModal(true)}
               >
-                <Download className="h-4 w-4 mr-1" />
+                <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
             </div>
@@ -595,10 +477,6 @@ const Projects = () => {
                   onDelete={handleDelete}
                   onCreateNew={handleCreateNew}
                   isLoading={isLoading}
-                  visibleColumns={visibleColumns}
-                  columnOrder={columnOrder}
-                  collapsedGroups={collapsedGroups}
-                  onCollapsedGroupsChange={setCollapsedGroups}
                 />
               )}
               

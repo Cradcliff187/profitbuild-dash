@@ -41,11 +41,6 @@ interface ProjectsTableViewProps {
   onArchive?: (projectId: string) => void;
   onCreateNew: () => void;
   isLoading?: boolean;
-  // Lifted column and collapse state props from parent
-  visibleColumns?: string[];
-  columnOrder?: string[];
-  collapsedGroups?: Set<string>;
-  onCollapsedGroupsChange?: (groups: Set<string>) => void;
 }
 
 export const ProjectsTableView = ({ 
@@ -56,11 +51,7 @@ export const ProjectsTableView = ({
   onDelete,
   onArchive,
   onCreateNew,
-  isLoading = false,
-  visibleColumns: externalVisibleColumns,
-  columnOrder: externalColumnOrder,
-  collapsedGroups: externalCollapsedGroups,
-  onCollapsedGroupsChange
+  isLoading = false 
 }: ProjectsTableViewProps) => {
   const isMobile = useIsMobile();
   const [deleteConfirm, setDeleteConfirm] = useState<{open: boolean; project: Project | null}>({
@@ -69,19 +60,15 @@ export const ProjectsTableView = ({
   });
 
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
-  
-  // Use external state if provided
-  const useExternalState = externalVisibleColumns !== undefined;
-  
-  const [internalCollapsedGroups, setInternalCollapsedGroups] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
-  // Initialize all groups as collapsed on first load - only if using internal state
+  // Initialize all groups as collapsed on first load
   useEffect(() => {
-    if (!useExternalState && projects.length > 0 && internalCollapsedGroups.size === 0) {
+    if (projects.length > 0 && collapsedGroups.size === 0) {
       const allKeys = new Set(projects.map(p => p.id));
-      setInternalCollapsedGroups(allKeys);
+      setCollapsedGroups(allKeys);
     }
-  }, [projects.length, useExternalState]);
+  }, [projects.length]);
 
   // Define column metadata for selector
   const columnDefinitions = [
@@ -117,57 +104,52 @@ export const ProjectsTableView = ({
     return match ? match[0] : displayText;
   };
 
-  // Column visibility state - use external if provided, otherwise manage internally
-  const [internalVisibleColumns, setInternalVisibleColumns] = useState<string[]>(() => {
+  // Column visibility state with localStorage persistence
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem('projects-visible-columns');
     if (saved) {
       const savedVisible = JSON.parse(saved);
+      // Filter out invalid column keys
       return savedVisible.filter((key: string) => 
         columnDefinitions.some(col => col.key === key)
       );
     }
+    // Default visible columns
     return [
-      'project_number', 'status', 'start_date', 'end_date', 'duration',
-      'contracted_amount', 'changeOrders', 'contingency_remaining',
-      'originalEstimatedMargin', 'projected_margin', 'margin_percentage', 'actions'
+      'project_number',
+      'status',
+      'start_date',
+      'end_date',
+      'duration',
+      'contracted_amount',
+      'changeOrders',
+      'contingency_remaining',
+      'originalEstimatedMargin',
+      'projected_margin',
+      'margin_percentage',
+      'actions'
     ];
   });
 
-  // Column order state - use external if provided, otherwise manage internally
-  const [internalColumnOrder, setInternalColumnOrder] = useState<string[]>(() => {
+  // Column order state with localStorage persistence
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('projects-column-order');
     if (saved) {
       const savedOrder = JSON.parse(saved);
+      // Filter out any invalid column keys that no longer exist
       const validOrder = savedOrder.filter((key: string) => 
         columnDefinitions.some(col => col.key === key)
       );
+      // Add any new columns that aren't in saved order
       const newColumns = columnDefinitions
         .map(col => col.key)
         .filter(key => !validOrder.includes(key));
+      
       return [...validOrder, ...newColumns];
     }
+    // Default: use order from columnDefinitions
     return columnDefinitions.map(col => col.key);
   });
-
-  // Use external state if provided, otherwise use internal state
-  const visibleColumns = externalVisibleColumns ?? internalVisibleColumns;
-  const columnOrder = externalColumnOrder ?? internalColumnOrder;
-  const collapsedGroups = externalCollapsedGroups ?? internalCollapsedGroups;
-  const setCollapsedGroups = onCollapsedGroupsChange ?? setInternalCollapsedGroups;
-
-  // Save visibility to localStorage only if using internal state
-  useEffect(() => {
-    if (!useExternalState) {
-      localStorage.setItem('projects-visible-columns', JSON.stringify(internalVisibleColumns));
-    }
-  }, [internalVisibleColumns, useExternalState]);
-
-  // Save order to localStorage only if using internal state
-  useEffect(() => {
-    if (!useExternalState) {
-      localStorage.setItem('projects-column-order', JSON.stringify(internalColumnOrder));
-    }
-  }, [internalColumnOrder, useExternalState]);
 
   // Save visibility to localStorage
   useEffect(() => {
@@ -1276,6 +1258,16 @@ export const ProjectsTableView = ({
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             {projects.length} {projects.length === 1 ? 'project' : 'projects'}
+          </div>
+          <div className="flex items-center gap-2">
+            <ColumnSelector
+              columns={columnDefinitions}
+              visibleColumns={visibleColumns}
+              onVisibilityChange={setVisibleColumns}
+              columnOrder={columnOrder}
+              onColumnOrderChange={setColumnOrder}
+            />
+            {collapseButton}
           </div>
         </div>
         

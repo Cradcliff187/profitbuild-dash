@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,6 +26,8 @@ export default function ChangePassword() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
 
   const form = useForm<ChangePasswordFormData>({
     resolver: zodResolver(changePasswordSchema),
@@ -64,7 +66,8 @@ export default function ChangePassword() {
       }
 
       toast.success('Password changed successfully!');
-      navigate('/');
+      // Respect redirect parameter if present, otherwise go to dashboard
+      navigate(redirectTo || '/', { replace: true });
     } catch (error: any) {
       console.error('Password change error:', error);
       toast.error(error.message || 'Failed to change password');

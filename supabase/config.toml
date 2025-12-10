@@ -23,3 +23,9 @@ verify_jwt = true
 
 [functions.send-receipt-notification]
 verify_jwt = false
+
+[functions.send-sms]
+verify_jwt = true
+
+[functions.send-training-notification]
+verify_jwt = false

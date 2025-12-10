@@ -5,7 +5,7 @@ export interface ReportTemplate {
   id: string;
   name: string;
   description: string | null;
-  category: 'financial' | 'operational' | 'client' | 'vendor' | 'schedule';
+  category: 'financial' | 'operational' | 'client' | 'vendor' | 'schedule' | 'Training';
   config: any;
   is_template: boolean;
   created_at: string;

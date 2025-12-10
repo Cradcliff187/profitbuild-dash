@@ -13,9 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Estimate } from "@/types/estimate";
-import { Plus, BarChart3, Download, Calculator, ChevronsUpDown } from "lucide-react";
-import { ColumnSelector } from "@/components/ui/column-selector";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Plus, BarChart3, Download, Calculator } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -27,34 +25,6 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 
 type ViewMode = "list" | "create" | "edit" | "view";
-
-// Column definitions for the estimates table
-const columnDefinitions = [
-  { key: 'estimate_number', label: 'Estimate #', required: true },
-  { key: 'version_number', label: 'Version', required: false },
-  { key: 'status', label: 'Status', required: true },
-  { key: 'date_created', label: 'Created', required: false },
-  { key: 'total_with_contingency', label: 'Total w/ Cont.', required: false },
-  { key: 'total_amount', label: 'Price', required: true },
-  { key: 'contingency_amount', label: 'Contingency $', required: false },
-  { key: 'total_cost', label: 'Cost', required: false },
-  { key: 'gross_profit', label: 'Profit', required: false },
-  { key: 'gross_margin_percent', label: 'Margin %', required: false },
-  { key: 'markup_amount', label: 'Markup $', required: false },
-  { key: 'markup_percent', label: 'Markup %', required: false },
-  { key: 'variance', label: 'Quote Variance', required: false },
-  { key: 'contingency', label: 'Contingency %', required: false },
-  { key: 'line_items', label: 'Line Items', required: false },
-  { key: 'actions', label: 'Actions', required: true },
-];
-
-const defaultVisibleColumns = [
-  'estimate_number', 'version_number', 'status', 'date_created',
-  'total_with_contingency', 'total_amount', 'contingency_amount',
-  'total_cost', 'gross_profit', 'gross_margin_percent',
-  'markup_amount', 'markup_percent', 'variance', 'contingency',
-  'line_items', 'actions'
-];
 
 const EstimatesPage = () => {
   const isMobile = useIsMobile();
@@ -81,56 +51,6 @@ const EstimatesPage = () => {
   const [activeTab, setActiveTab] = useState<"estimates" | "analytics">(
     tabParam === "analytics" ? "analytics" : "estimates",
   );
-
-  // Column visibility state with localStorage persistence
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
-    const saved = localStorage.getItem('estimates-visible-columns');
-    if (saved) {
-      const savedVisible = JSON.parse(saved);
-      return savedVisible.filter((key: string) => 
-        columnDefinitions.some(col => col.key === key)
-      );
-    }
-    return defaultVisibleColumns;
-  });
-
-  // Column order state with localStorage persistence
-  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
-    const saved = localStorage.getItem('estimates-column-order');
-    if (saved) {
-      const savedOrder = JSON.parse(saved);
-      const validOrder = savedOrder.filter((key: string) => 
-        columnDefinitions.some(col => col.key === key)
-      );
-      const newColumns = columnDefinitions
-        .map(col => col.key)
-        .filter(key => !validOrder.includes(key));
-      return [...validOrder, ...newColumns];
-    }
-    return columnDefinitions.map(col => col.key);
-  });
-
-  // Collapsed groups state
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const [allGroupKeys, setAllGroupKeys] = useState<string[]>([]);
-
-  // Save visibility to localStorage
-  useEffect(() => {
-    localStorage.setItem('estimates-visible-columns', JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
-
-  // Save order to localStorage
-  useEffect(() => {
-    localStorage.setItem('estimates-column-order', JSON.stringify(columnOrder));
-  }, [columnOrder]);
-
-  const toggleAllGroups = () => {
-    if (collapsedGroups.size > 0) {
-      setCollapsedGroups(new Set());
-    } else {
-      setCollapsedGroups(new Set(allGroupKeys));
-    }
-  };
 
   // Get preselected project ID from URL params
   const preselectedProjectId = searchParams.get("projectId");
@@ -604,42 +524,12 @@ const EstimatesPage = () => {
         {viewMode === "list" && (
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <Button onClick={handleCreateNew} size="sm" className="flex-1 sm:flex-initial">
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="h-4 w-4 mr-2" />
               {getCreateButtonText()}
             </Button>
-            <div className="hidden sm:flex items-center gap-2">
-              {activeTab === "estimates" && (
-                <>
-                  <ColumnSelector
-                    columns={columnDefinitions}
-                    visibleColumns={visibleColumns}
-                    onVisibilityChange={setVisibleColumns}
-                    columnOrder={columnOrder}
-                    onColumnOrderChange={setColumnOrder}
-                  />
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={toggleAllGroups}
-                        >
-                          <ChevronsUpDown className="h-4 w-4" />
-                          <span className="hidden sm:inline ml-1">
-                            {collapsedGroups.size > 0 ? 'Expand All' : 'Collapse All'}
-                          </span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {collapsedGroups.size > 0 ? 'Expand all groups' : 'Collapse all groups'}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </>
-              )}
-              <Button variant="outline" size="sm" onClick={() => setShowExportModal(true)}>
-                <Download className="h-4 w-4 mr-1" />
+            <div className="hidden sm:flex">
+              <Button variant="ghost" size="sm" onClick={() => setShowExportModal(true)}>
+                <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
             </div>
@@ -705,11 +595,6 @@ const EstimatesPage = () => {
               onDelete={handleDelete}
               onView={handleView}
               onCreateNew={handleCreateNew}
-              visibleColumns={visibleColumns}
-              columnOrder={columnOrder}
-              collapsedGroups={collapsedGroups}
-              onCollapsedGroupsChange={setCollapsedGroups}
-              onAllGroupKeysChange={setAllGroupKeys}
             />
           </TabsContent>
 

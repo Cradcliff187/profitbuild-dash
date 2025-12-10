@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck, Camera, FileImage, FolderOpen, BarChart3, LayoutDashboard, BookOpen, Shield, Package, MessageSquare } from "lucide-react";
+import { Building2, FileText, Calculator, Receipt, TrendingUp, Users, Wrench, Settings, Menu, MoreHorizontal, ChevronDown, LogOut, User, UserCheck, Download, Clock, ClipboardCheck, Camera, FileImage, FolderOpen, BarChart3, LayoutDashboard, BookOpen, Shield, Package, MessageSquare, GraduationCap } from "lucide-react";
 const logoFullDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Full%20Horizontal%20Logo%20-%201500x500.png';
 const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png';
 import { getCompanyBranding } from '@/utils/companyBranding';
@@ -123,6 +123,8 @@ const Navigation = () => {
     { to: "/role-management", label: "Role Management", icon: Shield, show: isAdmin },
     { to: "/sms", label: "Send SMS", icon: MessageSquare, show: isAdmin || isManager },
     { to: "/kpi-guide", label: "KPI Guide", icon: BookOpen, show: isAdmin || isManager },
+    { to: "/training", label: "My Training", icon: GraduationCap, show: true },
+    { to: "/training/admin", label: "Training Admin", icon: BookOpen, show: isAdmin || isManager },
   ].filter(item => item.show);
 
   // Grouped navigation for mobile sidebar
@@ -152,6 +154,7 @@ const Navigation = () => {
         { to: "/field-media", label: "Field Media", icon: Camera, show: isAdmin || isFieldWorker },
         { to: "/reports", label: "Reports", icon: BarChart3, show: hasFinancialAccess },
         { to: "/profit-analysis", label: "Profit Analysis", icon: TrendingUp, show: hasFinancialAccess },
+        { to: "/training", label: "My Training", icon: GraduationCap, show: true },
       ]
     },
     {
@@ -168,6 +171,7 @@ const Navigation = () => {
         { to: "/role-management", label: "Role Management", icon: Shield, show: isAdmin },
         { to: "/sms", label: "Send SMS", icon: MessageSquare, show: isAdmin || isManager },
         { to: "/kpi-guide", label: "KPI Guide", icon: BookOpen, show: isAdmin || isManager },
+        { to: "/training/admin", label: "Training Admin", icon: BookOpen, show: isAdmin || isManager },
       ]
     }
   ];

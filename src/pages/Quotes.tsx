@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { FileText, Plus, BarChart3, Download, ChevronsUpDown } from "lucide-react";
-import { ColumnSelector } from "@/components/ui/column-selector";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { FileText, Plus, BarChart3, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuoteForm } from "@/components/QuoteForm";
 import { QuotesList } from "@/components/QuotesList";
@@ -41,83 +39,6 @@ const Quotes = () => {
     dateRange: { start: null, end: null },
     amountRange: { min: null, max: null },
   });
-
-  // Column definitions for the column selector
-  const columnDefinitions = [
-    { key: 'quote_number', label: 'Quote #', required: true },
-    { key: 'estimate', label: 'Estimate', required: false },
-    { key: 'line_items', label: 'Line Items', required: false },
-    { key: 'payee', label: 'Quoted By', required: false },
-    { key: 'status', label: 'Status', required: true },
-    { key: 'date_received', label: 'Received', required: false },
-    { key: 'valid_until', label: 'Valid Until', required: false },
-    { key: 'vendor_cost', label: 'Vendor Cost', required: true },
-    { key: 'estimate_cost', label: 'Estimate Cost', required: false },
-    { key: 'estimate_price', label: 'Estimate Price', required: false },
-    { key: 'cost_variance_amount', label: 'Cost Variance ($)', required: false },
-    { key: 'cost_variance_percent', label: 'Cost Variance (%)', required: false },
-    { key: 'actions', label: 'Actions', required: true },
-  ];
-
-  // Column visibility state with localStorage persistence (lifted from QuotesTableView)
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
-    const stored = localStorage.getItem('quotes-visible-columns');
-    const defaultColumns = [
-      'quote_number', 'estimate', 'payee', 'status', 'date_received',
-      'vendor_cost', 'estimate_cost', 'cost_variance_amount', 'actions'
-    ];
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (!parsed.includes('estimate')) {
-        const insertIndex = parsed.indexOf('quote_number') + 1;
-        parsed.splice(insertIndex, 0, 'estimate');
-      }
-      return parsed;
-    }
-    return defaultColumns;
-  });
-
-  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
-    const stored = localStorage.getItem('quotes-column-order');
-    const defaultOrder = columnDefinitions.map(c => c.key);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (!parsed.includes('estimate')) {
-        const insertIndex = parsed.indexOf('quote_number') + 1;
-        parsed.splice(insertIndex, 0, 'estimate');
-      }
-      return parsed;
-    }
-    return defaultOrder;
-  });
-
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-
-  // Persist column preferences to localStorage
-  useEffect(() => {
-    localStorage.setItem('quotes-visible-columns', JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
-
-  useEffect(() => {
-    localStorage.setItem('quotes-column-order', JSON.stringify(columnOrder));
-  }, [columnOrder]);
-
-  // Initialize all groups as collapsed on first load
-  useEffect(() => {
-    if (filteredQuotes.length > 0 && collapsedGroups.size === 0) {
-      const projectIds = new Set(filteredQuotes.map(q => q.project_id));
-      setCollapsedGroups(projectIds);
-    }
-  }, [filteredQuotes.length]);
-
-  const toggleAllGroups = () => {
-    if (collapsedGroups.size > 0) {
-      setCollapsedGroups(new Set());
-    } else {
-      const allKeys = new Set(filteredQuotes.map(q => q.project_id));
-      setCollapsedGroups(allKeys);
-    }
-  };
 
   // Load data from Supabase on mount
   useEffect(() => {
@@ -820,43 +741,16 @@ const Quotes = () => {
         {view === 'list' && (
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <Button onClick={() => setView('create')} size="sm" className="flex-1 sm:flex-initial">
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="h-4 w-4 mr-2" />
               New Quote
             </Button>
-            <div className="hidden sm:flex items-center gap-2">
-              <ColumnSelector
-                columns={columnDefinitions}
-                visibleColumns={visibleColumns}
-                onVisibilityChange={setVisibleColumns}
-                columnOrder={columnOrder}
-                onColumnOrderChange={setColumnOrder}
-              />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 gap-2"
-                      onClick={toggleAllGroups}
-                    >
-                      <ChevronsUpDown className="h-3 w-3" />
-                      <span className="hidden sm:inline">
-                        {collapsedGroups.size > 0 ? 'Expand All' : 'Collapse All'}
-                      </span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {collapsedGroups.size > 0 ? 'Expand all groups' : 'Collapse all groups'}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div className="hidden sm:flex">
               <Button 
-                variant="outline" 
+                variant="ghost" 
                 size="sm"
                 onClick={() => setShowExportModal(true)}
               >
-                <Download className="h-4 w-4 mr-1" />
+                <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
             </div>
@@ -884,10 +778,6 @@ const Quotes = () => {
             onExpire={handleExpireQuotes}
             onCreateNew={() => setView('create')}
             onRefresh={fetchData}
-            visibleColumns={visibleColumns}
-            columnOrder={columnOrder}
-            collapsedGroups={collapsedGroups}
-            onCollapsedGroupsChange={setCollapsedGroups}
           />
         </>
       )}

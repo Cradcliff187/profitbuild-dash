@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -24,6 +24,8 @@ export default function Auth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, signIn } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
   
   // Dynamic Branding State
   const [logoStacked, setLogoStacked] = useState(logoStackedDefault);
@@ -54,17 +56,21 @@ export default function Auth() {
 
   useEffect(() => {
     if (user) {
-      navigate('/');
+      // Respect redirect parameter if present, otherwise go to dashboard
+      navigate(redirectTo || '/', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, redirectTo]);
 
   const onSubmit = async (data: AuthFormData) => {
     setIsSubmitting(true);
     const result = await signIn(data.email, data.password);
     
     if (result.mustChangePassword) {
-      navigate('/change-password');
+      // Preserve redirect parameter when navigating to password change
+      const redirectParam = redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : '';
+      navigate(`/change-password${redirectParam}`);
     }
+    // Note: If password change is not required, the useEffect above will handle redirect
     
     setIsSubmitting(false);
   };

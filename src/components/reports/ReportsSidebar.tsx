@@ -9,7 +9,7 @@ import {
   SidebarMenuButton,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { BarChart3, FileEdit, TrendingUp, Building2, Receipt, Clock, Users } from "lucide-react";
+import { BarChart3, FileEdit, TrendingUp, Building2, Receipt, Clock, Users, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ReportCategory = 
@@ -19,6 +19,7 @@ export type ReportCategory =
   | 'operational' 
   | 'cost' 
   | 'labor' 
+  | 'training'
   | 'other';
 
 interface ReportsSidebarProps {
@@ -56,6 +57,11 @@ const CATEGORIES = [
     key: 'labor' as ReportCategory,
     label: 'Time & Labor',
     icon: Clock, // Already correct, matches Navigation
+  },
+  {
+    key: 'training' as ReportCategory,
+    label: 'Training',
+    icon: GraduationCap,
   },
   {
     key: 'other' as ReportCategory,

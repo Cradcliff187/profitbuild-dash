@@ -44,11 +44,6 @@ interface QuotesTableViewProps {
   onCompare: (quote: Quote) => void;
   onCreateNew: () => void;
   onRefresh?: () => void;
-  // Lifted column and collapse state props from parent
-  visibleColumns?: string[];
-  columnOrder?: string[];
-  collapsedGroups?: Set<string>;
-  onCollapsedGroupsChange?: (groups: Set<string>) => void;
 }
 
 // Column definitions for the column selector
@@ -76,32 +71,33 @@ export const QuotesTableView = ({
   onDelete, 
   onCompare, 
   onCreateNew,
-  onRefresh,
-  visibleColumns: externalVisibleColumns,
-  columnOrder: externalColumnOrder,
-  collapsedGroups: externalCollapsedGroups,
-  onCollapsedGroupsChange
+  onRefresh 
 }: QuotesTableViewProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState<string | null>(null);
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
   const [quoteToDuplicate, setQuoteToDuplicate] = useState<Quote | null>(null);
   const [localQuotes, setLocalQuotes] = useState(quotes);
-  
-  // Use external state if provided, otherwise fall back to local state
-  const useExternalState = externalVisibleColumns !== undefined;
-  
-  const [internalCollapsedGroups, setInternalCollapsedGroups] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
-  // Column visibility state - use external if provided, otherwise manage internally
-  const [internalVisibleColumns, setInternalVisibleColumns] = useState<string[]>(() => {
+  // Column visibility and order state with localStorage persistence
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
     const stored = localStorage.getItem('quotes-visible-columns');
     const defaultColumns = [
-      'quote_number', 'estimate', 'payee', 'status', 'date_received',
-      'vendor_cost', 'estimate_cost', 'cost_variance_amount', 'actions'
+      'quote_number',
+      'estimate',
+      'payee', 
+      'status',
+      'date_received',
+      'vendor_cost',
+      'estimate_cost',
+      'cost_variance_amount',
+      'actions'
     ];
+    
     if (stored) {
       const parsed = JSON.parse(stored);
+      // Ensure 'estimate' column is included if missing from old preferences
       if (!parsed.includes('estimate')) {
         const insertIndex = parsed.indexOf('quote_number') + 1;
         parsed.splice(insertIndex, 0, 'estimate');
@@ -111,11 +107,13 @@ export const QuotesTableView = ({
     return defaultColumns;
   });
 
-  const [internalColumnOrder, setInternalColumnOrder] = useState<string[]>(() => {
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
     const stored = localStorage.getItem('quotes-column-order');
     const defaultOrder = columnDefinitions.map(c => c.key);
+    
     if (stored) {
       const parsed = JSON.parse(stored);
+      // Ensure 'estimate' column is included if missing from old preferences
       if (!parsed.includes('estimate')) {
         const insertIndex = parsed.indexOf('quote_number') + 1;
         parsed.splice(insertIndex, 0, 'estimate');
@@ -125,24 +123,14 @@ export const QuotesTableView = ({
     return defaultOrder;
   });
 
-  // Use external state if provided, otherwise use internal state
-  const visibleColumns = externalVisibleColumns ?? internalVisibleColumns;
-  const columnOrder = externalColumnOrder ?? internalColumnOrder;
-  const collapsedGroups = externalCollapsedGroups ?? internalCollapsedGroups;
-  const setCollapsedGroups = onCollapsedGroupsChange ?? setInternalCollapsedGroups;
-
-  // Persist column preferences to localStorage only if using internal state
+  // Persist column preferences to localStorage
   useEffect(() => {
-    if (!useExternalState) {
-      localStorage.setItem('quotes-visible-columns', JSON.stringify(internalVisibleColumns));
-    }
-  }, [internalVisibleColumns, useExternalState]);
+    localStorage.setItem('quotes-visible-columns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
 
   useEffect(() => {
-    if (!useExternalState) {
-      localStorage.setItem('quotes-column-order', JSON.stringify(internalColumnOrder));
-    }
-  }, [internalColumnOrder, useExternalState]);
+    localStorage.setItem('quotes-column-order', JSON.stringify(columnOrder));
+  }, [columnOrder]);
 
   // Update local state when quotes prop changes
   React.useEffect(() => {
@@ -159,13 +147,13 @@ export const QuotesTableView = ({
     );
   };
 
-  // Initialize all groups as collapsed on first load - only if using internal state
+  // Initialize all groups as collapsed on first load
   React.useEffect(() => {
-    if (!useExternalState && localQuotes.length > 0 && internalCollapsedGroups.size === 0) {
+    if (localQuotes.length > 0 && collapsedGroups.size === 0) {
       const projectIds = new Set(localQuotes.map(q => q.project_id));
-      setInternalCollapsedGroups(projectIds);
+      setCollapsedGroups(projectIds);
     }
-  }, [localQuotes.length, useExternalState]);
+  }, [localQuotes.length]);
 
   const getEstimateForQuote = (quote: Quote): Estimate | undefined => {
     // Prioritize exact estimate_id match first
@@ -708,10 +696,19 @@ export const QuotesTableView = ({
         <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
         <h3 className="text-lg font-medium mb-1">No Quotes Yet</h3>
         <p className="text-muted-foreground mb-4">Get started by creating your first quote</p>
-        <Button onClick={onCreateNew} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Create First Quote
-        </Button>
+        <div className="flex justify-center items-center gap-2">
+          <ColumnSelector
+            columns={columnDefinitions}
+            visibleColumns={visibleColumns}
+            onVisibilityChange={setVisibleColumns}
+            columnOrder={columnOrder}
+            onColumnOrderChange={setColumnOrder}
+          />
+          <Button onClick={onCreateNew} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Create First Quote
+          </Button>
+        </div>
       </div>
     );
   }
@@ -723,6 +720,20 @@ export const QuotesTableView = ({
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
           {localQuotes.length} {localQuotes.length === 1 ? 'quote' : 'quotes'} across {groupedData.length} {groupedData.length === 1 ? 'project' : 'projects'}
+        </div>
+        <div className="flex items-center gap-2">
+          <ColumnSelector
+            columns={columnDefinitions}
+            visibleColumns={visibleColumns}
+            onVisibilityChange={setVisibleColumns}
+            columnOrder={columnOrder}
+            onColumnOrderChange={setColumnOrder}
+          />
+          {collapseButton}
+          <Button onClick={onCreateNew} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            New Quote
+          </Button>
         </div>
       </div>
       <QuotesTable

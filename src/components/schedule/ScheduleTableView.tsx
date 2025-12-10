@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ColumnSelector } from '@/components/ui/column-selector';
-import { Search, ArrowUpDown, CheckCircle2 } from 'lucide-react';
+import { ArrowUpDown, CheckCircle2 } from 'lucide-react';
 import { ScheduleTask, TaskDependency } from '@/types/schedule';
 import { useScheduleTableColumns } from '@/hooks/useScheduleTableColumns';
 import { cn } from '@/lib/utils';
@@ -208,13 +208,11 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
       {/* Controls Bar */}
       <Card className="p-3">
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search tasks..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-8 text-sm"
+          <Input
+            placeholder="Search tasks..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 min-w-[200px] h-8 text-sm"
             />
           </div>
           <ColumnSelector

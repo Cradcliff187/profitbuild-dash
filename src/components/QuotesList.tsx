@@ -37,14 +37,9 @@ interface QuotesListProps {
   onExpire?: (expiredQuoteIds: string[]) => void;
   onCreateNew?: () => void;
   onRefresh?: () => void;
-  // Lifted column and collapse state props
-  visibleColumns?: string[];
-  columnOrder?: string[];
-  collapsedGroups?: Set<string>;
-  onCollapsedGroupsChange?: (groups: Set<string>) => void;
 }
 
-export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onCompare, onExpire, onCreateNew, onRefresh, visibleColumns, columnOrder, collapsedGroups, onCollapsedGroupsChange }: QuotesListProps) => {
+export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onCompare, onExpire, onCreateNew, onRefresh }: QuotesListProps) => {
   const isMobile = useIsMobile();
   const [sortBy, setSortBy] = useState<'date' | 'project' | 'total'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -261,10 +256,6 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
         onCompare={onCompare}
         onCreateNew={onCreateNew || (() => {})}
         onRefresh={onRefresh}
-        visibleColumns={visibleColumns}
-        columnOrder={columnOrder}
-        collapsedGroups={collapsedGroups}
-        onCollapsedGroupsChange={onCollapsedGroupsChange}
       />
     );
   }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, Download, Search, Building, Calculator, FileText, Receipt, DollarSign, RefreshCw, Clipboard, Archive } from 'lucide-react';
+import { BookOpen, Download, Building, Calculator, FileText, Receipt, DollarSign, RefreshCw, Clipboard, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -303,13 +303,11 @@ export default function KPIGuide() {
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search measures, fields, or formulas..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-8 h-9"
+      <Input
+        placeholder="Search measures, fields, or formulas..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="h-9"
         />
       </div>
 

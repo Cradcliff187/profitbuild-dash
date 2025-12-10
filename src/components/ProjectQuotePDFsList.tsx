@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, Download, Trash2, Search, Filter, FileText } from 'lucide-react';
+import { Eye, Download, Trash2, Filter, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -173,15 +173,12 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search quotes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-11 w-full rounded-xl border-border pl-10 text-sm shadow-sm sm:h-9"
-          />
-        </div>
+        <Input
+          placeholder="Search quotes..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 h-11 w-full rounded-xl border-border text-sm shadow-sm sm:h-9"
+        />
         <div className="sm:w-[200px]">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm sm:h-9">

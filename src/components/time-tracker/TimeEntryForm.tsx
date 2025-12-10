@@ -21,19 +21,7 @@ interface Project {
   id: string;
   name: string;
   number: string;
-  category?: string;
 }
-
-// PTO project numbers for special display handling
-const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
-
-// Display PTO projects without project number prefix
-const getProjectDisplayName = (project: Project) => {
-  if (PTO_PROJECT_NUMBERS.includes(project.number)) {
-    return project.name; // Just "Sick Time", "Vacation Time", etc.
-  }
-  return `${project.number} - ${project.name}`;
-};
 
 interface TimeEntryFormProps {
   workerId: string;
@@ -140,7 +128,7 @@ export const TimeEntryForm = ({
   }, [startTime, endTime]);
 
   const loadData = async () => {
-    const [workersRes, constructionRes, ptoRes, userRes] = await Promise.all([
+    const [workersRes, projectsRes, userRes] = await Promise.all([
       supabase
         .from('payees')
         .select('id, payee_name, hourly_rate, email')
@@ -148,19 +136,12 @@ export const TimeEntryForm = ({
         .eq('provides_labor', true)
         .eq('is_active', true)
         .order('payee_name'),
-      // Construction projects
       supabase
         .from('projects')
         .select('id, project_name, project_number, category')
         .in('status', ['approved', 'in_progress'])
         .eq('category', 'construction')
         .order('project_number', { ascending: true }),
-      // PTO projects for manual time entry
-      supabase
-        .from('projects')
-        .select('id, project_name, project_number, category')
-        .in('project_number', PTO_PROJECT_NUMBERS)
-        .eq('status', 'in_progress'),
       supabase.auth.getUser(),
     ]);
     
@@ -182,22 +163,13 @@ export const TimeEntryForm = ({
       }
     }
     
-    // Merge construction + PTO projects
-    const allProjects = [
-      ...(constructionRes.data || []).map(p => ({ 
+    if (projectsRes.data) {
+      setProjects(projectsRes.data.map(p => ({ 
         id: p.id, 
         name: p.project_name, 
-        number: p.project_number,
-        category: p.category
-      })),
-      ...(ptoRes.data || []).map(p => ({ 
-        id: p.id, 
-        name: p.project_name, 
-        number: p.project_number,
-        category: p.category
-      }))
-    ];
-    setProjects(allProjects);
+        number: p.project_number 
+      })));
+    }
   };
 
   return (
@@ -209,7 +181,7 @@ export const TimeEntryForm = ({
           variant="outline" 
           onClick={() => { 
             setStartTime('08:00'); 
-            setEndTime('16:00');
+            setEndTime('17:00'); 
             setHours('8'); 
           }}
           disabled={disabled}
@@ -327,10 +299,7 @@ export const TimeEntryForm = ({
           >
             {projectId ? (
               <div className="font-semibold text-foreground">
-                {(() => {
-                  const selected = projects.find(p => p.id === projectId);
-                  return selected ? getProjectDisplayName(selected) : '';
-                })()}
+                {projects.find(p => p.id === projectId)?.number} - {projects.find(p => p.id === projectId)?.name}
               </div>
             ) : (
               <div className="text-muted-foreground">Select project...</div>
@@ -357,7 +326,7 @@ export const TimeEntryForm = ({
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold truncate">
-                        {getProjectDisplayName(project)}
+                        {project.number} - {project.name}
                       </div>
                     </div>
                     {projectId === project.id && (

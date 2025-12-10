@@ -43,6 +43,9 @@ const Reports = lazy(() => import("./pages/Reports"));
 const AllExpensesLineItemsReport = lazy(() => import("./pages/AllExpensesLineItemsReport"));
 const AllRevenuesLineItemsReport = lazy(() => import("./pages/AllRevenuesLineItemsReport"));
 const SMSAdmin = lazy(() => import("./pages/SMSAdmin"));
+const Training = lazy(() => import("./pages/Training"));
+const TrainingAdmin = lazy(() => import("./pages/TrainingAdmin"));
+const TrainingViewer = lazy(() => import("./pages/TrainingViewer"));
 
 const queryClient = new QueryClient();
 
@@ -105,6 +108,9 @@ const App = () => (
                   <Route path="role-management" element={<LazyRoute component={RoleManagement} />} />
                   <Route path="sms" element={<LazyRoute component={SMSAdmin} />} />
                   <Route path="kpi-guide" element={<LazyRoute component={KPIGuide} />} />
+                  <Route path="training" element={<LazyRoute component={Training} />} />
+                  <Route path="training/admin" element={<LazyRoute component={TrainingAdmin} />} />
+                  <Route path="training/:id" element={<LazyRoute component={TrainingViewer} />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

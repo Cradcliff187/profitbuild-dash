@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Building, Search, CheckCircle, DollarSign, Zap, User, AlertTriangle, X } from 'lucide-react';
+import { Building, CheckCircle, DollarSign, Zap, User, AlertTriangle, X } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { 
   suggestLineItemAllocation, 
@@ -488,15 +488,11 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
               </div>
 
               {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search line items..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+              <Input
+                placeholder="Search line items..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
 
               {/* All Line Items - Unified List */}
               {(() => {

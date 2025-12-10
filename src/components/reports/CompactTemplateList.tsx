@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Star, ChevronDown, ChevronRight, FileText, TrendingUp, Building2, DollarSign, Clock } from "lucide-react";
+import { Star, ChevronDown, ChevronRight, FileText, TrendingUp, Building2, DollarSign, Clock, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ReportTemplate } from "@/hooks/useReportTemplates";
@@ -21,6 +21,7 @@ const categoryIcons = {
   operational: Building2,
   cost: DollarSign,
   labor: Clock,
+  training: GraduationCap,
   other: FileText,
 };
 
@@ -30,7 +31,8 @@ const categoryMap: Record<string, keyof typeof categoryIcons> = {
   'operational': 'operational',
   'client': 'other',
   'vendor': 'other',
-  'schedule': 'operational'
+  'schedule': 'operational',
+  'Training': 'training'
 };
 
 // Map specific template names to categories (overrides category field)
@@ -62,6 +64,10 @@ const CATEGORY_CONFIG = {
   labor: {
     label: "Time & Labor",
     description: "Time tracking and labor cost analysis",
+  },
+  training: {
+    label: "Training",
+    description: "Training assignments, completions, and compliance reports",
   },
   other: {
     label: "Client & Vendor",
@@ -121,6 +127,7 @@ export function CompactTemplateList({
       operational: [],
       cost: [],
       labor: [],
+      training: [],
       other: []
     };
 

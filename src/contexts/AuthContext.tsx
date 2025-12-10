@@ -34,10 +34,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Handle magic link sign-in - Supabase redirects automatically via redirectTo
+        // Log for debugging purposes
+        if (event === 'SIGNED_IN' && session) {
+          // Check if this was a magic link authentication
+          const hash = window.location.hash;
+          if (hash && hash.includes('type=magiclink')) {
+            console.log('✅ Magic link authentication successful');
+          }
+        }
       }
     );
 

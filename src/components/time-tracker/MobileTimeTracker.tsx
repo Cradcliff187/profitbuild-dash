@@ -36,8 +36,6 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { addToQueue } from '@/utils/syncQueue';
 import { ProjectCategory } from '@/types/project';
 
-const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
-
 interface Project {
   id: string;
   project_number: string;
@@ -46,14 +44,6 @@ interface Project {
   address?: string;
   category?: string;
 }
-
-// Helper to get clean display name for projects (PTO shows just name, construction shows number + client)
-const getProjectDisplayName = (project: Project): string => {
-  if (PTO_PROJECT_NUMBERS.includes(project.project_number)) {
-    return project.project_name; // Just "Sick Time", "Vacation Time", etc.
-  }
-  return `${project.project_number} - ${project.client_name}`;
-};
 
 interface TeamMember {
   id: string;
@@ -325,7 +315,6 @@ export const MobileTimeTracker: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-
   // Load timer state from localStorage on mount
   useEffect(() => {
     const savedTimer = localStorage.getItem('activeTimer');
@@ -333,13 +322,11 @@ export const MobileTimeTracker: React.FC = () => {
       try {
         const parsed = JSON.parse(savedTimer);
         
-        // Sanitize: clear non-construction project if cached (PTO not allowed in clock-in)
-        const isAllowedProject = (project?: Project) => {
-          if (!project) return false;
-          return project.category === 'construction';
-        };
+        // Sanitize: clear non-construction project if cached
+        const isNonConstructionProject = (category?: string) => 
+          category === 'system' || category === 'overhead';
         
-        if (parsed.project && !isAllowedProject(parsed.project)) {
+        if (parsed.project && isNonConstructionProject(parsed.project.category)) {
           parsed.project = null;
         }
         
@@ -369,18 +356,18 @@ export const MobileTimeTracker: React.FC = () => {
   const loadInitialData = async () => {
     setDataLoading(true);
     try {
-      // Load active construction projects
-      const { data: projectsData, error: projectsError } = await supabase
-        .from('projects')
-        .select('id, project_number, project_name, client_name, address, category')
-        .in('status', ['approved', 'in_progress'])
-        .eq('category', 'construction')
+      // Load active projects (exclude system projects)
+    const { data: projectsData, error: projectsError } = await supabase
+      .from('projects')
+      .select('id, project_number, project_name, client_name, address, category')
+      .in('status', ['approved', 'in_progress'])
+      .eq('category', 'construction')
         .order('project_number', { ascending: true })
         .limit(20);
 
       if (projectsError) throw projectsError;
       
-      // Defense-in-depth: filter construction projects only (PTO handled in manual entry form)
+      // Defense-in-depth: filter any non-construction projects
       const cleanedProjects = (projectsData || []).filter(
         p => p.category === 'construction'
       );
@@ -1240,15 +1227,11 @@ export const MobileTimeTracker: React.FC = () => {
                 <div className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
-                    <span>{getProjectDisplayName(activeTimer.project)}</span>
+                    <span>{activeTimer.project.project_number} - {activeTimer.project.client_name}</span>
                   </div>
-                  {!PTO_PROJECT_NUMBERS.includes(activeTimer.project.project_number) && (
-                    <>
-                      <span className="text-xs opacity-90 ml-6">{activeTimer.project.project_name}</span>
-                      {activeTimer.project.address && (
-                        <span className="text-xs opacity-90 ml-6">{activeTimer.project.address}</span>
-                      )}
-                    </>
+                  <span className="text-xs opacity-90 ml-6">{activeTimer.project.project_name}</span>
+                  {activeTimer.project.address && (
+                    <span className="text-xs opacity-90 ml-6">{activeTimer.project.address}</span>
                   )}
                 </div>
               </div>
@@ -1337,15 +1320,11 @@ export const MobileTimeTracker: React.FC = () => {
               {selectedProject ? (
                 <div>
                   <div className="font-semibold text-foreground">
-                    {getProjectDisplayName(selectedProject)}
+                    {selectedProject.project_number} - {selectedProject.client_name}
                   </div>
-                  {!PTO_PROJECT_NUMBERS.includes(selectedProject.project_number) && (
-                    <>
-                      <div className="text-sm text-muted-foreground">{selectedProject.project_name}</div>
-                      {selectedProject.address && (
-                        <div className="text-sm text-muted-foreground">{selectedProject.address}</div>
-                      )}
-                    </>
+                  <div className="text-sm text-muted-foreground">{selectedProject.project_name}</div>
+                  {selectedProject.address && (
+                    <div className="text-sm text-muted-foreground">{selectedProject.address}</div>
                   )}
                 </div>
               ) : (
@@ -1372,15 +1351,11 @@ export const MobileTimeTracker: React.FC = () => {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold truncate">
-                          {getProjectDisplayName(project)}
+                          {project.project_number} - {project.client_name}
                         </div>
-                        {!PTO_PROJECT_NUMBERS.includes(project.project_number) && (
-                          <>
-                            <div className="text-sm text-muted-foreground truncate">{project.project_name}</div>
-                            {project.address && (
-                              <div className="text-sm text-muted-foreground truncate">{project.address}</div>
-                            )}
-                          </>
+                        <div className="text-sm text-muted-foreground truncate">{project.project_name}</div>
+                        {project.address && (
+                          <div className="text-sm text-muted-foreground truncate">{project.address}</div>
                         )}
                       </div>
                       {selectedProject?.id === project.id && (
@@ -1539,13 +1514,11 @@ export const MobileTimeTracker: React.FC = () => {
                         
                         {/* SECONDARY: Project Information */}
                         <div className="text-sm text-muted-foreground mt-1">
-                          {getProjectDisplayName(entry.project)}
+                          {entry.project.project_number} - {entry.project.client_name}
                         </div>
-                        {!PTO_PROJECT_NUMBERS.includes(entry.project.project_number) && (
-                          <div className="text-xs text-muted-foreground">
-                            {entry.project.project_name}
-                          </div>
-                        )}
+                        <div className="text-xs text-muted-foreground">
+                          {entry.project.project_name}
+                        </div>
                         
                         {/* STATUS: Approval Badge if Pending */}
                         {entry.approval_status === 'pending' && (
@@ -1619,7 +1592,7 @@ export const MobileTimeTracker: React.FC = () => {
                         {getElapsedTime()} on site
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {getProjectDisplayName(activeTimer.project)}
+                        {activeTimer.project.project_number} - {activeTimer.project.client_name}
                       </div>
                     </div>
                   )}

@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useReportTemplates, ReportTemplate } from "@/hooks/useReportTemplates";
 import { BrandedLoader } from "@/components/ui/branded-loader";
-import { Search, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { CompactTemplateList } from "./CompactTemplateList";
 import type { ReportCategory } from "./ReportsSidebar";
 
@@ -37,15 +37,12 @@ export function NewTemplateGallery({ onSelectTemplate, onCustomBuilder, selected
     <div className="space-y-3">
       {/* Header with Search and Custom Builder */}
       <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
-        <div className="relative flex-1 w-full sm:max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Type report name here"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9"
-          />
-        </div>
+        <Input
+          placeholder="Type report name here"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 w-full sm:max-w-md h-9"
+        />
         {onCustomBuilder && (
           <Button onClick={onCustomBuilder} variant="outline" size="sm" className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />

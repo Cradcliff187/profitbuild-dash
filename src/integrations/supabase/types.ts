@@ -2447,6 +2447,222 @@ export type Database = {
         }
         Relationships: []
       }
+      training_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          notification_sent_at: string | null
+          priority: number | null
+          reminder_sent_at: string | null
+          training_content_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          notification_sent_at?: string | null
+          priority?: number | null
+          reminder_sent_at?: string | null
+          training_content_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          notification_sent_at?: string | null
+          priority?: number | null
+          reminder_sent_at?: string | null
+          training_content_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assignments_training_content_id_fkey"
+            columns: ["training_content_id"]
+            isOneToOne: false
+            referencedRelation: "training_content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_completions: {
+        Row: {
+          acknowledged: boolean | null
+          completed_at: string | null
+          id: string
+          notes: string | null
+          time_spent_minutes: number | null
+          training_content_id: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged?: boolean | null
+          completed_at?: string | null
+          id?: string
+          notes?: string | null
+          time_spent_minutes?: number | null
+          training_content_id: string
+          user_id: string
+        }
+        Update: {
+          acknowledged?: boolean | null
+          completed_at?: string | null
+          id?: string
+          notes?: string | null
+          time_spent_minutes?: number | null
+          training_content_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_completions_training_content_id_fkey"
+            columns: ["training_content_id"]
+            isOneToOne: false
+            referencedRelation: "training_content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_completions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_content: {
+        Row: {
+          content_type: Database["public"]["Enums"]["training_content_type"]
+          content_url: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          duration_minutes: number | null
+          embed_code: string | null
+          id: string
+          is_required: boolean | null
+          status: Database["public"]["Enums"]["training_status"] | null
+          storage_path: string | null
+          target_roles: Database["public"]["Enums"]["app_role"][] | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content_type: Database["public"]["Enums"]["training_content_type"]
+          content_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          embed_code?: string | null
+          id?: string
+          is_required?: boolean | null
+          status?: Database["public"]["Enums"]["training_status"] | null
+          storage_path?: string | null
+          target_roles?: Database["public"]["Enums"]["app_role"][] | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content_type?: Database["public"]["Enums"]["training_content_type"]
+          content_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          embed_code?: string | null
+          id?: string
+          is_required?: boolean | null
+          status?: Database["public"]["Enums"]["training_status"] | null
+          storage_path?: string | null
+          target_roles?: Database["public"]["Enums"]["app_role"][] | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_content_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_notifications: {
+        Row: {
+          delivered: boolean | null
+          email_id: string | null
+          error_message: string | null
+          id: string
+          notification_type: string
+          sent_at: string | null
+          training_content_id: string
+          user_id: string
+        }
+        Insert: {
+          delivered?: boolean | null
+          email_id?: string | null
+          error_message?: string | null
+          id?: string
+          notification_type: string
+          sent_at?: string | null
+          training_content_id: string
+          user_id: string
+        }
+        Update: {
+          delivered?: boolean | null
+          email_id?: string | null
+          error_message?: string | null
+          id?: string
+          notification_type?: string
+          sent_at?: string | null
+          training_content_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_notifications_training_content_id_fkey"
+            columns: ["training_content_id"]
+            isOneToOne: false
+            referencedRelation: "training_content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -2702,6 +2918,13 @@ export type Database = {
       quote_status: "pending" | "accepted" | "rejected" | "expired"
       sync_status: "success" | "failed" | "pending"
       sync_type: "import" | "export"
+      training_content_type:
+        | "video_link"
+        | "video_embed"
+        | "document"
+        | "presentation"
+        | "external_link"
+      training_status: "draft" | "published" | "archived"
       transaction_type: "expense" | "bill" | "check" | "credit_card" | "cash"
     }
     CompositeTypes: {
@@ -2863,6 +3086,14 @@ export const Constants = {
       quote_status: ["pending", "accepted", "rejected", "expired"],
       sync_status: ["success", "failed", "pending"],
       sync_type: ["import", "export"],
+      training_content_type: [
+        "video_link",
+        "video_embed",
+        "document",
+        "presentation",
+        "external_link",
+      ],
+      training_status: ["draft", "published", "archived"],
       transaction_type: ["expense", "bill", "check", "credit_card", "cash"],
     },
   },

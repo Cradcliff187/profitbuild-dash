@@ -25,7 +25,7 @@ export interface FieldMetadata {
   type: ReportField['type'];
   enumValues?: string[];
   dataSource?: 'clients' | 'payees' | 'workers' | 'projects';
-  group?: 'financial' | 'project_info' | 'dates' | 'status' | 'employee' | 'time' | 'composition' | 'change_orders' | 'invoicing' | 'contingency' | 'estimates';
+  group?: 'financial' | 'project_info' | 'dates' | 'status' | 'employee' | 'time' | 'composition' | 'change_orders' | 'invoicing' | 'contingency' | 'estimates' | 'Training';
   helpText?: string;
   allowedOperators?: ReportFilter['operator'][];
 }
@@ -36,7 +36,8 @@ const DATA_SOURCES = [
   { value: 'quotes', label: 'Quotes' },
   { value: 'time_entries', label: 'Time Entries' },
   { value: 'estimate_line_items', label: 'Estimate Line Items' },
-  { value: 'internal_costs', label: 'Internal Costs' }
+  { value: 'internal_costs', label: 'Internal Costs' },
+  { value: 'reporting.training_status', label: 'Training Status' }
 ] as const;
 
 export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
@@ -171,6 +172,19 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'lunch_taken', label: 'Lunch Taken', type: 'boolean', group: 'time', helpText: 'Whether lunch was taken' },
     { key: 'lunch_duration_minutes', label: 'Lunch Duration', type: 'number', group: 'time', helpText: 'Lunch duration in minutes' },
     { key: 'gross_hours', label: 'Gross Hours', type: 'number', group: 'time', helpText: 'Total shift duration before lunch deduction' }
+  ],
+  'reporting.training_status': [
+    { key: 'employee_name', label: 'Employee Name', type: 'text', group: 'Training' },
+    { key: 'content_title', label: 'Content Title', type: 'text', group: 'Training' },
+    { key: 'content_type', label: 'Content Type', type: 'text', group: 'Training', enumValues: ['video_link', 'video_embed', 'document', 'presentation', 'external_link'], allowedOperators: ['equals', 'not_equals', 'in'] },
+    { key: 'status', label: 'Status', type: 'text', group: 'Training', enumValues: ['completed', 'overdue', 'assigned', 'pending'], allowedOperators: ['equals', 'not_equals', 'in'] },
+    { key: 'is_required', label: 'Is Required', type: 'boolean', group: 'Training' },
+    { key: 'due_date', label: 'Due Date', type: 'date', group: 'Training', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'assigned_at', label: 'Assigned At', type: 'date', group: 'Training', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'completed_at', label: 'Completed At', type: 'date', group: 'Training', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'days_remaining', label: 'Days Remaining', type: 'number', group: 'Training', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'estimated_duration', label: 'Estimated Duration (minutes)', type: 'number', group: 'Training', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'actual_duration', label: 'Actual Duration (minutes)', type: 'number', group: 'Training', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] }
   ]
 };
 
