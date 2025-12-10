@@ -14,14 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Estimate } from "@/types/estimate";
 import { Plus, BarChart3, Download, Calculator } from "lucide-react";
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { PageHeader } from "@/components/ui/page-header";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 type ViewMode = "list" | "create" | "edit" | "view";
@@ -498,44 +491,25 @@ const EstimatesPage = () => {
 
   return (
     <div className="w-full overflow-x-hidden space-y-4">
-      {!isMobile && viewMode === "list" && (
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Estimates</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      )}
-
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-        <div className="flex items-center space-x-3 min-w-0">
-          <Calculator className="h-5 w-5 text-primary shrink-0" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-foreground">Estimates</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Manage project estimates, versions, and approvals</p>
-          </div>
-        </div>
-
-        {viewMode === "list" && (
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <Button onClick={handleCreateNew} size="sm" className="flex-1 sm:flex-initial">
-              <Plus className="h-4 w-4 mr-2" />
-              {getCreateButtonText()}
-            </Button>
-            <div className="hidden sm:flex">
-              <Button variant="ghost" size="sm" onClick={() => setShowExportModal(true)}>
+      <PageHeader
+        icon={Calculator}
+        title="Estimates"
+        description="Create and manage project estimates"
+        actions={
+          viewMode === "list" ? (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => setShowExportModal(true)} className="hidden sm:flex">
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
-            </div>
-          </div>
-        )}
-      </div>
+              <Button onClick={handleCreateNew} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                {getCreateButtonText()}
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
 
       {viewMode === "list" ? (
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">

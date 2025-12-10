@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Camera, Video, Image as ImageIcon, Clock, Grid } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import { FieldProjectSelector } from '@/components/FieldProjectSelector';
 import { ProjectMediaGallery } from '@/components/ProjectMediaGallery';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -61,14 +62,23 @@ export default function FieldMedia() {
   return (
     <MobilePageWrapper>
       <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center space-x-3">
-          <Camera className="h-5 w-5 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Field Media</h1>
-            <p className="text-sm text-muted-foreground">Capture and view project photos and videos</p>
-          </div>
-        </div>
+        <PageHeader
+          icon={Camera}
+          title="Field Media"
+          description="View and manage field photos and videos"
+          actions={
+            <>
+              <Button variant="outline" size="sm">
+                <Camera className="h-4 w-4 mr-2" />
+                Capture Photo
+              </Button>
+              <Button size="sm">
+                <Video className="h-4 w-4 mr-2" />
+                Capture Video
+              </Button>
+            </>
+          }
+        />
 
         {/* Project Selector */}
         <Card>

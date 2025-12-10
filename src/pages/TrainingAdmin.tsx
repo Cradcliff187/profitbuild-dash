@@ -37,7 +37,9 @@ import {
   Calendar,
   Loader2,
   ChevronDown,
+  GraduationCap,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -413,22 +415,17 @@ export default function TrainingAdmin() {
 
   return (
     <div className="w-full overflow-x-hidden px-2 sm:px-3 py-2 sm:py-4 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-3">
-            <BookOpen className="h-5 w-5 text-primary" />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Training Management</h1>
-              <p className="text-sm text-muted-foreground">Create and manage training content</p>
-            </div>
-          </div>
-          <Button onClick={handleCreate} size="sm" className="h-8 text-xs">
-            <Plus className="h-3 w-3 mr-1.5" />
-            Add Content
+      <PageHeader
+        icon={GraduationCap}
+        title="Training Admin"
+        description="Manage training content and assignments"
+        actions={
+          <Button onClick={handleCreate} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Module
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">

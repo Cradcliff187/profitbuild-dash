@@ -1,16 +1,19 @@
 import { useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from '@/contexts/AuthContext';
 import { useRoles } from '@/contexts/RoleContext';
 import { BrandedLoader } from '@/components/ui/branded-loader';
-import Navigation from './Navigation';
 import { supabase } from '@/integrations/supabase/client';
 
-export default function ProtectedLayout() {
+export default function AppLayout() {
   const { user, loading: authLoading } = useAuth();
   const { isFieldWorker, loading: rolesLoading } = useRoles();
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -60,13 +63,25 @@ export default function ProtectedLayout() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
-      <Navigation />
-      <main className="flex-1 overflow-auto w-full mobile-safe-padding py-4 sm:py-6 md:py-8">
-        <div className="px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
-          <Outlet />
-        </div>
-      </main>
-    </div>
+    <SidebarProvider defaultOpen={!isMobile}>
+      <div className="flex min-h-screen w-full">
+        <AppSidebar />
+        <SidebarInset className="flex flex-col flex-1 bg-slate-50/50">
+          {/* Mobile header with trigger */}
+          {isMobile && (
+            <header className="flex h-14 items-center gap-4 border-b bg-white px-4 lg:hidden">
+              <SidebarTrigger />
+              <span className="font-semibold">RCG Work</span>
+            </header>
+          )}
+          
+          {/* Main content area - pages render here */}
+          <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+            <Outlet />
+          </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }
+

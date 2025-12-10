@@ -1,29 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation, Routes, Route, Navigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Outlet, useOutletContext } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2 } from "lucide-react";
+import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, FileText, DollarSign, Target, FileEdit, Edit, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { ProjectSidebar } from "@/components/ProjectSidebar";
-import { ProjectOperationalDashboard } from "@/components/ProjectOperationalDashboard";
-import { ProjectEstimatesView } from "@/components/ProjectEstimatesView";
-import { EstimateForm } from "@/components/EstimateForm";
-import { QuoteForm } from "@/components/QuoteForm";
-import { ExpensesList } from "@/components/ExpensesList";
-import { LineItemControlDashboard } from "@/components/LineItemControlDashboard";
-import { ChangeOrdersList } from "@/components/ChangeOrdersList";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ChangeOrderForm } from "@/components/ChangeOrderForm";
-import { ProjectMediaGallery } from "@/components/ProjectMediaGallery";
-import { ProjectEditForm } from "@/components/ProjectEditForm";
-import { ProjectDocumentsHub } from "@/components/ProjectDocumentsHub";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ProjectOption, formatProjectLabel } from "@/components/projects/ProjectOption";
 import { Badge } from "@/components/ui/badge";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Project } from "@/types/project";
@@ -42,81 +29,85 @@ import { parseDateOnly } from "@/utils/dateUtils";
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 
-// Wrapper component to handle estimate editing with route params
-const EstimateEditWrapper = ({ 
-  estimates, 
-  projectId, 
-  onSave, 
-  onCancel 
-}: { 
-  estimates: Estimate[]; 
-  projectId: string; 
-  onSave: () => void; 
-  onCancel: () => void; 
-}) => {
-  const { estimateId } = useParams<{ estimateId: string }>();
-  const estimate = estimates.find(e => e.id === estimateId);
-  
-  if (!estimate) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-center text-sm text-muted-foreground">
-          Estimate not found
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  return (
-    <EstimateForm
-      mode="edit"
-      initialEstimate={estimate}
-      onSave={onSave}
-      onCancel={onCancel}
-      preselectedProjectId={projectId}
-    />
-  );
-};
-
-// Wrapper component to handle quote editing with route params
-const QuoteEditWrapper = ({ 
-  quotes, 
-  estimates,
-  projectId, 
-  onSave, 
-  onCancel,
-  mode = 'edit'
-}: { 
-  quotes: Quote[]; 
+// Context type for Outlet
+export interface ProjectOutletContext {
+  project: ProjectWithFinancials;
   estimates: Estimate[];
-  projectId: string; 
-  onSave: () => void; 
-  onCancel: () => void;
-  mode?: 'edit' | 'view';
-}) => {
-  const { quoteId } = useParams<{ quoteId: string }>();
-  const quote = quotes.find(q => q.id === quoteId);
-  console.log('[QuoteEditWrapper] Resolving quote', { quoteId, found: !!quote, mode });
-  
-  if (!quote) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-center text-sm text-muted-foreground">
-          Quote not found
-        </CardContent>
-      </Card>
-    );
+  quotes: Quote[];
+  expenses: Expense[];
+  changeOrders: ChangeOrder[];
+  pendingTimeEntries: number;
+  pendingReceipts: number;
+  mediaCounts: { photos: number; videos: number };
+  documentCount: number;
+  loadProjectData: () => Promise<void>;
+  handleSaveQuote: (quote: Quote) => Promise<void>;
+  onEditChangeOrder: (co: ChangeOrder) => void;
+  onCreateChangeOrder: () => void;
+  projectId: string;
+}
+
+// Hook for child routes to access project context
+export function useProjectContext(): ProjectOutletContext {
+  return useOutletContext<ProjectOutletContext>();
+}
+
+// Wrapper components removed - now handled by route components in project-routes folder
+
+// Navigation groups for secondary panel
+interface NavItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const getNavigationGroups = (): NavGroup[] => {
+  const groups: NavGroup[] = [
+    {
+      label: "PROJECT INFO",
+      items: [
+        { title: "Overview", url: "", icon: Building2 },
+      ],
+    },
+    {
+      label: "CONTRACTS & ESTIMATES",
+      items: [
+        { title: "Estimates & Quotes", url: "estimates", icon: FileText },
+        { title: "Change Orders", url: "changes", icon: FileEdit },
+      ],
+    },
+    {
+      label: "COST MANAGEMENT",
+      items: [
+        { title: "Expenses", url: "expenses", icon: DollarSign },
+        { title: "Line Item Control", url: "control", icon: Target },
+      ],
+    },
+    {
+      label: "DOCUMENTATION",
+      items: [
+        { title: "Documents", url: "documents", icon: FileText },
+      ],
+    },
+    {
+      label: "ACTIONS",
+      items: [
+        { title: "Edit Project", url: "edit", icon: Edit },
+      ],
+    },
+  ];
+
+  // Add Schedule if feature flag is enabled
+  if (isFeatureEnabled("scheduleView")) {
+    groups[0].items.push({ title: "Schedule", url: "schedule", icon: Calendar });
   }
-  
-  return (
-    <QuoteForm
-      estimates={estimates}
-      initialQuote={quote}
-      onSave={onSave}
-      onCancel={onCancel}
-      mode={mode}
-    />
-  );
+
+  return groups;
 };
 
 export const ProjectDetailView = () => {
@@ -139,6 +130,9 @@ export const ProjectDetailView = () => {
   const [projectOptions, setProjectOptions] = useState<Array<{ id: string; project_number: string | null; project_name: string | null; client_name: string | null }>>([]);
   const [projectSwitcherOpen, setProjectSwitcherOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Secondary panel collapse state
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
   
   // Change Order Modal State
   const [showChangeOrderModal, setShowChangeOrderModal] = useState(false);
@@ -549,42 +543,164 @@ export const ProjectDetailView = () => {
     );
   }
 
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full no-horizontal-scroll pt-16">
-        <ProjectSidebar />
-        
-        <SidebarInset className="flex-1 flex flex-col no-horizontal-scroll overflow-hidden">
-          {/* Compact Header */}
-          <header className="sticky top-0 z-10 flex h-auto flex-col gap-3 border-b bg-background px-3 py-3 sm:h-16 sm:flex-row sm:items-center sm:gap-3">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger />
-              <Separator orientation="vertical" className="hidden sm:block h-8" />
+  // Secondary panel navigation logic
+  const currentSection = location.pathname.split("/").pop() || "";
+  const navigationGroups = getNavigationGroups();
+
+  const isActive = (sectionUrl: string) => {
+    if (sectionUrl === "" && currentSection === projectId) return true;
+    return currentSection === sectionUrl;
+  };
+
+  const handleNavigation = (sectionUrl: string) => {
+    const path = sectionUrl
+      ? `/projects/${projectId}/${sectionUrl}`
+      : `/projects/${projectId}`;
+    navigate(path);
+  };
+
+  const NavContent = () => (
+    <div className="flex flex-col h-full">
+      {/* Back to Projects */}
+      <div className="p-3 border-b border-border/60 bg-slate-50">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-transparent"
+          onClick={() => navigate("/projects")}
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {!panelCollapsed && "Back to Projects"}
+        </Button>
+      </div>
+
+      {/* Navigation Groups */}
+      <nav className="flex-1 overflow-y-auto p-2">
+        {navigationGroups.map((group, groupIndex) => (
+          <div key={group.label} className="mb-3">
+            {!panelCollapsed && (
+              <h3 className="px-3 mb-1.5 text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                {group.label}
+              </h3>
+            )}
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const active = isActive(item.url);
+                const Icon = item.icon;
+                return (
+                  <Button
+                    key={item.title}
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start gap-2.5 min-h-[40px] text-sm text-slate-600 hover:text-slate-900 hover:bg-white/80",
+                      active && "bg-white font-semibold text-slate-900 border-l-2 border-orange-500 shadow-sm",
+                      panelCollapsed && "justify-center px-2"
+                    )}
+                    onClick={() => handleNavigation(item.url)}
+                    title={panelCollapsed ? item.title : undefined}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!panelCollapsed && <span>{item.title}</span>}
+                  </Button>
+                );
+              })}
             </div>
+          </div>
+        ))}
+      </nav>
+    </div>
+  );
 
-            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className={cn("flex flex-col gap-2", isMobile ? "w-full" : "min-w-0")}
-              >
-                <Breadcrumb>
-                  <BreadcrumbList className="text-xs sm:text-sm">
-                    <BreadcrumbItem>
-                      <BreadcrumbLink 
-                        onClick={() => navigate('/projects')}
-                        className="cursor-pointer hover:text-foreground"
-                      >
-                        Projects
-                      </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                      <BreadcrumbPage className="font-medium">
-                        {formatProjectLabel(project.project_number, project.project_name)}
-                      </BreadcrumbPage>
-                    </BreadcrumbItem>
-                  </BreadcrumbList>
-                </Breadcrumb>
-              </div>
+  // Mobile: Use Sheet for navigation
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-full">
+        {/* Mobile Project Header */}
+        <header className="flex items-center gap-2 p-3 border-b bg-background">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Building2 className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64 p-0">
+              <NavContent />
+            </SheetContent>
+          </Sheet>
+          <span className="font-semibold truncate">Project Details</span>
+        </header>
 
+        {/* Content */}
+        <div className="flex-1 overflow-auto">
+          <Outlet context={{
+            project,
+            estimates,
+            quotes,
+            expenses,
+            changeOrders,
+            pendingTimeEntries,
+            pendingReceipts,
+            mediaCounts,
+            documentCount,
+            loadProjectData,
+            handleSaveQuote,
+            onEditChangeOrder: (co: ChangeOrder) => {
+              setEditingChangeOrder(co);
+              setShowChangeOrderModal(true);
+            },
+            onCreateChangeOrder: () => {
+              setEditingChangeOrder(null);
+              setShowChangeOrderModal(true);
+            },
+            projectId: projectId!,
+          }} />
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop: Secondary panel with main content
+  return (
+    <div className="flex h-full">
+      {/* Secondary Navigation Panel */}
+      <aside
+          className={cn(
+            "border-r border-border/60 bg-slate-50 transition-all duration-200 flex flex-col",
+            panelCollapsed ? "w-12" : "w-44"  // 48px collapsed, 176px expanded (was w-14/w-52)
+          )}
+      >
+        <NavContent />
+
+        {/* Collapse Toggle */}
+        <div className="p-2 border-t border-border/60">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-center text-xs text-slate-400 hover:text-slate-600 hover:bg-slate-100 py-1"
+            onClick={() => setPanelCollapsed(!panelCollapsed)}
+          >
+            {panelCollapsed ? (
+              <ChevronRight className="h-3.5 w-3.5" />
+            ) : (
+              <>
+                <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                <span>Collapse</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Compact Header */}
+        <header className="sticky top-0 z-10 flex h-auto flex-col gap-3 border-b bg-background px-3 py-3 sm:h-16 sm:flex-row sm:items-center sm:gap-3">
+          <div className="flex items-center gap-3">
+            <Separator orientation="vertical" className="hidden sm:block h-8" />
+          </div>
+
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className={cn("flex items-center gap-2", isMobile ? "w-full" : "min-w-0")}
               >
                 <Popover open={projectSwitcherOpen} onOpenChange={setProjectSwitcherOpen}>
@@ -666,219 +782,85 @@ export const ProjectDetailView = () => {
                   {project.status?.replace(/_/g, ' ')}
                 </Badge>
               </div>
-            </div>
-          </header>
+          </div>
+        </header>
 
-          {/* Main Content Area */}
-          <main className="flex-1 overflow-auto p-3 space-y-3">
-            <Routes>
-              <Route index element={
-                <ProjectOperationalDashboard
-                  project={project}
-                  estimates={estimates}
-                  quotes={quotes}
-                  expenses={expenses}
-                  changeOrders={changeOrders}
-                  pendingTimeEntries={pendingTimeEntries}
-                  pendingReceipts={pendingReceipts}
-                  mediaCounts={mediaCounts}
-                  documentCount={documentCount}
-                />
-              } />
-              
-              <Route path="estimates">
-                <Route index element={
-                  <ProjectEstimatesView 
-                    projectId={project.id}
-                    estimates={estimates}
-                    quotes={quotes}
-                    onRefresh={loadProjectData}
-                  />
-                } />
-                <Route path=":estimateId/edit" element={
-                  <EstimateEditWrapper 
-                    estimates={estimates}
-                    projectId={projectId!}
-                    onSave={() => {
-                      loadProjectData();
-                      navigate(`/projects/${projectId}/estimates`);
-                    }}
-                    onCancel={() => navigate(`/projects/${projectId}/estimates`)}
-                  />
-                } />
-                <Route path="new" element={
-                  <EstimateForm
-                    mode="create"
-                    onSave={() => {
-                      loadProjectData();
-                      navigate(`/projects/${projectId}/estimates`);
-                    }}
-                    onCancel={() => navigate(`/projects/${projectId}/estimates`)}
-                    preselectedProjectId={projectId}
-                    availableEstimates={estimates}
-                  />
-                } />
-                <Route path="quotes/:quoteId" element={
-                  <QuoteEditWrapper 
-                    quotes={quotes}
-                    estimates={estimates}
-                    projectId={projectId!}
-                    mode="view"
-                    onSave={() => {}}
-                    onCancel={() => {
-                      console.log('[QuoteViewWrapper] Back - navigating back to quotes tab', { projectId });
-                      navigate(`/projects/${projectId}/estimates?tab=quotes`);
-                    }}
-                  />
-                } />
-                <Route path="quotes/:quoteId/edit" element={
-                  <QuoteEditWrapper 
-                    quotes={quotes}
-                    estimates={estimates}
-                    projectId={projectId!}
-                    onSave={() => {
-                      loadProjectData();
-                      console.log('[QuoteEditWrapper] Save - navigating back to quotes tab', { projectId });
-                      navigate(`/projects/${projectId}/estimates?tab=quotes`);
-                    }}
-                    onCancel={() => {
-                      console.log('[QuoteEditWrapper] Cancel - navigating back to quotes tab', { projectId });
-                      navigate(`/projects/${projectId}/estimates?tab=quotes`);
-                    }}
-                  />
-                } />
-                <Route path="quotes/new" element={
-                  <QuoteForm
-                    estimates={estimates}
-                    preSelectedEstimateId={estimates.find((e) => e.status === "approved" || e.is_current_version)?.id}
-                    onSave={handleSaveQuote}
-                    onCancel={() => {
-                      const searchParams = new URLSearchParams(window.location.search);
-                      const tab = searchParams.get('tab') || 'quotes';
-                      navigate(`/projects/${projectId}/estimates?tab=${tab}`);
-                    }}
-                  />
-                } />
-              </Route>
-              
-              <Route path="expenses" element={
-                <ExpensesList 
-                  expenses={expenses}
-                  projectId={project.id}
-                  onEdit={() => loadProjectData()}
-                  onDelete={() => loadProjectData()}
-                  onRefresh={loadProjectData}
-                />
-              } />
-              
-              <Route path="control" element={
-                <LineItemControlDashboard projectId={project.id} project={project} />
-              } />
-              
-              <Route path="changes" element={
-                <ChangeOrdersList 
-                  projectId={project.id}
-                  projectContingencyRemaining={project.contingency_remaining || 0}
-                  onEdit={(co) => {
-                    setEditingChangeOrder(co);
-                    setShowChangeOrderModal(true);
-                  }}
-                  onCreateNew={() => {
-                    setEditingChangeOrder(null);
-                    setShowChangeOrderModal(true);
-                  }}
-                />
-              } />
-              
-              {/* Redirect old media route to new documents route */}
-              <Route 
-                path="media" 
-                element={<Navigate to={`/projects/${projectId}/documents`} replace />} 
-              />
-              
-              <Route path="documents" element={
-                <ProjectDocumentsHub 
-                  projectId={project.id}
-                  projectName={project.project_name}
-                  projectNumber={project.project_number}
-                  clientName={project.client_name}
-                />
-              } />
-              
-              {isFeatureEnabled('scheduleView') && (
-                <Route path="schedule" element={
-                  <ProjectScheduleView
-                    projectId={project.id}
-                    projectStartDate={project.start_date}
-                    projectEndDate={project.end_date}
-                  />
-                } />
-              )}
-              
-              <Route path="edit" element={
-                <ProjectEditForm 
-                  project={project}
-                  onSave={() => {
-                    loadProjectData();
-                    navigate(`/projects/${projectId}`);
-                  }}
-                  onCancel={() => navigate(`/projects/${projectId}`)}
-                />
-              } />
-            </Routes>
-          </main>
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-auto p-3 space-y-3">
+          <Outlet context={{
+            project,
+            estimates,
+            quotes,
+            expenses,
+            changeOrders,
+            pendingTimeEntries,
+            pendingReceipts,
+            mediaCounts,
+            documentCount,
+            loadProjectData,
+            handleSaveQuote,
+            onEditChangeOrder: (co: ChangeOrder) => {
+              setEditingChangeOrder(co);
+              setShowChangeOrderModal(true);
+            },
+            onCreateChangeOrder: () => {
+              setEditingChangeOrder(null);
+              setShowChangeOrderModal(true);
+            },
+            projectId: projectId!,
+          }} />
+        </main>
 
           {/* Floating Action Buttons */}
-          <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
-            <Button
-              size="icon"
-              className="h-12 w-12 rounded-full shadow-lg"
-              onClick={() => navigate(`/projects/${project.id}/capture-video`)}
-              title="Capture Video"
-            >
-              <Video className="h-5 w-5" />
-            </Button>
-            <Button
-              size="icon"
-              className="h-12 w-12 rounded-full shadow-lg"
-              onClick={() => navigate(`/projects/${project.id}/capture`)}
-              title="Capture Photo"
-            >
-              <Camera className="h-5 w-5" />
-            </Button>
-          </div>
-        </SidebarInset>
+        <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+        <Button
+          size="icon"
+          className="h-12 w-12 rounded-full shadow-lg"
+          onClick={() => navigate(`/projects/${project.id}/capture-video`)}
+          title="Capture Video"
+        >
+          <Video className="h-5 w-5" />
+        </Button>
+        <Button
+          size="icon"
+          className="h-12 w-12 rounded-full shadow-lg"
+          onClick={() => navigate(`/projects/${project.id}/capture`)}
+          title="Capture Photo"
+        >
+          <Camera className="h-5 w-5" />
+        </Button>
+      </div>
 
-        {/* Change Order Modal */}
-        <Dialog open={showChangeOrderModal} onOpenChange={setShowChangeOrderModal}>
-          <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0">
-            <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
-              <DialogTitle className="text-sm">
-                {editingChangeOrder ? 'Edit Change Order' : 'Create New Change Order'}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex-1 overflow-y-auto px-6 py-4">
-              <ChangeOrderForm
-                projectId={project.id}
-                changeOrder={editingChangeOrder || undefined}
-                onSuccess={() => {
-                  setShowChangeOrderModal(false);
-                  setEditingChangeOrder(null);
-                  loadProjectData();
-                  toast({
-                    title: "Success",
-                    description: `Change order ${editingChangeOrder ? 'updated' : 'created'} successfully.`
-                  });
-                }}
-                onCancel={() => {
-                  setShowChangeOrderModal(false);
-                  setEditingChangeOrder(null);
-                }}
-              />
-            </div>
+      {/* Change Order Modal */}
+      <Dialog open={showChangeOrderModal} onOpenChange={setShowChangeOrderModal}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
+            <DialogTitle className="text-sm">
+              {editingChangeOrder ? 'Edit Change Order' : 'Create New Change Order'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <ChangeOrderForm
+              projectId={project.id}
+              changeOrder={editingChangeOrder || undefined}
+              onSuccess={() => {
+                setShowChangeOrderModal(false);
+                setEditingChangeOrder(null);
+                loadProjectData();
+                toast({
+                  title: "Success",
+                  description: `Change order ${editingChangeOrder ? 'updated' : 'created'} successfully.`
+                });
+              }}
+              onCancel={() => {
+                setShowChangeOrderModal(false);
+                setEditingChangeOrder(null);
+              }}
+            />
+          </div>
           </DialogContent>
         </Dialog>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };

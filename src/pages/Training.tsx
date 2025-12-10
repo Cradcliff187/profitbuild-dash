@@ -17,6 +17,7 @@ import {
   Clock, 
   AlertCircle 
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 import { format } from 'date-fns';
 import { MyTrainingItem, TrainingContentType } from '@/types/training';
 
@@ -142,20 +143,17 @@ export default function Training() {
 
   return (
     <div className="w-full overflow-x-hidden px-2 sm:px-3 py-2 sm:py-4 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-3">
-            <GraduationCap className="h-5 w-5 text-primary" />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">My Training</h1>
-              <p className="text-sm text-muted-foreground">View and complete your assigned training</p>
-            </div>
-          </div>
-          <Badge variant="outline" className="h-7 px-3 text-sm">
-            {stats.completionRate}% Complete
-          </Badge>
-        </div>
+      <PageHeader
+        icon={GraduationCap}
+        title="My Training"
+        description="View and complete training modules"
+      />
+      
+      {/* Completion Badge */}
+      <div className="flex justify-end -mt-2 mb-4">
+        <Badge variant="outline" className="h-7 px-3 text-sm">
+          {stats.completionRate}% Complete
+        </Badge>
       </div>
 
       {/* Stats Cards */}

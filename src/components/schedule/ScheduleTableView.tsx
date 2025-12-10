@@ -213,8 +213,7 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 min-w-[200px] h-8 text-sm"
-            />
-          </div>
+          />
           <ColumnSelector
             columns={columnDefinitions}
             visibleColumns={visibleColumns}

@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { FolderOpen, Plus, Download, FileText, Users, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { FolderOpen, Plus, Download, FileText, Users, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown, Package } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -368,40 +369,37 @@ export default function BranchBids() {
 
   return (
     <div className="w-full overflow-x-hidden px-2 sm:px-4 py-2 space-y-2">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-        <div className="flex items-center space-x-3 min-w-0">
-          <FolderOpen className="h-5 w-5 text-primary shrink-0" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-foreground">Bids</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Pre-estimate workspace for gathering project information</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <Button onClick={() => setShowCreateDialog(true)} size="sm" className="flex-1 sm:flex-initial">
-            <Plus className="h-3 w-3 mr-1" />
-            New Bid
-          </Button>
-          <div className="hidden sm:flex items-center gap-2">
-            <ColumnSelector 
-              columns={columnDefinitions}
-              visibleColumns={visibleColumns}
-              onVisibilityChange={setVisibleColumns}
-              columnOrder={columnOrder}
-              onColumnOrderChange={setColumnOrder}
-            />
-            <Button 
-              onClick={() => setShowExportModal(true)} 
-              variant="outline" 
-              size="sm"
-              disabled={!bids || bids.length === 0}
-            >
-              <Download className="h-3 w-3 mr-1" />
-              Export
+      <PageHeader
+        icon={Package}
+        title="Bids"
+        description="Track and manage project bids"
+        actions={
+          <>
+            <div className="hidden sm:flex items-center gap-2">
+              <ColumnSelector 
+                columns={columnDefinitions}
+                visibleColumns={visibleColumns}
+                onVisibilityChange={setVisibleColumns}
+                columnOrder={columnOrder}
+                onColumnOrderChange={setColumnOrder}
+              />
+              <Button 
+                onClick={() => setShowExportModal(true)} 
+                variant="outline" 
+                size="sm"
+                disabled={!bids || bids.length === 0}
+              >
+                <Download className="h-3 w-3 mr-1" />
+                Export
+              </Button>
+            </div>
+            <Button onClick={() => setShowCreateDialog(true)} size="sm">
+              <Plus className="h-3 w-3 mr-1" />
+              New Bid
             </Button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2">

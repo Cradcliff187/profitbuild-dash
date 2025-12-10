@@ -186,7 +186,6 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="flex-1 h-11 w-full rounded-xl border-border text-sm shadow-sm sm:h-9"
         />
-        </div>
         <div className="sm:w-[200px]">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm sm:h-9">

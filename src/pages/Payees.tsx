@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, Building } from "lucide-react";
+import { Plus, Upload, Building, Users } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { PayeeForm } from "@/components/PayeeForm";
 import { PayeesList } from "@/components/PayeesList";
 import { PayeeImportModal } from "@/components/PayeeImportModal";
@@ -46,27 +47,25 @@ const Payees = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center space-x-3 min-w-0">
-          <Building className="h-5 w-5 text-primary shrink-0" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-foreground">Payees</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Manage your construction payees</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <Button onClick={handleAddNew} className="flex-1 sm:flex-initial">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Payee
-          </Button>
-          <div className="hidden sm:flex">
-            <Button variant="outline" onClick={() => setShowImportModal(true)}>
-              <Upload className="h-4 w-4 mr-2" />
-              Import CSV
+      <PageHeader
+        icon={Users}
+        title="Payees"
+        description="Manage vendors, subcontractors, and payees"
+        actions={
+          <>
+            <div className="hidden sm:flex">
+              <Button variant="outline" onClick={() => setShowImportModal(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import CSV
+              </Button>
+            </div>
+            <Button onClick={handleAddNew}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Payee
             </Button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <PayeesList
         onEdit={handleEdit}

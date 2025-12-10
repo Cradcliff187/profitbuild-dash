@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { FileText, Plus, BarChart3, Download } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { QuoteForm } from "@/components/QuoteForm";
 import { QuotesList } from "@/components/QuotesList";
@@ -702,61 +703,38 @@ const Quotes = () => {
 
   return (
     <div className="space-y-3">
-      {!isMobile && view === 'list' && (
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Quotes</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      )}
-      
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-        <div className="flex items-center space-x-3 min-w-0">
-          <FileText className="h-5 w-5 text-primary shrink-0" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-foreground">
-              {view === 'list' ? 'Quotes' : 
+      <PageHeader
+        icon={FileText}
+        title={view === 'list' ? 'Quotes' : 
                view === 'create' ? 'Create New Quote' :
                view === 'edit' ? 'Edit Quote' :
                view === 'view' ? 'View Quote' :
                'Compare Quote'}
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              {view === 'list' ? 'Manage project quotes and compare against estimates' :
+        description={view === 'list' ? 'Manage customer quotes and proposals' :
                view === 'create' ? 'Enter quote details below' :
                view === 'edit' ? 'Update quote details' :
                view === 'view' ? 'Review quote details' :
                selectedQuote ? `Compare quote ${selectedQuote.quoteNumber} against estimate` : ''}
-            </p>
-          </div>
-        </div>
-        
-        {view === 'list' && (
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <Button onClick={() => setView('create')} size="sm" className="flex-1 sm:flex-initial">
-              <Plus className="h-4 w-4 mr-2" />
-              New Quote
-            </Button>
-            <div className="hidden sm:flex">
+        actions={
+          view === 'list' ? (
+            <>
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={() => setShowExportModal(true)}
+                className="hidden sm:flex"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
-            </div>
-          </div>
-        )}
-      </div>
+              <Button onClick={() => setView('create')} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                New Quote
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
 
       {/* Content */}
       {view === 'list' && (

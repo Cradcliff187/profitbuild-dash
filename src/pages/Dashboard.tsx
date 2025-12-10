@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ActivityFeedList } from '@/components/ActivityFeedList';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { NeedsAttentionCard } from '@/components/dashboard/NeedsAttentionCard';
 import { ProjectStatusCard } from '@/components/dashboard/ProjectStatusCard';
 import { WorkOrderStatusCard } from '@/components/dashboard/WorkOrderStatusCard';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
+import { PageHeader } from '@/components/ui/page-header';
+import { LayoutDashboard, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface ProjectStatusCount {
   status: string;
@@ -383,11 +386,16 @@ const Dashboard = () => {
 
   return (
     <MobilePageWrapper>
-      <DashboardHeader
-        activeProjectCount={activeProjectCount}
-        lastUpdated={lastUpdated}
-        onRefresh={handleRefresh}
-        isRefreshing={isRefreshing}
+      <PageHeader
+        icon={LayoutDashboard}
+        title="Dashboard"
+        description="Overview of projects and activities"
+        actions={
+          <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")} />
+            Refresh
+          </Button>
+        }
       />
 
       {/* Main Content: 2-Column Layout (Activity Feed 60%, Right Column 40%) */}

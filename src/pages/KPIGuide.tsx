@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BookOpen, Download, Building, Calculator, FileText, Receipt, DollarSign, RefreshCw, Clipboard, Archive } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -249,36 +250,11 @@ export default function KPIGuide() {
 
   return (
     <div className="container mx-auto max-w-7xl px-4 sm:px-6 py-4 space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-        <div className="flex items-center space-x-3 min-w-0">
-          <BookOpen className="h-5 w-5 text-primary shrink-0" />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-foreground">KPI & Measurement Guide</h1>
-              <Badge variant="outline" className="text-xs">
-                v{KPI_GUIDE_METADATA.version}
-              </Badge>
-            </div>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Reference for financial calculations and metrics • Last updated: {format(parseISO(KPI_GUIDE_METADATA.lastUpdated), 'MMMM d, yyyy')}
-            </p>
-          </div>
-        </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={handleDownload} variant="outline" size="sm">
-                <Download className="h-4 w-4" />
-                Download Excel
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">Static Excel file may not reflect latest updates</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
+      <PageHeader
+        icon={BookOpen}
+        title="KPI Guide"
+        description="Understanding key performance indicators"
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -308,8 +284,7 @@ export default function KPIGuide() {
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         className="h-9"
-        />
-      </div>
+      />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">

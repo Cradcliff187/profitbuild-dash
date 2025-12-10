@@ -10,6 +10,7 @@ import { SMSComposer } from '@/components/sms/SMSComposer';
 import { SMSHistory } from '@/components/sms/SMSHistory';
 import { ScheduledSMSManager } from '@/components/sms/ScheduledSMSManager';
 import { MessageSquare, History, Clock } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 import { useState } from 'react';
 
 export default function SMSAdmin() {
@@ -75,15 +76,11 @@ export default function SMSAdmin() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-        <div className="flex items-center space-x-3 min-w-0">
-          <MessageSquare className="h-5 w-5 text-primary shrink-0" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-foreground">SMS Messaging</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Send text messages to crew with app links</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={MessageSquare}
+        title="Send SMS"
+        description="Send SMS notifications to team members"
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         {/* Mobile Dropdown */}

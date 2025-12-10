@@ -5,7 +5,7 @@ import { useReportTemplates, ReportTemplate } from "@/hooks/useReportTemplates";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { Plus } from "lucide-react";
 import { CompactTemplateList } from "./CompactTemplateList";
-import type { ReportCategory } from "./ReportsSidebar";
+import type { ReportCategory } from "@/types/reports";
 
 interface NewTemplateGalleryProps {
   onSelectTemplate: (template: ReportTemplate) => void;

@@ -8,6 +8,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { TrendingUp } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 import { useProfitAnalysisData } from '@/components/profit-analysis/hooks/useProfitAnalysisData';
 import { ProfitSummaryCards } from '@/components/profit-analysis/ProfitSummaryCards';
 import { BillingProgressTable } from '@/components/profit-analysis/BillingProgressTable';
@@ -36,34 +37,27 @@ export default function ProfitAnalysis() {
 
   return (
     <div className="container mx-auto p-4 space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-        <div className="flex items-center space-x-3 min-w-0">
-          <TrendingUp className="h-5 w-5 text-primary shrink-0" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-foreground">Profit Analysis</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Financial performance across {data?.length || 0} projects
-            </p>
-          </div>
-        </div>
-        
-        {/* Status Filter */}
-        <Select 
-          value={statusFilter.join(',')} 
-          onValueChange={(val) => setStatusFilter(val.split(','))}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="approved,in_progress,complete">All Active</SelectItem>
-            <SelectItem value="in_progress">In Progress Only</SelectItem>
-            <SelectItem value="complete">Completed Only</SelectItem>
-            <SelectItem value="approved">Approved Only</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <PageHeader
+        icon={TrendingUp}
+        title="Profit Analysis"
+        description="Analyze project profitability and margins"
+      />
+      
+      {/* Status Filter */}
+      <Select 
+        value={statusFilter.join(',')} 
+        onValueChange={(val) => setStatusFilter(val.split(','))}
+      >
+        <SelectTrigger className="w-[200px]">
+          <SelectValue placeholder="Filter by status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="approved,in_progress,complete">All Active</SelectItem>
+          <SelectItem value="in_progress">In Progress Only</SelectItem>
+          <SelectItem value="complete">Completed Only</SelectItem>
+          <SelectItem value="approved">Approved Only</SelectItem>
+        </SelectContent>
+      </Select>
       
       {/* Summary Cards */}
       <ProfitSummaryCards data={data} isLoading={isLoading} />

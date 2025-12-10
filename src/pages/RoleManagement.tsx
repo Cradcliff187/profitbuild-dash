@@ -12,7 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, Search, X, Trash2, Clock, Mail, Calendar, ChevronDown } from 'lucide-react';
+import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, Search, X, Trash2, Clock, Mail, Calendar, ChevronDown, Shield } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatDistanceToNow, parseISO, format } from 'date-fns';
 import CreateUserModal from '@/components/CreateUserModal';
 import ResetPasswordModal from '@/components/ResetPasswordModal';
@@ -325,23 +326,11 @@ export default function RoleManagement() {
 
   return (
     <div className="w-full overflow-x-hidden px-2 sm:px-3 py-2 sm:py-4 max-w-7xl mx-auto">
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-3">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Role Management</h1>
-              <p className="text-sm text-muted-foreground">Manage user accounts, roles and permissions</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => setCreateUserOpen(true)} size="sm" className="h-8 text-xs">
-              <UserPlus className="h-3 w-3 mr-1.5" />
-              Create User
-            </Button>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={Shield}
+        title="Role Management"
+        description="Manage user roles and permissions"
+      />
 
       {/* Search and Bulk Actions Bar */}
       <div className="mb-3 flex items-center gap-1.5 sm:gap-2 flex-wrap">

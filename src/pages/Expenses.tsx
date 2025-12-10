@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Plus, Upload, BarChart3, List, Clock, FileDown, Receipt, DollarSign } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -433,40 +434,36 @@ const Expenses = () => {
 
   return (
     <div className="w-full overflow-x-hidden space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-        <div className="flex items-center space-x-3 min-w-0">
-          <Receipt className="h-5 w-5 text-primary shrink-0" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-foreground">Expenses & Invoices</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Track project costs, manage expenses, and invoices</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <Button 
-            onClick={viewMode === "invoices" ? handleCreateNewRevenue : handleCreateNew} 
-            size="sm" 
-            className="flex-1 sm:flex-initial"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {viewMode === "invoices" ? "Add Invoice" : "Add Expense"}
-          </Button>
-          <div className="hidden sm:flex items-center gap-2">
-            <Button variant="outline" onClick={() => setShowImportModal(true)} size="sm">
-              <Upload className="h-4 w-4 mr-2" />
-              Import
+      <PageHeader
+        icon={Receipt}
+        title="Expenses & Invoices"
+        description="Track expenses, invoices, and financial transactions"
+        actions={
+          <>
+            <div className="hidden sm:flex items-center gap-2">
+              <Button variant="outline" onClick={() => setShowImportModal(true)} size="sm">
+                <Upload className="h-4 w-4 mr-2" />
+                Import
+              </Button>
+              <Button variant="outline" onClick={() => setShowExportModal(true)} size="sm">
+                <FileDown className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+              <Button variant="outline" onClick={() => setShowTimesheetModal(true)} size="sm">
+                <Clock className="h-4 w-4 mr-2" />
+                Timesheet
+              </Button>
+            </div>
+            <Button 
+              onClick={viewMode === "invoices" ? handleCreateNewRevenue : handleCreateNew} 
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {viewMode === "invoices" ? "Add Invoice" : "Add Expense"}
             </Button>
-            <Button variant="outline" onClick={() => setShowExportModal(true)} size="sm">
-              <FileDown className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            <Button variant="outline" onClick={() => setShowTimesheetModal(true)} size="sm">
-              <Clock className="h-4 w-4 mr-2" />
-              Timesheet
-            </Button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <Tabs value={viewMode} onValueChange={handleTabChange}>
           <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

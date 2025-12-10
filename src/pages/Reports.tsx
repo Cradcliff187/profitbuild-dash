@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, FileBarChart, Receipt, DollarSign } from "lucide-react";
+import { Plus, FileText, FileBarChart, Receipt, DollarSign, BarChart3, FileEdit, TrendingUp, Building2, Clock, Users } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { useNavigate } from "react-router-dom";
 import { NewTemplateGallery } from "@/components/reports/NewTemplateGallery";
 import { SimpleReportBuilder } from "@/components/reports/SimpleReportBuilder";
@@ -20,8 +21,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFo
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { ReportsSidebar, ReportCategory } from "@/components/reports/ReportsSidebar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReportCategory } from "@/types/reports";
 
 const ReportsPage = () => {
   const navigate = useNavigate();
@@ -259,29 +260,49 @@ const ReportsPage = () => {
     }
   };
 
+  const CATEGORIES = [
+    { key: 'standard' as ReportCategory, label: 'Standard', icon: BarChart3 },
+    { key: 'custom' as ReportCategory, label: 'Custom', icon: FileEdit },
+    { key: 'financial' as ReportCategory, label: 'Financial', icon: TrendingUp },
+    { key: 'operational' as ReportCategory, label: 'Projects', icon: Building2 },
+    { key: 'cost' as ReportCategory, label: 'Cost', icon: Receipt },
+    { key: 'labor' as ReportCategory, label: 'Labor', icon: Clock },
+    { key: 'other' as ReportCategory, label: 'Contacts', icon: Users },
+  ];
+
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full no-horizontal-scroll pt-16">
-        <ReportsSidebar 
-          selectedCategory={selectedCategory}
-          onCategoryChange={handleCategoryChange}
-        />
-        <SidebarInset className="flex-1 flex flex-col no-horizontal-scroll overflow-hidden">
-          {/* Compact Header */}
-          <header className="sticky top-0 z-10 flex h-auto flex-col gap-3 border-b bg-background px-3 py-3 sm:h-16 sm:flex-row sm:items-center sm:gap-3">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger />
-              <div className="flex items-center space-x-2">
-                <FileBarChart className="h-5 w-5 text-primary" />
-                <div>
-                  <h1 className="text-lg font-semibold text-foreground">Reports & Analytics</h1>
-                </div>
-              </div>
-            </div>
-          </header>
-          
-          <div className="flex-1 overflow-auto">
-            <div className="p-4 sm:p-6 space-y-4">
+    <div className="flex flex-col h-full">
+      <PageHeader
+        icon={BarChart3}
+        title="Reports"
+        description="Generate and view business reports"
+        actions={
+          <Button size="sm" onClick={() => setShowBuilder(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Report
+          </Button>
+        }
+      >
+        {/* Category Tabs - scrollable on mobile */}
+        <div className="overflow-x-auto -mx-4 px-4">
+          <Tabs value={selectedCategory} onValueChange={(value) => handleCategoryChange(value as ReportCategory)}>
+            <TabsList className="inline-flex h-10 w-max">
+              {CATEGORIES.map(({ key, label, icon: Icon }) => (
+                <TabsTrigger 
+                  key={key} 
+                  value={key}
+                  className="gap-2 px-4 min-w-max"
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+      </PageHeader>
+      
+      <div className="p-4 space-y-4">
 
             {hasResults ? (
               <div className="space-y-4">
@@ -484,11 +505,8 @@ const ReportsPage = () => {
                 />
               </div>
             )}
-            </div>
-          </div>
-        </SidebarInset>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
 

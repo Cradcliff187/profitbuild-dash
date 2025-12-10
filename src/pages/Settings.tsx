@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Settings as SettingsIcon, User, Bell, Shield, Database, Hash, RefreshCw } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { AccountMappingsManager } from "@/components/AccountMappingsManager";
 import { CompanyBrandingSettings } from "@/components/CompanyBrandingSettings";
 import { getBudgetAlertThreshold, setBudgetAlertThreshold } from "@/utils/budgetUtils";
@@ -250,13 +251,11 @@ const Settings = () => {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center space-x-2">
-        <SettingsIcon className="h-8 w-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-          <p className="text-muted-foreground">Manage your account and application preferences</p>
-        </div>
-      </header>
+      <PageHeader
+        icon={SettingsIcon}
+        title="Settings"
+        description="Manage your account and application preferences"
+      />
 
       <div className="grid gap-6">
         <Card>

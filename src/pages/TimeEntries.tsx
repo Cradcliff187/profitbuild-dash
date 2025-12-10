@@ -686,83 +686,80 @@ const TimeEntries = () => {
 
   return (
     <div className="w-full overflow-x-hidden px-2 sm:px-4 py-2 space-y-2">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-        <div className="flex items-center space-x-3 min-w-0">
-          <Clock className="h-5 w-5 text-primary shrink-0" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-foreground">Employee Time and Receipt Management</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Review time entries and manage receipts</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          {canCreateTimeEntry && activeTab === "entries" && (
-            <Button onClick={handleCreateTimeEntry} size="sm" className="flex items-center gap-1 flex-1 sm:flex-initial">
-              <Plus className="h-4 w-4" />
-              Create Time Entry
-            </Button>
-          )}
-          {activeTab === "receipts" && (
-            <Button onClick={() => setAddReceiptModalOpen(true)} size="sm" className="flex items-center gap-1 flex-1 sm:flex-initial">
-              <Plus className="h-4 w-4" />
-              Add Receipt
-            </Button>
-          )}
-          <div className="hidden sm:flex items-center gap-2">
-            {activeTab === "entries" && (
-              <>
-                <ColumnSelector
-                  columns={columnDefinitions}
-                  visibleColumns={visibleColumns}
-                  onVisibilityChange={setVisibleColumns}
-                  columnOrder={columnOrder}
-                  onColumnOrderChange={setColumnOrder}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowExportModal(true)}
-                  disabled={entries.length === 0}
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Export
-                </Button>
-              </>
+      <PageHeader
+        icon={Clock}
+        title="Employee Time and Receipt Management"
+        description="Review time entries and manage receipts"
+        actions={
+          <>
+            {canCreateTimeEntry && activeTab === "entries" && (
+              <Button onClick={handleCreateTimeEntry} size="sm" className="flex items-center gap-1">
+                <Plus className="h-4 w-4" />
+                Create Time Entry
+              </Button>
             )}
-            {activeTab === "receipts" && receiptsManagementRef.current && (
-              <>
-                <ColumnSelector
-                  columns={receiptColumnDefinitions}
-                  visibleColumns={receiptVisibleColumns}
-                  onVisibilityChange={(cols) => {
-                    setReceiptVisibleColumns(cols);
-                    const columnState = receiptsManagementRef.current?.getColumnState();
-                    if (columnState) {
-                      columnState.setVisibleColumns(cols);
-                    }
-                  }}
-                  columnOrder={receiptColumnOrder}
-                  onColumnOrderChange={(order) => {
-                    setReceiptColumnOrder(order);
-                    const columnState = receiptsManagementRef.current?.getColumnState();
-                    if (columnState) {
-                      columnState.setColumnOrder(order);
-                    }
-                  }}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => receiptsManagementRef.current?.exportToCSV()}
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Export CSV
-                </Button>
-              </>
+            {activeTab === "receipts" && (
+              <Button onClick={() => setAddReceiptModalOpen(true)} size="sm" className="flex items-center gap-1">
+                <Plus className="h-4 w-4" />
+                Add Receipt
+              </Button>
             )}
-          </div>
-        </div>
-      </div>
+            <div className="hidden sm:flex items-center gap-2">
+              {activeTab === "entries" && (
+                <>
+                  <ColumnSelector
+                    columns={columnDefinitions}
+                    visibleColumns={visibleColumns}
+                    onVisibilityChange={setVisibleColumns}
+                    columnOrder={columnOrder}
+                    onColumnOrderChange={setColumnOrder}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowExportModal(true)}
+                    disabled={entries.length === 0}
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Export
+                  </Button>
+                </>
+              )}
+              {activeTab === "receipts" && receiptsManagementRef.current && (
+                <>
+                  <ColumnSelector
+                    columns={receiptColumnDefinitions}
+                    visibleColumns={receiptVisibleColumns}
+                    onVisibilityChange={(cols) => {
+                      setReceiptVisibleColumns(cols);
+                      const columnState = receiptsManagementRef.current?.getColumnState();
+                      if (columnState) {
+                        columnState.setVisibleColumns(cols);
+                      }
+                    }}
+                    columnOrder={receiptColumnOrder}
+                    onColumnOrderChange={(order) => {
+                      setReceiptColumnOrder(order);
+                      const columnState = receiptsManagementRef.current?.getColumnState();
+                      if (columnState) {
+                        columnState.setColumnOrder(order);
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => receiptsManagementRef.current?.exportToCSV()}
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Export CSV
+                  </Button>
+                </>
+              )}
+            </div>
+          </>
+        }
+      />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">

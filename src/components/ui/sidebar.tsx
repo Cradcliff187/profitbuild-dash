@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-const SIDEBAR_WIDTH = "16rem";
+const SIDEBAR_WIDTH = "12.5rem"; // 200px (was 16rem/256px)
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
@@ -142,7 +142,7 @@ const Sidebar = React.forwardRef<
     collapsible?: "offcanvas" | "icon" | "none";
   }
 >(({ side = "left", variant = "sidebar", collapsible = "offcanvas", className, children, ...props }, ref) => {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+  const { isMobile, state, openMobile, setOpenMobile, toggleSidebar } = useSidebar();
 
   if (collapsible === "none") {
     return (
@@ -212,7 +212,25 @@ const Sidebar = React.forwardRef<
       >
         <div
           data-sidebar="sidebar"
-          className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
+          className={cn(
+            "flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow",
+            // Make collapsed sidebar clickable to expand
+            state === "collapsed" && collapsible === "icon" && "cursor-pointer"
+          )}
+          onClick={(e) => {
+            // Only handle clicks when collapsed and not clicking on interactive elements
+            if (state === "collapsed" && collapsible === "icon") {
+              const target = e.target as HTMLElement;
+              // Don't expand if clicking on buttons, links, dropdowns, or other interactive elements
+              const isInteractive = target.closest(
+                'button, a, [role="button"], [role="menuitem"], [data-sidebar="trigger"], [data-sidebar="menu-button"], [data-sidebar="menu-action"], [data-radix-collection-item]'
+              );
+              if (!isInteractive) {
+                e.stopPropagation();
+                toggleSidebar();
+              }
+            }
+          }}
         >
           {children}
         </div>
@@ -260,12 +278,25 @@ const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentProps<"bu
         onClick={toggleSidebar}
         title="Toggle Sidebar"
         className={cn(
-          "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] group-data-[side=left]:-right-4 group-data-[side=right]:left-0 hover:after:bg-sidebar-border sm:flex",
+          "absolute inset-y-0 z-20 hidden transition-all ease-linear sm:flex",
+          // Increased width for better discoverability
+          "w-6 -translate-x-1/2",
+          // Visible indicator when collapsed
+          "after:absolute after:inset-y-0 after:left-1/2 after:w-[3px] after:bg-sidebar-border/50",
+          // Hover state with background
+          "hover:after:bg-sidebar-border hover:after:w-[3px]",
+          // Group data states
+          "group-data-[side=left]:-right-6 group-data-[side=right]:left-0",
           "[[data-side=left]_&]:cursor-w-resize [[data-side=right]_&]:cursor-e-resize",
           "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
-          "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full group-data-[collapsible=offcanvas]:hover:bg-sidebar",
-          "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
-          "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
+          // Collapsed state: always show subtle indicator
+          "group-data-[state=collapsed]:after:bg-sidebar-border/30",
+          "group-data-[state=collapsed]:hover:after:bg-sidebar-border",
+          // Offcanvas behavior
+          "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full",
+          "group-data-[collapsible=offcanvas]:hover:bg-sidebar/50",
+          "[[data-side=left][data-collapsible=offcanvas]_&]:-right-3",
+          "[[data-side=right][data-collapsible=offcanvas]_&]:-left-3",
           className,
         )}
         {...props}

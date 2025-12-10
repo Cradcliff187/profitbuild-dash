@@ -7,9 +7,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RoleProvider } from "@/contexts/RoleContext";
-import ProtectedLayout from "@/components/ProtectedLayout";
+import AppLayout from "@/components/AppLayout";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { BrandedLoader } from "@/components/ui/branded-loader";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import ChangePassword from "./pages/ChangePassword";
@@ -47,6 +48,21 @@ const Training = lazy(() => import("./pages/Training"));
 const TrainingAdmin = lazy(() => import("./pages/TrainingAdmin"));
 const TrainingViewer = lazy(() => import("./pages/TrainingViewer"));
 
+// Project route components
+const ProjectOverviewRoute = lazy(() => import("./components/project-routes/ProjectOverviewRoute").then(m => ({ default: m.ProjectOverviewRoute })));
+const ProjectEstimatesRoute = lazy(() => import("./components/project-routes/ProjectEstimatesRoute").then(m => ({ default: m.ProjectEstimatesRoute })));
+const ProjectExpensesRoute = lazy(() => import("./components/project-routes/ProjectExpensesRoute").then(m => ({ default: m.ProjectExpensesRoute })));
+const ProjectControlRoute = lazy(() => import("./components/project-routes/ProjectControlRoute").then(m => ({ default: m.ProjectControlRoute })));
+const ProjectChangesRoute = lazy(() => import("./components/project-routes/ProjectChangesRoute").then(m => ({ default: m.ProjectChangesRoute })));
+const ProjectDocumentsRoute = lazy(() => import("./components/project-routes/ProjectDocumentsRoute").then(m => ({ default: m.ProjectDocumentsRoute })));
+const ProjectScheduleRoute = lazy(() => import("./components/project-routes/ProjectScheduleRoute").then(m => ({ default: m.ProjectScheduleRoute })));
+const ProjectEditRoute = lazy(() => import("./components/project-routes/ProjectEditRoute").then(m => ({ default: m.ProjectEditRoute })));
+const EstimateEditRoute = lazy(() => import("./components/project-routes/EstimateEditRoute").then(m => ({ default: m.EstimateEditRoute })));
+const EstimateNewRoute = lazy(() => import("./components/project-routes/EstimateNewRoute").then(m => ({ default: m.EstimateNewRoute })));
+const QuoteViewRoute = lazy(() => import("./components/project-routes/QuoteViewRoute").then(m => ({ default: m.QuoteViewRoute })));
+const QuoteEditRoute = lazy(() => import("./components/project-routes/QuoteEditRoute").then(m => ({ default: m.QuoteEditRoute })));
+const QuoteNewRoute = lazy(() => import("./components/project-routes/QuoteNewRoute").then(m => ({ default: m.QuoteNewRoute })));
+
 const queryClient = new QueryClient();
 
 const LazyRoute = ({ component: Component }: { component: React.ComponentType }) => (
@@ -70,7 +86,7 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/change-password" element={<ChangePassword />} />
                 <Route path="/reset-password" element={<LazyRoute component={ResetPassword} />} />
-                <Route path="/" element={<ProtectedLayout />}>
+                <Route path="/" element={<AppLayout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="dashboard" element={<Navigate to="/" replace />} />
                   <Route path="work-orders" element={<LazyRoute component={WorkOrders} />} />
@@ -79,7 +95,21 @@ const App = () => (
                   <Route path="field-schedule/:projectId" element={<LazyRoute component={FieldSchedule} />} />
                   {/* Admin/Manager Project Routes - use :id parameter for consistency with existing routes */}
                   <Route path="projects" element={<Projects />} />
-                  <Route path="projects/:id/*" element={<LazyRoute component={ProjectDetail} />} />
+                  <Route path="projects/:id" element={<LazyRoute component={ProjectDetail} />}>
+                    <Route index element={<LazyRoute component={ProjectOverviewRoute} />} />
+                    <Route path="estimates" element={<LazyRoute component={ProjectEstimatesRoute} />} />
+                    <Route path="estimates/:estimateId/edit" element={<LazyRoute component={EstimateEditRoute} />} />
+                    <Route path="estimates/new" element={<LazyRoute component={EstimateNewRoute} />} />
+                    <Route path="estimates/quotes/:quoteId" element={<LazyRoute component={QuoteViewRoute} />} />
+                    <Route path="estimates/quotes/:quoteId/edit" element={<LazyRoute component={QuoteEditRoute} />} />
+                    <Route path="estimates/quotes/new" element={<LazyRoute component={QuoteNewRoute} />} />
+                    <Route path="expenses" element={<LazyRoute component={ProjectExpensesRoute} />} />
+                    <Route path="control" element={<LazyRoute component={ProjectControlRoute} />} />
+                    <Route path="changes" element={<LazyRoute component={ProjectChangesRoute} />} />
+                    <Route path="documents" element={<LazyRoute component={ProjectDocumentsRoute} />} />
+                    <Route path="schedule" element={<LazyRoute component={ProjectScheduleRoute} />} />
+                    <Route path="edit" element={<LazyRoute component={ProjectEditRoute} />} />
+                  </Route>
                   <Route path="projects/:id/capture" element={<LazyRoute component={FieldPhotoCapture} />} />
                   <Route path="projects/:id/capture-video" element={<LazyRoute component={FieldVideoCapture} />} />
                   

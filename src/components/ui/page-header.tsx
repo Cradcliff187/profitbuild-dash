@@ -1,0 +1,70 @@
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { LucideIcon } from "lucide-react";
+
+interface PageHeaderProps {
+  title: string;
+  description?: string;
+  icon?: LucideIcon;
+  actions?: React.ReactNode;
+  className?: string;
+  children?: React.ReactNode;
+  showAccent?: boolean;
+}
+
+export function PageHeader({
+  title,
+  description,
+  icon: Icon,
+  actions,
+  className,
+  children,
+  showAccent = true,
+}: PageHeaderProps) {
+  return (
+    <div className={cn("bg-white border-b border-slate-200 shadow-sm", className)}>
+      <div className="px-4 sm:px-6 py-4">
+        <div className="flex items-start justify-between gap-4">
+          {/* Left side: Icon + Title + Description */}
+          <div className="flex items-start gap-3 min-w-0">
+            {Icon && (
+              <div className="flex-shrink-0 mt-0.5">
+                <Icon className="h-6 w-6 text-primary" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold text-foreground truncate">
+                {title}
+              </h1>
+              {description && (
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {description}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Right side: Actions */}
+          {actions && (
+            <div className="flex-shrink-0 flex items-center gap-2">
+              {actions}
+            </div>
+          )}
+        </div>
+
+        {/* Optional children for additional header content (filters, tabs, etc.) */}
+        {children && (
+          <div className="mt-4">
+            {children}
+          </div>
+        )}
+      </div>
+
+      {/* Orange accent line */}
+      {showAccent && (
+        <div className="h-0.5 bg-gradient-to-r from-primary to-orange-400" />
+      )}
+    </div>
+  );
+}
+
