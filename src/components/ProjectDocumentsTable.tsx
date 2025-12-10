@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { PdfPreviewModal } from "@/components/PdfPreviewModal";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow, differenceInDays, parseISO } from "date-fns";
 import type { ProjectDocument, DocumentType } from "@/types/document";
@@ -32,6 +33,9 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
   const [typeFilter, setTypeFilter] = useState<DocumentType | "all">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<ProjectDocument | null>(null);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<ProjectDocument | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -147,6 +151,25 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
     return (bytes / 1024 / 1024).toFixed(1) + " MB";
   };
 
+  const handlePreview = async (doc: ProjectDocument) => {
+    if (!doc.file_url || doc.mime_type !== 'application/pdf') return;
+    
+    try {
+      const response = await fetch(doc.file_url);
+      const blob = await response.blob();
+      setPdfBlob(blob);
+      setSelectedDocument(doc);
+      setPreviewDialogOpen(true);
+    } catch (error) {
+      console.error('Failed to fetch PDF:', error);
+      toast({
+        title: 'Preview failed',
+        description: 'Unable to load PDF preview',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (isLoading) {
     return <div className="text-xs text-muted-foreground p-2">Loading documents...</div>;
   }
@@ -196,7 +219,13 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
               <div key={doc.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
                 <button
                   type="button"
-                  onClick={() => window.open(doc.file_url, "_blank")}
+                  onClick={() => {
+                    if (doc.mime_type === 'application/pdf') {
+                      handlePreview(doc);
+                    } else {
+                      window.open(doc.file_url, "_blank");
+                    }
+                  }}
                   className="flex w-full items-start gap-3 text-left"
                 >
                   <span className="text-xl text-muted-foreground">{DOCUMENT_TYPE_ICONS[doc.document_type]}</span>
@@ -220,8 +249,14 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.open(doc.file_url, "_blank")}
-                    className="h-9 w-9 rounded-full"
+                    onClick={() => {
+                      if (doc.mime_type === 'application/pdf') {
+                        handlePreview(doc);
+                      } else {
+                        window.open(doc.file_url, "_blank");
+                      }
+                    }}
+                    className="min-h-[44px] min-w-[44px] rounded-full"
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -299,8 +334,14 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => window.open(doc.file_url, "_blank")}
-                          className="h-7 w-7 p-0"
+                          onClick={() => {
+                            if (doc.mime_type === 'application/pdf') {
+                              handlePreview(doc);
+                            } else {
+                              window.open(doc.file_url, "_blank");
+                            }
+                          }}
+                          className="h-7 w-7 p-0 sm:min-h-[44px] sm:min-w-[44px]"
                         >
                           <Eye className="h-3 w-3" />
                         </Button>
@@ -354,6 +395,13 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PdfPreviewModal
+        open={previewDialogOpen}
+        onOpenChange={setPreviewDialogOpen}
+        pdfBlob={pdfBlob}
+        fileName={selectedDocument?.file_name || "document.pdf"}
+      />
     </div>
   );
 }

@@ -1,26 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, ArrowLeft, Clock, ExternalLink, CheckCircle, FileText, Film, Download } from 'lucide-react';
+import { Loader2, ArrowLeft, Clock, ExternalLink, CheckCircle, FileText, Film, Download, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { TrainingContent } from '@/types/training';
 import { useMyTraining } from '@/hooks/useTrainingAssignments';
 import { getVideoEmbedUrl, getTrainingFileUrl } from '@/utils/trainingStorage';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { isIOSDevice, isIOSPWA } from '@/utils/platform';
 import { toast } from 'sonner';
 
 export default function TrainingViewer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { items, markComplete, refresh } = useMyTraining();
+  const isMobile = useIsMobile();
   
   const [content, setContent] = useState<TrainingContent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  
+  // Mobile-specific state
+  const [showDownloadFallback, setShowDownloadFallback] = useState(false);
+  const [contentLoaded, setContentLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const fallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Find if user has completed this
   const myItem = items.find(i => i.content.id === id);
@@ -32,6 +42,15 @@ export default function TrainingViewer() {
       if (!id) return;
       
       setIsLoading(true);
+      // Reset mobile-specific state
+      setContentLoaded(false);
+      setLoadError(false);
+      setShowDownloadFallback(false);
+      setDataUrl(null);
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+      }
+      
       try {
         const { data, error } = await supabase
           .from('training_content')
@@ -46,6 +65,36 @@ export default function TrainingViewer() {
         if (data.storage_path && (data.content_type === 'document' || data.content_type === 'presentation')) {
           const url = await getTrainingFileUrl(data.storage_path);
           setFileUrl(url);
+          
+          // For iOS devices, create data URL fallback for PDFs
+          if (data.content_type === 'document' && isMobile && isIOSDevice() && url) {
+            try {
+              const response = await fetch(url);
+              const blob = await response.blob();
+              const reader = new FileReader();
+              reader.onload = () => {
+                setDataUrl(reader.result as string);
+              };
+              reader.readAsDataURL(blob);
+            } catch (err) {
+              console.error('Error creating data URL for iOS:', err);
+            }
+          }
+          
+          // Start fallback timer for mobile
+          if (isMobile) {
+            setContentLoaded(false);
+            setLoadError(false);
+            setShowDownloadFallback(false);
+            
+            if (fallbackTimerRef.current) {
+              clearTimeout(fallbackTimerRef.current);
+            }
+            
+            fallbackTimerRef.current = setTimeout(() => {
+              setShowDownloadFallback(true);
+            }, 2000);
+          }
         }
       } catch (err) {
         console.error('Error fetching content:', err);
@@ -56,7 +105,13 @@ export default function TrainingViewer() {
     }
 
     fetchContent();
-  }, [id]);
+    
+    return () => {
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+      }
+    };
+  }, [id, isMobile]);
 
   // Handle mark complete
   const handleMarkComplete = async () => {
@@ -141,15 +196,113 @@ export default function TrainingViewer() {
             </div>
           );
         }
+        
+        const handleDownload = () => {
+          window.open(fileUrl, '_blank');
+        };
+        
+        const handleOpenInViewer = () => {
+          const src = dataUrl || fileUrl;
+          if (src) {
+            window.open(src, '_blank');
+          }
+        };
+        
+        // Mobile: Download-first with optional viewer
+        if (isMobile) {
+          return (
+            <div className="w-full space-y-3">
+              {/* Download button - prominent on mobile */}
+              <div className="flex flex-col gap-2">
+                <Button 
+                  onClick={handleDownload} 
+                  size={isMobile ? "default" : "sm"}
+                  className="w-full"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
+                </Button>
+                {dataUrl && (
+                  <Button 
+                    variant="outline" 
+                    onClick={handleOpenInViewer}
+                    size={isMobile ? "default" : "sm"}
+                    className="w-full"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open in Viewer
+                  </Button>
+                )}
+              </div>
+              
+              {/* Fallback UI if content fails to load */}
+              {showDownloadFallback && !contentLoaded && (
+                <div className="flex flex-col items-center justify-center gap-4 p-6 border rounded-lg bg-muted/20">
+                  <AlertCircle className="h-12 w-12 text-muted-foreground" />
+                  <div className="text-center space-y-2">
+                    <p className="text-sm font-medium">Preview not available</p>
+                    <p className="text-xs text-muted-foreground">Use the download button above to view the PDF</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* PDF Viewer - iOS uses embed, others use iframe */}
+              {!showDownloadFallback && (
+                <div className="w-full relative bg-muted/20 rounded-lg border" style={{ height: '60vh', minHeight: '400px' }}>
+                  {!contentLoaded && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-muted/20">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                  
+                  {isIOSDevice() && dataUrl ? (
+                    <embed
+                      type="application/pdf"
+                      src={dataUrl}
+                      title={content.title}
+                      className="absolute inset-0 w-full h-full rounded-lg border-0"
+                      onLoad={() => {
+                        setContentLoaded(true);
+                        if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+                      }}
+                      onError={() => {
+                        setLoadError(true);
+                        setShowDownloadFallback(true);
+                      }}
+                    />
+                  ) : (
+                    <iframe
+                      src={fileUrl}
+                      className="absolute inset-0 w-full h-full rounded-lg border-0"
+                      title={content.title}
+                      onLoad={() => {
+                        setContentLoaded(true);
+                        if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+                      }}
+                      onError={() => {
+                        setLoadError(true);
+                        setShowDownloadFallback(true);
+                      }}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        }
+        
+        // Desktop: Viewer-first with download option
         return (
           <div className="w-full">
-            <iframe
-              src={fileUrl}
-              className="w-full h-[70vh] rounded-lg border"
-              title={content.title}
-            />
+            <div className="w-full relative bg-muted/20 rounded-lg border" style={{ height: '70vh' }}>
+              <iframe
+                src={fileUrl}
+                className="absolute inset-0 w-full h-full rounded-lg border-0"
+                title={content.title}
+              />
+            </div>
             <div className="mt-2 text-center">
-              <Button variant="outline" size="sm" onClick={() => window.open(fileUrl, '_blank')}>
+              <Button variant="outline" size="sm" onClick={handleDownload}>
                 <Download className="h-4 w-4 mr-2" />
                 Download PDF
               </Button>
@@ -167,17 +320,84 @@ export default function TrainingViewer() {
             </div>
           );
         }
+        
+        const handleDownload = () => {
+          window.open(fileUrl, '_blank');
+        };
+        
         // Use Google Docs Viewer for PowerPoint
         const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+        
+        // Mobile: Download-first (Google Docs Viewer unreliable on mobile)
+        if (isMobile) {
+          return (
+            <div className="w-full space-y-3">
+              {/* Download button - prominent on mobile */}
+              <div className="flex flex-col gap-2">
+                <Button 
+                  onClick={handleDownload} 
+                  size={isMobile ? "default" : "sm"}
+                  className="w-full"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Presentation
+                </Button>
+                <p className="text-xs text-muted-foreground text-center px-2">
+                  For best experience on mobile, download and open in PowerPoint or Keynote
+                </p>
+              </div>
+              
+              {/* Fallback UI if Google Docs Viewer fails */}
+              {showDownloadFallback && !contentLoaded && (
+                <div className="flex flex-col items-center justify-center gap-4 p-6 border rounded-lg bg-muted/20">
+                  <AlertCircle className="h-12 w-12 text-muted-foreground" />
+                  <div className="text-center space-y-2">
+                    <p className="text-sm font-medium">Preview not available on mobile</p>
+                    <p className="text-xs text-muted-foreground">Please download the presentation to view it</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Google Docs Viewer - optional on mobile, with fallback */}
+              {!showDownloadFallback && (
+                <div className="w-full relative bg-muted/20 rounded-lg border" style={{ height: '60vh', minHeight: '400px' }}>
+                  {!contentLoaded && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-muted/20">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                  
+                  <iframe
+                    src={googleViewerUrl}
+                    className="absolute inset-0 w-full h-full rounded-lg border-0"
+                    title={content.title}
+                    onLoad={() => {
+                      setContentLoaded(true);
+                      if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+                    }}
+                    onError={() => {
+                      setLoadError(true);
+                      setShowDownloadFallback(true);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        }
+        
+        // Desktop: Google Docs Viewer with download option
         return (
           <div className="w-full">
-            <iframe
-              src={googleViewerUrl}
-              className="w-full h-[70vh] rounded-lg border"
-              title={content.title}
-            />
+            <div className="w-full relative bg-muted/20 rounded-lg border" style={{ height: '70vh' }}>
+              <iframe
+                src={googleViewerUrl}
+                className="absolute inset-0 w-full h-full rounded-lg border-0"
+                title={content.title}
+              />
+            </div>
             <div className="mt-2 text-center">
-              <Button variant="outline" size="sm" onClick={() => window.open(fileUrl, '_blank')}>
+              <Button variant="outline" size="sm" onClick={handleDownload}>
                 <Download className="h-4 w-4 mr-2" />
                 Download Presentation
               </Button>
@@ -224,9 +444,14 @@ export default function TrainingViewer() {
   };
 
   return (
-    <div className="p-4 space-y-4 max-w-5xl mx-auto">
+    <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 max-w-5xl mx-auto">
       {/* Back button */}
-      <Button variant="ghost" size="sm" onClick={() => navigate('/training')}>
+      <Button 
+        variant="ghost" 
+        size={isMobile ? "default" : "sm"} 
+        onClick={() => navigate('/training')}
+        className={isMobile ? "min-h-[44px]" : ""}
+      >
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to My Training
       </Button>
@@ -235,8 +460,8 @@ export default function TrainingViewer() {
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 {getTypeIcon()}
                 <Badge variant={isCompleted ? 'default' : 'secondary'}>
                   {isCompleted ? 'Completed' : content.content_type.replace('_', ' ')}
@@ -245,7 +470,7 @@ export default function TrainingViewer() {
                   <Badge variant="destructive">Required</Badge>
                 )}
               </div>
-              <CardTitle className="text-xl">{content.title}</CardTitle>
+              <CardTitle className="text-lg sm:text-xl break-words">{content.title}</CardTitle>
               {content.description && (
                 <CardDescription className="mt-2">{content.description}</CardDescription>
               )}
@@ -270,8 +495,12 @@ export default function TrainingViewer() {
 
       {/* Complete button */}
       {!isCompleted && (
-        <div className="flex justify-center pt-4">
-          <Button size="lg" onClick={() => setShowCompleteDialog(true)}>
+        <div className="flex justify-center pt-3 sm:pt-4">
+          <Button 
+            size={isMobile ? "default" : "lg"} 
+            onClick={() => setShowCompleteDialog(true)}
+            className={isMobile ? "w-full min-h-[44px]" : ""}
+          >
             <CheckCircle className="h-5 w-5 mr-2" />
             Mark as Complete
           </Button>

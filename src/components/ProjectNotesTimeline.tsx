@@ -10,7 +10,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
-import { Clock, PlusCircle, Pencil, Trash2, MoreVertical, Camera, Video, X, Paperclip, Download, FileText, Maximize2 } from "lucide-react";
+import { Clock, PlusCircle, Pencil, Trash2, MoreVertical, Camera, Video, X, Paperclip, Download, FileText, Maximize2, Eye } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +22,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useCameraCapture } from "@/hooks/useCameraCapture";
 import { useVideoCapture } from "@/hooks/useVideoCapture";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
+import { PdfPreviewModal } from "@/components/PdfPreviewModal";
 
 interface ProjectNotesTimelineProps {
   projectId: string;
@@ -38,6 +39,9 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
   const [isUploading, setIsUploading] = useState(false);
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const [enlargedVideo, setEnlargedVideo] = useState<string | null>(null);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [selectedAttachment, setSelectedAttachment] = useState<{ url: string; name: string } | null>(null);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { capturePhoto, isCapturing: isCapturingPhoto } = useCameraCapture();
@@ -115,6 +119,28 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
     
     const estTime = toZonedTime(date, "America/New_York");
     return format(estTime, "MMM d, h:mm a");
+  };
+
+  const isPdfFile = (fileName: string | null | undefined): boolean => {
+    if (!fileName) return false;
+    return fileName.toLowerCase().endsWith('.pdf');
+  };
+
+  const handlePreviewAttachment = async (attachmentUrl: string, attachmentName: string | null | undefined) => {
+    if (!attachmentUrl) return;
+    
+    try {
+      const response = await fetch(attachmentUrl);
+      const blob = await response.blob();
+      setPdfBlob(blob);
+      setSelectedAttachment({ url: attachmentUrl, name: attachmentName || 'attachment.pdf' });
+      setPreviewDialogOpen(true);
+    } catch (error) {
+      console.error('Failed to fetch PDF:', error);
+      toast.error('Preview failed', {
+        description: 'Unable to load PDF preview',
+      });
+    }
   };
 
   const getInitials = (name: string): string => {
@@ -548,15 +574,28 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                                     </div>
                                   </div>
                                 ) : (
-                                  <a 
-                                    href={note.attachment_url} 
-                                    download={note.attachment_name}
-                                    className="flex items-center gap-2 p-2 bg-muted rounded border hover:bg-muted/80 transition-colors text-sm"
-                                  >
-                                    <FileText className="w-4 h-4 text-muted-foreground" />
-                                    <span className="truncate">{note.attachment_name || 'Download file'}</span>
-                                    <Download className="w-4 h-4 text-muted-foreground ml-auto" />
-                                  </a>
+                                  <div className="flex items-center gap-2">
+                                    {isPdfFile(note.attachment_name) && (
+                                      <Button
+                                        onClick={() => handlePreviewAttachment(note.attachment_url!, note.attachment_name)}
+                                        size="sm"
+                                        variant="outline"
+                                        className="min-h-[44px]"
+                                      >
+                                        <Eye className="w-4 h-4 mr-1" />
+                                        Preview
+                                      </Button>
+                                    )}
+                                    <a 
+                                      href={note.attachment_url} 
+                                      download={note.attachment_name}
+                                      className="flex items-center gap-2 p-2 bg-muted rounded border hover:bg-muted/80 transition-colors text-sm flex-1"
+                                    >
+                                      <FileText className="w-4 h-4 text-muted-foreground" />
+                                      <span className="truncate">{note.attachment_name || 'Download file'}</span>
+                                      <Download className="w-4 h-4 text-muted-foreground ml-auto" />
+                                    </a>
+                                  </div>
                                 )}
                               </div>
                             )}
@@ -762,15 +801,28 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                                   </div>
                                 </div>
                               ) : (
-                                <a 
-                                  href={note.attachment_url} 
-                                  download={note.attachment_name}
-                                  className="flex items-center gap-1 p-1 bg-muted rounded border hover:bg-muted/80 transition-colors text-[10px]"
-                                >
-                                  <FileText className="w-3 h-3 text-muted-foreground" />
-                                  <span className="truncate">{note.attachment_name || 'Download'}</span>
-                                  <Download className="w-3 h-3 text-muted-foreground ml-auto" />
-                                </a>
+                                <div className="flex items-center gap-1">
+                                  {isPdfFile(note.attachment_name) && (
+                                    <Button
+                                      onClick={() => handlePreviewAttachment(note.attachment_url!, note.attachment_name)}
+                                      size="sm"
+                                      variant="outline"
+                                      className="min-h-[44px] px-2 text-[10px]"
+                                    >
+                                      <Eye className="w-3 h-3 mr-1" />
+                                      Preview
+                                    </Button>
+                                  )}
+                                  <a 
+                                    href={note.attachment_url} 
+                                    download={note.attachment_name}
+                                    className="flex items-center gap-1 p-1 bg-muted rounded border hover:bg-muted/80 transition-colors text-[10px] flex-1"
+                                  >
+                                    <FileText className="w-3 h-3 text-muted-foreground" />
+                                    <span className="truncate">{note.attachment_name || 'Download'}</span>
+                                    <Download className="w-3 h-3 text-muted-foreground ml-auto" />
+                                  </a>
+                                </div>
                               )}
                             </div>
                           )}
@@ -900,15 +952,28 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                                       </div>
                                     </div>
                                   ) : (
-                                    <a 
-                                      href={note.attachment_url} 
-                                      download={note.attachment_name}
-                                      className="flex items-center gap-2 p-1.5 bg-muted rounded border hover:bg-muted/80 transition-colors text-xs"
-                                    >
-                                      <FileText className="w-4 h-4 text-muted-foreground" />
-                                      <span className="truncate">{note.attachment_name || 'Download file'}</span>
-                                      <Download className="w-4 h-4 text-muted-foreground ml-auto" />
-                                    </a>
+                                    <div className="flex items-center gap-2">
+                                      {isPdfFile(note.attachment_name) && (
+                                        <Button
+                                          onClick={() => handlePreviewAttachment(note.attachment_url!, note.attachment_name)}
+                                          size="sm"
+                                          variant="outline"
+                                          className="min-h-[44px] sm:h-7"
+                                        >
+                                          <Eye className="w-3 h-3 mr-1" />
+                                          Preview
+                                        </Button>
+                                      )}
+                                      <a 
+                                        href={note.attachment_url} 
+                                        download={note.attachment_name}
+                                        className="flex items-center gap-2 p-1.5 bg-muted rounded border hover:bg-muted/80 transition-colors text-xs flex-1"
+                                      >
+                                        <FileText className="w-4 h-4 text-muted-foreground" />
+                                        <span className="truncate">{note.attachment_name || 'Download file'}</span>
+                                        <Download className="w-4 h-4 text-muted-foreground ml-auto" />
+                                      </a>
+                                    </div>
                                   )}
                                 </div>
                               )}
@@ -1077,6 +1142,13 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
           />
         </div>
       )}
+
+      <PdfPreviewModal
+        open={previewDialogOpen}
+        onOpenChange={setPreviewDialogOpen}
+        pdfBlob={pdfBlob}
+        fileName={selectedAttachment?.name || "attachment.pdf"}
+      />
     </>
   );
 }
