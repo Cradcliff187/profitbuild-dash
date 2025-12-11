@@ -206,6 +206,15 @@ textarea:focus-visible {
     @apply w-full max-w-full overflow-x-hidden;
   }
 
+  /* Hide scrollbar but allow scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari, Opera */
+  }
+
   /* Prevent horizontal overflow globally */
   .mobile-container {
     @apply w-full max-w-full overflow-x-hidden;
