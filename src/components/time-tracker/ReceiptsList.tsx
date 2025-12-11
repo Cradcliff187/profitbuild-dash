@@ -233,7 +233,7 @@ export const ReceiptsList = () => {
       </div>
 
       {/* Quick Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide max-w-full">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" style={{ maxWidth: 'calc(100vw - 32px)' }}>
         <Button
           variant={filter === 'all' ? 'default' : 'outline'}
           size="sm"

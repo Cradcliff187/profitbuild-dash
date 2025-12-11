@@ -1582,7 +1582,11 @@ export const MobileTimeTracker: React.FC = () => {
       )}
 
       {/* Receipts View */}
-      {view === 'receipts' && <ReceiptsList />}
+      {view === 'receipts' && (
+        <div className="w-full max-w-full overflow-x-hidden">
+          <ReceiptsList />
+        </div>
+      )}
 
       {/* Lunch Prompt Dialog */}
       <AlertDialog open={showLunchPrompt} onOpenChange={setShowLunchPrompt}>
