@@ -233,12 +233,12 @@ export const ReceiptsList = () => {
       </div>
 
       {/* Quick Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide max-w-full">
         <Button
           variant={filter === 'all' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setFilter('all')}
-          className="h-8 px-3 text-xs whitespace-nowrap"
+          className="h-8 px-3 text-xs whitespace-nowrap flex-shrink-0"
         >
           All ({receipts.length})
         </Button>
@@ -246,7 +246,7 @@ export const ReceiptsList = () => {
           variant={filter === 'unassigned' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setFilter('unassigned')}
-          className="h-8 px-3 text-xs whitespace-nowrap"
+          className="h-8 px-3 text-xs whitespace-nowrap flex-shrink-0"
         >
           Unassigned ({unassignedCount})
         </Button>
@@ -254,7 +254,7 @@ export const ReceiptsList = () => {
           variant={filter === 'thisWeek' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setFilter('thisWeek')}
-          className="h-8 px-3 text-xs whitespace-nowrap"
+          className="h-8 px-3 text-xs whitespace-nowrap flex-shrink-0"
         >
           This Week
         </Button>
@@ -262,7 +262,7 @@ export const ReceiptsList = () => {
           variant={filter === 'thisMonth' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setFilter('thisMonth')}
-          className="h-8 px-3 text-xs whitespace-nowrap"
+          className="h-8 px-3 text-xs whitespace-nowrap flex-shrink-0"
         >
           This Month
         </Button>
