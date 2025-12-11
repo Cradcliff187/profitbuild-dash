@@ -327,11 +327,11 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => navigate("/settings")}>
+            <DropdownMenuItem onClick={() => handleNavigation("/settings")}>
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/kpi-guide")}>
+            <DropdownMenuItem onClick={() => handleNavigation("/kpi-guide")}>
               <BookOpen className="mr-2 h-4 w-4" />
               KPI Guide
             </DropdownMenuItem>
