@@ -6,9 +6,11 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PayeeForm } from "@/components/PayeeForm";
 import { PayeesList } from "@/components/PayeesList";
 import { PayeeImportModal } from "@/components/PayeeImportModal";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Payee } from "@/types/payee";
 
 const Payees = () => {
+  const isMobile = useIsMobile();
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [selectedPayee, setSelectedPayee] = useState<Payee | undefined>(undefined);
@@ -59,7 +61,7 @@ const Payees = () => {
                 Import CSV
               </Button>
             </div>
-            <Button onClick={handleAddNew}>
+            <Button onClick={handleAddNew} className="hidden sm:flex">
               <Plus className="h-4 w-4 mr-2" />
               Add Payee
             </Button>
@@ -119,6 +121,18 @@ const Payees = () => {
         onClose={() => setShowImportModal(false)}
         onSuccess={handleImportSuccess}
       />
+
+      {/* Mobile FAB */}
+      {isMobile && (
+        <Button
+          variant="default"
+          onClick={handleAddNew}
+          size="icon"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
     </div>
   );
 };

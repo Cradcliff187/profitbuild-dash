@@ -274,7 +274,7 @@ export const ClientsList = () => {
               setShowForm(true);
             }} 
             size="sm" 
-            className="h-btn-compact text-label text-white flex-1 sm:flex-initial"
+            className="h-btn-compact text-label text-white hidden sm:flex"
           >
             <Plus className="h-3 w-3 mr-1" />
             Add Client
@@ -522,6 +522,21 @@ export const ClientsList = () => {
         onClose={() => setShowImportModal(false)}
         onSuccess={handleImportSuccess}
       />
+
+      {/* Mobile FAB */}
+      {isMobile && (
+        <Button
+          variant="default"
+          onClick={() => {
+            setEditingClient(null);
+            setShowForm(true);
+          }}
+          size="icon"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
     </div>
   );
 };
