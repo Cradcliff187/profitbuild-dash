@@ -1,13 +1,32 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { Menu } from 'lucide-react';
+import { SidebarProvider, SidebarInset, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from '@/contexts/AuthContext';
 import { useRoles } from '@/contexts/RoleContext';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { supabase } from '@/integrations/supabase/client';
 import { getCompanyBranding } from '@/utils/companyBranding';
+
+// Mobile menu trigger component (must be inside SidebarProvider)
+function MobileMenuTrigger() {
+  const { toggleSidebar } = useSidebar();
+  
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-10 w-10 text-slate-300 hover:text-white hover:bg-slate-800 shrink-0"
+      onClick={toggleSidebar}
+    >
+      <Menu className="h-6 w-6" />
+      <span className="sr-only">Open menu</span>
+    </Button>
+  );
+}
 
 const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png';
 
@@ -146,7 +165,6 @@ export default function AppLayout() {
           {/* Mobile header with trigger */}
           {isMobile && (
             <header className="flex h-16 items-center gap-3 border-b border-slate-700 bg-slate-900 px-4 lg:hidden shadow-sm">
-              <SidebarTrigger className="text-slate-300 hover:text-white shrink-0" />
               <img
                 src={logoIcon}
                 alt={companyAbbr}
@@ -160,6 +178,7 @@ export default function AppLayout() {
                   {pageTitle}
                 </div>
               </div>
+              <MobileMenuTrigger />
             </header>
           )}
           
