@@ -4,9 +4,11 @@ import { useMyTraining } from '@/hooks/useTrainingAssignments';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { 
   GraduationCap, 
   Video, 
@@ -149,11 +151,33 @@ export default function Training() {
         description="View and complete training modules"
       />
       
-      {/* Completion Badge */}
-      <div className="flex justify-end -mt-2 mb-4">
-        <Badge variant="outline" className="h-7 px-3 text-sm">
-          {stats.completionRate}% Complete
-        </Badge>
+      {/* Completion Progress Section */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-muted-foreground">Training Progress</span>
+          <span className={cn(
+            "text-lg font-bold",
+            stats.completionRate === 100 ? "text-green-600" : 
+            stats.overdue > 0 ? "text-red-600" : "text-primary"
+          )}>
+            {stats.completionRate}% Complete
+          </span>
+        </div>
+        <Progress 
+          value={stats.completionRate} 
+          className={cn(
+            "h-3",
+            stats.completionRate === 100 ? "[&>div]:bg-green-600" :
+            stats.overdue > 0 ? "[&>div]:bg-red-500" :
+            "[&>div]:bg-primary"
+          )}
+        />
+        {stats.completionRate === 100 && (
+          <div className="flex items-center gap-1 mt-2 text-green-600 text-sm font-medium">
+            <CheckCircle2 className="h-4 w-4" />
+            All training complete!
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}
