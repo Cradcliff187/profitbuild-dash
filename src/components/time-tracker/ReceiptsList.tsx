@@ -200,16 +200,16 @@ export const ReceiptsList = () => {
 
   if (loading) {
     return (
-      <MobilePageWrapper>
+      <div className="px-4">
         <div className="flex justify-center items-center h-64">
           <BrandedLoader message="Loading receipts..." />
         </div>
-      </MobilePageWrapper>
+      </div>
     );
   }
 
   return (
-    <MobilePageWrapper className="space-y-3">
+    <div className="space-y-3 px-4">
       {/* Search & Sort Bar */}
       <div className="flex gap-2">
         <div className="flex-1">
@@ -508,6 +508,6 @@ export const ReceiptsList = () => {
             : undefined
         }
       />
-    </MobilePageWrapper>
+    </div>
   );
 };
