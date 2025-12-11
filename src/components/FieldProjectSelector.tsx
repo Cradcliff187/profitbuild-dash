@@ -134,8 +134,8 @@ export function FieldProjectSelector({ selectedProjectId, onProjectSelect }: Fie
         {/* Filtered Projects */}
         {filteredProjects.length > 0 ? (
           filteredProjects.map((project) => (
-            <SelectItem key={project.id} value={project.id}>
-              <span className="font-medium">
+            <SelectItem key={project.id} value={project.id} className="max-w-full">
+              <span className="font-medium truncate block max-w-[calc(100vw-5rem)]">
                 {project.project_number} - {project.project_name}
               </span>
             </SelectItem>
