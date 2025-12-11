@@ -33,7 +33,7 @@ export const TimeEntryDialog = ({
           <SheetTitle>{title}</SheetTitle>
           {description && <SheetDescription>{description}</SheetDescription>}
         </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain touch-pan-y">
           {children}
         </div>
       </SheetContent>
