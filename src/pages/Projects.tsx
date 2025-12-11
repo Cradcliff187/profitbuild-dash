@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Building2, Table, Grid, Plus, ArrowUpAZ, ArrowDownZA, Download } from "lucide-react";
+import { Building2, Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +23,6 @@ import { cn } from "@/lib/utils";
 import { parseDateOnly } from "@/utils/dateUtils";
 
 type ViewMode = 'list' | 'create';
-type DisplayMode = 'cards' | 'table';
 
 const Projects = () => {
   const { toast } = useToast();
@@ -36,7 +35,6 @@ const Projects = () => {
   const [clients, setClients] = useState<Array<{ id: string; client_name: string; }>>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isLoading, setIsLoading] = useState(true);
-  const [displayMode, setDisplayMode] = useState<DisplayMode>(isMobile ? 'cards' : 'table');
   const [showExportModal, setShowExportModal] = useState(false);
   const [filters, setFilters] = useState<ProjectSearchFilters>({
     searchText: "",
@@ -412,32 +410,10 @@ const Projects = () => {
                 onFiltersChange={setFilters}
                 resultCount={filteredAndSortedProjects.length}
                 clients={clients}
-                leftActions={
-                  !isMobile ? (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDisplayMode('cards')}
-                        className="h-6 px-2"
-                      >
-                        <Grid className={cn("h-3 w-3", displayMode === 'cards' && "text-primary")} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDisplayMode('table')}
-                        className="h-6 px-2"
-                      >
-                        <Table className={cn("h-3 w-3", displayMode === 'table' && "text-primary")} />
-                      </Button>
-                    </>
-                  ) : undefined
-                }
               />
 
               {/* Display Projects */}
-              {(displayMode === 'cards' || isMobile) ? (
+              {isMobile ? (
                 <ProjectsList
                   projects={filteredAndSortedProjects}
                   estimates={estimates}
