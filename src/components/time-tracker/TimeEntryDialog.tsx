@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface TimeEntryDialogProps {
   open: boolean;
@@ -22,7 +23,10 @@ export const TimeEntryDialog = ({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
-        className="w-full sm:max-w-[500px] flex flex-col p-0"
+        className={cn(
+          "w-full sm:max-w-[500px] flex flex-col p-0",
+          isMobile && "max-h-[85vh]"
+        )}
         side={isMobile ? "bottom" : "right"}
       >
         <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b">
