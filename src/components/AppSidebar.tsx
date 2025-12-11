@@ -51,6 +51,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { getCompanyBranding } from "@/utils/companyBranding";
+import { supabase } from "@/integrations/supabase/client";
 
 const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png';
 
@@ -79,6 +80,7 @@ export function AppSidebar() {
   // Dynamic Branding State
   const [logoIcon, setLogoIcon] = useState(logoIconDefault);
   const [companyAbbr, setCompanyAbbr] = useState('RCG');
+  const [userFullName, setUserFullName] = useState<string | null>(null);
 
   useEffect(() => {
     // Load company branding
@@ -91,6 +93,29 @@ export function AppSidebar() {
     };
     loadBranding();
   }, []);
+
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+      if (data?.full_name) {
+        setUserFullName(data.full_name);
+      }
+    };
+    loadUserProfile();
+  }, [user?.id]);
+
+  const getInitials = (name: string): string => {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
 
   // Role-based access
   const hasFinancialAccess = roles.length === 0 || isAdmin || isManager;
@@ -210,10 +235,12 @@ export function AppSidebar() {
     );
   };
 
-  // Get user initials for avatar
-  const userInitials = user?.email
-    ? user.email.substring(0, 2).toUpperCase()
-    : "??";
+  // Get user initials for avatar - prefer full name, fall back to email
+  const userInitials = userFullName
+    ? getInitials(userFullName)
+    : user?.email
+      ? user.email.substring(0, 2).toUpperCase()
+      : "??";
 
   return (
     <Sidebar collapsible="icon" className="border-r border-slate-700 bg-slate-900">
