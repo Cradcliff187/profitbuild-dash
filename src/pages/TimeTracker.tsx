@@ -2,7 +2,7 @@ import { MobileTimeTracker } from '@/components/time-tracker/MobileTimeTracker';
 
 const TimeTracker = () => {
   return (
-    <div className="min-h-screen bg-background no-horizontal-scroll">
+    <div className="-mx-4 sm:-mx-6 lg:-mx-8">
       <MobileTimeTracker />
     </div>
   );

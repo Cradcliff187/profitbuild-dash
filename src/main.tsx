@@ -9,7 +9,6 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 
 // Debug: Check if running as standalone PWA
 const isPWAStandalone = window.matchMedia('(display-mode: standalone)').matches;
-console.log('PWA Mode:', isPWAStandalone ? 'Standalone' : 'Browser');
 
 createRoot(document.getElementById("root")!).render(<App />);
 

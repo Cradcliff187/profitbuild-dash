@@ -6,10 +6,7 @@ import { uploadProjectMedia } from './projectMedia';
 let isProcessing = false;
 
 export const startSyncService = () => {
-  console.log('🔄 Background sync service initialized');
-
   window.addEventListener('online', async () => {
-    console.log('🌐 Connection restored - starting sync...');
     await processQueue();
   });
 

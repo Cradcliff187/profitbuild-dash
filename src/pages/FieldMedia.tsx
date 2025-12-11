@@ -7,12 +7,12 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { FieldProjectSelector } from '@/components/FieldProjectSelector';
 import { ProjectMediaGallery } from '@/components/ProjectMediaGallery';
-import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type MediaTab = 'all' | 'photos' | 'videos' | 'timeline';
 
@@ -26,6 +26,7 @@ const tabOptions = [
 export default function FieldMedia() {
   const { id: routeProjectId } = useParams();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(routeProjectId);
   const [activeTab, setActiveTab] = useState<MediaTab>('all');
 
@@ -60,25 +61,33 @@ export default function FieldMedia() {
   };
 
   return (
-    <MobilePageWrapper>
-      <div className="space-y-4">
-        <PageHeader
-          icon={Camera}
-          title="Field Media"
-          description="View and manage field photos and videos"
-          actions={
-            <>
-              <Button variant="outline" size="sm">
-                <Camera className="h-4 w-4 mr-2" />
-                Capture Photo
-              </Button>
-              <Button size="sm">
-                <Video className="h-4 w-4 mr-2" />
-                Capture Video
-              </Button>
-            </>
-          }
-        />
+    <div className="space-y-4">
+      <PageHeader
+        icon={Camera}
+        title="Field Media"
+        description="View and manage field photos and videos"
+        actions={
+          <div className="hidden sm:flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => selectedProjectId && navigate(`/field-media/${selectedProjectId}/capture`)}
+              disabled={!selectedProjectId}
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              Capture Photo
+            </Button>
+            <Button 
+              size="sm"
+              onClick={() => selectedProjectId && navigate(`/field-media/${selectedProjectId}/capture-video`)}
+              disabled={!selectedProjectId}
+            >
+              <Video className="h-4 w-4 mr-2" />
+              Capture Video
+            </Button>
+          </div>
+        }
+      />
 
         {/* Project Selector */}
         <Card>
@@ -162,24 +171,26 @@ export default function FieldMedia() {
                 ))}
               </Tabs>
 
-              {/* Floating Capture Buttons */}
-              <div className="fixed bottom-20 right-4 flex flex-col gap-2 z-40">
-                <Button
-                  size="lg"
-                  className="rounded-full h-12 w-12 shadow-lg"
-                  onClick={() => navigate(`/field-media/${selectedProjectId}/capture`)}
-                >
-                  <Camera className="h-5 w-5" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  className="rounded-full h-12 w-12 shadow-lg"
-                  onClick={() => navigate(`/field-media/${selectedProjectId}/capture-video`)}
-                >
-                  <Video className="h-5 w-5" />
-                </Button>
-              </div>
+              {/* Floating Capture Buttons - Mobile Only */}
+              {isMobile && (
+                <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+                  <Button
+                    size="lg"
+                    className="rounded-full h-14 w-14 shadow-lg"
+                    onClick={() => navigate(`/field-media/${selectedProjectId}/capture`)}
+                  >
+                    <Camera className="h-6 w-6" />
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    className="rounded-full h-14 w-14 shadow-lg"
+                    onClick={() => navigate(`/field-media/${selectedProjectId}/capture-video`)}
+                  >
+                    <Video className="h-6 w-6" />
+                  </Button>
+                </div>
+              )}
             </>
           ) : null
         ) : (
@@ -192,7 +203,6 @@ export default function FieldMedia() {
             </CardContent>
           </Card>
         )}
-      </div>
-    </MobilePageWrapper>
+    </div>
   );
 }

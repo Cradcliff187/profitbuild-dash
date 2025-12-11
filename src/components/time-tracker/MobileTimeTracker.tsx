@@ -1104,7 +1104,7 @@ export const MobileTimeTracker: React.FC = () => {
   )}
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 pb-20">
+    <div className="min-h-screen bg-slate-50/50 pb-20">
       {/* Sync Status Banner */}
       <SyncStatusBanner />
 
@@ -1112,16 +1112,8 @@ export const MobileTimeTracker: React.FC = () => {
       <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-4 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {logoIcon && (
-              <img 
-                src={logoIcon} 
-                alt="Company Logo" 
-                className="h-10 w-10 rounded-lg object-cover"
-              />
-            )}
             <div>
-              <h1 className="text-xl font-bold">Time Tracker</h1>
-              <p className="text-sm opacity-90">
+              <p className="text-lg font-semibold">
                 {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
               </p>
             </div>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -7,6 +7,66 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRoles } from '@/contexts/RoleContext';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { supabase } from '@/integrations/supabase/client';
+import { getCompanyBranding } from '@/utils/companyBranding';
+
+const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png';
+
+// Map routes to page titles
+const getPageTitle = (pathname: string): string => {
+  // Remove query params and hash
+  const path = pathname.split('?')[0].split('#')[0];
+  
+  // Exact matches first
+  const exactMatches: Record<string, string> = {
+    '/': 'Dashboard',
+    '/dashboard': 'Dashboard',
+    '/projects': 'Projects',
+    '/work-orders': 'Work Orders',
+    '/time-tracker': 'Time Tracker',
+    '/time-entries': 'Time Entries',
+    '/estimates': 'Estimates',
+    '/quotes': 'Quotes',
+    '/expenses': 'Expenses & Invoices',
+    '/profit-analysis': 'Profit Analysis',
+    '/reports': 'Reports',
+    '/clients': 'Clients',
+    '/payees': 'Payees',
+    '/field-media': 'Field Media',
+    '/branch-bids': 'Bids',
+    '/role-management': 'Role Management',
+    '/send-sms': 'Send SMS',
+    '/training': 'My Training',
+    '/settings': 'Settings',
+    '/kpi-guide': 'KPI Guide',
+  };
+  
+  if (exactMatches[path]) {
+    return exactMatches[path];
+  }
+  
+  // Pattern matches for dynamic routes (check more specific patterns first)
+  if (path.startsWith('/training/admin')) {
+    return 'Training Admin';
+  }
+  if (path.startsWith('/training/')) {
+    return 'Training';
+  }
+  if (path.startsWith('/projects/')) {
+    return 'Project Details';
+  }
+  if (path.startsWith('/field-media/')) {
+    return 'Field Media';
+  }
+  if (path.startsWith('/field-schedule/')) {
+    return 'Field Schedule';
+  }
+  if (path.startsWith('/branch-bids/')) {
+    return 'Bid Details';
+  }
+  
+  // Default fallback
+  return 'RCG Work';
+};
 
 export default function AppLayout() {
   const { user, loading: authLoading } = useAuth();
@@ -14,6 +74,22 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  const [logoIcon, setLogoIcon] = useState(logoIconDefault);
+  const [companyAbbr, setCompanyAbbr] = useState('RCG');
+  
+  // Get current page title
+  const pageTitle = getPageTitle(location.pathname);
+
+  useEffect(() => {
+    const loadBranding = async () => {
+      const branding = await getCompanyBranding();
+      if (branding) {
+        if (branding.logo_icon_url) setLogoIcon(branding.logo_icon_url);
+        if (branding.company_abbreviation) setCompanyAbbr(branding.company_abbreviation);
+      }
+    };
+    loadBranding();
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -69,9 +145,21 @@ export default function AppLayout() {
         <SidebarInset className="flex flex-col flex-1 bg-slate-50/50">
           {/* Mobile header with trigger */}
           {isMobile && (
-            <header className="flex h-14 items-center gap-4 border-b bg-white px-4 lg:hidden">
-              <SidebarTrigger />
-              <span className="font-semibold">RCG Work</span>
+            <header className="flex h-16 items-center gap-3 border-b border-slate-700 bg-slate-900 px-4 lg:hidden shadow-sm">
+              <SidebarTrigger className="text-slate-300 hover:text-white shrink-0" />
+              <img
+                src={logoIcon}
+                alt={companyAbbr}
+                className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = logoIconDefault;
+                }}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-base text-white truncate">
+                  {pageTitle}
+                </div>
+              </div>
             </header>
           )}
           

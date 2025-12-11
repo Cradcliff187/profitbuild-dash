@@ -174,9 +174,11 @@ export function AppSidebar() {
     return (
       <div key={group.label}>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs uppercase text-slate-400 mb-1">
-            {collapsed ? group.abbrev : group.label}
-          </SidebarGroupLabel>
+          {!collapsed && (
+            <SidebarGroupLabel className="text-xs uppercase text-slate-400 mb-1">
+              {group.label}
+            </SidebarGroupLabel>
+          )}
           <SidebarGroupContent>
             <SidebarMenu>
               {visibleItems.map((item) => {
@@ -187,14 +189,14 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       onClick={() => handleNavigation(item.url)}
                       isActive={active}
-                      tooltip={collapsed ? item.title : undefined}
+                      tooltip={collapsed && !isMobile ? item.title : undefined}
                       className={cn(
                         "cursor-pointer min-h-[44px] py-2.5 text-slate-300 hover:text-white hover:bg-slate-800",
                         active && "font-semibold bg-slate-800 text-white border-l-2 border-orange-500"
                       )}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
-                      {!collapsed && <span className="text-sm">{item.title}</span>}
+                      {(!collapsed || isMobile) && <span className="text-sm">{item.title}</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -216,18 +218,34 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-slate-700 bg-slate-900">
       <SidebarRail />
       {/* Header with Logo */}
-      <SidebarHeader className="border-b border-slate-700 px-3 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <SidebarHeader className={cn(
+        "border-b border-slate-700",
+        collapsed ? "px-2 py-4" : "px-3 py-3"
+      )}>
+        <div className={cn(
+          "flex items-center justify-between",
+          collapsed && "flex-col gap-2"
+        )}>
+          <div className={cn(
+            "flex items-center gap-2",
+            collapsed && "flex-col gap-1.5"
+          )}>
             <img
               src={logoIcon}
               alt={companyAbbr}
-              className="h-7 w-7 shrink-0"
+              className={cn(
+                "shrink-0 rounded-lg object-cover",
+                collapsed ? "h-12 w-12" : "h-7 w-7"
+              )}
               onError={(e) => {
                 e.currentTarget.src = logoIconDefault;
               }}
             />
-            {!collapsed && (
+            {collapsed ? (
+              <span className="font-bold text-xs text-white text-center leading-tight">
+                {companyAbbr}
+              </span>
+            ) : (
               <span className="font-bold text-base text-white">RCG Work</span>
             )}
           </div>
