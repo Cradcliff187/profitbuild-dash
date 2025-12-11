@@ -1110,12 +1110,13 @@ export const MobileTimeTracker: React.FC = () => {
 
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-4 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-2">
             <div>
-              <p className="text-lg font-semibold">
+              <p className="text-lg font-semibold leading-tight">
                 {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
               </p>
+              <p className="text-xs opacity-90 mt-0.5">Today's Date</p>
             </div>
             {!isOnline && (
               <div className="bg-yellow-500 text-yellow-950 px-2 py-1 text-xs rounded font-medium">
@@ -1124,10 +1125,10 @@ export const MobileTimeTracker: React.FC = () => {
             )}
           </div>
           <div className="text-right">
-            <div className="text-2xl font-mono font-bold">
+            <div className="text-lg font-mono font-bold leading-tight">
               {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             </div>
-            <p className="text-xs opacity-90">Current Time</p>
+            <p className="text-xs opacity-90 mt-0.5">Current Time</p>
           </div>
         </div>
       </div>
