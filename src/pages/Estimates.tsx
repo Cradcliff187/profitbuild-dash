@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { EstimatesList } from "@/components/EstimatesList";
+import { EstimatesCardView } from "@/components/EstimatesCardView";
+import { EstimatesTableView } from "@/components/EstimatesTableView";
 import { EstimateForm } from "@/components/EstimateForm";
 import { EstimateSearchFilters, type SearchFilters } from "@/components/EstimateSearchFilters";
 import { EstimateExportModal } from "@/components/EstimateExportModal";
@@ -563,13 +564,35 @@ const EstimatesPage = () => {
               resultCount={filteredEstimates.length}
               clients={clients}
             />
-            <EstimatesList
-              estimates={filteredEstimates}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onView={handleView}
-              onCreateNew={handleCreateNew}
-            />
+            {isMobile ? (
+              <EstimatesCardView
+                estimates={filteredEstimates}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onView={handleView}
+                onCreateNew={handleCreateNew}
+              />
+            ) : (
+              <EstimatesTableView
+                estimates={filteredEstimates}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onView={handleView}
+                onCreateNew={handleCreateNew}
+              />
+            )}
+            
+            {/* Mobile FAB */}
+            {isMobile && (
+              <Button
+                variant="default"
+                onClick={handleCreateNew}
+                size="icon"
+                className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+              >
+                <Plus className="h-6 w-6 !text-white" />
+              </Button>
+            )}
           </TabsContent>
 
           <TabsContent value="analytics">
