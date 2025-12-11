@@ -220,22 +220,22 @@ export function AppSidebar() {
       {/* Header with Logo */}
       <SidebarHeader className={cn(
         "border-b border-slate-700",
-        collapsed ? "px-2 py-4" : "px-3 py-3"
+        collapsed ? "px-1 py-3" : "px-3 py-3"
       )}>
         <div className={cn(
           "flex items-center justify-between",
-          collapsed && "flex-col gap-2"
+          collapsed && "flex-col gap-2 items-center"
         )}>
           <div className={cn(
             "flex items-center gap-2",
-            collapsed && "flex-col gap-1.5"
+            collapsed && "flex-col gap-1.5 items-center"
           )}>
             <img
               src={logoIcon}
               alt={companyAbbr}
               className={cn(
                 "shrink-0 rounded-lg object-cover",
-                collapsed ? "h-12 w-12" : "h-7 w-7"
+                collapsed ? "h-8 w-8" : "h-7 w-7"
               )}
               onError={(e) => {
                 e.currentTarget.src = logoIconDefault;
