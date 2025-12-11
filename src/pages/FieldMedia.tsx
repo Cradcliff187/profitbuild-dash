@@ -61,7 +61,7 @@ export default function FieldMedia() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="w-full max-w-full overflow-x-hidden space-y-4">
       <PageHeader
         icon={Camera}
         title="Field Media"
