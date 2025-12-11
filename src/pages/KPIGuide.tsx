@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BookOpen, Download, Building, Calculator, FileText, Receipt, DollarSign, RefreshCw, Clipboard, Archive } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
+import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -249,7 +250,7 @@ export default function KPIGuide() {
   const frontendMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, revenueKPIs, changeOrderKPIs, workOrderKPIs].flat().filter(k => k.source === 'frontend').length;
 
   return (
-    <div className="container mx-auto max-w-7xl px-4 sm:px-6 py-4 space-y-4">
+    <MobilePageWrapper noPadding className="space-y-4">
       <PageHeader
         icon={BookOpen}
         title="KPI Guide"
@@ -529,6 +530,6 @@ export default function KPIGuide() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </MobilePageWrapper>
   );
 }

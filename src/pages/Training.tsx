@@ -20,6 +20,7 @@ import {
   AlertCircle 
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
+import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { format } from 'date-fns';
 import { MyTrainingItem, TrainingContentType } from '@/types/training';
 
@@ -144,7 +145,7 @@ export default function Training() {
   }
 
   return (
-    <div className="w-full overflow-x-hidden px-2 sm:px-3 py-2 sm:py-4 max-w-7xl mx-auto">
+    <MobilePageWrapper noPadding className="space-y-3">
       <PageHeader
         icon={GraduationCap}
         title="My Training"
@@ -327,7 +328,7 @@ export default function Training() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+    </MobilePageWrapper>
   );
 }
 

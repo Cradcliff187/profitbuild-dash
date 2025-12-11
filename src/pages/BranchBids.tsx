@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FolderOpen, Plus, Download, FileText, Users, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown, Package } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
+import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -368,7 +369,7 @@ export default function BranchBids() {
   }
 
   return (
-    <div className="w-full overflow-x-hidden px-2 sm:px-4 py-2 space-y-2">
+    <MobilePageWrapper noPadding className="space-y-2">
       <PageHeader
         icon={Package}
         title="Bids"
@@ -554,6 +555,6 @@ export default function BranchBids() {
           onClose={() => setShowExportModal(false)}
         />
       )}
-    </div>
+    </MobilePageWrapper>
   );
 }

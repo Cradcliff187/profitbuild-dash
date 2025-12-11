@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/select';
 import { TrendingUp } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
+import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { useProfitAnalysisData } from '@/components/profit-analysis/hooks/useProfitAnalysisData';
 import { ProfitSummaryCards } from '@/components/profit-analysis/ProfitSummaryCards';
 import { BillingProgressTable } from '@/components/profit-analysis/BillingProgressTable';
@@ -36,7 +37,7 @@ export default function ProfitAnalysis() {
   }
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <MobilePageWrapper noPadding className="space-y-6">
       <PageHeader
         icon={TrendingUp}
         title="Profit Analysis"
@@ -116,6 +117,6 @@ export default function ProfitAnalysis() {
         open={!!selectedProjectId}
         onClose={() => setSelectedProjectId(null)} 
       />
-    </div>
+    </MobilePageWrapper>
   );
 }

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Plus, FileText, FileBarChart, Receipt, DollarSign, BarChart3, FileEdit, TrendingUp, Building2, Clock, Users } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { useNavigate } from "react-router-dom";
 import { NewTemplateGallery } from "@/components/reports/NewTemplateGallery";
 import { SimpleReportBuilder } from "@/components/reports/SimpleReportBuilder";
@@ -271,7 +272,7 @@ const ReportsPage = () => {
   ];
 
   return (
-    <div className="flex flex-col h-full">
+    <MobilePageWrapper noPadding className="flex flex-col h-full">
       <PageHeader
         icon={BarChart3}
         title="Reports"
@@ -506,7 +507,7 @@ const ReportsPage = () => {
               </div>
             )}
       </div>
-    </div>
+    </MobilePageWrapper>
   );
 };
 

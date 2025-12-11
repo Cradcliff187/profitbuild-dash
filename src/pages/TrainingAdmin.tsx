@@ -41,6 +41,7 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
+import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -429,7 +430,7 @@ export default function TrainingAdmin() {
   }
 
   return (
-    <div className="w-full overflow-x-hidden px-2 sm:px-3 py-2 sm:py-4 max-w-7xl mx-auto">
+    <MobilePageWrapper noPadding className="space-y-3">
       <PageHeader
         icon={GraduationCap}
         title="Training Admin"
@@ -1147,7 +1148,7 @@ export default function TrainingAdmin() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </MobilePageWrapper>
   );
 }
 

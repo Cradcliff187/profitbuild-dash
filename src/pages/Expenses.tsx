@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Plus, Upload, BarChart3, List, Clock, FileDown, Receipt, DollarSign } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -433,7 +434,7 @@ const Expenses = () => {
   }
 
   return (
-    <div className="w-full overflow-x-hidden space-y-4">
+    <MobilePageWrapper noPadding className="space-y-4">
       <PageHeader
         icon={Receipt}
         title="Expenses & Invoices"
@@ -582,7 +583,7 @@ const Expenses = () => {
         revenue={selectedRevenue}
         onSave={handleSaveRevenue}
       />
-    </div>
+    </MobilePageWrapper>
   );
 };
 
