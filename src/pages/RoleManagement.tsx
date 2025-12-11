@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, Search, X, Trash2, Clock, Mail, Calendar, ChevronDown, Shield } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
+import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { formatDistanceToNow, parseISO, format } from 'date-fns';
 import CreateUserModal from '@/components/CreateUserModal';
 import ResetPasswordModal from '@/components/ResetPasswordModal';
@@ -325,7 +326,7 @@ export default function RoleManagement() {
   }
 
   return (
-    <div className="w-full overflow-x-hidden px-2 sm:px-3 py-2 sm:py-4 max-w-7xl mx-auto">
+    <MobilePageWrapper noPadding className="space-y-3">
       <PageHeader
         icon={Shield}
         title="Role Management"
@@ -807,6 +808,6 @@ export default function RoleManagement() {
           <ActiveTimersTable onTimerClosed={loadUsers} />
         </CardContent>
       </Card>
-    </div>
+    </MobilePageWrapper>
   );
 }

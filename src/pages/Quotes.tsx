@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { FileText, Plus, BarChart3, Download } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { Button } from "@/components/ui/button";
 import { QuoteForm } from "@/components/QuoteForm";
 import { QuotesList } from "@/components/QuotesList";
@@ -702,7 +703,7 @@ const Quotes = () => {
   }
 
   return (
-    <div className="space-y-3">
+    <MobilePageWrapper noPadding className="space-y-3">
       <PageHeader
         icon={FileText}
         title={view === 'list' ? 'Quotes' : 
@@ -841,7 +842,7 @@ const Quotes = () => {
           <Plus className="h-6 w-6" />
         </Button>
       )}
-    </div>
+    </MobilePageWrapper>
   );
 };
 

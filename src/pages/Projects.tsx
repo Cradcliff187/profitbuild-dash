@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Building2, Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandedLoader } from "@/components/ui/branded-loader";
@@ -371,7 +372,7 @@ const Projects = () => {
   }, [projects, filters]);
 
   return (
-    <div className="space-y-3">
+    <MobilePageWrapper noPadding className="space-y-3">
       <PageHeader
         icon={Building2}
         title="Projects"
@@ -462,7 +463,7 @@ const Projects = () => {
         onClose={() => setShowExportModal(false)}
         filters={filters}
       />
-    </div>
+    </MobilePageWrapper>
   );
 };
 

@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Estimate } from "@/types/estimate";
 import { Plus, BarChart3, Download, Calculator } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 type ViewMode = "list" | "create" | "edit" | "view";
@@ -491,7 +492,7 @@ const EstimatesPage = () => {
   }
 
   return (
-    <div className="space-y-3">
+    <MobilePageWrapper noPadding className="space-y-3">
       <PageHeader
         icon={Calculator}
         title="Estimates"
@@ -611,7 +612,7 @@ const EstimatesPage = () => {
       )}
 
       <EstimateExportModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} filters={searchFilters} />
-    </div>
+    </MobilePageWrapper>
   );
 };
 

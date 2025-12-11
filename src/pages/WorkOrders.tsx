@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus, Download, Wrench, Clock, CheckCircle, XCircle, FileText, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -644,7 +645,7 @@ const WorkOrders = () => {
   }, [sortedWorkOrders, pagination.startIndex, pagination.endIndex]);
 
   return (
-    <div className="w-full overflow-x-hidden px-2 sm:px-4 py-2 space-y-2">
+    <MobilePageWrapper noPadding className="space-y-2">
       <PageHeader
         icon={Wrench}
         title="Work Orders"
@@ -838,7 +839,7 @@ const WorkOrders = () => {
           <Plus className="h-6 w-6" />
         </Button>
       )}
-    </div>
+    </MobilePageWrapper>
   );
 };
 

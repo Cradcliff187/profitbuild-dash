@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Settings as SettingsIcon, User, Bell, Shield, Database, Hash, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { AccountMappingsManager } from "@/components/AccountMappingsManager";
 import { CompanyBrandingSettings } from "@/components/CompanyBrandingSettings";
 import { getBudgetAlertThreshold, setBudgetAlertThreshold } from "@/utils/budgetUtils";
@@ -250,7 +251,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <MobilePageWrapper noPadding className="space-y-6">
       <PageHeader
         icon={SettingsIcon}
         title="Settings"
@@ -516,7 +517,7 @@ const Settings = () => {
           </p>
         </div>
       </div>
-    </div>
+    </MobilePageWrapper>
   );
 };
 

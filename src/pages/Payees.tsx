@@ -3,6 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Button } from "@/components/ui/button";
 import { Plus, Upload, Building, Users } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { PayeeForm } from "@/components/PayeeForm";
 import { PayeesList } from "@/components/PayeesList";
 import { PayeeImportModal } from "@/components/PayeeImportModal";
@@ -48,7 +49,7 @@ const Payees = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <MobilePageWrapper noPadding className="space-y-4">
       <PageHeader
         icon={Users}
         title="Payees"
@@ -133,7 +134,7 @@ const Payees = () => {
           <Plus className="h-6 w-6" />
         </Button>
       )}
-    </div>
+    </MobilePageWrapper>
   );
 };
 
