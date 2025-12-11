@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRoles } from '@/contexts/RoleContext';
 import { useTrainingContent } from '@/hooks/useTrainingContent';
+import { CreateTrainingContentData, UpdateTrainingContentData } from '@/types/training';
 import { useTrainingAssignments } from '@/hooks/useTrainingAssignments';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
@@ -290,17 +291,31 @@ export default function TrainingAdmin() {
   };
 
   const handleFormSubmit = async (data: TrainingContentFormData) => {
+    // Transform form data - convert empty strings to undefined for API compatibility
+    const cleanedData = {
+      title: data.title,
+      description: data.description || undefined,
+      content_type: data.content_type,
+      content_url: data.content_url || undefined,
+      storage_path: data.storage_path || undefined,
+      embed_code: data.embed_code || undefined,
+      duration_minutes: data.duration_minutes === '' ? undefined : data.duration_minutes,
+      is_required: data.is_required,
+      target_roles: data.target_roles,
+      status: data.status,
+    };
+
     if (editContent) {
       const success = await updateContent({
         id: editContent.id,
-        ...data,
-      });
+        ...cleanedData,
+      } as UpdateTrainingContentData);
       if (success) {
         setCreateSheetOpen(false);
         setEditContent(null);
       }
     } else {
-      const success = await createContent(data);
+      const success = await createContent(cleanedData as CreateTrainingContentData);
       if (success) {
         setCreateSheetOpen(false);
       }

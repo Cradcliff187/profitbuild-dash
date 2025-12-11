@@ -25,7 +25,7 @@ const formSchema = z.object({
   embed_code: z.string().optional(),
   duration_minutes: z.coerce.number().min(1).max(480).optional().or(z.literal('')),
   is_required: z.boolean().default(false),
-  status: z.enum(['draft', 'published']).default('draft'),
+  status: z.enum(['draft', 'published', 'archived']).default('draft'),
 }).refine((data) => {
   // Validate required fields based on content type
   if (data.content_type === 'video_link' || data.content_type === 'external_link') {
