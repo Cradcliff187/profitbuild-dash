@@ -727,7 +727,7 @@ const Quotes = () => {
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
-              <Button onClick={() => setView('create')} size="sm">
+              <Button onClick={() => setView('create')} size="sm" className="hidden sm:flex">
                 <Plus className="h-4 w-4 mr-2" />
                 New Quote
               </Button>
@@ -829,6 +829,18 @@ const Quotes = () => {
         onClose={() => setShowExportModal(false)}
         filters={searchFilters}
       />
+
+      {/* Mobile FAB */}
+      {isMobile && view === 'list' && (
+        <Button
+          variant="default"
+          onClick={() => setView('create')}
+          size="icon"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
     </div>
   );
 };

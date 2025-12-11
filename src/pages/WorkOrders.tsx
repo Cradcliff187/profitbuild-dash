@@ -669,7 +669,7 @@ const WorkOrders = () => {
                 Export
               </Button>
             </div>
-            <Button onClick={handleCreateNew} size="sm" className="flex items-center gap-1">
+            <Button onClick={handleCreateNew} size="sm" className="hidden sm:flex items-center gap-1">
               <Plus className="h-4 w-4" />
               New Work Order
             </Button>
@@ -825,6 +825,18 @@ const WorkOrders = () => {
           workOrder={selectedWorkOrderForEdit}
           onSave={handleSaveWorkOrder}
         />
+      )}
+
+      {/* Mobile FAB */}
+      {isMobile && (
+        <Button
+          variant="default"
+          onClick={handleCreateNew}
+          size="icon"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
       )}
     </div>
   );
