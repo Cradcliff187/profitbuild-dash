@@ -173,7 +173,7 @@ export function AppSidebar() {
 
     return (
       <div key={group.label}>
-        <SidebarGroup>
+        <SidebarGroup className={cn(collapsed && "p-1")}>
           {!collapsed && (
             <SidebarGroupLabel className="text-xs uppercase text-slate-400 mb-1">
               {group.label}
@@ -191,7 +191,8 @@ export function AppSidebar() {
                       isActive={active}
                       tooltip={collapsed && !isMobile ? item.title : undefined}
                       className={cn(
-                        "cursor-pointer min-h-[44px] py-2.5 text-slate-300 hover:text-white hover:bg-slate-800",
+                        "cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800",
+                        collapsed ? "min-h-[36px] py-1.5" : "min-h-[44px] py-2.5",
                         active && "font-semibold bg-slate-800 text-white border-l-2 border-orange-500"
                       )}
                     >
@@ -204,7 +205,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {showSeparator && <SidebarSeparator className="my-2 bg-slate-700" />}
+        {showSeparator && !collapsed && <SidebarSeparator className="my-2 bg-slate-700" />}
       </div>
     );
   };
@@ -265,7 +266,7 @@ export function AppSidebar() {
         {/* Admin section - only shows if user has admin items visible */}
         {adminGroup.items.some(item => item.show) && (
           <>
-            <SidebarSeparator className="my-2" />
+            {!collapsed && <SidebarSeparator className="my-2" />}
             {renderNavGroup(adminGroup, false)}
           </>
         )}
