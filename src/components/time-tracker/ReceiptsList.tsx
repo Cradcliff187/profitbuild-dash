@@ -210,7 +210,7 @@ export const ReceiptsList = () => {
 
   return (
     <div className="space-y-3 px-4">
-      {/* Search & Sort Bar */}
+      {/* Search & Filters Bar */}
       <div className="flex gap-2">
         <div className="flex-1">
           <Input
@@ -221,51 +221,25 @@ export const ReceiptsList = () => {
           />
         </div>
         <NativeSelect
+          value={filter}
+          onValueChange={(v) => setFilter(v as FilterType)}
+          className="w-auto min-w-[90px] h-9 text-sm"
+        >
+          <option value="all">All ({receipts.length})</option>
+          <option value="unassigned">Unassigned ({unassignedCount})</option>
+          <option value="thisWeek">This Week</option>
+          <option value="thisMonth">This Month</option>
+        </NativeSelect>
+        <NativeSelect
           value={sortBy}
           onValueChange={(v) => setSortBy(v as SortType)}
-          className="w-32 h-9 text-sm"
+          className="w-auto min-w-[80px] h-9 text-sm"
         >
           <option value="date-desc">Newest</option>
           <option value="date-asc">Oldest</option>
-          <option value="amount-desc">Highest $</option>
-          <option value="amount-asc">Lowest $</option>
+          <option value="amount-desc">High $</option>
+          <option value="amount-asc">Low $</option>
         </NativeSelect>
-      </div>
-
-      {/* Quick Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" style={{ maxWidth: 'calc(100vw - 32px)' }}>
-        <Button
-          variant={filter === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('all')}
-          className="h-8 px-3 text-xs whitespace-nowrap flex-shrink-0"
-        >
-          All ({receipts.length})
-        </Button>
-        <Button
-          variant={filter === 'unassigned' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('unassigned')}
-          className="h-8 px-3 text-xs whitespace-nowrap flex-shrink-0"
-        >
-          Unassigned ({unassignedCount})
-        </Button>
-        <Button
-          variant={filter === 'thisWeek' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('thisWeek')}
-          className="h-8 px-3 text-xs whitespace-nowrap flex-shrink-0"
-        >
-          This Week
-        </Button>
-        <Button
-          variant={filter === 'thisMonth' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('thisMonth')}
-          className="h-8 px-3 text-xs whitespace-nowrap flex-shrink-0"
-        >
-          This Month
-        </Button>
       </div>
 
       {/* Bulk Mode Toggle */}
