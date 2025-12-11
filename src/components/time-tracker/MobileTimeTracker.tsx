@@ -36,6 +36,15 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { addToQueue } from '@/utils/syncQueue';
 import { ProjectCategory } from '@/types/project';
 
+const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
+
+const getProjectDisplayName = (project: { project_number: string; project_name: string }): string => {
+  if (PTO_PROJECT_NUMBERS.includes(project.project_number)) {
+    return project.project_name;
+  }
+  return `${project.project_number} - ${project.project_name}`;
+};
+
 interface Project {
   id: string;
   project_number: string;
@@ -322,11 +331,12 @@ export const MobileTimeTracker: React.FC = () => {
       try {
         const parsed = JSON.parse(savedTimer);
         
-        // Sanitize: clear non-construction project if cached
-        const isNonConstructionProject = (category?: string) => 
-          category === 'system' || category === 'overhead';
+        // Sanitize: clear system projects if cached, but allow PTO overhead projects
+        const isSystemProject = (project: { category?: string; project_number?: string }) => 
+          project.category === 'system' || 
+          (project.category === 'overhead' && !PTO_PROJECT_NUMBERS.includes(project.project_number || ''));
         
-        if (parsed.project && isNonConstructionProject(parsed.project.category)) {
+        if (parsed.project && isSystemProject(parsed.project)) {
           parsed.project = null;
         }
         
@@ -361,15 +371,15 @@ export const MobileTimeTracker: React.FC = () => {
       .from('projects')
       .select('id, project_number, project_name, client_name, address, category')
       .in('status', ['approved', 'in_progress'])
-      .eq('category', 'construction')
+      .or('category.eq.construction,project_number.in.(006-SICK,007-VAC,008-HOL)')
         .order('project_number', { ascending: true })
         .limit(20);
 
       if (projectsError) throw projectsError;
       
-      // Defense-in-depth: filter any non-construction projects
+      // Defense-in-depth: filter to construction + PTO projects only
       const cleanedProjects = (projectsData || []).filter(
-        p => p.category === 'construction'
+        p => p.category === 'construction' || PTO_PROJECT_NUMBERS.includes(p.project_number)
       );
       setProjects(cleanedProjects);
 
@@ -1322,11 +1332,15 @@ export const MobileTimeTracker: React.FC = () => {
                 {selectedProject ? (
                   <div>
                     <div className="font-semibold text-foreground">
-                      {selectedProject.project_number} - {selectedProject.client_name}
+                      {getProjectDisplayName(selectedProject)}
                     </div>
-                    <div className="text-sm text-muted-foreground">{selectedProject.project_name}</div>
-                    {selectedProject.address && (
-                      <div className="text-sm text-muted-foreground">{selectedProject.address}</div>
+                    {!PTO_PROJECT_NUMBERS.includes(selectedProject.project_number) && (
+                      <>
+                        <div className="text-sm text-muted-foreground">{selectedProject.client_name}</div>
+                        {selectedProject.address && (
+                          <div className="text-sm text-muted-foreground">{selectedProject.address}</div>
+                        )}
+                      </>
                     )}
                   </div>
                 ) : (
@@ -1358,11 +1372,15 @@ export const MobileTimeTracker: React.FC = () => {
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold truncate">
-                              {project.project_number} - {project.client_name}
+                              {getProjectDisplayName(project)}
                             </div>
-                            <div className="text-sm text-muted-foreground truncate">{project.project_name}</div>
-                            {project.address && (
-                              <div className="text-sm text-muted-foreground truncate">{project.address}</div>
+                            {!PTO_PROJECT_NUMBERS.includes(project.project_number) && (
+                              <>
+                                <div className="text-sm text-muted-foreground truncate">{project.client_name}</div>
+                                {project.address && (
+                                  <div className="text-sm text-muted-foreground truncate">{project.address}</div>
+                                )}
+                              </>
                             )}
                           </div>
                           {selectedProject?.id === project.id && (

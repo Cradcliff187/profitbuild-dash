@@ -23,6 +23,15 @@ interface Project {
   number: string;
 }
 
+const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
+
+const getProjectDisplayName = (project: Project): string => {
+  if (PTO_PROJECT_NUMBERS.includes(project.number)) {
+    return project.name;
+  }
+  return `${project.number} - ${project.name}`;
+};
+
 interface TimeEntryFormProps {
   workerId: string;
   setWorkerId: (id: string) => void;
@@ -140,7 +149,7 @@ export const TimeEntryForm = ({
         .from('projects')
         .select('id, project_name, project_number, category')
         .in('status', ['approved', 'in_progress'])
-        .eq('category', 'construction')
+        .or('category.eq.construction,project_number.in.(006-SICK,007-VAC,008-HOL)')
         .order('project_number', { ascending: true }),
       supabase.auth.getUser(),
     ]);
@@ -299,7 +308,7 @@ export const TimeEntryForm = ({
           >
             {projectId ? (
               <div className="font-semibold text-foreground">
-                {projects.find(p => p.id === projectId)?.number} - {projects.find(p => p.id === projectId)?.name}
+                {projects.find(p => p.id === projectId) && getProjectDisplayName(projects.find(p => p.id === projectId)!)}
               </div>
             ) : (
               <div className="text-muted-foreground">Select project...</div>
@@ -326,7 +335,7 @@ export const TimeEntryForm = ({
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold truncate">
-                        {project.number} - {project.name}
+                        {getProjectDisplayName(project)}
                       </div>
                     </div>
                     {projectId === project.id && (
