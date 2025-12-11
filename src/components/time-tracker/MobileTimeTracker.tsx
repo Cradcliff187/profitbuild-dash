@@ -1232,133 +1232,149 @@ export const MobileTimeTracker: React.FC = () => {
           )}
 
           {/* Team Member Selection */}
-          <div className="bg-card rounded-xl shadow-sm p-4">
+          <div className="bg-card rounded-xl shadow-sm p-4 relative">
             <label className="block text-sm font-semibold text-foreground mb-2">
               <User className="w-4 h-4 inline mr-1" />
               Team Member
             </label>
-            <button
-              onClick={() => {
-                setShowProjectSelect(false);
-                setShowWorkerSelect(!showWorkerSelect);
-              }}
-              disabled={activeTimer !== null}
-              className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
-            >
-              {selectedTeamMember ? (
-                <div className="flex items-center justify-between">
-                  <div className="font-semibold text-foreground">{selectedTeamMember.payee_name}</div>
-                  {activeTimerPayeeIds.has(selectedTeamMember.id) && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">
-                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                      Active
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <div className="text-muted-foreground">Select team member...</div>
-              )}
-            </button>
-            
-            {showWorkerSelect && !activeTimer && (
-              <div className="mt-2 border rounded-lg bg-card shadow-md relative z-50 max-h-64 overflow-y-auto">
-                {teamMembers.map(member => (
-                  <button
-                    key={member.id}
-                    onClick={() => {
-                      setSelectedTeamMember(member);
-                      setShowWorkerSelect(false);
-                    }}
-                    className={cn(
-                      "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
-                      selectedTeamMember?.id === member.id
-                        ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
-                        : "hover:bg-muted"
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowProjectSelect(false);
+                  setShowWorkerSelect(!showWorkerSelect);
+                }}
+                disabled={activeTimer !== null}
+                className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+              >
+                {selectedTeamMember ? (
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold text-foreground">{selectedTeamMember.payee_name}</div>
+                    {activeTimerPayeeIds.has(selectedTeamMember.id) && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                        Active
+                      </span>
                     )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="font-semibold">{member.payee_name}</div>
-                      <div className="flex items-center gap-2">
-                        {activeTimerPayeeIds.has(member.id) && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">
-                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                            Active
-                          </span>
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground">Select team member...</div>
+                )}
+              </button>
+              
+              {showWorkerSelect && !activeTimer && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowWorkerSelect(false)}
+                  />
+                  <div className="absolute left-0 right-0 top-full mt-2 border rounded-lg bg-card shadow-lg z-50 max-h-64 overflow-y-auto">
+                    {teamMembers.map(member => (
+                      <button
+                        key={member.id}
+                        onClick={() => {
+                          setSelectedTeamMember(member);
+                          setShowWorkerSelect(false);
+                        }}
+                        className={cn(
+                          "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
+                          selectedTeamMember?.id === member.id
+                            ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
+                            : "hover:bg-muted"
                         )}
-                        {selectedTeamMember?.id === member.id && (
-                          <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="font-semibold">{member.payee_name}</div>
+                          <div className="flex items-center gap-2">
+                            {activeTimerPayeeIds.has(member.id) && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">
+                                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                                Active
+                              </span>
+                            )}
+                            {selectedTeamMember?.id === member.id && (
+                              <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Project Selection */}
-          <div className="bg-card rounded-xl shadow-sm p-4">
+          <div className="bg-card rounded-xl shadow-sm p-4 relative">
             <label className="block text-sm font-semibold text-foreground mb-2">
               <MapPin className="w-4 h-4 inline mr-1" />
               Project
             </label>
-            <button
-              onClick={() => {
-                setShowWorkerSelect(false);
-                setShowProjectSelect(!showProjectSelect);
-              }}
-              disabled={activeTimer !== null}
-              className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
-            >
-              {selectedProject ? (
-                <div>
-                  <div className="font-semibold text-foreground">
-                    {selectedProject.project_number} - {selectedProject.client_name}
-                  </div>
-                  <div className="text-sm text-muted-foreground">{selectedProject.project_name}</div>
-                  {selectedProject.address && (
-                    <div className="text-sm text-muted-foreground">{selectedProject.address}</div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-muted-foreground">Select project...</div>
-              )}
-            </button>
-            
-            {showProjectSelect && !activeTimer && (
-              <div className="mt-2 border rounded-lg bg-card shadow-md relative z-50 max-h-64 overflow-y-auto">
-                {projects.map(project => (
-                  <button
-                    key={project.id}
-                    onClick={() => {
-                      setSelectedProject(project);
-                      setShowProjectSelect(false);
-                    }}
-                    className={cn(
-                      "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
-                      selectedProject?.id === project.id
-                        ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
-                        : "hover:bg-muted"
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold truncate">
-                          {project.project_number} - {project.client_name}
-                        </div>
-                        <div className="text-sm text-muted-foreground truncate">{project.project_name}</div>
-                        {project.address && (
-                          <div className="text-sm text-muted-foreground truncate">{project.address}</div>
-                        )}
-                      </div>
-                      {selectedProject?.id === project.id && (
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                      )}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowWorkerSelect(false);
+                  setShowProjectSelect(!showProjectSelect);
+                }}
+                disabled={activeTimer !== null}
+                className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+              >
+                {selectedProject ? (
+                  <div>
+                    <div className="font-semibold text-foreground">
+                      {selectedProject.project_number} - {selectedProject.client_name}
                     </div>
-                  </button>
-                ))}
-              </div>
-            )}
+                    <div className="text-sm text-muted-foreground">{selectedProject.project_name}</div>
+                    {selectedProject.address && (
+                      <div className="text-sm text-muted-foreground">{selectedProject.address}</div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground">Select project...</div>
+                )}
+              </button>
+              
+              {showProjectSelect && !activeTimer && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowProjectSelect(false)}
+                  />
+                  <div className="absolute left-0 right-0 top-full mt-2 border rounded-lg bg-card shadow-lg z-50 max-h-64 overflow-y-auto">
+                    {projects.map(project => (
+                      <button
+                        key={project.id}
+                        onClick={() => {
+                          setSelectedProject(project);
+                          setShowProjectSelect(false);
+                        }}
+                        className={cn(
+                          "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
+                          selectedProject?.id === project.id
+                            ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold truncate">
+                              {project.project_number} - {project.client_name}
+                            </div>
+                            <div className="text-sm text-muted-foreground truncate">{project.project_name}</div>
+                            {project.address && (
+                              <div className="text-sm text-muted-foreground truncate">{project.address}</div>
+                            )}
+                          </div>
+                          {selectedProject?.id === project.id && (
+                            <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Clock In/Out Button */}
