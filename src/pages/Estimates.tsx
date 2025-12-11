@@ -491,7 +491,7 @@ const EstimatesPage = () => {
   }
 
   return (
-    <div className="w-full overflow-x-hidden space-y-4">
+    <div className="space-y-3">
       <PageHeader
         icon={Calculator}
         title="Estimates"
@@ -503,7 +503,7 @@ const EstimatesPage = () => {
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
-              <Button onClick={handleCreateNew} size="sm">
+              <Button onClick={handleCreateNew} size="sm" className="hidden sm:flex">
                 <Plus className="h-4 w-4 mr-2" />
                 {getCreateButtonText()}
               </Button>
@@ -513,7 +513,7 @@ const EstimatesPage = () => {
       />
 
       {viewMode === "list" ? (
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="w-full sm:w-auto">
               <div className="sm:hidden">
@@ -555,7 +555,7 @@ const EstimatesPage = () => {
             </div>
           </div>
 
-          <TabsContent value="estimates" className="space-y-4">
+          <TabsContent value="estimates" className="space-y-3">
             <EstimateSearchFilters
               filters={searchFilters}
               onFiltersChange={setSearchFilters}
