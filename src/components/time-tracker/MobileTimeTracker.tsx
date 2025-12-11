@@ -1104,7 +1104,7 @@ export const MobileTimeTracker: React.FC = () => {
   )}
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-20 w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50/50 pb-20 w-full max-w-[100vw] overflow-x-hidden">
       {/* Sync Status Banner */}
       <SyncStatusBanner />
 

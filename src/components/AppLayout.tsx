@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { SidebarProvider, SidebarInset, useSidebar } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -183,7 +184,10 @@ export default function AppLayout() {
           )}
           
           {/* Main content area - pages render here */}
-          <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+          <main className={cn(
+            "flex-1 overflow-auto",
+            location.pathname === '/time-tracker' ? '' : 'p-4 sm:p-6 lg:p-8'
+          )}>
             <Outlet />
           </main>
         </SidebarInset>
