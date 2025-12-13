@@ -24,8 +24,10 @@ export const TimeEntryDialog = ({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
         className={cn(
-          "w-full sm:max-w-[500px] flex flex-col p-0",
-          isMobile && "max-h-[92vh]"
+          "flex flex-col p-0",
+          isMobile 
+            ? "w-[92%] max-h-[92vh] rounded-t-2xl left-1/2 -translate-x-1/2 right-auto" 
+            : "w-full sm:max-w-[500px]"
         )}
         side={isMobile ? "bottom" : "right"}
       >

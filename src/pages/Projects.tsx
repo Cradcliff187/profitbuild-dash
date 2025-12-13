@@ -372,7 +372,7 @@ const Projects = () => {
   }, [projects, filters]);
 
   return (
-    <MobilePageWrapper noPadding className="space-y-3">
+    <MobilePageWrapper>
       <PageHeader
         icon={Building2}
         title="Projects"
@@ -389,7 +389,7 @@ const Projects = () => {
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
-              <Button onClick={handleCreateNew} size="sm">
+              <Button onClick={handleCreateNew} size="sm" className="hidden sm:flex">
                 <Plus className="h-4 w-4 mr-2" />
                 New Project
               </Button>
@@ -404,7 +404,7 @@ const Projects = () => {
           {isLoading ? (
             <BrandedLoader message="Loading projects..." />
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2 mt-4">
               {/* Project Filters */}
               <ProjectFilters
                 filters={filters}

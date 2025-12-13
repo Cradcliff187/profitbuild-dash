@@ -85,48 +85,6 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
       defaultExpanded={hasActiveFilters()}
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-        {/* Date Range */}
-        <div className="flex gap-2 md:col-span-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 flex-1 justify-start text-xs">
-                <Calendar className="h-3 w-3 mr-1" />
-                {filters.dateFrom ? format(new Date(filters.dateFrom), "MMM dd") : "Start"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <DatePicker
-                mode="single"
-                selected={filters.dateFrom ? new Date(filters.dateFrom) : undefined}
-                onSelect={(date) => updateFilters({ 
-                  dateFrom: date ? format(date, 'yyyy-MM-dd') : null
-                })}
-                initialFocus
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 flex-1 justify-start text-xs">
-                <Calendar className="h-3 w-3 mr-1" />
-                {filters.dateTo ? format(new Date(filters.dateTo), "MMM dd") : "End"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <DatePicker
-                mode="single"
-                selected={filters.dateTo ? new Date(filters.dateTo) : undefined}
-                onSelect={(date) => updateFilters({ 
-                  dateTo: date ? format(date, 'yyyy-MM-dd') : null
-                })}
-                initialFocus
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
         {/* Status Multi-Select Dropdown */}
         <Popover>
           <PopoverTrigger asChild>
@@ -316,6 +274,48 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
             </Command>
           </PopoverContent>
         </Popover>
+
+        {/* Date Range */}
+        <div className="flex flex-col sm:flex-row gap-2 md:col-span-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 flex-1 justify-start text-xs">
+                <Calendar className="h-3 w-3 mr-1" />
+                {filters.dateFrom ? format(new Date(filters.dateFrom), "MMM dd") : "Start"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <DatePicker
+                mode="single"
+                selected={filters.dateFrom ? new Date(filters.dateFrom) : undefined}
+                onSelect={(date) => updateFilters({ 
+                  dateFrom: date ? format(date, 'yyyy-MM-dd') : null
+                })}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 flex-1 justify-start text-xs">
+                <Calendar className="h-3 w-3 mr-1" />
+                {filters.dateTo ? format(new Date(filters.dateTo), "MMM dd") : "End"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <DatePicker
+                mode="single"
+                selected={filters.dateTo ? new Date(filters.dateTo) : undefined}
+                onSelect={(date) => updateFilters({ 
+                  dateTo: date ? format(date, 'yyyy-MM-dd') : null
+                })}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
     </CollapsibleFilterSection>
   );

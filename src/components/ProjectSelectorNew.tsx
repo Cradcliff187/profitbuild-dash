@@ -145,7 +145,11 @@ export const ProjectSelectorNew = ({
             </CommandEmpty>
             <CommandList>
               <CommandGroup>
-                {projects.map((project) => (
+                {[...projects].sort((a, b) => {
+                  // Sort by project_number descending (highest to lowest)
+                  // Compare as strings for alphanumeric project numbers
+                  return b.project_number.localeCompare(a.project_number, undefined, { numeric: true, sensitivity: 'base' });
+                }).map((project) => (
                   <CommandItem
                     key={project.id}
                     value={`${project.project_name} ${project.project_number}`}
@@ -163,7 +167,7 @@ export const ProjectSelectorNew = ({
                     <div className="flex flex-col">
                       <span className="font-medium">{project.project_name}</span>
                       <span className="text-sm text-muted-foreground">
-                        {project.project_number} • {project.client_name}
+                        {project.client_name}
                       </span>
                     </div>
                   </CommandItem>

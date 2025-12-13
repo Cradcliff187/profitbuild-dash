@@ -703,7 +703,7 @@ const Quotes = () => {
   }
 
   return (
-    <MobilePageWrapper noPadding className="space-y-3">
+    <MobilePageWrapper>
       <PageHeader
         icon={FileText}
         title={view === 'list' ? 'Quotes' : 
@@ -739,7 +739,7 @@ const Quotes = () => {
 
       {/* Content */}
       {view === 'list' && (
-        <>
+        <div className="mt-4">
           <QuoteFilters
             filters={searchFilters}
             onFiltersChange={setSearchFilters}
@@ -758,7 +758,7 @@ const Quotes = () => {
             onCreateNew={() => setView('create')}
             onRefresh={fetchData}
           />
-        </>
+        </div>
       )}
 
       {view === 'create' && (

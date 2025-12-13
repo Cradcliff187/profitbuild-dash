@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Save, Plus, Trash2, Calculator, FolderOpen, ArrowLeft, Copy } from "lucide-react";
+import { Save, Plus, Trash2, Calculator, FolderOpen, ArrowLeft, Copy, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RequiredLabel } from "@/components/ui/required-label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -26,6 +27,14 @@ import { LineItemDetailModal } from "@/components/LineItemDetailModal";
 import { EstimateStatusActions } from "@/components/EstimateStatusActions";
 import { getRecommendedUnitCodes } from "@/utils/units";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
+import { PageHeader } from "@/components/ui/page-header";
+import { getCategoryDotClasses } from "@/utils/categoryColors";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 
 
 
@@ -410,6 +419,31 @@ useEffect(() => {
     const total = calculateTotal();
     if (total === 0) return 0;
     return (calculateGrossProfit() / total) * 100;
+  };
+
+  // Helper functions for mobile line item cards
+  const getCategoryAbbrev = (category: LineItemCategory): string => {
+    switch (category) {
+      case LineItemCategory.LABOR: return 'Labor';
+      case LineItemCategory.SUBCONTRACTOR: return 'Sub';
+      case LineItemCategory.MATERIALS: return 'Mat';
+      case LineItemCategory.EQUIPMENT: return 'Equip';
+      case LineItemCategory.PERMITS: return 'Permit';
+      case LineItemCategory.MANAGEMENT: return 'Mgmt';
+      case LineItemCategory.OTHER: return 'Other';
+      default: return 'Other';
+    }
+  };
+
+  const calculateMarkupPercent = (lineItem: LineItem): number => {
+    const { costPerUnit, pricePerUnit } = lineItem;
+    if (costPerUnit <= 0) return 0;
+    return ((pricePerUnit - costPerUnit) / costPerUnit) * 100;
+  };
+
+  const calculateMarkupAmount = (lineItem: LineItem): number => {
+    const totalCost = lineItem.quantity * lineItem.costPerUnit;
+    return lineItem.total - totalCost;
   };
 
   const calculateContingencyAmount = () => {
@@ -930,6 +964,17 @@ useEffect(() => {
 
   // If still loading projects, show loading state
   if (projectsLoading && !preselectedProjectId && !initialEstimate) {
+    if (isMobile) {
+      return (
+        <MobilePageWrapper>
+          <Card>
+            <CardContent className="py-6">
+              <div className="text-center">Loading projects...</div>
+            </CardContent>
+          </Card>
+        </MobilePageWrapper>
+      );
+    }
     return (
       <div className="form-dense space-y-2">
         <Card>
@@ -941,6 +986,573 @@ useEffect(() => {
     );
   }
 
+  // Mobile-optimized layout
+  if (isMobile) {
+    const readOnly = mode === 'view';
+    
+    return (
+      <MobilePageWrapper className="space-y-3">
+        <PageHeader
+          icon={Calculator}
+          title={mode === 'view' ? 'View Estimate' : initialEstimate ? 'Edit Estimate' : 'Create Estimate'}
+          description={projectName ? `${projectName} • ${clientName}` : 'Create a new project estimate'}
+          actions={
+            !hideNavigationButtons && (initialEstimate || (preselectedProjectId && availableEstimates && availableEstimates.length > 0)) ? (
+              <Button variant="ghost" size="sm" onClick={onCancel}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            ) : undefined
+          }
+        />
+
+        <div className="space-y-3">
+          {/* Project Selection - Show if no project is preselected and not in view mode */}
+          {!preselectedProjectId && !initialEstimate && mode !== 'view' && (
+            <Card>
+              <CardHeader className="p-3 pb-2">
+                <CardTitle className="text-sm font-semibold">Project</CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0 space-y-2">
+                {projectsLoading ? (
+                  <div className="flex items-center justify-center py-4 border rounded-md">
+                    <div className="text-sm text-muted-foreground">Loading projects...</div>
+                  </div>
+                ) : (
+                  <>
+                    <ProjectSelectorNew
+                      projects={availableProjects}
+                      selectedProject={selectedProject}
+                      onSelect={handleProjectSelect}
+                      placeholder="Select existing project..."
+                      hideCreateButton={true}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowProjectCreation(true)}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create New Project
+                    </Button>
+                  </>
+                )}
+                {!projectId && (
+                  <p className="text-xs text-muted-foreground">Please select a project to continue</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Copy Estimate Option */}
+          {!initialEstimate && mode === 'create' && projectId && availableEstimates.length > 0 && (
+            <Card>
+              <CardHeader className="p-3 pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Copy className="h-4 w-4" />
+                  Copy from Existing Estimate
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input 
+                    type="radio" 
+                    id="start-fresh-mobile" 
+                    name="copy-option-mobile"
+                    checked={!copyFromEstimate}
+                    onChange={() => {
+                      setCopyFromEstimate(null);
+                      setLineItems([createNewLineItem()]);
+                      setContingencyPercent(10.0);
+                      setNotes('');
+                    }}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="start-fresh-mobile" className="text-sm font-normal cursor-pointer">
+                    Start from scratch
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input 
+                    type="radio" 
+                    id="copy-estimate-mobile" 
+                    name="copy-option-mobile"
+                    checked={!!copyFromEstimate}
+                    onChange={() => {
+                      const firstEstimate = availableEstimates[0];
+                      if (firstEstimate) {
+                        handleCopyFromChange(firstEstimate.id);
+                      }
+                    }}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="copy-estimate-mobile" className="text-sm font-normal cursor-pointer">
+                    Copy from existing estimate
+                  </Label>
+                </div>
+                {copyFromEstimate && (
+                  <Select value={copyFromEstimate} onValueChange={handleCopyFromChange}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Select estimate to copy..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableEstimates
+                        .filter(est => est.project_id === projectId)
+                        .sort((a, b) => b.version_number - a.version_number)
+                        .map(est => (
+                          <SelectItem key={est.id} value={est.id}>
+                            {est.estimate_number} - v{est.version_number} ({formatCurrency(est.total_amount)})
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Estimate Details */}
+          <Card>
+            <CardHeader className="p-3 pb-2">
+              <CardTitle className="text-sm font-semibold">Estimate Details</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 space-y-3">
+              <div className="space-y-2">
+                {mode === 'view' ? (
+                  <ReadOnlyField
+                    label="Estimate Date"
+                    value={format(date, "PPP")}
+                  />
+                ) : (
+                  <>
+                    <RequiredLabel className="text-xs">Estimate Date</RequiredLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal h-9",
+                            !date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {date ? format(date, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={date}
+                          onSelect={(date) => date && setDate(date)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                {mode === 'view' ? (
+                  <ReadOnlyField
+                    label="Valid Until"
+                    value={validUntil ? format(validUntil, "PPP") : "Not specified"}
+                  />
+                ) : (
+                  <>
+                    <Label className="text-xs">Valid Until (Optional)</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal h-9",
+                            !validUntil && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {validUntil ? format(validUntil, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={validUntil}
+                          onSelect={setValidUntil}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </>
+                )}
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                {mode === 'view' ? (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium">Notes</Label>
+                    <div className="px-3 py-2 bg-muted/30 border rounded-md min-h-[60px]">
+                      <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">
+                        {notes || "No notes provided"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Label htmlFor="notes-mobile" className="text-xs">Notes (Optional)</Label>
+                    <Textarea
+                      id="notes-mobile"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Additional notes for this estimate..."
+                      rows={3}
+                      className="resize-none text-sm"
+                    />
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Line Items Section - Mobile Card View */}
+          <Card>
+            <CardHeader className="p-3 pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold">Line Items</CardTitle>
+                {mode !== 'view' && (
+                  <Button onClick={addLineItem} variant="default" size="sm" className="h-8">
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />
+                    Add
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+              {lineItems.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground text-sm">
+                  <p>No line items yet. Click "Add" to get started.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {lineItems.map((lineItem, index) => (
+                    <Card key={lineItem.id} className="border">
+                      <CardContent className="p-3 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${getCategoryDotClasses(lineItem.category)}`} />
+                            {readOnly ? (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                                {getCategoryAbbrev(lineItem.category)}
+                              </Badge>
+                            ) : (
+                              <Select
+                                value={lineItem.category}
+                                onValueChange={(value) => updateLineItem(lineItem.id, 'category', value)}
+                              >
+                                <SelectTrigger className="h-6 border-0 bg-transparent p-0 hover:bg-muted/50 w-auto">
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 cursor-pointer">
+                                    {getCategoryAbbrev(lineItem.category)}
+                                  </Badge>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Object.entries(CATEGORY_DISPLAY_MAP).map(([key, label]) => (
+                                    <SelectItem key={key} value={key} className="text-xs">
+                                      {label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                            <span className="text-xs text-muted-foreground">#{index + 1}</span>
+                          </div>
+                          {!readOnly && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                  <MoreHorizontal className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-36">
+                                <DropdownMenuItem onClick={() => {
+                                  setSelectedLineItemForEdit(lineItem);
+                                  setIsDetailModalOpen(true);
+                                }} className="text-xs">
+                                  <Edit className="h-3 w-3 mr-2" />
+                                  Edit Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => duplicateLineItem(lineItem)} className="text-xs">
+                                  <Copy className="h-3 w-3 mr-2" />
+                                  Duplicate
+                                </DropdownMenuItem>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-xs text-destructive">
+                                      <Trash2 className="h-3 w-3 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Line Item</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete "{lineItem.description}"? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => removeLineItem(lineItem.id)}>
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+
+                        {readOnly ? (
+                          <div className="text-sm font-medium">{lineItem.description}</div>
+                        ) : (
+                          <Input
+                            value={lineItem.description}
+                            onChange={(e) => updateLineItem(lineItem.id, 'description', e.target.value)}
+                            placeholder="Description"
+                            className="h-8 text-sm"
+                          />
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Quantity</Label>
+                            {readOnly ? (
+                              <div className="text-sm font-mono">{lineItem.quantity} {lineItem.unit || ''}</div>
+                            ) : (
+                              <div className="flex gap-1">
+                                <Input
+                                  type="number"
+                                  value={lineItem.quantity}
+                                  onChange={(e) => updateLineItem(lineItem.id, 'quantity', parseFloat(e.target.value) || 0)}
+                                  className="h-8 text-sm font-mono flex-1"
+                                />
+                                <Select 
+                                  value={lineItem.unit || 'none'} 
+                                  onValueChange={(value) => updateLineItem(lineItem.id, 'unit', value === 'none' ? null : value)}
+                                >
+                                  <SelectTrigger className="h-8 w-16 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">-</SelectItem>
+                                    <SelectItem value="EA">ea</SelectItem>
+                                    <SelectItem value="SF">sf</SelectItem>
+                                    <SelectItem value="LF">lf</SelectItem>
+                                    <SelectItem value="CY">cy</SelectItem>
+                                    <SelectItem value="HR">hr</SelectItem>
+                                    <SelectItem value="GAL">gal</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Total</Label>
+                            <div className="text-sm font-semibold font-mono">{formatCurrency(lineItem.total)}</div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Cost/Unit</Label>
+                            {readOnly ? (
+                              <div className="text-xs font-mono">{formatCurrency(lineItem.costPerUnit)}</div>
+                            ) : (
+                              <Input
+                                type="number"
+                                value={lineItem.costPerUnit}
+                                onChange={(e) => updateLineItem(lineItem.id, 'costPerUnit', parseFloat(e.target.value) || 0)}
+                                className="h-8 text-xs font-mono"
+                                placeholder="0.00"
+                              />
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Price/Unit</Label>
+                            {readOnly ? (
+                              <div className="text-xs font-mono">{formatCurrency(lineItem.pricePerUnit)}</div>
+                            ) : (
+                              <Input
+                                type="number"
+                                value={lineItem.pricePerUnit}
+                                onChange={(e) => updateLineItem(lineItem.id, 'pricePerUnit', parseFloat(e.target.value) || 0)}
+                                className="h-8 text-xs font-mono"
+                                placeholder="0.00"
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Markup %</Label>
+                            <div className={cn(
+                              "text-xs font-mono",
+                              calculateMarkupPercent(lineItem) < 0 ? "text-destructive" :
+                              calculateMarkupPercent(lineItem) < 25 ? "text-warning" : "text-success"
+                            )}>
+                              {calculateMarkupPercent(lineItem).toFixed(1)}%
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Markup $</Label>
+                            <div className="text-xs font-mono">{formatCurrency(calculateMarkupAmount(lineItem))}</div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Estimate Summary Section - Mobile Optimized */}
+          <Card>
+            <CardHeader className="p-3 pb-2">
+              <CardTitle className="text-sm font-semibold">Estimate Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Subtotal</div>
+                  <div className="text-base font-bold font-mono">{formatCurrency(calculateTotal())}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Total Cost</div>
+                  <div className="text-base font-bold font-mono">{formatCurrency(calculateTotalCost())}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Gross Profit</div>
+                  <div className={cn(
+                    "text-base font-bold font-mono",
+                    calculateGrossProfit() < 0 ? "text-destructive" : "text-success"
+                  )}>
+                    {formatCurrency(calculateGrossProfit())}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Gross Margin</div>
+                  <div className={cn(
+                    "text-base font-bold font-mono",
+                    calculateGrossMarginPercent() < 0 ? "text-destructive" :
+                    calculateGrossMarginPercent() < 20 ? "text-warning" : "text-success"
+                  )}>
+                    {calculateGrossMarginPercent().toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">Contingency</div>
+                    <div className="text-sm font-semibold font-mono">{formatCurrency(calculateContingencyAmount())}</div>
+                  </div>
+                  {mode !== 'view' && (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="100"
+                        value={contingencyPercent}
+                        onChange={(e) => setContingencyPercent(parseFloat(e.target.value) || 0)}
+                        className="w-16 h-8 text-xs font-mono text-right"
+                      />
+                      <span className="text-xs text-muted-foreground">%</span>
+                    </div>
+                  )}
+                </div>
+                <div className="pt-2 border-t">
+                  <div className="text-xs text-muted-foreground mb-1">Total with Contingency</div>
+                  <div className="text-lg font-bold font-mono text-success">
+                    {formatCurrency(calculateTotal() + calculateContingencyAmount())}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Actions */}
+          <div className="space-y-2 pb-4">
+            {mode !== 'view' && (
+              <Button onClick={handleSave} className="w-full" disabled={isLoading} size="lg">
+                <Save className="h-4 w-4 mr-2" />
+                {isLoading ? "Saving..." : (initialEstimate ? "Update Estimate" : "Create Estimate")}
+              </Button>
+            )}
+            {!(hideNavigationButtons && mode === 'view') && (
+              <Button onClick={onCancel} variant="outline" disabled={isLoading} className="w-full" size="lg">
+                {mode === 'view' ? 'Close' : 'Cancel'}
+              </Button>
+            )}
+
+            {/* Status Actions */}
+            {!hideNavigationButtons && initialEstimate && (
+              <div className="pt-2">
+                <EstimateStatusActions
+                  estimateId={initialEstimate.id}
+                  currentStatus={status}
+                  onStatusUpdate={(newStatus) => setStatus(newStatus)}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Line Item Detail Modal */}
+        <LineItemDetailModal
+          lineItem={selectedLineItemForEdit}
+          isOpen={isDetailModalOpen}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setSelectedLineItemForEdit(null);
+          }}
+          onSave={(updatedLineItem) => {
+            setLineItems(prev => prev.map(item => 
+              item.id === updatedLineItem.id ? updatedLineItem : item
+            ));
+          }}
+        />
+
+        {/* Project Creation Sheet */}
+        <Sheet open={showProjectCreation} onOpenChange={setShowProjectCreation}>
+          <SheetContent side="bottom" className="h-[90vh] p-4 z-[80] overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Create New Project</SheetTitle>
+              <SheetDescription>
+                Quickly create a project for this estimate.
+              </SheetDescription>
+            </SheetHeader>
+            <ProjectFormSimple
+              disableNavigate={true}
+              defaultProjectType={preselectedProjectType}
+              onSave={(project) => {
+                handleCreateNewProject(project);
+                setShowProjectCreation(false);
+              }}
+              onCancel={() => setShowProjectCreation(false)}
+            />
+          </SheetContent>
+        </Sheet>
+      </MobilePageWrapper>
+    );
+  }
+
+  // Desktop layout (existing)
   return (
     <div className="form-dense space-y-2">
       <Card>
@@ -1249,7 +1861,7 @@ useEffect(() => {
             <h3 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Estimate Summary</h3>
             
             {/* Calculated Totals */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 mb-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 mb-3 items-stretch">
               <CalculatedField
                 label="Subtotal"
                 value={calculateTotal()}

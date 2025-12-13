@@ -5,7 +5,7 @@ import { UserCheck } from "lucide-react";
 
 const Clients = () => {
   return (
-    <MobilePageWrapper noPadding className="space-y-4">
+    <MobilePageWrapper className="space-y-4">
       <PageHeader
         icon={UserCheck}
         title="Clients"

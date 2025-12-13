@@ -272,7 +272,7 @@ const ReportsPage = () => {
   ];
 
   return (
-    <MobilePageWrapper noPadding className="flex flex-col h-full">
+    <MobilePageWrapper className="flex flex-col h-full">
       <PageHeader
         icon={BarChart3}
         title="Reports"

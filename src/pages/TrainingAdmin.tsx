@@ -37,7 +37,6 @@ import {
   Link as LinkIcon,
   Calendar,
   Loader2,
-  ChevronDown,
   GraduationCap,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
@@ -53,7 +52,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { TrainingContent, TrainingStatus, TrainingContentType, AppRole } from '@/types/training';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -100,7 +98,6 @@ export default function TrainingAdmin() {
   const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contentToDelete, setContentToDelete] = useState<TrainingContent | null>(null);
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [userSearchQuery, setUserSearchQuery] = useState('');
@@ -323,17 +320,6 @@ export default function TrainingAdmin() {
     }
   };
 
-  const toggleCard = (contentId: string) => {
-    setExpandedCards(prev => {
-      const next = new Set(prev);
-      if (next.has(contentId)) {
-        next.delete(contentId);
-      } else {
-        next.add(contentId);
-      }
-      return next;
-    });
-  };
 
   const toggleUserSelection = (userId: string) => {
     setSelectedUserIds(prev => {
@@ -430,7 +416,7 @@ export default function TrainingAdmin() {
   }
 
   return (
-    <MobilePageWrapper noPadding className="space-y-3">
+    <MobilePageWrapper>
       <PageHeader
         icon={GraduationCap}
         title="Training Admin"
@@ -444,42 +430,43 @@ export default function TrainingAdmin() {
       />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 mb-4">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="text-xs text-muted-foreground mb-1">Total</div>
             <div className="text-2xl font-bold">{stats.total}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="text-xs text-muted-foreground mb-1">Published</div>
             <div className="text-2xl font-bold text-green-600">{stats.published}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="text-xs text-muted-foreground mb-1">Draft</div>
             <div className="text-2xl font-bold text-yellow-600">{stats.draft}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="text-xs text-muted-foreground mb-1">Archived</div>
             <div className="text-2xl font-bold text-gray-600">{stats.archived}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
-      <div className="mb-3 flex items-center gap-1.5 sm:gap-2 flex-wrap">
-        <div className="relative flex-1 max-w-md">
+      {/* Filters - Mobile: Stacked, Desktop: Side-by-side */}
+      <div className="mb-4 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
+        {/* Search - Full width on mobile */}
+        <div className="relative flex-1 w-full sm:max-w-md">
           <Input
             type="text"
             placeholder="Search by title or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-8 pl-3 pr-8 text-xs"
+            className="h-11 sm:h-9 pl-3 pr-8 text-sm sm:text-xs rounded-xl sm:rounded-md"
           />
           {searchQuery && (
             <Button
@@ -493,24 +480,25 @@ export default function TrainingAdmin() {
           )}
         </div>
         
+        {/* Status Filter - Full width on mobile */}
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-          <SelectTrigger className="h-8 w-[140px] text-xs">
+          <SelectTrigger className="h-11 sm:h-9 w-full sm:w-[140px] text-sm sm:text-xs rounded-xl sm:rounded-md">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" className="text-xs">All Status</SelectItem>
-            <SelectItem value="published" className="text-xs">Published</SelectItem>
-            <SelectItem value="draft" className="text-xs">Draft</SelectItem>
-            <SelectItem value="archived" className="text-xs">Archived</SelectItem>
+            <SelectItem value="all" className="text-sm sm:text-xs">All Status</SelectItem>
+            <SelectItem value="published" className="text-sm sm:text-xs">Published</SelectItem>
+            <SelectItem value="draft" className="text-sm sm:text-xs">Draft</SelectItem>
+            <SelectItem value="archived" className="text-sm sm:text-xs">Archived</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Content Table/Cards */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <BookOpen className="h-4 w-4" />
+        <CardHeader className="p-3 pb-2">
+          <CardTitle className="flex items-center gap-1.5 text-sm font-semibold">
+            <BookOpen className="h-3.5 w-3.5" />
             Training Content
             <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal">
               {filteredContent.length} {filteredContent.length === 1 ? 'item' : 'items'}
@@ -519,9 +507,9 @@ export default function TrainingAdmin() {
         </CardHeader>
         <CardContent className="p-0">
           {filteredContent.length === 0 ? (
-            <div className="px-3 py-8 text-center">
+            <div className="px-2 py-8 text-center">
               <BookOpen className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
-              <p className="text-sm font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-muted-foreground">
                 {searchQuery ? 'No content found' : 'No training content yet'}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -530,23 +518,30 @@ export default function TrainingAdmin() {
             </div>
           ) : (
             <>
-              {/* Mobile Card View */}
+              {/* Mobile Card View - Simple flat cards matching My Training pattern */}
               {isMobile ? (
-                <div className="space-y-3 p-3">
+                <div className="space-y-2 p-2">
                   {filteredContent.map((item) => {
-                    const isExpanded = expandedCards.has(item.id);
                     const TypeIcon = getContentTypeIcon(item.content_type);
                     const assignmentCount = getAssignmentCount(item.id);
                     
                     return (
-                      <Card key={item.id}>
-                        <Collapsible open={isExpanded} onOpenChange={() => toggleCard(item.id)}>
-                          <CardHeader className="p-3 bg-gradient-to-r from-primary/5 to-transparent">
-                            <div className="flex items-start justify-between gap-3">
+                      <Card key={item.id} className="hover:bg-muted/50 transition-colors">
+                        <CardContent className="p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <div className="mt-0.5 shrink-0">
+                                <TypeIcon className="h-4 w-4 text-primary" />
+                              </div>
                               <div className="flex-1 min-w-0">
-                                <CardTitle className="text-sm font-medium truncate mb-1">
+                                <h3 className="text-sm font-medium mb-1.5 break-words">
                                   {item.title}
-                                </CardTitle>
+                                </h3>
+                                {item.description && (
+                                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                                    {item.description}
+                                  </p>
+                                )}
                                 <div className="flex flex-wrap items-center gap-1.5">
                                   <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
                                     <TypeIcon className="h-3 w-3 mr-1" />
@@ -565,78 +560,53 @@ export default function TrainingAdmin() {
                                   )}
                                 </div>
                               </div>
-                              <ChevronDown className={`h-4 w-4 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
                             </div>
-                          </CardHeader>
-
-                          <CollapsibleTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-between px-3 py-2 h-auto hover:bg-muted/50 border-t"
-                            >
-                              <span className="text-xs text-muted-foreground">
-                                {item.description || 'No description'}
-                              </span>
-                            </Button>
-                          </CollapsibleTrigger>
-
-                          <CollapsibleContent>
-                            <CardContent className="p-3 space-y-3 pt-2">
-                              {item.description && (
-                                <div>
-                                  <div className="text-xs font-medium text-muted-foreground mb-1">Description</div>
-                                  <p className="text-xs">{item.description}</p>
-                                </div>
-                              )}
-                              
-                              <div className="flex gap-2 pt-2 border-t">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 flex-1 text-xs"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleAssign(item.id);
-                                  }}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-11 w-11 p-0 shrink-0 min-h-[44px]"
+                                  onClick={(e) => e.stopPropagation()}
                                 >
-                                  <Users className="h-3 w-3 mr-1" />
-                                  Assign
+                                  <MoreVertical className="h-4 w-4" />
                                 </Button>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm" className="h-8 w-8 p-0 shrink-0">
-                                      <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-48">
-                                    <DropdownMenuItem 
-                                      onClick={() => handleEdit(item)}
-                                      className="text-xs"
-                                    >
-                                      <Edit className="h-3 w-3 mr-2" />
-                                      Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => handleStatusChange(item.id, item.status)}
-                                      className="text-xs"
-                                    >
-                                      {item.status === 'draft' ? 'Publish' : item.status === 'published' ? 'Archive' : 'Publish'}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => handleDelete(item)}
-                                      className="text-xs text-destructive focus:text-destructive"
-                                    >
-                                      <Trash2 className="h-3 w-3 mr-2" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </CardContent>
-                          </CollapsibleContent>
-                        </Collapsible>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem 
+                                  onClick={() => handleAssign(item.id)}
+                                  className="text-xs"
+                                >
+                                  <Users className="h-3 w-3 mr-2" />
+                                  Assign
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleEdit(item)}
+                                  className="text-xs"
+                                >
+                                  <Edit className="h-3 w-3 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleStatusChange(item.id, item.status)}
+                                  className="text-xs"
+                                >
+                                  {item.status === 'draft' ? 'Publish' : item.status === 'published' ? 'Archive' : 'Publish'}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleDelete(item)}
+                                  className="text-xs text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="h-3 w-3 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </CardContent>
                       </Card>
                     );
                   })}
@@ -665,7 +635,7 @@ export default function TrainingAdmin() {
                               <div className="flex flex-col">
                                 <span className="font-medium text-sm">{item.title}</span>
                                 {item.description && (
-                                  <span className="text-xs text-muted-foreground truncate max-w-md">
+                                  <span className="text-xs text-muted-foreground line-clamp-2">
                                     {item.description}
                                   </span>
                                 )}
@@ -766,7 +736,7 @@ export default function TrainingAdmin() {
               <Input
                 id="title"
                 {...form.register('title')}
-                className="h-9"
+                className="h-11 sm:h-9"
               />
               {form.formState.errors.title && (
                 <p className="text-xs text-destructive">{form.formState.errors.title.message}</p>
@@ -798,7 +768,7 @@ export default function TrainingAdmin() {
                   }
                 }}
               >
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-11 sm:h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -818,7 +788,7 @@ export default function TrainingAdmin() {
                   id="content_url"
                   {...form.register('content_url')}
                   placeholder="https://..."
-                  className="h-9"
+                  className="h-11 sm:h-9"
                 />
               </div>
             )}
@@ -894,7 +864,7 @@ export default function TrainingAdmin() {
                         e.target.value = '';
                       }}
                       disabled={isUploading}
-                      className="flex-1"
+                      className="flex-1 h-11 sm:h-9 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                     />
                     {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
                   </div>
@@ -917,7 +887,7 @@ export default function TrainingAdmin() {
                 id="duration_minutes"
                 type="number"
                 {...form.register('duration_minutes', { valueAsNumber: true })}
-                className="h-9"
+                className="h-11 sm:h-9"
               />
             </div>
 
@@ -963,7 +933,7 @@ export default function TrainingAdmin() {
                 value={form.watch('status')}
                 onValueChange={(value) => form.setValue('status', value as TrainingStatus)}
               >
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-11 sm:h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -975,10 +945,10 @@ export default function TrainingAdmin() {
             </div>
 
             <div className="flex gap-2 pt-4">
-              <Button type="submit" className="flex-1">
+              <Button type="submit" className="flex-1 min-h-[44px] sm:min-h-0">
                 {editContent ? 'Update' : 'Create'}
               </Button>
-              <Button type="button" variant="outline" onClick={() => setCreateSheetOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setCreateSheetOpen(false)} className="min-h-[44px] sm:min-h-0">
                 Cancel
               </Button>
             </div>
@@ -1004,7 +974,7 @@ export default function TrainingAdmin() {
                 placeholder="Search by name or email..."
                 value={userSearchQuery}
                 onChange={(e) => setUserSearchQuery(e.target.value)}
-                className="h-9"
+                className="h-11 sm:h-9"
               />
             </div>
 
@@ -1063,7 +1033,7 @@ export default function TrainingAdmin() {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal h-9",
+                      "w-full justify-start text-left font-normal h-11 sm:h-9",
                       !dueDate && "text-muted-foreground"
                     )}
                   >
@@ -1090,7 +1060,7 @@ export default function TrainingAdmin() {
                 type="number"
                 value={priority}
                 onChange={(e) => setPriority(parseInt(e.target.value) || 0)}
-                className="h-9"
+                className="h-11 sm:h-9"
               />
               <p className="text-xs text-muted-foreground">Higher numbers = higher priority</p>
             </div>
@@ -1120,10 +1090,10 @@ export default function TrainingAdmin() {
             </div>
 
             <div className="flex gap-2 pt-4">
-              <Button onClick={handleAssignmentSubmit} className="flex-1" disabled={selectedUserIds.size === 0}>
+              <Button onClick={handleAssignmentSubmit} className="flex-1 min-h-[44px] sm:min-h-0" disabled={selectedUserIds.size === 0}>
                 Assign Training
               </Button>
-              <Button type="button" variant="outline" onClick={() => setAssignSheetOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setAssignSheetOpen(false)} className="min-h-[44px] sm:min-h-0">
                 Cancel
               </Button>
             </div>

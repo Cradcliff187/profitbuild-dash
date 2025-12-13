@@ -38,11 +38,11 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
 
   return (
     <Card className={cn("w-full", className)}>
-      <CardHeader className="pb-2 pt-2 px-3">
+      <CardHeader className="p-3 pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Filter className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs font-semibold">
+            <span className="text-sm font-medium">
               {title}
               {resultCount !== undefined && hasActiveFilters && (
                 <span className="text-muted-foreground font-normal ml-1">
@@ -96,7 +96,7 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
       </CardHeader>
       
       {isExpanded && (
-        <CardContent className="pt-0 px-3 pb-2">
+        <CardContent className="p-3 pt-0">
           {children}
         </CardContent>
       )}

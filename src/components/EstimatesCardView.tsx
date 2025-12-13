@@ -25,18 +25,6 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [estimateToDelete, setEstimateToDelete] = useState<string | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
-
-  const toggleCard = (estimateId: string) => {
-    setExpandedCards(prev => {
-      const next = new Set(prev);
-      if (next.has(estimateId)) {
-        next.delete(estimateId);
-      } else {
-        next.add(estimateId);
-      }
-      return next;
-    });
-  };
   
   // Group estimates by project to show as families
   const estimatesByProject = estimates.reduce((groups, estimate) => {
@@ -206,7 +194,7 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
 
   return (
     <div className="dense-spacing">
-      <div className="space-y-3">
+      <div className="space-y-2">
         {Object.entries(estimatesByProject).map(([projectId, projectEstimates]) => {
           const currentVersion = projectEstimates.find(e => e.is_current_version) || projectEstimates[0];
           const previousVersions = projectEstimates.filter(e => !e.is_current_version);
@@ -216,10 +204,12 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
           
           return (
             <Card key={projectId} className="compact-card border border-primary/10">
-              <CardHeader className="p-compact bg-gradient-to-r from-primary/5 to-transparent">
+              <CardHeader className="p-3 pb-2 bg-gradient-to-r from-primary/5 to-transparent">
                 <div className="space-y-2">
                   <div className="flex items-start gap-2 flex-wrap">
-                    <CardTitle className="text-interface font-medium flex-1 min-w-0 truncate">{currentVersion.project_name}</CardTitle>
+                    <CardTitle className="text-sm font-medium flex-1 min-w-0 truncate">
+                      {currentVersion.project_number ? `${currentVersion.project_number} - ${currentVersion.project_name}` : currentVersion.project_name}
+                    </CardTitle>
                     <div className="flex gap-1 flex-shrink-0">
                       <Badge className="compact-badge bg-primary text-primary-foreground font-medium">
                         v{currentVersion.version_number || 1}
@@ -229,48 +219,48 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
                       </Badge>
                     </div>
                   </div>
-                  <p className="text-label text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {currentVersion.client_name} • {projectEstimates.length} version{projectEstimates.length !== 1 ? 's' : ''}
                   </p>
-                  <div className="flex gap-1">
-                    <Button 
-                      size="sm" 
-                      variant="default"
-                      onClick={() => createNewVersion(currentVersion)}
-                      className="h-button-compact"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      New Version
-                    </Button>
-                  </div>
                 </div>
               </CardHeader>
 
-              <CardContent className="p-compact space-y-2">
+              <CardContent className="p-3 space-y-2">
+                {/* Always visible row with key info and chevron */}
+                <div className="flex items-center justify-between px-3 py-2 border-t">
+                  <span className="text-sm font-medium">
+                    {formatCurrency(currentVersion.total_amount, { showCents: false })} • {format(currentVersion.date_created, 'MMM dd, yyyy')}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedCards(prev => {
+                        const next = new Set(prev);
+                        if (next.has(currentVersion.id)) {
+                          next.delete(currentVersion.id);
+                        } else {
+                          next.add(currentVersion.id);
+                        }
+                        return next;
+                      });
+                    }}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
+                      expandedCards.has(currentVersion.id) ? 'rotate-180' : ''
+                    }`} />
+                  </Button>
+                </div>
+                
+                {/* Collapsible content */}
                 <Collapsible open={expandedCards.has(currentVersion.id)}>
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleCard(currentVersion.id);
-                      }}
-                      className="w-full justify-between p-2 h-auto hover:bg-muted/50"
-                    >
-                      <span className="text-sm font-medium">
-                        {expandedCards.has(currentVersion.id) ? 'Hide Details' : 'Show Details'}
-                      </span>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${
-                        expandedCards.has(currentVersion.id) ? 'rotate-180' : ''
-                      }`} />
-                    </Button>
-                  </CollapsibleTrigger>
-                  
-                  <CollapsibleContent>
+                  <CollapsibleContent className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                     <div className="compact-card-section border border-primary/20">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-interface font-medium text-foreground">Latest Version</h3>
+                          <h3 className="text-sm font-medium text-foreground">Latest Version</h3>
                           <div className="flex items-center gap-1 flex-wrap">
                             <Badge className="compact-badge bg-primary text-primary-foreground font-medium">
                               v{currentVersion.version_number || 1}
@@ -284,7 +274,7 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
                             </Badge>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 text-label text-muted-foreground flex-wrap">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
                           <span className="truncate">{currentVersion.estimate_number}</span>
                           <span>•</span>
                           <span>{format(currentVersion.date_created, 'MMM dd, yyyy')}</span>
@@ -294,18 +284,18 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
                             <div className="text-lg font-bold text-foreground font-mono">
                               {formatCurrency(currentVersion.total_amount, { showCents: false })}
                             </div>
-                            <div className="text-label text-muted-foreground">Total Amount</div>
+                            <div className="text-xs text-muted-foreground">Total Amount</div>
                           </div>
                         </div>
 
                         {(quoteStatus !== 'awaiting-quotes') && (
                           <div className="pt-2 border-t border-primary/20">
                             <div className="flex items-center justify-between">
-                              <span className="text-label font-medium text-foreground">Budget vs Actual:</span>
+                              <span className="text-xs font-medium text-foreground">Budget vs Actual:</span>
                               <div className="flex items-center gap-1">
                                 <BudgetComparisonBadge status={quoteStatus} />
                                 {bestQuoteVariance && (
-                                  <span className={`text-data font-mono font-medium ${
+                                  <span className={`text-sm font-mono font-medium ${
                                     bestQuoteVariance.variance < 0 ? 'text-success' : 'text-destructive'
                                   }`}>
                                     {formatCurrency(bestQuoteVariance.variance, { showCents: false })}
@@ -321,7 +311,7 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
                             variant="outline"
                             size="sm"
                             onClick={() => onView(currentVersion)}
-                            className="flex-1 h-button-compact text-label border-primary/20 hover:bg-primary/5"
+                            className="flex-1 h-btn-compact text-xs border-primary/20 hover:bg-primary/5"
                           >
                             <Eye className="h-3 w-3 mr-1" />
                             View
@@ -330,7 +320,7 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
                             variant="outline"
                             size="sm"
                             onClick={() => onEdit(currentVersion)}
-                            className="flex-1 h-button-compact text-label border-primary/20 hover:bg-primary/5"
+                            className="flex-1 h-btn-compact text-xs border-primary/20 hover:bg-primary/5"
                           >
                             <Edit className="h-3 w-3 mr-1" />
                             Edit
@@ -339,7 +329,7 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
                             size="sm" 
                             variant="outline"
                             onClick={() => createNewVersion(currentVersion)}
-                            className="flex-1 h-button-compact text-label border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                            className="flex-1 h-btn-compact text-xs border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                           >
                             <Plus className="h-3 w-3 mr-1" />
                             New
@@ -355,26 +345,28 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" className="w-full justify-between p-3 h-auto border border-dashed border-primary/30 hover:bg-primary/5">
                         <div className="flex items-center space-x-2">
-                          <History className="h-4 w-4 text-primary" />
+                          <History className="h-3.5 w-3.5 text-primary" />
                           <span className="text-sm font-medium text-foreground">
                             Version History ({previousVersions.length})
                           </span>
                         </div>
-                        <ChevronDown className="h-4 w-4 text-primary" />
+                        <ChevronDown className="h-3.5 w-3.5 text-primary" />
                       </Button>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-3 mt-3">
-                      <div className="pl-4 border-l-2 border-primary/20 space-y-3">
+                    <CollapsibleContent className="space-y-2 mt-2">
+                      <div className="pl-3 border-l-2 border-primary/20 space-y-2">
                         {previousVersions.map((estimate, index) => (
                           <Card key={estimate.id} className="bg-muted/20 border-muted-foreground/20">
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between">
-                                <div className="space-y-2">
-                                  <div className="flex items-center space-x-3">
-                                    <Badge variant="outline" className="text-xs px-2 py-1">
+                            <CardContent className="p-3">
+                              {/* Mobile-optimized compact layout */}
+                              <div className="space-y-2">
+                                {/* Top row: Badges and Amount */}
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <Badge variant="outline" className="text-[10px] h-4 px-1.5">
                                       v{estimate.version_number || 1}
                                     </Badge>
-                                    <Badge variant="outline" className={`text-xs capitalize ${
+                                    <Badge variant="outline" className={`text-[10px] h-4 px-1.5 capitalize ${
                                       estimate.status === 'approved' ? 'border-green-200 text-green-700 bg-green-50' :
                                       estimate.status === 'draft' ? 'border-gray-200 text-gray-700 bg-gray-50' :
                                       'border-blue-200 text-blue-700 bg-blue-50'
@@ -382,72 +374,75 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
                                       {estimate.status}
                                     </Badge>
                                     {index === 0 && (
-                                      <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/30">
+                                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground border-muted-foreground/30">
                                         Previous
                                       </Badge>
                                     )}
                                   </div>
-                                  <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                                    <span>{estimate.estimate_number}</span>
-                                    <span>•</span>
-                                    <span>{format(estimate.date_created, 'MMM dd, yyyy')}</span>
-                                    {estimate.contingency_percent > 0 && (
-                                      <>
-                                        <span>•</span>
-                                        <span>Contingency: {formatContingencyDisplay(estimate)}</span>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                  <div className="text-right">
-                                    <span className="font-semibold text-sm">
+                                  <div className="text-right flex-shrink-0">
+                                    <span className="font-semibold text-sm font-mono">
                                       {formatCurrency(estimate.total_amount, { showCents: false })}
                                     </span>
                                   </div>
-                                  <div className="flex space-x-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => onView(estimate)}
-                                      className="h-8 w-8 p-0 hover:bg-primary/10"
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => onEdit(estimate)}
-                                      className="h-8 w-8 p-0 hover:bg-primary/10"
-                                    >
-                                      <Edit className="h-3 w-3" />
-                                    </Button>
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Delete Estimate Version</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            Are you sure you want to delete version {estimate.version_number || 1} of this estimate? This action cannot be undone.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                          <AlertDialogAction onClick={() => onDelete(estimate.id)}>
-                                            Delete
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
+                                </div>
+
+                                {/* Second row: Estimate number and date */}
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                                  <span className="truncate">{estimate.estimate_number}</span>
+                                  <span>•</span>
+                                  <span>{format(estimate.date_created, 'MMM dd, yyyy')}</span>
+                                </div>
+
+                                {/* Third row: Contingency (if exists) */}
+                                {estimate.contingency_percent > 0 && (
+                                  <div className="text-xs text-muted-foreground">
+                                    Contingency: {formatContingencyDisplay(estimate)}
                                   </div>
+                                )}
+
+                                {/* Bottom row: Action buttons */}
+                                <div className="flex items-center justify-end gap-1 pt-2 border-t border-muted-foreground/20">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onView(estimate)}
+                                    className="h-7 w-7 p-0 hover:bg-primary/10"
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onEdit(estimate)}
+                                    className="h-7 w-7 p-0 hover:bg-primary/10"
+                                  >
+                                    <Edit className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Estimate Version</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to delete version {estimate.version_number || 1} of this estimate? This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => onDelete(estimate.id)}>
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
                                 </div>
                               </div>
                             </CardContent>

@@ -263,7 +263,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
   if (quotes.length === 0) {
     return (
       <Card className="compact-card">
-        <CardContent className="py-8 p-compact">
+        <CardContent className="py-8 p-3">
           <div className="text-center text-muted-foreground">
             <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <h3 className="text-interface font-semibold mb-1">No Quotes Yet</h3>
@@ -278,9 +278,9 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
     <div className="dense-spacing">
       {/* Sort Controls */}
       <Card className="compact-card">
-        <CardHeader className="p-compact pb-2">
+        <CardHeader className="p-3 pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-interface">Quotes ({quotes.length})</CardTitle>
+            <CardTitle className="text-sm font-semibold">Quotes ({quotes.length})</CardTitle>
             <div className="flex gap-1">
               <Button
                 variant={sortBy === 'date' ? 'default' : 'outline'}
@@ -312,16 +312,16 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
       </Card>
 
       {/* Quotes Grid */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {sortedQuotes.map((quote) => {
           const estimate = getEstimateForQuote(quote);
           
           return (
             <Card key={quote.id} className="compact-card border border-primary/10">
-              <CardHeader className="p-compact bg-gradient-to-r from-primary/5 to-transparent">
+              <CardHeader className="p-3 pb-2 bg-gradient-to-r from-primary/5 to-transparent">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-1">
-                    <CardTitle className="text-interface">{quote.projectName}</CardTitle>
+                    <CardTitle className="text-sm font-medium">{quote.projectName}</CardTitle>
                     <QuoteStatusBadge status={quote.status} />
                   </div>
                   <div className="text-label text-muted-foreground">
@@ -330,7 +330,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
                 </div>
               </CardHeader>
               
-              <CardContent className="p-compact space-y-2">
+              <CardContent className="p-3 space-y-2">
                 {/* Always visible row with amount and payee */}
                 <div className="flex items-center justify-between px-3 py-2 border-t">
                   <span className="text-sm font-medium">
@@ -345,7 +345,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
                     }}
                     className="h-8 w-8 p-0"
                   >
-                    <ChevronDown className={`h-4 w-4 transition-transform ${
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
                       expandedCards.has(quote.id) ? 'rotate-180' : ''
                     }`} />
                   </Button>

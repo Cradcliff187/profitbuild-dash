@@ -49,7 +49,7 @@ const Payees = () => {
   };
 
   return (
-    <MobilePageWrapper noPadding className="space-y-4">
+    <MobilePageWrapper className="space-y-4">
       <PageHeader
         icon={Users}
         title="Payees"

@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { FolderOpen, Plus, Download, FileText, Users, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown, Package } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,7 @@ const columnDefinitions = [
 export default function BranchBids() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -369,7 +371,7 @@ export default function BranchBids() {
   }
 
   return (
-    <MobilePageWrapper noPadding className="space-y-2">
+    <MobilePageWrapper className="space-y-2">
       <PageHeader
         icon={Package}
         title="Bids"
@@ -394,7 +396,7 @@ export default function BranchBids() {
                 Export
               </Button>
             </div>
-            <Button onClick={() => setShowCreateDialog(true)} size="sm">
+            <Button onClick={() => setShowCreateDialog(true)} size="sm" className="hidden sm:flex">
               <Plus className="h-3 w-3 mr-1" />
               New Bid
             </Button>
@@ -479,6 +481,18 @@ export default function BranchBids() {
         onSort={handleSort}
         renderSortIcon={renderSortIcon}
       />
+
+      {/* Mobile FAB */}
+      {isMobile && (
+        <Button
+          variant="default"
+          onClick={() => setShowCreateDialog(true)}
+          size="icon"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        >
+          <Plus className="h-6 w-6 !text-white" />
+        </Button>
+      )}
 
       {/* Create Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>

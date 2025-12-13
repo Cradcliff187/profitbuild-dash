@@ -145,7 +145,7 @@ export default function Training() {
   }
 
   return (
-    <MobilePageWrapper noPadding className="space-y-3">
+    <MobilePageWrapper className="space-y-3">
       <PageHeader
         icon={GraduationCap}
         title="My Training"

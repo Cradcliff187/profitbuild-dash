@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Edit, Eye, Trash2, MoreHorizontal, FileText, Plus, CheckCircle } from "lucide-react";
+import { Edit, Eye, Trash2, MoreHorizontal, FileText, Plus, CheckCircle, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { CompletePagination } from "@/components/ui/complete-pagination";
 import { Project, ProjectStatus } from "@/types/project";
 import { formatCurrency } from "@/lib/utils";
@@ -90,10 +91,23 @@ export const WorkOrdersTableView = ({
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [deleteConfirm, setDeleteConfirm] = useState<{open: boolean; workOrder: Project | null}>({
     open: false,
     workOrder: null
   });
+
+  const toggleCard = (workOrderId: string) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(workOrderId)) {
+        next.delete(workOrderId);
+      } else {
+        next.add(workOrderId);
+      }
+      return next;
+    });
+  };
 
   const columnDefinitions = [
     { key: "project_number", label: "Project #", required: true, sortable: true },
@@ -273,6 +287,230 @@ export const WorkOrdersTableView = ({
     );
   }
 
+  // Mobile card view
+  if (isMobile) {
+    return (
+      <>
+        <div className="space-y-2">
+          {workOrders.map((workOrder) => (
+            <Card key={workOrder.id} className="hover:bg-muted/50 transition-colors">
+              <CardHeader className="p-3 pb-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CardTitle className="text-sm font-semibold truncate">{workOrder.project_name}</CardTitle>
+                      {getStatusBadge(workOrder.status)}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-mono">{workOrder.project_number}</div>
+                    {workOrder.client_name && (
+                      <div className="text-xs text-muted-foreground mt-0.5">{workOrder.client_name}</div>
+                    )}
+                  </div>
+                  {onSelectOne && (
+                    <div>
+                      <Checkbox
+                        checked={selectedIds.includes(workOrder.id)}
+                        onCheckedChange={(checked) => onSelectOne(workOrder.id, checked as boolean)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="p-3 pt-0 space-y-2">
+                {/* Always visible row with key info and chevron */}
+                <div className="flex items-center justify-between px-3 py-2 border-t">
+                  <span className="text-sm font-medium">
+                    {workOrder.contracted_amount ? formatCurrency(workOrder.contracted_amount) : '—'} • {
+                      workOrder.projected_margin !== null && workOrder.projected_margin !== undefined
+                        ? formatCurrency(workOrder.projected_margin)
+                        : '—'
+                    }
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleCard(workOrder.id);
+                    }}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
+                      expandedCards.has(workOrder.id) ? 'rotate-180' : ''
+                    }`} />
+                  </Button>
+                </div>
+                
+                {/* Collapsible content */}
+                <Collapsible open={expandedCards.has(workOrder.id)}>
+                  <CollapsibleContent>
+                    <div className="space-y-2 pt-2">
+                      {/* Financial Summary */}
+                      <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2 rounded mx-3">
+                        {workOrder.contracted_amount && (
+                          <div>
+                            <div className="text-muted-foreground">Contract Value</div>
+                            <div className="font-semibold font-mono">{formatCurrency(workOrder.contracted_amount)}</div>
+                          </div>
+                        )}
+                        {workOrder.projected_margin !== null && workOrder.projected_margin !== undefined && (
+                          <div>
+                            <div className="text-muted-foreground">Projected Margin</div>
+                            <div className={cn(
+                              "font-semibold font-mono",
+                              workOrder.projected_margin >= 0 ? "text-green-600" : "text-red-600"
+                            )}>
+                              {formatCurrency(workOrder.projected_margin)}
+                            </div>
+                          </div>
+                        )}
+                        {workOrder.adjusted_est_costs && (
+                          <div>
+                            <div className="text-muted-foreground">Est. Costs</div>
+                            <div className="font-semibold font-mono">{formatCurrency(workOrder.adjusted_est_costs)}</div>
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-muted-foreground">Actual Expenses</div>
+                          <div className="font-semibold font-mono">{formatCurrency(workOrder.total_expenses)}</div>
+                        </div>
+                      </div>
+
+                      {/* Additional Info */}
+                      <div className="grid grid-cols-2 gap-2 text-xs px-3">
+                        {workOrder.customer_po_number && (
+                          <div>
+                            <div className="text-muted-foreground">PO #</div>
+                            <div className="font-medium font-mono">{workOrder.customer_po_number}</div>
+                          </div>
+                        )}
+                        {workOrder.margin_percentage !== null && workOrder.margin_percentage !== undefined && (
+                          <div>
+                            <div className="text-muted-foreground">Margin %</div>
+                            <div className={cn(
+                              "font-medium font-mono",
+                              workOrder.margin_percentage >= 0 ? "text-green-600" : "text-red-600"
+                            )}>
+                              {workOrder.margin_percentage.toFixed(1)}%
+                            </div>
+                          </div>
+                        )}
+                        {workOrder.start_date && (
+                          <div>
+                            <div className="text-muted-foreground">Start Date</div>
+                            <div className="font-medium">{format(new Date(workOrder.start_date), "MM/dd/yy")}</div>
+                          </div>
+                        )}
+                        {workOrder.end_date && (
+                          <div>
+                            <div className="text-muted-foreground">End Date</div>
+                            <div className="font-medium">{format(new Date(workOrder.end_date), "MM/dd/yy")}</div>
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-muted-foreground">Estimate</div>
+                          <div>
+                            {workOrder.has_estimate ? (
+                              workOrder.is_auto_generated_estimate ? (
+                                <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-gray-50 text-gray-700 border-gray-300">
+                                  System
+                                </Badge>
+                              ) : (
+                                <Badge variant="default" className="text-[10px] h-4 px-1.5">Yes</Badge>
+                              )
+                            ) : (
+                              <Badge variant="secondary" className="text-[10px] h-4 px-1.5">No</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center justify-end pt-2 border-t px-3" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-7">
+                              <MoreHorizontal className="h-3.5 w-3.5 mr-1" />
+                              Actions
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewDetails(workOrder)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onEdit(workOrder)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleAddExpense(workOrder)}>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Expense
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewEstimate(workOrder)}>
+                              <FileText className="h-4 w-4 mr-2" />
+                              {workOrder.has_estimate && !workOrder.is_auto_generated_estimate ? 'View Estimate' : 'Create Estimate'}
+                            </DropdownMenuItem>
+                            {workOrder.status !== 'complete' && (
+                              <DropdownMenuItem onClick={() => handleMarkComplete(workOrder)}>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Mark Complete
+                              </DropdownMenuItem>
+                            )}
+                            {onDelete && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => setDeleteConfirm({ open: true, workOrder })}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <AlertDialog open={deleteConfirm.open} onOpenChange={(open) => setDeleteConfirm({open, workOrder: null})}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Work Order</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this work order? 
+                This action will also remove all associated estimates and expenses.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => {
+                  if (deleteConfirm.workOrder && onDelete) {
+                    onDelete(deleteConfirm.workOrder.id);
+                  }
+                  setDeleteConfirm({ open: false, workOrder: null });
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
+    );
+  }
+
+  // Desktop table view
   return (
     <>
       <Card className="overflow-hidden">

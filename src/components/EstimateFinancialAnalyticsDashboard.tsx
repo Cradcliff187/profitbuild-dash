@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, TrendingDown, Target, AlertTriangle, DollarSign } from 'lucide-react';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface EstimateData {
   id: string;
@@ -69,10 +69,14 @@ interface ProjectRange {
   estimateCount: number;
 }
 
-export default function EstimateFinancialAnalyticsDashboard() {
+interface EstimateFinancialAnalyticsDashboardProps {
+  timeframe?: '30' | '90' | '365' | 'all';
+}
+
+export default function EstimateFinancialAnalyticsDashboard({ timeframe = 'all' }: EstimateFinancialAnalyticsDashboardProps) {
+  const isMobile = useIsMobile();
   const [estimates, setEstimates] = useState<EstimateData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeframe, setTimeframe] = useState<'30' | '90' | '365' | 'all'>('all');
 
   useEffect(() => {
     fetchEstimates();
@@ -278,7 +282,7 @@ export default function EstimateFinancialAnalyticsDashboard() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-2">
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-64 w-full" />
@@ -288,49 +292,35 @@ export default function EstimateFinancialAnalyticsDashboard() {
 
   if (!analytics) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">No outstanding estimates found for the selected timeframe.</p>
-        </CardContent>
-      </Card>
+      <div className="dense-spacing">
+        <Card>
+          <CardContent className="p-3 text-center">
+            <p className="text-muted-foreground">No outstanding estimates found for the selected timeframe.</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold">Estimate Financial Overview</h2>
-          <p className="text-xs text-muted-foreground">Outstanding estimate pricing analysis and profitability metrics</p>
-        </div>
-        <Tabs value={timeframe} onValueChange={(v) => setTimeframe(v as typeof timeframe)}>
-          <TabsList>
-            <TabsTrigger value="30" className="text-xs">30 Days</TabsTrigger>
-            <TabsTrigger value="90" className="text-xs">90 Days</TabsTrigger>
-            <TabsTrigger value="365" className="text-xs">1 Year</TabsTrigger>
-            <TabsTrigger value="all" className="text-xs">All Time</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      {/* Primary Financial Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
+    <div className="dense-spacing w-full min-w-0 max-w-full">
+      <div className="space-y-3 w-full">
+        {/* Primary Financial Metrics */}
+        <div className="space-y-3">
         {/* High-Side Card */}
         <Card>
           <CardHeader className="p-3 pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-orange-600" />
-                High-Side Analysis
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2 min-w-0">
+                <TrendingUp className="h-3.5 w-3.5 text-orange-600 flex-shrink-0" />
+                <span className="truncate">High-Side Analysis</span>
               </CardTitle>
-              <Badge variant="outline" className="text-xs">Optimistic</Badge>
+              <Badge variant="outline" className="text-xs flex-shrink-0 hidden sm:inline-flex">Optimistic</Badge>
             </div>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <div className="space-y-2">
-              <div className="text-2xl font-bold font-mono">{formatCurrency(analytics.highSide.totalRevenue)}</div>
-              <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="text-lg sm:text-xl font-bold font-mono mb-2">{formatCurrency(analytics.highSide.totalRevenue)}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs mb-2">
                 <div>
                   <div className="text-muted-foreground">Cost</div>
                   <div className="font-mono">{formatCurrency(analytics.highSide.totalCost)}</div>
@@ -347,51 +337,49 @@ export default function EstimateFinancialAnalyticsDashboard() {
                     {analytics.highSide.marginPercent.toFixed(1)}%
                   </Badge>
                 </div>
-              </div>
-              <div className="text-xs text-muted-foreground">{analytics.highSide.projectCount} projects</div>
             </div>
+            <div className="text-xs text-muted-foreground">{analytics.highSide.projectCount} projects</div>
           </CardContent>
         </Card>
 
         {/* Mid-Range Card */}
         <Card>
           <CardHeader className="p-3 pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Target className="h-4 w-4 text-primary" />
-                Mid-Range Analysis
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2 min-w-0">
+                <Target className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                <span className="truncate">Mid-Range Analysis</span>
               </CardTitle>
-              <Badge variant="outline" className="text-xs">Central Tendency</Badge>
+              <Badge variant="outline" className="text-xs flex-shrink-0 hidden sm:inline-flex">Central Tendency</Badge>
             </div>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <div className="space-y-2">
-              {/* Two-column metric display: Mean vs Median */}
-              <div className="grid grid-cols-2 gap-3 pb-2 border-b">
+            {/* Two-column metric display: Mean vs Median */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2 border-b mb-2">
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Mean (Average)</div>
-                  <div className="text-xl font-bold font-mono">{formatCurrency(analytics.midRange.meanRevenue)}</div>
+                  <div className="text-base sm:text-lg font-bold font-mono">{formatCurrency(analytics.midRange.meanRevenue)}</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Median (Typical)</div>
-                  <div className="text-xl font-bold font-mono">{formatCurrency(analytics.midRange.medianRevenue)}</div>
+                  <div className="text-base sm:text-lg font-bold font-mono">{formatCurrency(analytics.midRange.medianRevenue)}</div>
                 </div>
+            </div>
+            
+            {/* Skew indicator */}
+            {Math.abs(analytics.midRange.meanRevenue - analytics.midRange.medianRevenue) > (analytics.midRange.medianRevenue * 0.15) && (
+              <div className="text-xs text-orange-600 flex items-center gap-1 py-1">
+                <AlertTriangle className="h-3 w-3" />
+                <span>
+                  {analytics.midRange.meanRevenue > analytics.midRange.medianRevenue 
+                    ? 'Distribution skewed by high-value estimates' 
+                    : 'Distribution skewed by low-value estimates'}
+                </span>
               </div>
-              
-              {/* Skew indicator */}
-              {Math.abs(analytics.midRange.meanRevenue - analytics.midRange.medianRevenue) > (analytics.midRange.medianRevenue * 0.15) && (
-                <div className="text-xs text-orange-600 flex items-center gap-1 py-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  <span>
-                    {analytics.midRange.meanRevenue > analytics.midRange.medianRevenue 
-                      ? 'Distribution skewed by high-value estimates' 
-                      : 'Distribution skewed by low-value estimates'}
-                  </span>
-                </div>
-              )}
-              
-              {/* Compact profit and margin (based on mean) */}
-              <div className="grid grid-cols-2 gap-3 text-xs">
+            )}
+            
+            {/* Compact profit and margin (based on mean) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs mb-2">
                 <div>
                   <div className="text-muted-foreground">Avg Profit</div>
                   <div className={`font-mono font-medium ${analytics.midRange.meanProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
@@ -404,11 +392,10 @@ export default function EstimateFinancialAnalyticsDashboard() {
                     {analytics.midRange.meanMargin.toFixed(1)}%
                   </Badge>
                 </div>
-              </div>
-              
-              <div className="text-xs text-muted-foreground pt-1">
-                {analytics.midRange.projectCount} estimates
-              </div>
+            </div>
+            
+            <div className="text-xs text-muted-foreground">
+              {analytics.midRange.projectCount} estimates
             </div>
           </CardContent>
         </Card>
@@ -416,18 +403,17 @@ export default function EstimateFinancialAnalyticsDashboard() {
         {/* Low-Side Card */}
         <Card>
           <CardHeader className="p-3 pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <TrendingDown className="h-4 w-4 text-green-600" />
-                Low-Side Analysis
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2 min-w-0">
+                <TrendingDown className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+                <span className="truncate">Low-Side Analysis</span>
               </CardTitle>
-              <Badge variant="outline" className="text-xs">Conservative</Badge>
+              <Badge variant="outline" className="text-xs flex-shrink-0 hidden sm:inline-flex">Conservative</Badge>
             </div>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <div className="space-y-2">
-              <div className="text-2xl font-bold font-mono">{formatCurrency(analytics.lowSide.totalRevenue)}</div>
-              <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="text-lg sm:text-xl font-bold font-mono mb-2">{formatCurrency(analytics.lowSide.totalRevenue)}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs mb-2">
                 <div>
                   <div className="text-muted-foreground">Cost</div>
                   <div className="font-mono">{formatCurrency(analytics.lowSide.totalCost)}</div>
@@ -444,94 +430,94 @@ export default function EstimateFinancialAnalyticsDashboard() {
                     {analytics.lowSide.marginPercent.toFixed(1)}%
                   </Badge>
                 </div>
-              </div>
-              <div className="text-xs text-muted-foreground">{analytics.lowSide.projectCount} projects</div>
             </div>
+            <div className="text-xs text-muted-foreground">{analytics.lowSide.projectCount} projects</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Status Distribution */}
       <Card>
-        <CardHeader className="p-3">
-          <CardTitle className="text-sm font-medium">Estimate Status Distribution</CardTitle>
+        <CardHeader className="p-3 pb-2">
+          <CardTitle className="text-sm font-semibold">Estimate Status Distribution</CardTitle>
         </CardHeader>
         <CardContent className="p-3 pt-0">
-          <div className="space-y-2">
             {[
               { status: 'Draft', count: analytics.statusCounts.draft, color: 'bg-gray-500' },
               { status: 'Sent', count: analytics.statusCounts.sent, color: 'bg-blue-500' },
               { status: 'Approved', count: analytics.statusCounts.approved, color: 'bg-green-500' },
-            ].map(({ status, count, color }) => (
-              <div key={status} className="flex items-center gap-3">
-                <div className="w-20 text-xs text-muted-foreground">{status}</div>
-                <div className="w-12 text-xs font-mono">{count}</div>
+            ].map(({ status, count, color }, index) => (
+              <div key={status} className={`flex items-center gap-2 ${index > 0 ? 'mt-2' : ''}`}>
+                <div className="w-16 sm:w-20 text-xs text-muted-foreground">{status}</div>
+                <div className="w-10 sm:w-12 text-xs font-mono">{count}</div>
                 <div className="flex-1">
                   <Progress 
                     value={(count / analytics.statusCounts.total) * 100} 
                     className="h-2"
                   />
                 </div>
-                <div className="w-12 text-xs text-muted-foreground text-right">
+                <div className="w-10 sm:w-12 text-xs text-muted-foreground text-right">
                   {((count / analytics.statusCounts.total) * 100).toFixed(0)}%
                 </div>
               </div>
             ))}
-          </div>
         </CardContent>
       </Card>
 
-      {/* Project Breakdown */}
-      <Card>
-        <CardHeader className="p-3">
-          <CardTitle className="text-sm font-medium">Project-Level Estimate Ranges</CardTitle>
-        </CardHeader>
-        <CardContent className="p-3 pt-0">
-          <div className="overflow-x-auto -mx-3 px-3">
-            <div className="rounded-md border min-w-[640px]">
-              <Table>
-              <TableHeader>
-                <TableRow className="h-8">
-                  <TableHead className="text-xs p-2">Project</TableHead>
-                  <TableHead className="text-xs p-2">Client</TableHead>
-                  <TableHead className="text-xs p-2 text-center">Count</TableHead>
-                  <TableHead className="text-xs p-2 text-right">Low</TableHead>
-                  <TableHead className="text-xs p-2 text-right">High</TableHead>
-                  <TableHead className="text-xs p-2 text-right">Spread</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {analytics.projectBreakdown.slice(0, 10).map((project) => (
-                  <TableRow key={project.projectId} className="h-9">
-                    <TableCell className="text-xs p-2">
-                      <div className="font-medium">{project.projectNumber}</div>
-                      <div className="text-muted-foreground truncate max-w-[150px]">{project.projectName}</div>
-                    </TableCell>
-                    <TableCell className="text-xs p-2 truncate max-w-[120px]">{project.clientName}</TableCell>
-                    <TableCell className="text-xs p-2 text-center">{project.estimateCount}</TableCell>
-                    <TableCell className="text-xs p-2 text-right font-mono">{formatCurrency(project.lowEstimate)}</TableCell>
-                    <TableCell className="text-xs p-2 text-right font-mono">{formatCurrency(project.highEstimate)}</TableCell>
-                    <TableCell className="text-xs p-2 text-right">
-                      <div className="flex flex-col items-end">
-                        <span className="font-mono">{formatCurrency(project.spread)}</span>
-                        <span className={`text-xs ${project.spreadPercent > 25 ? 'text-orange-600' : 'text-muted-foreground'}`}>
-                          {project.spreadPercent > 0 ? `+${project.spreadPercent.toFixed(0)}%` : '—'}
-                        </span>
-                      </div>
-                    </TableCell>
+      {/* Project Breakdown - Hidden on mobile */}
+      {!isMobile && (
+        <Card>
+          <CardHeader className="p-3 pb-2">
+            <CardTitle className="text-sm font-semibold">Project-Level Estimate Ranges</CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 space-y-2">
+            <div className="border rounded-md overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+              <div className="min-w-[640px]">
+                <Table>
+                <TableHeader>
+                  <TableRow className="h-8">
+                    <TableHead className="text-xs p-2">Project</TableHead>
+                    <TableHead className="text-xs p-2">Client</TableHead>
+                    <TableHead className="text-xs p-2 text-center">Count</TableHead>
+                    <TableHead className="text-xs p-2 text-right">Low</TableHead>
+                    <TableHead className="text-xs p-2 text-right">High</TableHead>
+                    <TableHead className="text-xs p-2 text-right">Spread</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {analytics.projectBreakdown.slice(0, 10).map((project) => (
+                    <TableRow key={project.projectId} className="h-9">
+                      <TableCell className="text-xs p-2">
+                        <div className="font-medium">{project.projectNumber}</div>
+                        <div className="text-muted-foreground truncate max-w-[150px]">{project.projectName}</div>
+                      </TableCell>
+                      <TableCell className="text-xs p-2 truncate max-w-[120px]">{project.clientName}</TableCell>
+                      <TableCell className="text-xs p-2 text-center">{project.estimateCount}</TableCell>
+                      <TableCell className="text-xs p-2 text-right font-mono">{formatCurrency(project.lowEstimate)}</TableCell>
+                      <TableCell className="text-xs p-2 text-right font-mono">{formatCurrency(project.highEstimate)}</TableCell>
+                      <TableCell className="text-xs p-2 text-right">
+                        <div className="flex flex-col items-end">
+                          <span className="font-mono">{formatCurrency(project.spread)}</span>
+                          <span className={`text-xs ${project.spreadPercent > 25 ? 'text-orange-600' : 'text-muted-foreground'}`}>
+                            {project.spreadPercent > 0 ? `+${project.spreadPercent.toFixed(0)}%` : '—'}
+                          </span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              </div>
             </div>
-          </div>
-          {analytics.projectBreakdown.length > 10 && (
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              Showing 10 of {analytics.projectBreakdown.length} projects
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            {analytics.projectBreakdown.length > 10 && (
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Showing 10 of {analytics.projectBreakdown.length} projects
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+      </div>
     </div>
   );
 }

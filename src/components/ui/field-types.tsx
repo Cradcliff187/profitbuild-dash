@@ -20,8 +20,8 @@ interface BaseFieldProps {
 
 const BaseField = React.forwardRef<HTMLDivElement, BaseFieldProps>(
   ({ label, required, tooltip, className, children }, ref) => (
-    <div ref={ref} className={cn("space-y-1", className)}>
-      <div className="flex items-center gap-2">
+    <div ref={ref} className={cn("space-y-1 flex flex-col h-full", className)}>
+      <div className="flex items-center gap-2 min-h-[1.5rem]">
         {required ? (
           <RequiredLabel className="text-sm font-medium">{label}</RequiredLabel>
         ) : (
@@ -40,7 +40,9 @@ const BaseField = React.forwardRef<HTMLDivElement, BaseFieldProps>(
           </TooltipProvider>
         )}
       </div>
-      {children}
+      <div className="flex-1">
+        {children}
+      </div>
     </div>
   )
 );
@@ -154,12 +156,9 @@ const CalculatedField = React.forwardRef<HTMLDivElement, CalculatedFieldProps>(
           )}
         >
           <Calculator className="h-3 w-3 flex-shrink-0" />
-          <span className="truncate flex-1 min-w-0">
+          <span className="truncate flex-1 min-w-0 text-right">
             {displayValue}
           </span>
-          <Badge variant="secondary" className="text-xs ml-auto flex-shrink-0">
-            Calculated
-          </Badge>
         </div>
         {formula && (
           <p className="text-xs text-muted-foreground mt-1">

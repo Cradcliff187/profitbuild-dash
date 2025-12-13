@@ -203,8 +203,14 @@ export const ProjectsList = ({
   return (
     <div className="dense-spacing">
       {/* Projects Grid - Compact Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
         {paginatedProjects.map((project) => {
+          // Find current estimate for this project
+          const projectEstimates = estimates.filter(e => e.project_id === project.id);
+          const currentEstimate = projectEstimates.find(e => e.is_current_version);
+          const isEstimatingOrQuoted = project.status === 'estimating' || project.status === 'quoted';
+          const showEstimateDetails = isEstimatingOrQuoted && currentEstimate;
+          
           // DESKTOP: Use exact current implementation (NO CHANGES)
           if (!isMobile) {
             return (
@@ -213,10 +219,10 @@ export const ProjectsList = ({
                 className="compact-card hover:shadow-sm transition-shadow cursor-pointer"
                 onClick={() => window.location.href = `/projects/${project.id}`}
               >
-                <CardHeader className="p-compact pb-2">
+                <CardHeader className="p-3 pb-2">
                   <div className="flex items-start justify-between">
                   <div className="space-y-1 min-w-0 flex-1">
-                      <CardTitle className="text-interface font-medium leading-tight truncate">{project.project_name}</CardTitle>
+                      <CardTitle className="text-sm font-medium leading-tight truncate">{project.project_name}</CardTitle>
                       <div className="text-label text-muted-foreground truncate">
                         {project.project_number} • {project.client_name}
                       </div>
@@ -253,7 +259,7 @@ export const ProjectsList = ({
                   </div>
                 </CardHeader>
                 
-                <CardContent className="p-compact space-y-2">
+                <CardContent className="p-3 space-y-2">
                   {/* Action Buttons - Compact */}
                   {(() => {
                     const projectEstimates = estimates.filter(e => e.project_id === project.id);
@@ -298,10 +304,15 @@ export const ProjectsList = ({
                   </div>
 
                     {/* Financial Summary - Two-Tier Margins */}
-                    {(project.contracted_amount || project.original_margin !== null) && (() => {
-                      const contract = project.contracted_amount ?? 0;
+                    {(showEstimateDetails || project.contracted_amount || project.original_margin !== null) && (() => {
+                      // Use estimate data if estimating/quoted, otherwise use project actuals
+                      const contract = showEstimateDetails 
+                        ? (currentEstimate?.total_amount ?? 0)
+                        : (project.contracted_amount ?? 0);
                       const adjustedCosts = project.adjusted_est_costs ?? 0;
-                      const projectedMargin = project.projected_margin ?? (contract - adjustedCosts);
+                      const projectedMargin = showEstimateDetails
+                        ? (contract - adjustedCosts) // Estimate margin
+                        : (project.projected_margin ?? (contract - adjustedCosts)); // Actual margin
                       const derivedMarginPct = contract > 0 ? (projectedMargin / contract) * 100 : 0;
                       const marginPctToShow = project.margin_percentage ?? derivedMarginPct;
                       const changeOrderRevenue = project.changeOrderRevenue || 0;
@@ -313,9 +324,11 @@ export const ProjectsList = ({
 
                       return (
                         <div className="compact-card-section bg-muted/10 space-y-2">
-                          {/* Contract Value */}
+                          {/* Contract/Estimate Value */}
                           <div className="flex justify-between text-data">
-                            <span className="text-label text-muted-foreground">Contract Value</span>
+                            <span className="text-label text-muted-foreground">
+                              {showEstimateDetails ? 'Estimate Value' : 'Contract Value'}
+                            </span>
                             <span className="font-mono font-medium">{formatCurrency(contract)}</span>
                           </div>
 
@@ -435,9 +448,15 @@ export const ProjectsList = ({
 
           // MOBILE: New collapsible implementation
           const isExpanded = expandedCards.has(project.id);
-          const contract = project.contracted_amount ?? 0;
+          
+          // Use estimate data if estimating/quoted, otherwise use project actuals
+          const contract = showEstimateDetails 
+            ? (currentEstimate?.total_amount ?? 0)
+            : (project.contracted_amount ?? 0);
           const adjustedCosts = project.adjusted_est_costs ?? 0;
-          const projectedMargin = project.projected_margin ?? (contract - adjustedCosts);
+          const projectedMargin = showEstimateDetails
+            ? (contract - adjustedCosts) // Estimate margin
+            : (project.projected_margin ?? (contract - adjustedCosts)); // Actual margin
           const derivedMarginPct = contract > 0 ? (projectedMargin / contract) * 100 : 0;
           const marginPctToShow = project.margin_percentage ?? derivedMarginPct;
 
@@ -449,17 +468,17 @@ export const ProjectsList = ({
               <Collapsible open={isExpanded} onOpenChange={() => toggleCard(project.id)}>
                 {/* COLLAPSED VIEW - Enhanced header with gradient */}
                 <CardHeader 
-                  className="p-compact bg-gradient-to-r from-primary/5 to-transparent cursor-pointer"
+                  className="p-3 pb-2 bg-gradient-to-r from-primary/5 to-transparent cursor-pointer"
                   onClick={() => navigateToProjectDetail(project.id)}
                 >
                   <div className="space-y-0.5">
                     <div className="flex items-center justify-between gap-2">
-                      <CardTitle className="text-interface truncate flex-1">{project.project_name}</CardTitle>
+                      <CardTitle className="text-sm font-medium truncate flex-1">{project.project_name}</CardTitle>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <Badge className={`compact-badge ${getStatusColor(project.status)}`}>
                           {project.status.replace('_', ' ').toUpperCase()}
                         </Badge>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
                     </div>
                     <div className="text-label text-muted-foreground truncate">
@@ -469,9 +488,13 @@ export const ProjectsList = ({
                 </CardHeader>
 
                 <div className="flex items-center justify-between px-3 py-2 border-t">
-                  <span className="text-sm font-medium">
-                    {formatCurrency(projectedMargin)} • {marginPctToShow.toFixed(1)}%
-                  </span>
+                  {showEstimateDetails || (project.contracted_amount || project.original_margin !== null) ? (
+                    <span className="text-sm font-medium">
+                      {formatCurrency(projectedMargin)} • {marginPctToShow.toFixed(1)}%
+                    </span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">No financial data</span>
+                  )}
                   <CollapsibleTrigger asChild>
                     <Button
                       variant="ghost"
@@ -479,7 +502,7 @@ export const ProjectsList = ({
                       onClick={(e) => e.stopPropagation()}
                       className="h-8 w-8 p-0"
                     >
-                      <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                     </Button>
                   </CollapsibleTrigger>
                 </div>
@@ -487,9 +510,9 @@ export const ProjectsList = ({
                 {/* EXPANDED VIEW - Full card content */}
                 <CollapsibleContent className="relative z-0">
                   <div className="space-y-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                    <CardContent className="p-compact space-y-2 bg-background">
+                    <CardContent className="p-3 space-y-2 bg-background">
                       {/* Financial Summary - 3-Column Grid (matching quotes style) */}
-                        {(project.contracted_amount || project.original_margin !== null) && (() => {
+                        {(showEstimateDetails || (project.contracted_amount || project.original_margin !== null)) && (() => {
                           const changeOrderRevenue = project.changeOrderRevenue || 0;
                           const changeOrderCosts = project.changeOrderCosts || 0;
                           const changeOrderNetMargin = changeOrderRevenue - changeOrderCosts;
@@ -501,13 +524,17 @@ export const ProjectsList = ({
                           <>
                             <div className="grid grid-cols-3 gap-2 text-label bg-muted/30 p-3 rounded-lg">
                               <div className="text-center">
-                                <div className="text-muted-foreground text-[10px]">Contract Value</div>
+                                <div className="text-muted-foreground text-[10px]">
+                                  {showEstimateDetails ? 'Estimate Value' : 'Contract Value'}
+                                </div>
                                 <div className="text-interface font-bold font-mono">
                                   {formatCurrency(contract)}
                                 </div>
                               </div>
                               <div className="text-center border-x border-border">
-                                <div className="text-muted-foreground text-[10px]">Projected Margin</div>
+                                <div className="text-muted-foreground text-[10px]">
+                                  {showEstimateDetails ? 'Estimate Margin' : 'Projected Margin'}
+                                </div>
                                 <div className={`text-interface font-bold font-mono ${
                                   projectedMargin < 0 ? 'text-red-600 dark:text-red-400' :
                                   projectedMargin >= (project.target_margin || 20) * contract / 100 ? 'text-green-600 dark:text-green-400' :

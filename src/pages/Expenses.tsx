@@ -434,7 +434,7 @@ const Expenses = () => {
   }
 
   return (
-    <MobilePageWrapper noPadding className="space-y-4">
+    <MobilePageWrapper className="space-y-4">
       <PageHeader
         icon={Receipt}
         title="Expenses & Invoices"

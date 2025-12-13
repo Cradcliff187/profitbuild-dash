@@ -1,24 +1,10 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import {
-  ClipboardCheck,
-  Download,
-  Edit,
-  CheckCircle,
-  XCircle,
-  Clock,
-  MoreHorizontal,
-  Eye,
-  FileImage,
-  Paperclip,
-  Trash2,
-  Plus,
-  ChevronDown,
-  ChevronUp,
-  ChevronsUpDown,
-} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { ClipboardCheck, FileImage, Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,82 +15,47 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useTimeEntries } from "@/hooks/useTimeEntries";
-import { TimeEntryFilters } from "@/types/timeEntry";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRoles } from "@/contexts/RoleContext";
 import { TimeEntrySearchFilters } from "@/components/TimeEntrySearchFilters";
 import { TimeEntryBulkActions } from "@/components/TimeEntryBulkActions";
-import { RejectTimeEntryDialog } from "@/components/RejectTimeEntryDialog";
-import { EditTimeEntryDialog } from "@/components/time-tracker/EditTimeEntryDialog";
 import { TimeEntryExportModal } from "@/components/TimeEntryExportModal";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { parseDateOnly } from "@/utils/dateUtils";
-import { usePagination } from "@/hooks/usePagination";
-import { CompletePagination } from "@/components/ui/complete-pagination";
-import { useAuth } from "@/contexts/AuthContext";
-import { cn, formatCurrency } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { ColumnSelector } from "@/components/ui/column-selector";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ReceiptsManagement, ReceiptsManagementRef } from "@/components/ReceiptsManagement";
 import { CreateTimeEntryDialog } from "@/components/time-tracker/CreateTimeEntryDialog";
+import { EditTimeEntryDialog } from "@/components/time-tracker/EditTimeEntryDialog";
+import { RejectTimeEntryDialog } from "@/components/RejectTimeEntryDialog";
 import { AddReceiptModal } from "@/components/time-tracker/AddReceiptModal";
-import { useRoles } from "@/contexts/RoleContext";
+import { ReceiptsManagement, ReceiptsManagementRef } from "@/components/ReceiptsManagement";
+import { ReceiptSearchFilters, ReceiptFilters } from "@/components/ReceiptSearchFilters";
+import { useTimeEntries } from "@/hooks/useTimeEntries";
+import { usePagination } from "@/hooks/usePagination";
+import { useDebounce } from "@/hooks/useDebounce";
+import { TimeEntryFilters, TimeEntryListItem } from "@/types/timeEntry";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { ColumnSelector } from "@/components/ui/column-selector";
+import { TimeEntriesCardView } from "@/components/TimeEntriesCardView";
+import { timeEntryColumnDefinitions } from "@/config/timeEntryColumns";
+import { receiptColumnDefinitions } from "@/config/receiptColumns";
+import { TimeEntriesTable } from "@/components/time-entries/TimeEntriesTable";
+import { useTimeEntrySelection } from "@/hooks/useTimeEntrySelection";
+import { useTimeEntrySorting } from "@/hooks/useTimeEntrySorting";
+import { useTimeEntryActions } from "@/hooks/useTimeEntryActions";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
-// Define column metadata for selector (must be outside component for state initialization)
-const columnDefinitions = [
-  { key: "worker", label: "Worker", required: true, sortable: true },
-  { key: "employee_number", label: "Employee #", required: false, sortable: true },
-  { key: "project", label: "Project", required: true, sortable: true },
-  { key: "address", label: "Project Address", required: false, sortable: true },
-  { key: "date", label: "Date", required: true, sortable: true },
-  { key: "start", label: "Start Time", required: false, sortable: true },
-  { key: "end", label: "End Time", required: false, sortable: true },
-  { key: "hours", label: "Hours", required: false, sortable: true },
-  { key: "lunch", label: "Lunch", required: false, sortable: false },
-  { key: "amount", label: "Amount", required: false, sortable: true },
-  { key: "receipt", label: "Receipt", required: false, sortable: true },
-  { key: "status", label: "Status", required: false, sortable: true },
-  { key: "submitted_at", label: "Submitted At", required: false, sortable: true },
-  { key: "actions", label: "Actions", required: true },
-];
-
-const TimeEntries = () => {
+const TimeEntriesPage = () => {
+  const isMobile = useIsMobile();
   const { user } = useAuth();
+  const { isAdmin, isManager } = useRoles();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Tab state
   const tabFromUrl = searchParams.get("tab") === "receipts" ? "receipts" : "entries";
   const [activeTab, setActiveTab] = useState(tabFromUrl);
-
-  // Sync tab with URL parameter changes
-  useEffect(() => {
-    setActiveTab(tabFromUrl);
-  }, [tabFromUrl]);
-
-  // Apply URL status parameter to filters
-  useEffect(() => {
-    const statusParam = searchParams.get("status");
-
-    if (statusParam && (statusParam === "pending" || statusParam === "approved" || statusParam === "rejected")) {
-      setFilters((prev) => ({
-        ...prev,
-        status: [statusParam],
-      }));
-    }
-  }, [searchParams]);
-
+  
+  // Filters state
   const [filters, setFilters] = useState<TimeEntryFilters>({
     dateFrom: null,
     dateTo: null,
@@ -112,240 +63,215 @@ const TimeEntries = () => {
     workerIds: [],
     projectIds: [],
   });
+
+  const [receiptFilters, setReceiptFilters] = useState<ReceiptFilters>({
+    dateFrom: null,
+    dateTo: null,
+    status: [],
+    payeeIds: [],
+    projectIds: [],
+    amount: null,
+  });
+
+  // Workers and projects for filters
   const [workers, setWorkers] = useState<Array<{ id: string; name: string }>>([]);
   const [projects, setProjects] = useState<Array<{ id: string; number: string; name: string }>>([]);
+  
+  // Pagination state
   const [pageSize, setPageSize] = useState(25);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Receipt management ref
+  const receiptsManagementRef = useRef<ReceiptsManagementRef>(null);
+  
+  // Receipt state
+  const [receiptStatistics, setReceiptStatistics] = useState({
+    pendingCount: 0,
+    approvedTodayCount: 0,
+    rejectedCount: 0,
+    totalAmount: 0,
+  });
+  const [receiptFilteredCount, setReceiptFilteredCount] = useState(0);
+  const [receiptPayees, setReceiptPayees] = useState<Array<{ id: string; name: string }>>([]);
+  const [receiptProjects, setReceiptProjects] = useState<Array<{ id: string; project_name: string; project_number?: string }>>([]);
+  const [receiptVisibleColumns, setReceiptVisibleColumns] = useState<string[]>(
+    receiptColumnDefinitions.filter(col => col.required || col.key === "status" || col.key === "amount").map(col => col.key)
+  );
+  const [receiptColumnOrder, setReceiptColumnOrder] = useState<string[]>(receiptColumnDefinitions.map((col) => col.key));
+
+  // Modals state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<TimeEntryListItem | null>(null);
+  const [rejectDialogEntry, setRejectDialogEntry] = useState<TimeEntryListItem | null>(null);
+  const [addReceiptModalOpen, setAddReceiptModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<any>(null);
+
+  // Column state
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(
+    timeEntryColumnDefinitions.filter(col => col.required || col.key === "status" || col.key === "hours").map(col => col.key)
+  );
+  const [columnOrder, setColumnOrder] = useState<string[]>(timeEntryColumnDefinitions.map((col) => col.key));
+
+  // Calculate totals
+  const [totalHours, setTotalHours] = useState(0);
+  const [totalAmount, setTotalAmount] = useState(0);
+
+  // Receipt count for badge
   const [receiptCount, setReceiptCount] = useState(0);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [addReceiptModalOpen, setAddReceiptModalOpen] = useState(false);
-  const { isAdmin, isManager } = useRoles();
+
+  // Debounce filters to prevent rapid refetches (500ms delay)
+  const debouncedFilters = useDebounce(filters, 500);
+
+  // Track previous filters to detect changes and reset pagination
+  const prevFiltersRef = useRef<TimeEntryFilters>(filters);
+
+  // Use time entries hook with debounced filters
+  const {
+    entries: timeEntries,
+    loading,
+    statistics,
+    totalCount,
+    refetch: refreshTimeEntries,
+  } = useTimeEntries(debouncedFilters, pageSize, currentPage);
+
+  // Initialize pagination with totalCount (will update when totalCount changes)
+  const pagination = usePagination({
+    totalItems: totalCount || 0,
+    pageSize: pageSize,
+    initialPage: currentPage,
+  });
+
+  // Create a wrapper for goToPage that updates local state (which triggers useTimeEntries refetch)
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Create pagination object for components that expect { currentPage, goToPage }
+  const paginationProps = {
+    currentPage: currentPage,
+    goToPage: handlePageChange,
+  };
+
+  // Reset pagination to page 1 when filters change
+  useEffect(() => {
+    const filtersChanged = 
+      prevFiltersRef.current.dateFrom !== filters.dateFrom ||
+      prevFiltersRef.current.dateTo !== filters.dateTo ||
+      JSON.stringify(prevFiltersRef.current.status) !== JSON.stringify(filters.status) ||
+      JSON.stringify(prevFiltersRef.current.workerIds) !== JSON.stringify(filters.workerIds) ||
+      JSON.stringify(prevFiltersRef.current.projectIds) !== JSON.stringify(filters.projectIds);
+
+    if (filtersChanged) {
+      setCurrentPage(1);
+    }
+    prevFiltersRef.current = filters;
+  }, [filters, pagination]);
+
+  // Use extracted hooks
+  const selection = useTimeEntrySelection(timeEntries);
+  const sorting = useTimeEntrySorting(timeEntries);
+  const actions = useTimeEntryActions({
+    user,
+    refreshTimeEntries,
+    setSelectedIds: selection.setSelectedIds,
+    setRejectDialogOpen,
+    setDeleteDialogOpen,
+  });
+
+  // Check permissions (based on roles)
+  const canApproveTimeEntries = isAdmin || isManager;
+  const canRejectTimeEntries = isAdmin || isManager;
   const canCreateTimeEntry = isAdmin || isManager;
-  const receiptsManagementRef = useRef<ReceiptsManagementRef>(null);
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  
-  // Receipt column definitions
-  const receiptColumnDefinitions = [
-    { key: 'preview', label: 'Preview', required: true },
-    { key: 'type', label: 'Type', required: false },
-    { key: 'payee', label: 'Vendor', required: true },
-    { key: 'project', label: 'Project', required: true },
-    { key: 'date', label: 'Date', required: true },
-    { key: 'amount', label: 'Amount', required: false },
-    { key: 'status', label: 'Status', required: false },
-    { key: 'submitted_at', label: 'Submitted At', required: false },
-    { key: 'submitted_by', label: 'Submitted By', required: false },
-    { key: 'description', label: 'Description', required: false },
-    { key: 'actions', label: 'Actions', required: true },
-  ];
-  
-  // Receipt column state (will be synced from ReceiptsManagement via ref)
-  const [receiptVisibleColumns, setReceiptVisibleColumns] = useState<string[]>([]);
-  const [receiptColumnOrder, setReceiptColumnOrder] = useState<string[]>([]);
-  
-  // Sync receipt column state from ref when tab changes to receipts
+
+  // Sync tab with URL parameter changes
+  useEffect(() => {
+    setActiveTab(tabFromUrl);
+  }, [tabFromUrl]);
+
+  // Sync receipt data from ref when tab changes to receipts
   useEffect(() => {
     if (activeTab === "receipts") {
-      // Use a small timeout to ensure the ref is ready after component mount
-      const timer = setTimeout(() => {
+      // Use a retry mechanism to ensure data is loaded
+      const syncData = () => {
         if (receiptsManagementRef.current) {
           const columnState = receiptsManagementRef.current.getColumnState();
           setReceiptVisibleColumns(columnState.visibleColumns);
           setReceiptColumnOrder(columnState.columnOrder);
+          
+          const stats = receiptsManagementRef.current.getStatistics();
+          setReceiptStatistics(stats);
+          const filters = receiptsManagementRef.current.getFilters();
+          setReceiptFilters(filters);
+          
+          const payees = receiptsManagementRef.current.getPayees();
+          const projects = receiptsManagementRef.current.getProjects();
+          
+          // Always update payees and projects (they may be empty initially, but we'll retry)
+          setReceiptPayees(payees);
+          setReceiptProjects(projects);
+          
+          const count = receiptsManagementRef.current.getFilteredCount();
+          setReceiptFilteredCount(count);
+          
+          // Return true if data is ready, false if we need to retry
+          return payees.length > 0 && projects.length > 0;
         }
-      }, 100);
+        return false;
+      };
+
+      // Initial attempt with retry logic
+      let attemptCount = 0;
+      const maxAttempts = 10; // Try for up to 2 seconds (10 * 200ms)
+      
+      const trySync = () => {
+        attemptCount++;
+        const success = syncData();
+        
+        // If data not ready and we haven't exceeded max attempts, retry
+        if (!success && attemptCount < maxAttempts) {
+          setTimeout(trySync, 200);
+        }
+      };
+
+      // Start with a small delay, then retry if needed
+      const timer = setTimeout(trySync, 100);
+      
       return () => clearTimeout(timer);
     }
   }, [activeTab]);
 
-  // Column visibility state with localStorage persistence
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
-    const saved = localStorage.getItem("time-entries-visible-columns");
-    if (saved) {
-      return JSON.parse(saved);
+  // Sync receipt data periodically when on receipts tab
+  useEffect(() => {
+    if (activeTab === "receipts" && receiptsManagementRef.current) {
+      const interval = setInterval(() => {
+        if (receiptsManagementRef.current) {
+          const stats = receiptsManagementRef.current.getStatistics();
+          setReceiptStatistics(stats);
+          const filters = receiptsManagementRef.current.getFilters();
+          setReceiptFilters(filters);
+          
+          // Also sync payees and projects periodically
+          const payees = receiptsManagementRef.current.getPayees();
+          const projects = receiptsManagementRef.current.getProjects();
+          
+          // Only update if we have data (don't overwrite with empty arrays)
+          if (payees.length > 0) {
+            setReceiptPayees(payees);
+          }
+          if (projects.length > 0) {
+            setReceiptProjects(projects);
+          }
+          
+          const count = receiptsManagementRef.current.getFilteredCount();
+          setReceiptFilteredCount(count);
+        }
+      }, 500);
+      
+      return () => clearInterval(interval);
     }
-    // Default visible columns
-    return [
-      "worker",
-      "project",
-      "date",
-      "start",
-      "end",
-      "hours",
-      "amount",
-      "receipt",
-      "status",
-      "submitted_at",
-      "actions",
-    ];
-  });
-
-  // Column order state with localStorage persistence
-  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
-    const saved = localStorage.getItem("time-entries-column-order");
-    if (saved) {
-      const savedOrder = JSON.parse(saved);
-      // Filter out any invalid column keys
-      const validOrder = savedOrder.filter((key: string) => columnDefinitions.some((col) => col.key === key));
-      // Add any new columns that aren't in saved order
-      const newColumns = columnDefinitions.map((col) => col.key).filter((key) => !validOrder.includes(key));
-
-      return [...validOrder, ...newColumns];
-    }
-    // Default: use order from columnDefinitions
-    return columnDefinitions.map((col) => col.key);
-  });
-
-  // Save visibility to localStorage
-  useEffect(() => {
-    localStorage.setItem("time-entries-visible-columns", JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
-
-  // Save column order to localStorage
-  useEffect(() => {
-    localStorage.setItem("time-entries-column-order", JSON.stringify(columnOrder));
-  }, [columnOrder]);
-
-  // Fetch receipt count
-  const fetchReceiptCount = async () => {
-    try {
-      // Count only PENDING receipts from both sources
-      const [{ count: timeEntryCount }, { count: standaloneCount }] = await Promise.all([
-        supabase
-          .from("expenses")
-          .select("*", { count: "exact", head: true })
-          .eq("category", "labor_internal")
-          .not("attachment_url", "is", null)
-          .or("approval_status.is.null,approval_status.eq.pending"),
-        supabase
-          .from("receipts")
-          .select("*", { count: "exact", head: true })
-          .or("approval_status.is.null,approval_status.eq.pending"),
-      ]);
-
-      setReceiptCount((timeEntryCount || 0) + (standaloneCount || 0));
-    } catch (error) {
-      console.error("Failed to fetch receipt count:", error);
-    }
-  };
-
-  const pagination = usePagination({
-    totalItems: 0,
-    pageSize,
-    initialPage: 1,
-  });
-
-  const { entries, statistics, loading, totalCount, refetch } = useTimeEntries(
-    filters,
-    pageSize,
-    pagination.currentPage,
-  );
-
-  // Calculate totals across all filtered entries (not just current page)
-  const [totalHours, setTotalHours] = useState(0);
-  const [totalAmount, setTotalAmount] = useState(0);
-
-  useEffect(() => {
-    const fetchTotals = async () => {
-      try {
-        let query = supabase
-          .from('expenses')
-          .select(`
-            id,
-            start_time,
-            end_time,
-            amount,
-            description,
-            payees!inner(payee_name, hourly_rate),
-            projects!inner(project_number, project_name)
-          `)
-          .eq('category', 'labor_internal');
-
-        // Apply the same filters as the main query
-        if (filters.dateFrom) {
-          query = query.gte('expense_date', filters.dateFrom);
-        }
-        if (filters.dateTo) {
-          query = query.lte('expense_date', filters.dateTo);
-        }
-        if (filters.status.length > 0) {
-          query = query.in('approval_status', filters.status);
-        }
-        if (filters.workerIds.length > 0) {
-          query = query.in('payee_id', filters.workerIds);
-        }
-        if (filters.projectIds.length > 0) {
-          query = query.in('project_id', filters.projectIds);
-        }
-
-        const { data: allEntries } = await query;
-
-        if (allEntries) {
-          let totalHrs = 0;
-          let totalAmt = 0;
-
-          allEntries.forEach((entry: any) => {
-            // Calculate hours
-            let hours = 0;
-            if (entry.start_time && entry.end_time) {
-              const start = new Date(entry.start_time);
-              const end = new Date(entry.end_time);
-              hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-            } else {
-              // Fallback to description parsing
-              const timeMatch = entry.description?.match(/(\d+\.?\d*)\s*hours?/i);
-              hours = timeMatch ? parseFloat(timeMatch[1]) : 0;
-            }
-            totalHrs += hours;
-            totalAmt += entry.amount || 0;
-          });
-
-          setTotalHours(totalHrs);
-          setTotalAmount(totalAmt);
-        }
-      } catch (error) {
-        console.error('Error fetching totals:', error);
-      }
-    };
-
-    fetchTotals();
-  }, [filters]);
-
-  const tabOptions = [
-    {
-      value: "entries",
-      label: "Time Entries",
-      icon: ClipboardCheck,
-      badgeCount: statistics.pendingCount,
-    },
-    {
-      value: "receipts",
-      label: "Receipts",
-      icon: FileImage,
-      badgeCount: receiptCount,
-    },
-  ];
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
-
-  // Update pagination when totalCount changes
-  useEffect(() => {
-    if (totalCount !== pagination.totalPages * pageSize) {
-      pagination.goToPage(1);
-    }
-  }, [totalCount]);
-
-  // Fetch receipt count on mount
-  useEffect(() => {
-    fetchReceiptCount();
-  }, []);
+  }, [activeTab]);
 
   // Fetch workers for filter
   useEffect(() => {
@@ -392,43 +318,67 @@ const TimeEntries = () => {
     fetchProjects();
   }, []);
 
-  // Real-time updates for time entries
+  // Update pagination when totalCount changes (but not when filters change, as that's handled above)
   useEffect(() => {
-    const channel = supabase
-      .channel("time-entries-admin")
+    const expectedTotalPages = Math.ceil(totalCount / pageSize);
+    if (currentPage > expectedTotalPages && expectedTotalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [totalCount, pageSize, currentPage, pagination]);
+
+  // Calculate totals
+  useEffect(() => {
+    if (timeEntries) {
+      const hours = timeEntries.reduce((sum, e) => sum + e.hours, 0);
+      const amount = timeEntries.reduce((sum, e) => sum + e.amount, 0);
+      setTotalHours(hours);
+      setTotalAmount(amount);
+    }
+  }, [timeEntries]);
+
+  // Handler for reject dialog
+  const handleReject = async (reason: string) => {
+    await actions.handleReject(selection.selectedIds, reason);
+  };
+
+  // Fetch receipt count
+  const fetchReceiptCount = async () => {
+    try {
+      const [{ count: timeEntryCount }, { count: standaloneCount }] = await Promise.all([
+        supabase
+          .from("expenses")
+          .select("*", { count: "exact", head: true })
+          .or("approval_status.is.null,approval_status.eq.pending"),
+        supabase
+          .from("receipts")
+          .select("*", { count: "exact", head: true })
+          .or("approval_status.is.null,approval_status.eq.pending"),
+      ]);
+      
+      setReceiptCount((timeEntryCount || 0) + (standaloneCount || 0));
+    } catch (error) {
+      console.error("Error fetching receipt count:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchReceiptCount();
+    
+    const expensesChannel = supabase
+      .channel("expenses-updates")
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "expenses",
-          filter: "category=eq.labor_internal",
-        },
-        () => {
-          refetch();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [refetch]);
-
-  // Real-time updates for receipt count
-  useEffect(() => {
-    const channel = supabase
-      .channel("receipt-count-updates")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "expenses",
-          filter: "category=eq.labor_internal",
         },
         fetchReceiptCount,
       )
+      .subscribe();
+
+    const receiptsChannel = supabase
+      .channel("receipts-updates")
       .on(
         "postgres_changes",
         {
@@ -441,118 +391,29 @@ const TimeEntries = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(expensesChannel);
+      supabase.removeChannel(receiptsChannel);
     };
   }, []);
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(entries.map((e) => e.id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
+  const tabOptions = [
+    {
+      value: "entries",
+      label: "Time Entries",
+      icon: ClipboardCheck,
+      badgeCount: statistics.pendingCount,
+    },
+    {
+      value: "receipts",
+      label: "Receipts",
+      icon: FileImage,
+      badgeCount: receiptCount,
+    },
+  ];
 
-  const handleSelectOne = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedIds([...selectedIds, id]);
-    } else {
-      setSelectedIds(selectedIds.filter((sid) => sid !== id));
-    }
-  };
-
-  const handleApprove = async (entryIds: string[]) => {
-    try {
-      const { error } = await supabase
-        .from("expenses")
-        .update({
-          approval_status: "approved",
-          approved_by: user?.id,
-          approved_at: new Date().toISOString(),
-        })
-        .in("id", entryIds);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"} approved`,
-      });
-      setSelectedIds([]);
-      refetch();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to approve entries",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleReject = async (reason: string) => {
-    try {
-      const { error } = await supabase
-        .from("expenses")
-        .update({
-          approval_status: "rejected",
-          rejection_reason: reason,
-          approved_by: null,
-          approved_at: null,
-        })
-        .in("id", selectedIds);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `${selectedIds.length} ${selectedIds.length === 1 ? "entry" : "entries"} rejected`,
-      });
-      setSelectedIds([]);
-      refetch();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reject entries",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDelete = async () => {
-    if (selectedIds.length === 0) return;
-
-    try {
-      const { error } = await supabase.from("expenses").delete().in("id", selectedIds);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `${selectedIds.length} ${selectedIds.length === 1 ? "entry" : "entries"} deleted`,
-      });
-      setSelectedIds([]);
-      setDeleteDialogOpen(false);
-      refetch();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete entries",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCreateTimeEntry = () => {
-    setCreateDialogOpen(true);
-  };
-
-  const handleTimeEntrySaved = () => {
-    refetch();
-    fetchReceiptCount();
-    toast({
-      title: "Success",
-      description: "Time entry created successfully",
-    });
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    navigate(`/time-entries${value === "receipts" ? "?tab=receipts" : ""}`);
   };
 
   const handleResetFilters = () => {
@@ -565,224 +426,95 @@ const TimeEntries = () => {
     });
   };
 
-  const handleSort = (columnKey: string) => {
-    const column = columnDefinitions.find(col => col.key === columnKey);
-    if (!column?.sortable) return;
-    
-    if (sortColumn === columnKey) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(columnKey);
-      setSortDirection('asc');
-    }
-  };
-
-  const renderSortIcon = (columnKey: string) => {
-    const column = columnDefinitions.find(col => col.key === columnKey);
-    if (!column?.sortable) return null;
-    
-    if (sortColumn !== columnKey) {
-      return <ChevronsUpDown className="h-3 w-3 ml-1 text-muted-foreground/50" />;
-    }
-    return sortDirection === 'asc' 
-      ? <ChevronUp className="h-3 w-3 ml-1" /> 
-      : <ChevronDown className="h-3 w-3 ml-1" />;
-  };
-
-  const sortedEntries = useMemo(() => {
-    if (!sortColumn) return entries;
-    
-    return [...entries].sort((a, b) => {
-      let aValue, bValue;
-      switch (sortColumn) {
-        case 'worker':
-          aValue = a.worker_name || '';
-          bValue = b.worker_name || '';
-          break;
-        case 'employee_number':
-          aValue = a.payee?.employee_number || '';
-          bValue = b.payee?.employee_number || '';
-          break;
-        case 'project':
-          aValue = a.project_number || '';
-          bValue = b.project_number || '';
-          break;
-        case 'address':
-          aValue = a.project_address || '';
-          bValue = b.project_address || '';
-          break;
-        case 'date':
-          aValue = parseDateOnly(a.expense_date).getTime();
-          bValue = parseDateOnly(b.expense_date).getTime();
-          break;
-        case 'start':
-          aValue = a.start_time ? new Date(a.start_time).getTime() : 0;
-          bValue = b.start_time ? new Date(b.start_time).getTime() : 0;
-          break;
-        case 'end':
-          aValue = a.end_time ? new Date(a.end_time).getTime() : 0;
-          bValue = b.end_time ? new Date(b.end_time).getTime() : 0;
-          break;
-        case 'hours':
-          aValue = a.hours;
-          bValue = b.hours;
-          break;
-        case 'amount':
-          aValue = a.amount;
-          bValue = b.amount;
-          break;
-        case 'receipt':
-          aValue = a.attachment_url ? 1 : 0;
-          bValue = b.attachment_url ? 1 : 0;
-          break;
-        case 'status':
-          aValue = a.approval_status || 'pending';
-          bValue = b.approval_status || 'pending';
-          break;
-        case 'submitted_at':
-          aValue = new Date(a.created_at).getTime();
-          bValue = new Date(b.created_at).getTime();
-          break;
-        default:
-          return 0;
-      }
-      
-      if (aValue == null) return 1;
-      if (bValue == null) return -1;
-      
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-      
-      const aStr = String(aValue).toLowerCase();
-      const bStr = String(bValue).toLowerCase();
-      return sortDirection === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
-    });
-  }, [entries, sortColumn, sortDirection]);
-
-  const getStatusBadge = (status: string | null) => {
-    if (!status || status === "pending") {
-      return (
-        <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-yellow-50 text-yellow-700 border-yellow-300">
-          Pending
-        </Badge>
-      );
-    }
-    if (status === "approved") {
-      return (
-        <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-green-50 text-green-700 border-green-300">
-          Approved
-        </Badge>
-      );
-    }
-    if (status === "rejected") {
-      return (
-        <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-red-50 text-red-700 border-red-300">
-          Rejected
-        </Badge>
-      );
-    }
-    return null;
-  };
-
   return (
-    <div className="w-full overflow-x-hidden px-2 sm:px-4 py-2 space-y-2">
+    <MobilePageWrapper className="space-y-4">
       <PageHeader
-        icon={Clock}
-        title="Employee Time and Receipt Management"
+        icon={ClipboardCheck}
+        title="Time Entries"
         description="Review time entries and manage receipts"
         actions={
           <>
             {canCreateTimeEntry && activeTab === "entries" && (
-              <Button onClick={handleCreateTimeEntry} size="sm" className="flex items-center gap-1">
+              <Button onClick={() => setCreateDialogOpen(true)} size="sm" className="hidden sm:flex items-center gap-1">
                 <Plus className="h-4 w-4" />
-                Create Time Entry
+                New Entry
               </Button>
             )}
             {activeTab === "receipts" && (
-              <Button onClick={() => setAddReceiptModalOpen(true)} size="sm" className="flex items-center gap-1">
+              <Button onClick={() => setAddReceiptModalOpen(true)} size="sm" className="hidden sm:flex items-center gap-1">
                 <Plus className="h-4 w-4" />
                 Add Receipt
               </Button>
             )}
-            <div className="hidden sm:flex items-center gap-2">
-              {activeTab === "entries" && (
-                <>
-                  <ColumnSelector
-                    columns={columnDefinitions}
-                    visibleColumns={visibleColumns}
-                    onVisibilityChange={setVisibleColumns}
-                    columnOrder={columnOrder}
-                    onColumnOrderChange={setColumnOrder}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowExportModal(true)}
-                    disabled={entries.length === 0}
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Export
-                  </Button>
-                </>
-              )}
-              {activeTab === "receipts" && receiptsManagementRef.current && (
-                <>
-                  <ColumnSelector
-                    columns={receiptColumnDefinitions}
-                    visibleColumns={receiptVisibleColumns}
-                    onVisibilityChange={(cols) => {
-                      setReceiptVisibleColumns(cols);
-                      const columnState = receiptsManagementRef.current?.getColumnState();
-                      if (columnState) {
-                        columnState.setVisibleColumns(cols);
-                      }
-                    }}
-                    columnOrder={receiptColumnOrder}
-                    onColumnOrderChange={(order) => {
-                      setReceiptColumnOrder(order);
-                      const columnState = receiptsManagementRef.current?.getColumnState();
-                      if (columnState) {
-                        columnState.setColumnOrder(order);
-                      }
-                    }}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => receiptsManagementRef.current?.exportToCSV()}
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Export CSV
-                  </Button>
-                </>
-              )}
-            </div>
+            {activeTab === "entries" && (
+              <>
+                <ColumnSelector
+                  columns={timeEntryColumnDefinitions}
+                  visibleColumns={visibleColumns}
+                  columnOrder={columnOrder}
+                  onVisibleColumnsChange={setVisibleColumns}
+                  onColumnOrderChange={setColumnOrder}
+                  className="hidden sm:flex"
+                />
+                <Button variant="ghost" size="sm" onClick={() => setExportModalOpen(true)} className="hidden sm:flex">
+                  <Download className="h-4 w-4 mr-1" />
+                  Export CSV
+                </Button>
+              </>
+            )}
+            {activeTab === "receipts" && receiptsManagementRef.current && (
+              <>
+                <ColumnSelector
+                  columns={receiptColumnDefinitions}
+                  visibleColumns={receiptVisibleColumns}
+                  columnOrder={receiptColumnOrder}
+                  onVisibleColumnsChange={(cols) => {
+                    const columnState = receiptsManagementRef.current?.getColumnState();
+                    if (columnState) {
+                      columnState.setVisibleColumns(cols);
+                    }
+                  }}
+                  onColumnOrderChange={(order) => {
+                    const columnState = receiptsManagementRef.current?.getColumnState();
+                    if (columnState) {
+                      columnState.setColumnOrder(order);
+                    }
+                  }}
+                  className="hidden sm:flex"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="hidden sm:flex"
+                  onClick={() => receiptsManagementRef.current?.exportToCSV()}
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Export CSV
+                </Button>
+              </>
+            )}
           </>
         }
       />
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-4">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="w-full sm:w-auto">
             <div className="sm:hidden">
               <Select value={activeTab} onValueChange={handleTabChange}>
                 <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[100]">
                   {tabOptions.map((tab) => {
                     const Icon = tab.icon;
                     return (
                       <SelectItem key={tab.value} value={tab.value}>
                         <div className="flex items-center gap-2">
-                          <Icon className="h-4 w-4" />
+                          {Icon && <Icon className="h-4 w-4" />}
                           <span>{tab.label}</span>
                           {tab.badgeCount > 0 && (
-                            <Badge variant="secondary" className="ml-auto h-4 text-[10px] px-1.5">
-                              {tab.badgeCount}
-                            </Badge>
+                            <span className="ml-auto text-xs text-muted-foreground">({tab.badgeCount})</span>
                           )}
                         </div>
                       </SelectItem>
@@ -801,12 +533,10 @@ const TimeEntries = () => {
                     value={tab.value}
                     className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   >
-                    <Icon className="h-4 w-4" />
+                    {Icon && <Icon className="h-4 w-4" />}
                     <span>{tab.label}</span>
                     {tab.badgeCount > 0 && (
-                      <Badge variant="secondary" className="h-4 text-[10px] px-1.5">
-                        {tab.badgeCount}
-                      </Badge>
+                      <span className="ml-1 text-xs">({tab.badgeCount})</span>
                     )}
                   </TabsTrigger>
                 );
@@ -815,452 +545,140 @@ const TimeEntries = () => {
           </div>
         </div>
 
-        {/* Time Entries Tab */}
-        <TabsContent value="entries" className="space-y-2">
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2">
-            <Card>
-              <CardContent className="p-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Pending Approval</p>
-                    <p className="text-base font-bold">{statistics.pendingCount}</p>
-                  </div>
-                  <Clock className="h-5 w-5 text-yellow-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Approved This Week</p>
-                    <p className="text-base font-bold">{statistics.approvedThisWeekHours.toFixed(1)}h</p>
-                  </div>
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Rejected</p>
-                    <p className="text-base font-bold">{statistics.rejectedCount}</p>
-                  </div>
-                  <XCircle className="h-5 w-5 text-red-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total This Month</p>
-                    <p className="text-base font-bold">{statistics.totalThisMonthHours.toFixed(1)}h</p>
-                  </div>
-                  <Clock className="h-5 w-5 text-blue-500" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Filters */}
+        <TabsContent value="entries" className="space-y-4 min-h-[600px]">
           <TimeEntrySearchFilters
             filters={filters}
             onFiltersChange={setFilters}
             onReset={handleResetFilters}
-            resultCount={totalCount}
+            resultCount={timeEntries.length}
             workers={workers}
             projects={projects}
           />
-
-          {/* Bulk Actions */}
-          <TimeEntryBulkActions
-            selectedCount={selectedIds.length}
-            onApprove={() => handleApprove(selectedIds)}
-            onReject={() => setRejectDialogOpen(true)}
-            onDelete={() => setDeleteDialogOpen(true)}
-            onCancel={() => setSelectedIds([])}
-          />
-
-          {/* Table */}
-          <Card className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="overflow-auto -mx-2 px-2 sm:mx-0 sm:px-0" style={{ maxHeight: 'calc(100vh - 400px)' }}>
-                <Table>
-                  <TableHeader className="sticky top-0 bg-muted z-20 border-b">
-                    <TableRow className="h-8">
-                      <TableHead className="w-10 p-2">
-                        <Checkbox
-                          checked={selectedIds.length === sortedEntries.length && sortedEntries.length > 0}
-                          onCheckedChange={handleSelectAll}
-                        />
-                      </TableHead>
-                      {columnOrder.map((colKey) => {
-                        if (!visibleColumns.includes(colKey)) return null;
-                        
-                        const column = columnDefinitions.find(col => col.key === colKey);
-                        const isSortable = column?.sortable;
-
-                        const widths: Record<string, string> = {
-                          worker: "w-32",
-                          employee_number: "w-28",
-                          project: "w-48",
-                          address: "w-40",
-                          date: "w-28",
-                          start: "w-20",
-                          end: "w-20",
-                          hours: "w-20",
-                          lunch: "w-16",
-                          amount: "w-24",
-                          receipt: "w-16",
-                          status: "w-24",
-                          submitted_at: "w-36",
-                          actions: "w-20",
-                        };
-                        
-                        const alignments: Record<string, string> = {
-                          hours: "text-right",
-                          amount: "text-right",
-                          receipt: "text-center",
-                          actions: "text-right",
-                        };
-                        
-                        const labels: Record<string, string> = {
-                          worker: "Worker",
-                          employee_number: "Employee #",
-                          project: "Project",
-                          address: "Address",
-                          date: "Date",
-                          start: "Start",
-                          end: "End",
-                          hours: "Hours",
-                          lunch: "Lunch",
-                          amount: "Amount",
-                          receipt: "Receipt",
-                          status: "Status",
-                          submitted_at: "Submitted At",
-                          actions: "Actions",
-                        };
-
-                        return (
-                          <TableHead 
-                            key={colKey} 
-                            className={cn(
-                              `p-2 text-xs font-medium h-8 ${widths[colKey]} ${alignments[colKey] || ''}`,
-                              isSortable && "cursor-pointer hover:text-foreground select-none"
-                            )}
-                            onClick={() => isSortable && handleSort(colKey)}
-                          >
-                            <div className={cn(
-                              "flex items-center",
-                              alignments[colKey] === "text-right" && "justify-end",
-                              alignments[colKey] === "text-center" && "justify-center"
-                            )}>
-                              {labels[colKey]}
-                              {renderSortIcon(colKey)}
-                            </div>
-                          </TableHead>
-                        );
-                      })}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {loading ? (
-                      <TableRow>
-                        <TableCell colSpan={visibleColumns.length + 1} className="text-center py-4 text-xs">
-                          Loading...
-                        </TableCell>
-                      </TableRow>
-                    ) : entries.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={visibleColumns.length + 1}
-                          className="text-center py-4 text-xs text-muted-foreground"
-                        >
-                          No time entries found
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      sortedEntries.map((entry) => (
-                        <TableRow key={entry.id} className="h-9 hover:bg-muted/50 even:bg-muted/20">
-                          <TableCell className="p-1.5">
-                            <Checkbox
-                              checked={selectedIds.includes(entry.id)}
-                              onCheckedChange={(checked) => handleSelectOne(entry.id, checked as boolean)}
-                            />
-                          </TableCell>
-                          {columnOrder.map((colKey) => {
-                            if (!visibleColumns.includes(colKey)) return null;
-
-                            switch (colKey) {
-                              case "worker":
-                                return (
-                                  <TableCell key={colKey} className="p-1.5 text-xs font-medium">
-                                    {entry.worker_name}
-                                  </TableCell>
-                                );
-                              case "employee_number":
-                                return (
-                                  <TableCell key={colKey} className="p-1.5 text-xs text-muted-foreground">
-                                    {entry.payee?.employee_number || "-"}
-                                  </TableCell>
-                                );
-                              case "project":
-                                return (
-                                  <TableCell key={colKey} className="p-1.5">
-                                    <div className="text-xs leading-tight">
-                                      <div className="font-medium">{entry.project_number}</div>
-                                      <div className="text-muted-foreground text-[10px]">{entry.project_name}</div>
-                                      <div className="text-muted-foreground text-[10px]">{entry.client_name}</div>
-                                    </div>
-                                  </TableCell>
-                                );
-                              case "address":
-                                return (
-                                  <TableCell key={colKey} className="p-1.5 text-xs text-muted-foreground">
-                                    {entry.project_address || "-"}
-                                  </TableCell>
-                                );
-                              case "date":
-                                return (
-                                  <TableCell key={colKey} className="p-1.5 text-xs">
-                                    {format(parseDateOnly(entry.expense_date), "MMM dd, yyyy")}
-                                  </TableCell>
-                                );
-                              case "start":
-                                return (
-                                  <TableCell key={colKey} className="p-1.5 font-mono text-xs">
-                                    {entry.start_time ? format(new Date(entry.start_time), "HH:mm") : "-"}
-                                  </TableCell>
-                                );
-                              case "end":
-                                return (
-                                  <TableCell key={colKey} className="p-1.5 font-mono text-xs">
-                                    {entry.end_time ? format(new Date(entry.end_time), "HH:mm") : "-"}
-                                  </TableCell>
-                                );
-                              case "hours":
-                                return (
-                                  <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right">
-                                    <span title={entry.lunch_taken 
-                                      ? `Gross: ${entry.gross_hours?.toFixed(2) || entry.hours.toFixed(2)}h - Lunch: ${entry.lunch_duration_minutes}min`
-                                      : undefined
-                                    }>
-                                      {entry.hours.toFixed(2)}
-                                    </span>
-                                  </TableCell>
-                                );
-                              case "lunch":
-                                return (
-                                  <TableCell key={colKey} className="p-1.5 text-center">
-                                    {entry.lunch_taken && (
-                                      <span 
-                                        className="text-xs" 
-                                        title={`${entry.lunch_duration_minutes} min lunch`}
-                                      >
-                                        🍴 {entry.lunch_duration_minutes}m
-                                      </span>
-                                    )}
-                                  </TableCell>
-                                );
-                              case "amount":
-                                return (
-                                  <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right font-semibold">
-                                    ${entry.amount.toFixed(2)}
-                                  </TableCell>
-                                );
-                              case "receipt":
-                                return (
-                                  <TableCell key={colKey} className="p-1.5 text-center">
-                                    {entry.attachment_url ? (
-                                      <Paperclip className="h-3 w-3 text-blue-600 inline-block" />
-                                    ) : (
-                                      <span className="text-muted-foreground text-xs">-</span>
-                                    )}
-                                  </TableCell>
-                                );
-                              case "status":
-                                return (
-                                  <TableCell key={colKey} className="p-1.5">
-                                    {getStatusBadge(entry.approval_status)}
-                                  </TableCell>
-                                );
-                              case "submitted_at":
-                                return (
-                                  <TableCell key={colKey} className="p-1.5 text-xs">
-                                    {format(new Date(entry.created_at), "MMM dd, yyyy HH:mm")}
-                                  </TableCell>
-                                );
-                              case "actions":
-                                return (
-                                  <TableCell key={colKey}>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="sm">
-                                          <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => setEditingEntry(entry)}>
-                                          <Edit className="h-4 w-4 mr-2" />
-                                          Edit Time Entry
-                                        </DropdownMenuItem>
-                                        {(!entry.approval_status || entry.approval_status === "pending") && (
-                                          <>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => handleApprove([entry.id])}>
-                                              <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                                              Approve
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                              onClick={() => {
-                                                setSelectedIds([entry.id]);
-                                                setRejectDialogOpen(true);
-                                              }}
-                                            >
-                                              <XCircle className="h-4 w-4 mr-2 text-red-600" />
-                                              Reject
-                                            </DropdownMenuItem>
-                                          </>
-                                        )}
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={() => navigate(`/projects/${entry.project_id}`)}>
-                                          <Eye className="h-4 w-4 mr-2" />
-                                          View Project
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </TableCell>
-                                );
-                              default:
-                                return null;
-                            }
-                          })}
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                  
-                  {/* Footer with totals */}
-                  <TableFooter className="border-t bg-muted/30">
-                    <TableRow>
-                      {/* Checkbox column - matches header structure */}
-                      <TableCell className="p-1.5"></TableCell>
-                      
-                      {columnOrder.map((colKey) => {
-                        if (!visibleColumns.includes(colKey)) return null;
-                        
-                        const alignments: Record<string, string> = {
-                          hours: "text-right",
-                          lunch: "text-center",
-                          amount: "text-right",
-                          receipt: "text-center",
-                          actions: "text-right",
-                        };
-                        
-                        const alignmentClass = alignments[colKey] || '';
-                        
-                        if (colKey === 'project') {
-                          return (
-                            <TableCell key={colKey} className={cn("p-1.5 font-medium text-xs", alignmentClass)}>
-                              Total ({totalCount} {totalCount === 1 ? 'entry' : 'entries'}):
-                            </TableCell>
-                          );
-                        } else if (colKey === 'hours') {
-                          return (
-                            <TableCell key={colKey} className={cn("p-1.5 font-mono font-medium text-xs", alignmentClass)}>
-                              {totalHours.toFixed(2)}
-                            </TableCell>
-                          );
-                        } else if (colKey === 'amount') {
-                          return (
-                            <TableCell key={colKey} className={cn("p-1.5 font-mono font-medium text-xs", alignmentClass)}>
-                              {formatCurrency(totalAmount, { showCents: true })}
-                            </TableCell>
-                          );
-                        } else {
-                          return <TableCell key={colKey} className={cn("p-1.5", alignmentClass)}></TableCell>;
-                        }
-                      })}
-                    </TableRow>
-                  </TableFooter>
-                </Table>
-              </div>
-
-              {/* Pagination */}
-              {totalCount > 0 && (
-                <div className="p-3 border-t flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Rows per page:</span>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => {
-                        setPageSize(Number(e.target.value));
-                        pagination.goToPage(1);
-                      }}
-                      className="border rounded px-2 py-1 text-sm"
-                    >
-                      <option value="25">25</option>
-                      <option value="50">50</option>
-                      <option value="100">100</option>
-                      <option value="200">200</option>
-                    </select>
-                  </div>
-
-                  {totalCount > pageSize && (
-                    <CompletePagination
-                      currentPage={pagination.currentPage}
-                      totalPages={Math.ceil(totalCount / pageSize)}
-                      onPageChange={pagination.goToPage}
-                    />
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          
+          {/* Bulk Actions for Desktop - Right above table like Receipts */}
+          {!isMobile && selection.selectedIds.length > 0 && (
+            <TimeEntryBulkActions
+              selectedCount={selection.selectedIds.length}
+              onApprove={() => actions.handleApprove(selection.selectedIds)}
+              onReject={() => setRejectDialogOpen(true)}
+              onDelete={() => setDeleteDialogOpen(true)}
+              onCancel={selection.clearSelection}
+            />
+          )}
+          
+          {isMobile ? (
+            <TimeEntriesCardView
+              timeEntries={timeEntries || []}
+              selectedIds={selection.selectedIds}
+              onSelectOne={selection.handleSelectOne}
+              onEdit={setEditingEntry}
+              onReject={setRejectDialogEntry}
+              onRefresh={refreshTimeEntries}
+              canApprove={canApproveTimeEntries}
+              canReject={canRejectTimeEntries}
+              totalCount={totalCount}
+              pagination={paginationProps}
+              pageSize={pageSize}
+              setPageSize={setPageSize}
+              onBulkApprove={() => actions.handleApprove(selection.selectedIds)}
+              onBulkReject={() => setRejectDialogOpen(true)}
+              onBulkDelete={() => setDeleteDialogOpen(true)}
+              onClearSelection={selection.clearSelection}
+            />
+          ) : (
+            <ErrorBoundary>
+              <TimeEntriesTable
+                entries={sorting.sortedEntries}
+                visibleColumns={visibleColumns}
+                columnOrder={columnOrder}
+                sortColumn={sorting.sortColumn}
+                sortDirection={sorting.sortDirection}
+                selectedIds={selection.selectedIds}
+                onSort={sorting.handleSort}
+                onSelectAll={selection.handleSelectAll}
+                onSelectOne={selection.handleSelectOne}
+                onApprove={(entryId) => actions.handleApprove([entryId])}
+                onReject={(entryId) => {
+                  selection.setSelectedIds([entryId]);
+                  setRejectDialogOpen(true);
+                }}
+                onEdit={setEditingEntry}
+                onViewProject={(projectId) => navigate(`/projects/${projectId}`)}
+                totalCount={totalCount}
+                totalHours={totalHours}
+                totalAmount={totalAmount}
+                loading={loading}
+                pageSize={pageSize}
+                setPageSize={setPageSize}
+                pagination={paginationProps}
+                renderSortIcon={sorting.renderSortIcon}
+              />
+            </ErrorBoundary>
+          )}
+          
+          {isMobile && canCreateTimeEntry && (
+            <Button
+              variant="default"
+              onClick={() => setCreateDialogOpen(true)}
+              size="icon"
+              className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+            >
+              <Plus className="h-6 w-6 !text-white" />
+            </Button>
+          )}
         </TabsContent>
 
-        {/* Receipts Tab */}
-        <TabsContent value="receipts">
-          <ReceiptsManagement ref={receiptsManagementRef} />
+        <TabsContent value="receipts" className="space-y-4 min-h-[600px]">
+          <ReceiptSearchFilters
+            filters={receiptFilters}
+            onFiltersChange={(newFilters) => {
+              setReceiptFilters(newFilters);
+              if (receiptsManagementRef.current) {
+                receiptsManagementRef.current.setFilters(newFilters);
+              }
+            }}
+            onReset={() => {
+              const resetFilters: ReceiptFilters = {
+                dateFrom: null,
+                dateTo: null,
+                status: [],
+                payeeIds: [],
+                projectIds: [],
+                amount: null,
+              };
+              setReceiptFilters(resetFilters);
+              if (receiptsManagementRef.current) {
+                receiptsManagementRef.current.resetFilters();
+              }
+            }}
+            resultCount={receiptFilteredCount}
+            payees={receiptPayees}
+            projects={receiptProjects}
+          />
+          <ErrorBoundary>
+            <ReceiptsManagement ref={receiptsManagementRef} />
+          </ErrorBoundary>
+          
+          {isMobile && (
+            <Button
+              variant="default"
+              onClick={() => setAddReceiptModalOpen(true)}
+              size="icon"
+              className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+            >
+              <Plus className="h-6 w-6 !text-white" />
+            </Button>
+          )}
         </TabsContent>
       </Tabs>
 
-      {/* Dialogs */}
-      <RejectTimeEntryDialog
-        open={rejectDialogOpen}
-        onOpenChange={setRejectDialogOpen}
-        onConfirm={handleReject}
-        entryCount={selectedIds.length}
+      {/* Modals */}
+      <CreateTimeEntryDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={refreshTimeEntries}
       />
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Time Entries</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedIds.length}{" "}
-              {selectedIds.length === 1 ? "time entry" : "time entries"}? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
+      
       {editingEntry && (
         <EditTimeEntryDialog
           entry={editingEntry}
@@ -1268,40 +686,74 @@ const TimeEntries = () => {
           onOpenChange={(open) => !open && setEditingEntry(null)}
           onSaved={() => {
             setEditingEntry(null);
-            refetch();
+            refreshTimeEntries();
+          }}
+        />
+      )}
+      
+      {rejectDialogEntry && (
+        <RejectTimeEntryDialog
+          open={!!rejectDialogEntry}
+          onOpenChange={(open) => !open && setRejectDialogEntry(null)}
+          entry={rejectDialogEntry}
+          onSuccess={() => {
+            setRejectDialogEntry(null);
+            refreshTimeEntries();
           }}
         />
       )}
 
-      {/* Create Time Entry Dialog - Only for admins and managers */}
-      {canCreateTimeEntry && (
-        <CreateTimeEntryDialog
-          open={createDialogOpen}
-          onOpenChange={setCreateDialogOpen}
-          onSaved={handleTimeEntrySaved}
-        />
-      )}
-
-      {/* Export Modal */}
-      <TimeEntryExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        entries={entries}
-        filters={filters}
+      {/* Bulk Reject Dialog */}
+      <RejectTimeEntryDialog
+        open={rejectDialogOpen}
+        onOpenChange={setRejectDialogOpen}
+        entry={null}
+        onSuccess={(reason) => {
+          handleReject(reason);
+        }}
       />
 
-      {/* Add Receipt Modal */}
+      {/* Bulk Delete Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Time Entries</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selection.selectedIds.length} {selection.selectedIds.length === 1 ? 'time entry' : 'time entries'}?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                actions.handleDelete(selection.selectedIds);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
       <AddReceiptModal
         open={addReceiptModalOpen}
-        onClose={() => setAddReceiptModalOpen(false)}
+        onOpenChange={setAddReceiptModalOpen}
         onSuccess={() => {
-          setAddReceiptModalOpen(false);
           receiptsManagementRef.current?.refresh();
           fetchReceiptCount();
         }}
       />
-    </div>
+      
+      <TimeEntryExportModal
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        entries={timeEntries || []}
+        filters={filters}
+      />
+    </MobilePageWrapper>
   );
 };
 
-export default TimeEntries;
+export default TimeEntriesPage;

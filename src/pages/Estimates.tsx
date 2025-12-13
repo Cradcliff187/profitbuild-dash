@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandedLoader } from "@/components/ui/branded-loader";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Estimate } from "@/types/estimate";
@@ -46,10 +47,10 @@ const EstimatesPage = () => {
   const [activeTab, setActiveTab] = useState<"estimates" | "analytics">(
     tabParam === "analytics" ? "analytics" : "estimates",
   );
+  const [analyticsTimeframe, setAnalyticsTimeframe] = useState<'30' | '90' | '365' | 'all'>('all');
 
   // Get preselected project ID from URL params
   const preselectedProjectId = searchParams.get("projectId");
-  // Get preselected project type from URL params (for work order creation flow)
   const createParam = searchParams.get("create");
   const preselectedProjectType = createParam === "work_order" ? "work_order" : undefined;
 
@@ -57,7 +58,6 @@ const EstimatesPage = () => {
     loadEstimates();
     loadClients();
 
-    // Check for preselected project from URL params or work order creation
     if ((preselectedProjectId || createParam === "work_order") && viewMode === "list") {
       setViewMode("create");
     }
@@ -70,10 +70,8 @@ const EstimatesPage = () => {
     }
   }, [searchParams]);
 
-  // Apply URL status parameter to filters
   useEffect(() => {
     const statusParam = searchParams.get("status");
-
     if (
       statusParam &&
       (statusParam === "draft" || statusParam === "pending" || statusParam === "approved" || statusParam === "rejected")
@@ -100,13 +98,12 @@ const EstimatesPage = () => {
     setClients(data || []);
   };
 
-  // Apply filters when estimates or filters change
   useEffect(() => {
     applyFilters();
   }, [estimates, searchFilters]);
 
   const tabOptions = [
-    { value: "estimates", label: "Estimates", icon: null },
+    { value: "estimates", label: "Estimates", icon: Calculator },
     { value: "analytics", label: "Analytics", icon: BarChart3 },
   ];
 
@@ -123,20 +120,18 @@ const EstimatesPage = () => {
     }
   };
 
-  // Real-time updates for estimates
   useEffect(() => {
     const channel = supabase
       .channel("estimates-realtime-updates")
       .on(
         "postgres_changes",
         {
-          event: "*", // Listen to INSERT, UPDATE, DELETE
+          event: "*",
           schema: "public",
           table: "estimates",
         },
         (payload) => {
           console.log("Estimate changed:", payload);
-          // Reload all estimates to ensure related data is fresh
           loadEstimates();
         },
       )
@@ -150,7 +145,6 @@ const EstimatesPage = () => {
   const applyFilters = () => {
     let filtered = [...estimates];
 
-    // Text search
     if (searchFilters.searchText) {
       const searchText = searchFilters.searchText.toLowerCase();
       filtered = filtered.filter(
@@ -162,12 +156,10 @@ const EstimatesPage = () => {
       );
     }
 
-    // Status filter
     if (searchFilters.status.length > 0) {
       filtered = filtered.filter((estimate) => searchFilters.status.includes(estimate.status));
     }
 
-    // Client name filter
     if (searchFilters.clientName.length > 0) {
       filtered = filtered.filter((estimate) => {
         if (!estimate.client_name) return false;
@@ -177,7 +169,6 @@ const EstimatesPage = () => {
       });
     }
 
-    // Date range filter
     if (searchFilters.dateRange.start) {
       filtered = filtered.filter((estimate) => new Date(estimate.date_created) >= searchFilters.dateRange.start!);
     }
@@ -185,7 +176,6 @@ const EstimatesPage = () => {
       filtered = filtered.filter((estimate) => new Date(estimate.date_created) <= searchFilters.dateRange.end!);
     }
 
-    // Amount range filter
     if (searchFilters.amountRange.min !== null) {
       filtered = filtered.filter((estimate) => estimate.total_amount >= searchFilters.amountRange.min!);
     }
@@ -193,14 +183,12 @@ const EstimatesPage = () => {
       filtered = filtered.filter((estimate) => estimate.total_amount <= searchFilters.amountRange.max!);
     }
 
-    // Category filter - show estimates that contain ANY of the selected categories
     if (searchFilters.categories.length > 0) {
       filtered = filtered.filter((estimate) => {
         return estimate.lineItems.some((lineItem) => searchFilters.categories.includes(lineItem.category));
       });
     }
 
-    // Has versions filter
     if (searchFilters.hasVersions !== null) {
       const estimatesByFamily = new Map<string, number>();
       estimates.forEach((estimate) => {
@@ -239,7 +227,6 @@ const EstimatesPage = () => {
     try {
       setLoading(true);
 
-      // First get estimates with project data
       const { data: estimatesData, error: estimatesError } = await supabase
         .from("estimates")
         .select(
@@ -257,7 +244,6 @@ const EstimatesPage = () => {
 
       if (estimatesError) throw estimatesError;
 
-      // Get line items for all estimates
       const estimateIds = estimatesData?.map((est) => est.id) || [];
       const { data: lineItemsData, error: lineItemsError } = await supabase
         .from("estimate_line_items")
@@ -267,14 +253,12 @@ const EstimatesPage = () => {
 
       if (lineItemsError) throw lineItemsError;
 
-      // Then get quotes for each estimate
       const { data: quotesData, error: quotesError } = await supabase
         .from("quotes")
         .select("id, estimate_id, total_amount, status");
 
       if (quotesError) throw quotesError;
 
-      // Create maps for line items and quotes by estimate_id
       const lineItemsByEstimate = (lineItemsData || []).reduce((acc: any, item: any) => {
         if (!acc[item.estimate_id]) {
           acc[item.estimate_id] = [];
@@ -351,17 +335,14 @@ const EstimatesPage = () => {
 
   const handleSaveEstimate = (estimate: Estimate) => {
     if (selectedEstimate) {
-      // Editing existing estimate
       setEstimates((prev) => prev.map((e) => (e.id === estimate.id ? estimate : e)));
     } else {
-      // Creating new estimate
       setEstimates((prev) => [...prev, estimate]);
     }
     setViewMode("list");
     setSelectedEstimate(undefined);
-    // Clear URL params
     setSearchParams({});
-    loadEstimates(); // Refresh the list
+    loadEstimates();
   };
 
   const handleCreateNew = () => {
@@ -369,7 +350,6 @@ const EstimatesPage = () => {
     setViewMode("create");
   };
 
-  // Context-aware button logic
   const getCreateButtonText = () => {
     if (estimates.length === 0) return "Create First Estimate";
     if (preselectedProjectId) return "Create New Version";
@@ -388,7 +368,6 @@ const EstimatesPage = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      // First, check if the estimate exists
       const estimate = estimates.find((e) => e.id === id);
       if (!estimate) {
         toast({
@@ -399,7 +378,6 @@ const EstimatesPage = () => {
         return;
       }
 
-      // Check for accepted quotes that would be orphaned
       const { data: acceptedQuotes } = await supabase
         .from("quotes")
         .select("id, quote_number")
@@ -416,7 +394,6 @@ const EstimatesPage = () => {
         return;
       }
 
-      // Check for child versions
       const { data: childVersions } = await supabase
         .from("estimates")
         .select("id, estimate_number")
@@ -432,23 +409,15 @@ const EstimatesPage = () => {
         return;
       }
 
-      // Project doesn't exist and no child versions - proceed with deletion
-
-      // Delete estimate line items first
       const { error: lineItemsError } = await supabase.from("estimate_line_items").delete().eq("estimate_id", id);
-
       if (lineItemsError) throw lineItemsError;
 
-      // Delete quotes related to this estimate
       const { error: quotesError } = await supabase.from("quotes").delete().eq("estimate_id", id);
-
       if (quotesError) throw quotesError;
 
-      // Finally delete the estimate
       const { error: estimateError } = await supabase.from("estimates").delete().eq("id", id);
 
       if (estimateError) {
-        // Parse specific database errors
         if (estimateError.message.includes("foreign key") || estimateError.code === "23503") {
           toast({
             title: "Cannot Delete Estimate",
@@ -463,7 +432,6 @@ const EstimatesPage = () => {
         return;
       }
 
-      // Remove from local state
       setEstimates((prev) => prev.filter((e) => e.id !== id));
 
       toast({
@@ -483,133 +451,177 @@ const EstimatesPage = () => {
   const handleCancel = () => {
     setViewMode("list");
     setSelectedEstimate(undefined);
-    // Clear URL params
     setSearchParams({});
   };
 
   if (loading) {
-    return <BrandedLoader message="Loading estimates..." />;
+    return (
+      <MobilePageWrapper>
+        <BrandedLoader message="Loading estimates..." />
+      </MobilePageWrapper>
+    );
+  }
+
+  if (viewMode !== "list") {
+    return (
+      <EstimateForm
+        mode={viewMode as "create" | "edit" | "view"}
+        initialEstimate={selectedEstimate}
+        preselectedProjectId={preselectedProjectId}
+        preselectedProjectType={preselectedProjectType}
+        onSave={handleSaveEstimate}
+        onCancel={handleCancel}
+      />
+    );
   }
 
   return (
-    <MobilePageWrapper noPadding className="space-y-3">
+    <MobilePageWrapper className="space-y-4">
       <PageHeader
         icon={Calculator}
         title="Estimates"
         description="Create and manage project estimates"
         actions={
-          viewMode === "list" ? (
-            <>
-              <Button variant="ghost" size="sm" onClick={() => setShowExportModal(true)} className="hidden sm:flex">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-              <Button onClick={handleCreateNew} size="sm" className="hidden sm:flex">
-                <Plus className="h-4 w-4 mr-2" />
-                {getCreateButtonText()}
-              </Button>
-            </>
-          ) : undefined
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setShowExportModal(true)} className="hidden sm:flex">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button onClick={handleCreateNew} size="sm" className="hidden sm:flex">
+              <Plus className="h-4 w-4 mr-2" />
+              {getCreateButtonText()}
+            </Button>
+          </>
         }
       />
 
-      {viewMode === "list" ? (
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="w-full sm:w-auto">
-              <div className="sm:hidden">
-                <Select value={activeTab} onValueChange={handleTabChange}>
-                  <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tabOptions.map((tab) => {
-                      const Icon = tab.icon;
-                      return (
-                        <SelectItem key={tab.value} value={tab.value}>
-                          <div className="flex items-center gap-2">
-                            {Icon && <Icon className="h-4 w-4" />}
-                            <span>{tab.label}</span>
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
-                {tabOptions.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <TabsTrigger
-                      key={tab.value}
-                      value={tab.value}
-                      className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                    >
-                      {Icon && <Icon className="h-4 w-4" />}
-                      <span>{tab.label}</span>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-4">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="w-full sm:w-auto">
+            <div className="sm:hidden">
+              <Select value={activeTab} onValueChange={handleTabChange}>
+                <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {tabOptions.map((tab) => {
+                    const Icon = tab.icon;
+                    return (
+                      <SelectItem key={tab.value} value={tab.value}>
+                        <div className="flex items-center gap-2">
+                          {Icon && <Icon className="h-4 w-4" />}
+                          <span>{tab.label}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
+
+            <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
+              {tabOptions.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    {Icon && <Icon className="h-4 w-4" />}
+                    <span>{tab.label}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
           </div>
+        </div>
 
-          <TabsContent value="estimates" className="space-y-3">
-            <EstimateSearchFilters
-              filters={searchFilters}
-              onFiltersChange={setSearchFilters}
-              onSearch={handleSearch}
-              onReset={resetFilters}
-              resultCount={filteredEstimates.length}
-              clients={clients}
+        <TabsContent value="estimates" className="space-y-4">
+          <EstimateSearchFilters
+            filters={searchFilters}
+            onFiltersChange={setSearchFilters}
+            onSearch={handleSearch}
+            onReset={resetFilters}
+            resultCount={filteredEstimates.length}
+            clients={clients}
+          />
+          {isMobile ? (
+            <EstimatesCardView
+              estimates={filteredEstimates}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onView={handleView}
+              onCreateNew={handleCreateNew}
             />
-            {isMobile ? (
-              <EstimatesCardView
-                estimates={filteredEstimates}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onView={handleView}
-                onCreateNew={handleCreateNew}
-              />
-            ) : (
-              <EstimatesTableView
-                estimates={filteredEstimates}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onView={handleView}
-                onCreateNew={handleCreateNew}
-              />
-            )}
-            
-            {/* Mobile FAB */}
-            {isMobile && (
-              <Button
-                variant="default"
-                onClick={handleCreateNew}
-                size="icon"
-                className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
-              >
-                <Plus className="h-6 w-6 !text-white" />
-              </Button>
-            )}
-          </TabsContent>
+          ) : (
+            <EstimatesTableView
+              estimates={filteredEstimates}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onView={handleView}
+              onCreateNew={handleCreateNew}
+            />
+          )}
+          
+          {isMobile && (
+            <Button
+              variant="default"
+              onClick={handleCreateNew}
+              size="icon"
+              className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+            >
+              <Plus className="h-6 w-6 !text-white" />
+            </Button>
+          )}
+        </TabsContent>
 
-          <TabsContent value="analytics">
-            <EstimateFinancialAnalyticsDashboard />
-          </TabsContent>
-        </Tabs>
-      ) : (
-        <EstimateForm
-          mode={viewMode as "create" | "edit" | "view"}
-          initialEstimate={selectedEstimate}
-          preselectedProjectId={preselectedProjectId}
-          preselectedProjectType={preselectedProjectType}
-          onSave={handleSaveEstimate}
-          onCancel={handleCancel}
-        />
-      )}
+        <TabsContent value="analytics" className="space-y-4">
+          <Card>
+            <CardHeader className="p-3 pb-2">
+              <CardTitle className="text-sm font-semibold">Time Period</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={analyticsTimeframe === "30" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsTimeframe("30")}
+                  className="text-xs"
+                >
+                  30 Days
+                </Button>
+                <Button
+                  variant={analyticsTimeframe === "90" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsTimeframe("90")}
+                  className="text-xs"
+                >
+                  90 Days
+                </Button>
+                <Button
+                  variant={analyticsTimeframe === "365" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsTimeframe("365")}
+                  className="text-xs"
+                >
+                  1 Year
+                </Button>
+                <Button
+                  variant={analyticsTimeframe === "all" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsTimeframe("all")}
+                  className="text-xs"
+                >
+                  All Time
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <EstimateFinancialAnalyticsDashboard timeframe={analyticsTimeframe} />
+        </TabsContent>
+      </Tabs>
 
       <EstimateExportModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} filters={searchFilters} />
     </MobilePageWrapper>

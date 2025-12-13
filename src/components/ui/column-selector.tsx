@@ -21,17 +21,19 @@ interface ColumnDefinition {
 interface ColumnSelectorProps {
   columns: ColumnDefinition[];
   visibleColumns: string[];
-  onVisibilityChange: (visibleColumns: string[]) => void;
+  onVisibleColumnsChange: (visibleColumns: string[]) => void;
   columnOrder?: string[];
   onColumnOrderChange?: (newOrder: string[]) => void;
+  className?: string;
 }
 
 export function ColumnSelector({
   columns,
   visibleColumns,
-  onVisibilityChange,
+  onVisibleColumnsChange,
   columnOrder = columns.map(c => c.key),
   onColumnOrderChange,
+  className,
 }: ColumnSelectorProps) {
   const [open, setOpen] = useState(false);
 
@@ -43,20 +45,20 @@ export function ColumnSelector({
     if (isVisible) {
       const newVisible = visibleColumns.filter(k => k !== columnKey);
       if (newVisible.length > 0) {
-        onVisibilityChange(newVisible);
+        onVisibleColumnsChange(newVisible);
       }
     } else {
-      onVisibilityChange([...visibleColumns, columnKey]);
+      onVisibleColumnsChange([...visibleColumns, columnKey]);
     }
   };
 
   const handleSelectAll = () => {
-    onVisibilityChange(columns.map(c => c.key));
+    onVisibleColumnsChange(columns.map(c => c.key));
   };
 
   const handleDeselectAll = () => {
     const requiredColumns = columns.filter(c => c.required).map(c => c.key);
-    onVisibilityChange(requiredColumns);
+    onVisibleColumnsChange(requiredColumns);
   };
 
   // Order columns based on columnOrder array
@@ -93,7 +95,7 @@ export function ColumnSelector({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8">
+        <Button variant="outline" size="sm" className={cn("h-8", className)}>
           <Settings2 className="h-3 w-3 mr-1" />
           Columns ({visibleCount}/{totalCount})
         </Button>
