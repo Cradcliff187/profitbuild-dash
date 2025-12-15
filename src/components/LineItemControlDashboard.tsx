@@ -21,6 +21,8 @@ import { FinancialTableTemplate, FinancialTableColumn } from '@/components/Finan
 import { cn, formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Project } from '@/types/project';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { LineItemControlCardView } from '@/components/LineItemControlCardView';
 
 interface LineItemControlDashboardProps {
   projectId: string;
@@ -30,6 +32,7 @@ interface LineItemControlDashboardProps {
 export function LineItemControlDashboard({ projectId, project }: LineItemControlDashboardProps) {
   const { lineItems, summary, isLoading, error, refetch } = useLineItemControl(projectId, project);
   const [selectedLineItem, setSelectedLineItem] = useState<LineItemControlData | null>(null);
+  const isMobile = useIsMobile();
 
   const getQuoteStatusBadge = (status: LineItemControlData['quoteStatus']) => {
     const variants = {
@@ -629,7 +632,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
       {/* Summary Cards - Compact Design */}
       <Card>
         <CardContent className="p-3">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3">
             {/* Contract Value */}
             <div className="border rounded-lg p-3">
               <div className="text-xs font-medium flex items-center gap-1 text-muted-foreground mb-2">
@@ -739,24 +742,32 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
         </CardContent>
       </Card>
 
-        {/* Main Table */}
+        {/* Main Table/Cards */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Line Item Control ({lineItems.length})</h2>
-          <Button variant="outline" size="sm" onClick={exportToCsv}>
+          <h2 className="text-base md:text-lg font-semibold">Line Item Control ({lineItems.length})</h2>
+          <Button variant="outline" size="sm" onClick={exportToCsv} className="h-8">
             <Download className="h-4 w-4 mr-2" />
-            Export CSV
+            <span className="hidden sm:inline">Export CSV</span>
+            <span className="sm:hidden">CSV</span>
           </Button>
         </div>
 
-        <FinancialTableTemplate
-          data={lineItems}
-          columns={columns}
-          emptyMessage="No line items found for this project"
-          emptyIcon={<AlertTriangle className="h-8 w-8" />}
-          showActions={true}
-          onView={handleViewDetails}
-          getItemId={(item) => item.id}
-        />
+        {isMobile ? (
+          <LineItemControlCardView 
+            lineItems={lineItems} 
+            onViewDetails={handleViewDetails} 
+          />
+        ) : (
+          <FinancialTableTemplate
+            data={lineItems}
+            columns={columns}
+            emptyMessage="No line items found for this project"
+            emptyIcon={<AlertTriangle className="h-8 w-8" />}
+            showActions={true}
+            onView={handleViewDetails}
+            getItemId={(item) => item.id}
+          />
+        )}
 
         {/* Line Item Details Modal */}
         <Dialog open={!!selectedLineItem} onOpenChange={() => setSelectedLineItem(null)}>
