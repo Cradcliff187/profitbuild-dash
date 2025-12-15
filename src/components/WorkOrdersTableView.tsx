@@ -429,9 +429,8 @@ export const WorkOrdersTableView = ({
                       <div className="flex items-center justify-end pt-2 border-t px-3" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-7">
-                              <MoreHorizontal className="h-3.5 w-3.5 mr-1" />
-                              Actions
+                            <Button variant="ghost" size="sm" className="h-7 w-8 p-0" aria-label="Actions menu">
+                              <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">

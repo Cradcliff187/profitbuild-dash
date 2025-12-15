@@ -18,6 +18,7 @@ import { BidMediaGallery } from '@/components/BidMediaGallery';
 import { BidDocumentUpload } from '@/components/BidDocumentUpload';
 import { BidMediaBulkUpload } from '@/components/BidMediaBulkUpload';
 import { ClientSelector } from '@/components/ClientSelector';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { BranchBid } from '@/types/bid';
 import { generateProjectNumber } from '@/types/project';
 
@@ -25,6 +26,7 @@ export default function BranchBidDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('notes');
 
@@ -531,6 +533,28 @@ export default function BranchBidDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Floating Action Buttons - Mobile Only */}
+      {isMobile && id && (
+        <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+          <Button
+            size="icon"
+            className="h-12 w-12 rounded-full shadow-lg"
+            onClick={() => navigate(`/branch-bids/${id}/capture-video`)}
+            title="Capture Video"
+          >
+            <Video className="h-5 w-5" />
+          </Button>
+          <Button
+            size="icon"
+            className="h-12 w-12 rounded-full shadow-lg"
+            onClick={() => navigate(`/branch-bids/${id}/capture`)}
+            title="Capture Photo"
+          >
+            <Camera className="h-5 w-5" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
