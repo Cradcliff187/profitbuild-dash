@@ -134,6 +134,9 @@ export const ProjectDetailView = () => {
   // Secondary panel collapse state
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   
+  // Mobile nav sheet state
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  
   // Change Order Modal State
   const [showChangeOrderModal, setShowChangeOrderModal] = useState(false);
   const [editingChangeOrder, setEditingChangeOrder] = useState<ChangeOrder | null>(null);
@@ -557,6 +560,7 @@ export const ProjectDetailView = () => {
       ? `/projects/${projectId}/${sectionUrl}`
       : `/projects/${projectId}`;
     navigate(path);
+    setMobileNavOpen(false); // Auto-close mobile nav
   };
 
   const NavContent = () => (
@@ -618,7 +622,7 @@ export const ProjectDetailView = () => {
       <div className="flex flex-col h-full">
         {/* Mobile Project Header */}
         <header className="flex items-center gap-2 p-3 border-b bg-background">
-          <Sheet>
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Building2 className="h-5 w-5" />
