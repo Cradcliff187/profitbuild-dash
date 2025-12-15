@@ -628,66 +628,66 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
 
   return (
     <TooltipProvider>
-      <div className="space-y-3">
+      <div className="space-y-3 w-full overflow-x-hidden">
       {/* Summary Cards - Compact Design */}
       <Card>
-        <CardContent className="p-3">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3">
+        <CardContent className="p-2 md:p-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-1.5 md:gap-3">
             {/* Contract Value */}
-            <div className="border rounded-lg p-3">
-              <div className="text-xs font-medium flex items-center gap-1 text-muted-foreground mb-2">
-                <Target className="h-3 w-3" />
-                Contract Value
+            <div className="border rounded-lg p-2 md:p-3 min-w-0">
+              <div className="text-[10px] md:text-xs font-medium flex items-center gap-1 text-muted-foreground mb-1 md:mb-2">
+                <Target className="h-3 w-3 shrink-0" />
+                <span className="truncate">Contract</span>
               </div>
-              <div className="text-lg font-bold">
+              <div className="text-sm md:text-lg font-bold truncate">
                 {formatCurrency(summary.totalContractValue)}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-[10px] md:text-xs text-muted-foreground hidden md:block">
                 Client contract
               </div>
             </div>
 
             {/* Quoted + Internal */}
-            <div className="border rounded-lg p-3">
-              <div className="text-xs font-medium flex items-center gap-1 text-muted-foreground mb-2">
-                <CheckCircle className="h-3 w-3" />
-                Quoted + Internal
+            <div className="border rounded-lg p-2 md:p-3 min-w-0">
+              <div className="text-[10px] md:text-xs font-medium flex items-center gap-1 text-muted-foreground mb-1 md:mb-2">
+                <CheckCircle className="h-3 w-3 shrink-0" />
+                <span className="truncate">Quoted</span>
               </div>
-              <div className="text-lg font-bold">
+              <div className="text-sm md:text-lg font-bold truncate">
                 {formatCurrency(summary.totalQuotedWithInternal)}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-[10px] md:text-xs text-muted-foreground">
                 {summary.lineItemsWithQuotes} quoted
               </div>
             </div>
 
             {/* Estimated Cost */}
-            <div className="border rounded-lg p-3">
-              <div className="text-xs font-medium flex items-center gap-1 text-muted-foreground mb-2">
-                <Target className="h-3 w-3" />
-                Estimated Cost
+            <div className="border rounded-lg p-2 md:p-3 min-w-0">
+              <div className="text-[10px] md:text-xs font-medium flex items-center gap-1 text-muted-foreground mb-1 md:mb-2">
+                <Target className="h-3 w-3 shrink-0" />
+                <span className="truncate">Est. Cost</span>
               </div>
-              <div className="text-lg font-bold">
+              <div className="text-sm md:text-lg font-bold truncate">
                 {formatCurrency(summary.totalEstimatedCost)}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-[10px] md:text-xs text-muted-foreground hidden md:block">
                 Baseline estimate
               </div>
             </div>
 
             {/* Est vs Quote Variance */}
-            <div className="border rounded-lg p-3">
-              <div className="text-xs font-medium flex items-center gap-1 text-muted-foreground mb-2">
-                <TrendingUp className="h-3 w-3" />
-                Est vs Quote Variance
+            <div className="border rounded-lg p-2 md:p-3 min-w-0">
+              <div className="text-[10px] md:text-xs font-medium flex items-center gap-1 text-muted-foreground mb-1 md:mb-2">
+                <TrendingUp className="h-3 w-3 shrink-0" />
+                <span className="truncate">Variance</span>
               </div>
               <div className={cn(
-                "text-lg font-bold",
+                "text-sm md:text-lg font-bold truncate",
                 summary.totalVariance > 0 ? "text-destructive" : "text-green-600"
               )}>
                 {formatCurrency(summary.totalVariance)}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-[10px] md:text-xs text-muted-foreground hidden md:block">
                 {summary.lineItemsUnderBudget > 0 || summary.lineItemsOverBudget > 0 ? (
                   <>
                     {summary.lineItemsUnderBudget > 0 && (
@@ -704,37 +704,37 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
               </div>
             </div>
 
-            {/* Actual Cost to Date */}
-            <div className="border rounded-lg p-3">
-              <div className="text-xs font-medium flex items-center gap-1 text-muted-foreground mb-2">
-                <DollarSign className="h-3 w-3" />
-                Actual Cost to Date
+            {/* Actual Cost to Date - Full width on mobile */}
+            <div className="border rounded-lg p-2 md:p-3 col-span-2 md:col-span-1 min-w-0">
+              <div className="text-[10px] md:text-xs font-medium flex items-center gap-1 text-muted-foreground mb-1 md:mb-2">
+                <DollarSign className="h-3 w-3 shrink-0" />
+                <span className="truncate">Actual Cost</span>
               </div>
-              <div className="space-y-2">
-                <div className="text-lg font-bold">
+              <div className="flex md:block items-center gap-3 md:space-y-2">
+                <div className="text-sm md:text-lg font-bold shrink-0">
                   {formatCurrency(summary.totalActual)}
                 </div>
                 
                 {/* Breakdown of allocated vs unallocated */}
-                <div className="text-xs space-y-1">
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Allocated to line items:</span>
-                    <span className="font-medium text-foreground">
+                <div className="text-[10px] md:text-xs space-y-0.5 md:space-y-1 flex-1 min-w-0">
+                  <div className="flex justify-between text-muted-foreground gap-1">
+                    <span className="truncate">Allocated:</span>
+                    <span className="font-medium text-foreground shrink-0">
                       {formatCurrency(summary.totalAllocated)}
                     </span>
                   </div>
                   {summary.totalUnallocated > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-warning">Unallocated expenses:</span>
-                      <span className="font-medium text-warning">
+                    <div className="flex justify-between gap-1">
+                      <span className="text-warning truncate">Unallocated:</span>
+                      <span className="font-medium text-warning shrink-0">
                         {formatCurrency(summary.totalUnallocated)}
                       </span>
                     </div>
                   )}
                 </div>
                 
-                <div className="text-xs text-muted-foreground">
-                  {summary.completionPercentage.toFixed(1)}% complete
+                <div className="text-[10px] md:text-xs text-muted-foreground shrink-0">
+                  {summary.completionPercentage.toFixed(1)}%
                 </div>
               </div>
             </div>
