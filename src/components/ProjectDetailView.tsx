@@ -44,6 +44,7 @@ export interface ProjectOutletContext {
   handleSaveQuote: (quote: Quote) => Promise<void>;
   onEditChangeOrder: (co: ChangeOrder) => void;
   onCreateChangeOrder: () => void;
+  isChangeOrderModalOpen: boolean;
   projectId: string;
 }
 
@@ -139,6 +140,7 @@ export const ProjectDetailView = () => {
   
   // Change Order Modal State
   const [showChangeOrderModal, setShowChangeOrderModal] = useState(false);
+  
   const [editingChangeOrder, setEditingChangeOrder] = useState<ChangeOrder | null>(null);
 
   useEffect(() => {
@@ -658,9 +660,49 @@ export const ProjectDetailView = () => {
               setEditingChangeOrder(null);
               setShowChangeOrderModal(true);
             },
+            isChangeOrderModalOpen: showChangeOrderModal,
             projectId: projectId!,
           }} />
         </div>
+        
+        {/* Change Order Modal - Mobile */}
+        <Dialog open={showChangeOrderModal && !!project} onOpenChange={setShowChangeOrderModal}>
+          <DialogContent 
+            className={cn(
+              "flex flex-col p-0",
+              isMobile 
+                ? "!fixed !inset-0 !left-0 !top-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !h-screen !w-screen !max-w-none !rounded-none !m-0" 
+                : "max-w-2xl max-h-[85vh]"
+            )}
+          >
+            <DialogHeader className={cn("border-b flex-shrink-0", isMobile ? "px-3 pt-3 pb-2" : "px-6 pt-6 pb-4")}>
+              <DialogTitle className="text-sm">
+                {editingChangeOrder ? 'Edit Change Order' : 'Create New Change Order'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className={cn("flex-1 overflow-y-auto", isMobile ? "px-3 py-4" : "px-6 py-4")}>
+              {project && (
+                <ChangeOrderForm
+                  projectId={project.id}
+                  changeOrder={editingChangeOrder || undefined}
+                  onSuccess={() => {
+                    setShowChangeOrderModal(false);
+                    setEditingChangeOrder(null);
+                    loadProjectData();
+                    toast({
+                      title: "Success",
+                      description: `Change order ${editingChangeOrder ? 'updated' : 'created'} successfully.`
+                    });
+                  }}
+                  onCancel={() => {
+                    setShowChangeOrderModal(false);
+                    setEditingChangeOrder(null);
+                  }}
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -812,6 +854,7 @@ export const ProjectDetailView = () => {
               setEditingChangeOrder(null);
               setShowChangeOrderModal(true);
             },
+            isChangeOrderModalOpen: showChangeOrderModal,
             projectId: projectId!,
           }} />
         </main>
@@ -837,17 +880,25 @@ export const ProjectDetailView = () => {
       </div>
 
       {/* Change Order Modal */}
-      <Dialog open={showChangeOrderModal} onOpenChange={setShowChangeOrderModal}>
-        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
-            <DialogTitle className="text-sm">
-              {editingChangeOrder ? 'Edit Change Order' : 'Create New Change Order'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            <ChangeOrderForm
-              projectId={project.id}
-              changeOrder={editingChangeOrder || undefined}
+      <Dialog open={showChangeOrderModal && !!project} onOpenChange={setShowChangeOrderModal}>
+        <DialogContent 
+          className={cn(
+            "flex flex-col p-0",
+            isMobile 
+              ? "!fixed !inset-0 !left-0 !top-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !h-screen !w-screen !max-w-none !rounded-none !m-0" 
+              : "max-w-2xl max-h-[85vh]"
+          )}
+        >
+            <DialogHeader className={cn("border-b flex-shrink-0", isMobile ? "px-3 pt-3 pb-2" : "px-6 pt-6 pb-4")}>
+              <DialogTitle className="text-sm">
+                {editingChangeOrder ? 'Edit Change Order' : 'Create New Change Order'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className={cn("flex-1 overflow-y-auto", isMobile ? "px-3 py-4" : "px-6 py-4")}>
+              {project && (
+                <ChangeOrderForm
+                  projectId={project.id}
+                  changeOrder={editingChangeOrder || undefined}
               onSuccess={() => {
                 setShowChangeOrderModal(false);
                 setEditingChangeOrder(null);
@@ -860,11 +911,12 @@ export const ProjectDetailView = () => {
               onCancel={() => {
                 setShowChangeOrderModal(false);
                 setEditingChangeOrder(null);
-              }}
-            />
-          </div>
-          </DialogContent>
-        </Dialog>
+                }}
+              />
+              )}
+            </div>
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   );

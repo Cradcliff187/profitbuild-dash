@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -130,6 +132,11 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
     return item.quantity * item.price_per_unit;
   };
 
+  const calculateMarkupAmount = (item: ChangeOrderLineItemInput): number => {
+    const totalCost = calculateTotalCost(item);
+    return calculateTotalPrice(item) - totalCost;
+  };
+
   const totals = lineItems.reduce(
     (acc, item) => ({
       totalCost: acc.totalCost + calculateTotalCost(item),
@@ -171,7 +178,169 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
           <p className="text-sm">No line items yet. Click "Add Line Item" to get started.</p>
           <p className="text-xs mt-1">Line items are required to document the work being performed.</p>
         </div>
+      ) : isMobile ? (
+        // Mobile Card Layout
+        <div className="space-y-2">
+          {lineItems.map((item, index) => (
+            <Card key={index} className="border">
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${getCategoryDotClasses(item.category)}`} />
+                    <Select
+                      value={item.category}
+                      onValueChange={(value) => onUpdateLineItem(index, 'category', value)}
+                    >
+                      <SelectTrigger className="h-6 border-0 bg-transparent p-0 hover:bg-muted/50 w-auto">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 cursor-pointer">
+                          {getCategoryAbbrev(item.category)}
+                        </Badge>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(CATEGORY_DISPLAY_MAP).map(([key, label]) => (
+                          <SelectItem key={key} value={key} className="text-xs">
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-xs text-muted-foreground">#{index + 1}</span>
+                  </div>
+                  <AlertDialog>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-32">
+                        <AlertDialogTrigger asChild>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-xs text-destructive">
+                            <Trash2 className="h-3 w-3 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Line Item</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this line item? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => onRemoveLineItem(index)} className="bg-destructive text-destructive-foreground">
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Payee</Label>
+                    <PayeeSelector
+                      value={item.payee_id || ''}
+                      onValueChange={(value) => onUpdateLineItem(index, 'payee_id', value || null)}
+                      placeholder="Select..."
+                      compact={true}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Description</Label>
+                    <Input
+                      value={item.description}
+                      onChange={(e) => onUpdateLineItem(index, 'description', e.target.value)}
+                      placeholder="Description"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Quantity</Label>
+                    <div className="flex gap-1">
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => onUpdateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                        className="h-8 text-sm font-mono flex-1"
+                      />
+                      <Select 
+                        value={item.unit || 'none'} 
+                        onValueChange={(value) => onUpdateLineItem(index, 'unit', value === 'none' ? undefined : value)}
+                      >
+                        <SelectTrigger className="h-8 w-16 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">-</SelectItem>
+                          <SelectItem value="EA">ea</SelectItem>
+                          <SelectItem value="SF">sf</SelectItem>
+                          <SelectItem value="LF">lf</SelectItem>
+                          <SelectItem value="CY">cy</SelectItem>
+                          <SelectItem value="HR">hr</SelectItem>
+                          <SelectItem value="GAL">gal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Total</Label>
+                    <div className="text-sm font-semibold font-mono">{formatCurrency(calculateTotalPrice(item))}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Cost/Unit</Label>
+                    <Input
+                      type="number"
+                      value={item.cost_per_unit}
+                      onChange={(e) => onUpdateLineItem(index, 'cost_per_unit', parseFloat(e.target.value) || 0)}
+                      className="h-8 text-xs font-mono"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Price/Unit</Label>
+                    <Input
+                      type="number"
+                      value={item.price_per_unit}
+                      onChange={(e) => onUpdateLineItem(index, 'price_per_unit', parseFloat(e.target.value) || 0)}
+                      className="h-8 text-xs font-mono"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Markup %</Label>
+                    <div className={cn(
+                      "text-xs font-mono",
+                      calculateMarkupPercent(item) < 0 ? "text-destructive" :
+                      calculateMarkupPercent(item) < 25 ? "text-warning" : "text-success"
+                    )}>
+                      {calculateMarkupPercent(item).toFixed(1)}%
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Markup $</Label>
+                    <div className="text-xs font-mono">{formatCurrency(calculateMarkupAmount(item))}</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : (
+        // Desktop Table Layout
         <div className="border rounded-md overflow-x-auto">
           <div className="min-w-[700px]">
             <Table>

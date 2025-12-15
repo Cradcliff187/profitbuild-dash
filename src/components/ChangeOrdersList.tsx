@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, CheckCircle, X, MoreHorizontal, Link as LinkIcon } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Edit, Trash2, CheckCircle, X, MoreHorizontal, Link as LinkIcon, Plus, FileText, Search, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChangeOrderStatusBadge, ChangeOrderStatus } from './ChangeOrderStatusBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +18,7 @@ import { formatCurrency } from '@/lib/utils';
 import type { Database } from '@/integrations/supabase/types';
 import { usePagination } from '@/hooks/usePagination';
 import { CompletePagination } from '@/components/ui/complete-pagination';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 
@@ -25,6 +27,7 @@ interface ChangeOrdersListProps {
   projectContingencyRemaining?: number;
   onEdit?: (changeOrder: ChangeOrder) => void;
   onCreateNew?: () => void;
+  isChangeOrderModalOpen?: boolean;
   enablePagination?: boolean;
   pageSize?: number;
 }
@@ -34,14 +37,18 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
   projectContingencyRemaining = 0,
   onEdit, 
   onCreateNew,
+  isChangeOrderModalOpen = false,
   enablePagination = false,
   pageSize = 20
 }) => {
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<ChangeOrderStatus | 'all'>('all');
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const fetchChangeOrders = async () => {
     try {
@@ -280,6 +287,17 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
     }
   };
 
+  // Filter change orders based on search and status
+  const filteredChangeOrders = useMemo(() => {
+    return changeOrders.filter(co => {
+      const matchesSearch = searchQuery === '' || 
+        co.change_order_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        co.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || co.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [changeOrders, searchQuery, statusFilter]);
+
   // Calculate totals for approved changes
   const approvedChangeOrders = changeOrders.filter(co => co.status === 'approved');
   const totalClientAmount = approvedChangeOrders.reduce((sum, co) => sum + (co.client_amount || 0), 0);
@@ -296,14 +314,14 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
     endIndex,
     goToPage,
   } = usePagination({
-    totalItems: changeOrders.length,
+    totalItems: filteredChangeOrders.length,
     pageSize,
     initialPage: 1,
   });
 
   const paginatedChangeOrders = enablePagination 
-    ? changeOrders.slice(startIndex, endIndex)
-    : changeOrders;
+    ? filteredChangeOrders.slice(startIndex, endIndex)
+    : filteredChangeOrders;
 
   if (loading) {
     return (
@@ -316,45 +334,242 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
   }
 
   return (
-    <div className="space-y-3">
+    <>
+    <div className="space-y-4 p-3 sm:p-4 w-full max-w-full overflow-x-hidden min-w-0">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-base font-semibold text-foreground sm:text-sm">Change Orders</h1>
+        {onCreateNew && (
+          <Button 
+            onClick={() => {
+              onCreateNew();
+            }} 
+            size="sm" 
+            className="hidden h-8 gap-1 px-3 sm:flex"
+          >
+            <Plus className="w-4 h-4" />
+            Create New
+          </Button>
+        )}
+      </div>
+
+      {/* Search and Filter Controls */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <Input
+          placeholder="Search change orders..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 h-11 w-full rounded-xl border-border text-sm shadow-sm sm:h-9 min-w-0"
+        />
+        <div className="w-full sm:w-[220px]">
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ChangeOrderStatus | 'all')}>
+            <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm sm:h-9 min-w-0">
+              <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <Card>
-        <CardHeader className="p-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium">Change Orders</CardTitle>
-            {onCreateNew && (
-              <Button onClick={onCreateNew} size="sm">
-                Create New Change Order
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="p-3">
-          {/* Change Orders Table */}
+        <CardContent className="p-3 sm:p-4">
+          {/* Change Orders List */}
           {changeOrders.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <h3 className="text-lg font-semibold mb-2">No change orders found</h3>
-              <p>No change orders have been created for this project yet.</p>
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
+              <FileText className="mb-3 h-12 w-12 text-muted-foreground" />
+              <p className="text-sm font-medium text-foreground">No change orders found</p>
+              <p className="mt-1 text-xs text-muted-foreground max-w-xs">
+                Create change orders to track project modifications and cost impacts.
+              </p>
+              {onCreateNew && (
+                <Button onClick={onCreateNew} className="mt-4" size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Change Order
+                </Button>
+              )}
+            </div>
+          ) : filteredChangeOrders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
+              <Search className="mb-3 h-12 w-12 text-muted-foreground" />
+              <p className="text-sm font-medium text-foreground">No change orders match your search</p>
+              <p className="mt-1 text-xs text-muted-foreground max-w-xs">
+                Try adjusting your search or filter criteria.
+              </p>
             </div>
           ) : (
-            <div className="border rounded-md">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                  <TableHead className="text-xs font-medium">Change Order #</TableHead>
-                  <TableHead className="text-xs font-medium">Description</TableHead>
-                  <TableHead className="text-right text-xs font-medium">Client Amount</TableHead>
-                  <TableHead className="text-right text-xs font-medium">Cost Impact</TableHead>
-                  <TableHead className="text-right text-xs font-medium">Margin $</TableHead>
-                  <TableHead className="text-right text-xs font-medium">Margin %</TableHead>
-                  <TableHead className="text-right text-xs font-medium">Contingency Billed</TableHead>
-                  <TableHead className="text-xs font-medium">Status</TableHead>
-                  <TableHead className="text-center text-xs font-medium">Matched</TableHead>
-                  <TableHead className="text-xs font-medium">Date</TableHead>
-                  <TableHead className="w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <>
+              {/* Mobile Cards */}
+              {isMobile && (
+                <div className="space-y-3">
                   {paginatedChangeOrders.map((changeOrder) => (
+                    <div key={changeOrder.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h3 className="text-sm font-semibold text-foreground">
+                              {(changeOrder as any).projects?.project_number} / {changeOrder.change_order_number}
+                            </h3>
+                            <ChangeOrderStatusBadge status={changeOrder.status as ChangeOrderStatus} />
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {(changeOrder as any).projects?.project_name}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-foreground mb-3 line-clamp-2">
+                        {changeOrder.description}
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-2 mb-3 p-2 bg-muted/30 rounded-lg">
+                        <div>
+                          <p className="text-[10px] text-muted-foreground mb-0.5">Client Amount</p>
+                          <p className="text-xs font-semibold text-green-600 font-mono tabular-nums">
+                            {changeOrder.client_amount ? formatCurrency(changeOrder.client_amount, { showCents: false }) : '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-muted-foreground mb-0.5">Cost Impact</p>
+                          <p className="text-xs font-semibold text-orange-600 font-mono tabular-nums">
+                            {changeOrder.cost_impact ? formatCurrency(changeOrder.cost_impact, { showCents: false }) : '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-muted-foreground mb-0.5">Margin</p>
+                          <p className={`text-xs font-semibold font-mono tabular-nums ${
+                            changeOrder.margin_impact !== null && changeOrder.margin_impact !== undefined
+                              ? changeOrder.margin_impact >= 0 ? 'text-green-600' : 'text-red-600'
+                              : 'text-muted-foreground'
+                          }`}>
+                            {changeOrder.margin_impact !== null && changeOrder.margin_impact !== undefined
+                              ? formatCurrency(changeOrder.margin_impact, { showCents: false })
+                              : '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-muted-foreground mb-0.5">Date</p>
+                          <p className="text-xs font-medium">
+                            {changeOrder.requested_date ? format(new Date(changeOrder.requested_date), 'MMM dd') : 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                        {changeOrder.status === 'pending' && (
+                          <>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-9 min-w-[44px] text-green-600">
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Approve Change Order</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to approve change order {changeOrder.change_order_number} for {formatCurrency(changeOrder.client_amount || 0, { showCents: true })}?
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleApprove(changeOrder)}>
+                                    Approve
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-9 min-w-[44px] text-red-600">
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Reject Change Order</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to reject change order {changeOrder.change_order_number}? This action can be reversed later if needed.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleReject(changeOrder)} className="bg-red-600 hover:bg-red-700">
+                                    Reject
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
+                        )}
+                        {onEdit && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onEdit(changeOrder)}
+                            className="h-9 w-9 rounded-full"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-9 w-9 rounded-full text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Change Order</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete change order {changeOrder.change_order_number}? 
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(changeOrder.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Desktop Table */}
+              {!isMobile && (
+                <div className="border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                      <TableHead className="text-xs font-medium">Change Order #</TableHead>
+                      <TableHead className="text-xs font-medium">Description</TableHead>
+                      <TableHead className="text-right text-xs font-medium">Client Amount</TableHead>
+                      <TableHead className="text-right text-xs font-medium">Cost Impact</TableHead>
+                      <TableHead className="text-right text-xs font-medium">Margin $</TableHead>
+                      <TableHead className="text-right text-xs font-medium">Margin %</TableHead>
+                      <TableHead className="text-right text-xs font-medium">Contingency Billed</TableHead>
+                      <TableHead className="text-xs font-medium">Status</TableHead>
+                      <TableHead className="text-center text-xs font-medium">Matched</TableHead>
+                      <TableHead className="text-xs font-medium">Date</TableHead>
+                      <TableHead className="w-10"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedChangeOrders.map((changeOrder) => (
                     <TableRow key={changeOrder.id}>
                       <TableCell className="text-xs">
                         <div className="flex flex-col">
@@ -531,9 +746,11 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                       </TableCell>
                     </TableRow>
                   ))}
-                </TableBody>
-              </Table>
-            </div>
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </>
           )}
 
           {/* Enhanced Change Orders Summary */}
@@ -543,24 +760,24 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                 <CardTitle className="text-sm font-medium">Change Orders Profit Summary</CardTitle>
               </CardHeader>
               <CardContent className="p-3">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                   <div className="text-center p-3 border rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-0.5">Total Client Amount</p>
-                    <p className="text-lg font-bold text-green-600 font-mono tabular-nums">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-0.5">Total Client Amount</p>
+                    <p className="text-base sm:text-lg font-bold text-green-600 font-mono tabular-nums">
                       {formatCurrency(totalClientAmount, { showCents: false })}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">Approved change orders</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Approved change orders</p>
                   </div>
                   <div className="text-center p-3 border rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-0.5">Total Cost Impact</p>
-                    <p className="text-lg font-bold text-orange-600 font-mono tabular-nums">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-0.5">Total Cost Impact</p>
+                    <p className="text-base sm:text-lg font-bold text-orange-600 font-mono tabular-nums">
                       {formatCurrency(totalCostImpact, { showCents: false })}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">Our costs</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Our costs</p>
                   </div>
                   <div className="text-center p-3 border rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-0.5">Net Profit Impact</p>
-                    <p className={`text-lg font-bold font-mono tabular-nums ${totalMarginImpact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-0.5">Net Profit Impact</p>
+                    <p className={`text-base sm:text-lg font-bold font-mono tabular-nums ${totalMarginImpact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {formatCurrency(totalMarginImpact, { showCents: false })}
                     </p>
                     <p className={`text-xs font-medium font-mono tabular-nums ${
@@ -572,11 +789,11 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
                     </p>
                   </div>
                   <div className="text-center p-3 border rounded-lg bg-blue-50">
-                    <p className="text-xs text-muted-foreground mb-0.5">Remaining Contingency</p>
-                    <p className="text-lg font-bold text-blue-700 font-mono tabular-nums">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-0.5">Remaining Contingency</p>
+                    <p className="text-base sm:text-lg font-bold text-blue-700 font-mono tabular-nums">
                       {formatCurrency(projectContingencyRemaining - totalContingencyBilled, { showCents: false })}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
                       Available for future COs
                     </p>
                   </div>
@@ -596,7 +813,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
           )}
 
           {/* Pagination */}
-          {enablePagination && changeOrders.length > pageSize && (
+          {enablePagination && filteredChangeOrders.length > pageSize && (
             <div className="flex justify-center mt-4">
               <CompletePagination
                 currentPage={currentPage}
@@ -607,6 +824,21 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
           )}
         </CardContent>
       </Card>
+
     </div>
+      {/* Mobile FAB - Outside container to avoid any blocking */}
+      {onCreateNew && isMobile && !isChangeOrderModalOpen && (
+        <Button
+          variant="default"
+          onClick={() => {
+            onCreateNew();
+          }}
+          size="icon"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-[60] pointer-events-auto"
+        >
+          <Plus className="h-6 w-6 !text-white" />
+        </Button>
+      )}
+    </>
   );
 };
