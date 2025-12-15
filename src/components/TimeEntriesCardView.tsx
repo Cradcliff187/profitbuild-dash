@@ -75,7 +75,7 @@ export const TimeEntriesCardView = ({
   const handleApprove = async (entry: TimeEntry) => {
     try {
       const { error } = await supabase
-        .from("time_entries")
+        .from("expenses")
         .update({ approval_status: "approved" })
         .eq("id", entry.id);
 

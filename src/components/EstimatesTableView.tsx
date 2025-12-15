@@ -539,7 +539,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
           <ColumnSelector
             columns={columnDefinitions}
             visibleColumns={visibleColumns}
-            onVisibilityChange={setVisibleColumns}
+            onVisibleColumnsChange={setVisibleColumns}
             columnOrder={columnOrder}
             onColumnOrderChange={setColumnOrder}
           />
@@ -569,7 +569,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
           <ColumnSelector
             columns={columnDefinitions}
             visibleColumns={visibleColumns}
-            onVisibilityChange={setVisibleColumns}
+            onVisibleColumnsChange={setVisibleColumns}
             columnOrder={columnOrder}
             onColumnOrderChange={setColumnOrder}
           />

@@ -91,11 +91,11 @@ const TimeEntriesPage = () => {
     pendingCount: 0,
     approvedTodayCount: 0,
     rejectedCount: 0,
-    totalAmount: 0,
+    totalThisWeekCount: 0,
   });
   const [receiptFilteredCount, setReceiptFilteredCount] = useState(0);
   const [receiptPayees, setReceiptPayees] = useState<Array<{ id: string; name: string }>>([]);
-  const [receiptProjects, setReceiptProjects] = useState<Array<{ id: string; project_name: string; project_number?: string }>>([]);
+  const [receiptProjects, setReceiptProjects] = useState<Array<{ id: string; number: string; name: string }>>([]);
   const [receiptVisibleColumns, setReceiptVisibleColumns] = useState<string[]>(
     receiptColumnDefinitions.filter(col => col.required || col.key === "status" || col.key === "amount").map(col => col.key)
   );
@@ -641,8 +641,8 @@ const TimeEntriesPage = () => {
               timeEntries={timeEntries || []}
               selectedIds={selection.selectedIds}
               onSelectOne={selection.handleSelectOne}
-              onEdit={setEditingEntry}
-              onReject={setRejectDialogEntry}
+              onEdit={(entry) => setEditingEntry(entry as TimeEntryListItem)}
+              onReject={(entry) => setRejectDialogEntry(entry as TimeEntryListItem)}
               onRefresh={refreshTimeEntries}
               canApprove={canApproveTimeEntries}
               canReject={canRejectTimeEntries}
@@ -765,10 +765,10 @@ const TimeEntriesPage = () => {
         <RejectTimeEntryDialog
           open={!!rejectDialogEntry}
           onOpenChange={(open) => !open && setRejectDialogEntry(null)}
-          entry={rejectDialogEntry}
-          onSuccess={() => {
+          entryCount={1}
+          onConfirm={(reason) => {
+            actions.handleReject([rejectDialogEntry.id], reason);
             setRejectDialogEntry(null);
-            refreshTimeEntries();
           }}
         />
       )}
@@ -777,8 +777,8 @@ const TimeEntriesPage = () => {
       <RejectTimeEntryDialog
         open={rejectDialogOpen}
         onOpenChange={setRejectDialogOpen}
-        entry={null}
-        onSuccess={(reason) => {
+        entryCount={selection.selectedIds.length}
+        onConfirm={(reason) => {
           handleReject(reason);
         }}
       />
@@ -809,8 +809,9 @@ const TimeEntriesPage = () => {
       
       <AddReceiptModal
         open={addReceiptModalOpen}
-        onOpenChange={setAddReceiptModalOpen}
+        onClose={() => setAddReceiptModalOpen(false)}
         onSuccess={() => {
+          setAddReceiptModalOpen(false);
           receiptsManagementRef.current?.refresh();
           fetchReceiptCount();
         }}

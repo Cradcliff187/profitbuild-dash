@@ -511,7 +511,7 @@ const Expenses = () => {
                 <ColumnSelector
                   columns={viewMode === "invoices" ? revenueColumnDefinitions : expenseColumnDefinitions}
                   visibleColumns={viewMode === "invoices" ? revenueVisibleColumns : visibleColumns}
-                  onVisibilityChange={viewMode === "invoices" ? handleRevenueVisibleColumnsChange : setVisibleColumns}
+                  onVisibleColumnsChange={viewMode === "invoices" ? handleRevenueVisibleColumnsChange : setVisibleColumns}
                   columnOrder={viewMode === "invoices" ? revenueColumnOrder : columnOrder}
                   onColumnOrderChange={viewMode === "invoices" ? setRevenueColumnOrder : setColumnOrder}
                 />
