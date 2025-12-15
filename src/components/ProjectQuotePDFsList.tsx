@@ -40,7 +40,7 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState<Quote | null>(null);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -107,23 +107,12 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
     return <Badge variant="outline" className="text-xs">Pending</Badge>;
   };
 
-  const handlePreview = async (quote: Quote & { payees: { payee_name: string } | null }) => {
+  const handlePreview = (quote: Quote & { payees: { payee_name: string } | null }) => {
     if (!quote.attachment_url) return;
     
-    try {
-      const response = await fetch(quote.attachment_url);
-      const blob = await response.blob();
-      setPdfBlob(blob);
-      setSelectedQuote(quote);
-      setPreviewDialogOpen(true);
-    } catch (error) {
-      console.error('Failed to fetch PDF:', error);
-      toast({
-        title: 'Preview failed',
-        description: 'Unable to load PDF preview',
-        variant: 'destructive',
-      });
-    }
+    setPdfUrl(quote.attachment_url);
+    setSelectedQuote(quote);
+    setPreviewDialogOpen(true);
   };
 
   const handleDownload = (quote: Quote & { payees: { payee_name: string } | null }) => {
@@ -154,7 +143,9 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
         description: 'Quote removed successfully',
       });
     } catch (error) {
-      console.error('Delete error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Delete error:', error);
+      }
       toast({
         title: 'Delete failed',
         description: error instanceof Error ? error.message : 'Failed to delete quote',
@@ -329,7 +320,7 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
       <PdfPreviewModal
         open={previewDialogOpen}
         onOpenChange={setPreviewDialogOpen}
-        pdfBlob={pdfBlob}
+        pdfUrl={pdfUrl}
         fileName={selectedQuote ? `Quote-${selectedQuote.quote_number}.pdf` : 'Quote.pdf'}
       />
 

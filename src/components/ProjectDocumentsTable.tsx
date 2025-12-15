@@ -34,7 +34,7 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<ProjectDocument | null>(null);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<ProjectDocument | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -113,7 +113,9 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
       refetch();
       onDocumentDeleted?.();
     } catch (error) {
-      console.error("Delete error:", error);
+      if (import.meta.env.DEV) {
+        console.error("Delete error:", error);
+      }
       toast({
         title: "Delete failed",
         description: error instanceof Error ? error.message : "Failed to delete document",
@@ -151,23 +153,12 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
     return (bytes / 1024 / 1024).toFixed(1) + " MB";
   };
 
-  const handlePreview = async (doc: ProjectDocument) => {
+  const handlePreview = (doc: ProjectDocument) => {
     if (!doc.file_url || doc.mime_type !== 'application/pdf') return;
     
-    try {
-      const response = await fetch(doc.file_url);
-      const blob = await response.blob();
-      setPdfBlob(blob);
-      setSelectedDocument(doc);
-      setPreviewDialogOpen(true);
-    } catch (error) {
-      console.error('Failed to fetch PDF:', error);
-      toast({
-        title: 'Preview failed',
-        description: 'Unable to load PDF preview',
-        variant: 'destructive',
-      });
-    }
+    setPdfUrl(doc.file_url);
+    setSelectedDocument(doc);
+    setPreviewDialogOpen(true);
   };
 
   if (isLoading) {
@@ -399,7 +390,7 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
       <PdfPreviewModal
         open={previewDialogOpen}
         onOpenChange={setPreviewDialogOpen}
-        pdfBlob={pdfBlob}
+        pdfUrl={pdfUrl}
         fileName={selectedDocument?.file_name || "document.pdf"}
       />
     </div>

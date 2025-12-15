@@ -160,7 +160,7 @@ export default function AppLayout() {
 
   return (
     <SidebarProvider defaultOpen={!isMobile}>
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-screen w-full overflow-x-hidden max-w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-col flex-1 bg-slate-50/50">
           {/* Mobile header with trigger */}
@@ -185,9 +185,9 @@ export default function AppLayout() {
           
           {/* Main content area - pages render here */}
           <main className={cn(
-            "flex-1 overflow-auto",
-            (location.pathname === '/time-tracker' || location.pathname === '/reports' || location.pathname.startsWith('/reports/')) ? '' : 'p-4 sm:p-6 lg:p-8'
-          )}>
+            "flex-1 overflow-auto w-full max-w-full box-border min-w-0",
+            (location.pathname === '/time-tracker' || location.pathname === '/reports' || location.pathname.startsWith('/reports/')) ? '' : 'p-3 sm:p-4 md:p-6 lg:p-8'
+          )} style={{ width: '100%', maxWidth: '100%' }}>
             <Outlet />
           </main>
         </SidebarInset>

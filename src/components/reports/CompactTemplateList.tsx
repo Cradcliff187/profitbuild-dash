@@ -224,45 +224,6 @@ export function CompactTemplateList({
   return (
     <div 
       className="space-y-2 w-full max-w-full overflow-hidden"
-      // #region agent log
-      ref={(el) => {
-        if (el && typeof window !== 'undefined') {
-          const sections = el.querySelectorAll('[data-section]');
-          const templateRows = el.querySelectorAll('[data-template-row]');
-          const logData = {
-            location: 'CompactTemplateList.tsx:224',
-            message: 'Template list container dimensions',
-            data: {
-              containerWidth: el.offsetWidth,
-              scrollWidth: el.scrollWidth,
-              hasOverflow: el.scrollWidth > el.offsetWidth,
-              sectionCount: sections.length,
-              templateRowCount: templateRows.length,
-              viewportWidth: window.innerWidth,
-              sectionsWithOverflow: Array.from(sections).map((section, idx) => {
-                const sectionEl = section as HTMLElement;
-                return {
-                  index: idx,
-                  width: sectionEl.offsetWidth,
-                  scrollWidth: sectionEl.scrollWidth,
-                  hasOverflow: sectionEl.scrollWidth > sectionEl.offsetWidth
-                };
-              })
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'overflow-fix-verify',
-            hypothesisId: 'D'
-          };
-          console.log('[DEBUG] Template list:', logData);
-          fetch('http://127.0.0.1:7242/ingest/2dfdd71f-ea3a-46c3-b55b-992b9fdd27aa', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(logData)
-          }).catch(() => {});
-        }
-      }}
-      // #endregion
     >
       {/* Favorites Section */}
       {favoriteTemplates.length > 0 && (

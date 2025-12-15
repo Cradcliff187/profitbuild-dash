@@ -155,6 +155,7 @@ export const ProjectDetailView = () => {
     }
   }, [location.state, queryClient]);
 
+
   const loadProjectOptions = async () => {
     try {
       const { data, error } = await supabase
@@ -636,7 +637,7 @@ export const ProjectDetailView = () => {
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto w-full max-w-full box-border min-w-0" data-project-detail-content style={{ maxWidth: '100%', width: '100%' }}>
           <Outlet context={{
             project,
             estimates,
@@ -666,11 +667,11 @@ export const ProjectDetailView = () => {
 
   // Desktop: Secondary panel with main content
   return (
-    <div className="flex h-full">
-      {/* Secondary Navigation Panel */}
+    <div className="flex h-screen overflow-hidden">
+      {/* Secondary Navigation Panel - Sticky */}
       <aside
           className={cn(
-            "border-r border-border/60 bg-slate-50 transition-all duration-200 flex flex-col",
+            "sticky top-0 self-start h-screen border-r border-border/60 bg-slate-50 transition-all duration-200 flex flex-col flex-shrink-0",
             panelCollapsed ? "w-12" : "w-44"  // 48px collapsed, 176px expanded (was w-14/w-52)
           )}
       >
@@ -697,7 +698,7 @@ export const ProjectDetailView = () => {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Compact Header */}
         <header className="sticky top-0 z-10 flex h-auto flex-col gap-3 border-b bg-background px-3 py-3 sm:h-16 sm:flex-row sm:items-center sm:gap-3">
           <div className="flex items-center gap-3">
@@ -714,7 +715,7 @@ export const ProjectDetailView = () => {
                       size="sm"
                       className={cn(
                         "h-10 gap-2 truncate border-border focus-visible:border-foreground/40 focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.15)]", 
-                        isMobile ? "w-full justify-between" : "justify-between max-w-[320px]"
+                        isMobile ? "w-full justify-between" : "justify-between max-w-[480px]"
                       )}
                     >
                       <div className="flex items-center gap-2 truncate">
@@ -726,7 +727,7 @@ export const ProjectDetailView = () => {
                       <ChevronsUpDown className="h-3 w-3 opacity-60" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[320px] overflow-hidden p-0 border border-border rounded-lg shadow-md" align="start">
+                  <PopoverContent className="w-[320px] sm:w-[480px] overflow-hidden p-0 border border-border rounded-lg shadow-md" align="start">
                     <Command className="bg-background">
                       <div className="px-2 py-2">
                         <CommandInput placeholder="Search projects..." className="h-9 text-sm rounded-md border border-border focus-visible:border-foreground/40 focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.15)]" />

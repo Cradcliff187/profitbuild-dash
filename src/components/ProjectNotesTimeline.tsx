@@ -40,7 +40,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const [enlargedVideo, setEnlargedVideo] = useState<string | null>(null);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [selectedAttachment, setSelectedAttachment] = useState<{ url: string; name: string } | null>(null);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -129,18 +129,9 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
   const handlePreviewAttachment = async (attachmentUrl: string, attachmentName: string | null | undefined) => {
     if (!attachmentUrl) return;
     
-    try {
-      const response = await fetch(attachmentUrl);
-      const blob = await response.blob();
-      setPdfBlob(blob);
-      setSelectedAttachment({ url: attachmentUrl, name: attachmentName || 'attachment.pdf' });
-      setPreviewDialogOpen(true);
-    } catch (error) {
-      console.error('Failed to fetch PDF:', error);
-      toast.error('Preview failed', {
-        description: 'Unable to load PDF preview',
-      });
-    }
+    setPdfUrl(attachmentUrl);
+    setSelectedAttachment({ url: attachmentUrl, name: attachmentName || 'attachment.pdf' });
+    setPreviewDialogOpen(true);
   };
 
   const getInitials = (name: string): string => {
@@ -1146,7 +1137,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
       <PdfPreviewModal
         open={previewDialogOpen}
         onOpenChange={setPreviewDialogOpen}
-        pdfBlob={pdfBlob}
+        pdfUrl={pdfUrl}
         fileName={selectedAttachment?.name || "attachment.pdf"}
       />
     </>

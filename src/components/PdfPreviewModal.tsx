@@ -1,21 +1,16 @@
-import { useEffect, useState, useRef } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Loader2, ChevronLeft, ChevronRight, ExternalLink, AlertCircle } from 'lucide-react';
+import { FileText, Download, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { isIOSDevice, isIOSSafari } from '@/utils/platform';
-import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
 interface PdfPreviewModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  pdfBlob: Blob | null;
+  pdfBlob?: Blob | null;
+  pdfUrl?: string | null;
   fileName: string;
 }
 
@@ -23,83 +18,80 @@ export function PdfPreviewModal({
   open,
   onOpenChange,
   pdfBlob,
+  pdfUrl,
   fileName,
 }: PdfPreviewModalProps) {
   const isMobile = useIsMobile();
   const [objectUrl, setObjectUrl] = useState<string>('');
-  const [dataUrl, setDataUrl] = useState<string>('');
-  const [numPages, setNumPages] = useState<number>(0);
-  const [pageNumber, setPageNumber] = useState<number>(1);
-  const [contentLoaded, setContentLoaded] = useState<boolean>(false);
+  const [iframeLoaded, setIframeLoaded] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<boolean>(false);
-  const [showFallback, setShowFallback] = useState<boolean>(false);
-  const fallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isDev = import.meta.env.DEV;
 
   useEffect(() => {
-    if (pdfBlob) {
+    // Prefer direct URL over blob (more reliable, avoids browser security restrictions)
+    if (pdfUrl) {
+      setObjectUrl(pdfUrl);
+      setIframeLoaded(false);
+      setLoadError(false);
+    } else if (pdfBlob) {
       const url = URL.createObjectURL(pdfBlob);
       setObjectUrl(url);
-      setContentLoaded(false);
+      setIframeLoaded(false);
       setLoadError(false);
-      setShowFallback(false);
-      
-      // For iOS devices or dev mode, create a data URL as fallback
-      if ((isMobile && isIOSDevice()) || isDev) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          setDataUrl(reader.result as string);
-        };
-        reader.readAsDataURL(pdfBlob);
-      }
-      
-      // Start fallback timer for mobile
-      if (isMobile) {
-        fallbackTimerRef.current = setTimeout(() => {
-          setShowFallback(true);
-        }, 2000);
-      }
       
       return () => {
         URL.revokeObjectURL(url);
-        if (fallbackTimerRef.current) {
-          clearTimeout(fallbackTimerRef.current);
-        }
-        setDataUrl('');
       };
     } else {
       setObjectUrl('');
-      setDataUrl('');
-      setContentLoaded(false);
+      setIframeLoaded(false);
       setLoadError(false);
-      setShowFallback(false);
     }
-  }, [pdfBlob, isMobile]);
+    
+    // Timeout to hide loading after reasonable time (PDFs may load but not fire onLoad)
+    const loadTimeout = setTimeout(() => {
+      setIframeLoaded(true);
+    }, 3000);
+    
+    return () => {
+      clearTimeout(loadTimeout);
+    };
+  }, [pdfBlob, pdfUrl]);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!objectUrl) return;
     
-    const a = document.createElement('a');
-    a.href = objectUrl;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    toast.success('PDF downloaded');
+    try {
+      // If it's a direct URL, fetch it first to download
+      if (pdfUrl || (!pdfBlob && objectUrl.startsWith('http'))) {
+        const response = await fetch(objectUrl);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        // If it's already a blob URL, use it directly
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      toast.success('PDF downloaded');
+    } catch (error) {
+      toast.error('Failed to download PDF');
+    }
   };
 
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
-    setPageNumber(1);
-  };
-
-  const goToPrevPage = () => setPageNumber(prev => Math.max(prev - 1, 1));
-  const goToNextPage = () => setPageNumber(prev => Math.min(prev + 1, numPages));
-
-  const handleOpenInViewer = () => {
-    const src = dataUrl || objectUrl;
-    if (src) {
-      window.open(src, '_blank');
+  const handleOpenInNewTab = () => {
+    if (objectUrl) {
+      window.open(objectUrl, '_blank');
     }
   };
 
@@ -124,19 +116,18 @@ export function PdfPreviewModal({
             )}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {isMobile ? "Mobile full-screen preview of the generated PDF report" : "Desktop preview with page navigation"}
+            PDF document preview
           </DialogDescription>
           <div className="flex items-center gap-2 pt-2"> 
-            {isMobile && objectUrl && ( 
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleOpenInViewer} 
-              > 
-                <ExternalLink className="h-4 w-4 mr-2" /> 
-                Open 
-              </Button> 
-            )} 
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleOpenInNewTab}
+              disabled={!objectUrl}
+            > 
+              <ExternalLink className="h-4 w-4 mr-2" /> 
+              Open in New Tab
+            </Button>
             <Button 
               variant="outline" 
               size="sm" 
@@ -149,29 +140,48 @@ export function PdfPreviewModal({
           </div> 
         </DialogHeader>
         
-        <div className="flex-1 overflow-hidden bg-muted/20 flex flex-col"> 
+        <div className="flex-1 overflow-hidden bg-muted/20 flex flex-col relative"> 
           {objectUrl ? ( 
-            isMobile ? ( 
-              <div className="w-full h-full min-h-[500px] relative bg-white"> 
-                {/* Loading spinner */}
-                {!contentLoaded && !showFallback && (
-                  <div className="absolute inset-0 flex items-center justify-center z-10 bg-muted/20">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <>
+              <div className="w-full h-full relative bg-white">
+                <iframe 
+                  key="pdf-iframe"
+                  src={`${objectUrl}#toolbar=1`}
+                  title={fileName} 
+                  className="absolute inset-0 w-full h-full border-0"
+                  style={{ minHeight: '100%' }}
+                  onLoad={() => {
+                    setIframeLoaded(true);
+                    setLoadError(false);
+                  }}
+                  onError={() => {
+                    setLoadError(true);
+                    setIframeLoaded(false);
+                  }}
+                />
+                
+                {/* Loading indicator - hide after timeout or onLoad */}
+                {!iframeLoaded && !loadError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/20 z-10 pointer-events-none">
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">Loading PDF...</p>
+                    </div>
                   </div>
                 )}
                 
-                {/* Fallback UI */}
-                {showFallback && !contentLoaded && (
+                {/* Error fallback */}
+                {loadError && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 z-20 bg-background">
                     <AlertCircle className="h-12 w-12 text-muted-foreground" />
                     <div className="text-center space-y-2">
-                      <p className="text-sm font-medium">Preview not supported in this viewer</p>
-                      <p className="text-xs text-muted-foreground">Use the buttons below to view or download</p>
+                      <p className="text-sm font-medium">Unable to display PDF</p>
+                      <p className="text-xs text-muted-foreground">Use the buttons above to open or download</p>
                     </div>
                     <div className="flex flex-col gap-2 w-full max-w-xs">
-                      <Button onClick={handleOpenInViewer} size="sm">
+                      <Button onClick={handleOpenInNewTab} size="sm">
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        Open in viewer
+                        Open in New Tab
                       </Button>
                       <Button onClick={handleDownload} variant="outline" size="sm">
                         <Download className="h-4 w-4 mr-2" />
@@ -180,110 +190,9 @@ export function PdfPreviewModal({
                     </div>
                   </div>
                 )}
-                
-                {/* iOS Safari: use embed with data URL, others: use iframe */}
-                {isIOSDevice() && dataUrl ? (
-                  <embed 
-                    type="application/pdf"
-                    src={dataUrl} 
-                    title={`${fileName} preview`} 
-                    className="absolute inset-0 w-full h-full border-0" 
-                    onLoad={() => {
-                      console.log('[PdfPreview] Embed loaded successfully');
-                      setContentLoaded(true);
-                      if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
-                    }}
-                    onError={(e) => {
-                      console.error('[PdfPreview] Embed failed to load', e);
-                      setLoadError(true);
-                    }}
-                  />
-                ) : (
-                  <iframe 
-                    src={isDev && dataUrl ? dataUrl : objectUrl} 
-                    title={`${fileName} preview`} 
-                    className="absolute inset-0 w-full h-full border-0" 
-                    onLoad={() => {
-                      console.log('[PdfPreview] Iframe loaded successfully');
-                      setContentLoaded(true);
-                      if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
-                    }}
-                    onError={(e) => {
-                      console.error('[PdfPreview] Iframe failed to load', e);
-                      setLoadError(true);
-                    }}
-                  /> 
-                )}
-              </div> 
-            ) : (
-              <div className="flex flex-col items-center py-2 px-2"> 
-                <Document 
-                  file={isDev && dataUrl ? dataUrl : objectUrl} 
-                  onLoadSuccess={(pdf) => {
-                    console.log('[PdfPreview] Document loaded successfully', pdf.numPages, 'pages');
-                    onDocumentLoadSuccess(pdf);
-                  }}
-                  onLoadError={(error) => {
-                    console.error('[PdfPreview] Document failed to load', error);
-                  }}
-                  loading={ 
-                    <div className="flex items-center justify-center h-96"> 
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> 
-                    </div> 
-                  } 
-                  error={ 
-                    <div className="flex flex-col items-center justify-center h-96 gap-4 p-8"> 
-                      <FileText className="h-12 w-12 text-muted-foreground" /> 
-                      <p className="text-sm font-medium">Unable to load PDF</p> 
-                      <Button onClick={handleDownload}> 
-                        <Download className="h-4 w-4 mr-2" /> 
-                        Download Instead 
-                      </Button> 
-                    </div> 
-                  } 
-                > 
-                  <div className="w-full max-w-full overflow-hidden flex justify-center"> 
-                    <Page 
-                      pageNumber={pageNumber} 
-                      width={undefined} 
-                      renderTextLayer={false} 
-                      renderAnnotationLayer={false} 
-                      className="shadow-lg" 
-                      loading={ 
-                        <div className="flex items-center justify-center h-96"> 
-                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> 
-                        </div> 
-                      } 
-                    /> 
-                  </div> 
-                </Document> 
-                
-                {numPages > 1 && ( 
-                  <div className="flex items-center gap-3 mt-4"> 
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={goToPrevPage} 
-                      disabled={pageNumber <= 1} 
-                    > 
-                      <ChevronLeft className="h-5 w-5" /> 
-                    </Button> 
-                    <span className="text-xs text-muted-foreground"> 
-                      Page {pageNumber} of {numPages} 
-                    </span> 
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={goToNextPage} 
-                      disabled={pageNumber >= numPages} 
-                    > 
-                      <ChevronRight className="h-5 w-5" /> 
-                    </Button> 
-                  </div> 
-                )} 
-              </div> 
-            ) 
-          ) : ( 
+              </div>
+            </>
+          ) : (
             <div className="flex items-center justify-center h-full"> 
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> 
             </div> 

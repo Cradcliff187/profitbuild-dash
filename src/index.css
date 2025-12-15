@@ -206,6 +206,16 @@ textarea:focus-visible {
     @apply w-full max-w-full overflow-x-hidden;
   }
 
+  /* Force Radix UI Collapsible components to respect width */
+  [data-radix-collapsible-root],
+  [data-radix-collapsible-trigger],
+  [data-radix-collapsible-content] {
+    @apply w-full max-w-full min-w-0 box-border;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
   /* Hide scrollbar but allow scroll */
   .scrollbar-hide {
     -ms-overflow-style: none;  /* IE and Edge */
@@ -246,7 +256,7 @@ textarea:focus-visible {
   
   /* Compact card styles */
   .compact-card {
-    @apply rounded-md border p-2;
+    @apply rounded-md border p-2 w-full max-w-full min-w-0 box-border;
   }
   
   .compact-card-section {

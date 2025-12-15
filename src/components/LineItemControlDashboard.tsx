@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
   const { lineItems, summary, isLoading, error, refetch } = useLineItemControl(projectId, project);
   const [selectedLineItem, setSelectedLineItem] = useState<LineItemControlData | null>(null);
   const isMobile = useIsMobile();
+
 
   const getQuoteStatusBadge = (status: LineItemControlData['quoteStatus']) => {
     const variants = {
@@ -628,127 +629,142 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
 
   return (
     <TooltipProvider>
-      <div className="space-y-3 w-full overflow-x-hidden">
-      {/* Summary Cards - Compact Design */}
-      <Card>
-        <CardContent className="p-2 md:p-3">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-1.5 md:gap-3">
-            {/* Contract Value */}
-            <div className="border rounded-lg p-2 md:p-3 min-w-0">
-              <div className="text-[10px] md:text-xs font-medium flex items-center gap-1 text-muted-foreground mb-1 md:mb-2">
-                <Target className="h-3 w-3 shrink-0" />
-                <span className="truncate">Contract</span>
-              </div>
-              <div className="text-sm md:text-lg font-bold truncate">
-                {formatCurrency(summary.totalContractValue)}
-              </div>
-              <div className="text-[10px] md:text-xs text-muted-foreground hidden md:block">
-                Client contract
-              </div>
+      <div className="space-y-3 w-full max-w-full overflow-x-hidden box-border min-w-0" data-line-item-dashboard style={{ maxWidth: '100%', width: '100%' }}>
+      {/* Summary Cards - Individual Cards for Mobile */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 w-full max-w-full min-w-0">
+        {/* Contract Value */}
+        <Card className="w-full max-w-full box-border min-w-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
+              <Target className="h-3.5 w-3.5 shrink-0" />
+              <span>Contract</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg md:text-xl font-bold tabular-nums truncate min-w-0">
+              {formatCurrency(summary.totalContractValue)}
             </div>
+            <p className="text-xs text-muted-foreground mt-1 hidden md:block">
+              Client contract
+            </p>
+          </CardContent>
+        </Card>
 
-            {/* Quoted + Internal */}
-            <div className="border rounded-lg p-2 md:p-3 min-w-0">
-              <div className="text-[10px] md:text-xs font-medium flex items-center gap-1 text-muted-foreground mb-1 md:mb-2">
-                <CheckCircle className="h-3 w-3 shrink-0" />
-                <span className="truncate">Quoted</span>
-              </div>
-              <div className="text-sm md:text-lg font-bold truncate">
-                {formatCurrency(summary.totalQuotedWithInternal)}
-              </div>
-              <div className="text-[10px] md:text-xs text-muted-foreground">
-                {summary.lineItemsWithQuotes} quoted
-              </div>
+        {/* Quoted + Internal */}
+        <Card className="w-full max-w-full box-border min-w-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
+              <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+              <span>Quoted</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg md:text-xl font-bold tabular-nums truncate min-w-0">
+              {formatCurrency(summary.totalQuotedWithInternal)}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {summary.lineItemsWithQuotes} quoted
+            </p>
+          </CardContent>
+        </Card>
 
-            {/* Estimated Cost */}
-            <div className="border rounded-lg p-2 md:p-3 min-w-0">
-              <div className="text-[10px] md:text-xs font-medium flex items-center gap-1 text-muted-foreground mb-1 md:mb-2">
-                <Target className="h-3 w-3 shrink-0" />
-                <span className="truncate">Est. Cost</span>
-              </div>
-              <div className="text-sm md:text-lg font-bold truncate">
-                {formatCurrency(summary.totalEstimatedCost)}
-              </div>
-              <div className="text-[10px] md:text-xs text-muted-foreground hidden md:block">
-                Baseline estimate
-              </div>
+        {/* Estimated Cost */}
+        <Card className="w-full max-w-full box-border min-w-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
+              <Target className="h-3.5 w-3.5 shrink-0" />
+              <span>Est. Cost</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg md:text-xl font-bold tabular-nums truncate min-w-0">
+              {formatCurrency(summary.totalEstimatedCost)}
             </div>
+            <p className="text-xs text-muted-foreground mt-1 hidden md:block">
+              Baseline estimate
+            </p>
+          </CardContent>
+        </Card>
 
-            {/* Est vs Quote Variance */}
-            <div className="border rounded-lg p-2 md:p-3 min-w-0">
-              <div className="text-[10px] md:text-xs font-medium flex items-center gap-1 text-muted-foreground mb-1 md:mb-2">
-                <TrendingUp className="h-3 w-3 shrink-0" />
-                <span className="truncate">Variance</span>
-              </div>
-              <div className={cn(
-                "text-sm md:text-lg font-bold truncate",
-                summary.totalVariance > 0 ? "text-destructive" : "text-green-600"
-              )}>
-                {formatCurrency(summary.totalVariance)}
-              </div>
-              <div className="text-[10px] md:text-xs text-muted-foreground hidden md:block">
-                {summary.lineItemsUnderBudget > 0 || summary.lineItemsOverBudget > 0 ? (
-                  <>
-                    {summary.lineItemsUnderBudget > 0 && (
-                      <span className="text-green-600">{summary.lineItemsUnderBudget} lower</span>
-                    )}
-                    {summary.lineItemsUnderBudget > 0 && summary.lineItemsOverBudget > 0 && ', '}
-                    {summary.lineItemsOverBudget > 0 && (
-                      <span className="text-destructive">{summary.lineItemsOverBudget} higher</span>
-                    )}
-                  </>
-                ) : (
-                  'All match'
-                )}
-              </div>
+        {/* Est vs Quote Variance */}
+        <Card className="w-full max-w-full box-border min-w-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
+              <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+              <span>Variance</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={cn(
+              "text-lg md:text-xl font-bold tabular-nums truncate min-w-0",
+              summary.totalVariance > 0 ? "text-destructive" : "text-green-600"
+            )}>
+              {formatCurrency(summary.totalVariance)}
             </div>
-
-            {/* Actual Cost to Date - Full width on mobile */}
-            <div className="border rounded-lg p-2 md:p-3 col-span-2 md:col-span-1 min-w-0">
-              <div className="text-[10px] md:text-xs font-medium flex items-center gap-1 text-muted-foreground mb-1 md:mb-2">
-                <DollarSign className="h-3 w-3 shrink-0" />
-                <span className="truncate">Actual Cost</span>
-              </div>
-              <div className="flex md:block items-center gap-3 md:space-y-2">
-                <div className="text-sm md:text-lg font-bold shrink-0">
-                  {formatCurrency(summary.totalActual)}
-                </div>
-                
-                {/* Breakdown of allocated vs unallocated */}
-                <div className="text-[10px] md:text-xs space-y-0.5 md:space-y-1 flex-1 min-w-0">
-                  <div className="flex justify-between text-muted-foreground gap-1">
-                    <span className="truncate">Allocated:</span>
-                    <span className="font-medium text-foreground shrink-0">
-                      {formatCurrency(summary.totalAllocated)}
-                    </span>
-                  </div>
-                  {summary.totalUnallocated > 0 && (
-                    <div className="flex justify-between gap-1">
-                      <span className="text-warning truncate">Unallocated:</span>
-                      <span className="font-medium text-warning shrink-0">
-                        {formatCurrency(summary.totalUnallocated)}
-                      </span>
-                    </div>
+            <p className="text-xs text-muted-foreground mt-1 hidden md:block">
+              {summary.lineItemsUnderBudget > 0 || summary.lineItemsOverBudget > 0 ? (
+                <>
+                  {summary.lineItemsUnderBudget > 0 && (
+                    <span className="text-green-600">{summary.lineItemsUnderBudget} lower</span>
                   )}
+                  {summary.lineItemsUnderBudget > 0 && summary.lineItemsOverBudget > 0 && ', '}
+                  {summary.lineItemsOverBudget > 0 && (
+                    <span className="text-destructive">{summary.lineItemsOverBudget} higher</span>
+                  )}
+                </>
+              ) : (
+                'All match'
+              )}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Actual Cost to Date */}
+        <Card className="sm:col-span-2 md:col-span-1 w-full max-w-full box-border min-w-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
+              <DollarSign className="h-3.5 w-3.5 shrink-0" />
+              <span>Actual Cost</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg md:text-xl font-bold tabular-nums mb-2 truncate min-w-0">
+              {formatCurrency(summary.totalActual)}
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Allocated:</span>
+                <span className="font-medium text-foreground tabular-nums">
+                  {formatCurrency(summary.totalAllocated)}
+                </span>
+              </div>
+              {summary.totalUnallocated > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-warning">Unallocated:</span>
+                  <span className="font-medium text-warning tabular-nums">
+                    {formatCurrency(summary.totalUnallocated)}
+                  </span>
                 </div>
-                
-                <div className="text-[10px] md:text-xs text-muted-foreground shrink-0">
-                  {summary.completionPercentage.toFixed(1)}%
-                </div>
+              )}
+              <div className="text-muted-foreground pt-1">
+                {summary.completionPercentage.toFixed(1)}%
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
         {/* Main Table/Cards */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3 md:mb-4">
           <h2 className="text-base md:text-lg font-semibold">Line Item Control ({lineItems.length})</h2>
-          <Button variant="outline" size="sm" onClick={exportToCsv} className="h-8">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={exportToCsv} 
+            className="h-9 md:h-8 mobile-touch-target hidden md:flex"
+          >
             <Download className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Export CSV</span>
-            <span className="sm:hidden">CSV</span>
+            Export CSV
           </Button>
         </div>
 

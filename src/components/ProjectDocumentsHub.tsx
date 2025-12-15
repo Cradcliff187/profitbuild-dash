@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Upload, ChevronLeft } from "lucide-react";
+import { Upload } from "lucide-react";
 import { ProjectMediaGallery } from "./ProjectMediaGallery";
 import { ProjectReceiptsView } from "./ProjectReceiptsView";
 import { ProjectQuotePDFsList } from "./ProjectQuotePDFsList";
@@ -11,7 +11,6 @@ import { ProjectDocumentsTimeline } from "./ProjectDocumentsTimeline";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { DocumentType } from "@/types/document";
-import { useNavigate } from "react-router-dom";
 
 interface ProjectDocumentsHubProps {
   projectId: string;
@@ -24,7 +23,6 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
   const [activeTab, setActiveTab] = useState("all");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadDocumentType, setUploadDocumentType] = useState<DocumentType>("other");
-  const navigate = useNavigate();
 
   const tabOptions = [
     { value: "all", label: "All" },
@@ -50,25 +48,10 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
   const showUploadButton = ["drawings", "permits", "licenses"].includes(activeTab);
 
   return (
-    <div className="space-y-4 p-3 sm:p-4 documents-section">
+    <div className="space-y-4 p-3 sm:p-4 w-full max-w-full overflow-x-hidden min-w-0">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(`/projects/${projectId}`)}
-            className="h-9 w-9 rounded-full sm:h-7 sm:w-7"
-          >
-            <ChevronLeft className="w-4 h-4 sm:w-3 sm:h-3" />
-          </Button>
-          <div className="flex flex-col">
-            <h1 className="text-base font-semibold text-foreground sm:text-sm">Documents</h1>
-            <span className="text-xs text-muted-foreground sm:hidden">
-              {projectNumber} · {projectName}
-            </span>
-          </div>
-        </div>
+        <h1 className="text-base font-semibold text-foreground sm:text-sm">Documents</h1>
         {showUploadButton && (
           <Button size="sm" onClick={handleUploadClick} className="hidden h-8 gap-1 px-3 sm:flex">
             <Upload className="w-4 h-4" />

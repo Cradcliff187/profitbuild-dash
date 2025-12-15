@@ -161,7 +161,9 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
         description: 'Receipt removed successfully',
       });
     } catch (error) {
-      console.error('Delete error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Delete error:', error);
+      }
       toast({
         title: 'Delete failed',
         description: error instanceof Error ? error.message : 'Failed to delete receipt',
