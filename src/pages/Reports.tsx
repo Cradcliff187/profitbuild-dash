@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, FileBarChart, Receipt, DollarSign, BarChart3, FileEdit, TrendingUp, Building2, Clock, Users } from "lucide-react";
+import { Plus, FileText, FileBarChart, Receipt, DollarSign, BarChart3, FileEdit } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReportCategory } from "@/types/reports";
 
 const ReportsPage = () => {
@@ -41,7 +42,7 @@ const ReportsPage = () => {
   const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
   const { executeReport, isLoading } = useReportExecution();
   const { toast } = useToast();
-  const { savedReports } = useReportTemplates();
+  const { templates, savedReports } = useReportTemplates();
 
   // Convert filters object to array for FilterSummary
   const handleCategoryChange = (category: ReportCategory) => {
@@ -261,80 +262,111 @@ const ReportsPage = () => {
     }
   };
 
-  const CATEGORIES = [
-    { key: 'standard' as ReportCategory, label: 'Standard', icon: BarChart3 },
-    { key: 'custom' as ReportCategory, label: 'Custom', icon: FileEdit },
-    { key: 'financial' as ReportCategory, label: 'Financial', icon: TrendingUp },
-    { key: 'operational' as ReportCategory, label: 'Projects', icon: Building2 },
-    { key: 'cost' as ReportCategory, label: 'Cost', icon: Receipt },
-    { key: 'labor' as ReportCategory, label: 'Labor', icon: Clock },
-    { key: 'other' as ReportCategory, label: 'Contacts', icon: Users },
+  const tabOptions = [
+    {
+      value: 'standard',
+      label: 'Standard',
+      icon: BarChart3,
+      badgeCount: templates.length,
+    },
+    {
+      value: 'custom',
+      label: 'Custom',
+      icon: FileEdit,
+      badgeCount: savedReports.length,
+    },
   ];
 
   return (
-    <MobilePageWrapper className="flex flex-col h-full">
+    <MobilePageWrapper className="flex flex-col h-full w-full max-w-full overflow-x-hidden" noPadding>
       <PageHeader
         icon={BarChart3}
         title="Reports"
         description="Generate and view business reports"
         actions={
-          <Button size="sm" onClick={() => setShowBuilder(true)}>
+          <Button size="sm" onClick={() => setShowBuilder(true)} className="hidden sm:flex">
             <Plus className="h-4 w-4 mr-2" />
             New Report
           </Button>
         }
-      >
-        {/* Category Tabs - scrollable on mobile */}
-        <div className="overflow-x-auto -mx-4 px-4">
-          <Tabs value={selectedCategory} onValueChange={(value) => handleCategoryChange(value as ReportCategory)}>
-            <TabsList className="inline-flex h-10 w-max">
-              {CATEGORIES.map(({ key, label, icon: Icon }) => (
-                <TabsTrigger 
-                  key={key} 
-                  value={key}
-                  className="gap-2 px-4 min-w-max"
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{label}</span>
-                </TabsTrigger>
-              ))}
+      />
+
+      <Tabs value={selectedCategory} onValueChange={(value) => handleCategoryChange(value as ReportCategory)} className="mt-4">
+        <div className="mb-4 px-3 sm:px-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="w-full sm:w-auto">
+            {/* Mobile Dropdown */}
+            <div className="sm:hidden">
+              <Select value={selectedCategory} onValueChange={(value) => handleCategoryChange(value as ReportCategory)}>
+                <SelectTrigger className="h-10 w-full rounded-lg border-border text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-[100]">
+                  {tabOptions.map((tab) => {
+                    const Icon = tab.icon;
+                    return (
+                      <SelectItem key={tab.value} value={tab.value}>
+                        <div className="flex items-center gap-2">
+                          {Icon && <Icon className="h-4 w-4" />}
+                          <span>{tab.label}</span>
+                          {tab.badgeCount > 0 && (
+                            <span className="ml-auto text-xs text-muted-foreground">({tab.badgeCount})</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Desktop Tabs */}
+            <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
+              {tabOptions.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    {Icon && <Icon className="h-4 w-4" />}
+                    <span>{tab.label}</span>
+                    {tab.badgeCount > 0 && (
+                      <span className="ml-1 text-xs">({tab.badgeCount})</span>
+                    )}
+                  </TabsTrigger>
+                );
+              })}
             </TabsList>
-          </Tabs>
+          </div>
         </div>
-      </PageHeader>
+      </Tabs>
       
-      <div className="p-4 space-y-4">
+      <div className="px-3 py-4 sm:p-4 space-y-4 w-full max-w-full overflow-x-hidden min-w-0" style={{ maxWidth: '100vw' }}>
 
             {hasResults ? (
               <div className="space-y-4">
-                <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <CardTitle>{reportName}</CardTitle>
+                <Card className="w-full max-w-full overflow-hidden">
+            <CardHeader className="px-3 sm:px-6 py-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="truncate">{reportName}</CardTitle>
                   <CardDescription>
                     {reportData.length} rows • {reportFields.length} columns
                   </CardDescription>
                 </div>
-                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   <Button variant="outline" onClick={() => {
                     setHasResults(false);
                     setShowBuilder(false);
-                  }}>
+                  }} className="w-full sm:w-auto">
                     <FileText className="h-4 w-4 mr-2" />
                     Back to Reports
-                  </Button>
-                  <Button variant="outline" onClick={() => {
-                    setHasResults(false);
-                    setShowBuilder(true);
-                  }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Report
                   </Button>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="px-3 sm:px-6 pb-4 space-y-4">
               {isLoading ? (
                 <BrandedLoader message="Loading report data..." />
               ) : (
@@ -355,13 +387,13 @@ const ReportsPage = () => {
 
                   <Sheet open={filtersSheetOpen} onOpenChange={setFiltersSheetOpen}>
                     <SheetContent side="right" className="sm:max-w-lg w-full p-0 flex flex-col">
-                      <SheetHeader className="px-6 pt-6 pb-4 border-b">
+                      <SheetHeader className="px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b">
                         <SheetTitle>Filter Report</SheetTitle>
                         <SheetDescription>
                           Add or modify filters to narrow down the results
                         </SheetDescription>
                       </SheetHeader>
-                      <ScrollArea className="flex-1 px-6 py-4">
+                      <ScrollArea className="flex-1 px-3 sm:px-6 py-3 sm:py-4">
                         <SimpleFilterPanel
                           filters={currentFilters}
                           onFiltersChange={setCurrentFilters}
@@ -369,11 +401,11 @@ const ReportsPage = () => {
                           dataSource={currentDataSource}
                         />
                       </ScrollArea>
-                      <SheetFooter className="px-6 py-4 border-t gap-2">
-                        <Button variant="outline" onClick={handleClearAllFilters} disabled={currentFilters.length === 0}>
+                      <SheetFooter className="px-3 sm:px-6 py-3 sm:py-4 border-t gap-2 flex-col sm:flex-row">
+                        <Button variant="outline" onClick={handleClearAllFilters} disabled={currentFilters.length === 0} className="w-full sm:w-auto">
                           Clear All
                         </Button>
-                        <Button onClick={handleApplyFilters} disabled={isLoading}>
+                        <Button onClick={handleApplyFilters} disabled={isLoading} className="w-full sm:w-auto">
                           Apply Filters
                         </Button>
                       </SheetFooter>
@@ -437,60 +469,65 @@ const ReportsPage = () => {
               </Card>
               </div>
             ) : showBuilder ? (
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div>
-                      <CardTitle>Create Custom Report</CardTitle>
+              <Card className="w-full max-w-full overflow-hidden">
+                <CardHeader className="px-3 sm:px-6 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="truncate">Create Custom Report</CardTitle>
                       <CardDescription>
                         Build your own report step by step
                       </CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => setShowBuilder(false)}>
+                    <Button variant="outline" size="sm" onClick={() => setShowBuilder(false)} className="flex-shrink-0">
                       <FileText className="h-4 w-4 mr-2" />
                       Back to Templates
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-3 sm:px-6 pb-4">
                   <SimpleReportBuilder onRunReport={handleRunReport} />
                 </CardContent>
               </Card>
             ) : (
               <div className="space-y-6">
                 {/* Quick Access Line Item Reports */}
-                <Card>
-                  <CardHeader>
+                <Card className="w-full max-w-full overflow-hidden">
+                  <CardHeader className="px-3 sm:px-6 py-4">
                     <CardTitle>Quick Access Reports</CardTitle>
                     <CardDescription>
                       Direct access to all expense and revenue line items
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <CardContent className="px-3 sm:px-6 pb-4">
+                    <div 
+                      className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-full"
+                      style={{ maxWidth: '100%', overflow: 'hidden' }}
+                    >
                       <Button
                         variant="outline"
-                        className="h-auto p-4 flex flex-col items-start gap-2 w-full overflow-hidden"
+                        className="h-auto p-3 sm:p-4 flex flex-col items-start gap-2 w-full"
+                        style={{ maxWidth: '100%', boxSizing: 'border-box', wordBreak: 'break-word', overflowWrap: 'anywhere', overflow: 'hidden' }}
                         onClick={() => navigate('/reports/all-expenses-line-items')}
                       >
-                        <div className="flex items-center gap-2 w-full">
-                          <Receipt className="h-5 w-5 text-primary flex-shrink-0" />
-                          <span className="font-semibold break-words flex-1 min-w-0">All Expenses Line Items</span>
+                        <div className="flex items-start gap-2 w-full min-w-0" style={{ maxWidth: '100%', overflow: 'hidden', boxSizing: 'border-box' }}>
+                          <Receipt className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                          <span className="font-semibold flex-1 min-w-0 text-left" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', maxWidth: '100%' }}>All Expenses Line Items</span>
                         </div>
-                        <span className="text-sm text-muted-foreground text-left w-full break-words">
+                        <span className="text-sm text-muted-foreground text-left w-full pl-7" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', maxWidth: 'calc(100% - 0px)', boxSizing: 'border-box' }}>
                           View complete listing of all expense transactions
                         </span>
                       </Button>
                       <Button
                         variant="outline"
-                        className="h-auto p-4 flex flex-col items-start gap-2 w-full overflow-hidden"
+                        className="h-auto p-3 sm:p-4 flex flex-col items-start gap-2 w-full"
+                        style={{ maxWidth: '100%', boxSizing: 'border-box', wordBreak: 'break-word', overflowWrap: 'anywhere', overflow: 'hidden' }}
                         onClick={() => navigate('/reports/all-revenues-line-items')}
                       >
-                        <div className="flex items-center gap-2 w-full">
-                          <DollarSign className="h-5 w-5 text-primary flex-shrink-0" />
-                          <span className="font-semibold break-words flex-1 min-w-0">All Revenues Line Items</span>
+                        <div className="flex items-start gap-2 w-full min-w-0" style={{ maxWidth: '100%', overflow: 'hidden', boxSizing: 'border-box' }}>
+                          <DollarSign className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                          <span className="font-semibold flex-1 min-w-0 text-left" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', maxWidth: '100%' }}>All Revenues Line Items</span>
                         </div>
-                        <span className="text-sm text-muted-foreground text-left w-full break-words">
+                        <span className="text-sm text-muted-foreground text-left w-full pl-7" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', maxWidth: 'calc(100% - 0px)', boxSizing: 'border-box' }}>
                           View complete listing of all revenue/invoice transactions
                         </span>
                       </Button>
@@ -507,6 +544,18 @@ const ReportsPage = () => {
               </div>
             )}
       </div>
+
+      {/* Mobile FAB Button */}
+      {isMobile && !hasResults && (
+        <Button
+          variant="default"
+          onClick={() => setShowBuilder(true)}
+          size="icon"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        >
+          <Plus className="h-6 w-6 !text-white" />
+        </Button>
+      )}
     </MobilePageWrapper>
   );
 };

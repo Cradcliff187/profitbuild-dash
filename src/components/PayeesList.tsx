@@ -1,10 +1,12 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useImperativeHandle, forwardRef, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { AlertTriangle, MoreHorizontal, Eye, Edit2, Trash2, ChevronDown, Mail, Phone, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -19,19 +21,25 @@ import { EntityTableTemplate } from "./EntityTableTemplate";
 import { PayeeDetailsModal } from "./PayeeDetailsModal";
 import { PayeeBulkActions } from "@/components/PayeeBulkActions";
 import { PayeeFilters } from "@/components/PayeeFilters";
+import { PayeeForm } from "@/components/PayeeForm";
+import { PayeeImportModal } from "@/components/PayeeImportModal";
 import type { Payee } from "@/types/payee";
 import { PayeeType } from "@/types/payee";
 import { differenceInDays } from "date-fns";
 
 interface PayeesListProps {
-  onEdit: (payee: Payee) => void;
-  refresh: boolean;
-  onRefreshComplete: () => void;
+  showForm: boolean;
+  setShowForm: (show: boolean) => void;
+  showImportModal: boolean;
+  setShowImportModal: (show: boolean) => void;
 }
 
-export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListProps) => {
-  const [payees, setPayees] = useState<Payee[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export interface PayeesListRef {
+  openNewForm: () => void;
+}
+
+export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm, setShowForm, showImportModal, setShowImportModal }, ref) => {
+  const [editingPayee, setEditingPayee] = useState<Payee | null>(null);
   const [selectedPayees, setSelectedPayees] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
@@ -41,6 +49,16 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const isSubmittingRef = useRef(false);
+
+  // Expose function to open new form (resets editingPayee)
+  useImperativeHandle(ref, () => ({
+    openNewForm: () => {
+      setEditingPayee(null);
+      setShowForm(true);
+    }
+  }));
 
   const toggleCard = (payeeId: string) => {
     setExpandedCards(prev => {
@@ -59,6 +77,27 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
       setSelectedPayees(selectedPayees.filter(id => id !== payeeId));
     } else {
       setSelectedPayees([...selectedPayees, payeeId]);
+    }
+  };
+
+  const getPayeeTypeLabel = (payeeType: string) => {
+    switch (payeeType) {
+      case PayeeType.SUBCONTRACTOR:
+        return "Subcontractor";
+      case PayeeType.MATERIAL_SUPPLIER:
+        return "Material Supplier";
+      case PayeeType.EQUIPMENT_RENTAL:
+        return "Equipment Rental";
+      case PayeeType.INTERNAL_LABOR:
+        return "Internal Labor";
+      case PayeeType.MANAGEMENT:
+        return "Management";
+      case PayeeType.PERMIT_AUTHORITY:
+        return "Permit Authority";
+      case PayeeType.OTHER:
+        return "Other";
+      default:
+        return payeeType.replace('_', ' ');
     }
   };
 
@@ -103,39 +142,27 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
     return daysUntilExpiration <= 30 && daysUntilExpiration >= 0;
   };
 
-  const fetchPayees = async () => {
-    setIsLoading(true);
-    try {
+  const { data: payees = [], isLoading, error } = useQuery({
+    queryKey: ["payees"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("payees")
         .select("*")
         .eq("is_active", true)
         .order("payee_name");
-
+      
       if (error) throw error;
-      setPayees(data as Payee[] || []);
-    } catch (error) {
-      console.error("Error fetching payees:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load payees",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return data as Payee[];
+    },
+  });
 
-  useEffect(() => {
-    fetchPayees();
-  }, []);
-
-  useEffect(() => {
-    if (refresh) {
-      fetchPayees();
-      onRefreshComplete();
-    }
-  }, [refresh, onRefreshComplete]);
+  if (error) {
+    toast({
+      title: "Error",
+      description: "Failed to load payees",
+      variant: "destructive",
+    });
+  }
 
   // Filtered payees based on search and filters
   const filteredPayees = useMemo(() => {
@@ -188,7 +215,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
         description: "Payee deleted successfully",
       });
 
-      fetchPayees();
+      queryClient.invalidateQueries({ queryKey: ["payees"] });
     } catch (error) {
       console.error("Error deleting payee:", error);
       toast({
@@ -213,7 +240,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
         description: `${payeeIds.length} payee(s) deleted successfully`,
       });
 
-      fetchPayees();
+      queryClient.invalidateQueries({ queryKey: ["payees"] });
     } catch (error) {
       console.error("Error bulk deleting payees:", error);
       toast({
@@ -238,7 +265,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
         description: `${payeeIds.length} payee(s) updated successfully`,
       });
 
-      fetchPayees();
+      queryClient.invalidateQueries({ queryKey: ["payees"] });
     } catch (error) {
       console.error("Error bulk updating payees:", error);
       toast({
@@ -252,6 +279,26 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
   const handleViewPayee = (payee: Payee) => {
     setSelectedPayee(payee);
     setShowDetailsModal(true);
+  };
+
+  const handleEditPayee = (payee: Payee) => {
+    setEditingPayee(payee);
+    setShowForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingPayee(null);
+  };
+
+  const handleFormSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ["payees"] });
+    handleCloseForm();
+  };
+
+  const handleImportSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ["payees"] });
+    setShowImportModal(false);
   };
 
   const handleSelectPayee = (payeeId: string) => {
@@ -402,7 +449,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
             View Details
           </DropdownMenuItem>
           
-          <DropdownMenuItem onClick={() => onEdit(payee)}>
+          <DropdownMenuItem onClick={() => handleEditPayee(payee)}>
             <Edit2 className="h-3 w-3 mr-2" />
             Edit Payee
           </DropdownMenuItem>
@@ -474,7 +521,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
       </div>
 
       {/* Mobile Card View */}
-      <div className="sm:hidden space-y-3">
+      <div className="sm:hidden space-y-3 pb-24 w-full max-w-full min-w-0 px-3">
         <PayeeFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -486,6 +533,16 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
           hasActiveFilters={hasActiveFilters}
           resultCount={filteredPayees.length}
         />
+
+        {/* Bulk Actions */}
+        {selectedPayees.length > 0 && (
+          <PayeeBulkActions
+            selectedPayees={payees.filter(p => selectedPayees.includes(p.id))}
+            onBulkDelete={handleBulkDelete}
+            onBulkUpdateType={handleBulkUpdateType}
+            onClearSelection={clearSelection}
+          />
+        )}
 
         {filteredPayees.length === 0 ? (
           <Card>
@@ -512,21 +569,13 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
                           onClick={(e) => e.stopPropagation()}
                         />
                         <div className="flex-1 min-w-0 space-y-0.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <CardTitle className="text-sm font-medium truncate">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-sm font-medium truncate flex-1 min-w-0">
                               {payee.payee_name}
                             </CardTitle>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {isInsuranceExpiring && (
-                                <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
-                              )}
-                              <Badge 
-                                variant={getPayeeTypeBadgeVariant(payee.payee_type)} 
-                                className="h-4 px-1.5 text-[10px]"
-                              >
-                                {payee.payee_type.replace('_', ' ')}
-                              </Badge>
-                            </div>
+                            {isInsuranceExpiring && (
+                              <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                            )}
                           </div>
                           {payee.email && (
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -551,6 +600,12 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
                         className="w-full justify-between px-3 py-2 h-auto hover:bg-muted/50 border-t"
                       >
                         <div className="flex items-center gap-2 flex-wrap">
+                          <Badge 
+                            variant={getPayeeTypeBadgeVariant(payee.payee_type)} 
+                            className="h-5 px-1.5 text-[10px]"
+                          >
+                            {getPayeeTypeLabel(payee.payee_type)}
+                          </Badge>
                           {payee.provides_labor && (
                             <Badge variant="outline" className="h-5 px-1.5 text-[10px]">Labor</Badge>
                           )}
@@ -559,6 +614,9 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
                           )}
                           {payee.is_internal && (
                             <Badge variant="outline" className="h-5 px-1.5 text-[10px]">Internal</Badge>
+                          )}
+                          {payee.requires_1099 && (
+                            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">1099</Badge>
                           )}
                         </div>
                         <ChevronDown className={`h-4 w-4 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
@@ -618,7 +676,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
                             variant="default"
                             size="sm"
                             className="flex-1"
-                            onClick={() => onEdit(payee)}
+                            onClick={() => handleEditPayee(payee)}
                           >
                             <Edit2 className="h-3 w-3 mr-1.5" />
                             Edit
@@ -644,7 +702,7 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
         onEdit={(payee) => {
           setShowDetailsModal(false);
           setSelectedPayee(null);
-          onEdit(payee);
+          handleEditPayee(payee);
         }}
         onDelete={(payeeId) => {
           setShowDetailsModal(false);
@@ -652,6 +710,55 @@ export const PayeesList = ({ onEdit, refresh, onRefreshComplete }: PayeesListPro
           handleDelete(payeeId);
         }}
       />
+
+      {/* Edit/Add Payee Sheet */}
+      {showForm && (
+        <Sheet open={showForm} onOpenChange={setShowForm}>
+          <SheetContent className="w-full sm:max-w-[600px] flex flex-col p-0">
+            <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b">
+              <SheetTitle>{editingPayee ? 'Edit Payee' : 'Add New Payee'}</SheetTitle>
+              <SheetDescription>
+                {editingPayee 
+                  ? 'Update payee information and save changes' 
+                  : 'Create a new payee for expenses, invoices, and payments'}
+              </SheetDescription>
+            </SheetHeader>
+            
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <PayeeForm
+                payee={editingPayee || undefined}
+                onSuccess={handleFormSuccess}
+                onCancel={handleCloseForm}
+                isSubmittingRef={isSubmittingRef}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 px-6 py-4 border-t bg-background">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCloseForm}
+                disabled={isSubmittingRef.current}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="payee-form"
+                disabled={isSubmittingRef.current}
+              >
+                {isSubmittingRef.current ? "Saving..." : (editingPayee ? "Update Payee" : "Add Payee")}
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
+
+      <PayeeImportModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={handleImportSuccess}
+      />
     </div>
   );
-};
+});

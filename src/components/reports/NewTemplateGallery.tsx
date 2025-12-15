@@ -34,17 +34,17 @@ export function NewTemplateGallery({ onSelectTemplate, onCustomBuilder, selected
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 w-full max-w-full overflow-hidden">
       {/* Header with Search and Custom Builder */}
-      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between w-full max-w-full overflow-hidden">
         <Input
           placeholder="Type report name here"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 w-full sm:max-w-md h-9"
+          className="w-full sm:max-w-md h-9 min-w-0"
         />
         {onCustomBuilder && (
-          <Button onClick={onCustomBuilder} variant="outline" size="sm" className="w-full sm:w-auto">
+          <Button onClick={onCustomBuilder} variant="outline" size="sm" className="w-full sm:w-auto flex-shrink-0">
             <Plus className="mr-2 h-4 w-4" />
             Custom Report
           </Button>

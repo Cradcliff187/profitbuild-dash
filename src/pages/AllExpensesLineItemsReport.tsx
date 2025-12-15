@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Receipt } from "lucide-react";
+import { Receipt, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { supabase } from "@/integrations/supabase/client";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { parseDateOnly } from "@/utils/dateUtils";
 import { ExpenseCategory, TRANSACTION_TYPE_DISPLAY, EXPENSE_CATEGORY_DISPLAY } from "@/types/expense";
@@ -14,6 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { ExportControls } from "@/components/reports/ExportControls";
 import { ReportField } from "@/utils/reportExporter";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 
 interface ExpenseLineItem {
   id: string;
@@ -33,7 +36,21 @@ interface ExpenseLineItem {
 const AllExpensesLineItemsReport = () => {
   const [expenses, setExpenses] = useState<ExpenseLineItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+
+  const toggleCard = (id: string) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     fetchExpenses();
@@ -137,7 +154,8 @@ const AllExpensesLineItemsReport = () => {
     .reduce((sum, exp) => sum + exp.amount, 0);
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <MobilePageWrapper className="w-full max-w-full overflow-x-hidden">
+      <div className="px-3 py-4 sm:p-6 space-y-4 sm:space-y-6 w-full max-w-full">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -155,30 +173,32 @@ const AllExpensesLineItemsReport = () => {
       </Breadcrumb>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+          <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-            <Receipt className="h-6 w-6 sm:h-8 sm:w-8" />
-            All Expenses Line Items Report
+              <Receipt className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0" />
+              <span className="truncate">All Expenses Line Items Report</span>
           </h1>
           <p className="text-muted-foreground mt-1">
             Complete listing of all expense transactions
           </p>
         </div>
+          <div className="flex-shrink-0">
         <ExportControls
           data={exportData}
           fields={reportFields}
           reportName="All Expenses Line Items"
         />
+          </div>
       </div>
 
-      <Card>
-        <CardHeader>
+        <Card className="w-full max-w-full overflow-hidden">
+          <CardHeader className="px-3 sm:px-6 py-4">
           <CardTitle>Expense Summary</CardTitle>
           <CardDescription>
             {expenses.length} expense{expenses.length !== 1 ? 's' : ''} found
           </CardDescription>
         </CardHeader>
-        <CardContent>
+          <CardContent className="px-3 sm:px-6 pb-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Total Amount</p>
@@ -196,11 +216,119 @@ const AllExpensesLineItemsReport = () => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+        {/* Mobile Card View */}
+        {isMobile ? (
+          <div className="space-y-3 w-full max-w-full">
+            {expenses.length === 0 ? (
+              <Card className="w-full">
+                <CardContent className="py-8">
+                  <p className="text-center text-muted-foreground">No expenses found</p>
+                </CardContent>
+              </Card>
+            ) : (
+              expenses.map((expense) => {
+                const isExpanded = expandedCards.has(expense.id);
+                const hasDetails = expense.payee_name || expense.description || expense.invoice_number || expense.account_full_name;
+
+                return (
+                  <Card key={expense.id} className="w-full max-w-full overflow-hidden hover:bg-muted/50 transition-colors">
+                    <CardHeader className="p-4 pb-3">
+                      <div className="flex items-center justify-between gap-2 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <Badge variant="outline" className="text-xs flex-shrink-0">
+                            {format(parseDateOnly(expense.expense_date), 'MMM dd, yyyy')}
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="px-4 pb-4 pt-0 space-y-3">
+                      {/* Hero: Amount */}
+                      <div className="text-center py-3 border-t">
+                        <div className="text-3xl font-bold text-red-600">
+                          {formatCurrency(expense.amount, { showCents: true })}
+                        </div>
+                      </div>
+
+                      {/* Always Visible: Project Info */}
+                      <div className="space-y-1 border-t pt-3">
+                        <div className="font-mono text-sm font-medium">{expense.project_number}</div>
+                        <div className="text-sm text-muted-foreground truncate">{expense.project_name}</div>
+                      </div>
+
+                      {/* Category and Type Badges */}
+                      <div className="flex items-center gap-2 flex-wrap border-t pt-3">
+                        <Badge variant="outline" className="text-xs">
+                          {EXPENSE_CATEGORY_DISPLAY[expense.category] || expense.category}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {TRANSACTION_TYPE_DISPLAY[expense.transaction_type] || expense.transaction_type}
+                        </Badge>
+                      </div>
+
+                      {/* Expandable Details */}
+                      {hasDetails && (
+                        <>
+                          <div className="flex justify-center pt-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleCard(expense.id)}
+                              className="h-8"
+                            >
+                              <ChevronDown className={cn(
+                                "h-4 w-4 transition-transform",
+                                isExpanded ? 'rotate-180' : ''
+                              )} />
+                              <span className="ml-1 text-xs">View Details</span>
+                            </Button>
+                          </div>
+                          <Collapsible open={isExpanded}>
+                            <CollapsibleContent>
+                              <div className="space-y-2 pt-2 border-t">
+                                <div className="grid grid-cols-1 gap-3 text-sm">
+                                  {expense.payee_name && (
+                                    <div className="min-w-0">
+                                      <div className="text-xs text-muted-foreground mb-1">Payee</div>
+                                      <div className="font-medium truncate">{expense.payee_name}</div>
+                                    </div>
+                                  )}
+                                  {expense.description && (
+                                    <div className="min-w-0">
+                                      <div className="text-xs text-muted-foreground mb-1">Description</div>
+                                      <div className="text-sm break-words">{expense.description}</div>
+                                    </div>
+                                  )}
+                                  {expense.invoice_number && (
+                                    <div className="min-w-0">
+                                      <div className="text-xs text-muted-foreground mb-1">Invoice #</div>
+                                      <div className="font-mono text-sm truncate">{expense.invoice_number}</div>
+                                    </div>
+                                  )}
+                                  {(expense.account_full_name || expense.account_name) && (
+                                    <div className="min-w-0">
+                                      <div className="text-xs text-muted-foreground mb-1">Account</div>
+                                      <div className="text-sm truncate">{expense.account_full_name || expense.account_name}</div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          /* Desktop Table View */
+          <Card className="w-full max-w-full overflow-hidden">
+            <CardHeader className="px-3 sm:px-6 py-4">
           <CardTitle>Expense Line Items</CardTitle>
         </CardHeader>
-        <CardContent>
+            <CardContent className="px-3 sm:px-6 pb-4">
           <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
@@ -259,7 +387,9 @@ const AllExpensesLineItemsReport = () => {
           </div>
         </CardContent>
       </Card>
+        )}
     </div>
+    </MobilePageWrapper>
   );
 };
 

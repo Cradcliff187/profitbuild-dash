@@ -96,3 +96,4 @@ export const ReceiptsTableHeader: React.FC<ReceiptsTableHeaderProps> = ({
     </TableHeader>
   );
 };
+

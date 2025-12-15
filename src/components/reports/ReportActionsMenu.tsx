@@ -32,14 +32,14 @@ export function ReportActionsMenu({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-8 w-8 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
         >
           <MoreVertical className="h-4 w-4" />
           <span className="sr-only">More actions</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-[200px] sm:w-48">
         <DropdownMenuItem onClick={() => onUse(template)}>
           <Play className="mr-2 h-4 w-4" />
           Use Template

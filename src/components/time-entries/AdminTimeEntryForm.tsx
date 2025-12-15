@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Camera, Check, User, MapPin } from 'lucide-react';
+import { Check, User, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { LunchToggle } from './LunchToggle';
+import { LunchToggle } from '@/components/time-tracker/LunchToggle';
 import { calculateTimeEntryHours, DEFAULT_LUNCH_DURATION } from '@/utils/timeEntryCalculations';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Worker {
   id: string;
@@ -32,7 +32,7 @@ const getProjectDisplayName = (project: Project): string => {
   return `${project.number} - ${project.name}`;
 };
 
-interface TimeEntryFormProps {
+interface AdminTimeEntryFormProps {
   workerId: string;
   setWorkerId: (id: string) => void;
   projectId: string;
@@ -49,16 +49,10 @@ interface TimeEntryFormProps {
   setLunchTaken?: (value: boolean) => void;
   lunchDuration?: number;
   setLunchDuration?: (value: number) => void;
-  receiptUrl?: string;
-  onCaptureReceipt?: () => void;
-  onRemoveReceipt?: () => void;
   disabled?: boolean;
-  showReceipt?: boolean;
-  isMobile?: boolean;
-  showRates?: boolean;
 }
 
-export const TimeEntryForm = ({
+export const AdminTimeEntryForm = ({
   workerId,
   setWorkerId,
   projectId,
@@ -75,55 +69,17 @@ export const TimeEntryForm = ({
   setLunchTaken,
   lunchDuration = DEFAULT_LUNCH_DURATION,
   setLunchDuration,
-  receiptUrl,
-  onCaptureReceipt,
-  onRemoveReceipt,
   disabled = false,
-  showReceipt = false,
-  isMobile = false,
-  showRates = true,
-}: TimeEntryFormProps) => {
+}: AdminTimeEntryFormProps) => {
+  const isMobile = useIsMobile();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [signedReceiptUrl, setSignedReceiptUrl] = useState<string>('');
   const [showWorkerSelect, setShowWorkerSelect] = useState(false);
   const [showProjectSelect, setShowProjectSelect] = useState(false);
 
   useEffect(() => {
     loadData();
   }, []);
-
-  useEffect(() => {
-    if (receiptUrl) {
-      loadSignedUrl();
-    } else {
-      setSignedReceiptUrl('');
-    }
-  }, [receiptUrl]);
-
-  const loadSignedUrl = async () => {
-    if (!receiptUrl) return;
-    
-    // If it's already a full URL (old data), use it directly
-    if (receiptUrl.startsWith('http')) {
-      setSignedReceiptUrl(receiptUrl);
-      return;
-    }
-
-    // Otherwise, generate a signed URL for the private bucket
-    try {
-      const { data, error } = await supabase.storage
-        .from('time-tracker-documents')
-        .createSignedUrl(receiptUrl, 3600); // 1 hour expiry
-
-      if (error) throw error;
-      if (data?.signedUrl) {
-        setSignedReceiptUrl(data.signedUrl);
-      }
-    } catch (error) {
-      console.error('Error loading receipt:', error);
-    }
-  };
 
   useEffect(() => {
     if (startTime && endTime) {
@@ -134,49 +90,41 @@ export const TimeEntryForm = ({
         setHours(calculatedHours);
       }
     }
-  }, [startTime, endTime]);
+  }, [startTime, endTime, setHours]);
 
   const loadData = async () => {
-    const [workersRes, projectsRes, userRes] = await Promise.all([
-      supabase
-        .from('payees')
-        .select('id, payee_name, hourly_rate, email')
-        .eq('is_internal', true)
-        .eq('provides_labor', true)
-        .eq('is_active', true)
-        .order('payee_name'),
-      supabase
-        .from('projects')
-        .select('id, project_name, project_number, category')
-        .in('status', ['approved', 'in_progress'])
-        .or('category.eq.construction,project_number.in.(006-SICK,007-VAC,008-HOL)')
-        .order('project_number', { ascending: true }),
-      supabase.auth.getUser(),
-    ]);
-    
+    // Load all internal workers (no auto-selection for admin)
+    const workersRes = await supabase
+      .from('payees')
+      .select('id, payee_name, hourly_rate, email')
+      .eq('is_internal', true)
+      .eq('provides_labor', true)
+      .eq('is_active', true)
+      .order('payee_name');
+
+    // Load all construction projects + PTO projects (no status filter for admin)
+    const projectsRes = await supabase
+      .from('projects')
+      .select('id, project_name, project_number, category')
+      .or('category.eq.construction,project_number.in.(006-SICK,007-VAC,008-HOL)')
+      .order('project_number', { ascending: true });
+
     if (workersRes.data) {
-      const mappedWorkers = workersRes.data.map(w => ({ 
-        id: w.id, 
-        name: w.payee_name, 
+      const mappedWorkers = workersRes.data.map(w => ({
+        id: w.id,
+        name: w.payee_name,
         rate: w.hourly_rate || 75,
         email: w.email,
       }));
       setWorkers(mappedWorkers);
-
-      // Auto-select current user if they're a worker
-      if (userRes.data?.user?.email && !workerId) {
-        const matchedWorker = mappedWorkers.find(w => w.email === userRes.data.user.email);
-        if (matchedWorker) {
-          setWorkerId(matchedWorker.id);
-        }
-      }
+      // NO auto-selection - admin must choose worker
     }
-    
+
     if (projectsRes.data) {
-      setProjects(projectsRes.data.map(p => ({ 
-        id: p.id, 
-        name: p.project_name, 
-        number: p.project_number 
+      setProjects(projectsRes.data.map(p => ({
+        id: p.id,
+        name: p.project_name,
+        number: p.project_number
       })));
     }
   };
@@ -185,39 +133,39 @@ export const TimeEntryForm = ({
     <div className={cn("space-y-3", isMobile && "space-y-4")}>
       {/* Quick Hour Buttons - Larger on Mobile */}
       <div className="flex gap-2">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => { 
-            setStartTime('08:00'); 
-            setEndTime('16:00'); 
-            setHours('8'); 
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setStartTime('08:00');
+            setEndTime('16:00');
+            setHours('8');
           }}
           disabled={disabled}
           className={cn("flex-1", isMobile ? "h-12 text-base font-medium" : "h-9 text-sm")}
         >
           8h
         </Button>
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => { 
-            setStartTime('08:00'); 
-            setEndTime('12:00'); 
-            setHours('4'); 
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setStartTime('08:00');
+            setEndTime('12:00');
+            setHours('4');
           }}
           disabled={disabled}
           className={cn("flex-1", isMobile ? "h-12 text-base font-medium" : "h-9 text-sm")}
         >
           4h
         </Button>
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => { 
-            setStartTime('07:00'); 
-            setEndTime('17:00'); 
-            setHours('10'); 
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setStartTime('07:00');
+            setEndTime('17:00');
+            setHours('10');
           }}
           disabled={disabled}
           className={cn("flex-1", isMobile ? "h-12 text-base font-medium" : "h-9 text-sm")}
@@ -246,16 +194,13 @@ export const TimeEntryForm = ({
           >
             {workerId ? (
               <div className="font-semibold text-foreground">
-                {showRates 
-                  ? `${workers.find(w => w.id === workerId)?.name || ''} - $${workers.find(w => w.id === workerId)?.rate || 0}/hr`
-                  : workers.find(w => w.id === workerId)?.name || 'Select team member...'
-                }
+                {`${workers.find(w => w.id === workerId)?.name || ''} - $${workers.find(w => w.id === workerId)?.rate || 0}/hr`}
               </div>
             ) : (
               <div className="text-muted-foreground">Select team member...</div>
             )}
           </button>
-          
+
           {showWorkerSelect && !disabled && (
             <div className="mt-2 border rounded-lg bg-card shadow-md relative z-50 max-h-64 overflow-y-auto">
               {workers.map(worker => (
@@ -275,7 +220,7 @@ export const TimeEntryForm = ({
                 >
                   <div className="flex items-center justify-between">
                     <div className="font-semibold">
-                      {showRates ? `${worker.name} - $${worker.rate}/hr` : worker.name}
+                      {`${worker.name} - $${worker.rate}/hr`}
                     </div>
                     {workerId === worker.id && (
                       <Check className="w-5 h-5 text-primary flex-shrink-0" />
@@ -314,7 +259,7 @@ export const TimeEntryForm = ({
               <div className="text-muted-foreground">Select project...</div>
             )}
           </button>
-          
+
           {showProjectSelect && !disabled && (
             <div className="mt-2 border rounded-lg bg-card shadow-md relative z-50 max-h-64 overflow-y-auto">
               {projects.map(project => (
@@ -441,41 +386,6 @@ export const TimeEntryForm = ({
           disabled={disabled}
           isMobile={isMobile}
         />
-      )}
-
-      {showReceipt && (
-        <div>
-          <Label className="text-xs">Receipt</Label>
-          {receiptUrl ? (
-            <div className="flex items-center gap-2 mt-1">
-              {signedReceiptUrl && (
-                <img src={signedReceiptUrl} alt="Receipt" className="h-20 w-20 object-cover rounded border" />
-              )}
-              {onRemoveReceipt && (
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  size="sm" 
-                  onClick={onRemoveReceipt}
-                  disabled={disabled}
-                >
-                  Remove
-                </Button>
-              )}
-            </div>
-          ) : onCaptureReceipt ? (
-            <Button 
-              type="button"
-              variant="outline" 
-              onClick={onCaptureReceipt}
-              disabled={disabled}
-              className="mt-1"
-            >
-              <Camera className="w-4 h-4 mr-2" />
-              Capture Receipt
-            </Button>
-          ) : null}
-        </div>
       )}
     </div>
   );

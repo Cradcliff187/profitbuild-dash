@@ -56,7 +56,7 @@ export function TemplateCard({ template, onUse, variant = 'default' }: TemplateC
     return (
       <div
         className={cn(
-          "flex items-center gap-3 px-3 py-2 hover:bg-accent/50 rounded-md transition-colors cursor-pointer",
+          "flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-accent/50 rounded-md transition-colors cursor-pointer min-w-0 w-full max-w-full overflow-hidden",
           colorClass
         )}
         onClick={() => onUse(template)}
@@ -75,6 +75,7 @@ export function TemplateCard({ template, onUse, variant = 'default' }: TemplateC
             e.stopPropagation();
             onUse(template);
           }}
+          className="flex-shrink-0"
         >
           Use
         </Button>
@@ -85,9 +86,9 @@ export function TemplateCard({ template, onUse, variant = 'default' }: TemplateC
   return (
     <TooltipProvider>
       <Tooltip delayDuration={300}>
-        <Card className={`${colorClass} hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col h-full group`}>
-          <CardHeader>
-            <div className="flex items-start justify-between gap-2">
+        <Card className={`${colorClass} hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col h-full group w-full max-w-full overflow-hidden`}>
+          <CardHeader className="px-3 sm:px-6 py-4">
+            <div className="flex items-start justify-between gap-2 min-w-0">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Icon className="h-5 w-5 shrink-0" />
                 <CardTitle className="text-lg truncate">{template.name}</CardTitle>
@@ -106,7 +107,7 @@ export function TemplateCard({ template, onUse, variant = 'default' }: TemplateC
               </CardDescription>
             )}
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col justify-end">
+          <CardContent className="px-3 sm:px-6 pb-4 flex-1 flex flex-col justify-end">
             <Button 
               onClick={() => onUse(template)}
               className="w-full group-hover:scale-[1.02] transition-transform"

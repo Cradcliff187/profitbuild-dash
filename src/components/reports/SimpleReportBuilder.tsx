@@ -404,18 +404,18 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden">
       {/* Step Progress */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between min-w-0">
         {[1, 2, 3, 4].map((s, index) => (
-          <div key={s} className="flex items-center flex-1">
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
+          <div key={s} className="flex items-center flex-1 min-w-0">
+            <div className={`flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 flex-shrink-0 ${
               step >= s ? 'bg-primary text-primary-foreground border-primary' : 'border-muted text-muted-foreground'
             }`}>
-              {step > s ? <CheckCircle2 className="h-5 w-5" /> : s}
+              {step > s ? <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" /> : <span className="text-xs sm:text-sm">{s}</span>}
             </div>
             {index < 3 && (
-              <div className={`flex-1 h-0.5 mx-2 ${
+              <div className={`flex-1 h-0.5 mx-1 sm:mx-2 min-w-0 ${
                 step > s ? 'bg-primary' : 'bg-muted'
               }`} />
             )}
@@ -425,12 +425,12 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
 
       {/* Step 1: Data Source */}
       {step === 1 && (
-        <Card>
-          <CardHeader>
+        <Card className="w-full max-w-full overflow-hidden">
+          <CardHeader className="px-3 sm:px-6 py-4">
             <CardTitle>Step 1: What do you want to report on?</CardTitle>
             <CardDescription>Select the type of data for your report</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="px-3 sm:px-6 pb-4 space-y-4">
             <div className="space-y-2">
               <Label>Data Source</Label>
               <Select value={dataSource} onValueChange={(value) => {
@@ -439,7 +439,7 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
                 const defaultFields = AVAILABLE_FIELDS[value as keyof typeof AVAILABLE_FIELDS];
                 setSelectedFields(defaultFields?.slice(0, 4).map(f => f.key) || []);
               }}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -460,21 +460,22 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
 
       {/* Step 2: Select Fields */}
       {step === 2 && (
-        <Card>
-          <CardHeader>
+        <Card className="w-full max-w-full overflow-hidden">
+          <CardHeader className="px-3 sm:px-6 py-4">
             <CardTitle>Step 2: What information?</CardTitle>
             <CardDescription>Select the fields to include in your report</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3 max-h-96 overflow-y-auto border rounded-md p-4">
+          <CardContent className="px-3 sm:px-6 pb-4 space-y-4">
+            <div className="space-y-3 max-h-64 sm:max-h-96 overflow-y-auto border rounded-md p-3 sm:p-4 w-full">
               {availableFields.map(field => (
-                <div key={field.key} className="flex items-center space-x-2">
+                <div key={field.key} className="flex items-center space-x-2 min-w-0">
                   <Checkbox
                     id={field.key}
                     checked={selectedFields.includes(field.key)}
                     onCheckedChange={() => handleFieldToggle(field.key)}
+                    className="flex-shrink-0"
                   />
-                  <Label htmlFor={field.key} className="font-normal cursor-pointer flex-1">
+                  <Label htmlFor={field.key} className="font-normal cursor-pointer flex-1 min-w-0 truncate">
                     {field.label}
                   </Label>
                 </div>
@@ -483,11 +484,11 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
             {selectedFields.length === 0 && (
               <div className="text-sm text-destructive">Please select at least one field</div>
             )}
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep(1)}>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setStep(1)} className="w-full sm:w-auto">
                 Back
               </Button>
-              <Button onClick={() => setStep(3)} disabled={selectedFields.length === 0} className="flex-1">
+              <Button onClick={() => setStep(3)} disabled={selectedFields.length === 0} className="flex-1 w-full sm:w-auto">
                 Next: Add Filters <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
@@ -497,30 +498,34 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
 
       {/* Step 3: Filters */}
       {step === 3 && (
-        <Card>
-          <CardHeader>
+        <Card className="w-full max-w-full overflow-hidden">
+          <CardHeader className="px-3 sm:px-6 py-4">
             <CardTitle>Step 3: Any filters?</CardTitle>
             <CardDescription>Optional: Filter the data to show only what you need</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="px-3 sm:px-6 pb-4 space-y-4">
+            <div className="w-full max-w-full overflow-hidden">
             <FilterSummary
               filters={filters}
               availableFields={AVAILABLE_FIELDS[dataSource] || []}
               onRemoveFilter={(index) => setFilters(filters.filter((_, i) => i !== index))}
               onClearAll={() => setFilters([])}
             />
+            </div>
+            <div className="w-full max-w-full overflow-hidden">
             <SimpleFilterPanel
               filters={filters}
               onFiltersChange={setFilters}
               availableFields={AVAILABLE_FIELDS[dataSource] || []}
               dataSource={dataSource}
             />
+            </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Sort By</Label>
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -535,7 +540,7 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
               <div className="space-y-2">
                 <Label>Direction</Label>
                 <Select value={sortDir} onValueChange={(value) => setSortDir(value as 'ASC' | 'DESC')}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -552,11 +557,11 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
               </div>
             )}
 
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep(2)}>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setStep(2)} className="w-full sm:w-auto">
                 Back
               </Button>
-              <Button onClick={handlePreview} disabled={isLoading || selectedFields.length === 0} className="flex-1">
+              <Button onClick={handlePreview} disabled={isLoading || selectedFields.length === 0} className="flex-1 w-full sm:w-auto">
                 {isLoading ? 'Loading...' : 'Preview Report'}
               </Button>
             </div>
@@ -566,18 +571,18 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
 
       {/* Step 4: Preview */}
       {step === 4 && (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
+        <div className="space-y-4 w-full max-w-full overflow-hidden">
+          <Card className="w-full max-w-full overflow-hidden">
+            <CardHeader className="px-3 sm:px-6 py-4">
               <CardTitle>Preview Report</CardTitle>
               <CardDescription>Review your report data</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="px-3 sm:px-6 pb-4 space-y-4">
               {isLoading ? (
                 <BrandedLoader message="Loading report data..." />
               ) : (
                 <>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div className="text-sm text-muted-foreground">
                       {reportData.length} rows
                     </div>
@@ -591,15 +596,15 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
                     data={reportData}
                     fields={reportFields}
                   />
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setStep(3)}>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button variant="outline" onClick={() => setStep(3)} className="w-full sm:w-auto">
                       Back
                     </Button>
-                    <Button variant="outline" onClick={() => setSaveDialogOpen(true)}>
+                    <Button variant="outline" onClick={() => setSaveDialogOpen(true)} className="w-full sm:w-auto">
                       <Save className="h-4 w-4 mr-2" />
                       Save Report
                     </Button>
-                    <Button onClick={handleRunReport} className="flex-1">
+                    <Button onClick={handleRunReport} className="flex-1 w-full sm:w-auto">
                       Run Full Report
                     </Button>
                   </div>
@@ -612,7 +617,7 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
 
       {/* Save Report Dialog */}
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-        <DialogContent>
+        <DialogContent className="p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Save Custom Report</DialogTitle>
             <DialogDescription>
@@ -627,6 +632,7 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
                 value={saveName}
                 onChange={(e) => setSaveName(e.target.value)}
                 placeholder="Enter report name"
+                className="w-full"
               />
             </div>
             <div className="space-y-2">
@@ -637,12 +643,13 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
                 onChange={(e) => setSaveDescription(e.target.value)}
                 placeholder="Optional description"
                 rows={3}
+                className="w-full"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="save-category">Category</Label>
               <Select value={saveCategory} onValueChange={(value: any) => setSaveCategory(value)}>
-                <SelectTrigger id="save-category">
+                <SelectTrigger id="save-category" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

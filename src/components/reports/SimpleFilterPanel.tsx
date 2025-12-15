@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { ReportFilter } from "@/hooks/useReportExecution";
 import { FieldMetadata } from './SimpleReportBuilder';
 import { useReportFilterOptions } from "@/hooks/useReportFilterOptions";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 interface SimpleFilterPanelProps {
@@ -38,6 +39,7 @@ const operatorLabels: Record<ReportFilter['operator'], string> = {
 };
 
 export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, dataSource }: SimpleFilterPanelProps) {
+  const isMobile = useIsMobile();
   const { clients, payees, workers, projects, isLoading: optionsLoading } = useReportFilterOptions();
   // Track open state for each multi-select popover by field key
   const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({});
@@ -229,21 +231,25 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
       if (filter.operator === 'between') {
         const dateRange = Array.isArray(filter.value) ? filter.value : [null, null];
         return (
-          <div className="flex gap-2 flex-1">
+          <div className="flex flex-col sm:flex-row gap-2 w-full">
             <Popover>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dateRange[0] && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange[0] ? format(new Date(dateRange[0]), "MMM dd, yyyy") : "Start date"}
-                </Button>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal min-h-[44px]",
+                  !dateRange[0] && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange[0] ? format(new Date(dateRange[0]), "MMM dd, yyyy") : "Start date"}
+              </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent 
+                className="w-auto p-0" 
+                align={isMobile ? "end" : "start"}
+                side={isMobile ? "bottom" : "bottom"}
+              >
                 <Calendar
                   mode="single"
                   selected={dateRange[0] ? new Date(dateRange[0]) : undefined}
@@ -260,7 +266,7 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal",
+                    "w-full justify-start text-left font-normal min-h-[44px]",
                     !dateRange[1] && "text-muted-foreground"
                   )}
                 >
@@ -268,7 +274,11 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
                   {dateRange[1] ? format(new Date(dateRange[1]), "MMM dd, yyyy") : "End date"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent 
+                className="w-auto p-0" 
+                align={isMobile ? "end" : "start"}
+                side={isMobile ? "bottom" : "bottom"}
+              >
                 <Calendar
                   mode="single"
                   selected={dateRange[1] ? new Date(dateRange[1]) : undefined}
@@ -290,7 +300,7 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal",
+                  "w-full justify-start text-left font-normal min-h-[44px]",
                   !dateValue && "text-muted-foreground"
                 )}
               >
@@ -298,7 +308,11 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
                 {dateValue ? format(new Date(dateValue), "MMM dd, yyyy") : "Select date"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent 
+              className="w-auto p-0" 
+              align={isMobile ? "end" : "start"}
+              side={isMobile ? "bottom" : "bottom"}
+            >
               <Calendar
                 mode="single"
                 selected={dateValue ? new Date(dateValue) : undefined}
@@ -338,7 +352,7 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="w-full justify-between font-normal"
+              className="w-full justify-between font-normal min-h-[44px]"
               disabled={optionsLoading}
             >
               <span className="truncate flex items-center gap-2">
@@ -363,7 +377,14 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[300px] p-0" align="start">
+          <PopoverContent 
+            className={cn(
+              "p-0",
+              isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)]" : "w-[300px]"
+            )} 
+            align={isMobile ? "end" : "start"}
+            side={isMobile ? "bottom" : "bottom"}
+          >
             {/* Search Input */}
             <div className="flex items-center border-b px-3 py-2">
               <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
@@ -378,12 +399,12 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
             </div>
             
             {/* Options List */}
-            <ScrollArea className="h-[300px]">
+            <ScrollArea className={cn(isMobile ? "h-[50vh] max-h-[400px]" : "h-[300px]")}>
               <div className="p-2 space-y-1">
                 {/* Select All / Clear All */}
                 {options.length > 1 && (
                   <div 
-                    className="flex items-center space-x-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+                    className="flex items-center space-x-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm min-h-[44px]"
                     onClick={() => {
                       if (allSelected) {
                         // Clear all
@@ -471,7 +492,7 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
                     return (
                       <div
                         key={value}
-                        className="flex items-center space-x-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+                        className="flex items-center space-x-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm min-h-[44px]"
                         onClick={handleToggle}
                       >
                         <Checkbox
@@ -504,7 +525,7 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
           onValueChange={(value) => updateFilter(index, { value })}
           disabled={optionsLoading}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full min-h-[44px]">
             <SelectValue placeholder={`Select ${field.label.toLowerCase()}...`} />
           </SelectTrigger>
           <SelectContent>
@@ -522,7 +543,7 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
     if ((field.type === 'currency' || field.type === 'number' || field.type === 'percent') && filter.operator === 'between') {
       const range = Array.isArray(filter.value) ? filter.value : ['', ''];
       return (
-        <div className="flex gap-2 flex-1">
+        <div className="flex flex-col sm:flex-row gap-2 w-full">
           <Input
             type="number"
             placeholder="Min"
@@ -531,7 +552,7 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
               const newRange = [e.target.value, range[1] || ''];
               updateFilter(index, { value: newRange });
             }}
-            className="flex-1"
+            className="w-full sm:flex-1"
           />
           <Input
             type="number"
@@ -541,7 +562,7 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
               const newRange = [range[0] || '', e.target.value];
               updateFilter(index, { value: newRange });
             }}
-            className="flex-1"
+            className="w-full sm:flex-1"
           />
         </div>
       );
@@ -555,7 +576,7 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
           value={filter.value || ''}
           onChange={(e) => updateFilter(index, { value: e.target.value })}
           placeholder={`Enter ${field.label.toLowerCase()}`}
-          className="flex-1"
+          className="w-full"
         />
       );
     }
@@ -567,6 +588,7 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
         value={filter.value || ''}
         onChange={(e) => updateFilter(index, { value: e.target.value })}
         placeholder={`Enter ${field.label.toLowerCase()}`}
+        className="w-full"
         className="flex-1"
       />
     );
@@ -686,18 +708,18 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
               variant="ghost"
               size="sm"
               onClick={handleSelectAll}
-              className="h-7 text-xs"
+              className="h-7 text-xs min-h-[44px] min-w-[44px]"
             >
               {currentValues.length === options.length ? 'Clear All' : 'Select All'}
             </Button>
           </div>
-          <ScrollArea className="h-[320px] pr-3">
+          <ScrollArea className={cn(isMobile ? "h-[40vh] max-h-[300px]" : "h-[320px]", "pr-3")}>
             <div className="space-y-1">
               {options.map((category) => (
                 <label
                   key={category}
                   htmlFor={`category-${category}`}
-                  className="flex items-center space-x-3 p-2.5 hover:bg-accent/50 rounded-md cursor-pointer transition-colors"
+                  className="flex items-center space-x-3 p-2.5 hover:bg-accent/50 rounded-md cursor-pointer transition-colors min-h-[44px]"
                 >
                   <Checkbox
                     id={`category-${category}`}
@@ -836,13 +858,13 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
   const [customOpen, setCustomOpen] = useState(false);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4 w-full max-w-full overflow-hidden">
       {/* Universal Filters */}
       {(universalFields.dateFields.length > 0 || universalFields.statusFields.length > 0 || universalFields.clientFields.length > 0) && (
         <Collapsible open={universalOpen} onOpenChange={setUniversalOpen}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-semibold">
-            <span>Universal Filters</span>
-            <ChevronDown className={cn("h-4 w-4 transition-transform", universalOpen && "rotate-180")} />
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 px-2 sm:px-4 text-sm font-semibold min-w-0 min-h-[44px]">
+            <span className="truncate">Universal Filters</span>
+            <ChevronDown className={cn("h-4 w-4 transition-transform flex-shrink-0", universalOpen && "rotate-180")} />
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 pt-2">
             {/* Date Range Filter */}
@@ -858,7 +880,7 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
-                        className="flex-1 justify-start text-left font-normal text-muted-foreground"
+                        className="flex-1 justify-start text-left font-normal text-muted-foreground min-h-[44px]"
                         onClick={() => {
                           const newFilter: ReportFilter = {
                             field: dateField.key,
@@ -899,11 +921,11 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
       {/* Custom Filters */}
       {Object.keys(customFields).length > 0 && (
         <Collapsible open={customOpen} onOpenChange={setCustomOpen}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-semibold">
-            <span>Custom Filters</span>
-            <ChevronDown className={cn("h-4 w-4 transition-transform", customOpen && "rotate-180")} />
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 px-2 sm:px-4 text-sm font-semibold min-w-0 min-h-[44px]">
+            <span className="truncate">Custom Filters</span>
+            <ChevronDown className={cn("h-4 w-4 transition-transform flex-shrink-0", customOpen && "rotate-180")} />
           </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 pt-2">
+          <CollapsibleContent className="space-y-3 sm:space-y-4 pt-2">
             {Object.entries(customFields).map(([groupName, groupFields]) => (
               <div key={groupName} className="space-y-2">
                 <Label className="text-sm font-semibold">{groupName}</Label>

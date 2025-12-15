@@ -60,19 +60,19 @@ export function FilterSummary({ filters, availableFields, onRemoveFilter, onClea
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
+    <div className="space-y-2 w-full max-w-full overflow-hidden">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div className="text-sm font-medium">Active Filters</div>
         <Button
           variant="ghost"
           size="sm"
           onClick={onClearAll}
-          className="h-7 text-xs"
+          className="h-7 text-xs w-full sm:w-auto"
         >
           Clear All
         </Button>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 w-full">
         {filters.map((filter, index) => {
           const fieldLabel = getFieldLabel(filter.field);
           const valueLabel = formatFilterValue(filter);
@@ -82,15 +82,15 @@ export function FilterSummary({ filters, availableFields, onRemoveFilter, onClea
             <Badge
               key={index}
               variant="secondary"
-              className="flex items-center gap-1 pr-1 py-1"
+              className="flex items-center gap-1 pr-1 py-1 max-w-full"
             >
-              <span className="text-xs">
+              <span className="text-xs truncate max-w-full">
                 {fieldLabel} {operatorLabel} {valueLabel}
               </span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-4 w-4 rounded-full hover:bg-destructive hover:text-destructive-foreground"
+                className="h-4 w-4 rounded-full hover:bg-destructive hover:text-destructive-foreground flex-shrink-0"
                 onClick={() => onRemoveFilter(index)}
               >
                 <X className="h-3 w-3" />

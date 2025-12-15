@@ -1418,7 +1418,7 @@ export const MobileTimeTracker: React.FC = () => {
               className="w-full bg-card border-2 border-dashed border-primary/50 hover:border-primary hover:bg-primary/5 text-primary py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
             >
               <Edit2 className="w-5 h-5" />
-              Forgot to clock in? Add Time Manually
+              Add Time Entry
             </button>
           </div>
 

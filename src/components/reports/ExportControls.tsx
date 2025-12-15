@@ -1,7 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, ChevronDown } from "lucide-react";
 import { exportToPDF, exportToExcel, exportToCSV, downloadBlob, ReportField } from "@/utils/reportExporter";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ExportControlsProps {
   reportName: string;
@@ -11,6 +18,7 @@ interface ExportControlsProps {
 
 export function ExportControls({ reportName, data, fields }: ExportControlsProps) {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const handleExportPDF = async () => {
     try {
@@ -76,8 +84,38 @@ export function ExportControls({ reportName, data, fields }: ExportControlsProps
     }
   };
 
+  // Mobile: Use dropdown to save vertical space with proper PWA touch targets
+  if (isMobile) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="w-full min-h-[44px]">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+            <ChevronDown className="h-4 w-4 ml-2" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] sm:w-56">
+          <DropdownMenuItem onClick={handleExportPDF} className="min-h-[44px] cursor-pointer">
+            <FileText className="h-4 w-4 mr-2" />
+            Export PDF
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleExportExcel} className="min-h-[44px] cursor-pointer">
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Export Excel
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleExportCSV} className="min-h-[44px] cursor-pointer">
+            <FileText className="h-4 w-4 mr-2" />
+            Export CSV
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  // Desktop: Show separate buttons for better visibility and one-click access
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-row gap-2">
       <Button onClick={handleExportPDF} variant="outline" size="sm">
         <Download className="h-4 w-4 mr-2" />
         Export PDF
@@ -93,4 +131,3 @@ export function ExportControls({ reportName, data, fields }: ExportControlsProps
     </div>
   );
 }
-

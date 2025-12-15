@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RefreshCw, CheckCircle2, Clock, XCircle, HelpCircle } from 'lucide-react';
+import { RefreshCw, CheckCircle2, Clock, XCircle, HelpCircle, Phone, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SMSMessage {
   id: string;
@@ -37,6 +38,7 @@ export function SMSHistory() {
   const [messages, setMessages] = useState<SMSMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   const fetchMessages = async () => {
     setIsLoading(true);
@@ -116,62 +118,117 @@ export function SMSHistory() {
       </CardHeader>
 
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Recipient</TableHead>
-              <TableHead>Message</TableHead>
-              <TableHead>Sent</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {messages.map(message => (
-              <TableRow key={message.id}>
-                <TableCell>
-                  <div>
-                    <div className="font-medium">{message.recipient_name}</div>
-                    <div className="text-xs text-muted-foreground">{message.recipient_phone}</div>
-                  </div>
-                </TableCell>
-                <TableCell className="max-w-xs">
-                  <div className="truncate text-sm">{message.message_body}</div>
-                  {message.link_type && (
-                    <Badge variant="outline" className="text-xs mt-1">
-                      {message.link_type}
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {format(new Date(message.sent_at), 'MMM d, h:mm a')}
-                </TableCell>
-                <TableCell>
-                  {getStatusBadge(message.delivery_status)}
-                </TableCell>
-                <TableCell>
-                  {message.textbelt_text_id && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => refreshStatus(message)}
-                      disabled={refreshingId === message.id}
-                    >
-                      <RefreshCw className={`h-3 w-3 ${refreshingId === message.id ? 'animate-spin' : ''}`} />
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-            {messages.length === 0 && !isLoading && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  No messages sent yet
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        {messages.length === 0 && !isLoading ? (
+          <div className="text-center text-muted-foreground py-8">
+            No messages sent yet
+          </div>
+        ) : (
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden sm:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Recipient</TableHead>
+                    <TableHead>Message</TableHead>
+                    <TableHead>Sent</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {messages.map(message => (
+                    <TableRow key={message.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{message.recipient_name}</div>
+                          <div className="text-xs text-muted-foreground">{message.recipient_phone}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                        <div className="truncate text-sm">{message.message_body}</div>
+                        {message.link_type && (
+                          <Badge variant="outline" className="text-xs mt-1">
+                            {message.link_type}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {format(new Date(message.sent_at), 'MMM d, h:mm a')}
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(message.delivery_status)}
+                      </TableCell>
+                      <TableCell>
+                        {message.textbelt_text_id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => refreshStatus(message)}
+                            disabled={refreshingId === message.id}
+                          >
+                            <RefreshCw className={`h-3 w-3 ${refreshingId === message.id ? 'animate-spin' : ''}`} />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="sm:hidden space-y-3">
+              {messages.map(message => (
+                <Card key={message.id} className="overflow-hidden">
+                  <CardHeader className="p-3 bg-gradient-to-r from-primary/5 to-transparent">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <div className="font-medium text-sm truncate">{message.recipient_name}</div>
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">{message.recipient_phone}</div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {getStatusBadge(message.delivery_status)}
+                        {message.textbelt_text_id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => refreshStatus(message)}
+                            disabled={refreshingId === message.id}
+                          >
+                            <RefreshCw className={`h-3.5 w-3.5 ${refreshingId === message.id ? 'animate-spin' : ''}`} />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-3 space-y-2 pt-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                        <MessageSquare className="h-3 w-3" />
+                        <span>Message</span>
+                      </div>
+                      <div className="text-sm">{message.message_body}</div>
+                      {message.link_type && (
+                        <Badge variant="outline" className="text-[10px] mt-1">
+                          {message.link_type}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1 border-t">
+                      <Clock className="h-3 w-3 shrink-0" />
+                      <span>{format(new Date(message.sent_at), 'MMM d, yyyy h:mm a')}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

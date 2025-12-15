@@ -33,6 +33,7 @@ import { getMarginThresholdStatus, getThresholdStatusColor, getThresholdStatusLa
 import { usePagination } from "@/hooks/usePagination";
 import { CompletePagination } from "@/components/ui/complete-pagination";
 import { useSmartNavigation } from "@/hooks/useSmartNavigation";
+import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
 
 interface ProjectWithVariance extends Project {
   estimateTotal?: number;
@@ -305,14 +306,28 @@ export const ProjectsList = ({
 
                     {/* Financial Summary - Two-Tier Margins */}
                     {(showEstimateDetails || project.contracted_amount || project.original_margin !== null) && (() => {
-                      // Use estimate data if estimating/quoted, otherwise use project actuals
-                      const contract = showEstimateDetails 
-                        ? (currentEstimate?.total_amount ?? 0)
-                        : (project.contracted_amount ?? 0);
-                      const adjustedCosts = project.adjusted_est_costs ?? 0;
-                      const projectedMargin = showEstimateDetails
-                        ? (contract - adjustedCosts) // Estimate margin
-                        : (project.projected_margin ?? (contract - adjustedCosts)); // Actual margin
+                      // When showing estimate details, use estimate's own data consistently
+                      // When showing project details, use project's actual data
+                      let contract: number;
+                      let adjustedCosts: number;
+                      let projectedMargin: number;
+                      
+                      if (showEstimateDetails && currentEstimate) {
+                        // Estimate details: use estimate data exclusively
+                        contract = currentEstimate.total_amount ?? 0;
+                        // Use estimate's total_cost if available, otherwise calculate from lineItems
+                        adjustedCosts = currentEstimate.total_cost ?? 
+                          (currentEstimate.lineItems && currentEstimate.lineItems.length > 0
+                            ? calculateEstimateTotalCost(currentEstimate.lineItems)
+                            : 0);
+                        // Calculate margin using estimate's own contract and cost data
+                        projectedMargin = contract - adjustedCosts;
+                      } else {
+                        // Project details: use project actuals
+                        contract = project.contracted_amount ?? 0;
+                        adjustedCosts = project.adjusted_est_costs ?? 0;
+                        projectedMargin = project.projected_margin ?? (contract - adjustedCosts);
+                      }
                       const derivedMarginPct = contract > 0 ? (projectedMargin / contract) * 100 : 0;
                       const marginPctToShow = project.margin_percentage ?? derivedMarginPct;
                       const changeOrderRevenue = project.changeOrderRevenue || 0;
@@ -449,14 +464,28 @@ export const ProjectsList = ({
           // MOBILE: New collapsible implementation
           const isExpanded = expandedCards.has(project.id);
           
-          // Use estimate data if estimating/quoted, otherwise use project actuals
-          const contract = showEstimateDetails 
-            ? (currentEstimate?.total_amount ?? 0)
-            : (project.contracted_amount ?? 0);
-          const adjustedCosts = project.adjusted_est_costs ?? 0;
-          const projectedMargin = showEstimateDetails
-            ? (contract - adjustedCosts) // Estimate margin
-            : (project.projected_margin ?? (contract - adjustedCosts)); // Actual margin
+          // When showing estimate details, use estimate's own data consistently
+          // When showing project details, use project's actual data
+          let contract: number;
+          let adjustedCosts: number;
+          let projectedMargin: number;
+          
+          if (showEstimateDetails && currentEstimate) {
+            // Estimate details: use estimate data exclusively
+            contract = currentEstimate.total_amount ?? 0;
+            // Use estimate's total_cost if available, otherwise calculate from lineItems
+            adjustedCosts = currentEstimate.total_cost ?? 
+              (currentEstimate.lineItems && currentEstimate.lineItems.length > 0
+                ? calculateEstimateTotalCost(currentEstimate.lineItems)
+                : 0);
+            // Calculate margin using estimate's own contract and cost data
+            projectedMargin = contract - adjustedCosts;
+          } else {
+            // Project details: use project actuals
+            contract = project.contracted_amount ?? 0;
+            adjustedCosts = project.adjusted_est_costs ?? 0;
+            projectedMargin = project.projected_margin ?? (contract - adjustedCosts);
+          }
           const derivedMarginPct = contract > 0 ? (projectedMargin / contract) * 100 : 0;
           const marginPctToShow = project.margin_percentage ?? derivedMarginPct;
 

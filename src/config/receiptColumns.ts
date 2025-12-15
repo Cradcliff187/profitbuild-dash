@@ -11,3 +11,4 @@ export const receiptColumnDefinitions = [
   { key: 'description', label: 'Description', required: false, hiddenOnMobile: true, sortable: true },
   { key: 'actions', label: 'Actions', required: true, hiddenOnMobile: false },
 ];
+

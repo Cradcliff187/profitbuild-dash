@@ -266,3 +266,4 @@ export const ReceiptsTableRow = React.memo(ReceiptsTableRowComponent, (prevProps
     JSON.stringify(prevProps.displayColumns) === JSON.stringify(nextProps.displayColumns)
   );
 });
+

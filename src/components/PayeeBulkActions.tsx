@@ -1,11 +1,20 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Trash2, Users, X } from "lucide-react";
 import { PayeeType } from "@/types/payee";
 import type { Payee } from "@/types/payee";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface PayeeBulkActionsProps {
   selectedPayees: Payee[];
@@ -20,33 +29,26 @@ export const PayeeBulkActions = ({
   onBulkUpdateType, 
   onClearSelection 
 }: PayeeBulkActionsProps) => {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showUpdateTypeDialog, setShowUpdateTypeDialog] = useState(false);
-  const [selectedType, setSelectedType] = useState<PayeeType | "">("");
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [bulkPayeeType, setBulkPayeeType] = useState<PayeeType>(PayeeType.SUBCONTRACTOR);
 
   const handleBulkDelete = async () => {
-    setIsProcessing(true);
+    setIsLoading(true);
     try {
       await onBulkDelete(selectedPayees.map(p => p.id));
-      setShowDeleteDialog(false);
       onClearSelection();
     } finally {
-      setIsProcessing(false);
+      setIsLoading(false);
     }
   };
 
   const handleBulkUpdateType = async () => {
-    if (!selectedType) return;
-    
-    setIsProcessing(true);
+    setIsLoading(true);
     try {
-      await onBulkUpdateType(selectedPayees.map(p => p.id), selectedType as PayeeType);
-      setShowUpdateTypeDialog(false);
-      setSelectedType("");
+      await onBulkUpdateType(selectedPayees.map(p => p.id), bulkPayeeType);
       onClearSelection();
     } finally {
-      setIsProcessing(false);
+      setIsLoading(false);
     }
   };
 
@@ -66,108 +68,69 @@ export const PayeeBulkActions = ({
   if (selectedPayees.length === 0) return null;
 
   return (
-    <div className="flex items-center justify-between p-4 bg-muted/50 border rounded-lg mb-6">
-      <div className="flex items-center gap-3">
-        <Badge variant="secondary" className="gap-1">
-          <Users className="h-3 w-3" />
-          {selectedPayees.length} selected
-        </Badge>
-        <span className="text-sm text-muted-foreground">
-          {selectedPayees.map(p => p.payee_name).join(", ")}
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 bg-muted border rounded-md">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <Users className="h-4 w-4 shrink-0" />
+        <span className="text-xs sm:text-sm font-medium truncate">
+          {selectedPayees.length} {selectedPayees.length === 1 ? 'payee' : 'payees'} selected
         </span>
-      </div>
-      
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowUpdateTypeDialog(true)}
-          disabled={isProcessing}
-        >
-          Update Type
-        </Button>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowDeleteDialog(true)}
-          disabled={isProcessing}
-        >
-          <Trash2 className="h-4 w-4 mr-1" />
-          Delete
-        </Button>
-        
         <Button
           variant="ghost"
           size="sm"
           onClick={onClearSelection}
+          className="h-7 w-7 p-0 shrink-0"
         >
           <X className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Selected Payees</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedPayees.length} payee(s)? 
-              This will deactivate: {selectedPayees.map(p => p.payee_name).join(", ")}.
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleBulkDelete}
-              disabled={isProcessing}
-            >
-              {isProcessing ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <Select value={bulkPayeeType} onValueChange={(value: PayeeType) => setBulkPayeeType(value)}>
+            <SelectTrigger className="h-7 w-[120px] sm:w-[140px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(PayeeType).map((type) => (
+                <SelectItem key={type} value={type}>
+                  {getPayeeTypeLabel(type)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Button
+            onClick={handleBulkUpdateType}
+            disabled={isLoading}
+            size="sm"
+            className="h-7 text-xs"
+          >
+            Update
+          </Button>
+        </div>
 
-      {/* Update Type Dialog */}
-      <AlertDialog open={showUpdateTypeDialog} onOpenChange={setShowUpdateTypeDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Update Payee Type</AlertDialogTitle>
-            <AlertDialogDescription>
-              Select the new type for {selectedPayees.length} selected payee(s):
-              <div className="mt-2 text-sm font-medium">
-                {selectedPayees.map(p => p.payee_name).join(", ")}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          
-          <div className="py-4">
-            <Select value={selectedType} onValueChange={(value) => setSelectedType(value as PayeeType | "")}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select payee type" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.values(PayeeType).map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {getPayeeTypeLabel(type)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleBulkUpdateType}
-              disabled={isProcessing || !selectedType}
-            >
-              {isProcessing ? "Updating..." : "Update"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="sm" disabled={isLoading} className="h-7 text-xs">
+              <Trash2 className="h-3 w-3 mr-1" />
+              Delete
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Payees</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {selectedPayees.length} selected payees? 
+                This action cannot be undone and may affect related expenses.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleBulkDelete}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 };

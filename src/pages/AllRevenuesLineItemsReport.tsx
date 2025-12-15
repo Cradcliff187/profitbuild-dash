@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { DollarSign } from "lucide-react";
+import { DollarSign, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { supabase } from "@/integrations/supabase/client";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { ExportControls } from "@/components/reports/ExportControls";
 import { ReportField } from "@/utils/reportExporter";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 
 interface RevenueLineItem {
   id: string;
@@ -29,7 +33,21 @@ interface RevenueLineItem {
 const AllRevenuesLineItemsReport = () => {
   const [revenues, setRevenues] = useState<RevenueLineItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+
+  const toggleCard = (id: string) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     fetchRevenues();
@@ -160,7 +178,8 @@ const AllRevenuesLineItemsReport = () => {
   const totalAmount = revenues.reduce((sum, rev) => sum + rev.amount, 0);
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <MobilePageWrapper className="w-full max-w-full overflow-x-hidden">
+      <div className="px-3 py-4 sm:p-6 space-y-4 sm:space-y-6 w-full max-w-full">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -178,30 +197,32 @@ const AllRevenuesLineItemsReport = () => {
       </Breadcrumb>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+          <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-            <DollarSign className="h-6 w-6 sm:h-8 sm:w-8" />
-            All Revenues Line Items Report
+              <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0" />
+              <span className="truncate">All Revenues Line Items Report</span>
           </h1>
           <p className="text-muted-foreground mt-1">
             Complete listing of all revenue/invoice transactions
           </p>
         </div>
+          <div className="flex-shrink-0">
         <ExportControls
           data={exportData}
           fields={reportFields}
           reportName="All Revenues Line Items"
         />
+          </div>
       </div>
 
-      <Card>
-        <CardHeader>
+        <Card className="w-full max-w-full overflow-hidden">
+          <CardHeader className="px-3 sm:px-6 py-4">
           <CardTitle>Revenue Summary</CardTitle>
           <CardDescription>
             {revenues.length} invoice{revenues.length !== 1 ? 's' : ''} found
           </CardDescription>
         </CardHeader>
-        <CardContent>
+          <CardContent className="px-3 sm:px-6 pb-4">
           <div>
             <p className="text-sm text-muted-foreground">Total Revenue</p>
             <p className="text-2xl font-bold text-green-600">{formatCurrency(totalAmount)}</p>
@@ -209,11 +230,112 @@ const AllRevenuesLineItemsReport = () => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+        {/* Mobile Card View */}
+        {isMobile ? (
+          <div className="space-y-3 w-full max-w-full">
+            {revenues.length === 0 ? (
+              <Card className="w-full">
+                <CardContent className="py-8">
+                  <p className="text-center text-muted-foreground">No revenues found</p>
+                </CardContent>
+              </Card>
+            ) : (
+              revenues.map((revenue) => {
+                const isExpanded = expandedCards.has(revenue.id);
+                const hasDetails = revenue.client_name || revenue.description || revenue.account_full_name || revenue.quickbooks_transaction_id;
+
+                return (
+                  <Card key={revenue.id} className="w-full max-w-full overflow-hidden hover:bg-muted/50 transition-colors">
+                    <CardHeader className="p-4 pb-3">
+                      <div className="flex items-center justify-between gap-2 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {revenue.invoice_number && (
+                            <span className="font-mono text-sm font-semibold truncate">{revenue.invoice_number}</span>
+                          )}
+                          <Badge variant="outline" className="text-xs flex-shrink-0">
+                            {format(new Date(revenue.invoice_date), 'MMM dd, yyyy')}
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="px-4 pb-4 pt-0 space-y-3">
+                      {/* Hero: Amount */}
+                      <div className="text-center py-3 border-t">
+                        <div className="text-3xl font-bold text-green-600">
+                          {formatCurrency(revenue.amount, { showCents: true })}
+                        </div>
+                      </div>
+
+                      {/* Always Visible: Project Info */}
+                      <div className="space-y-1 border-t pt-3">
+                        <div className="font-mono text-sm font-medium">{revenue.project_number}</div>
+                        <div className="text-sm text-muted-foreground truncate">{revenue.project_name}</div>
+                      </div>
+
+                      {/* Expandable Details */}
+                      {hasDetails && (
+                        <>
+                          <div className="flex justify-center pt-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleCard(revenue.id)}
+                              className="h-8"
+                            >
+                              <ChevronDown className={cn(
+                                "h-4 w-4 transition-transform",
+                                isExpanded ? 'rotate-180' : ''
+                              )} />
+                              <span className="ml-1 text-xs">View Details</span>
+                            </Button>
+                          </div>
+                          <Collapsible open={isExpanded}>
+                            <CollapsibleContent>
+                              <div className="space-y-2 pt-2 border-t">
+                                <div className="grid grid-cols-1 gap-3 text-sm">
+                                  {revenue.client_name && (
+                                    <div className="min-w-0">
+                                      <div className="text-xs text-muted-foreground mb-1">Client</div>
+                                      <div className="font-medium truncate">{revenue.client_name}</div>
+                                    </div>
+                                  )}
+                                  {revenue.description && (
+                                    <div className="min-w-0">
+                                      <div className="text-xs text-muted-foreground mb-1">Description</div>
+                                      <div className="text-sm break-words">{revenue.description}</div>
+                                    </div>
+                                  )}
+                                  {(revenue.account_full_name || revenue.account_name) && (
+                                    <div className="min-w-0">
+                                      <div className="text-xs text-muted-foreground mb-1">Account</div>
+                                      <div className="text-sm truncate">{revenue.account_full_name || revenue.account_name}</div>
+                                    </div>
+                                  )}
+                                  {revenue.quickbooks_transaction_id && (
+                                    <div className="min-w-0">
+                                      <div className="text-xs text-muted-foreground mb-1">QuickBooks ID</div>
+                                      <div className="font-mono text-xs truncate">{revenue.quickbooks_transaction_id}</div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          /* Desktop Table View */
+          <Card className="w-full max-w-full overflow-hidden">
+            <CardHeader className="px-3 sm:px-6 py-4">
           <CardTitle>Revenue Line Items</CardTitle>
         </CardHeader>
-        <CardContent>
+            <CardContent className="px-3 sm:px-6 pb-4">
           <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
@@ -266,7 +388,9 @@ const AllRevenuesLineItemsReport = () => {
           </div>
         </CardContent>
       </Card>
+        )}
     </div>
+    </MobilePageWrapper>
   );
 };
 

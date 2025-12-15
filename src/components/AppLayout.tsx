@@ -186,7 +186,7 @@ export default function AppLayout() {
           {/* Main content area - pages render here */}
           <main className={cn(
             "flex-1 overflow-auto",
-            location.pathname === '/time-tracker' ? '' : 'p-4 sm:p-6 lg:p-8'
+            (location.pathname === '/time-tracker' || location.pathname === '/reports' || location.pathname.startsWith('/reports/')) ? '' : 'p-4 sm:p-6 lg:p-8'
           )}>
             <Outlet />
           </main>

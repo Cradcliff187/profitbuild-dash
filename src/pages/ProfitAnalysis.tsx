@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Select, 
   SelectContent, 
@@ -7,6 +6,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
@@ -25,6 +25,12 @@ export default function ProfitAnalysis() {
   const { data, isLoading, error } = useProfitAnalysisData(statusFilter);
 
   const selectedProject = data?.find(p => p.id === selectedProjectId) || null;
+
+  const tabOptions = [
+    { value: 'billing', label: 'Billing Progress' },
+    { value: 'margins', label: 'Margin Analysis' },
+    { value: 'costs', label: 'Cost Analysis' },
+  ];
 
   if (error) {
     return (
@@ -49,7 +55,7 @@ export default function ProfitAnalysis() {
         value={statusFilter.join(',')} 
         onValueChange={(val) => setStatusFilter(val.split(','))}
       >
-        <SelectTrigger className="w-[200px]">
+        <SelectTrigger className="w-full md:w-[200px]">
           <SelectValue placeholder="Filter by status" />
         </SelectTrigger>
         <SelectContent>
@@ -64,26 +70,34 @@ export default function ProfitAnalysis() {
       <ProfitSummaryCards data={data} isLoading={isLoading} />
       
       {/* Tabbed Tables */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="inline-flex w-auto flex-nowrap justify-start gap-2 rounded-full bg-muted/40 p-1">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+        {/* Mobile Dropdown */}
+        <div className="sm:hidden mb-4">
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {tabOptions.map((tab) => (
+                <SelectItem key={tab.value} value={tab.value}>
+                  <span>{tab.label}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Desktop Tabs */}
+        <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
+          {tabOptions.map((tab) => (
           <TabsTrigger 
-            value="billing"
+              key={tab.value}
+              value={tab.value}
             className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
-            Billing Progress
+              <span>{tab.label}</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="margins"
-            className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Margin Analysis
-          </TabsTrigger>
-          <TabsTrigger 
-            value="costs"
-            className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            Cost Analysis
-          </TabsTrigger>
+          ))}
         </TabsList>
         
         <TabsContent value="billing" className="mt-4">

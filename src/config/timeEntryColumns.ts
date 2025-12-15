@@ -14,3 +14,4 @@ export const timeEntryColumnDefinitions = [
   { key: "submitted_at", label: "Submitted At", required: false, sortable: true },
   { key: "actions", label: "Actions", required: true },
 ];
+

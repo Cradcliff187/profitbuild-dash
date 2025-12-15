@@ -422,10 +422,12 @@ export default function TrainingAdmin() {
         title="Training Admin"
         description="Manage training content and assignments"
         actions={
-          <Button onClick={handleCreate} size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Module
-          </Button>
+          !isMobile && (
+            <Button onClick={handleCreate} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Module
+            </Button>
+          )
         }
       />
 
@@ -1118,6 +1120,18 @@ export default function TrainingAdmin() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Mobile FAB */}
+      {isMobile && (
+        <Button
+          variant="default"
+          onClick={handleCreate}
+          size="icon"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        >
+          <Plus className="h-6 w-6 !text-white" />
+        </Button>
+      )}
     </MobilePageWrapper>
   );
 }

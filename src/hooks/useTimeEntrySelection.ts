@@ -49,3 +49,4 @@ export const useTimeEntrySelection = (entries: TimeEntryListItem[]) => {
     clearSelection,
   };
 };
+

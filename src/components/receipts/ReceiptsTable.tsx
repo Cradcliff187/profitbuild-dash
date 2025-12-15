@@ -174,3 +174,4 @@ export const ReceiptsTable: React.FC<ReceiptsTableProps> = ({
     </Card>
   );
 };
+

@@ -326,17 +326,45 @@ export function AppSidebar() {
               {!collapsed && <ChevronUp className="h-4 w-4 shrink-0 text-slate-400" />}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => handleNavigation("/settings")}>
+          <DropdownMenuContent 
+            align="end" 
+            className="w-56 z-[100]" 
+            sideOffset={4}
+            onCloseAutoFocus={(e) => {
+              // Prevent focus issues on mobile
+              if (isMobile) {
+                e.preventDefault();
+              }
+            }}
+          >
+            <DropdownMenuItem 
+              onSelect={(e) => {
+                e.preventDefault();
+                handleNavigation("/settings");
+              }}
+              className="cursor-pointer min-h-[44px]"
+            >
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleNavigation("/kpi-guide")}>
+            <DropdownMenuItem 
+              onSelect={(e) => {
+                e.preventDefault();
+                handleNavigation("/kpi-guide");
+              }}
+              className="cursor-pointer min-h-[44px]"
+            >
               <BookOpen className="mr-2 h-4 w-4" />
               KPI Guide
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut()}>
+            <DropdownMenuItem 
+              onSelect={(e) => {
+                e.preventDefault();
+                signOut();
+              }}
+              className="cursor-pointer min-h-[44px]"
+            >
               <LogOut className="mr-2 h-4 w-4" />
               Sign Out
             </DropdownMenuItem>

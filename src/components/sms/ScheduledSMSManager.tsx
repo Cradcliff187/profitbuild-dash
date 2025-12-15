@@ -11,14 +11,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Clock, Plus, Edit, Trash2, Play, Pause, Send, Loader2, AlertCircle, FileText } from 'lucide-react';
+import { Clock, Plus, Edit, Trash2, Play, Pause, Send, Loader2, AlertCircle, FileText, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { buildCronExpression, type ScheduleConfig } from '@/utils/cronBuilder';
 import { useAuth } from '@/contexts/AuthContext';
 import { ScheduledSMSLogs } from '@/components/sms/ScheduledSMSLogs';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface ScheduledSMS {
   id: string;
@@ -83,6 +86,7 @@ const DAY_MAP: Record<string, number> = {
 
 export function ScheduledSMSManager() {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [schedules, setSchedules] = useState<ScheduledSMS[]>([]);
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [projects, setProjects] = useState<Array<{ id: string; project_number: string; project_name: string }>>([]);
@@ -94,6 +98,7 @@ export function ScheduledSMSManager() {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isTesting, setIsTesting] = useState<string | null>(null);
   const [viewingLogsFor, setViewingLogsFor] = useState<string | null>(null);
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   // Form state
   const [name, setName] = useState('');
@@ -462,6 +467,18 @@ export function ScheduledSMSManager() {
     }
   };
 
+  const toggleCard = (scheduleId: string) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(scheduleId)) {
+        newSet.delete(scheduleId);
+      } else {
+        newSet.add(scheduleId);
+      }
+      return newSet;
+    });
+  };
+
   const formatSchedule = (schedule: ScheduledSMS) => {
     if (schedule.schedule_type === 'recurring') {
       if (schedule.cron_expression) {
@@ -494,16 +511,28 @@ export function ScheduledSMSManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Scheduled SMS Messages</h2>
-          <p className="text-muted-foreground">Automate SMS sending with recurring or one-time schedules</p>
-        </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Schedule
-        </Button>
+      <div>
+        <h2 className="text-xl sm:text-2xl font-bold">Scheduled SMS Messages</h2>
+        <p className="text-sm sm:text-base text-muted-foreground">Automate SMS sending with recurring or one-time schedules</p>
       </div>
+
+      {/* Mobile: Full-width button below header */}
+      {isMobile && (
+        <Button onClick={openCreateDialog} className="w-full" size="lg">
+          <Plus className="h-5 w-5 mr-2" />
+          Add Schedule
+        </Button>
+      )}
+
+      {/* Desktop: Button in header */}
+      {!isMobile && (
+        <div className="flex justify-end">
+          <Button onClick={openCreateDialog}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Schedule
+          </Button>
+        </div>
+      )}
 
       {schedules.length === 0 ? (
         <Card>
@@ -517,350 +546,759 @@ export function ScheduledSMSManager() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Schedule</TableHead>
-                <TableHead>Recipients</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Sent</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {schedules.map((schedule) => (
-                <TableRow key={schedule.id}>
-                  <TableCell className="font-medium">{schedule.name}</TableCell>
-                  <TableCell>{formatSchedule(schedule)}</TableCell>
-                  <TableCell>
-                    {schedule.target_type === 'users'
-                      ? `${schedule.target_user_ids?.length || 0} user(s)`
-                      : schedule.target_roles?.join(', ') || 'None'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={schedule.is_active ? 'default' : 'secondary'}>
-                      {schedule.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {schedule.last_sent_at
-                      ? format(new Date(schedule.last_sent_at), 'PPp')
-                      : 'Never'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden sm:block">
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Schedule</TableHead>
+                    <TableHead>Recipients</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last Sent</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {schedules.map((schedule) => (
+                    <TableRow key={schedule.id}>
+                      <TableCell className="font-medium">{schedule.name}</TableCell>
+                      <TableCell>{formatSchedule(schedule)}</TableCell>
+                      <TableCell>
+                        {schedule.target_type === 'users'
+                          ? `${schedule.target_user_ids?.length || 0} user(s)`
+                          : schedule.target_roles?.join(', ') || 'None'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={schedule.is_active ? 'default' : 'secondary'}>
+                          {schedule.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {schedule.last_sent_at
+                          ? format(new Date(schedule.last_sent_at), 'PPp')
+                          : 'Never'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setViewingLogsFor(schedule.id)}
+                            title="View execution logs"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleTestSend(schedule)}
+                            disabled={isTesting === schedule.id}
+                            title="Send test message"
+                          >
+                            {isTesting === schedule.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleActive(schedule)}
+                            title={schedule.is_active ? 'Deactivate' : 'Activate'}
+                          >
+                            {schedule.is_active ? (
+                              <Pause className="h-4 w-4" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditDialog(schedule)}
+                            title="Edit schedule"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(schedule.id)}
+                            disabled={isDeleting === schedule.id}
+                            title="Delete schedule"
+                          >
+                            {isDeleting === schedule.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="sm:hidden space-y-2">
+            {schedules.map((schedule) => {
+              const isExpanded = expandedCards.has(schedule.id);
+              return (
+                <Card key={schedule.id} className="overflow-hidden">
+                  <Collapsible open={isExpanded} onOpenChange={() => toggleCard(schedule.id)}>
+                    <CardHeader className="p-3 bg-gradient-to-r from-primary/5 to-transparent">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-sm font-medium truncate">
+                            {schedule.name}
+                          </CardTitle>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant={schedule.is_active ? 'default' : 'secondary'} className="h-4 px-1.5 text-[10px]">
+                              {schedule.is_active ? 'Active' : 'Inactive'}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground truncate">
+                              {formatSchedule(schedule)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    <CollapsibleTrigger asChild>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        onClick={() => setViewingLogsFor(schedule.id)}
-                        title="View execution logs"
+                        className="w-full justify-between px-3 py-2 h-auto hover:bg-muted/50 border-t"
                       >
-                        <FileText className="h-4 w-4" />
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-muted-foreground">
+                            {schedule.target_type === 'users'
+                              ? `${schedule.target_user_ids?.length || 0} user(s)`
+                              : schedule.target_roles?.join(', ') || 'None'}
+                          </span>
+                          {schedule.last_sent_at && (
+                            <span className="text-xs text-muted-foreground">
+                              Last: {format(new Date(schedule.last_sent_at), 'MMM d, yyyy')}
+                            </span>
+                          )}
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleTestSend(schedule)}
-                        disabled={isTesting === schedule.id}
-                        title="Send test message"
-                      >
-                        {isTesting === schedule.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Send className="h-4 w-4" />
+                    </CollapsibleTrigger>
+
+                    <CollapsibleContent>
+                      <CardContent className="p-3 space-y-3 pt-2">
+                        <div className="space-y-2">
+                          <div className="text-xs font-medium text-muted-foreground">Schedule</div>
+                          <div className="text-xs">{formatSchedule(schedule)}</div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="text-xs font-medium text-muted-foreground">Recipients</div>
+                          <div className="text-xs">
+                            {schedule.target_type === 'users'
+                              ? `${schedule.target_user_ids?.length || 0} user(s)`
+                              : schedule.target_roles?.join(', ') || 'None'}
+                          </div>
+                        </div>
+
+                        {schedule.last_sent_at && (
+                          <div className="space-y-2">
+                            <div className="text-xs font-medium text-muted-foreground">Last Sent</div>
+                            <div className="text-xs">
+                              {format(new Date(schedule.last_sent_at), 'PPp')}
+                            </div>
+                          </div>
                         )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleToggleActive(schedule)}
-                        title={schedule.is_active ? 'Deactivate' : 'Activate'}
-                      >
-                        {schedule.is_active ? (
-                          <Pause className="h-4 w-4" />
-                        ) : (
-                          <Play className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditDialog(schedule)}
-                        title="Edit schedule"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(schedule.id)}
-                        disabled={isDeleting === schedule.id}
-                        title="Delete schedule"
-                      >
-                        {isDeleting === schedule.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        )}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+
+                        <div className="flex gap-2 pt-2 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => setViewingLogsFor(schedule.id)}
+                          >
+                            <FileText className="h-3 w-3 mr-1.5" />
+                            Logs
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleTestSend(schedule)}
+                            disabled={isTesting === schedule.id}
+                          >
+                            {isTesting === schedule.id ? (
+                              <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                            ) : (
+                              <Send className="h-3 w-3 mr-1.5" />
+                            )}
+                            Test
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleToggleActive(schedule)}
+                          >
+                            {schedule.is_active ? (
+                              <Pause className="h-3 w-3 mr-1.5" />
+                            ) : (
+                              <Play className="h-3 w-3 mr-1.5" />
+                            )}
+                            {schedule.is_active ? 'Pause' : 'Play'}
+                          </Button>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => openEditDialog(schedule)}
+                          >
+                            <Edit className="h-3 w-3 mr-1.5" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleDelete(schedule.id)}
+                            disabled={isDeleting === schedule.id}
+                          >
+                            {isDeleting === schedule.id ? (
+                              <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3 w-3 mr-1.5" />
+                            )}
+                            Delete
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              );
+            })}
+          </div>
+        </>
       )}
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingSchedule ? 'Edit Scheduled Message' : 'Create Scheduled Message'}
-            </DialogTitle>
-            <DialogDescription>
-              Configure when and to whom automated SMS messages should be sent
-            </DialogDescription>
-          </DialogHeader>
+      {/* Desktop Dialog */}
+      {!isMobile && (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingSchedule ? 'Edit Scheduled Message' : 'Create Scheduled Message'}
+              </DialogTitle>
+              <DialogDescription>
+                Configure when and to whom automated SMS messages should be sent
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Daily Clock-Out Reminder"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="message">Message Template *</Label>
-              <Textarea
-                id="message"
-                value={messageTemplate}
-                onChange={(e) => setMessageTemplate(e.target.value)}
-                placeholder="Use {{name}} to insert recipient's first name"
-                rows={4}
-              />
-              <p className="text-xs text-muted-foreground">
-                Use {"{{name}}"} to personalize messages
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Include App Link</Label>
-              <Select value={linkType} onValueChange={(value) => {
-                setLinkType(value);
-                if (value !== 'project') {
-                  setSelectedProjectId('');
-                }
-              }}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LINK_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {linkType === 'project' && (
+            <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="project">Select Project *</Label>
-                <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                <Label htmlFor="name">Name *</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., Daily Clock-Out Reminder"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="message">Message Template *</Label>
+                <Textarea
+                  id="message"
+                  value={messageTemplate}
+                  onChange={(e) => setMessageTemplate(e.target.value)}
+                  placeholder="Use {{name}} to insert recipient's first name"
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Use {"{{name}}"} to personalize messages
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Include App Link</Label>
+                <Select value={linkType} onValueChange={(value) => {
+                  setLinkType(value);
+                  if (value !== 'project') {
+                    setSelectedProjectId('');
+                  }
+                }}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a project..." />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.project_number} - {project.project_name}
+                    {LINK_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            )}
 
-            <div className="space-y-2">
-              <Label>Schedule Type *</Label>
-              <Select value={scheduleType} onValueChange={(v) => setScheduleType(v as 'recurring' | 'one_time')}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recurring">Recurring</SelectItem>
-                  <SelectItem value="one_time">One-Time</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {scheduleType === 'recurring' ? (
-              <>
+              {linkType === 'project' && (
                 <div className="space-y-2">
-                  <Label>Days of Week *</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {DAYS.map((day) => (
-                      <div key={day.value} className="flex items-center space-x-2">
+                  <Label htmlFor="project">Select Project *</Label>
+                  <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a project..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.project_number} - {project.project_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Schedule Type *</Label>
+                <Select value={scheduleType} onValueChange={(v) => setScheduleType(v as 'recurring' | 'one_time')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recurring">Recurring</SelectItem>
+                    <SelectItem value="one_time">One-Time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {scheduleType === 'recurring' ? (
+                <>
+                  <div className="space-y-2">
+                    <Label>Days of Week *</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {DAYS.map((day) => (
+                        <div key={day.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={day.value}
+                            checked={selectedDays.includes(day.value)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedDays([...selectedDays, day.value]);
+                              } else {
+                                setSelectedDays(selectedDays.filter(d => d !== day.value));
+                              }
+                            }}
+                          />
+                          <Label htmlFor={day.value} className="font-normal cursor-pointer">
+                            {day.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="time">Time *</Label>
+                      <Input
+                        id="time"
+                        type="time"
+                        value={time}
+                        onChange={(e) => setTime(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Timezone *</Label>
+                      <Select value={timezone} onValueChange={setTimezone}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIMEZONES.map((tz) => (
+                            <SelectItem key={tz.value} value={tz.value}>
+                              {tz.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="datetime">Date & Time *</Label>
+                  <Input
+                    id="datetime"
+                    type="datetime-local"
+                    value={scheduledDateTime}
+                    onChange={(e) => setScheduledDateTime(e.target.value)}
+                    min={new Date().toISOString().slice(0, 16)}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Target Recipients *</Label>
+                <Select value={targetType} onValueChange={(v) => setTargetType(v as 'users' | 'roles')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="roles">By Role</SelectItem>
+                    <SelectItem value="users">Specific Users</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {targetType === 'users' ? (
+                <div className="space-y-2">
+                  <Label>Select Users *</Label>
+                  <div className="border rounded-lg p-4 max-h-48 overflow-y-auto">
+                    {recipients.map((recipient) => (
+                      <div key={recipient.id} className="flex items-center space-x-2 py-1">
                         <Checkbox
-                          id={day.value}
-                          checked={selectedDays.includes(day.value)}
+                          id={`user-${recipient.id}`}
+                          checked={selectedUserIds.includes(recipient.id)}
                           onCheckedChange={(checked) => {
                             if (checked) {
-                              setSelectedDays([...selectedDays, day.value]);
+                              setSelectedUserIds([...selectedUserIds, recipient.id]);
                             } else {
-                              setSelectedDays(selectedDays.filter(d => d !== day.value));
+                              setSelectedUserIds(selectedUserIds.filter(id => id !== recipient.id));
                             }
                           }}
                         />
-                        <Label htmlFor={day.value} className="font-normal cursor-pointer">
-                          {day.label}
+                        <Label htmlFor={`user-${recipient.id}`} className="font-normal cursor-pointer flex-1">
+                          {recipient.full_name} {recipient.phone && `(${recipient.phone})`}
                         </Label>
                       </div>
                     ))}
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
+              ) : (
+                <div className="space-y-2">
+                  <Label>Select Roles *</Label>
                   <div className="space-y-2">
-                    <Label htmlFor="time">Time *</Label>
-                    <Input
-                      id="time"
-                      type="time"
-                      value={time}
-                      onChange={(e) => setTime(e.target.value)}
-                    />
+                    {ROLES.map((role) => (
+                      <div key={role.value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`role-${role.value}`}
+                          checked={selectedRoles.includes(role.value)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedRoles([...selectedRoles, role.value]);
+                            } else {
+                              setSelectedRoles(selectedRoles.filter(r => r !== role.value));
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`role-${role.value}`} className="font-normal cursor-pointer">
+                          {role.label}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
+                </div>
+              )}
 
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is-active"
+                  checked={isActive}
+                  onCheckedChange={(checked) => setIsActive(checked === true)}
+                />
+                <Label htmlFor="is-active" className="font-normal cursor-pointer">
+                  Active (schedule will run automatically)
+                </Label>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  editingSchedule ? 'Update' : 'Create'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Mobile Sheet */}
+      {isMobile && (
+        <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <SheetContent className="w-full sm:max-w-[600px] flex flex-col p-0">
+            <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b">
+              <SheetTitle>
+                {editingSchedule ? 'Edit Scheduled Message' : 'Create Scheduled Message'}
+              </SheetTitle>
+              <SheetDescription>
+                Configure when and to whom automated SMS messages should be sent
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name-mobile">Name *</Label>
+                  <Input
+                    id="name-mobile"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g., Daily Clock-Out Reminder"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="message-mobile">Message Template *</Label>
+                  <Textarea
+                    id="message-mobile"
+                    value={messageTemplate}
+                    onChange={(e) => setMessageTemplate(e.target.value)}
+                    placeholder="Use {{name}} to insert recipient's first name"
+                    rows={4}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Use {"{{name}}"} to personalize messages
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Include App Link</Label>
+                  <Select value={linkType} onValueChange={(value) => {
+                    setLinkType(value);
+                    if (value !== 'project') {
+                      setSelectedProjectId('');
+                    }
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LINK_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {linkType === 'project' && (
                   <div className="space-y-2">
-                    <Label>Timezone *</Label>
-                    <Select value={timezone} onValueChange={setTimezone}>
+                    <Label htmlFor="project-mobile">Select Project *</Label>
+                    <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Select a project..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {TIMEZONES.map((tz) => (
-                          <SelectItem key={tz.value} value={tz.value}>
-                            {tz.label}
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.project_number} - {project.project_name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-              </>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="datetime">Date & Time *</Label>
-                <Input
-                  id="datetime"
-                  type="datetime-local"
-                  value={scheduledDateTime}
-                  onChange={(e) => setScheduledDateTime(e.target.value)}
-                  min={new Date().toISOString().slice(0, 16)}
-                />
-              </div>
-            )}
+                )}
 
-            <div className="space-y-2">
-              <Label>Target Recipients *</Label>
-              <Select value={targetType} onValueChange={(v) => setTargetType(v as 'users' | 'roles')}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="roles">By Role</SelectItem>
-                  <SelectItem value="users">Specific Users</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {targetType === 'users' ? (
-              <div className="space-y-2">
-                <Label>Select Users *</Label>
-                <div className="border rounded-lg p-4 max-h-48 overflow-y-auto">
-                  {recipients.map((recipient) => (
-                    <div key={recipient.id} className="flex items-center space-x-2 py-1">
-                      <Checkbox
-                        id={`user-${recipient.id}`}
-                        checked={selectedUserIds.includes(recipient.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedUserIds([...selectedUserIds, recipient.id]);
-                          } else {
-                            setSelectedUserIds(selectedUserIds.filter(id => id !== recipient.id));
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`user-${recipient.id}`} className="font-normal cursor-pointer flex-1">
-                        {recipient.full_name} {recipient.phone && `(${recipient.phone})`}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label>Select Roles *</Label>
                 <div className="space-y-2">
-                  {ROLES.map((role) => (
-                    <div key={role.value} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`role-${role.value}`}
-                        checked={selectedRoles.includes(role.value)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedRoles([...selectedRoles, role.value]);
-                          } else {
-                            setSelectedRoles(selectedRoles.filter(r => r !== role.value));
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`role-${role.value}`} className="font-normal cursor-pointer">
-                        {role.label}
-                      </Label>
+                  <Label>Schedule Type *</Label>
+                  <Select value={scheduleType} onValueChange={(v) => setScheduleType(v as 'recurring' | 'one_time')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recurring">Recurring</SelectItem>
+                      <SelectItem value="one_time">One-Time</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {scheduleType === 'recurring' ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Days of Week *</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {DAYS.map((day) => (
+                          <div key={day.value} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`${day.value}-mobile`}
+                              checked={selectedDays.includes(day.value)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedDays([...selectedDays, day.value]);
+                                } else {
+                                  setSelectedDays(selectedDays.filter(d => d !== day.value));
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`${day.value}-mobile`} className="font-normal cursor-pointer">
+                              {day.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="time-mobile">Time *</Label>
+                        <Input
+                          id="time-mobile"
+                          type="time"
+                          value={time}
+                          onChange={(e) => setTime(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Timezone *</Label>
+                        <Select value={timezone} onValueChange={setTimezone}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TIMEZONES.map((tz) => (
+                              <SelectItem key={tz.value} value={tz.value}>
+                                {tz.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="datetime-mobile">Date & Time *</Label>
+                    <Input
+                      id="datetime-mobile"
+                      type="datetime-local"
+                      value={scheduledDateTime}
+                      onChange={(e) => setScheduledDateTime(e.target.value)}
+                      min={new Date().toISOString().slice(0, 16)}
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Target Recipients *</Label>
+                  <Select value={targetType} onValueChange={(v) => setTargetType(v as 'users' | 'roles')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="roles">By Role</SelectItem>
+                      <SelectItem value="users">Specific Users</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {targetType === 'users' ? (
+                  <div className="space-y-2">
+                    <Label>Select Users *</Label>
+                    <div className="border rounded-lg p-4 max-h-48 overflow-y-auto">
+                      {recipients.map((recipient) => (
+                        <div key={recipient.id} className="flex items-center space-x-2 py-1">
+                          <Checkbox
+                            id={`user-${recipient.id}-mobile`}
+                            checked={selectedUserIds.includes(recipient.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedUserIds([...selectedUserIds, recipient.id]);
+                              } else {
+                                setSelectedUserIds(selectedUserIds.filter(id => id !== recipient.id));
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`user-${recipient.id}-mobile`} className="font-normal cursor-pointer flex-1">
+                            {recipient.full_name} {recipient.phone && `(${recipient.phone})`}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Select Roles *</Label>
+                    <div className="space-y-2">
+                      {ROLES.map((role) => (
+                        <div key={role.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`role-${role.value}-mobile`}
+                            checked={selectedRoles.includes(role.value)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedRoles([...selectedRoles, role.value]);
+                              } else {
+                                setSelectedRoles(selectedRoles.filter(r => r !== role.value));
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`role-${role.value}-mobile`} className="font-normal cursor-pointer">
+                            {role.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="is-active-mobile"
+                    checked={isActive}
+                    onCheckedChange={(checked) => setIsActive(checked === true)}
+                  />
+                  <Label htmlFor="is-active-mobile" className="font-normal cursor-pointer">
+                    Active (schedule will run automatically)
+                  </Label>
                 </div>
               </div>
-            )}
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="is-active"
-                checked={isActive}
-                onCheckedChange={(checked) => setIsActive(checked === true)}
-              />
-              <Label htmlFor="is-active" className="font-normal cursor-pointer">
-                Active (schedule will run automatically)
-              </Label>
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                editingSchedule ? 'Update' : 'Create'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t bg-background">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  editingSchedule ? 'Update' : 'Create'
+                )}
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Logs Dialog */}
       <Dialog open={!!viewingLogsFor} onOpenChange={(open) => !open && setViewingLogsFor(null)}>

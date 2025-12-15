@@ -109,9 +109,8 @@ export function CompactTemplateList({
       if (selectedCategory === 'standard') return template.is_template === true;
       // Custom: all non-templates (is_template = false)
       if (selectedCategory === 'custom') return template.is_template === false;
-      // Other categories: use mapped category
-      const mappedCategory = getMappedCategory(template);
-      return mappedCategory === selectedCategory;
+      // Default: show all if category doesn't match
+      return true;
     });
   }, [allReports, selectedCategory]);
 
@@ -159,17 +158,18 @@ export function CompactTemplateList({
     return (
       <div
         key={template.id}
-        className="group flex items-center gap-3 px-3 py-2 hover:bg-accent/50 rounded-md transition-colors cursor-pointer"
+        data-template-row
+        className="group flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-accent/50 rounded-md transition-colors cursor-pointer min-w-0 max-w-full overflow-hidden"
         onClick={() => onSelectTemplate(template)}
       >
         <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium truncate">{template.name}</div>
+        <div className="flex-1 min-w-0 overflow-hidden" style={{ maxWidth: '100%' }}>
+          <div className="text-sm font-medium truncate text-left">{template.name}</div>
           {template.description && (
-            <div className="text-xs text-muted-foreground truncate">{template.description}</div>
+            <div className="text-xs text-muted-foreground line-clamp-2 min-w-0 text-left" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', maxWidth: '100%' }}>{template.description}</div>
           )}
         </div>
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0 ml-1">
           <Button
             variant="ghost"
             size="icon"
@@ -203,11 +203,11 @@ export function CompactTemplateList({
 
     return (
       <Collapsible open={isExpanded} onOpenChange={() => toggleSection(key)}>
-        <CollapsibleTrigger className="w-full">
-          <div className="flex items-center gap-2 px-3 py-2 hover:bg-accent/30 rounded-md transition-colors">
-            <Icon className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-semibold">{label}</span>
-            <span className="text-xs text-muted-foreground ml-auto">
+        <CollapsibleTrigger className="w-full max-w-full overflow-hidden">
+          <div className="flex items-center gap-2 px-2 sm:px-3 py-2 hover:bg-accent/30 rounded-md transition-colors min-w-0 overflow-hidden max-w-full">
+            <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="text-sm font-semibold truncate min-w-0 flex-1 overflow-hidden text-left">{label}</span>
+            <span className="text-xs text-muted-foreground shrink-0 ml-2 flex-shrink-0">
               {templates.length}
             </span>
           </div>
@@ -222,7 +222,48 @@ export function CompactTemplateList({
   };
 
   return (
-    <div className="space-y-2">
+    <div 
+      className="space-y-2 w-full max-w-full overflow-hidden"
+      // #region agent log
+      ref={(el) => {
+        if (el && typeof window !== 'undefined') {
+          const sections = el.querySelectorAll('[data-section]');
+          const templateRows = el.querySelectorAll('[data-template-row]');
+          const logData = {
+            location: 'CompactTemplateList.tsx:224',
+            message: 'Template list container dimensions',
+            data: {
+              containerWidth: el.offsetWidth,
+              scrollWidth: el.scrollWidth,
+              hasOverflow: el.scrollWidth > el.offsetWidth,
+              sectionCount: sections.length,
+              templateRowCount: templateRows.length,
+              viewportWidth: window.innerWidth,
+              sectionsWithOverflow: Array.from(sections).map((section, idx) => {
+                const sectionEl = section as HTMLElement;
+                return {
+                  index: idx,
+                  width: sectionEl.offsetWidth,
+                  scrollWidth: sectionEl.scrollWidth,
+                  hasOverflow: sectionEl.scrollWidth > sectionEl.offsetWidth
+                };
+              })
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'overflow-fix-verify',
+            hypothesisId: 'D'
+          };
+          console.log('[DEBUG] Template list:', logData);
+          fetch('http://127.0.0.1:7242/ingest/2dfdd71f-ea3a-46c3-b55b-992b9fdd27aa', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(logData)
+          }).catch(() => {});
+        }
+      }}
+      // #endregion
+    >
       {/* Favorites Section */}
       {favoriteTemplates.length > 0 && (
         <div className="mb-4">
@@ -238,7 +279,7 @@ export function CompactTemplateList({
         if (categoryTemplates.length === 0) return null;
 
         return (
-          <div key={categoryKey}>
+          <div key={categoryKey} data-section>
             {renderSection(categoryKey, category.label, categoryTemplates)}
           </div>
         );

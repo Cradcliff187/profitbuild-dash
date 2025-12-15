@@ -8,10 +8,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ReportField } from "@/utils/reportExporter";
 import { CompletePagination } from "@/components/ui/complete-pagination";
 import { usePagination } from "@/hooks/usePagination";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -60,12 +64,16 @@ function formatValue(value: any, type?: string): string {
 }
 
 export function ReportViewer({ data, fields, isLoading, pageSize: initialPageSize = 50 }: ReportViewerProps) {
+  const isMobile = useIsMobile();
   // Page size state
   const [pageSize, setPageSize] = useState(initialPageSize);
   
   // Sorting state
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  
+  // Mobile card expansion state
+  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
 
   // Handle column header click for sorting
   const handleSort = (fieldKey: string) => {
@@ -78,6 +86,41 @@ export function ReportViewer({ data, fields, isLoading, pageSize: initialPageSiz
       setSortDirection('asc');
     }
   };
+
+  // Toggle card expansion for mobile view
+  const toggleCard = (index: number) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  // Determine field layout for mobile cards
+  const mobileFieldLayout = useMemo(() => {
+    // Find primary identifier field (project_number, project_name, or first text field)
+    const primaryField = fields.find(f => 
+      f.key === 'project_number' || 
+      f.key === 'project_name' ||
+      (f.type === 'text' && fields.indexOf(f) === 0)
+    ) || fields[0]; // Fallback to first field
+
+    // Find key metrics (first 2-3 currency/number fields)
+    const keyMetrics = fields
+      .filter(f => (f.type === 'currency' || f.type === 'number') && f !== primaryField)
+      .slice(0, 3);
+
+    // Remaining fields
+    const remainingFields = fields.filter(f => 
+      f !== primaryField && !keyMetrics.includes(f)
+    );
+
+    return { primaryField, keyMetrics, remainingFields };
+  }, [fields]);
 
   // Sort data based on column and direction
   const sortedData = useMemo(() => {
@@ -232,6 +275,154 @@ export function ReportViewer({ data, fields, isLoading, pageSize: initialPageSiz
     );
   }
 
+  // Mobile card view
+  if (isMobile) {
+    const { primaryField, keyMetrics, remainingFields } = mobileFieldLayout;
+
+    return (
+      <div className="space-y-3 w-full max-w-full">
+        <div className="space-y-3">
+          {formattedData.map((row, index) => {
+            const originalIndex = startIndex + index;
+            const isExpanded = expandedCards.has(originalIndex);
+
+            return (
+              <Card key={originalIndex} className="hover:bg-muted/50 transition-colors w-full max-w-full overflow-hidden">
+                <CardHeader className="p-4 pb-3">
+                  <div className="flex items-start justify-between gap-2 min-w-0">
+                    <div className="flex-1 min-w-0">
+                      {primaryField && (
+                        <CardTitle className="text-base font-semibold truncate">
+                          {row[primaryField.key] || '-'}
+                        </CardTitle>
+                      )}
+                      {/* Show second text field if available and different from primary */}
+                      {fields.find(f => f.type === 'text' && f !== primaryField && fields.indexOf(f) === 1) && (
+                        <div className="text-sm text-muted-foreground truncate mt-0.5 min-w-0">
+                          {row[fields.find(f => f.type === 'text' && f !== primaryField && fields.indexOf(f) === 1)?.key || ''] || ''}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 pt-0 space-y-3">
+                  {/* Always visible key metrics */}
+                  <div className="flex items-center justify-between px-3 py-2 border-t gap-3 min-w-0">
+                    {keyMetrics.length > 0 ? (
+                      <>
+                        {keyMetrics.map((field, idx) => (
+                          <div key={field.key} className={cn("space-y-1 min-w-0", idx < keyMetrics.length - 1 ? "flex-1" : "text-right")}>
+                            <div className="text-xs text-muted-foreground truncate">{field.label}</div>
+                            <div className="text-sm font-semibold font-mono truncate">{row[field.key] || '-'}</div>
+                          </div>
+                        ))}
+                        {remainingFields.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleCard(originalIndex)}
+                            className="h-8 w-8 p-0 flex-shrink-0"
+                          >
+                            <ChevronDown className={cn(
+                              "h-4 w-4 transition-transform",
+                              isExpanded ? 'rotate-180' : ''
+                            )} />
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-xs text-muted-foreground">View Details</div>
+                        {remainingFields.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleCard(originalIndex)}
+                            className="h-8 w-8 p-0 flex-shrink-0 ml-auto"
+                          >
+                            <ChevronDown className={cn(
+                              "h-4 w-4 transition-transform",
+                              isExpanded ? 'rotate-180' : ''
+                            )} />
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Collapsible content with remaining fields */}
+                  {remainingFields.length > 0 && (
+                    <Collapsible open={isExpanded}>
+                      <CollapsibleContent>
+                        <div className="space-y-2 pt-2">
+                          <div className="grid grid-cols-2 gap-3 text-sm bg-muted/30 p-3 rounded w-full">
+                            {remainingFields.map(field => (
+                              <div key={field.key} className="min-w-0">
+                                <div className="text-xs text-muted-foreground truncate mb-1">{field.label}</div>
+                                <div className={cn(
+                                  "font-semibold truncate min-w-0",
+                                  field.type === 'currency' || field.type === 'number' ? "font-mono" : ""
+                                )}>
+                                  {row[field.key] || '-'}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Pagination Info and Controls - Mobile optimized */}
+        {data.length > 0 && (
+          <div className="space-y-2 border-t pt-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Rows per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                  }}
+                  className="border rounded px-2 py-1 text-sm bg-background"
+                >
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                </select>
+              </div>
+              
+              {data.length > pageSize && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {startIndex + 1}-{endIndex} of {data.length} rows
+                  </div>
+                  <CompletePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={goToPage}
+                  />
+                </div>
+              )}
+              {data.length <= pageSize && (
+                <div className="text-sm text-muted-foreground">
+                  Showing {data.length} of {data.length} rows
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop table view
   return (
     <div className="space-y-4">
       <div className="w-full border rounded-md overflow-hidden">
@@ -286,10 +477,10 @@ export function ReportViewer({ data, fields, isLoading, pageSize: initialPageSiz
         </div>
       </div>
       
-      {/* Pagination Info and Controls */}
+      {/* Pagination Info and Controls - Desktop */}
       {data.length > 0 && (
         <div className="space-y-2 border-t pt-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Rows per page:</span>
               <select

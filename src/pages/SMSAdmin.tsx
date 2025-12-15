@@ -11,6 +11,7 @@ import { SMSHistory } from '@/components/sms/SMSHistory';
 import { ScheduledSMSManager } from '@/components/sms/ScheduledSMSManager';
 import { MessageSquare, History, Clock } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
+import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { useState } from 'react';
 
 export default function SMSAdmin() {
@@ -64,9 +65,9 @@ export default function SMSAdmin() {
 
   if (rolesLoading) {
     return (
-      <div className="container mx-auto p-6">
+      <MobilePageWrapper>
         <div className="text-center">Loading roles...</div>
-      </div>
+      </MobilePageWrapper>
     );
   }
 
@@ -75,7 +76,7 @@ export default function SMSAdmin() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <MobilePageWrapper className="space-y-4">
       <PageHeader
         icon={MessageSquare}
         title="Send SMS"
@@ -153,7 +154,7 @@ export default function SMSAdmin() {
           <SMSHistory />
         </TabsContent>
       </Tabs>
-    </div>
+    </MobilePageWrapper>
   );
 }
 

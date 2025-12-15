@@ -233,3 +233,4 @@ export const useReceiptsData = () => {
     statistics,
   };
 };
+

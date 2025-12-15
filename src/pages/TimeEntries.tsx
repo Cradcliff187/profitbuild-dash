@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { ClipboardCheck, FileImage, Plus, Download } from "lucide-react";
+import { ClipboardCheck, FileImage, Plus, Download, AlertCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +24,8 @@ import { useRoles } from "@/contexts/RoleContext";
 import { TimeEntrySearchFilters } from "@/components/TimeEntrySearchFilters";
 import { TimeEntryBulkActions } from "@/components/TimeEntryBulkActions";
 import { TimeEntryExportModal } from "@/components/TimeEntryExportModal";
-import { CreateTimeEntryDialog } from "@/components/time-tracker/CreateTimeEntryDialog";
-import { EditTimeEntryDialog } from "@/components/time-tracker/EditTimeEntryDialog";
+import { AdminCreateTimeEntrySheet } from "@/components/time-entries/AdminCreateTimeEntrySheet";
+import { AdminEditTimeEntrySheet } from "@/components/time-entries/AdminEditTimeEntrySheet";
 import { RejectTimeEntryDialog } from "@/components/RejectTimeEntryDialog";
 import { AddReceiptModal } from "@/components/time-tracker/AddReceiptModal";
 import { ReceiptsManagement, ReceiptsManagementRef } from "@/components/ReceiptsManagement";
@@ -120,6 +122,9 @@ const TimeEntriesPage = () => {
 
   // Receipt count for badge
   const [receiptCount, setReceiptCount] = useState(0);
+  
+  // Pending time entries count for badge (all pending, not filtered)
+  const [pendingTimeEntriesCount, setPendingTimeEntriesCount] = useState(0);
 
   // Debounce filters to prevent rapid refetches (500ms delay)
   const debouncedFilters = useDebounce(filters, 500);
@@ -341,31 +346,86 @@ const TimeEntriesPage = () => {
     await actions.handleReject(selection.selectedIds, reason);
   };
 
-  // Fetch receipt count
+  // Fetch pending time entries count (all pending, not filtered)
+  const fetchPendingTimeEntriesCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from("expenses")
+        .select("*", { count: "exact", head: true })
+        .eq("category", "labor_internal")
+        .or("approval_status.is.null,approval_status.eq.pending");
+      
+      if (error) {
+        console.error("Error fetching pending time entries count:", error);
+        return;
+      }
+      
+      setPendingTimeEntriesCount(count || 0);
+    } catch (error) {
+      console.error("Error fetching pending time entries count:", error);
+    }
+  };
+
+  // Fetch receipt count (only pending receipts)
   const fetchReceiptCount = async () => {
     try {
-      const [{ count: timeEntryCount }, { count: standaloneCount }] = await Promise.all([
-        supabase
-          .from("expenses")
-          .select("*", { count: "exact", head: true })
-          .or("approval_status.is.null,approval_status.eq.pending"),
-        supabase
-          .from("receipts")
-          .select("*", { count: "exact", head: true })
-          .or("approval_status.is.null,approval_status.eq.pending"),
-      ]);
+      // Count expenses with receipt_id that are pending
+      const { count: expensesWithReceiptsCount, error: expensesError } = await supabase
+        .from("expenses")
+        .select("*", { count: "exact", head: true })
+        .not("receipt_id", "is", null)
+        .or("approval_status.is.null,approval_status.eq.pending");
       
-      setReceiptCount((timeEntryCount || 0) + (standaloneCount || 0));
+      // Count standalone receipts that are pending
+      const { count: standaloneCount, error: receiptsError } = await supabase
+        .from("receipts")
+        .select("*", { count: "exact", head: true })
+        .or("approval_status.is.null,approval_status.eq.pending");
+      
+      if (expensesError) {
+        console.error("Error fetching expenses with receipts count:", expensesError);
+      }
+      if (receiptsError) {
+        console.error("Error fetching standalone receipts count:", receiptsError);
+      }
+      
+      setReceiptCount((expensesWithReceiptsCount || 0) + (standaloneCount || 0));
     } catch (error) {
       console.error("Error fetching receipt count:", error);
     }
   };
 
+  // Set up real-time updates for pending time entries count
+  useEffect(() => {
+    fetchPendingTimeEntriesCount();
+    
+    const timeEntriesChannel = supabase
+      .channel("time-entries-count-updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "expenses",
+          filter: "category=eq.labor_internal",
+        },
+        () => {
+          fetchPendingTimeEntriesCount();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(timeEntriesChannel);
+    };
+  }, []);
+
+  // Set up real-time updates for receipt count
   useEffect(() => {
     fetchReceiptCount();
     
     const expensesChannel = supabase
-      .channel("expenses-updates")
+      .channel("expenses-receipts-updates")
       .on(
         "postgres_changes",
         {
@@ -401,7 +461,7 @@ const TimeEntriesPage = () => {
       value: "entries",
       label: "Time Entries",
       icon: ClipboardCheck,
-      badgeCount: statistics.pendingCount,
+      badgeCount: pendingTimeEntriesCount,
     },
     {
       value: "receipts",
@@ -510,11 +570,16 @@ const TimeEntriesPage = () => {
                     const Icon = tab.icon;
                     return (
                       <SelectItem key={tab.value} value={tab.value}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 w-full">
                           {Icon && <Icon className="h-4 w-4" />}
-                          <span>{tab.label}</span>
+                          <span className="flex-1">{tab.label}</span>
                           {tab.badgeCount > 0 && (
-                            <span className="ml-auto text-xs text-muted-foreground">({tab.badgeCount})</span>
+                            <Badge 
+                              variant="secondary" 
+                              className="ml-auto text-xs font-semibold h-5 px-2 bg-slate-900 text-white border-0 hover:bg-slate-800"
+                            >
+                              {tab.badgeCount}
+                            </Badge>
                           )}
                         </div>
                       </SelectItem>
@@ -536,7 +601,12 @@ const TimeEntriesPage = () => {
                     {Icon && <Icon className="h-4 w-4" />}
                     <span>{tab.label}</span>
                     {tab.badgeCount > 0 && (
-                      <span className="ml-1 text-xs">({tab.badgeCount})</span>
+                      <Badge 
+                        variant="secondary" 
+                        className="ml-1 text-xs font-semibold h-5 px-2 min-w-[1.5rem] flex items-center justify-center bg-slate-900 text-white border-0 hover:bg-slate-800"
+                      >
+                        {tab.badgeCount}
+                      </Badge>
                     )}
                   </TabsTrigger>
                 );
@@ -673,18 +743,18 @@ const TimeEntriesPage = () => {
       </Tabs>
 
       {/* Modals */}
-      <CreateTimeEntryDialog
+      <AdminCreateTimeEntrySheet
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onSuccess={refreshTimeEntries}
       />
       
       {editingEntry && (
-        <EditTimeEntryDialog
+        <AdminEditTimeEntrySheet
           entry={editingEntry}
           open={!!editingEntry}
           onOpenChange={(open) => !open && setEditingEntry(null)}
-          onSaved={() => {
+          onSuccess={() => {
             setEditingEntry(null);
             refreshTimeEntries();
           }}

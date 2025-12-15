@@ -8,6 +8,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Calendar, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { TimeEntryFilters } from "@/types/timeEntry";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface TimeEntrySearchFiltersProps {
   filters: TimeEntryFilters;
@@ -32,6 +33,7 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
   workers,
   projects
 }) => {
+  const isMobile = useIsMobile();
 
   const updateFilters = (updates: Partial<TimeEntryFilters>) => {
     onFiltersChange({ ...filters, ...updates });
@@ -104,7 +106,10 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
               <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-2" align="start">
+          <PopoverContent 
+            className={isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] p-2" : "w-56 p-2"} 
+            align={isMobile ? "end" : "start"}
+          >
             <div className="space-y-1">
               <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                 <Button
@@ -166,7 +171,10 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
               <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-0" align="start">
+          <PopoverContent 
+            className={isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] p-0" : "w-64 p-0"} 
+            align={isMobile ? "end" : "start"}
+          >
             <Command>
               <CommandInput placeholder="Search workers..." className="h-9" />
               <CommandEmpty>No worker found.</CommandEmpty>
@@ -230,7 +238,10 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
               <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-0" align="start">
+          <PopoverContent 
+            className={isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] p-0" : "w-64 p-0"} 
+            align={isMobile ? "end" : "start"}
+          >
             <Command>
               <CommandInput placeholder="Search projects..." className="h-9" />
               <CommandEmpty>No project found.</CommandEmpty>

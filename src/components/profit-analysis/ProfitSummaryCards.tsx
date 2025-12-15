@@ -12,7 +12,7 @@ interface Props {
 export function ProfitSummaryCards({ data, isLoading }: Props) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
           <Card key={i}>
             <CardHeader className="pb-2">
@@ -71,7 +71,7 @@ export function ProfitSummaryCards({ data, isLoading }: Props) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       {cards.map((card) => (
         <Card key={card.title}>
           <CardHeader className="pb-2">

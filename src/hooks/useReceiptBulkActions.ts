@@ -232,3 +232,4 @@ export const useReceiptBulkActions = ({
     handleBulkDelete,
   };
 };
+

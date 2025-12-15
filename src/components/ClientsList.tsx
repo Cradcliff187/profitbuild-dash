@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { Plus, Upload, MoreHorizontal, Eye, Edit2, Trash2, ChevronDown, Mail, Phone, MapPin, Building2, Users } from "lucide-react";
+import { Plus, Upload, MoreHorizontal, Eye, Edit2, Trash2, ChevronDown, Mail, Phone, MapPin, Building2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
@@ -24,20 +24,37 @@ import { ClientFilters } from "./ClientFilters";
 import { ClientBulkActions } from "./ClientBulkActions";
 import { ClientImportModal } from "./ClientImportModal";
 
-export const ClientsList = () => {
-  const [showForm, setShowForm] = useState(false);
+interface ClientsListProps {
+  showForm: boolean;
+  setShowForm: (show: boolean) => void;
+  showImportModal: boolean;
+  setShowImportModal: (show: boolean) => void;
+}
+
+export interface ClientsListRef {
+  openNewForm: () => void;
+}
+
+export const ClientsList = forwardRef<ClientsListRef, ClientsListProps>(({ showForm, setShowForm, showImportModal, setShowImportModal }, ref) => {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<ClientType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
-  const [showImportModal, setShowImportModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Expose function to open new form (resets editingClient)
+  useImperativeHandle(ref, () => ({
+    openNewForm: () => {
+      setEditingClient(null);
+      setShowForm(true);
+    }
+  }));
 
   const toggleCard = (clientId: string) => {
     setExpandedCards(prev => {
@@ -259,40 +276,6 @@ export const ClientsList = () => {
 
   return (
     <div className="dense-spacing">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center space-x-3 min-w-0">
-          <Users className="h-5 w-5 text-primary shrink-0" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-foreground">Clients</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Manage your client database and contact information</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <Button 
-            onClick={() => {
-              setEditingClient(null);
-              setShowForm(true);
-            }} 
-            size="sm" 
-            className="h-btn-compact text-label text-white hidden sm:flex"
-          >
-            <Plus className="h-3 w-3 mr-1" />
-            Add Client
-          </Button>
-          <div className="hidden sm:flex">
-            <Button 
-              variant="outline"
-              size="sm"
-              onClick={() => setShowImportModal(true)}
-              className="h-btn-compact text-label"
-            >
-              <Upload className="h-3 w-3 mr-1" />
-              Import CSV
-            </Button>
-          </div>
-        </div>
-      </div>
-
       {/* Desktop Table View */}
       <div className="hidden sm:block">
         <EntityTableTemplate
@@ -334,7 +317,7 @@ export const ClientsList = () => {
       </div>
 
       {/* Mobile Card View */}
-      <div className="sm:hidden space-y-3">
+      <div className="sm:hidden space-y-3 pb-24 w-full max-w-full min-w-0 px-3">
         <ClientFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -344,6 +327,18 @@ export const ClientsList = () => {
           onStatusFilterChange={setStatusFilter}
           resultCount={filteredClients.length}
         />
+
+        {/* Bulk Actions */}
+        {selectedClients.length > 0 && (
+          <ClientBulkActions
+            selectedClientIds={selectedClients}
+            onSelectionChange={(newSet) => setSelectedClients(Array.from(newSet))}
+            onComplete={() => {
+              setSelectedClients([]);
+              queryClient.invalidateQueries({ queryKey: ["clients"] });
+            }}
+          />
+        )}
 
         {filteredClients.length === 0 ? (
           <Card>
@@ -522,21 +517,6 @@ export const ClientsList = () => {
         onClose={() => setShowImportModal(false)}
         onSuccess={handleImportSuccess}
       />
-
-      {/* Mobile FAB */}
-      {isMobile && (
-        <Button
-          variant="default"
-          onClick={() => {
-            setEditingClient(null);
-            setShowForm(true);
-          }}
-          size="icon"
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      )}
     </div>
   );
-};
+});

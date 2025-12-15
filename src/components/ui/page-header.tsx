@@ -23,7 +23,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className={cn("bg-white border-b border-slate-200 shadow-sm w-full max-w-full overflow-hidden", className)}>
-      <div className="px-4 sm:px-6 py-4">
+      <div className="px-3 sm:px-6 py-4">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
           {/* Left side: Icon + Title + Description */}
           <div className="flex items-start gap-3 min-w-0">
@@ -46,7 +46,7 @@ export function PageHeader({
 
           {/* Right side: Actions */}
           {actions && (
-            <div className="flex items-center gap-2 flex-wrap sm:flex-shrink-0">
+            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto sm:flex-shrink-0">
               {actions}
             </div>
           )}
