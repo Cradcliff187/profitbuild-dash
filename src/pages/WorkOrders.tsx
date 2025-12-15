@@ -656,7 +656,7 @@ const WorkOrders = () => {
               <ColumnSelector
                 columns={columnDefinitions}
                 visibleColumns={visibleColumns}
-                onVisibilityChange={setVisibleColumns}
+                onVisibleColumnsChange={setVisibleColumns}
                 columnOrder={columnOrder}
                 onColumnOrderChange={setColumnOrder}
               />

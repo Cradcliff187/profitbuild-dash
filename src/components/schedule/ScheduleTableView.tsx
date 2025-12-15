@@ -217,7 +217,7 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
           <ColumnSelector
             columns={columnDefinitions}
             visibleColumns={visibleColumns}
-            onVisibilityChange={setVisibleColumns}
+            onVisibleColumnsChange={setVisibleColumns}
           />
           <div className="text-xs text-muted-foreground">
             {filteredAndSortedTasks.length} of {tasks.length} tasks

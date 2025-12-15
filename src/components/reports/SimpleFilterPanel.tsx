@@ -588,8 +588,7 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
         value={filter.value || ''}
         onChange={(e) => updateFilter(index, { value: e.target.value })}
         placeholder={`Enter ${field.label.toLowerCase()}`}
-        className="w-full"
-        className="flex-1"
+        className="w-full flex-1"
       />
     );
   };
