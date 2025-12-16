@@ -557,9 +557,9 @@ const TimeEntriesPage = () => {
         }
       />
 
-      <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="w-full sm:w-auto overflow-hidden">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full max-w-full min-w-0">
+        <div className="mb-2 flex w-full max-w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="w-full max-w-full min-w-0 sm:w-auto overflow-hidden">
             <div className="sm:hidden">
               <Select value={activeTab} onValueChange={handleTabChange}>
                 <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
@@ -581,7 +581,7 @@ const TimeEntriesPage = () => {
               </Select>
             </div>
 
-            <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
+            <TabsList className="hidden w-full max-w-full min-w-0 flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
               {tabOptions.map((tab) => {
                 const Icon = tab.icon;
                 return (
