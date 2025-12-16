@@ -30,6 +30,7 @@ const EstimatesPage = () => {
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate | undefined>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [clients, setClients] = useState<Array<{ id: string; client_name: string }>>([]);
+  const [projects, setProjects] = useState<Array<{ id: string; project_name: string; project_number: string }>>([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -38,6 +39,7 @@ const EstimatesPage = () => {
     status: [],
     projectType: "",
     clientName: [],
+    projectName: [],
     categories: [],
     dateRange: { start: null, end: null },
     amountRange: { min: null, max: null },
@@ -57,6 +59,7 @@ const EstimatesPage = () => {
   useEffect(() => {
     loadEstimates();
     loadClients();
+    loadProjects();
 
     if ((preselectedProjectId || createParam === "work_order") && viewMode === "list") {
       setViewMode("create");
@@ -96,6 +99,21 @@ const EstimatesPage = () => {
     }
 
     setClients(data || []);
+  };
+
+  const loadProjects = async () => {
+    const { data, error } = await supabase
+      .from("projects")
+      .select("id, project_name, project_number")
+      .eq("category", "construction")
+      .order("project_number", { ascending: true });
+
+    if (error) {
+      console.error("Error loading projects:", error);
+      return;
+    }
+
+    setProjects(data || []);
   };
 
   useEffect(() => {
@@ -169,6 +187,15 @@ const EstimatesPage = () => {
       });
     }
 
+    if (searchFilters.projectName.length > 0) {
+      filtered = filtered.filter((estimate) => {
+        if (!estimate.project_name) return false;
+        return searchFilters.projectName.some((project) =>
+          estimate.project_name!.toLowerCase().includes(project.toLowerCase()),
+        );
+      });
+    }
+
     if (searchFilters.dateRange.start) {
       filtered = filtered.filter((estimate) => new Date(estimate.date_created) >= searchFilters.dateRange.start!);
     }
@@ -216,6 +243,7 @@ const EstimatesPage = () => {
       status: [],
       projectType: "",
       clientName: [],
+      projectName: [],
       categories: [],
       dateRange: { start: null, end: null },
       amountRange: { min: null, max: null },
@@ -551,6 +579,7 @@ const EstimatesPage = () => {
             onReset={resetFilters}
             resultCount={filteredEstimates.length}
             clients={clients}
+            projects={projects}
           />
           {isMobile ? (
             <EstimatesCardView
