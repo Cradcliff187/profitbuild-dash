@@ -13,7 +13,7 @@ const Clients = () => {
   const isMobile = useIsMobile();
 
   return (
-    <MobilePageWrapper className="space-y-4">
+    <MobilePageWrapper>
       <PageHeader
         icon={UserCheck}
         title="Clients"
