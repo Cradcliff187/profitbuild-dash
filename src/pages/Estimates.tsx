@@ -495,8 +495,8 @@ const EstimatesPage = () => {
         }
       />
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-4">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-4 w-full max-w-full overflow-hidden">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between w-full max-w-full">
           <div className="w-full sm:w-auto">
             <div className="sm:hidden">
               <Select value={activeTab} onValueChange={handleTabChange}>
@@ -537,7 +537,7 @@ const EstimatesPage = () => {
           </div>
         </div>
 
-        <TabsContent value="estimates" className="space-y-4">
+        <TabsContent value="estimates" className="space-y-4 w-full max-w-full overflow-hidden">
           <EstimateSearchFilters
             filters={searchFilters}
             onFiltersChange={setSearchFilters}
