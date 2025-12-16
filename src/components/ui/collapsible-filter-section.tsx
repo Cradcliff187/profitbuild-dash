@@ -39,10 +39,10 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
   return (
     <Card className={cn("w-full", className)}>
       <CardHeader className="p-3 pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Filter className="h-3 w-3 text-muted-foreground" />
-            <span className="text-sm font-medium">
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 overflow-hidden flex-1">
+            <Filter className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+            <span className="text-sm font-medium truncate">
               {title}
               {resultCount !== undefined && hasActiveFilters && (
                 <span className="text-muted-foreground font-normal ml-1">
@@ -51,19 +51,19 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
               )}
             </span>
             {activeFilterCount > 0 && (
-              <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-semibold">
+              <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-semibold flex-shrink-0">
                 {activeFilterCount}
               </Badge>
             )}
             {leftActions && (
               <>
-                <div className="h-4 w-px bg-border mx-1" />
+                <div className="h-4 w-px bg-border mx-1 flex-shrink-0" />
                 {leftActions}
               </>
             )}
           </div>
           
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {actions}
             {onClearFilters && (
               <Button
