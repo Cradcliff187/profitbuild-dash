@@ -48,10 +48,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { getCompanyBranding } from "@/utils/companyBranding";
 import { supabase } from "@/integrations/supabase/client";
+import { usePendingCounts } from "@/hooks/usePendingCounts";
 
 const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png';
 
@@ -60,6 +62,7 @@ interface NavItem {
   url: string;
   icon: React.ComponentType<{ className?: string }>;
   show?: boolean;
+  badgeCount?: number;
 }
 
 interface NavGroup {
@@ -74,6 +77,7 @@ export function AppSidebar() {
   const { state, setOpenMobile, isMobile } = useSidebar();
   const { user, signOut } = useAuth();
   const { isAdmin, isManager, isFieldWorker, roles } = useRoles();
+  const { total: pendingCount } = usePendingCounts();
 
   const collapsed = state === "collapsed";
   
@@ -146,7 +150,7 @@ export function AppSidebar() {
       items: [
         { title: "Projects", url: "/projects", icon: Building2, show: hasFinancialAccess },
         { title: "Work Orders", url: "/work-orders", icon: Wrench, show: hasFinancialAccess },
-        { title: "Time Approvals", url: "/time-entries", icon: ClipboardCheck, show: isAdmin || isManager },
+        { title: "Time Approvals", url: "/time-entries", icon: ClipboardCheck, show: isAdmin || isManager, badgeCount: pendingCount },
         { title: "Field Media", url: "/field-media", icon: Camera, show: true },
       ],
     },
@@ -209,20 +213,35 @@ export function AppSidebar() {
               {visibleItems.map((item) => {
                 const active = isActive(item.url);
                 const Icon = item.icon;
+                const showBadge = item.badgeCount && item.badgeCount > 0;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       onClick={() => handleNavigation(item.url)}
                       isActive={active}
-                      tooltip={collapsed && !isMobile ? item.title : undefined}
+                      tooltip={collapsed && !isMobile ? `${item.title}${showBadge ? ` (${item.badgeCount})` : ''}` : undefined}
                       className={cn(
                         "cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800",
                         collapsed ? "min-h-[36px] py-1.5" : "min-h-[44px] py-2.5",
                         active && "font-semibold bg-slate-800 text-white border-l-2 border-orange-500"
                       )}
                     >
-                      <Icon className="h-5 w-5 shrink-0" />
-                      {(!collapsed || isMobile) && <span className="text-sm">{item.title}</span>}
+                      <div className="relative">
+                        <Icon className="h-5 w-5 shrink-0" />
+                        {collapsed && !isMobile && showBadge && (
+                          <span className="absolute -top-1.5 -right-1.5 h-2.5 w-2.5 rounded-full bg-orange-500" />
+                        )}
+                      </div>
+                      {(!collapsed || isMobile) && (
+                        <>
+                          <span className="text-sm flex-1">{item.title}</span>
+                          {showBadge && (
+                            <Badge className="ml-auto h-5 min-w-[1.25rem] px-1.5 text-xs bg-orange-500 hover:bg-orange-600 text-white border-0">
+                              {item.badgeCount}
+                            </Badge>
+                          )}
+                        </>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
