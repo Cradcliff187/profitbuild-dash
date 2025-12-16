@@ -317,7 +317,7 @@ export const ClientsList = forwardRef<ClientsListRef, ClientsListProps>(({ showF
       </div>
 
       {/* Mobile Card View */}
-      <div className="sm:hidden space-y-3 pb-24 w-full max-w-full min-w-0 px-3">
+      <div className="sm:hidden space-y-3 pb-20 w-full max-w-full min-w-0">
         <ClientFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
