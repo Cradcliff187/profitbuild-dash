@@ -313,10 +313,10 @@ export function AppSidebar() {
                   {userInitials}
                 </AvatarFallback>
               </Avatar>
-              {!collapsed && (
+              {(!collapsed || isMobile) && (
                 <div className="flex flex-col items-start text-left flex-1 min-w-0">
                   <span className="text-sm font-medium truncate w-full text-white">
-                    {user?.email?.split("@")[0] || "User"}
+                    {userFullName || user?.email?.split("@")[0] || "User"}
                   </span>
                   <span className="text-xs text-slate-400 truncate w-full">
                     {user?.email}

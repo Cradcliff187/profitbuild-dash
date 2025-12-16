@@ -48,6 +48,8 @@ import { usePagination } from '@/hooks/usePagination';
 import { CompletePagination } from '@/components/ui/complete-pagination';
 import { format } from 'date-fns';
 import { parseDateOnly } from '@/utils/dateUtils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Expense,
   ExpenseCategory,
@@ -114,6 +116,7 @@ export interface ExpensesListRef {
 export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>(
   ({ expenses, projectId, onEdit, onDelete, onRefresh, enablePagination = true, pageSize: initialPageSize = 25, visibleColumns: externalVisibleColumns, onVisibleColumnsChange, columnOrder: externalColumnOrder, onColumnOrderChange }, ref) => {
     const navigate = useNavigate();
+    const isMobile = useIsMobile();
     const [pageSize, setPageSize] = useState(initialPageSize);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterCategories, setFilterCategories] = useState<string[]>([]);
@@ -135,6 +138,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     const [splitDialogOpen, setSplitDialogOpen] = useState(false);
     const [expenseToSplit, setExpenseToSplit] = useState<Expense | null>(null);
     const [expandedExpenses, setExpandedExpenses] = useState<Set<string>>(new Set());
+    const [expandedMobileCards, setExpandedMobileCards] = useState<Set<string>>(new Set());
     const [expenseSplits, setExpenseSplits] = useState<Record<string, ExpenseSplit[]>>({});
     const [calculatedTotal, setCalculatedTotal] = useState<number>(0);
     const [allocationSheetOpen, setAllocationSheetOpen] = useState(false);
@@ -1698,63 +1702,35 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     return (
       <div className="dense-spacing">
         {/* Workflow helper */}
-        <div className="mb-2 flex items-center gap-2 border-b pb-2 text-xs text-muted-foreground">
-          <Info className="h-3 w-3" />
-          <span>
-            <strong>Workflow:</strong> First assign expenses to projects, then optionally allocate them to specific line
-            items for detailed tracking.
-          </span>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-5 px-2 text-xs">
-                Learn more
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="max-w-sm text-xs" align="start">
-              <Card className="border-none shadow-none">
-                <CardContent className="p-0 space-y-3">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="default" className="h-4 px-1.5 text-[10px]">
-                          Assigned
-                        </Badge>
-                        <span className="font-medium">Project Assignment</span>
-                      </div>
-                      <ul className="ml-2 space-y-0.5 text-muted-foreground">
-                        <li>• Which project does this expense belong to?</li>
-                        <li>• Required for all expenses</li>
-                        <li>• Affects project budgets and reports</li>
-                        <li>• Use "Reassign Project" to change</li>
-                      </ul>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="default" className="h-4 px-1.5 text-[10px]">
-                          Allocated
-                        </Badge>
-                        <span className="font-medium">Line Item Allocation</span>
-                      </div>
-                      <ul className="ml-2 space-y-0.5 text-muted-foreground">
-                        <li>• Match to estimate/quote line items</li>
-                        <li>• Optional but improves detail</li>
-                        <li>• Powers cost variance analysis</li>
-                        <li>• Use "Match to Line Items" to allocate</li>
-                      </ul>
-                    </div>
+        <div className="mb-2 border-b pb-2 text-xs text-muted-foreground w-full max-w-full min-w-0 overflow-x-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+            <div className="flex items-start gap-2 flex-1 min-w-0">
+              <Info className="h-3 w-3 shrink-0 mt-0.5" />
+              <span className="break-words min-w-0">
+                <strong>Workflow:</strong> First assign expenses to projects, then optionally allocate them to specific line
+                items for detailed tracking.
+              </span>
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-5 px-2 text-xs shrink-0">
+                  Learn more
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="max-w-sm text-xs" align="start">
+                <div className="space-y-2">
+                  <div>
+                    <strong>Step 1: Project Assignment</strong>
+                    <p className="text-muted-foreground mt-0.5">Assign each expense to a project to affect project budgets.</p>
                   </div>
-
-                  <div className="rounded-md bg-muted/40 p-2">
-                    <p>
-                      <strong>Tip:</strong> Keep projects assigned first, then revisit to allocate when estimates or
-                      quotes are finalized.
-                    </p>
+                  <div>
+                    <strong>Step 2: Line Item Allocation</strong>
+                    <p className="text-muted-foreground mt-0.5">Match to specific line items for variance analysis.</p>
                   </div>
-                </CardContent>
-              </Card>
-            </PopoverContent>
-          </Popover>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         {/* Filters - Compact */}
@@ -1794,7 +1770,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                     <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-0" align="start">
+                <PopoverContent className="w-full sm:w-64 p-0" align="start">
                   <Command>
                     <CommandInput placeholder="Search projects..." className="h-9" />
                     <CommandEmpty>No project found.</CommandEmpty>
@@ -1858,7 +1834,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                   <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-2" align="start">
+              <PopoverContent className="w-full sm:w-56 p-2" align="start">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                     <Button
@@ -1915,7 +1891,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                   <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-2" align="start">
+              <PopoverContent className="w-full sm:w-56 p-2" align="start">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                     <Button
@@ -1972,7 +1948,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                   <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-2" align="start">
+              <PopoverContent className="w-full sm:w-56 p-2" align="start">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                     <Button
@@ -2052,7 +2028,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                   <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-2" align="start">
+              <PopoverContent className="w-full sm:w-56 p-2" align="start">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                     <Button
@@ -2113,7 +2089,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                   <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-2" align="start">
+              <PopoverContent className="w-full sm:w-56 p-2" align="start">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                     <Button
@@ -2173,7 +2149,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                   <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 p-0" align="start">
+              <PopoverContent className="w-full sm:w-64 p-0" align="start">
                 <Command>
                   <CommandInput placeholder="Search payees..." className="h-9" />
                   <CommandEmpty>No payee found.</CommandEmpty>
@@ -2236,7 +2212,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                   <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-2" align="start">
+              <PopoverContent className="w-full sm:w-56 p-2" align="start">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                     <Button
@@ -2307,6 +2283,285 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
             {filteredExpenses.length === 0 
               ? "No expenses found. Add your first expense to get started."
               : "No expenses match your current filters."}
+          </div>
+        ) : isMobile ? (
+          // Mobile Card View
+          <div className="space-y-2 w-full max-w-full min-w-0 overflow-x-hidden">
+            {paginatedData.map((row) => {
+              // Skip split rows in mobile - they'll be shown within parent cards
+              if (row._isSplitRow) return null;
+              
+              const splits = expenseSplits[row.id] || [];
+              const hasSplits = row.is_split && splits.length > 0;
+              const isSystemProject = isSystemProjectByCategory(row.project_category as ProjectCategory) ||
+                (!row.project_category && (
+                  row.project_number === "000-UNASSIGNED" ||
+                  row.project_number === "SYS-000"
+                ));
+              const isUnassigned = !row.project_id;
+              const isAssigned = !isSystemProject && !isUnassigned;
+              const isAllocated = expenseMatches[row.id]?.matched;
+              const isOverhead = isOverheadProject(row.project_category as ProjectCategory) ||
+                (!row.project_category && (row.project_number === "001-GAS" || row.project_number === "002-GA"));
+
+              return (
+                <Card key={row.id} className="hover:bg-muted/50 transition-colors overflow-hidden">
+                  <CardHeader className="p-3 pb-2">
+                    <div className="flex items-start justify-between gap-2 min-w-0">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <CardTitle className="text-sm font-semibold truncate">
+                            {row.project_number || '-'}
+                          </CardTitle>
+                          {row.is_split && (
+                            <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                              SPLIT
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">{row.project_name || ''}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs font-mono text-muted-foreground">
+                            {format(parseDateOnly(row.expense_date), 'M/d/yy')}
+                          </span>
+                          <span className="text-xs text-muted-foreground">•</span>
+                          <span className="text-xs font-mono font-medium">
+                            {formatCurrency(row.amount, { showCents: true })}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Checkbox
+                          checked={selectedExpenses.includes(row.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedExpenses([...selectedExpenses, row.id]);
+                            } else {
+                              setSelectedExpenses(selectedExpenses.filter((id) => id !== row.id));
+                            }
+                          }}
+                        />
+                        {renderActions(row)}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0 space-y-2">
+                    {/* Always visible key metrics */}
+                    <div className="flex items-center justify-between px-3 py-2 border-t min-w-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0 flex-1">
+                        {/* Assigned Status */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {row.is_split ? (
+                            <AlertTriangle className="h-4 w-4 text-blue-600 shrink-0" />
+                          ) : isSystemProject || isUnassigned ? (
+                            <AlertTriangle className="h-4 w-4 text-yellow-600 shrink-0" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                          )}
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">Assigned</span>
+                        </div>
+                        {/* Allocated Status */}
+                        {!isOverhead && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            {isAllocated ? (
+                              <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                            ) : (
+                              <AlertTriangle className="h-4 w-4 text-yellow-600 shrink-0" />
+                            )}
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">Allocated</span>
+                          </div>
+                        )}
+                      </div>
+                      {hasSplits && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setExpandedMobileCards(prev => {
+                              const next = new Set(prev);
+                              if (next.has(row.id)) {
+                                next.delete(row.id);
+                              } else {
+                                next.add(row.id);
+                              }
+                              return next;
+                            });
+                          }}
+                          className="h-8 w-8 p-0 shrink-0"
+                        >
+                          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
+                            expandedMobileCards.has(row.id) ? 'rotate-180' : ''
+                          }`} />
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Expandable Details */}
+                    <Collapsible 
+                      open={expandedMobileCards.has(row.id)}
+                      onOpenChange={(open) => {
+                        setExpandedMobileCards(prev => {
+                          const next = new Set(prev);
+                          if (open) {
+                            next.add(row.id);
+                          } else {
+                            next.delete(row.id);
+                          }
+                          return next;
+                        });
+                      }}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-between h-8 text-xs"
+                        >
+                          <span>View Details</span>
+                          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
+                            expandedMobileCards.has(row.id) ? 'rotate-180' : ''
+                          }`} />
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="space-y-2 pt-2">
+                          {/* Additional Details Grid */}
+                          <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2 rounded min-w-0">
+                            {row.payee_name && (
+                              <div className="min-w-0">
+                                <div className="text-muted-foreground">Payee</div>
+                                <div className="font-medium truncate">{row.payee_name}</div>
+                              </div>
+                            )}
+                            {row.category && (
+                              <div className="min-w-0">
+                                <div className="text-muted-foreground">Category</div>
+                                <div>
+                                  <Badge variant={getCategoryBadgeVariant(row.category)} className="text-[10px] px-1.5 py-0 h-4">
+                                    {EXPENSE_CATEGORY_DISPLAY[row.category]}
+                                  </Badge>
+                                </div>
+                              </div>
+                            )}
+                            {row.transaction_type && (
+                              <div className="min-w-0">
+                                <div className="text-muted-foreground">Type</div>
+                                <div className="font-medium truncate">{TRANSACTION_TYPE_DISPLAY[row.transaction_type]}</div>
+                              </div>
+                            )}
+                            {row.invoice_number && (
+                              <div className="min-w-0">
+                                <div className="text-muted-foreground">Invoice #</div>
+                                <div className="font-mono font-medium truncate">{row.invoice_number}</div>
+                              </div>
+                            )}
+                            {row.approval_status && (
+                              <div className="min-w-0">
+                                <div className="text-muted-foreground">Approval</div>
+                                <div>
+                                  {row.approval_status === "pending" ? (
+                                    <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-yellow-50 text-yellow-700 border-yellow-300">
+                                      Pending
+                                    </Badge>
+                                  ) : row.approval_status === "approved" ? (
+                                    <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-green-50 text-green-700 border-green-300">
+                                      Approved
+                                    </Badge>
+                                  ) : row.approval_status === "rejected" ? (
+                                    <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-red-50 text-red-700 border-red-300">
+                                      Rejected
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                                      {row.approval_status.charAt(0).toUpperCase() + row.approval_status.slice(1)}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Split Rows */}
+                          {hasSplits && expandedMobileCards.has(row.id) && (
+                            <div className="space-y-2 pt-2 border-t">
+                              <div className="text-xs font-medium px-3 text-muted-foreground">Split Details</div>
+                              {splits.map((split) => (
+                                <div key={split.id} className="bg-muted/20 p-2 rounded mx-3 min-w-0">
+                                  <div className="flex items-center justify-between mb-1 gap-2 min-w-0">
+                                    <div className="text-xs font-medium truncate min-w-0">
+                                      {split.project_number || '-'}
+                                    </div>
+                                    <div className="text-xs font-mono font-medium shrink-0">
+                                      {formatCurrency(split.split_amount, { showCents: true })}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">
+                                    {split.project_name || ''}
+                                  </div>
+                                  {split.split_percentage && (
+                                    <div className="text-[10px] text-muted-foreground mt-1">
+                                      {split.split_percentage.toFixed(1)}%
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {/* Pagination */}
+            {enablePagination && displayData.filter(r => !r._isSplitRow).length > 0 && (
+              <div className="p-3 border-t flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      pagination.goToPage(1);
+                    }}
+                    className="border rounded px-2 py-1 text-sm shrink-0"
+                  >
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                  </select>
+                </div>
+                {displayData.filter(r => !r._isSplitRow).length > pageSize && (
+                  <div className="min-w-0">
+                    <CompletePagination
+                      currentPage={pagination.currentPage}
+                      totalPages={Math.ceil(displayData.filter(r => !r._isSplitRow).length / pageSize)}
+                      onPageChange={pagination.goToPage}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Totals Footer */}
+            <div className="p-3 border-t bg-muted/30 rounded-b min-w-0">
+              <div className="flex items-center justify-between text-xs gap-2 min-w-0">
+                <span className="font-medium truncate min-w-0">
+                  Total ({displayData.filter(r => !r._isSplitRow).length} expenses):
+                </span>
+                <span className="font-mono font-medium shrink-0">
+                  {formatCurrency(
+                    displayData
+                      .filter(r => !r._isSplitRow)
+                      .reduce((sum, r) => sum + r.amount, 0),
+                    { showCents: true }
+                  )}
+                </span>
+              </div>
+            </div>
           </div>
         ) : (
           <Card className="overflow-hidden">

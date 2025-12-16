@@ -235,22 +235,23 @@ export const ExpenseBulkActions = ({
 
   return (
     <>
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span className="font-medium">{selectedExpenseIds.length} expenses selected</span>
+      <Card className="overflow-hidden">
+        <CardContent className="p-3 sm:pt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
+              <Users className="h-4 w-4 shrink-0" />
+              <span className="font-medium text-sm truncate">{selectedExpenseIds.length} expenses selected</span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => onSelectionChange(new Set())}
+                className="shrink-0"
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap gap-2 min-w-0 sm:ml-auto">
               <Button
                 onClick={() => {
                   loadProjects();
@@ -259,9 +260,10 @@ export const ExpenseBulkActions = ({
                 disabled={isLoading}
                 size="sm"
                 variant="outline"
+                className="flex-1 sm:flex-initial min-w-0"
               >
-                <Building2 className="h-4 w-4 mr-2" />
-                Assign Project
+                <Building2 className="h-4 w-4 mr-2 shrink-0" />
+                <span className="truncate">Assign Project</span>
               </Button>
 
               <Button
@@ -269,8 +271,9 @@ export const ExpenseBulkActions = ({
                 disabled={isLoading}
                 size="sm"
                 variant="outline"
+                className="flex-1 sm:flex-initial min-w-0"
               >
-                Update Category
+                <span className="truncate">Update Category</span>
               </Button>
 
               <Button
@@ -278,8 +281,9 @@ export const ExpenseBulkActions = ({
                 disabled={isLoading}
                 size="sm"
                 variant="outline"
+                className="flex-1 sm:flex-initial min-w-0"
               >
-                Update Type
+                <span className="truncate">Update Type</span>
               </Button>
 
               <Button
@@ -287,8 +291,9 @@ export const ExpenseBulkActions = ({
                 disabled={isLoading}
                 size="sm"
                 variant="outline"
+                className="flex-1 sm:flex-initial min-w-0"
               >
-                Submit for Approval
+                <span className="truncate">Submit for Approval</span>
               </Button>
 
               <Button
@@ -296,8 +301,9 @@ export const ExpenseBulkActions = ({
                 disabled={isLoading}
                 size="sm"
                 variant="default"
+                className="flex-1 sm:flex-initial min-w-0"
               >
-                Approve
+                <span className="truncate">Approve</span>
               </Button>
 
               <Button
@@ -305,8 +311,9 @@ export const ExpenseBulkActions = ({
                 disabled={isLoading}
                 size="sm"
                 variant="destructive"
+                className="flex-1 sm:flex-initial min-w-0"
               >
-                Reject
+                <span className="truncate">Reject</span>
               </Button>
 
               <Button
@@ -314,9 +321,10 @@ export const ExpenseBulkActions = ({
                 disabled={isLoading}
                 size="sm"
                 variant="destructive"
+                className="flex-1 sm:flex-initial min-w-0"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Selected
+                <Trash2 className="h-4 w-4 mr-2 shrink-0" />
+                <span className="truncate">Delete Selected</span>
               </Button>
             </div>
           </div>

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Edit, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, Split, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -20,6 +21,7 @@ import { RevenueBulkActions } from "./RevenueBulkActions";
 import { RevenueSplitDialog } from "./RevenueSplitDialog";
 import { getRevenueSplits } from "@/utils/revenueSplits";
 import { RevenueSplit } from "@/types/revenue";
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Tooltip,
   TooltipContent,
@@ -82,6 +84,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
   onColumnOrderChange,
 }) => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [pageSize, setPageSize] = useState(initialPageSize);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterProjects, setFilterProjects] = useState<string[]>([]);
@@ -96,6 +99,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [revenueToSplit, setRevenueToSplit] = useState<ProjectRevenue | null>(null);
   const [expandedRevenues, setExpandedRevenues] = useState<Set<string>>(new Set());
+  const [expandedMobileCards, setExpandedMobileCards] = useState<Set<string>>(new Set());
   const [revenueSplits, setRevenueSplits] = useState<Record<string, RevenueSplit[]>>({});
 
   // Column visibility state - use external if provided, otherwise internal with localStorage
@@ -826,6 +830,215 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
           {filteredRevenues.length === 0 
             ? "No invoices found. Add your first invoice to get started."
             : "No invoices match your current filters."}
+        </div>
+      ) : isMobile ? (
+        // Mobile Card View
+        <div className="space-y-2">
+          {paginatedRows.map((revenue) => {
+            // Skip split rows in mobile - they'll be shown within parent cards
+            if (revenue._isSplitRow) return null;
+            
+            const splits = revenueSplits[revenue.id] || [];
+            const hasSplits = revenue.is_split && splits.length > 0;
+
+            return (
+              <Card key={revenue.id} className="hover:bg-muted/50 transition-colors">
+                <CardHeader className="p-3 pb-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <CardTitle className="text-sm font-semibold truncate">
+                          {revenue.invoice_number || revenue.project_number || '-'}
+                        </CardTitle>
+                        {revenue.is_split && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                            SPLIT
+                          </Badge>
+                        )}
+                      </div>
+                      {revenue.invoice_number && revenue.project_number && (
+                        <div className="text-xs text-muted-foreground truncate">{revenue.project_number}</div>
+                      )}
+                      {revenue.project_name && (
+                        <div className="text-xs text-muted-foreground truncate">{revenue.project_name}</div>
+                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {format(new Date(revenue.invoice_date), 'M/d/yy')}
+                        </span>
+                        <span className="text-xs text-muted-foreground">•</span>
+                        <span className="text-xs font-mono font-medium text-green-600">
+                          {formatCurrency(revenue.amount, { showCents: true })}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Checkbox
+                        checked={selectedRevenues.includes(revenue.id)}
+                        onCheckedChange={() => handleSelectRevenue(revenue.id)}
+                      />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-input-compact w-8 p-0" aria-label="Actions menu">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-52">
+                          <DropdownMenuItem onClick={() => onEdit(revenue)}>
+                            <Edit className="h-3 w-3 mr-2" />
+                            Edit Invoice
+                          </DropdownMenuItem>
+                          {!revenue.is_split && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setRevenueToSplit(revenue);
+                                setSplitDialogOpen(true);
+                              }}
+                            >
+                              <Split className="h-3 w-3 mr-2" />
+                              Split Invoice
+                            </DropdownMenuItem>
+                          )}
+                          {revenue.is_split && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setRevenueToSplit(revenue);
+                                setSplitDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="h-3 w-3 mr-2" />
+                              Manage Splits
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteClick(revenue)} 
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3 mr-2" />
+                            Delete Invoice
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-3 pt-0 space-y-2">
+                  {/* Always visible key metrics */}
+                  <div className="px-3 py-2 border-t">
+                    <div className="space-y-1">
+                      {revenue.client_name && (
+                        <div className="text-xs">
+                          <span className="text-muted-foreground">Client: </span>
+                          <span className="font-medium">{revenue.client_name}</span>
+                        </div>
+                      )}
+                      {revenue.customer_po_number && (
+                        <div className="text-xs">
+                          <span className="text-muted-foreground">PO: </span>
+                          <span className="font-medium">{revenue.customer_po_number}</span>
+                        </div>
+                      )}
+                    </div>
+                    {hasSplits && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setExpandedMobileCards(prev => {
+                            const next = new Set(prev);
+                            if (next.has(revenue.id)) {
+                              next.delete(revenue.id);
+                            } else {
+                              next.add(revenue.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        className="h-8 w-8 p-0 mt-2"
+                      >
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
+                          expandedMobileCards.has(revenue.id) ? 'rotate-180' : ''
+                        }`} />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Split Rows - Only show if has splits */}
+                  {hasSplits && expandedMobileCards.has(revenue.id) && (
+                    <div className="space-y-2 pt-2 border-t px-3">
+                      <div className="text-xs font-medium text-muted-foreground">Split Details</div>
+                      {splits.map((split) => (
+                        <div key={split.id} className="bg-muted/20 p-2 rounded min-w-0">
+                          <div className="flex items-center justify-between mb-1 gap-2 min-w-0">
+                            <div className="text-xs font-medium truncate min-w-0">
+                              {split.project_number || '-'}
+                            </div>
+                            <div className="text-xs font-mono font-medium shrink-0 text-green-600">
+                              {formatCurrency(split.split_amount, { showCents: true })}
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {split.project_name || ''}
+                          </div>
+                          {split.split_percentage && (
+                            <div className="text-[10px] text-muted-foreground mt-1">
+                              {split.split_percentage.toFixed(1)}%
+                            </div>
+                          )}
+                          {split.notes && (
+                            <div className="text-[10px] text-muted-foreground italic mt-1">
+                              {split.notes}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+
+          {/* Pagination */}
+          {enablePagination && sortedRevenues.length > 0 && (
+            <div className="p-3 border-t flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Rows per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    pagination.goToPage(1);
+                  }}
+                  className="border rounded px-2 py-1 text-sm"
+                >
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                </select>
+              </div>
+              {sortedRevenues.length > pageSize && (
+                <CompletePagination
+                  currentPage={pagination.currentPage}
+                  totalPages={Math.ceil(sortedRevenues.length / pageSize)}
+                  onPageChange={pagination.goToPage}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Totals Footer */}
+          <div className="p-3 border-t bg-muted/30 rounded-b">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium">
+                Total ({sortedRevenues.length} invoice{sortedRevenues.length !== 1 ? 's' : ''}):
+              </span>
+              <span className="font-mono font-medium text-green-600">
+                {formatCurrency(totalAmount, { showCents: true })}
+              </span>
+            </div>
+          </div>
         </div>
       ) : (
         <Card className="overflow-hidden">

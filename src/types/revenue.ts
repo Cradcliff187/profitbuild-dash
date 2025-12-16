@@ -80,6 +80,7 @@ export interface ProjectRevenue {
   client_name?: string;
   project_name?: string;
   project_number?: string;
+  customer_po_number?: string;
   
   // Optional: Loaded splits for display
   splits?: RevenueSplit[];

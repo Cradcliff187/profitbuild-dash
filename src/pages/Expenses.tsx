@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ColumnSelector } from "@/components/ui/column-selector";
 import { MobileResponsiveHeader } from "@/components/ui/mobile-responsive-header";
 import { parseDateOnly } from "@/utils/dateUtils";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type ViewMode = "overview" | "list" | "invoices";
 
@@ -36,6 +37,7 @@ const filterDisplayableExpenses = (expenses: Expense[]): Expense[] => {
 
 const Expenses = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [estimates, setEstimates] = useState<any[]>([]);
   const [revenues, setRevenues] = useState<ProjectRevenue[]>([]);
@@ -351,7 +353,7 @@ const Expenses = () => {
       if (projectIds.length > 0) {
         const { data: projectsData, error: projectsError } = await supabase
           .from("projects")
-          .select("id, project_number, project_name, client_name")
+          .select("id, project_number, project_name, client_name, customer_po_number")
           .in('id', projectIds);
 
         if (projectsError) throw projectsError;
@@ -388,6 +390,7 @@ const Expenses = () => {
           project_number: project?.project_number || 'Unassigned',
           project_name: project?.project_name || 'Unassigned',
           client_name: clientsMap.get(revenue.client_id) || project?.client_name || null,
+          customer_po_number: project?.customer_po_number || null,
         } as ProjectRevenue;
       });
 
@@ -455,13 +458,15 @@ const Expenses = () => {
                 Timesheet
               </Button>
             </div>
-            <Button 
-              onClick={viewMode === "invoices" ? handleCreateNewRevenue : handleCreateNew} 
-              size="sm"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {viewMode === "invoices" ? "Add Invoice" : "Add Expense"}
-            </Button>
+            {!isMobile && (
+              <Button 
+                onClick={viewMode === "invoices" ? handleCreateNewRevenue : handleCreateNew} 
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {viewMode === "invoices" ? "Add Invoice" : "Add Expense"}
+              </Button>
+            )}
           </>
         }
       />
@@ -506,7 +511,7 @@ const Expenses = () => {
                 })}
               </TabsList>
             </div>
-            {(viewMode === "list" || viewMode === "invoices") && (
+            {(viewMode === "list" || viewMode === "invoices") && !isMobile && (
               <div className="flex justify-end sm:order-2">
                 <ColumnSelector
                   columns={viewMode === "invoices" ? revenueColumnDefinitions : expenseColumnDefinitions}
@@ -583,6 +588,18 @@ const Expenses = () => {
         revenue={selectedRevenue}
         onSave={handleSaveRevenue}
       />
+
+      {/* Mobile FAB */}
+      {isMobile && viewMode !== "overview" && (
+        <Button
+          variant="default"
+          onClick={viewMode === "invoices" ? handleCreateNewRevenue : handleCreateNew}
+          size="icon"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
     </MobilePageWrapper>
   );
 };
