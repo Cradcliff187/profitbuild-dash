@@ -562,8 +562,17 @@ const TimeEntriesPage = () => {
           <div className="w-full sm:w-auto overflow-hidden">
             <div className="sm:hidden">
               <Select value={activeTab} onValueChange={handleTabChange}>
-                <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
-                  <SelectValue />
+                <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm overflow-hidden">
+                  {(() => {
+                    const activeOption = tabOptions.find(t => t.value === activeTab);
+                    const Icon = activeOption?.icon;
+                    return (
+                      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                        {Icon && <Icon className="h-4 w-4 flex-shrink-0" />}
+                        <span className="truncate">{activeOption?.label}</span>
+                      </div>
+                    );
+                  })()}
                 </SelectTrigger>
                 <SelectContent className="z-[100]">
                   {tabOptions.map((tab) => {
@@ -571,7 +580,7 @@ const TimeEntriesPage = () => {
                     return (
                       <SelectItem key={tab.value} value={tab.value}>
                         <div className="flex items-center gap-2">
-                          {Icon && <Icon className="h-4 w-4" />}
+                          {Icon && <Icon className="h-4 w-4 flex-shrink-0" />}
                           <span>{tab.label}</span>
                           {tab.badgeCount > 0 && (
                             <Badge 

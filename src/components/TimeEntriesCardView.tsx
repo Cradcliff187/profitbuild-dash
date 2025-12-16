@@ -163,10 +163,10 @@ export const TimeEntriesCardView = ({
           return (
             <Card key={entry.id} className="compact-card border border-primary/10 hover:bg-muted/50 transition-colors">
               <CardHeader className="p-3 pb-2 bg-gradient-to-r from-primary/5 to-transparent">
-                <div className="space-y-2">
+                <div className="space-y-2 overflow-hidden">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 min-w-0">
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <div className="flex items-center gap-2 mb-1 min-w-0 overflow-hidden">
                         <CardTitle className="text-sm font-medium flex-1 min-w-0 truncate">
                           {entry.worker_name}
                           {entry.payee?.employee_number && ` (#${entry.payee.employee_number})`}
@@ -182,7 +182,7 @@ export const TimeEntriesCardView = ({
                         {entry.project_number ? `${entry.project_number} - ${entry.project_name}` : entry.project_name}
                       </p>
                     </div>
-                    <div>
+                    <div className="flex-shrink-0">
                       <Checkbox
                         checked={selectedIds.includes(entry.id)}
                         onCheckedChange={(checked) => onSelectOne(entry.id, checked as boolean)}
