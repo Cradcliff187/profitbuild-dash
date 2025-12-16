@@ -570,17 +570,9 @@ const TimeEntriesPage = () => {
                     const Icon = tab.icon;
                     return (
                       <SelectItem key={tab.value} value={tab.value}>
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                           {Icon && <Icon className="h-4 w-4" />}
                           <span>{tab.label}</span>
-                          {tab.badgeCount > 0 && (
-                            <Badge 
-                              variant="secondary" 
-                              className="text-xs font-semibold h-5 px-2 bg-slate-900 text-white border-0 hover:bg-slate-800"
-                            >
-                              {tab.badgeCount}
-                            </Badge>
-                          )}
                         </div>
                       </SelectItem>
                     );
@@ -603,7 +595,7 @@ const TimeEntriesPage = () => {
                     {tab.badgeCount > 0 && (
                       <Badge 
                         variant="secondary" 
-                        className="ml-1 text-xs font-semibold h-5 px-2 min-w-[1.5rem] flex items-center justify-center bg-slate-900 text-white border-0 hover:bg-slate-800"
+                        className="ml-1 text-xs font-semibold h-5 px-2 shrink-0 bg-slate-900 text-white border-0 hover:bg-slate-800"
                       >
                         {tab.badgeCount}
                       </Badge>

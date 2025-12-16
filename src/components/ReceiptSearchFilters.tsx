@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Calendar, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
-import { useIsMobile } from "@/hooks/use-mobile";
+
 
 export interface ReceiptFilters {
   dateFrom: string | null;
@@ -42,7 +42,7 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
   payees,
   projects
 }) => {
-  const isMobile = useIsMobile();
+  
 
   const updateFilters = (updates: Partial<ReceiptFilters>) => {
     onFiltersChange({ ...filters, ...updates });
@@ -116,10 +116,7 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
               <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent 
-            className={isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] p-2" : "w-56 p-2"} 
-            align={isMobile ? "end" : "start"}
-          >
+          <PopoverContent className="w-56 p-2" align="start">
             <div className="space-y-1">
               <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                 <Button
@@ -181,10 +178,7 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
               <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent 
-            className={isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] p-0" : "w-64 p-0"} 
-            align={isMobile ? "end" : "start"}
-          >
+          <PopoverContent className="w-64 p-0" align="start">
             <Command>
               <CommandInput placeholder="Search payees..." className="h-9" />
               <CommandEmpty>No payee found.</CommandEmpty>
@@ -248,10 +242,7 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
               <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent 
-            className={isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] p-0" : "w-64 p-0"} 
-            align={isMobile ? "end" : "start"}
-          >
+          <PopoverContent className="w-64 p-0" align="start">
             <Command>
               <CommandInput placeholder="Search projects..." className="h-9" />
               <CommandEmpty>No project found.</CommandEmpty>
