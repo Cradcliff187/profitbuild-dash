@@ -163,42 +163,39 @@ export const TimeEntriesCardView = ({
           return (
             <Card key={entry.id} className="compact-card border border-primary/10 hover:bg-muted/50 transition-colors overflow-hidden">
               <CardHeader className="p-3 pb-2 bg-gradient-to-r from-primary/5 to-transparent">
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-2 min-w-0">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 min-w-0">
-                        <CardTitle className="text-sm font-medium flex-1 min-w-0 truncate">
-                          {entry.worker_name}
-                          {entry.payee?.employee_number && ` (#${entry.payee.employee_number})`}
-                        </CardTitle>
-                        <Badge
-                          variant="outline"
-                          className={`compact-badge capitalize flex-shrink-0 ${getStatusBadgeClass(entry.approval_status)}`}
-                        >
-                          {entry.approval_status || "pending"}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {entry.project_number ? `${entry.project_number} - ${entry.project_name}` : entry.project_name}
-                      </p>
-                    </div>
-                    <div>
-                      <Checkbox
-                        checked={selectedIds.includes(entry.id)}
-                        onCheckedChange={(checked) => onSelectOne(entry.id, checked as boolean)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
+                <div className="flex items-start justify-between gap-2 min-w-0">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-sm font-medium truncate">
+                      {entry.worker_name}
+                      {entry.payee?.employee_number && ` (#${entry.payee.employee_number})`}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground truncate mt-1">
+                      {entry.project_number ? `${entry.project_number} - ${entry.project_name}` : entry.project_name}
+                    </p>
                   </div>
+                  <Checkbox
+                    checked={selectedIds.includes(entry.id)}
+                    onCheckedChange={(checked) => onSelectOne(entry.id, checked as boolean)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="shrink-0"
+                  />
                 </div>
               </CardHeader>
 
-              <CardContent className="p-3 space-y-2">
-                {/* Always visible row with key info and chevron */}
-                <div className="flex items-center justify-between px-3 py-2 border-t">
-                  <span className="text-sm font-medium">
-                    {entry.hours}h • {formatCurrency(entry.amount)}
-                  </span>
+              <CardContent className="p-0">
+                {/* Status row - matching Expenses card layout */}
+                <div className="flex items-center justify-between px-3 py-2 border-t min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
+                    <Badge
+                      variant="outline"
+                      className={`compact-badge capitalize shrink-0 ${getStatusBadgeClass(entry.approval_status)}`}
+                    >
+                      {entry.approval_status || "pending"}
+                    </Badge>
+                    <span className="text-sm font-medium">
+                      {entry.hours}h • {formatCurrency(entry.amount)}
+                    </span>
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -214,7 +211,7 @@ export const TimeEntriesCardView = ({
                         return next;
                       });
                     }}
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 shrink-0"
                   >
                     <ChevronDown
                       className={`h-3.5 w-3.5 transition-transform ${
