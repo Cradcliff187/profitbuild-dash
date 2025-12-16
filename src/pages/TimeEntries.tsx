@@ -570,6 +570,14 @@ const TimeEntriesPage = () => {
                       <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                         {Icon && <Icon className="h-4 w-4 flex-shrink-0" />}
                         <span className="truncate">{activeOption?.label}</span>
+                        {activeOption?.badgeCount && activeOption.badgeCount > 0 && (
+                          <Badge 
+                            variant="secondary" 
+                            className="text-xs font-semibold h-5 px-2 bg-slate-900 text-white border-0"
+                          >
+                            {activeOption.badgeCount}
+                          </Badge>
+                        )}
                       </div>
                     );
                   })()}
