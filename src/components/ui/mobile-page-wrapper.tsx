@@ -25,7 +25,7 @@ export function MobilePageWrapper({
     <div
       className={cn(
         "no-horizontal-scroll min-h-screen w-full max-w-full overflow-x-hidden",
-        !fullWidth && "container mx-auto px-0 sm:px-4 md:px-6 lg:px-8 max-w-[100vw]",
+        !fullWidth && "mx-auto px-0 sm:container sm:px-4 md:px-6 lg:px-8 max-w-[100vw]",
         !noPadding && "py-4 sm:py-6",
         className
       )}

@@ -193,7 +193,7 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
   }
 
   return (
-    <div className="dense-spacing">
+    <div className="dense-spacing overflow-hidden w-full max-w-full">
       <div className="space-y-2">
         {Object.entries(estimatesByProject).map(([projectId, projectEstimates]) => {
           const currentVersion = projectEstimates.find(e => e.is_current_version) || projectEstimates[0];
@@ -203,7 +203,7 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
           const bestQuoteVariance = getBestQuoteVariance(currentVersion);
           
           return (
-            <Card key={projectId} className="compact-card border border-primary/10">
+            <Card key={projectId} className="compact-card border border-primary/10 overflow-hidden max-w-full">
               <CardHeader className="p-3 pb-2 bg-gradient-to-r from-primary/5 to-transparent">
                 <div className="space-y-2">
                   <div className="flex items-start gap-2 flex-wrap">
