@@ -395,6 +395,17 @@ export const TimeEntryForm = ({
         </div>
       </div>
 
+      {setLunchTaken && setLunchDuration && (
+        <LunchToggle
+          lunchTaken={lunchTaken}
+          onLunchTakenChange={setLunchTaken}
+          lunchDuration={lunchDuration}
+          onLunchDurationChange={setLunchDuration}
+          disabled={disabled}
+          isMobile={isMobile}
+        />
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="hours" className={isMobile ? "text-sm font-medium" : "text-sm"}>
           Hours *
@@ -431,17 +442,6 @@ export const TimeEntryForm = ({
           </p>
         )}
       </div>
-
-      {setLunchTaken && setLunchDuration && (
-        <LunchToggle
-          lunchTaken={lunchTaken}
-          onLunchTakenChange={setLunchTaken}
-          lunchDuration={lunchDuration}
-          onLunchDurationChange={setLunchDuration}
-          disabled={disabled}
-          isMobile={isMobile}
-        />
-      )}
 
       {showReceipt && (
         <div>
