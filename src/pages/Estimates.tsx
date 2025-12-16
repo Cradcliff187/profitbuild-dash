@@ -504,7 +504,7 @@ const EstimatesPage = () => {
   }
 
   return (
-    <MobilePageWrapper className="space-y-4">
+    <MobilePageWrapper>
       <PageHeader
         icon={Calculator}
         title="Estimates"
