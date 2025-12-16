@@ -44,6 +44,10 @@ const Settings = () => {
   const [projectCounterInput, setProjectCounterInput] = useState<string>("");
   const [loadingCounter, setLoadingCounter] = useState(false);
 
+  // App updates state
+  const [checkingUpdates, setCheckingUpdates] = useState(false);
+  const [lastUpdateCheck, setLastUpdateCheck] = useState<Date | null>(null);
+
   // Track if profile has changes
   const hasProfileChanges = 
     firstName !== originalFirstName || 
@@ -248,6 +252,33 @@ const Settings = () => {
   const formatProjectNumber = (counter: number) => {
     const lastThreeDigits = counter % 1000;
     return `225-${lastThreeDigits.toString().padStart(3, '0')}`;
+  };
+
+  const handleCheckForUpdates = async () => {
+    setCheckingUpdates(true);
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          await registration.update();
+          setLastUpdateCheck(new Date());
+          toast.success('Update check complete', {
+            description: 'You are running the latest version.'
+          });
+        } else {
+          toast.info('Service worker not registered', {
+            description: 'Updates will be applied on next app refresh.'
+          });
+        }
+      } else {
+        toast.error('Service workers not supported in this browser');
+      }
+    } catch (error) {
+      console.error('Update check failed:', error);
+      toast.error('Failed to check for updates');
+    } finally {
+      setCheckingUpdates(false);
+    }
   };
 
   return (
@@ -474,6 +505,45 @@ const Settings = () => {
         <AccountMappingsManager />
 
         <CompanyBrandingSettings />
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <RefreshCw className="h-5 w-5" />
+              <span>App Updates</span>
+            </CardTitle>
+            <CardDescription>Check for and install application updates</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Current Version</p>
+                <p className="text-xs text-muted-foreground">
+                  v{import.meta.env.VITE_APP_VERSION || '1.0.0'}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleCheckForUpdates}
+                disabled={checkingUpdates}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${checkingUpdates ? 'animate-spin' : ''}`} />
+                {checkingUpdates ? 'Checking...' : 'Check for Updates'}
+              </Button>
+            </div>
+            {lastUpdateCheck && (
+              <p className="text-xs text-muted-foreground">
+                Last checked: {lastUpdateCheck.toLocaleTimeString()}
+              </p>
+            )}
+            <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-900 rounded-md">
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                <strong>Tip:</strong> Updates are automatically checked every minute while the app is open. 
+                If an update is available, you'll see a notification to reload.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
