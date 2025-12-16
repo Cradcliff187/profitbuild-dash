@@ -487,7 +487,7 @@ const TimeEntriesPage = () => {
   };
 
   return (
-    <MobilePageWrapper className="space-y-4">
+    <MobilePageWrapper>
       <PageHeader
         icon={ClipboardCheck}
         title="Time Entries"

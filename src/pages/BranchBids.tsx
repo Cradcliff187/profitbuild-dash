@@ -371,7 +371,7 @@ export default function BranchBids() {
   }
 
   return (
-    <MobilePageWrapper className="space-y-2">
+    <MobilePageWrapper>
       <PageHeader
         icon={Package}
         title="Bids"

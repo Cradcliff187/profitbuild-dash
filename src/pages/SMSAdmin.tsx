@@ -76,7 +76,7 @@ export default function SMSAdmin() {
   }
 
   return (
-    <MobilePageWrapper className="space-y-4">
+    <MobilePageWrapper>
       <PageHeader
         icon={MessageSquare}
         title="Send SMS"

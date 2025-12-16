@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 
 type MediaTab = 'all' | 'photos' | 'videos' | 'timeline';
 
@@ -61,7 +62,7 @@ export default function FieldMedia() {
   };
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden space-y-4">
+    <MobilePageWrapper>
       <PageHeader
         icon={Camera}
         title="Field Media"
@@ -203,6 +204,6 @@ export default function FieldMedia() {
             </CardContent>
           </Card>
         )}
-    </div>
+    </MobilePageWrapper>
   );
 }
