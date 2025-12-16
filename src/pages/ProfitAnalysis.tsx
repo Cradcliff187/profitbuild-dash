@@ -67,7 +67,9 @@ export default function ProfitAnalysis() {
       </Select>
       
       {/* Summary Cards */}
-      <ProfitSummaryCards data={data} isLoading={isLoading} />
+      <div className="mt-4">
+        <ProfitSummaryCards data={data} isLoading={isLoading} />
+      </div>
       
       {/* Tabbed Tables */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
