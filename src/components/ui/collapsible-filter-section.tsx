@@ -37,7 +37,7 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
   );
 
   return (
-    <Card className={cn("w-full", className)}>
+    <Card className={cn("w-full max-w-full overflow-hidden box-border", className)}>
       <CardHeader className="p-3 pb-2">
         <div className="flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-2 min-w-0 overflow-hidden flex-1">
