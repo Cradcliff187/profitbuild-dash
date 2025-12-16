@@ -291,7 +291,7 @@ const ReportsPage = () => {
         }
       />
 
-      <Tabs value={selectedCategory} onValueChange={(value) => handleCategoryChange(value as ReportCategory)} className="mt-4">
+      <Tabs value={selectedCategory} onValueChange={(value) => handleCategoryChange(value as ReportCategory)}>
         <div className="mb-4 px-3 sm:px-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="w-full sm:w-auto">
             {/* Mobile Dropdown */}
