@@ -495,7 +495,11 @@ const EstimatesPage = () => {
         }
       />
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-4 w-full max-w-full overflow-hidden">
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="mt-4 w-full max-w-full overflow-hidden px-3 sm:px-0"
+      >
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between w-full max-w-full">
           <div className="w-full sm:w-auto">
             <div className="sm:hidden">
