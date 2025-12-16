@@ -16,6 +16,7 @@ export interface SearchFilters {
   status: string[];
   projectType: string;
   clientName: string[];
+  projectName: string[];
   categories: string[];
   dateRange: {
     start: Date | null;
@@ -35,6 +36,7 @@ interface EstimateSearchFiltersProps {
   onReset: () => void;
   resultCount?: number;
   clients: Array<{ id: string; client_name: string; }>;
+  projects: Array<{ id: string; project_name: string; project_number: string; }>;
 }
 
 const STATUS_OPTIONS = [
@@ -61,7 +63,8 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
   onSearch,
   onReset,
   resultCount,
-  clients
+  clients,
+  projects
 }) => {
 
   const updateFilters = (updates: Partial<SearchFilters>) => {
@@ -89,12 +92,20 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
     updateFilters({ categories: newCategories });
   };
 
+  const toggleProject = (projectName: string) => {
+    const newProjects = filters.projectName.includes(projectName)
+      ? filters.projectName.filter(p => p !== projectName)
+      : [...filters.projectName, projectName];
+    updateFilters({ projectName: newProjects });
+  };
+
   const getActiveFilterCount = (): number => {
     let count = 0;
     if (filters.searchText) count++;
     if (filters.status.length > 0) count++;
     if (filters.projectType) count++;
     if (filters.clientName.length > 0) count++;
+    if (filters.projectName.length > 0) count++;
     if (filters.categories.length > 0) count++;
     if (filters.dateRange.start || filters.dateRange.end) count++;
     if (filters.amountRange.min !== null || filters.amountRange.max !== null) count++;
@@ -136,7 +147,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-9 w-full justify-between text-xs"
+              className="h-9 w-full justify-between text-xs font-normal"
             >
               <span className="truncate">
                 {filters.status.length === 0 
@@ -198,7 +209,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
             <Button
               variant="outline"
               size="sm"
-              className="h-9 w-full justify-between text-xs"
+              className="h-9 w-full justify-between text-xs font-normal"
             >
               <span className="truncate">
                 {filters.clientName.length === 0 
@@ -256,13 +267,77 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
           </PopoverContent>
         </Popover>
 
+        {/* Project Multi-Select Filter - Searchable Dropdown */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 w-full justify-between text-xs font-normal"
+            >
+              <span className="truncate">
+                {filters.projectName.length === 0 
+                  ? "All Projects" 
+                  : filters.projectName.length === projects.length
+                  ? "All Projects"
+                  : `${filters.projectName.length} selected`
+                }
+              </span>
+              <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search projects..." className="h-9" />
+              <CommandEmpty>No project found.</CommandEmpty>
+              <CommandGroup className="max-h-64 overflow-auto">
+                <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => updateFilters({ projectName: projects.map(p => p.project_name) })}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => updateFilters({ projectName: [] })}
+                  >
+                    Clear
+                  </Button>
+                </div>
+                {projects.map((project) => (
+                  <CommandItem
+                    key={project.id}
+                    value={`${project.project_number} ${project.project_name}`}
+                    onSelect={() => toggleProject(project.project_name)}
+                    className="text-sm"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <Checkbox
+                        checked={filters.projectName.includes(project.project_name)}
+                        onCheckedChange={() => toggleProject(project.project_name)}
+                        className="h-4 w-4"
+                      />
+                      <span className="truncate">{project.project_number} - {project.project_name}</span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
         {/* Category Multi-Select Filter */}
         <Popover>
           <PopoverTrigger asChild>
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-9 w-full justify-between text-xs"
+              className="h-9 w-full justify-between text-xs font-normal"
             >
               <span className="truncate">
                 {filters.categories.length === 0 
@@ -325,7 +400,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
             hasVersions: value === "all" ? null : value === "true" 
           })}
         >
-          <SelectTrigger className="h-9 text-xs">
+          <SelectTrigger className="h-9 text-xs font-normal">
             <SelectValue placeholder="All versions" />
           </SelectTrigger>
           <SelectContent>
