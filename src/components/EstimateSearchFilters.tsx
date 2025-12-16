@@ -147,7 +147,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-9 w-full justify-between text-xs font-normal"
+              className="h-9 w-full justify-between text-xs"
             >
               <span className="truncate">
                 {filters.status.length === 0 
@@ -209,7 +209,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
             <Button
               variant="outline"
               size="sm"
-              className="h-9 w-full justify-between text-xs font-normal"
+              className="h-9 w-full justify-between text-xs"
             >
               <span className="truncate">
                 {filters.clientName.length === 0 
@@ -273,7 +273,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
             <Button
               variant="outline"
               size="sm"
-              className="h-9 w-full justify-between text-xs font-normal"
+              className="h-9 w-full justify-between text-xs"
             >
               <span className="truncate">
                 {filters.projectName.length === 0 
@@ -337,7 +337,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-9 w-full justify-between text-xs font-normal"
+              className="h-9 w-full justify-between text-xs"
             >
               <span className="truncate">
                 {filters.categories.length === 0 
@@ -400,7 +400,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
             hasVersions: value === "all" ? null : value === "true" 
           })}
         >
-          <SelectTrigger className="h-9 text-xs font-normal">
+          <SelectTrigger className="h-9 text-xs">
             <SelectValue placeholder="All versions" />
           </SelectTrigger>
           <SelectContent>
