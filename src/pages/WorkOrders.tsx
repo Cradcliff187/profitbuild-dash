@@ -645,7 +645,7 @@ const WorkOrders = () => {
   }, [sortedWorkOrders, pagination.startIndex, pagination.endIndex]);
 
   return (
-    <MobilePageWrapper className="space-y-2">
+    <MobilePageWrapper>
       <PageHeader
         icon={Wrench}
         title="Work Orders"

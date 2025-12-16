@@ -326,7 +326,7 @@ export default function RoleManagement() {
   }
 
   return (
-    <MobilePageWrapper className="space-y-3">
+    <MobilePageWrapper>
       <PageHeader
         icon={Shield}
         title="Role Management"

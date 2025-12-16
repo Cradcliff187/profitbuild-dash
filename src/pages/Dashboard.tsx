@@ -399,7 +399,7 @@ const Dashboard = () => {
       />
 
       {/* Main Content: 2-Column Layout (Activity Feed 60%, Right Column 40%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mt-4">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Activity Feed - 60% width on desktop */}
         <div className="lg:col-span-3 order-2 lg:order-1">
           <Card>

@@ -43,7 +43,7 @@ export default function ProfitAnalysis() {
   }
 
   return (
-    <MobilePageWrapper className="space-y-6">
+    <MobilePageWrapper>
       <PageHeader
         icon={TrendingUp}
         title="Profit Analysis"

@@ -282,7 +282,7 @@ const Settings = () => {
   };
 
   return (
-    <MobilePageWrapper className="space-y-6">
+    <MobilePageWrapper>
       <PageHeader
         icon={SettingsIcon}
         title="Settings"

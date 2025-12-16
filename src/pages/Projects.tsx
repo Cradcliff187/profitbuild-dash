@@ -404,7 +404,7 @@ const Projects = () => {
           {isLoading ? (
             <BrandedLoader message="Loading projects..." />
           ) : (
-            <div className="space-y-2 mt-4">
+            <div className="space-y-2">
               {/* Project Filters */}
               <ProjectFilters
                 filters={filters}

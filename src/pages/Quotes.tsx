@@ -739,7 +739,7 @@ const Quotes = () => {
 
       {/* Content */}
       {view === 'list' && (
-        <div className="mt-4">
+        <div>
           <QuoteFilters
             filters={searchFilters}
             onFiltersChange={setSearchFilters}
