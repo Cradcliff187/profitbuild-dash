@@ -8,7 +8,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Calendar, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { TimeEntryFilters } from "@/types/timeEntry";
-import { useIsMobile } from "@/hooks/use-mobile";
+
 
 interface TimeEntrySearchFiltersProps {
   filters: TimeEntryFilters;
@@ -33,7 +33,7 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
   workers,
   projects
 }) => {
-  const isMobile = useIsMobile();
+  
 
   const updateFilters = (updates: Partial<TimeEntryFilters>) => {
     onFiltersChange({ ...filters, ...updates });
@@ -107,8 +107,8 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
             </Button>
           </PopoverTrigger>
           <PopoverContent 
-            className={isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] p-2" : "w-56 p-2"} 
-            align={isMobile ? "end" : "start"}
+            className="w-full sm:w-56 p-2" 
+            align="start"
           >
             <div className="space-y-1">
               <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
@@ -172,8 +172,8 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
             </Button>
           </PopoverTrigger>
           <PopoverContent 
-            className={isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] p-0" : "w-64 p-0"} 
-            align={isMobile ? "end" : "start"}
+            className="w-full sm:w-64 p-0" 
+            align="start"
           >
             <Command>
               <CommandInput placeholder="Search workers..." className="h-9" />
@@ -239,8 +239,8 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
             </Button>
           </PopoverTrigger>
           <PopoverContent 
-            className={isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] p-0" : "w-64 p-0"} 
-            align={isMobile ? "end" : "start"}
+            className="w-full sm:w-64 p-0" 
+            align="start"
           >
             <Command>
               <CommandInput placeholder="Search projects..." className="h-9" />

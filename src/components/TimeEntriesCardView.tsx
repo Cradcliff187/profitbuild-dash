@@ -126,8 +126,8 @@ export const TimeEntriesCardView = ({
   }
 
   return (
-    <div className="dense-spacing">
-      <div className="space-y-2">
+    <div className="dense-spacing w-full max-w-full min-w-0 overflow-x-hidden">
+      <div className="space-y-2 w-full">
         {/* Bulk Actions Bar - Mobile */}
         {selectedIds.length > 0 && (
           <div className="flex flex-col items-stretch gap-2 p-2 bg-muted border rounded-md">
@@ -161,10 +161,10 @@ export const TimeEntriesCardView = ({
           const isExpanded = expandedCards.has(entry.id);
           
           return (
-            <Card key={entry.id} className="compact-card border border-primary/10 hover:bg-muted/50 transition-colors">
+            <Card key={entry.id} className="compact-card border border-primary/10 hover:bg-muted/50 transition-colors overflow-hidden">
               <CardHeader className="p-3 pb-2 bg-gradient-to-r from-primary/5 to-transparent">
                 <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start justify-between gap-2 min-w-0">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 min-w-0">
                         <CardTitle className="text-sm font-medium flex-1 min-w-0 truncate">
