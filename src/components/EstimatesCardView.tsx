@@ -227,7 +227,7 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
 
               <CardContent className="p-3 space-y-2">
                 {/* Always visible row with key info and chevron */}
-                <div className="flex items-center justify-between px-3 py-2 border-t">
+                <div className="flex items-center justify-between py-2 border-t">
                   <span className="text-sm font-medium">
                     {formatCurrency(currentVersion.total_amount, { showCents: false })} • {format(currentVersion.date_created, 'MMM dd, yyyy')}
                   </span>

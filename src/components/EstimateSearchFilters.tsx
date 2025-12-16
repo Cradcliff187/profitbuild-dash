@@ -119,7 +119,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
       resultCount={resultCount}
       defaultExpanded={hasActiveFilters()}
     >
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 w-full max-w-full overflow-hidden">
         {/* Quick Search - Full Width */}
         <div className="relative md:col-span-4">
           <Input
@@ -336,7 +336,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
         </Select>
 
         {/* Date Range */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 min-w-0">
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 flex-1 justify-start text-xs">
@@ -376,7 +376,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
         </div>
 
         {/* Amount Range */}
-        <div className="flex gap-2 md:col-span-2">
+        <div className="flex gap-2 md:col-span-2 min-w-0">
           <Input
             type="number"
             placeholder="Min $"

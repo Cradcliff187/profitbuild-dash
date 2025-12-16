@@ -96,7 +96,7 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
       </CardHeader>
       
       {isExpanded && (
-        <CardContent className="p-3 pt-0">
+        <CardContent className="p-3 pt-0 overflow-hidden">
           {children}
         </CardContent>
       )}
