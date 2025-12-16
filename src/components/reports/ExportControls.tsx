@@ -95,7 +95,7 @@ export function ExportControls({ reportName, data, fields }: ExportControlsProps
             <ChevronDown className="h-4 w-4 ml-2" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-full max-w-full sm:w-56">
+        <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] sm:w-56">
           <DropdownMenuItem onClick={handleExportPDF} className="min-h-[44px] cursor-pointer">
             <FileText className="h-4 w-4 mr-2" />
             Export PDF

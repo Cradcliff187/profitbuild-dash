@@ -167,7 +167,7 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground overflow-x-hidden;
+    @apply bg-background text-foreground;
   }
 }
 
@@ -228,18 +228,6 @@ textarea:focus-visible {
   /* Prevent horizontal overflow globally */
   .mobile-container {
     @apply w-full max-w-full overflow-x-hidden;
-  }
-
-  /* Safety net: ensure children can't expand container width */
-  .mobile-container *,
-  .no-horizontal-scroll * {
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-
-  /* Safety net for Radix portals (Select/Popover/Dropdown) */
-  [data-radix-popper-content-wrapper] {
-    max-width: 100vw !important;
   }
   
   /* Mobile-friendly padding and spacing */

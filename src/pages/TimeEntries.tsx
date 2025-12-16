@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -457,8 +457,18 @@ const TimeEntriesPage = () => {
   }, []);
 
   const tabOptions = [
-    { value: "entries", label: "Time Entries", icon: ClipboardCheck },
-    { value: "receipts", label: "Receipts", icon: FileImage },
+    {
+      value: "entries",
+      label: "Time Entries",
+      icon: ClipboardCheck,
+      badgeCount: pendingTimeEntriesCount,
+    },
+    {
+      value: "receipts",
+      label: "Receipts",
+      icon: FileImage,
+      badgeCount: receiptCount,
+    },
   ];
 
   const handleTabChange = (value: string) => {
@@ -547,9 +557,9 @@ const TimeEntriesPage = () => {
         }
       />
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full max-w-full min-w-0">
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="w-full sm:w-auto">
+          <div className="w-full sm:w-auto overflow-hidden">
             <div className="sm:hidden">
               <Select value={activeTab} onValueChange={handleTabChange}>
                 <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
@@ -560,9 +570,17 @@ const TimeEntriesPage = () => {
                     const Icon = tab.icon;
                     return (
                       <SelectItem key={tab.value} value={tab.value}>
-                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                           {Icon && <Icon className="h-4 w-4" />}
                           <span>{tab.label}</span>
+                          {tab.badgeCount > 0 && (
+                            <Badge 
+                              variant="secondary" 
+                              className="text-xs font-semibold h-5 px-2 bg-slate-900 text-white border-0 hover:bg-slate-800"
+                            >
+                              {tab.badgeCount}
+                            </Badge>
+                          )}
                         </div>
                       </SelectItem>
                     );
@@ -582,6 +600,14 @@ const TimeEntriesPage = () => {
                   >
                     {Icon && <Icon className="h-4 w-4" />}
                     <span>{tab.label}</span>
+                    {tab.badgeCount > 0 && (
+                      <Badge 
+                        variant="secondary" 
+                        className="ml-1 text-xs font-semibold h-5 px-2 min-w-[1.5rem] flex items-center justify-center bg-slate-900 text-white border-0 hover:bg-slate-800"
+                      >
+                        {tab.badgeCount}
+                      </Badge>
+                    )}
                   </TabsTrigger>
                 );
               })}

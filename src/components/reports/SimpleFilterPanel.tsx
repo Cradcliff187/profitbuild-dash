@@ -377,10 +377,13 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent
-            className={cn("p-0", isMobile ? "w-full max-w-full" : "w-[300px]")}
-            align="start"
-            side="bottom"
+          <PopoverContent 
+            className={cn(
+              "p-0",
+              isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)]" : "w-[300px]"
+            )} 
+            align={isMobile ? "end" : "start"}
+            side={isMobile ? "bottom" : "bottom"}
           >
             {/* Search Input */}
             <div className="flex items-center border-b px-3 py-2">
