@@ -193,8 +193,8 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
   }
 
   return (
-    <div className="dense-spacing overflow-hidden w-full max-w-full">
-      <div className="space-y-2">
+    <div className="dense-spacing overflow-hidden w-full max-w-full min-w-0 box-border">
+      <div className="space-y-2 w-full max-w-full min-w-0">
         {Object.entries(estimatesByProject).map(([projectId, projectEstimates]) => {
           const currentVersion = projectEstimates.find(e => e.is_current_version) || projectEstimates[0];
           const previousVersions = projectEstimates.filter(e => !e.is_current_version);
@@ -203,14 +203,14 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
           const bestQuoteVariance = getBestQuoteVariance(currentVersion);
           
           return (
-            <Card key={projectId} className="compact-card border border-primary/10 overflow-hidden max-w-full">
+            <Card key={projectId} className="compact-card border border-primary/10 overflow-hidden max-w-full min-w-0">
               <CardHeader className="p-3 pb-2 bg-gradient-to-r from-primary/5 to-transparent">
                 <div className="space-y-2">
                   <div className="flex items-start gap-2 flex-wrap">
                     <CardTitle className="text-sm font-medium flex-1 min-w-0 truncate">
                       {currentVersion.project_number ? `${currentVersion.project_number} - ${currentVersion.project_name}` : currentVersion.project_name}
                     </CardTitle>
-                    <div className="flex gap-1 flex-shrink-0">
+                    <div className="flex gap-1 flex-shrink-0 min-w-0 overflow-hidden">
                       <Badge className="compact-badge bg-primary text-primary-foreground font-medium">
                         v{currentVersion.version_number || 1}
                       </Badge>
