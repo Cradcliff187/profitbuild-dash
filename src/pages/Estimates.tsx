@@ -500,7 +500,7 @@ const EstimatesPage = () => {
         onValueChange={handleTabChange}
         className="mt-4 w-full max-w-full overflow-hidden px-3 sm:px-0"
       >
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between w-full max-w-full">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between w-full max-w-full min-w-0">
           <div className="w-full sm:w-auto">
             <div className="sm:hidden">
               <Select value={activeTab} onValueChange={handleTabChange}>
@@ -523,21 +523,23 @@ const EstimatesPage = () => {
               </Select>
             </div>
 
-            <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">
-              {tabOptions.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <TabsTrigger
-                    key={tab.value}
-                    value={tab.value}
-                    className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    {Icon && <Icon className="h-4 w-4" />}
-                    <span>{tab.label}</span>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
+            {!isMobile && (
+              <TabsList className="w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 flex">
+                {tabOptions.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger
+                      key={tab.value}
+                      value={tab.value}
+                      className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    >
+                      {Icon && <Icon className="h-4 w-4" />}
+                      <span>{tab.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            )}
           </div>
         </div>
 
