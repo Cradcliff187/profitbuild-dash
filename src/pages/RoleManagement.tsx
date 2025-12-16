@@ -331,6 +331,16 @@ export default function RoleManagement() {
         icon={Shield}
         title="Role Management"
         description="Manage user roles and permissions"
+        actions={
+          <Button 
+            onClick={() => setCreateUserOpen(true)}
+            size="sm"
+            className="h-8"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Create User
+          </Button>
+        }
       />
 
       {/* Search and Bulk Actions Bar */}
