@@ -12,8 +12,12 @@ const Clients = () => {
   const clientsListRef = useRef<ClientsListRef>(null);
   const isMobile = useIsMobile();
 
+  const handleRefresh = async () => {
+    await clientsListRef.current?.refetch?.();
+  };
+
   return (
-    <MobilePageWrapper>
+    <MobilePageWrapper onRefresh={handleRefresh} enablePullToRefresh>
       <PageHeader
         icon={UserCheck}
         title="Clients"

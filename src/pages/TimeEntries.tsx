@@ -487,7 +487,7 @@ const TimeEntriesPage = () => {
   };
 
   return (
-    <MobilePageWrapper>
+    <MobilePageWrapper onRefresh={refreshTimeEntries} enablePullToRefresh>
       <PageHeader
         icon={ClipboardCheck}
         title="Time Entries"

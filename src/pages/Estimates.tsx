@@ -484,7 +484,7 @@ const EstimatesPage = () => {
 
   if (loading) {
     return (
-      <MobilePageWrapper>
+      <MobilePageWrapper onRefresh={loadEstimates} enablePullToRefresh>
         <BrandedLoader message="Loading estimates..." />
       </MobilePageWrapper>
     );
@@ -504,7 +504,7 @@ const EstimatesPage = () => {
   }
 
   return (
-    <MobilePageWrapper>
+    <MobilePageWrapper onRefresh={loadEstimates} enablePullToRefresh>
       <PageHeader
         icon={Calculator}
         title="Estimates"

@@ -372,7 +372,7 @@ const Projects = () => {
   }, [projects, filters]);
 
   return (
-    <MobilePageWrapper>
+    <MobilePageWrapper onRefresh={loadProjects} enablePullToRefresh>
       <PageHeader
         icon={Building2}
         title="Projects"
