@@ -480,13 +480,39 @@ export function ScheduledSMSManager() {
   };
 
   const formatSchedule = (schedule: ScheduledSMS) => {
+    const DAY_NAMES: Record<string, string> = {
+      '0': 'Sunday', '1': 'Monday', '2': 'Tuesday', '3': 'Wednesday',
+      '4': 'Thursday', '5': 'Friday', '6': 'Saturday', '7': 'Sunday'
+    };
+    const DAY_ABBREV: Record<string, string> = {
+      '0': 'Sun', '1': 'Mon', '2': 'Tue', '3': 'Wed',
+      '4': 'Thu', '5': 'Fri', '6': 'Sat', '7': 'Sun'
+    };
+
     if (schedule.schedule_type === 'recurring') {
       if (schedule.cron_expression) {
         const parts = schedule.cron_expression.split(' ');
         if (parts.length === 5) {
           const minutes = parts[0].padStart(2, '0');
           const hours = parts[1].padStart(2, '0');
-          return `Daily at ${hours}:${minutes} ${schedule.timezone}`;
+          const dayOfWeek = parts[4];
+          
+          let dayText = 'Daily';
+          if (dayOfWeek !== '*') {
+            if (dayOfWeek.includes('-')) {
+              // Range like "1-5" → "Mon-Fri"
+              const [start, end] = dayOfWeek.split('-');
+              dayText = `${DAY_ABBREV[start]}-${DAY_ABBREV[end]}`;
+            } else if (dayOfWeek.includes(',')) {
+              // List like "1,3,5" → "Mon, Wed, Fri"
+              dayText = dayOfWeek.split(',').map(d => DAY_ABBREV[d]).join(', ');
+            } else {
+              // Single day like "5" → "Friday"
+              dayText = DAY_NAMES[dayOfWeek] || dayOfWeek;
+            }
+          }
+          
+          return `${dayText} at ${hours}:${minutes} ${schedule.timezone}`;
         }
       }
       return 'Recurring';
