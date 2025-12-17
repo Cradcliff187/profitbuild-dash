@@ -150,6 +150,22 @@ export function QuoteAttachmentUpload({
       }
       console.log('✅ [UPLOAD DEBUG] Database insert success:', dbData);
 
+      // Update the quote's attachment_url directly so it appears in Quote PDFs tab
+      if (relatedQuoteId) {
+        console.log('🔗 [UPLOAD DEBUG] Updating quote attachment_url...');
+        const { error: quoteUpdateError } = await supabase
+          .from('quotes')
+          .update({ attachment_url: publicUrl })
+          .eq('id', relatedQuoteId);
+
+        if (quoteUpdateError) {
+          console.error('⚠️ [UPLOAD DEBUG] Failed to update quote attachment_url:', quoteUpdateError);
+          // Don't throw - the file is already uploaded, just warn
+        } else {
+          console.log('✅ [UPLOAD DEBUG] Quote attachment_url updated successfully');
+        }
+      }
+
       toast({
         title: 'Success',
         description: 'Quote document uploaded successfully',
