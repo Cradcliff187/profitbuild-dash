@@ -43,14 +43,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify this is called by cron (service role key)
-    const authHeader = req.headers.get('Authorization');
+    // This function is called by pg_cron - verify_jwt is disabled in config.toml
+    // We still use service_role internally for database operations
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    if (!authHeader || !authHeader.includes(supabaseServiceKey)) {
-      throw new Error('Unauthorized - service role key required');
-    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const now = new Date();
