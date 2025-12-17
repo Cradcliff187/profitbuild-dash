@@ -167,8 +167,22 @@ export function PayeeSelector({
     return result;
   }, [payees, searchQuery, sortByUsage, usageStats]);
 
-  const handlePayeeCreated = () => {
-    queryClient.invalidateQueries({ queryKey: ['payees'] });
+  const handlePayeeCreated = async () => {
+    // Invalidate and immediately refetch to get the new payee
+    await queryClient.invalidateQueries({ queryKey: ['payees'] });
+    
+    const { data: updatedPayees } = await supabase
+      .from('payees')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    if (updatedPayees && updatedPayees.length > 0) {
+      const newestPayee = updatedPayees[0];
+      onValueChange(newestPayee.id, newestPayee.payee_name, newestPayee as Payee);
+    }
+    
     setShowPayeeForm(false);
   };
 
