@@ -57,3 +57,16 @@ export function getExpensePayeeLabel(expense: {
   
   return filtered.length > 0 ? filtered[0] : description;
 }
+
+/**
+ * Parse a date string extracting only the date portion to avoid timezone shifts.
+ * Handles both ISO format (2025-12-17T00:00:00) and space format (2025-12-17 00:00:00+00).
+ * Returns a local date at midnight for the given calendar date.
+ */
+export function parseLocalDate(dateString: string | null | undefined): Date {
+  if (!dateString) return new Date();
+  // Extract just the date part (YYYY-MM-DD) regardless of format
+  const datePart = dateString.split('T')[0].split(' ')[0];
+  const [year, month, day] = datePart.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}

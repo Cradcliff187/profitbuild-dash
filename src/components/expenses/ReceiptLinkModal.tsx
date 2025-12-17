@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency, cn, parseLocalDate } from '@/lib/utils';
 import {
   Search,
   Receipt,
@@ -211,7 +211,7 @@ export const ReceiptLinkModal: React.FC<ReceiptLinkModalProps> = ({
                 {formatCurrency(receipt.amount)}
               </span>
               <span className="text-xs text-muted-foreground">
-                {format(new Date(receipt.captured_at), 'MMM d, yyyy')}
+                {format(parseLocalDate(receipt.captured_at), 'MMM d, yyyy')}
               </span>
             </div>
 
