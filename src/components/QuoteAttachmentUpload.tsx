@@ -71,17 +71,22 @@ export function QuoteAttachmentUpload({
     setSelectedFile(file);
   }, [toast]);
 
-  // Define uploadFile as useCallback BEFORE handlers that use it
-  const uploadFile = useCallback(async () => {
+  // Define uploadFile as useCallback - accepts optional file to avoid state timing issues
+  const uploadFile = useCallback(async (fileToUpload?: File) => {
+    // Use passed file OR fall back to state
+    const file = fileToUpload || selectedFile;
+    
     console.log('🚀 [UPLOAD DEBUG] uploadFile() called', {
+      passedFile: fileToUpload?.name,
       selectedFile: selectedFile?.name,
+      usingFile: file?.name,
       projectId,
       relatedQuoteId,
       online: navigator.onLine
     });
     
-    if (!selectedFile) {
-      console.log('❌ [UPLOAD DEBUG] No file selected - aborting');
+    if (!file) {
+      console.log('❌ [UPLOAD DEBUG] No file available - aborting');
       return;
     }
 
@@ -101,13 +106,13 @@ export function QuoteAttachmentUpload({
       console.log('✅ [UPLOAD DEBUG] User authenticated:', user.id);
 
       const timestamp = Date.now();
-      const sanitizedFileName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const filePath = `${projectId}/quotes/${timestamp}-${sanitizedFileName}`;
       console.log('📤 [UPLOAD DEBUG] Starting storage upload to:', filePath);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('project-documents')
-        .upload(filePath, selectedFile, {
+        .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
         });
@@ -130,10 +135,10 @@ export function QuoteAttachmentUpload({
         .insert({
           project_id: projectId,
           document_type: 'other',
-          file_name: selectedFile.name,
+          file_name: file.name,
           file_url: publicUrl,
-          file_size: selectedFile.size,
-          mime_type: selectedFile.type || 'application/octet-stream',
+          file_size: file.size,
+          mime_type: file.type || 'application/octet-stream',
           uploaded_by: user.id,
           related_quote_id: relatedQuoteId,
         })
@@ -172,9 +177,9 @@ export function QuoteAttachmentUpload({
     const file = e.dataTransfer.files[0];
     if (file) {
       handleFile(file);
-      // Auto-upload after drag-drop
+      // Auto-upload after drag-drop - pass file directly to avoid state timing issues
       console.log('🚀 [UPLOAD DEBUG] Drag-drop detected - auto-triggering upload in 100ms');
-      setTimeout(() => uploadFile(), 100);
+      setTimeout(() => uploadFile(file), 100);
     }
   }, [handleFile, uploadFile]);
 
@@ -183,9 +188,9 @@ export function QuoteAttachmentUpload({
     const file = e.target.files?.[0];
     if (file) {
       handleFile(file);
-      // Auto-upload for ALL devices (unified behavior)
+      // Auto-upload for ALL devices - pass file directly to avoid state timing issues
       console.log('🚀 [UPLOAD DEBUG] Auto-triggering upload in 100ms');
-      setTimeout(() => uploadFile(), 100);
+      setTimeout(() => uploadFile(file), 100);
     }
   };
 
