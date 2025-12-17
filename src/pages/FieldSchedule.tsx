@@ -107,7 +107,7 @@ export default function FieldSchedule() {
   }
 
   return (
-    <MobilePageWrapper className="pb-safe">
+    <MobilePageWrapper className="pb-safe" onRefresh={loadTasks} enablePullToRefresh>
       {/* Header */}
       <div className="mb-4">
         <Button

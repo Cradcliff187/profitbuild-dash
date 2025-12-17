@@ -33,6 +33,7 @@ interface ClientsListProps {
 
 export interface ClientsListRef {
   openNewForm: () => void;
+  refetch: () => Promise<void>;
 }
 
 export const ClientsList = forwardRef<ClientsListRef, ClientsListProps>(({ showForm, setShowForm, showImportModal, setShowImportModal }, ref) => {
@@ -48,13 +49,29 @@ export const ClientsList = forwardRef<ClientsListRef, ClientsListProps>(({ showF
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Expose function to open new form (resets editingClient)
+  const { data: clients = [], isLoading, error, refetch: refetchClients } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .order("client_name");
+      
+      if (error) throw error;
+      return data as Client[];
+    },
+  });
+
+  // Expose functions to parent
   useImperativeHandle(ref, () => ({
     openNewForm: () => {
       setEditingClient(null);
       setShowForm(true);
+    },
+    refetch: async () => {
+      await refetchClients();
     }
-  }));
+  }), [refetchClients]);
 
   const toggleCard = (clientId: string) => {
     setExpandedCards(prev => {
@@ -75,19 +92,6 @@ export const ClientsList = forwardRef<ClientsListRef, ClientsListProps>(({ showF
       setSelectedClients([...selectedClients, clientId]);
     }
   };
-
-  const { data: clients = [], isLoading, error } = useQuery({
-    queryKey: ["clients"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*")
-        .order("client_name");
-      
-      if (error) throw error;
-      return data as Client[];
-    },
-  });
 
   const filteredClients = clients.filter(client => {
     const matchesSearch = client.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||

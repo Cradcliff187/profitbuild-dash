@@ -436,8 +436,12 @@ const Expenses = () => {
     return <BrandedLoader message="Loading expenses..." />;
   }
 
+  const handleRefresh = async () => {
+    await Promise.all([fetchData(), fetchRevenues()]);
+  };
+
   return (
-    <MobilePageWrapper>
+    <MobilePageWrapper onRefresh={handleRefresh} enablePullToRefresh>
       <PageHeader
         icon={Receipt}
         title="Expenses & Invoices"
