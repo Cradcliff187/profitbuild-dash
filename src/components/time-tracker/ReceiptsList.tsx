@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfWeek, startOfMonth, isWithinInterval } from 'date-fns';
+import { parseLocalDate } from '@/lib/utils';
 import { Receipt, Trash2, Plus, Edit, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { AddReceiptModal } from './AddReceiptModal';
 import { EditReceiptModal } from './EditReceiptModal';
@@ -323,7 +324,7 @@ export const ReceiptsList = () => {
                   <div className="flex justify-between items-start gap-2">
                     <div className="font-semibold text-sm">${receipt.amount.toFixed(2)}</div>
                     <div className="text-xs text-muted-foreground whitespace-nowrap">
-                      {format(new Date(receipt.captured_at + 'T12:00:00'), 'MMM d')}
+                      {format(parseLocalDate(receipt.captured_at), 'MMM d')}
                     </div>
                   </div>
                   <div className="text-xs text-muted-foreground truncate">
@@ -369,7 +370,7 @@ export const ReceiptsList = () => {
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground">Date</div>
-                      <div>{format(new Date(receipt.captured_at + 'T12:00:00'), 'MMM d, yyyy')}</div>
+                      <div>{format(parseLocalDate(receipt.captured_at), 'MMM d, yyyy')}</div>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground">Payee</div>
