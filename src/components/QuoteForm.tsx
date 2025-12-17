@@ -675,6 +675,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       createdAt: initialQuote?.createdAt || new Date()
     };
 
+    console.log('💾 [QUOTE FORM DEBUG] Saving quote with attachment_url:', attachmentUrl, 'Quote object:', quote);
     onSave(quote);
     // Success toast moved to Quotes.tsx handleSaveQuote (shown after DB confirms save)
   };
@@ -1131,7 +1132,10 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
               <Label className="text-sm font-medium">Quote Document</Label>
               <QuoteAttachmentUpload
                 projectId={selectedEstimate.project_id}
-                onUploadSuccess={(url) => setAttachmentUrl(url)}
+                onUploadSuccess={(url) => {
+                  console.log('📎 [QUOTE FORM DEBUG] Attachment URL received from upload:', url);
+                  setAttachmentUrl(url);
+                }}
                 onRemove={() => setAttachmentUrl("")}
                 existingFile={attachmentUrl ? { url: attachmentUrl, name: "Quote Attachment" } : undefined}
                 disabled={isViewMode}
