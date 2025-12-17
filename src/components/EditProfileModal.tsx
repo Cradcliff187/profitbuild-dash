@@ -28,9 +28,12 @@ export default function EditProfileModal({ open, onOpenChange, user, onSuccess }
   const [phone, setPhone] = useState(user.phone || '');
   const [smsEnabled, setSmsEnabled] = useState(user.sms_notifications_enabled ?? true);
 
-  // Load phone data when modal opens
+  // Reset form data when modal opens or user changes
   useEffect(() => {
     if (open) {
+      // Reset fullName with the new user's data
+      setFullName(user.full_name || '');
+      
       async function loadPhoneData() {
         const { data } = await supabase
           .from('profiles')
@@ -45,7 +48,7 @@ export default function EditProfileModal({ open, onOpenChange, user, onSuccess }
       }
       loadPhoneData();
     }
-  }, [open, user.id]);
+  }, [open, user.id, user.full_name]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
