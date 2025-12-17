@@ -71,40 +71,8 @@ export function QuoteAttachmentUpload({
     setSelectedFile(file);
   }, [toast]);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
-  }, [handleFile]);
-
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('📱 [UPLOAD DEBUG] handleFileInput triggered');
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFile(file);
-      // Auto-upload on mobile for better UX
-      if (isMobile) {
-        console.log('📱 [UPLOAD DEBUG] Mobile detected - auto-triggering upload in 100ms');
-        setTimeout(() => uploadFile(), 100);
-      }
-    }
-  };
-
-  const handleSelectFile = () => {
-    if (disabled) return;
-    
-    if (isIOSPWA()) {
-      toast({
-        title: "Device upload tip",
-        description: "Select Take Photo or Video, Photo Library, or Browse from your iPhone's sheet.",
-        duration: 4000,
-      });
-    }
-    fileInputRef.current?.click();
-  };
-
-  const uploadFile = async () => {
+  // Define uploadFile as useCallback BEFORE handlers that use it
+  const uploadFile = useCallback(async () => {
     console.log('🚀 [UPLOAD DEBUG] uploadFile() called', {
       selectedFile: selectedFile?.name,
       projectId,
@@ -161,7 +129,7 @@ export function QuoteAttachmentUpload({
         .from('project_documents')
         .insert({
           project_id: projectId,
-          document_type: 'other', // Using 'other' since 'quote' is not in DocumentType enum
+          document_type: 'other',
           file_name: selectedFile.name,
           file_url: publicUrl,
           file_size: selectedFile.size,
@@ -196,6 +164,42 @@ export function QuoteAttachmentUpload({
       console.log('🏁 [UPLOAD DEBUG] Upload process complete, isUploading=false');
       setIsUploading(false);
     }
+  }, [selectedFile, projectId, relatedQuoteId, onUploadSuccess, toast]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      handleFile(file);
+      // Auto-upload after drag-drop
+      console.log('🚀 [UPLOAD DEBUG] Drag-drop detected - auto-triggering upload in 100ms');
+      setTimeout(() => uploadFile(), 100);
+    }
+  }, [handleFile, uploadFile]);
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('📱 [UPLOAD DEBUG] handleFileInput triggered');
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFile(file);
+      // Auto-upload for ALL devices (unified behavior)
+      console.log('🚀 [UPLOAD DEBUG] Auto-triggering upload in 100ms');
+      setTimeout(() => uploadFile(), 100);
+    }
+  };
+
+  const handleSelectFile = () => {
+    if (disabled) return;
+    
+    if (isIOSPWA()) {
+      toast({
+        title: "Device upload tip",
+        description: "Select Take Photo or Video, Photo Library, or Browse from your iPhone's sheet.",
+        duration: 4000,
+      });
+    }
+    fileInputRef.current?.click();
   };
 
   // Show existing file if provided
@@ -308,19 +312,8 @@ export function QuoteAttachmentUpload({
         </div>
       )}
 
-      {selectedFile && !isMobile && (
-        <Button
-          onClick={uploadFile}
-          disabled={isUploading || disabled}
-          className="w-full"
-          size="sm"
-        >
-          {isUploading ? 'Uploading...' : 'Upload Quote Document'}
-        </Button>
-      )}
-      
-      {/* Show uploading state on mobile */}
-      {selectedFile && isMobile && isUploading && (
+      {/* Show uploading state for all devices */}
+      {selectedFile && isUploading && (
         <p className="text-sm text-center text-muted-foreground">Uploading...</p>
       )}
     </div>
