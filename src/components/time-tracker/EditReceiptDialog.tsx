@@ -98,7 +98,7 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
     setPayeeId(receipt.payee_id || '');
     setProjectId(receipt.project_id || '');
     setDescription(receipt.description || '');
-    setDate(receipt.captured_at ? format(new Date(receipt.captured_at), 'yyyy-MM-dd') : '');
+    setDate(receipt.captured_at ? receipt.captured_at.split('T')[0].split(' ')[0] : '');
     setCapturedPhoto('');
     setPhotoChanged(false);
     

@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, parseLocalDate } from '@/lib/utils';
 import { UnifiedReceipt } from '@/hooks/useReceiptsData';
 
 interface ReceiptsCardViewProps {
@@ -174,7 +174,7 @@ const ReceiptsCardViewComponent: React.FC<ReceiptsCardViewProps> = ({
                   {/* Always visible row with key info and chevron */}
                   <div className="flex items-center justify-between px-3 py-2 border-t">
                     <span className="text-sm font-medium">
-                      {formatCurrency(receipt.amount)} • {format(new Date(receipt.date), "MMM dd, yyyy")}
+                      {formatCurrency(receipt.amount)} • {format(parseLocalDate(receipt.date), "MMM dd, yyyy")}
                     </span>
                     <Button
                       variant="ghost"
