@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Calendar, ChevronRight } from 'lucide-react';
+import { X, Calendar, ChevronRight, Navigation } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,20 @@ export const ProjectScheduleSelector: React.FC<ProjectScheduleSelectorProps> = (
 }) => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const getDirectionsUrl = (address: string): string => {
+    const encoded = encodeURIComponent(address);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      return `maps://maps.apple.com/?daddr=${encoded}`;
+    }
+    if (isAndroid) {
+      return `google.navigation:q=${encoded}`;
+    }
+    return `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
+  };
 
   const handleSelectProject = (projectId: string) => {
     navigate(`/field-schedule/${projectId}`);
@@ -123,9 +137,21 @@ export const ProjectScheduleSelector: React.FC<ProjectScheduleSelectorProps> = (
                         </p>
                       )}
                       {project.address && (
-                        <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
-                          {project.address}
-                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <a
+                            href={getDirectionsUrl(project.address)}
+                            target={/iPad|iPhone|iPod|Android/.test(navigator.userAgent) ? undefined : "_blank"}
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex-shrink-0 p-2 -m-2 -ml-1 text-blue-500 hover:text-blue-700 active:bg-blue-100 rounded-full transition-all"
+                            aria-label="Get directions"
+                          >
+                            <Navigation className="w-4 h-4" />
+                          </a>
+                          <p className="text-xs text-muted-foreground/70 truncate flex-1">
+                            {project.address}
+                          </p>
+                        </div>
                       )}
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />

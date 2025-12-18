@@ -6,6 +6,7 @@ import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
 import { useSmartNavigation } from '@/hooks/useSmartNavigation';
+import { useReverseGeocode } from '@/hooks/useReverseGeocode';
 import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { VoiceCaptionModal } from '@/components/VoiceCaptionModal';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
@@ -25,6 +26,7 @@ export default function FieldPhotoCapture() {
   const { capturePhoto, isCapturing } = useCameraCapture();
   const { getLocation, coordinates, isLoading: isLoadingLocation } = useGeolocation();
   const { upload, isUploading, progress } = useProjectMediaUpload(projectId!);
+  const { reverseGeocode, isLoading: isGeocoding } = useReverseGeocode();
   const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
   const [locationName, setLocationName] = useState<string>('');
   const [showCaptionModal, setShowCaptionModal] = useState(false);
@@ -34,13 +36,22 @@ export default function FieldPhotoCapture() {
   const [captureCount, setCaptureCount] = useState(0);
   const [skipCount, setSkipCount] = useState(0);
 
-  // Calculate GPS age
+  // Calculate GPS age and reverse geocode
   useEffect(() => {
     if (coordinates) {
-      setLocationName(`${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`);
       setGpsAge(Date.now() - coordinates.timestamp);
+      
+      // Reverse geocode to get human-readable address
+      reverseGeocode(coordinates.latitude, coordinates.longitude).then((result) => {
+        if (result) {
+          setLocationName(result.shortName);
+        } else {
+          // Fallback to coordinates if geocoding fails
+          setLocationName(`${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`);
+        }
+      });
     }
-  }, [coordinates]);
+  }, [coordinates, reverseGeocode]);
 
   const handleCapture = async () => {
     // Parallelize GPS and photo capture to preserve user gesture
@@ -286,10 +297,11 @@ export default function FieldPhotoCapture() {
                 <MapPin className="h-3 w-3 text-primary" />
                 {isLoadingLocation ? (
                   <span>Getting location...</span>
+                ) : isGeocoding ? (
+                  <span>Getting address...</span>
                 ) : coordinates ? (
-                  <span>
-                    GPS: {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)} (±
-                    {coordinates.accuracy.toFixed(0)}m)
+                  <span className="truncate max-w-[200px]">
+                    {locationName || `${coordinates.latitude.toFixed(4)}, ${coordinates.longitude.toFixed(4)}`}
                   </span>
                 ) : (
                   <span className="text-warning">GPS unavailable</span>

@@ -250,9 +250,10 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
                       href={`https://www.google.com/maps?q=${currentVideo.latitude},${currentVideo.longitude}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:underline"
+                      className="hover:underline truncate max-w-[200px] block"
                     >
-                      {currentVideo.latitude.toFixed(6)}, {currentVideo.longitude.toFixed(6)}
+                      {currentVideo.location_name || 
+                        `${currentVideo.latitude.toFixed(6)}, ${currentVideo.longitude.toFixed(6)}`}
                     </a>
                   </div>
                 </div>

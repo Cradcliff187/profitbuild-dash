@@ -11,6 +11,7 @@ import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { useVideoCapture } from '@/hooks/useVideoCapture';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
+import { useReverseGeocode } from '@/hooks/useReverseGeocode';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { formatFileSize, getVideoDuration } from '@/utils/videoUtils';
 import { isWebPlatform, isIOSDevice } from '@/utils/platform';
@@ -26,6 +27,7 @@ export default function FieldVideoCapture() {
   const { getLocation, coordinates, isLoading: isLoadingLocation } = useGeolocation();
   const { upload, isUploading } = useProjectMediaUpload(projectId!);
   const { transcribe, isTranscribing, error: transcriptionError } = useAudioTranscription();
+  const { reverseGeocode } = useReverseGeocode();
   
   const [capturedVideo, setCapturedVideo] = useState<{
     path?: string;
@@ -34,6 +36,7 @@ export default function FieldVideoCapture() {
   } | null>(null);
   const [showCaptionModal, setShowCaptionModal] = useState(false);
   const [videoCaption, setVideoCaption] = useState('');
+  const [locationName, setLocationName] = useState<string>('');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [isAutoTranscribing, setIsAutoTranscribing] = useState(false);
   const [isIOS] = useState(isIOSDevice());
@@ -43,6 +46,19 @@ export default function FieldVideoCapture() {
     // Refresh GPS on mount
     getLocation();
   }, []);
+
+  // Reverse geocode when coordinates change
+  useEffect(() => {
+    if (coordinates) {
+      reverseGeocode(coordinates.latitude, coordinates.longitude).then((result) => {
+        if (result) {
+          setLocationName(result.shortName);
+        } else {
+          setLocationName(`${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`);
+        }
+      });
+    }
+  }, [coordinates, reverseGeocode]);
 
   const handleCapture = async () => {
     // Parallelize GPS and video capture to preserve user gesture
@@ -228,6 +244,7 @@ export default function FieldVideoCapture() {
         latitude: coordinates?.latitude,
         longitude: coordinates?.longitude,
         altitude: coordinates?.altitude,
+        locationName: locationName || undefined,
         uploadSource: 'camera',
         duration,
       });
@@ -279,6 +296,7 @@ export default function FieldVideoCapture() {
         latitude: coordinates?.latitude,
         longitude: coordinates?.longitude,
         altitude: coordinates?.altitude,
+        locationName: locationName || undefined,
         uploadSource: 'camera',
         duration,
       });

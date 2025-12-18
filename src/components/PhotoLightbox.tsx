@@ -183,11 +183,12 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
               <span>{format(new Date(currentPhoto.created_at), 'MMM d, yyyy · h:mm a')}</span>
             </div>
             
-            {currentPhoto.latitude && currentPhoto.longitude && (
+            {(currentPhoto.location_name || (currentPhoto.latitude && currentPhoto.longitude)) && (
               <div className="flex items-center gap-1.5">
                 <MapPin className="h-3.5 w-3.5" />
-                <span>
-                  {currentPhoto.latitude.toFixed(6)}, {currentPhoto.longitude.toFixed(6)}
+                <span className="truncate max-w-[200px]">
+                  {currentPhoto.location_name || 
+                    `${currentPhoto.latitude?.toFixed(6)}, ${currentPhoto.longitude?.toFixed(6)}`}
                 </span>
               </div>
             )}
@@ -199,10 +200,6 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
               </div>
             )}
           </div>
-
-          {currentPhoto.location_name && (
-            <p className="text-xs text-muted-foreground">{currentPhoto.location_name}</p>
-          )}
 
           {/* Comments Section */}
           <div className="border-t border-border pt-3 mt-3">

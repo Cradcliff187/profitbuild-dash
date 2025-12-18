@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useBidMediaUpload } from '@/hooks/useBidMediaUpload';
+import { useReverseGeocode } from '@/hooks/useReverseGeocode';
 import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { VoiceCaptionModal } from '@/components/VoiceCaptionModal';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
@@ -23,6 +24,7 @@ export default function BidPhotoCapture() {
   const { capturePhoto, isCapturing } = useCameraCapture();
   const { getLocation, coordinates, isLoading: isLoadingLocation } = useGeolocation();
   const { upload, isUploading, progress } = useBidMediaUpload();
+  const { reverseGeocode, isLoading: isGeocoding } = useReverseGeocode();
   const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
   const [locationName, setLocationName] = useState<string>('');
   const [showCaptionModal, setShowCaptionModal] = useState(false);
@@ -32,13 +34,22 @@ export default function BidPhotoCapture() {
   const [captureCount, setCaptureCount] = useState(0);
   const [skipCount, setSkipCount] = useState(0);
 
-  // Calculate GPS age
+  // Calculate GPS age and reverse geocode
   useEffect(() => {
     if (coordinates) {
-      setLocationName(`${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`);
       setGpsAge(Date.now() - coordinates.timestamp);
+      
+      // Reverse geocode to get human-readable address
+      reverseGeocode(coordinates.latitude, coordinates.longitude).then((result) => {
+        if (result) {
+          setLocationName(result.shortName);
+        } else {
+          // Fallback to coordinates if geocoding fails
+          setLocationName(`${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`);
+        }
+      });
     }
-  }, [coordinates]);
+  }, [coordinates, reverseGeocode]);
 
   const handleCapture = async () => {
     // Parallelize GPS and photo capture to preserve user gesture

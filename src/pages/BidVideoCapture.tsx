@@ -10,6 +10,7 @@ import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { useVideoCapture } from '@/hooks/useVideoCapture';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useBidMediaUpload } from '@/hooks/useBidMediaUpload';
+import { useReverseGeocode } from '@/hooks/useReverseGeocode';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { formatFileSize, getVideoDuration } from '@/utils/videoUtils';
 import { isWebPlatform, isIOSDevice } from '@/utils/platform';
@@ -25,6 +26,7 @@ export default function BidVideoCapture() {
   const { getLocation, coordinates, isLoading: isLoadingLocation } = useGeolocation();
   const { upload, isUploading, progress } = useBidMediaUpload();
   const { transcribe, isTranscribing, error: transcriptionError } = useAudioTranscription();
+  const { reverseGeocode } = useReverseGeocode();
   
   const [capturedVideo, setCapturedVideo] = useState<{
     path?: string;
@@ -33,6 +35,7 @@ export default function BidVideoCapture() {
   } | null>(null);
   const [showCaptionModal, setShowCaptionModal] = useState(false);
   const [videoCaption, setVideoCaption] = useState('');
+  const [locationName, setLocationName] = useState<string>('');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [isAutoTranscribing, setIsAutoTranscribing] = useState(false);
   const [isIOS] = useState(isIOSDevice());
@@ -42,6 +45,19 @@ export default function BidVideoCapture() {
     // Refresh GPS on mount
     getLocation();
   }, []);
+
+  // Reverse geocode when coordinates change
+  useEffect(() => {
+    if (coordinates) {
+      reverseGeocode(coordinates.latitude, coordinates.longitude).then((result) => {
+        if (result) {
+          setLocationName(result.shortName);
+        } else {
+          setLocationName(`${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`);
+        }
+      });
+    }
+  }, [coordinates, reverseGeocode]);
 
   const handleCapture = async () => {
     // Parallelize GPS and video capture to preserve user gesture
@@ -169,11 +185,6 @@ export default function BidVideoCapture() {
       // Get video duration from the blob
       const duration = await getVideoDuration(file);
 
-      // Generate location name from coordinates if available
-      const locationName = coordinates
-        ? `${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`
-        : undefined;
-
       await upload({
         bid_id: bidId,
         file,
@@ -183,7 +194,7 @@ export default function BidVideoCapture() {
         latitude: coordinates?.latitude,
         longitude: coordinates?.longitude,
         altitude: coordinates?.altitude,
-        location_name: locationName,
+        location_name: locationName || undefined,
         // Capture metadata
         taken_at: takenAt,
         device_model: navigator.userAgent || undefined,
