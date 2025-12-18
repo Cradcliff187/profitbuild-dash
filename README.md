@@ -1,4 +1,4 @@
-# ProfitBuild Dashboard
+# RCG Work (ProfitBuild Dashboard)
 
 **Construction Project Management & Financial Tracking Platform**
 
@@ -47,6 +47,28 @@ A comprehensive full-stack web application built for construction companies to m
 - **Revenue variance analysis** comparing estimated vs actual revenue
 - PDF export for quotes and reports
 
+### Training & Onboarding (LMS)
+- Admin content management (videos, documents, external links)
+- User assignment by role or individual
+- Completion tracking and acknowledgment
+- Email notifications on assignment
+- Training reports integrated with report builder
+
+### Team Communication
+- SMS messaging to field workers via Textbelt
+- Scheduled SMS reminders (daily, weekly)
+- Deep links to app pages (clock-in, timesheet, receipts)
+- Message templates with variable substitution
+- Delivery status tracking and quota monitoring
+- Branded email notifications via Resend
+
+### Administration
+- User management with role assignment (admin, manager, field_worker)
+- Password reset (email link or temporary password)
+- Company branding settings (logos, colors)
+- Client and vendor/payee management
+- Activity audit logging
+
 ---
 
 ## Prerequisites
@@ -86,6 +108,21 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 2. Select your project
 3. Navigate to Settings → API
 4. Copy the Project URL and anon/public key
+
+### Supabase Edge Function Secrets
+
+The following secrets must be configured in Supabase Dashboard → Settings → Edge Functions → Secrets:
+
+| Secret | Purpose | Required |
+|--------|---------|----------|
+| `ResendAPI` | Resend email service API key | Yes |
+| `TEXTBELT_API_KEY` | Textbelt SMS service API key | For SMS features |
+
+**How to configure:**
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
+2. Select your project → Settings → Edge Functions
+3. Click "Secrets" tab
+4. Add each secret with its value
 
 ### 4. Database Setup
 
@@ -142,11 +179,19 @@ src/
 - **Authentication**: Supabase Auth (email/password)
 - **Storage**: File uploads for receipts, photos, videos
 - **Edge Functions**: Server-side logic for:
-  - AI caption enhancement
-  - Video thumbnail generation
-  - Audio transcription
-  - Email notifications
-  - PDF generation
+  - `enhance-caption` - AI photo caption enhancement
+  - `transcribe-audio` - Voice-to-text transcription
+  - `send-auth-email` - Branded authentication emails (password reset, user invitation)
+  - `send-receipt-notification` - Receipt capture notifications
+  - `send-training-notification` - Training assignment emails
+  - `send-sms` - SMS messaging via Textbelt
+  - `check-sms-status` - SMS delivery status checking
+  - `check-sms-quota` - Textbelt quota monitoring
+  - `process-scheduled-sms` - Scheduled SMS execution (cron)
+  - `generate-media-report` - PDF media report generation
+  - `admin-create-user` - Admin user creation
+  - `admin-reset-password` - Admin password reset
+  - `admin-delete-user` - Admin user deletion
 
 ### Key Technologies
 | Category | Technology | Purpose |
@@ -180,9 +225,19 @@ src/
 - **work_orders**: Task assignments and tracking
 - **saved_reports**: Custom report configurations and templates
 - **report_execution_log**: Audit trail for report executions
+- **training_content**: Training materials (videos, docs, links)
+- **training_assignments**: User training assignments with due dates
+- **training_completions**: Completion records with timestamps
+- **sms_messages**: SMS message history and delivery status
+- **scheduled_sms**: Recurring SMS schedule configurations
+- **scheduled_sms_logs**: Execution logs for scheduled messages
+- **company_branding_settings**: Logo URLs, colors, company info
+- **user_roles**: Multi-role assignments per user
+- **activity_feed**: Audit trail for system actions
 
 ### Reporting Views
 - **reporting.project_financials**: Comprehensive aggregated view with financial metrics, expenses, quotes, change orders, and revenue data. Primary data source for the report builder system.
+- **reporting.training_status**: Training completion metrics for report builder
 
 ### Key Relationships
 ```
@@ -364,6 +419,13 @@ git push origin feature/your-feature-name
 - **Documentation**: [Lovable Docs](https://docs.lovable.dev/)
 - **Lovable Project**: [ProfitBuild Dashboard](https://lovable.dev/projects/8ad59cd4-cdfa-472d-b4a1-52ac194e00f2)
 - **Community**: [Lovable Discord](https://discord.gg/lovable)
+
+---
+
+## Product Documentation
+
+For a comprehensive overview of all application features, modules, and capabilities, see:
+- **[Product Overview](docs/PRODUCT_OVERVIEW.md)** - Complete feature documentation for all 8 modules
 
 ---
 
