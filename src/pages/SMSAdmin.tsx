@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SMSComposer } from '@/components/sms/SMSComposer';
 import { SMSHistory } from '@/components/sms/SMSHistory';
 import { ScheduledSMSManager } from '@/components/sms/ScheduledSMSManager';
-import { MessageSquare, History, Clock } from 'lucide-react';
+import { SMSSettings } from '@/components/sms/SMSSettings';
+import { MessageSquare, History, Clock, Settings } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { useState } from 'react';
@@ -109,6 +110,12 @@ export default function SMSAdmin() {
                   <span>History</span>
                 </div>
               </SelectItem>
+              <SelectItem value="settings">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  <span>Settings</span>
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -138,6 +145,13 @@ export default function SMSAdmin() {
                 <History className="h-4 w-4" />
                 <span>History</span>
               </TabsTrigger>
+              <TabsTrigger
+                value="settings"
+                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shrink-0"
+              >
+                <Settings className="h-4 w-4" />
+                <span>Settings</span>
+              </TabsTrigger>
             </TabsList>
           </div>
         </div>
@@ -152,6 +166,10 @@ export default function SMSAdmin() {
 
         <TabsContent value="history" className="mt-0 sm:mt-4">
           <SMSHistory />
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-0 sm:mt-4">
+          <SMSSettings />
         </TabsContent>
       </Tabs>
     </MobilePageWrapper>

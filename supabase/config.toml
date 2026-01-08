@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.process-scheduled-sms]
 verify_jwt = false
+
+[functions.get-textbelt-key]
+verify_jwt = true
