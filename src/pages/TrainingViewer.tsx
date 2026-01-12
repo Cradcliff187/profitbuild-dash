@@ -8,7 +8,7 @@ import { Loader2, ArrowLeft, Clock, ExternalLink, CheckCircle, FileText, Film, D
 import { supabase } from '@/integrations/supabase/client';
 import { TrainingContent } from '@/types/training';
 import { useMyTraining } from '@/hooks/useTrainingAssignments';
-import { getVideoEmbedUrl, getTrainingFileUrl } from '@/utils/trainingStorage';
+import { getVideoEmbedUrl, getTrainingFileUrl, downloadTrainingFileBlob } from '@/utils/trainingStorage';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { isIOSDevice, isIOSPWA } from '@/utils/platform';
 import { toast } from 'sonner';
@@ -66,16 +66,17 @@ export default function TrainingViewer() {
           const url = await getTrainingFileUrl(data.storage_path);
           setFileUrl(url);
           
-          // Create data URL for PDFs to bypass iframe CORS restrictions in dev environments
-          if (data.content_type === 'document' && url) {
+          // Use Supabase SDK download to bypass CORS restrictions
+          if (data.content_type === 'document' && data.storage_path) {
             try {
-              const response = await fetch(url);
-              const blob = await response.blob();
-              const reader = new FileReader();
-              reader.onload = () => {
-                setDataUrl(reader.result as string);
-              };
-              reader.readAsDataURL(blob);
+              const blob = await downloadTrainingFileBlob(data.storage_path);
+              if (blob) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  setDataUrl(reader.result as string);
+                };
+                reader.readAsDataURL(blob);
+              }
             } catch (err) {
               console.error('Error creating data URL:', err);
             }
