@@ -66,8 +66,8 @@ export default function TrainingViewer() {
           const url = await getTrainingFileUrl(data.storage_path);
           setFileUrl(url);
           
-          // For iOS devices, create data URL fallback for PDFs
-          if (data.content_type === 'document' && isMobile && isIOSDevice() && url) {
+          // Create data URL for PDFs to bypass iframe CORS restrictions in dev environments
+          if (data.content_type === 'document' && url) {
             try {
               const response = await fetch(url);
               const blob = await response.blob();
@@ -77,7 +77,7 @@ export default function TrainingViewer() {
               };
               reader.readAsDataURL(blob);
             } catch (err) {
-              console.error('Error creating data URL for iOS:', err);
+              console.error('Error creating data URL:', err);
             }
           }
           
@@ -296,7 +296,7 @@ export default function TrainingViewer() {
           <div className="w-full">
             <div className="w-full relative bg-muted/20 rounded-lg border" style={{ height: '70vh' }}>
               <iframe
-                src={fileUrl}
+                src={dataUrl || fileUrl}
                 className="absolute inset-0 w-full h-full rounded-lg border-0"
                 title={content.title}
               />
