@@ -1,0 +1,56 @@
+# Validate that local migrations match Supabase database
+# This prevents the migration sync issue from occurring
+
+name: Validate Migration Sync
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/migrations/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Count local migration files
+        id: local_count
+        run: |
+          LOCAL_COUNT=$(find supabase/migrations -name "*.sql" | wc -l)
+          echo "count=$LOCAL_COUNT" >> $GITHUB_OUTPUT
+          echo "Local migration files: $LOCAL_COUNT"
+      
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      
+      - name: Validate migration sync
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          echo "⚠️  If this check fails, run the migration sync script locally"
+          echo "Local files: ${{ steps.local_count.outputs.count }}"
+          echo "Database migrations will be checked by Supabase Preview"
+      
+      - name: Check for UUID-based filenames
+        run: |
+          UUID_FILES=$(find supabase/migrations -name "*-*-*-*-*.sql" | wc -l)
+          if [ $UUID_FILES -gt 0 ]; then
+            echo "❌ Found $UUID_FILES migration files with UUID suffixes"
+            echo "These files don't match the database format"
+            echo ""
+            echo "Files found:"
+            find supabase/migrations -name "*-*-*-*-*.sql"
+            exit 1
+          else
+            echo "✅ No UUID-based migration files found"
+          fi

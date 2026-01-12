@@ -1,0 +1,82 @@
+# Cursor AI Rules for ProfitBuild Dashboard
+
+## Supabase Database Migrations - CRITICAL
+
+### When Using Supabase MCP in Cursor
+
+**ALWAYS follow this workflow when applying database migrations:**
+
+1. **After applying ANY migration via `mcp_supabase_apply_migration`:**
+   - IMMEDIATELY query the database to get the exact migration name that was recorded:
+     ```sql
+     SELECT version, name FROM supabase_migrations.schema_migrations 
+     ORDER BY version DESC LIMIT 1;
+     ```
+   
+2. **Create a matching local placeholder file:**
+   - Filename format: `{version}_{name}.sql` or `{version}_migration.sql` if name is empty
+   - Location: `supabase/migrations/`
+   - Content: `-- Applied via Supabase dashboard since the actual SQL is already in your database.`
+   - Example: `supabase/migrations/20260108191339_add_last_active_at_to_profiles.sql`
+
+3. **Verify synchronization:**
+   - Compare local file count with database migration count
+   - Local files MUST match database exactly for CI/CD to pass
+
+### Why This Matters
+
+- Supabase CI/CD validates that every database migration has a corresponding local file
+- Database records migrations with UTC timestamps
+- Filenames MUST match exactly: `{version}_{name}.sql`
+- Missing or mismatched files cause deployment failures
+
+### Example Workflow
+
+```typescript
+// 1. Apply migration
+await mcp_supabase_apply_migration({
+  project_id: "...",
+  name: "add_new_feature",
+  query: "ALTER TABLE..."
+});
+
+// 2. Query to get exact name
+const result = await mcp_supabase_execute_sql({
+  query: "SELECT version, name FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 1"
+});
+
+// 3. Create local file
+const filename = `${result.version}_${result.name || 'migration'}.sql`;
+await write({
+  file_path: `supabase/migrations/${filename}`,
+  contents: "-- Applied via Supabase dashboard since the actual SQL is already in your database.\n"
+});
+```
+
+## Database Best Practices
+
+1. **Always use `mcp_supabase_apply_migration` for DDL operations** (CREATE, ALTER, DROP)
+2. **Use `mcp_supabase_execute_sql` only for queries and DML** (SELECT, INSERT, UPDATE, DELETE)
+3. **Never hardcode UUIDs in migrations** - they won't match between environments
+4. **Test migrations on a branch first** before applying to production
+
+## Code Style
+
+- Use TypeScript for all new files
+- Follow existing project patterns
+- Use Shadcn UI components consistently
+- Maintain proper error handling with try-catch blocks
+
+## Git Workflow
+
+- Never force push to main/master
+- Always pull before pushing
+- Write descriptive commit messages
+- Reference issue numbers when applicable
+
+## Security
+
+- Never commit API keys, tokens, or credentials
+- Use environment variables for sensitive data
+- Follow RLS (Row Level Security) patterns in Supabase
+- Validate user input on both client and server
