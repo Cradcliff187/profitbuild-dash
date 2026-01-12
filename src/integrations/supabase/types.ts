@@ -1257,6 +1257,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_active: boolean
+          last_active_at: string | null
           must_change_password: boolean | null
           phone: string | null
           sms_notifications_enabled: boolean | null
@@ -1270,6 +1271,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_active?: boolean
+          last_active_at?: string | null
           must_change_password?: boolean | null
           phone?: string | null
           sms_notifications_enabled?: boolean | null
@@ -1283,6 +1285,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean
+          last_active_at?: string | null
           must_change_password?: boolean | null
           phone?: string | null
           sms_notifications_enabled?: boolean | null
@@ -2860,6 +2863,8 @@ export type Database = {
           full_name: string
           has_password: boolean
           id: string
+          is_active: boolean
+          last_active_at: string
           last_sign_in_at: string
           must_change_password: boolean
         }[]

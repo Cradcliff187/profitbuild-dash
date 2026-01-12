@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, Search, X, Trash2, Clock, Mail, Calendar, ChevronDown, Shield } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
-import { formatDistanceToNow, parseISO, format } from 'date-fns';
+import { formatDistanceToNow, parseISO, format, differenceInMinutes } from 'date-fns';
 import CreateUserModal from '@/components/CreateUserModal';
 import ResetPasswordModal from '@/components/ResetPasswordModal';
 import EditProfileModal from '@/components/EditProfileModal';
@@ -36,6 +36,7 @@ interface UserWithRoles extends Profile {
   roles: AppRole[];
   must_change_password?: boolean;
   last_sign_in_at?: string | null;
+  last_active_at?: string | null;
   confirmed_at?: string | null;
   has_password?: boolean;
   is_active?: boolean;
@@ -273,6 +274,43 @@ export default function RoleManagement() {
       return format(parseISO(timestamp), 'MMM dd, yyyy h:mm a');
     } catch {
       return 'Invalid date';
+    }
+  };
+
+  // Helper function to format last active with color coding
+  const formatLastActive = (lastActive: string | null | undefined, lastSignIn: string | null | undefined): { text: string; color: string; tooltip: string } => {
+    if (!lastActive) {
+      return { 
+        text: 'Never active', 
+        color: 'text-muted-foreground',
+        tooltip: 'User has never been active in the application'
+      };
+    }
+    
+    try {
+      const activeDate = parseISO(lastActive);
+      const signInDate = lastSignIn ? parseISO(lastSignIn) : null;
+      const now = new Date();
+      
+      const diffMinutes = differenceInMinutes(now, activeDate);
+      
+      if (diffMinutes < 5) {
+        return { text: 'Active now', color: 'text-green-600', tooltip: formatFullTimestamp(lastActive) };
+      } else if (diffMinutes < 60) {
+        return { text: `${diffMinutes}m ago`, color: 'text-green-600', tooltip: formatFullTimestamp(lastActive) };
+      } else if (diffMinutes < 1440) {
+        const hours = Math.floor(diffMinutes / 60);
+        return { text: `${hours}h ago`, color: 'text-blue-600', tooltip: formatFullTimestamp(lastActive) };
+      } else {
+        const days = Math.floor(diffMinutes / 1440);
+        return { 
+          text: `${days}d ago`, 
+          color: days > 7 ? 'text-red-600' : 'text-orange-600',
+          tooltip: formatFullTimestamp(lastActive)
+        };
+      }
+    } catch {
+      return { text: 'Invalid date', color: 'text-muted-foreground', tooltip: 'Invalid date' };
     }
   };
 
@@ -547,10 +585,18 @@ export default function RoleManagement() {
                               </div>
 
                               {/* Account Info */}
-                              <div className="grid grid-cols-2 gap-3 text-xs pt-2 border-t">
-                                <div>
-                                  <div className="text-muted-foreground text-[10px] mb-0.5">Last Sign-In</div>
-                                  <div className="font-medium">{formatLastSignIn(user.last_sign_in_at)}</div>
+                              <div className="space-y-2 text-xs pt-2 border-t">
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <div className="text-muted-foreground text-[10px] mb-0.5">Last Sign-In</div>
+                                    <div className="font-medium">{formatLastSignIn(user.last_sign_in_at)}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-muted-foreground text-[10px] mb-0.5">Last Active</div>
+                                    <div className={`font-medium ${formatLastActive(user.last_active_at, user.last_sign_in_at).color}`}>
+                                      {formatLastActive(user.last_active_at, user.last_sign_in_at).text}
+                                    </div>
+                                  </div>
                                 </div>
                                 <div>
                                   <div className="text-muted-foreground text-[10px] mb-0.5">Account Status</div>
@@ -633,6 +679,7 @@ export default function RoleManagement() {
                         <TableHead>Roles</TableHead>
                         <TableHead>Password Status</TableHead>
                         <TableHead>Last Sign-In</TableHead>
+                        <TableHead>Last Active</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -711,6 +758,25 @@ export default function RoleManagement() {
                               ) : (
                                 <span className="text-xs text-muted-foreground">Never</span>
                               )}
+                            </TableCell>
+
+                            {/* Last Active Column */}
+                            <TableCell>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className={`text-xs cursor-help ${formatLastActive(user.last_active_at, user.last_sign_in_at).color}`}>
+                                      {formatLastActive(user.last_active_at, user.last_sign_in_at).text}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <div className="space-y-1">
+                                      <div>Last Active: {formatFullTimestamp(user.last_active_at)}</div>
+                                      <div>Last Sign-In: {formatFullTimestamp(user.last_sign_in_at)}</div>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
 
                             {/* Actions Column */}

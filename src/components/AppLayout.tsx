@@ -11,6 +11,7 @@ import { useRoles } from '@/contexts/RoleContext';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { supabase } from '@/integrations/supabase/client';
 import { getCompanyBranding } from '@/utils/companyBranding';
+import { useActivityTracker } from '@/hooks/useActivityTracker';
 
 // Mobile menu trigger component (must be inside SidebarProvider)
 function MobileMenuTrigger() {
@@ -96,6 +97,9 @@ export default function AppLayout() {
   const isMobile = useIsMobile();
   const [logoIcon, setLogoIcon] = useState(logoIconDefault);
   const [companyAbbr, setCompanyAbbr] = useState('RCG');
+  
+  // Track user activity
+  useActivityTracker();
   
   // Get current page title
   const pageTitle = getPageTitle(location.pathname);

@@ -5,6 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 // CRITICAL: Ensure we're using costs, not prices
 const validateCostNotPrice = (value: number, label: string, contractAmount: number) => {
+  // Skip validation if contract is 0 (incomplete data, not a price/cost issue)
+  // This prevents false positives from old projects or projects without approved estimates
+  if (contractAmount === 0) {
+    return value;
+  }
+  
   if (value > contractAmount * 0.95) { // Allow 5% margin for edge cases
     console.error(`WARNING: ${label} (${value}) may be using PRICE instead of COST. Contract: ${contractAmount}`);
   }
@@ -623,11 +629,12 @@ export async function calculateMultipleProjectFinancials(
     const originalMargin = originalContractAmount - (approvedEstimateInternalLaborCost + approvedEstimateExternalCosts);
     const projectedMarginValue = currentContractAmount - projectedCosts;
 
-    // Add margin percentage validation
-    if (projectedMargin < 0) {
+    // Add margin percentage validation (only warn if contract amount exists)
+    // Skip validation for projects without contracts (old/incomplete data)
+    if (projectedRevenue > 0 && projectedMargin < 0) {
       console.error('CRITICAL: Negative margin detected - costs may be using prices');
     }
-    if (projectedMarginValue < 0) {
+    if (currentContractAmount > 0 && projectedMarginValue < 0) {
       console.error('CRITICAL: Negative projected margin detected - costs may be using prices');
     }
 
