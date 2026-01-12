@@ -366,30 +366,20 @@ const TimeEntriesPage = () => {
     }
   };
 
-  // Fetch receipt count (only pending receipts)
+  // Fetch pending receipts count (only from receipts table)
   const fetchReceiptCount = async () => {
     try {
-      // Count expenses with receipt_id that are pending
-      const { count: expensesWithReceiptsCount, error: expensesError } = await supabase
-        .from("expenses")
-        .select("*", { count: "exact", head: true })
-        .not("receipt_id", "is", null)
-        .or("approval_status.is.null,approval_status.eq.pending");
-      
-      // Count standalone receipts that are pending
-      const { count: standaloneCount, error: receiptsError } = await supabase
+      const { count, error } = await supabase
         .from("receipts")
         .select("*", { count: "exact", head: true })
         .or("approval_status.is.null,approval_status.eq.pending");
       
-      if (expensesError) {
-        console.error("Error fetching expenses with receipts count:", expensesError);
-      }
-      if (receiptsError) {
-        console.error("Error fetching standalone receipts count:", receiptsError);
+      if (error) {
+        console.error("Error fetching pending receipts count:", error);
+        return;
       }
       
-      setReceiptCount((expensesWithReceiptsCount || 0) + (standaloneCount || 0));
+      setReceiptCount(count || 0);
     } catch (error) {
       console.error("Error fetching receipt count:", error);
     }
@@ -424,19 +414,6 @@ const TimeEntriesPage = () => {
   useEffect(() => {
     fetchReceiptCount();
     
-    const expensesChannel = supabase
-      .channel("expenses-receipts-updates")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "expenses",
-        },
-        fetchReceiptCount,
-      )
-      .subscribe();
-
     const receiptsChannel = supabase
       .channel("receipts-updates")
       .on(
@@ -451,7 +428,6 @@ const TimeEntriesPage = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(expensesChannel);
       supabase.removeChannel(receiptsChannel);
     };
   }, []);
