@@ -8,7 +8,7 @@ import { Loader2, ArrowLeft, Clock, ExternalLink, CheckCircle, FileText, Film, D
 import { supabase } from '@/integrations/supabase/client';
 import { TrainingContent } from '@/types/training';
 import { useMyTraining } from '@/hooks/useTrainingAssignments';
-import { getVideoEmbedUrl, getTrainingFileUrl } from '@/utils/trainingStorage';
+import { getVideoEmbedUrl, getTrainingFileUrl, downloadTrainingFileBlob } from '@/utils/trainingStorage';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { isIOSDevice, isIOSPWA } from '@/utils/platform';
 import { toast } from 'sonner';
@@ -66,18 +66,19 @@ export default function TrainingViewer() {
           const url = await getTrainingFileUrl(data.storage_path);
           setFileUrl(url);
           
-          // For iOS devices, create data URL fallback for PDFs
-          if (data.content_type === 'document' && isMobile && isIOSDevice() && url) {
+          // Use Supabase SDK download to bypass CORS restrictions
+          if (data.content_type === 'document' && data.storage_path) {
             try {
-              const response = await fetch(url);
-              const blob = await response.blob();
-              const reader = new FileReader();
-              reader.onload = () => {
-                setDataUrl(reader.result as string);
-              };
-              reader.readAsDataURL(blob);
+              const blob = await downloadTrainingFileBlob(data.storage_path);
+              if (blob) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  setDataUrl(reader.result as string);
+                };
+                reader.readAsDataURL(blob);
+              }
             } catch (err) {
-              console.error('Error creating data URL for iOS:', err);
+              console.error('Error creating data URL:', err);
             }
           }
           
@@ -296,7 +297,7 @@ export default function TrainingViewer() {
           <div className="w-full">
             <div className="w-full relative bg-muted/20 rounded-lg border" style={{ height: '70vh' }}>
               <iframe
-                src={fileUrl}
+                src={dataUrl || fileUrl}
                 className="absolute inset-0 w-full h-full rounded-lg border-0"
                 title={content.title}
               />

@@ -93,6 +93,29 @@ export async function deleteTrainingFile(path: string): Promise<boolean> {
 }
 
 /**
+ * Download a training file as a Blob (bypasses CORS issues)
+ */
+export async function downloadTrainingFileBlob(path: string | null): Promise<Blob | null> {
+  if (!path) return null;
+  
+  try {
+    const { data, error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .download(path);
+
+    if (error) {
+      console.error('Download blob error:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (err) {
+    console.error('downloadTrainingFileBlob error:', err);
+    return null;
+  }
+}
+
+/**
  * Get a signed URL for viewing a training file
  */
 export async function getTrainingFileUrl(path: string | null): Promise<string | null> {
