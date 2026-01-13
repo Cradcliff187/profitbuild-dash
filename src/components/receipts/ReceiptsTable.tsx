@@ -6,6 +6,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { UnifiedReceipt } from '@/hooks/useReceiptsData';
 import { ReceiptsTableHeader } from './ReceiptsTableHeader';
 import { ReceiptsTableRow } from './ReceiptsTableRow';
+import { CheckCircle, AlertCircle, Clock } from 'lucide-react';
 
 interface ReceiptsTableProps {
   receipts: UnifiedReceipt[];
@@ -22,6 +23,8 @@ interface ReceiptsTableProps {
   onReject: (receiptId: string) => void;
   onEdit: (receipt: UnifiedReceipt) => void;
   onDelete: (receiptId: string, receiptType: 'time_entry' | 'standalone') => void;
+  onSendToQuickBooks?: (receipt: UnifiedReceipt) => void;
+  showQuickBooksOption?: boolean;
   onDownload: (receipt: UnifiedReceipt) => void;
   totalCount: number;
   loading: boolean;
@@ -50,6 +53,8 @@ export const ReceiptsTable: React.FC<ReceiptsTableProps> = ({
   onReject,
   onEdit,
   onDelete,
+  onSendToQuickBooks,
+  showQuickBooksOption,
   onDownload,
   totalCount,
   loading,
@@ -100,6 +105,8 @@ export const ReceiptsTable: React.FC<ReceiptsTableProps> = ({
                     onReject={onReject}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    onSendToQuickBooks={onSendToQuickBooks}
+                    showQuickBooksOption={showQuickBooksOption}
                   />
                 ))
               )}
@@ -144,23 +151,43 @@ export const ReceiptsTable: React.FC<ReceiptsTableProps> = ({
         
         {/* Pagination */}
         {totalCount > 0 && (
-          <div className="p-3 border-t flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Rows per page:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  pagination.goToPage(1);
-                }}
-                className="border rounded px-2 py-1 text-sm"
-              >
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-                <option value="200">200</option>
-              </select>
+          <div className="p-3 border-t flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Rows per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    pagination.goToPage(1);
+                  }}
+                  className="border rounded px-2 py-1 text-sm"
+                >
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                </select>
+              </div>
+              
+              {/* QuickBooks Status Legend */}
+              <div className="flex items-center gap-3 text-xs text-muted-foreground border-l pl-4">
+                <span className="font-medium">QuickBooks:</span>
+                <div className="flex items-center gap-1" title="Synced to QuickBooks">
+                  <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                  <span>Synced</span>
+                </div>
+                <div className="flex items-center gap-1" title="QuickBooks sync failed">
+                  <AlertCircle className="h-3.5 w-3.5 text-red-600" />
+                  <span>Failed</span>
+                </div>
+                <div className="flex items-center gap-1" title="QuickBooks sync pending">
+                  <Clock className="h-3.5 w-3.5 text-yellow-600" />
+                  <span>Pending</span>
+                </div>
+              </div>
             </div>
+            
             {totalCount > pageSize && (
               <CompletePagination
                 currentPage={pagination.currentPage}

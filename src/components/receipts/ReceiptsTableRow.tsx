@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Image as ImageIcon, Edit, CheckCircle, XCircle, Download, Trash2, MoreHorizontal } from 'lucide-react';
+import { Image as ImageIcon, Edit, CheckCircle, XCircle, Download, Trash2, MoreHorizontal, Send, AlertCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,8 @@ interface ReceiptsTableRowProps {
   onReject: (receiptId: string) => void;
   onEdit: (receipt: UnifiedReceipt) => void;
   onDelete: (receiptId: string, receiptType: 'time_entry' | 'standalone') => void;
+  onSendToQuickBooks?: (receipt: UnifiedReceipt) => void;
+  showQuickBooksOption?: boolean;
 }
 
 const getStatusBadge = (status: string | null | undefined) => {
@@ -65,6 +67,8 @@ const ReceiptsTableRowComponent: React.FC<ReceiptsTableRowProps> = ({
   onReject,
   onEdit,
   onDelete,
+  onSendToQuickBooks,
+  showQuickBooksOption,
 }) => {
   return (
     <TableRow className="h-9 hover:bg-muted/50 even:bg-muted/20">
@@ -153,7 +157,18 @@ const ReceiptsTableRowComponent: React.FC<ReceiptsTableRowProps> = ({
           case 'status':
             return (
               <TableCell key={colKey} className="p-1.5">
-                {getStatusBadge(receipt.approval_status)}
+                <div className="flex items-center gap-1.5">
+                  {getStatusBadge(receipt.approval_status)}
+                  {receipt.quickbooks_sync_status === 'success' && (
+                    <CheckCircle className="h-3.5 w-3.5 text-green-600" title="Synced to QuickBooks" />
+                  )}
+                  {receipt.quickbooks_sync_status === 'failed' && (
+                    <AlertCircle className="h-3.5 w-3.5 text-red-600" title="QuickBooks sync failed" />
+                  )}
+                  {receipt.quickbooks_sync_status === 'pending' && (
+                    <Clock className="h-3.5 w-3.5 text-yellow-600" title="QuickBooks sync pending" />
+                  )}
+                </div>
               </TableCell>
             );
           
@@ -216,6 +231,31 @@ const ReceiptsTableRowComponent: React.FC<ReceiptsTableRowProps> = ({
                       <Download className="h-3 w-3 mr-2" />
                       Download
                     </DropdownMenuItem>
+                    
+                    {showQuickBooksOption && receipt.type === 'standalone' && receipt.approval_status === 'approved' && onSendToQuickBooks && (
+                      <>
+                        <DropdownMenuSeparator />
+                        {/* If already synced successfully - show disabled/grayed out option */}
+                        {receipt.quickbooks_sync_status === 'success' ? (
+                          <DropdownMenuItem disabled className="text-muted-foreground cursor-not-allowed">
+                            <CheckCircle className="h-3 w-3 mr-2 text-green-600" />
+                            Synced to QuickBooks
+                          </DropdownMenuItem>
+                        ) : receipt.quickbooks_sync_status === 'failed' ? (
+                          /* If failed - allow retry with amber/warning color */
+                          <DropdownMenuItem onClick={() => onSendToQuickBooks(receipt)}>
+                            <Send className="h-3 w-3 mr-2 text-amber-600" />
+                            Retry QuickBooks Sync
+                          </DropdownMenuItem>
+                        ) : (
+                          /* Default - not synced yet */
+                          <DropdownMenuItem onClick={() => onSendToQuickBooks(receipt)}>
+                            <Send className="h-3 w-3 mr-2 text-blue-600" />
+                            Send to QuickBooks
+                          </DropdownMenuItem>
+                        )}
+                      </>
+                    )}
                     
                     {receipt.type === 'standalone' && (!receipt.approval_status || receipt.approval_status === 'pending') && (
                       <>

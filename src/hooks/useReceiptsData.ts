@@ -23,6 +23,13 @@ export interface UnifiedReceipt {
   user_id?: string;
   captured_at?: string;
   submitted_by_name?: string;
+  quickbooks_transaction_id?: string | null;
+  quickbooks_sync_status?: 'pending' | 'success' | 'failed' | 'skipped' | null;
+  quickbooks_synced_at?: string | null;
+  quickbooks_synced_by?: string | null;
+  quickbooks_error_message?: string | null;
+  quickbooks_request_payload?: Record<string, any> | null;
+  quickbooks_response_payload?: Record<string, any> | null;
 }
 
 /**
@@ -72,6 +79,11 @@ export const useReceiptsData = () => {
           payee_id,
           project_id,
           user_id,
+          quickbooks_transaction_id,
+          quickbooks_sync_status,
+          quickbooks_synced_at,
+          quickbooks_synced_by,
+          quickbooks_error_message,
           payees(payee_name),
           projects(project_number, project_name)
         `)
@@ -119,6 +131,11 @@ export const useReceiptsData = () => {
         user_id: receipt.user_id,
         captured_at: receipt.captured_at,
         submitted_by_name: receipt.user_id ? profilesMap.get(receipt.user_id) : undefined,
+        quickbooks_transaction_id: receipt.quickbooks_transaction_id,
+        quickbooks_sync_status: receipt.quickbooks_sync_status,
+        quickbooks_synced_at: receipt.quickbooks_synced_at,
+        quickbooks_synced_by: receipt.quickbooks_synced_by,
+        quickbooks_error_message: receipt.quickbooks_error_message,
       }));
 
       // Sort by date (most recent first)
