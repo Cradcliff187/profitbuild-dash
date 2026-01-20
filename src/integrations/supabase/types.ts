@@ -296,8 +296,6 @@ export type Database = {
       }
       change_order_line_items: {
         Row: {
-          actual_cost_rate_per_hour: number | null
-          billing_rate_per_hour: number | null
           category: Database["public"]["Enums"]["expense_category"]
           change_order_id: string
           cost_per_unit: number | null
@@ -307,8 +305,6 @@ export type Database = {
           duration_days: number | null
           id: string
           is_milestone: boolean | null
-          labor_cushion_amount: number | null
-          labor_hours: number | null
           markup_amount: number | null
           payee_id: string | null
           price_per_unit: number | null
@@ -323,8 +319,6 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          actual_cost_rate_per_hour?: number | null
-          billing_rate_per_hour?: number | null
           category: Database["public"]["Enums"]["expense_category"]
           change_order_id: string
           cost_per_unit?: number | null
@@ -334,8 +328,6 @@ export type Database = {
           duration_days?: number | null
           id?: string
           is_milestone?: boolean | null
-          labor_cushion_amount?: number | null
-          labor_hours?: number | null
           markup_amount?: number | null
           payee_id?: string | null
           price_per_unit?: number | null
@@ -350,8 +342,6 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          actual_cost_rate_per_hour?: number | null
-          billing_rate_per_hour?: number | null
           category?: Database["public"]["Enums"]["expense_category"]
           change_order_id?: string
           cost_per_unit?: number | null
@@ -361,8 +351,6 @@ export type Database = {
           duration_days?: number | null
           id?: string
           is_milestone?: boolean | null
-          labor_cushion_amount?: number | null
-          labor_hours?: number | null
           markup_amount?: number | null
           payee_id?: string | null
           price_per_unit?: number | null
@@ -585,37 +573,8 @@ export type Database = {
         }
         Relationships: []
       }
-      company_settings: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          setting_key: string
-          setting_value: Json
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          setting_key: string
-          setting_value: Json
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          setting_key?: string
-          setting_value?: Json
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       estimate_line_items: {
         Row: {
-          actual_cost_rate_per_hour: number | null
-          billing_rate_per_hour: number | null
           category: Database["public"]["Enums"]["expense_category"]
           cost_per_unit: number | null
           created_at: string | null
@@ -625,8 +584,6 @@ export type Database = {
           estimate_id: string
           id: string
           is_milestone: boolean | null
-          labor_cushion_amount: number | null
-          labor_hours: number | null
           markup_amount: number | null
           markup_percent: number | null
           price_per_unit: number | null
@@ -643,8 +600,6 @@ export type Database = {
           unit: string | null
         }
         Insert: {
-          actual_cost_rate_per_hour?: number | null
-          billing_rate_per_hour?: number | null
           category: Database["public"]["Enums"]["expense_category"]
           cost_per_unit?: number | null
           created_at?: string | null
@@ -654,8 +609,6 @@ export type Database = {
           estimate_id: string
           id?: string
           is_milestone?: boolean | null
-          labor_cushion_amount?: number | null
-          labor_hours?: number | null
           markup_amount?: number | null
           markup_percent?: number | null
           price_per_unit?: number | null
@@ -672,8 +625,6 @@ export type Database = {
           unit?: string | null
         }
         Update: {
-          actual_cost_rate_per_hour?: number | null
-          billing_rate_per_hour?: number | null
           category?: Database["public"]["Enums"]["expense_category"]
           cost_per_unit?: number | null
           created_at?: string | null
@@ -683,8 +634,6 @@ export type Database = {
           estimate_id?: string
           id?: string
           is_milestone?: boolean | null
-          labor_cushion_amount?: number | null
-          labor_hours?: number | null
           markup_amount?: number | null
           markup_percent?: number | null
           price_per_unit?: number | null
@@ -793,7 +742,6 @@ export type Database = {
           target_margin_percent: number | null
           total_amount: number | null
           total_cost: number | null
-          total_labor_cushion: number | null
           updated_at: string | null
           valid_for_days: number | null
           valid_until: string | null
@@ -821,7 +769,6 @@ export type Database = {
           target_margin_percent?: number | null
           total_amount?: number | null
           total_cost?: number | null
-          total_labor_cushion?: number | null
           updated_at?: string | null
           valid_for_days?: number | null
           valid_until?: string | null
@@ -849,7 +796,6 @@ export type Database = {
           target_margin_percent?: number | null
           total_amount?: number | null
           total_cost?: number | null
-          total_labor_cushion?: number | null
           updated_at?: string | null
           valid_for_days?: number | null
           valid_until?: string | null
@@ -1176,47 +1122,6 @@ export type Database = {
           },
         ]
       }
-      feature_flags: {
-        Row: {
-          config: Json | null
-          created_at: string | null
-          description: string | null
-          enabled: boolean | null
-          flag_name: string
-          id: string
-          updated_at: string | null
-          updated_by: string | null
-        }
-        Insert: {
-          config?: Json | null
-          created_at?: string | null
-          description?: string | null
-          enabled?: boolean | null
-          flag_name: string
-          id?: string
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Update: {
-          config?: Json | null
-          created_at?: string | null
-          description?: string | null
-          enabled?: boolean | null
-          flag_name?: string
-          id?: string
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "feature_flags_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       media_comments: {
         Row: {
           comment_text: string
@@ -1280,10 +1185,7 @@ export type Database = {
           phone_numbers: string | null
           provides_labor: boolean | null
           provides_materials: boolean | null
-          quickbooks_sync_status: string | null
-          quickbooks_synced_at: string | null
           quickbooks_vendor_id: string | null
-          quickbooks_vendor_name: string | null
           requires_1099: boolean | null
           sync_status: Database["public"]["Enums"]["sync_status"] | null
           terms: string | null
@@ -1310,10 +1212,7 @@ export type Database = {
           phone_numbers?: string | null
           provides_labor?: boolean | null
           provides_materials?: boolean | null
-          quickbooks_sync_status?: string | null
-          quickbooks_synced_at?: string | null
           quickbooks_vendor_id?: string | null
-          quickbooks_vendor_name?: string | null
           requires_1099?: boolean | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
           terms?: string | null
@@ -1340,10 +1239,7 @@ export type Database = {
           phone_numbers?: string | null
           provides_labor?: boolean | null
           provides_materials?: boolean | null
-          quickbooks_sync_status?: string | null
-          quickbooks_synced_at?: string | null
           quickbooks_vendor_id?: string | null
-          quickbooks_vendor_name?: string | null
           requires_1099?: boolean | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
           terms?: string | null
@@ -1887,165 +1783,41 @@ export type Database = {
         }
         Relationships: []
       }
-      quickbooks_connections: {
-        Row: {
-          access_token: string
-          company_name: string | null
-          connected_at: string | null
-          connected_by: string | null
-          created_at: string | null
-          disconnected_at: string | null
-          disconnected_by: string | null
-          environment: string
-          id: string
-          is_active: boolean | null
-          last_error: string | null
-          last_sync_at: string | null
-          realm_id: string
-          refresh_token: string
-          token_expires_at: string
-          updated_at: string | null
-        }
-        Insert: {
-          access_token: string
-          company_name?: string | null
-          connected_at?: string | null
-          connected_by?: string | null
-          created_at?: string | null
-          disconnected_at?: string | null
-          disconnected_by?: string | null
-          environment?: string
-          id?: string
-          is_active?: boolean | null
-          last_error?: string | null
-          last_sync_at?: string | null
-          realm_id: string
-          refresh_token: string
-          token_expires_at: string
-          updated_at?: string | null
-        }
-        Update: {
-          access_token?: string
-          company_name?: string | null
-          connected_at?: string | null
-          connected_by?: string | null
-          created_at?: string | null
-          disconnected_at?: string | null
-          disconnected_by?: string | null
-          environment?: string
-          id?: string
-          is_active?: boolean | null
-          last_error?: string | null
-          last_sync_at?: string | null
-          realm_id?: string
-          refresh_token?: string
-          token_expires_at?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "quickbooks_connections_connected_by_fkey"
-            columns: ["connected_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quickbooks_connections_disconnected_by_fkey"
-            columns: ["disconnected_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      quickbooks_oauth_states: {
-        Row: {
-          created_at: string | null
-          expires_at: string
-          state: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          expires_at: string
-          state: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          expires_at?: string
-          state?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "quickbooks_oauth_states_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       quickbooks_sync_log: {
         Row: {
           created_at: string | null
-          duration_ms: number | null
           entity_id: string | null
           entity_type: string
-          environment: string | null
           error_message: string | null
           id: string
-          initiated_by: string | null
           quickbooks_id: string | null
-          request_payload: Json | null
-          response_payload: Json | null
           status: Database["public"]["Enums"]["sync_status"] | null
           sync_type: Database["public"]["Enums"]["sync_type"]
           synced_at: string | null
         }
         Insert: {
           created_at?: string | null
-          duration_ms?: number | null
           entity_id?: string | null
           entity_type: string
-          environment?: string | null
           error_message?: string | null
           id?: string
-          initiated_by?: string | null
           quickbooks_id?: string | null
-          request_payload?: Json | null
-          response_payload?: Json | null
           status?: Database["public"]["Enums"]["sync_status"] | null
           sync_type: Database["public"]["Enums"]["sync_type"]
           synced_at?: string | null
         }
         Update: {
           created_at?: string | null
-          duration_ms?: number | null
           entity_id?: string | null
           entity_type?: string
-          environment?: string | null
           error_message?: string | null
           id?: string
-          initiated_by?: string | null
           quickbooks_id?: string | null
-          request_payload?: Json | null
-          response_payload?: Json | null
           status?: Database["public"]["Enums"]["sync_status"] | null
           sync_type?: Database["public"]["Enums"]["sync_type"]
           synced_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "quickbooks_sync_log_initiated_by_fkey"
-            columns: ["initiated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       quote_line_items: {
         Row: {
@@ -2234,13 +2006,6 @@ export type Database = {
           image_url: string
           payee_id: string | null
           project_id: string | null
-          quickbooks_error_message: string | null
-          quickbooks_request_payload: Json | null
-          quickbooks_response_payload: Json | null
-          quickbooks_sync_status: string | null
-          quickbooks_synced_at: string | null
-          quickbooks_synced_by: string | null
-          quickbooks_transaction_id: string | null
           rejection_reason: string | null
           submitted_for_approval_at: string | null
           updated_at: string
@@ -2258,13 +2023,6 @@ export type Database = {
           image_url: string
           payee_id?: string | null
           project_id?: string | null
-          quickbooks_error_message?: string | null
-          quickbooks_request_payload?: Json | null
-          quickbooks_response_payload?: Json | null
-          quickbooks_sync_status?: string | null
-          quickbooks_synced_at?: string | null
-          quickbooks_synced_by?: string | null
-          quickbooks_transaction_id?: string | null
           rejection_reason?: string | null
           submitted_for_approval_at?: string | null
           updated_at?: string
@@ -2282,13 +2040,6 @@ export type Database = {
           image_url?: string
           payee_id?: string | null
           project_id?: string | null
-          quickbooks_error_message?: string | null
-          quickbooks_request_payload?: Json | null
-          quickbooks_response_payload?: Json | null
-          quickbooks_sync_status?: string | null
-          quickbooks_synced_at?: string | null
-          quickbooks_synced_by?: string | null
-          quickbooks_transaction_id?: string | null
           rejection_reason?: string | null
           submitted_for_approval_at?: string | null
           updated_at?: string
@@ -2314,13 +2065,6 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "receipts_quickbooks_synced_by_fkey"
-            columns: ["quickbooks_synced_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2976,10 +2720,6 @@ export type Database = {
         Args: { project_id_param: string }
         Returns: number
       }
-      calculate_estimate_labor_cushion: {
-        Args: { p_estimate_id: string }
-        Returns: number
-      }
       calculate_project_margins: {
         Args: { project_id_param: string }
         Returns: undefined
@@ -3000,7 +2740,6 @@ export type Database = {
           schedule: string
         }[]
       }
-      cleanup_expired_oauth_states: { Args: never; Returns: undefined }
       create_estimate_version: {
         Args: { new_version_number?: number; source_estimate_id: string }
         Returns: string
@@ -3149,10 +2888,6 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
-      }
-      refresh_estimate_labor_cushion: {
-        Args: { p_estimate_id: string }
-        Returns: number
       }
       rollback_cost_migration_final: { Args: never; Returns: undefined }
     }
