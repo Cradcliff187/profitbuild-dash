@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Save, Plus, Trash2, Calculator, FolderOpen, ArrowLeft, Copy, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 import { MoreHorizontal } from "lucide-react";
+import { useInternalLaborRates } from "@/hooks/useCompanySettings";
+import { calculateTotalLaborCushion, createLaborLineItemDefaults } from "@/utils/laborCalculations";
+import { EstimateTotalsRow } from "@/components/estimates/EstimateTotalsRow";
+import { EstimateSummaryCard } from "@/components/estimates/EstimateSummaryCard";
 
 
 
@@ -80,6 +84,9 @@ export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjec
   
   // Copy estimate workflow
   const [copyFromEstimate, setCopyFromEstimate] = useState<string | null>(sourceEstimateIdFromUrl || null);
+  
+  // Fetch default labor rates for auto-populating new labor line items
+  const { data: defaultLaborRates } = useInternalLaborRates();
 
 useEffect(() => {
   // Load available projects once on mount
@@ -88,9 +95,8 @@ useEffect(() => {
   // Initialize line items
   if (initialEstimate) {
     loadEstimateLineItems(initialEstimate.id);
-  } else {
-    setLineItems([createNewLineItem()]);
   }
+  // Start with empty line items - user will add as needed
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 
@@ -221,7 +227,11 @@ useEffect(() => {
         markupPercent: item.markup_percent,
         markupAmount: item.markup_amount,
         totalCost: item.total_cost || 0,
-        totalMarkup: item.total_markup || 0
+        totalMarkup: item.total_markup || 0,
+        laborHours: item.labor_hours,
+        billingRatePerHour: item.billing_rate_per_hour,
+        actualCostRatePerHour: item.actual_cost_rate_per_hour,
+        laborCushionAmount: item.labor_cushion_amount
       })) || [];
 
       // Track original line item IDs for diff-based updates
@@ -237,7 +247,7 @@ useEffect(() => {
     setCopyFromEstimate(selectedEstimateId);
     
     if (!selectedEstimateId) {
-      setLineItems([createNewLineItem()]);
+      setLineItems([]); // Start with empty list - user adds items as needed
       setContingencyPercent(10.0);
       setNotes('');
       return;
@@ -326,12 +336,13 @@ useEffect(() => {
     return !item.description.trim() || item.id.includes(Date.now().toString().slice(-5));
   };
 
-  const createNewLineItem = (category: LineItemCategory = LineItemCategory.LABOR): LineItem => {
-    // Get default unit for the category
+  const createNewLineItem = (category: LineItemCategory = LineItemCategory.MATERIALS): LineItem => {
+    // Get default unit for the category (now defaults to Materials instead of Labor)
+    // This prevents auto-creating labor lines with $0.00 before rates load
     const recommendedUnits = getRecommendedUnitCodes(category);
     const defaultUnit = recommendedUnits[0] || 'EA';
-
-    return {
+    
+    const baseItem = {
       id: Date.now().toString() + Math.random(),
       category,
       description: '',
@@ -346,6 +357,27 @@ useEffect(() => {
       totalCost: 0,
       totalMarkup: 0
     };
+
+    // Auto-populate labor fields if creating a labor item and default rates exist
+    if (category === LineItemCategory.LABOR && defaultLaborRates) {
+      const laborDefaults = createLaborLineItemDefaults(defaultLaborRates, 1, 25);
+      return {
+        ...baseItem,
+        quantity: laborDefaults.quantity,
+        unit: laborDefaults.unit,
+        costPerUnit: laborDefaults.costPerUnit, // Billing rate
+        pricePerUnit: laborDefaults.pricePerUnit, // Billing rate + markup
+        totalCost: laborDefaults.costPerUnit * laborDefaults.quantity,
+        total: laborDefaults.pricePerUnit * laborDefaults.quantity,
+        totalMarkup: (laborDefaults.pricePerUnit - laborDefaults.costPerUnit) * laborDefaults.quantity,
+        laborHours: laborDefaults.laborHours,
+        billingRatePerHour: laborDefaults.billingRatePerHour,
+        actualCostRatePerHour: laborDefaults.actualCostRatePerHour,
+        laborCushionAmount: laborDefaults.laborHours * (laborDefaults.billingRatePerHour - laborDefaults.actualCostRatePerHour)
+      };
+    }
+
+    return baseItem;
   };
 
   const updateLineItem = (id: string, field: keyof LineItem, value: any) => {
@@ -354,10 +386,28 @@ useEffect(() => {
         if (item.id === id) {
           const updated = { ...item, [field]: value };
           
-          // If category is changing on a new item, update unit to new category's default
-          if (field === 'category' && isNewItem(item)) {
+          // If category is changing, update unit and potentially auto-populate labor rates
+          if (field === 'category') {
+            // Update unit to new category's default
             const recommendedUnits = getRecommendedUnitCodes(value);
             updated.unit = recommendedUnits[0] || 'EA';
+            
+            // Auto-populate labor rates when switching to Labor category
+            if (value === LineItemCategory.LABOR && defaultLaborRates) {
+              const laborDefaults = createLaborLineItemDefaults(
+                defaultLaborRates, 
+                updated.quantity || 1, 
+                updated.markupPercent || 25
+              );
+              
+              // Populate all labor-specific fields
+              updated.costPerUnit = laborDefaults.costPerUnit; // Billing rate
+              updated.pricePerUnit = laborDefaults.pricePerUnit; // Billing rate + markup
+              updated.laborHours = laborDefaults.laborHours;
+              updated.billingRatePerHour = laborDefaults.billingRatePerHour;
+              updated.actualCostRatePerHour = laborDefaults.actualCostRatePerHour;
+              updated.laborCushionAmount = laborDefaults.laborHours * (laborDefaults.billingRatePerHour - laborDefaults.actualCostRatePerHour);
+            }
           }
           
           // Recalculate derived values based on what changed
@@ -369,6 +419,25 @@ useEffect(() => {
             } else if (updated.markupAmount !== null) {
               // Fixed amount markup
               updated.pricePerUnit = updated.costPerUnit + updated.markupAmount;
+            }
+          }
+          
+          // Update labor-specific fields when relevant values change on labor items
+          if (updated.category === LineItemCategory.LABOR || updated.category === 'labor_internal') {
+            // Update laborHours when quantity changes (for HR unit)
+            if (updated.unit === 'HR' || updated.unit === 'hr') {
+              updated.laborHours = updated.quantity;
+            }
+            
+            // Sync billingRatePerHour with costPerUnit when cost changes
+            // (costPerUnit represents the billing rate for labor items)
+            if (field === 'costPerUnit') {
+              updated.billingRatePerHour = updated.costPerUnit;
+            }
+            
+            // Recalculate labor cushion if we have the required rates
+            if (updated.billingRatePerHour && updated.actualCostRatePerHour && updated.laborHours) {
+              updated.laborCushionAmount = updated.laborHours * (updated.billingRatePerHour - updated.actualCostRatePerHour);
             }
           }
           
@@ -450,6 +519,67 @@ useEffect(() => {
     const total = calculateTotal();
     return total * (contingencyPercent / 100);
   };
+
+  const calculateTotalLaborCushionAmount = () => {
+    return calculateTotalLaborCushion(lineItems);
+  };
+
+  // Calculate detailed labor metrics for summary card
+  const calculateLaborMetrics = () => {
+    const laborItems = lineItems.filter(item => 
+      item.category === LineItemCategory.LABOR && 
+      item.laborHours && 
+      item.billingRatePerHour && 
+      item.actualCostRatePerHour
+    );
+
+    if (laborItems.length === 0) {
+      return {
+        laborHours: 0,
+        laborActualCost: 0,
+        laborBillingTotal: 0,
+        laborClientPrice: 0,
+        laborStandardMarkup: 0,
+        laborAvgActualRate: 0,
+        laborAvgBillingRate: 0,
+      };
+    }
+
+    const totalHours = laborItems.reduce((sum, item) => sum + (item.laborHours || 0), 0);
+    const totalActualCost = laborItems.reduce((sum, item) => 
+      sum + ((item.laborHours || 0) * (item.actualCostRatePerHour || 0)), 0
+    );
+    const totalBillingAmount = laborItems.reduce((sum, item) => 
+      sum + ((item.laborHours || 0) * (item.billingRatePerHour || 0)), 0
+    );
+    const totalClientPrice = laborItems.reduce((sum, item) => sum + item.total, 0);
+    const totalStandardMarkup = totalClientPrice - totalBillingAmount;
+
+    const avgActualRate = totalHours > 0 ? totalActualCost / totalHours : 0;
+    const avgBillingRate = totalHours > 0 ? totalBillingAmount / totalHours : 0;
+    
+    // Calculate cushion hours capacity - how many additional hours the cushion can cover
+    const laborCushion = totalBillingAmount - totalActualCost;
+    const cushionHoursCapacity = avgActualRate > 0 ? laborCushion / avgActualRate : 0;
+    const totalLaborCapacity = totalHours + cushionHoursCapacity;
+    const scheduleBufferPercent = totalHours > 0 ? (cushionHoursCapacity / totalHours) * 100 : 0;
+
+    return {
+      laborHours: totalHours,
+      laborActualCost: totalActualCost,
+      laborBillingTotal: totalBillingAmount,
+      laborClientPrice: totalClientPrice,
+      laborStandardMarkup: totalStandardMarkup,
+      laborAvgActualRate: avgActualRate,
+      laborAvgBillingRate: avgBillingRate,
+      cushionHoursCapacity: cushionHoursCapacity,
+      totalLaborCapacity: totalLaborCapacity,
+      scheduleBufferPercent: scheduleBufferPercent,
+    };
+  };
+
+  // Memoize labor metrics to avoid recalculating 10+ times per render
+  const laborMetrics = useMemo(() => calculateLaborMetrics(), [lineItems]);
 
   const handleSave = async () => {
     const validLineItems = lineItems.filter(item => item.description.trim());
@@ -580,7 +710,10 @@ useEffect(() => {
             sort_order: index,
             cost_per_unit: item.costPerUnit || 0,
             markup_percent: item.markupPercent,
-            markup_amount: item.markupAmount
+            markup_amount: item.markupAmount,
+            labor_hours: item.category === LineItemCategory.LABOR ? (item.laborHours || null) : null,
+            billing_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.billingRatePerHour || null) : null,
+            actual_cost_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.actualCostRatePerHour || null) : null
           }));
 
           const { error: lineItemsError } = await supabase
@@ -605,6 +738,11 @@ useEffect(() => {
             is_current_version: true,
             status: 'draft'
           };
+
+          // Refresh labor cushion after saving
+          await supabase.rpc('refresh_estimate_labor_cushion', {
+            p_estimate_id: newVersionId
+          });
 
           onSave(newVersionEstimate);
           
@@ -652,7 +790,10 @@ useEffect(() => {
                   cost_per_unit: item.costPerUnit || 0,
                   markup_percent: item.markupPercent,
                   markup_amount: item.markupAmount,
-                  sort_order: validLineItems.indexOf(item)
+                  sort_order: validLineItems.indexOf(item),
+                  labor_hours: item.category === LineItemCategory.LABOR ? (item.laborHours || null) : null,
+                  billing_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.billingRatePerHour || null) : null,
+                  actual_cost_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.actualCostRatePerHour || null) : null
                 })
                 .eq('id', item.id);
               
@@ -675,7 +816,10 @@ useEffect(() => {
               sort_order: validLineItems.indexOf(item),
               cost_per_unit: item.costPerUnit || 0,
               markup_percent: item.markupPercent,
-              markup_amount: item.markupAmount
+              markup_amount: item.markupAmount,
+              labor_hours: item.category === LineItemCategory.LABOR ? (item.laborHours || null) : null,
+              billing_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.billingRatePerHour || null) : null,
+              actual_cost_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.actualCostRatePerHour || null) : null
             }));
 
             const { error: insertError } = await supabase
@@ -712,6 +856,11 @@ useEffect(() => {
             updated_at: new Date(estimateData.updated_at),
             lineItems: validLineItems,
           };
+
+          // Refresh labor cushion after saving
+          await supabase.rpc('refresh_estimate_labor_cushion', {
+            p_estimate_id: initialEstimate.id
+          });
 
           onSave(updatedEstimate);
           
@@ -792,7 +941,10 @@ useEffect(() => {
             sort_order: index,
             cost_per_unit: item.costPerUnit || 0,
             markup_percent: item.markupPercent,
-            markup_amount: item.markupAmount
+            markup_amount: item.markupAmount,
+            labor_hours: item.category === LineItemCategory.LABOR ? (item.laborHours || null) : null,
+            billing_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.billingRatePerHour || null) : null,
+            actual_cost_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.actualCostRatePerHour || null) : null
           }));
 
           const { error: lineItemsError } = await supabase
@@ -827,6 +979,11 @@ useEffect(() => {
             defaultMarkupPercent: 25,
             targetMarginPercent: 20
           };
+
+          // Refresh labor cushion after saving
+          await supabase.rpc('refresh_estimate_labor_cushion', {
+            p_estimate_id: newVersionId
+          });
 
           onSave(newEstimate);
           
@@ -886,7 +1043,10 @@ useEffect(() => {
             sort_order: index,
             cost_per_unit: item.costPerUnit || 0,
             markup_percent: item.markupPercent,
-            markup_amount: item.markupAmount
+            markup_amount: item.markupAmount,
+            labor_hours: item.category === LineItemCategory.LABOR ? (item.laborHours || null) : null,
+            billing_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.billingRatePerHour || null) : null,
+            actual_cost_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.actualCostRatePerHour || null) : null
           }));
 
           console.log('Creating line items:', lineItemsData);
@@ -930,6 +1090,11 @@ useEffect(() => {
           };
 
           console.log('Final estimate object:', newEstimate);
+
+          // Refresh labor cushion after saving
+          await supabase.rpc('refresh_estimate_labor_cushion', {
+            p_estimate_id: createdEstimate.id
+          });
 
           onSave(newEstimate);
           
@@ -1064,7 +1229,7 @@ useEffect(() => {
                     checked={!copyFromEstimate}
                     onChange={() => {
                       setCopyFromEstimate(null);
-                      setLineItems([createNewLineItem()]);
+                      setLineItems([]); // Start with empty list - user adds items as needed
                       setContingencyPercent(10.0);
                       setNotes('');
                     }}
@@ -1420,71 +1585,28 @@ useEffect(() => {
           </Card>
 
           {/* Estimate Summary Section - Mobile Optimized */}
-          <Card>
-            <CardHeader className="p-3 pb-2">
-              <CardTitle className="text-sm font-semibold">Estimate Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">Subtotal</div>
-                  <div className="text-base font-bold font-mono">{formatCurrency(calculateTotal())}</div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">Total Cost</div>
-                  <div className="text-base font-bold font-mono">{formatCurrency(calculateTotalCost())}</div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">Gross Profit</div>
-                  <div className={cn(
-                    "text-base font-bold font-mono",
-                    calculateGrossProfit() < 0 ? "text-destructive" : "text-success"
-                  )}>
-                    {formatCurrency(calculateGrossProfit())}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">Gross Margin</div>
-                  <div className={cn(
-                    "text-base font-bold font-mono",
-                    calculateGrossMarginPercent() < 0 ? "text-destructive" :
-                    calculateGrossMarginPercent() < 20 ? "text-warning" : "text-success"
-                  )}>
-                    {calculateGrossMarginPercent().toFixed(1)}%
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="text-xs text-muted-foreground">Contingency</div>
-                    <div className="text-sm font-semibold font-mono">{formatCurrency(calculateContingencyAmount())}</div>
-                  </div>
-                  {mode !== 'view' && (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        max="100"
-                        value={contingencyPercent}
-                        onChange={(e) => setContingencyPercent(parseFloat(e.target.value) || 0)}
-                        className="w-16 h-8 text-xs font-mono text-right"
-                      />
-                      <span className="text-xs text-muted-foreground">%</span>
-                    </div>
-                  )}
-                </div>
-                <div className="pt-2 border-t">
-                  <div className="text-xs text-muted-foreground mb-1">Total with Contingency</div>
-                  <div className="text-lg font-bold font-mono text-success">
-                    {formatCurrency(calculateTotal() + calculateContingencyAmount())}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <EstimateSummaryCard
+            subtotal={calculateTotal()}
+            totalCost={calculateTotalCost()}
+            grossProfit={calculateGrossProfit()}
+            grossMarginPercent={calculateGrossMarginPercent()}
+            contingencyPercent={contingencyPercent}
+            contingencyAmount={calculateContingencyAmount()}
+            totalWithContingency={calculateTotal() + calculateContingencyAmount()}
+            laborCushion={calculateTotalLaborCushionAmount() > 0 ? calculateTotalLaborCushionAmount() : undefined}
+            laborHours={laborMetrics.laborHours}
+            laborActualCost={laborMetrics.laborActualCost}
+            laborBillingTotal={laborMetrics.laborBillingTotal}
+            laborClientPrice={laborMetrics.laborClientPrice}
+            laborStandardMarkup={laborMetrics.laborStandardMarkup}
+            laborAvgActualRate={laborMetrics.laborAvgActualRate}
+            laborAvgBillingRate={laborMetrics.laborAvgBillingRate}
+            cushionHoursCapacity={laborMetrics.cushionHoursCapacity}
+            totalLaborCapacity={laborMetrics.totalLaborCapacity}
+            scheduleBufferPercent={laborMetrics.scheduleBufferPercent}
+            onContingencyChange={mode !== 'view' ? setContingencyPercent : undefined}
+            readOnly={mode === 'view'}
+          />
 
           {/* Actions */}
           <div className="space-y-2 pb-4">
@@ -1674,7 +1796,7 @@ useEffect(() => {
                       checked={!copyFromEstimate}
                       onChange={() => {
                         setCopyFromEstimate(null);
-                        setLineItems([createNewLineItem()]);
+                        setLineItems([]); // Start with empty list - user adds items as needed
                         setContingencyPercent(10.0);
                         setNotes('');
                       }}
@@ -1852,92 +1974,35 @@ useEffect(() => {
               }}
               onDuplicateLineItem={duplicateLineItem}
               readOnly={mode === 'view'}
+              showTotalsRow={true}
             />
           </div>
 
 
-          {/* Estimate Summary Section */}
-          <div className="bg-slate-100 border-2 border-slate-300 rounded-lg p-4 mt-6">
-            <h3 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Estimate Summary</h3>
-            
-            {/* Calculated Totals */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 mb-3 items-stretch">
-              <CalculatedField
-                label="Subtotal"
-                value={calculateTotal()}
-                formula="Sum of all line item totals"
-                tooltip="Total of all line items before contingency"
-                variant="default"
-                prefix="$"
-              />
-              
-              <CalculatedField
-                label="Total Estimated Cost"
-                value={calculateTotalCost()}
-                formula="Sum of all line item costs"
-                tooltip="Total internal costs for all line items"
-                variant="default"
-                prefix="$"
-              />
-              
-              <CalculatedField
-                label="Estimated Gross Profit"
-                value={calculateGrossProfit()}
-                formula="Subtotal - Total Cost"
-                tooltip="Expected profit: Subtotal minus total costs"
-                variant={calculateGrossProfit() < 0 ? "destructive" : "success"}
-                prefix="$"
-              />
-              
-              <CalculatedField
-                label="Estimated Gross Margin"
-                value={`${calculateGrossMarginPercent().toFixed(1)}%`}
-                formula="(Gross Profit / Subtotal) × 100"
-                tooltip="Profit margin percentage"
-                variant={
-                  calculateGrossMarginPercent() < 0 
-                    ? "destructive" 
-                    : calculateGrossMarginPercent() < 20 
-                      ? "warning" 
-                      : "success"
-                }
-              />
-              
-              <div className="relative">
-                <CalculatedField
-                  label={`Contingency (${contingencyPercent}%)`}
-                  value={calculateContingencyAmount()}
-                  formula={`${contingencyPercent}% of Subtotal`}
-                  tooltip="Click to edit contingency percentage"
-                  variant="default"
-                  prefix="$"
-                />
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  value={contingencyPercent}
-                  onChange={(e) => setContingencyPercent(parseFloat(e.target.value) || 0)}
-                  className="absolute top-1 right-1 w-12 h-5 px-1 text-xs border rounded text-right bg-white/90 hover:bg-white focus:bg-white focus:ring-1 focus:ring-primary"
-                  title="Edit contingency percentage"
-                />
-              </div>
-            </div>
-
-            {/* Final Total */}
-            <div className="border-t-2 border-slate-300 pt-3">
-              <CalculatedField
-                label="Total with Contingency"
-                value={calculateTotal() + calculateContingencyAmount()}
-                formula="Subtotal + Contingency Amount"
-                tooltip="Final estimate total including contingency"
-                variant="success"
-                className="text-center"
-                prefix="$"
-              />
-            </div>
-          </div>
+          {/* Estimate Summary Section - NEW DESIGN */}
+          <EstimateSummaryCard
+            subtotal={calculateTotal()}
+            totalCost={calculateTotalCost()}
+            grossProfit={calculateGrossProfit()}
+            grossMarginPercent={calculateGrossMarginPercent()}
+            contingencyPercent={contingencyPercent}
+            contingencyAmount={calculateContingencyAmount()}
+            totalWithContingency={calculateTotal() + calculateContingencyAmount()}
+            laborCushion={calculateTotalLaborCushionAmount() > 0 ? calculateTotalLaborCushionAmount() : undefined}
+            laborHours={laborMetrics.laborHours}
+            laborActualCost={laborMetrics.laborActualCost}
+            laborBillingTotal={laborMetrics.laborBillingTotal}
+            laborClientPrice={laborMetrics.laborClientPrice}
+            laborStandardMarkup={laborMetrics.laborStandardMarkup}
+            laborAvgActualRate={laborMetrics.laborAvgActualRate}
+            laborAvgBillingRate={laborMetrics.laborAvgBillingRate}
+            cushionHoursCapacity={laborMetrics.cushionHoursCapacity}
+            totalLaborCapacity={laborMetrics.totalLaborCapacity}
+            scheduleBufferPercent={laborMetrics.scheduleBufferPercent}
+            onContingencyChange={mode !== 'view' ? setContingencyPercent : undefined}
+            readOnly={mode === 'view'}
+            className="mt-6"
+          />
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">

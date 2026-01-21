@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit, Trash2, Copy, Plus, MoreHorizontal } from 'lucide-react';
+import { Edit, Trash2, Copy, Plus, MoreHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,11 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Label } from '@/components/ui/label';
 import { LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { formatQuantityWithUnit } from '@/utils/units';
 import { formatCurrency, cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getCategoryDotClasses } from '@/utils/categoryColors';
+import { useInternalLaborRates } from '@/hooks/useCompanySettings';
+import { EstimateTotalsRow } from '@/components/estimates/EstimateTotalsRow';
 
 interface LineItemTableProps {
   lineItems: LineItem[];
@@ -21,6 +25,7 @@ interface LineItemTableProps {
   onEditDetails: (lineItem: LineItem) => void;
   onDuplicateLineItem?: (lineItem: LineItem) => void;
   readOnly?: boolean;
+  showTotalsRow?: boolean;
 }
 
 const getCategoryAbbrev = (category: LineItemCategory): string => {
@@ -165,8 +170,33 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
   onEditDetails,
   onDuplicateLineItem,
   readOnly = false,
+  showTotalsRow = false,
 }) => {
   const isMobile = useIsMobile();
+  const { data: laborRates } = useInternalLaborRates();
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  const toggleRowExpansion = (lineItemId: string) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(lineItemId)) {
+        next.delete(lineItemId);
+      } else {
+        next.add(lineItemId);
+      }
+      return next;
+    });
+  };
+
+  const calculateLaborCushion = (lineItem: LineItem): number => {
+    if (lineItem.category !== LineItemCategory.LABOR && lineItem.category !== 'labor_internal') return 0;
+    // Use laborHours if set, otherwise use quantity when unit is "hr"
+    const hours = lineItem.laborHours ?? (lineItem.unit === 'HR' || lineItem.unit === 'hr' ? lineItem.quantity : 0);
+    const billingRate = lineItem.billingRatePerHour || laborRates?.billing_rate_per_hour || 0;
+    const actualRate = lineItem.actualCostRatePerHour || laborRates?.actual_cost_per_hour || 0;
+    return hours * (billingRate - actualRate);
+  };
+
   const calculateMarkupPercent = (lineItem: LineItem): number => {
     const { costPerUnit, pricePerUnit } = lineItem;
     if (costPerUnit <= 0) return 0;
@@ -222,6 +252,16 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
     }
   };
 
+  // Calculate totals for the totals row
+  const calculateTotals = () => {
+    const totalCost = lineItems.reduce((sum, item) => sum + calculateTotalCost(item), 0);
+    const totalMarkup = lineItems.reduce((sum, item) => sum + calculateMarkupAmount(item), 0);
+    const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
+    const avgMarkupPercent = totalCost > 0 ? (totalMarkup / totalCost) * 100 : 0;
+    
+    return { totalCost, totalMarkup, subtotal, avgMarkupPercent };
+  };
+
   return (
     <div className="space-y-4">
       {lineItems.length === 0 ? (
@@ -246,36 +286,65 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lineItems.map((lineItem) => (
-                <TableRow key={lineItem.id} className={cn("hover:bg-muted/20", isMobile ? "h-[36px]" : "h-[32px]")}>
-                  <TableCell className="p-2">
-                    <div className="flex items-center gap-1">
-                      <div className={`w-1.5 h-1.5 rounded-full ${getCategoryDotClasses(lineItem.category)}`} />
-                      {readOnly ? (
-                        <Badge variant="outline" className="text-[10px] px-1 py-0 h-3.5">
-                          {getCategoryAbbrev(lineItem.category)}
-                        </Badge>
-                      ) : (
-                        <Select
-                          value={lineItem.category}
-                          onValueChange={(value) => onUpdateLineItem(lineItem.id, 'category', value)}
-                        >
-                          <SelectTrigger className="h-[28px] border-0 bg-transparent p-0 hover:bg-muted/50">
-                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-3.5 cursor-pointer">
+              {lineItems.map((lineItem) => {
+                const isLaborInternal = lineItem.category === LineItemCategory.LABOR || lineItem.category === 'labor_internal';
+                const cushion = calculateLaborCushion(lineItem);
+                const isExpanded = expandedRows.has(lineItem.id);
+                const hasCushion = cushion > 0;
+                const effectiveHours = lineItem.laborHours ?? (lineItem.unit === 'HR' || lineItem.unit === 'hr' ? lineItem.quantity : 0);
+
+                return (
+                  <React.Fragment key={lineItem.id}>
+                    <TableRow className={cn("hover:bg-muted/20", isMobile ? "h-[36px]" : "h-[32px]")}>
+                      <TableCell className="p-2">
+                        <div className="flex items-center gap-1">
+                          <div className={`w-1.5 h-1.5 rounded-full ${getCategoryDotClasses(lineItem.category)}`} />
+                          {readOnly ? (
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-3.5">
                               {getCategoryAbbrev(lineItem.category)}
                             </Badge>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(CATEGORY_DISPLAY_MAP).map(([key, label]) => (
-                              <SelectItem key={key} value={key} className="text-xs">
-                                {label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                  </TableCell>
+                          ) : (
+                            <Select
+                              value={lineItem.category}
+                              onValueChange={(value) => onUpdateLineItem(lineItem.id, 'category', value)}
+                            >
+                              <SelectTrigger className="h-[28px] border-0 bg-transparent p-0 hover:bg-muted/50">
+                                <Badge variant="outline" className="text-[10px] px-1 py-0 h-3.5 cursor-pointer">
+                                  {getCategoryAbbrev(lineItem.category)}
+                                </Badge>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(CATEGORY_DISPLAY_MAP).map(([key, label]) => (
+                                  <SelectItem key={key} value={key} className="text-xs">
+                                    {label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          {isLaborInternal && !readOnly && (
+                            <Collapsible open={isExpanded} onOpenChange={() => toggleRowExpansion(lineItem.id)}>
+                              <CollapsibleTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-4 w-4 p-0 hover:bg-muted/50"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleRowExpansion(lineItem.id);
+                                  }}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronUp className="h-3 w-3" />
+                                  ) : (
+                                    <ChevronDown className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              </CollapsibleTrigger>
+                            </Collapsible>
+                          )}
+                        </div>
+                      </TableCell>
                   <TableCell className="p-2">
                     {readOnly ? (
                       <div className="text-xs px-2 py-1">{lineItem.description}</div>
@@ -410,7 +479,83 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                     )}
                   </TableCell>
                 </TableRow>
-              ))}
+                {isLaborInternal && isExpanded && (
+                  <TableRow className="bg-muted/30">
+                    <TableCell colSpan={9} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-semibold">Internal Labor Cushion Details</Label>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => onEditDetails(lineItem)}
+                          >
+                            <Edit className="h-3 w-3 mr-1.5" />
+                            Edit Labor Details
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                          <div>
+                            <Label className="text-muted-foreground">Labor Hours</Label>
+                            <div className="font-mono font-semibold mt-1">
+                              {effectiveHours > 0 ? effectiveHours.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '-'} hrs
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">Billing Rate</Label>
+                            <div className="font-mono font-semibold mt-1">
+                              {formatCurrency(lineItem.billingRatePerHour || laborRates?.billing_rate_per_hour || 0)}/hr
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">Actual Cost Rate</Label>
+                            <div className="font-mono font-semibold mt-1">
+                              {formatCurrency(lineItem.actualCostRatePerHour || laborRates?.actual_cost_per_hour || 0)}/hr
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">Labor Cushion</Label>
+                            <div className="font-mono font-semibold mt-1 text-green-600">
+                              {formatCurrency(cushion)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Billing Total:</span>
+                            <span className="font-mono font-semibold">
+                              {formatCurrency(effectiveHours * (lineItem.billingRatePerHour || laborRates?.billing_rate_per_hour || 0))}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Actual Cost:</span>
+                            <span className="font-mono font-semibold">
+                              {formatCurrency(effectiveHours * (lineItem.actualCostRatePerHour || laborRates?.actual_cost_per_hour || 0))}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Client Price (with markup):</span>
+                            <span className="font-mono font-semibold">{formatCurrency(lineItem.total)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </React.Fragment>
+                );
+              })}
+              
+              {/* Totals Row */}
+              {showTotalsRow && lineItems.length > 0 && (
+                <EstimateTotalsRow
+                  totalCost={calculateTotals().totalCost}
+                  totalMarkup={calculateTotals().totalMarkup}
+                  avgMarkupPercent={calculateTotals().avgMarkupPercent}
+                  subtotal={calculateTotals().subtotal}
+                />
+              )}
             </TableBody>
           </Table>
           </div>
