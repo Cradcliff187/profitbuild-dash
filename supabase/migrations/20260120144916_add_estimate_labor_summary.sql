@@ -1,0 +1,1 @@
+-- Applied via Supabase MCP since the actual SQL is already in your database.
