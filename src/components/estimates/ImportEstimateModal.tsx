@@ -154,7 +154,7 @@ export function ImportEstimateModal({ isOpen, onClose, onImport }: Props) {
           {step === 'review' && parseResult && (
             <div className="space-y-4">
               {/* Extraction metadata */}
-              <div className="bg-muted/50 rounded-lg p-3 text-sm">
+              <div className="bg-muted/50 rounded-lg p-2 text-sm">
                 <div className="flex flex-wrap gap-4">
                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -204,7 +204,7 @@ export function ImportEstimateModal({ isOpen, onClose, onImport }: Props) {
                 <span className="text-sm text-muted-foreground">{file?.name}</span>
               </div>
 
-              <div className="border rounded-lg overflow-hidden max-h-[40vh] overflow-auto">
+              <div className="border rounded-lg overflow-hidden max-h-[50vh] overflow-auto">
                 <Table>
                   <TableHeader className="sticky top-0 bg-background">
                     <TableRow>
