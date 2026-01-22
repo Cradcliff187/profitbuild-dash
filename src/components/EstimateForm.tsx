@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Save, Plus, Trash2, Calculator, FolderOpen, ArrowLeft, Copy, Edit } from "lucide-react";
+import { Save, Plus, Trash2, Calculator, FolderOpen, ArrowLeft, Copy, Edit, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +39,7 @@ import { useInternalLaborRates } from "@/hooks/useCompanySettings";
 import { calculateTotalLaborCushion, createLaborLineItemDefaults } from "@/utils/laborCalculations";
 import { EstimateTotalsRow } from "@/components/estimates/EstimateTotalsRow";
 import { EstimateSummaryCard } from "@/components/estimates/EstimateSummaryCard";
+import { ImportEstimateModal } from "@/components/estimates/ImportEstimateModal";
 
 
 
@@ -79,6 +80,7 @@ export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjec
   // View state for line items
   const [selectedLineItemForEdit, setSelectedLineItemForEdit] = useState<LineItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [showProjectCreation, setShowProjectCreation] = useState(false);
   
@@ -461,6 +463,14 @@ useEffect(() => {
 
   const addLineItem = () => {
     setLineItems(prev => [...prev, createNewLineItem()]);
+  };
+
+  const handleImportItems = (items: any[]) => {
+    setLineItems(prev => [...prev, ...items]);
+    toast({
+      title: "Items Imported",
+      description: `Added ${items.length} line items to estimate`,
+    });
   };
 
   const duplicateLineItem = (lineItem: LineItem) => {
@@ -1388,10 +1398,15 @@ useEffect(() => {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Line Items</CardTitle>
                 {mode !== 'view' && (
-                  <Button onClick={addLineItem} variant="default" size="sm" className="h-8">
-                    <Plus className="h-3.5 w-3.5 mr-1.5" />
-                    Add
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button onClick={() => setShowImportModal(true)} variant="outline" size="sm" className="h-8">
+                      <Upload className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button onClick={addLineItem} variant="default" size="sm" className="h-8">
+                      <Plus className="h-3.5 w-3.5 mr-1.5" />
+                      Add
+                    </Button>
+                  </div>
                 )}
               </div>
             </CardHeader>
@@ -1956,10 +1971,16 @@ useEffect(() => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-2 border-b">
               <RequiredLabel className="text-sm font-semibold">Line Items</RequiredLabel>
               {mode !== 'view' && (
-                <Button onClick={addLineItem} variant="default" size="sm" className="h-8">
-                  <Plus className="h-3.5 w-3.5 mr-1.5" />
-                  Add Line Item
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={() => setShowImportModal(true)} variant="outline" size="sm" className="h-8 gap-2">
+                    <Upload className="h-3.5 w-3.5" />
+                    Import File
+                  </Button>
+                  <Button onClick={addLineItem} variant="default" size="sm" className="h-8">
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />
+                    Add Line Item
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -2048,6 +2069,13 @@ useEffect(() => {
             item.id === updatedLineItem.id ? updatedLineItem : item
           ));
         }}
+      />
+
+      {/* Import Estimate Modal */}
+      <ImportEstimateModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={handleImportItems}
       />
 
       {/* Project Creation Sheet */}
