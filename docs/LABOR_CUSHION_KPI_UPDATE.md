@@ -66,12 +66,12 @@ Enhanced the existing project-level financial summary to include labor cushion m
 - **Business Logic**: Shows maximum profit if all labor opportunities are captured
 
 #### 3. **Max Potential Margin**
-- **Source**: `database` (calculated)
-- **Field**: `estimate_financial_summary.max_potential_margin_percent`
-- **Formula**: `(max_gross_profit_potential / true_cost_base) × 100`
+- **Source**: `frontend` (calculated)
+- **Field**: `EstimateSummaryCard.trueProfitPercent`
+- **Formula**: `(max_gross_profit_potential / true_actual_cost) × 100` where `true_actual_cost = total_estimated_cost - total_labor_cushion`
 - **Where Used**: Estimate summary card, margin analysis
-- **Notes**: Margin percentage based on actual costs (not billing costs)
-- **Business Logic**: True profit margin if all opportunities are realized
+- **Notes**: Margin percentage based on true internal costs (subtracts cushion from cost basis)
+- **Business Logic**: True profit margin if all opportunities are realized. Shows realistic margin percentage based on what project actually costs internally.
 
 #### 4. **Total Labor Hours**
 - **Source**: `database` (aggregated)
@@ -181,8 +181,17 @@ Estimate Level:
   total_labor_cushion = SUM(labor_cushion_amount)  [opportunity]
   max_gross_profit_potential = estimated_gross_profit + total_labor_cushion
   
+  true_actual_cost = total_estimated_cost - total_labor_cushion
   max_potential_margin = (max_gross_profit_potential / true_actual_cost) × 100
 ```
+
+**Example Calculation:**
+- Total Estimated Cost: $484,549 (includes billing-based labor)
+- Estimated Gross Profit: $109,864 (standard markup)
+- Total Labor Cushion: $8,800 (hidden profit)
+- True Actual Cost: $484,549 - $8,800 = $475,749 (real internal cost)
+- Max Gross Profit Potential: $109,864 + $8,800 = $118,664
+- Max Potential Margin: ($118,664 / $475,749) × 100 = **24.95%**
 
 ---
 
@@ -272,7 +281,8 @@ No new tables created. Existing fields utilized:
 ## Documentation Updates Required
 
 - [x] Create this KPI update document
-- [ ] Update main KPI Guide (src/pages/KPIGuide.tsx) with new metrics
+- [x] Update main KPI Guide (src/pages/KPIGuide.tsx) with new metrics (v1.4 - Jan 21, 2026)
+- [x] Fixed Max Potential Margin calculation formula (uses true_actual_cost = total_cost - labor_cushion)
 - [ ] Update LABOR_CUSHION_IMPLEMENTATION.md with database info
 - [ ] Add labor cushion section to user documentation
 - [ ] Update training materials
@@ -289,6 +299,10 @@ No new tables created. Existing fields utilized:
 
 ---
 
-## Status: ✅ DATABASE COMPLETE, DOCUMENTATION IN PROGRESS
+## Status: ✅ COMPLETE
 
-Database views created and types regenerated. UI updates complete. KPI Guide component update pending.
+- ✅ Database views created and types regenerated
+- ✅ UI updates complete (EstimateSummaryCard)
+- ✅ KPI Guide component updated (v1.4)
+- ✅ Max Potential Margin calculation fixed and documented
+- ✅ All 9 labor cushion metrics documented in KPI Guide

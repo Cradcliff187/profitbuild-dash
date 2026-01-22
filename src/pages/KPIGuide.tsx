@@ -24,9 +24,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const KPI_GUIDE_METADATA = {
-  lastUpdated: '2024-12-01',
-  version: '1.3',
+  lastUpdated: '2026-01-21',
+  version: '1.4',
   changelog: [
+    { date: '2026-01-21', version: '1.4', changes: 'Added Labor Cushion metrics (9 new measures) - labor_cushion_amount, max_gross_profit_potential, max_potential_margin_percent, and labor financial tracking' },
     { date: '2024-12-01', version: '1.3', changes: 'Added Lunch Tracking section (4 metrics) - lunch_taken, lunch_duration_minutes, gross_hours, net_hours for time entries' },
     { date: '2024-11-27', version: '1.2', changes: 'Added Revenue section (6 metrics) - project_revenues and project_financial_summary fields' },
     { date: '2024-11-27', version: '1.1', changes: 'Added Work Orders section (9 metrics), project type/category fields, is_auto_generated estimate field' },
@@ -69,11 +70,15 @@ const projectFinancialKPIs: KPIMeasure[] = [
   { name: 'Margin Efficiency', source: 'frontend', field: 'getMarginEfficiency()', formula: '(Current Margin % / Target Margin %) × 100', whereUsed: 'Performance metrics' },
   { name: 'Contingency Utilization', source: 'frontend', field: 'getContingencyUtilization()', formula: '(Contingency Used / Contingency Amount) × 100', whereUsed: 'ContingencyAllocation' },
   { name: 'Available Contingency', source: 'frontend', field: 'margin.availableContingency', formula: 'Contingency Amount - Contingency Used', whereUsed: 'Budget planning, allocation dialogs' },
+  // Labor Cushion (Project-Level Aggregates) 
+  { name: 'Estimated Labor Cushion', source: 'database', field: 'project_financial_summary.estimated_labor_cushion', formula: 'SUM(labor_cushion) from approved estimates', whereUsed: 'Project dashboards, portfolio analysis', notes: 'Total labor profit opportunity across approved estimates' },
+  { name: 'Estimated Max Profit Potential', source: 'database', field: 'project_financial_summary.estimated_max_profit_potential', formula: 'SUM(max_gross_profit_potential) from approved estimates', whereUsed: 'Project financial tracking', notes: 'Maximum achievable profit for the project' },
+  { name: 'Estimated Labor Hours', source: 'database', field: 'project_financial_summary.estimated_labor_hours', formula: 'SUM(labor_hours) from approved estimates', whereUsed: 'Resource planning, scheduling', notes: 'Total internal labor hours across approved estimates' },
 ];
 
 const estimateKPIs: KPIMeasure[] = [
   { name: 'Total Amount', source: 'database', field: 'estimates.total_amount', formula: 'SUM(line_items.total)', whereUsed: 'EstimatesList, financial comparisons' },
-  { name: 'Total Cost', source: 'database', field: 'estimates.total_cost', formula: 'SUM(line_items.total_cost)', whereUsed: 'Margin analysis, EstimateForm' },
+  { name: 'Total Cost', source: 'database', field: 'estimates.total_cost', formula: 'SUM(line_items.total_cost)', whereUsed: 'Margin analysis, EstimateForm', notes: 'For labor items, uses billing rate (not actual cost) to hide cushion' },
   { name: 'Contingency Amount', source: 'database', field: 'estimates.contingency_amount', formula: 'User-defined or calculated buffer', whereUsed: 'EstimateForm, budget planning' },
   { name: 'Contingency Percent', source: 'database', field: 'estimates.contingency_percent', formula: '(Contingency Amount / Total Amount) × 100', whereUsed: 'Budget display' },
   { name: 'Default Markup Percent', source: 'database', field: 'estimates.default_markup_percent', formula: 'User-defined default for line items', whereUsed: 'LineItemTable auto-fill' },
@@ -83,8 +88,17 @@ const estimateKPIs: KPIMeasure[] = [
   { name: 'Line Item Total Cost', source: 'database', field: 'estimate_line_items.total_cost', formula: 'quantity × cost_per_unit', whereUsed: 'Cost analysis' },
   { name: 'Line Item Markup Amount', source: 'database', field: 'estimate_line_items.markup_amount', formula: 'total - total_cost', whereUsed: 'Profitability by item' },
   { name: 'Line Item Markup Percent', source: 'database', field: 'estimate_line_items.markup_percent', formula: '(markup_amount / total_cost) × 100', whereUsed: 'LineItemTable display' },
-  { name: 'Gross Profit', source: 'frontend', field: 'calculateEstimateGrossProfit()', formula: 'Total Amount - Total Cost', whereUsed: 'EstimatesList, summary cards' },
-  { name: 'Gross Margin', source: 'frontend', field: 'calculateEstimateGrossMargin()', formula: '(Gross Profit / Total Amount) × 100', whereUsed: 'Performance indicators' },
+  // Labor Cushion & Advanced Profit Metrics
+  { name: 'Labor Hours', source: 'database', field: 'estimate_line_items.labor_hours', formula: 'Hours for labor_internal line items', whereUsed: 'Labor planning, capacity analysis', notes: 'Only populated for labor_internal category' },
+  { name: 'Billing Rate Per Hour', source: 'database', field: 'estimate_line_items.billing_rate_per_hour', formula: 'Rate shown to client (e.g., $75/hr)', whereUsed: 'Labor line items, cost calculations', notes: 'Used as cost_per_unit to hide actual labor cost' },
+  { name: 'Actual Cost Rate Per Hour', source: 'database', field: 'estimate_line_items.actual_cost_rate_per_hour', formula: 'True internal cost (e.g., $35/hr)', whereUsed: 'Internal profitability tracking', notes: 'Hidden from client, tracked separately' },
+  { name: 'Labor Cushion Amount', source: 'database', field: 'estimate_line_items.labor_cushion_amount', formula: '(billing_rate - actual_cost_rate) × labor_hours', whereUsed: 'Estimate summary, profit opportunity tracking', notes: 'Hidden profit opportunity built into labor billing' },
+  { name: 'Total Labor Cushion', source: 'frontend', field: 'calculateTotalLaborCushionAmount()', formula: 'SUM(labor_cushion_amount) for all labor items', whereUsed: 'EstimateSummaryCard', notes: 'Total hidden profit opportunity from labor' },
+  { name: 'Max Gross Profit Potential', source: 'frontend', field: 'trueProfitMargin', formula: 'Gross Profit + Total Labor Cushion', whereUsed: 'EstimateSummaryCard', notes: 'Maximum achievable profit (markup + cushion)' },
+  { name: 'Max Potential Margin', source: 'frontend', field: 'trueProfitPercent', formula: '(Max Gross Profit / (Total Cost - Labor Cushion)) × 100', whereUsed: 'EstimateSummaryCard, margin analysis', notes: 'True margin based on actual costs, not billing costs' },
+  { name: 'True Actual Cost', source: 'frontend', field: 'trueActualCost', formula: 'Total Cost - Total Labor Cushion', whereUsed: 'Internal margin calculations', notes: 'What the project actually costs internally' },
+  { name: 'Gross Profit', source: 'frontend', field: 'calculateEstimateGrossProfit()', formula: 'Total Amount - Total Cost', whereUsed: 'EstimatesList, summary cards', notes: 'Standard visible markup profit only' },
+  { name: 'Gross Margin', source: 'frontend', field: 'calculateEstimateGrossMargin()', formula: '(Gross Profit / Total Amount) × 100', whereUsed: 'Performance indicators', notes: 'Margin shown to clients (excludes cushion)' },
   { name: 'Average Markup', source: 'frontend', field: 'calculateEstimateAverageMarkup()', formula: 'AVG(line_items.markup_percent)', whereUsed: 'EstimateForm summary' },
   { name: 'Total Markup', source: 'frontend', field: 'calculateEstimateTotalMarkup()', formula: 'SUM(line_items.markup_amount)', whereUsed: 'Financial analysis' },
 ];

@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { AccountMappingsManager } from "@/components/AccountMappingsManager";
 import { CompanyBrandingSettings } from "@/components/CompanyBrandingSettings";
+import { LaborRateSettings } from "@/components/admin/LaborRateSettings";
 import { getBudgetAlertThreshold, setBudgetAlertThreshold } from "@/utils/budgetUtils";
 import { getCaptionPreferences, setCaptionPreferences } from "@/utils/userPreferences";
 import { useAuth } from "@/contexts/AuthContext";
@@ -505,6 +506,8 @@ const Settings = () => {
         <AccountMappingsManager />
 
         <CompanyBrandingSettings />
+
+        {isAdmin && <LaborRateSettings />}
 
         <Card>
           <CardHeader>

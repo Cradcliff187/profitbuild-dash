@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.get-textbelt-key]
 verify_jwt = true
+
+[functions.parse-estimate-import]
+verify_jwt = false
