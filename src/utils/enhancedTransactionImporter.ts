@@ -3,8 +3,9 @@ import { ExpenseCategory, TransactionType } from '@/types/expense';
 import { supabase } from '@/integrations/supabase/client';
 import { fuzzyMatchPayee, PartialPayee, FuzzyMatchResult } from '@/utils/fuzzyPayeeMatcher';
 import { PayeeType } from '@/types/payee';
-// QuickBooks mapping fallback (main branch - QB integration in feature branch)
-const resolveQBAccountCategory = (_accountPath: string): ExpenseCategory => ExpenseCategory.OTHER;
+import { resolveQBAccountCategory } from '@/utils/quickbooksMapping';
+
+// Type for QB account mapping (API integration in feature/quickbooks-integration branch)
 type QuickBooksAccountMapping = { qb_account_name: string; qb_account_full_path: string; expense_category: ExpenseCategory };
 
 export interface TransactionCSVRow {
