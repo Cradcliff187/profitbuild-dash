@@ -1991,6 +1991,60 @@ export type Database = {
           },
         ]
       }
+      quickbooks_transaction_syncs: {
+        Row: {
+          created_at: string | null
+          duplicates_skipped: number | null
+          end_date: string
+          environment: string
+          error_message: string | null
+          expenses_imported: number | null
+          id: string
+          initiated_by: string | null
+          revenues_imported: number | null
+          start_date: string
+          sync_completed_at: string | null
+          sync_started_at: string
+          sync_status: string
+          transactions_fetched: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duplicates_skipped?: number | null
+          end_date: string
+          environment: string
+          error_message?: string | null
+          expenses_imported?: number | null
+          id?: string
+          initiated_by?: string | null
+          revenues_imported?: number | null
+          start_date: string
+          sync_completed_at?: string | null
+          sync_started_at?: string
+          sync_status?: string
+          transactions_fetched?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duplicates_skipped?: number | null
+          end_date?: string
+          environment?: string
+          error_message?: string | null
+          expenses_imported?: number | null
+          id?: string
+          initiated_by?: string | null
+          revenues_imported?: number | null
+          start_date?: string
+          sync_completed_at?: string | null
+          sync_started_at?: string
+          sync_status?: string
+          transactions_fetched?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       quote_line_items: {
         Row: {
           category: Database["public"]["Enums"]["expense_category"]
