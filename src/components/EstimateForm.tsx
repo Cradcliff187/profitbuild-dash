@@ -425,7 +425,7 @@ useEffect(() => {
           }
           
           // Update labor-specific fields when relevant values change on labor items
-          if (updated.category === LineItemCategory.LABOR || updated.category === 'labor_internal') {
+          if (updated.category === LineItemCategory.LABOR) {
             // Update laborHours when quantity changes (for HR unit)
             if (updated.unit === 'HR' || updated.unit === 'hr') {
               updated.laborHours = updated.quantity;

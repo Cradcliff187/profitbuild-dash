@@ -5,8 +5,8 @@ import { fuzzyMatchPayee, PartialPayee, FuzzyMatchResult } from '@/utils/fuzzyPa
 import { PayeeType } from '@/types/payee';
 import { resolveQBAccountCategory } from '@/utils/quickbooksMapping';
 
-// Type for QB account mapping (API integration in feature/quickbooks-integration branch)
-type QuickBooksAccountMapping = { qb_account_name: string; qb_account_full_path: string; expense_category: ExpenseCategory };
+// Type for QB account mapping (matches database schema)
+type QuickBooksAccountMapping = { qb_account_name: string; qb_account_full_path: string; app_category: string };
 
 export interface TransactionCSVRow {
   [key: string]: string;

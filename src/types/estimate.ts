@@ -16,6 +16,12 @@ export interface LineItem {
   // Calculated totals (generated columns)
   totalCost: number; // quantity * costPerUnit
   totalMarkup: number; // quantity * (pricePerUnit - costPerUnit)
+  
+  // Internal Labor tracking fields (optional - only for labor_internal category)
+  laborHours?: number;
+  billingRatePerHour?: number;
+  actualCostRatePerHour?: number;
+  laborCushionAmount?: number;
 }
 
 export interface Estimate {
