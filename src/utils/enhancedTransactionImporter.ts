@@ -3,8 +3,10 @@ import { ExpenseCategory, TransactionType } from '@/types/expense';
 import { supabase } from '@/integrations/supabase/client';
 import { fuzzyMatchPayee, PartialPayee, FuzzyMatchResult } from '@/utils/fuzzyPayeeMatcher';
 import { PayeeType } from '@/types/payee';
-import { QuickBooksAccountMapping } from '@/types/quickbooks';
 import { resolveQBAccountCategory } from '@/utils/quickbooksMapping';
+
+// Type for QB account mapping (matches database schema)
+type QuickBooksAccountMapping = { qb_account_name: string; qb_account_full_path: string; app_category: string };
 
 export interface TransactionCSVRow {
   [key: string]: string;

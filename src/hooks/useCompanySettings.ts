@@ -18,7 +18,7 @@ export function useInternalLaborRates() {
       
       if (error) throw error;
       
-      return data.setting_value as InternalLaborRates;
+      return data.setting_value as unknown as InternalLaborRates;
     },
     staleTime: 1000 * 60 * 30, // Cache for 30 minutes - rarely changes
   });
@@ -36,7 +36,7 @@ export function useUpdateInternalLaborRates() {
       const { data, error } = await supabase
         .from('company_settings')
         .update({ 
-          setting_value: rates,
+          setting_value: JSON.parse(JSON.stringify(rates)),
           updated_at: new Date().toISOString()
         })
         .eq('setting_key', 'internal_labor_rates')

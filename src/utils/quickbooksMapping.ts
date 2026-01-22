@@ -3,6 +3,7 @@ import { ExpenseCategory } from '@/types/expense';
 /**
  * Default QuickBooks account to expense category mapping
  * Maps common QuickBooks account paths to internal expense categories
+ * NOTE: This is for CSV import mapping only. API integration is in feature/quickbooks-integration branch.
  */
 export const QB_ACCOUNT_MAPPING: Record<string, ExpenseCategory> = {
   // Subcontractor/Contract Labor costs
@@ -91,18 +92,4 @@ export const resolveQBAccountCategory = (accountPath: string): ExpenseCategory =
   
   // Default fallback
   return ExpenseCategory.OTHER;
-};
-
-/**
- * Gets all available QuickBooks account mappings
- */
-export const getQBAccountMappings = (): Record<string, ExpenseCategory> => {
-  return { ...QB_ACCOUNT_MAPPING };
-};
-
-/**
- * Validates if an account path has a known mapping
- */
-export const hasQBAccountMapping = (accountPath: string): boolean => {
-  return accountPath in QB_ACCOUNT_MAPPING;
 };

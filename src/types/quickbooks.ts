@@ -1,24 +1,30 @@
-import { Database } from '@/integrations/supabase/types';
-
-export type ExpenseCategory = Database['public']['Enums']['expense_category'];
-
+// Use string type for app_category to match database enum values
 export interface QuickBooksAccountMapping {
   id: string;
-  app_category: ExpenseCategory;
+  app_category: string; // Database expense_category enum value
   qb_account_name: string;
   qb_account_full_path: string;
   is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export interface CreateAccountMappingData {
-  app_category: ExpenseCategory;
-  qb_account_name: string;
-  qb_account_full_path: string;
-}
-
-export interface UpdateAccountMappingData extends Partial<CreateAccountMappingData> {
+export interface QuickBooksSyncLog {
   id: string;
-  is_active?: boolean;
+  sync_type: string;
+  status: 'pending' | 'success' | 'failed';
+  records_synced?: number;
+  error_message?: string;
+  created_at: string;
+}
+
+export interface QuickBooksConnection {
+  id: string;
+  realm_id: string;
+  company_name?: string;
+  is_active: boolean;
+  environment: string;
+  connected_at?: string;
+  last_sync_at?: string;
+  last_error?: string;
 }

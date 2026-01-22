@@ -189,7 +189,7 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
   };
 
   const calculateLaborCushion = (lineItem: LineItem): number => {
-    if (lineItem.category !== LineItemCategory.LABOR && lineItem.category !== 'labor_internal') return 0;
+    if (lineItem.category !== LineItemCategory.LABOR) return 0;
     // Use laborHours if set, otherwise use quantity when unit is "hr"
     const hours = lineItem.laborHours ?? (lineItem.unit === 'HR' || lineItem.unit === 'hr' ? lineItem.quantity : 0);
     const billingRate = lineItem.billingRatePerHour || laborRates?.billing_rate_per_hour || 0;
@@ -287,7 +287,7 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
             </TableHeader>
             <TableBody>
               {lineItems.map((lineItem) => {
-                const isLaborInternal = lineItem.category === LineItemCategory.LABOR || lineItem.category === 'labor_internal';
+                const isLaborInternal = lineItem.category === LineItemCategory.LABOR;
                 const cushion = calculateLaborCushion(lineItem);
                 const isExpanded = expandedRows.has(lineItem.id);
                 const hasCushion = cushion > 0;
