@@ -1,10 +1,13 @@
 import Papa from 'papaparse';
 import { CSVRow, ColumnMapping, Expense, ExpenseCategory, TransactionType } from '@/types/expense';
-import { QuickBooksAccountMapping } from '@/types/quickbooks';
 import { PayeeType } from '@/types/payee';
 import { supabase } from '@/integrations/supabase/client';
 import { fuzzyMatchPayee, PartialPayee } from '@/utils/fuzzyPayeeMatcher';
-import { QB_ACCOUNT_MAPPING, resolveQBAccountCategory } from '@/utils/quickbooksMapping';
+
+// QuickBooks mapping fallbacks (main branch - QB integration in feature branch)
+const QB_ACCOUNT_MAPPING: Record<string, ExpenseCategory> = {};
+const resolveQBAccountCategory = (_accountPath: string): ExpenseCategory => ExpenseCategory.OTHER;
+type QuickBooksAccountMapping = { qb_account_name: string; qb_account_full_path: string; expense_category: ExpenseCategory };
 
 // Robust amount parser for QuickBooks and other CSV formats
 const parseQuickBooksAmount = (amount: string | number): number => {
