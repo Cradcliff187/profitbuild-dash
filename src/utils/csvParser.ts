@@ -5,8 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { fuzzyMatchPayee, PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 import { QB_ACCOUNT_MAPPING, resolveQBAccountCategory } from '@/utils/quickbooksMapping';
 
-// Type for QB account mapping (API integration in feature/quickbooks-integration branch)
-type QuickBooksAccountMapping = { qb_account_name: string; qb_account_full_path: string; expense_category: ExpenseCategory };
+// Type for QB account mapping (matches database schema)
+type QuickBooksAccountMapping = { qb_account_name: string; qb_account_full_path: string; app_category: string };
 
 // Robust amount parser for QuickBooks and other CSV formats
 const parseQuickBooksAmount = (amount: string | number): number => {

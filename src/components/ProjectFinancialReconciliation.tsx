@@ -42,7 +42,7 @@ export const ProjectFinancialReconciliation: React.FC<ProjectFinancialReconcilia
     try {
       setLoading(true);
       
-      let query = supabase.from('project_financial_summary').select('*');
+      let query = supabase.from('project_financial_summary' as any).select('*');
       
       if (projectId) {
         query = query.eq('project_id', projectId);
@@ -52,10 +52,10 @@ export const ProjectFinancialReconciliation: React.FC<ProjectFinancialReconcilia
       
       if (error) throw error;
       
-      setFinancialData(data || []);
+      setFinancialData((data as unknown as ProjectFinancialSummary[]) || []);
       
       if (projectId && data && data.length > 0) {
-        setSelectedProject(data[0]);
+        setSelectedProject(data[0] as unknown as ProjectFinancialSummary);
       }
       
     } catch (error) {
