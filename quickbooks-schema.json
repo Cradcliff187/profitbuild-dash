@@ -1,0 +1,5020 @@
+{
+  "company": "Sandbox Company_US_1",
+  "realm_id": "9341456092071018",
+  "environment": "sandbox",
+  "queried_at": "2026-01-13T15:45:57.137Z",
+  "results": [
+    {
+      "category": "Accounts",
+      "count": 89,
+      "data": [
+        {
+          "Name": "Accounting",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "12"
+          },
+          "FullyQualifiedName": "Legal & Professional Fees:Accounting",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "LegalProfessionalFees",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "69",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:25:02-08:00",
+            "LastUpdatedTime": "2025-12-14T10:25:02-08:00"
+          }
+        },
+        {
+          "Name": "Accounts Payable (A/P)",
+          "SubAccount": false,
+          "FullyQualifiedName": "Accounts Payable (A/P)",
+          "Active": true,
+          "Classification": "Liability",
+          "AccountType": "Accounts Payable",
+          "AccountSubType": "AccountsPayable",
+          "CurrentBalance": -1602.67,
+          "CurrentBalanceWithSubAccounts": -1602.67,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "33",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:12:02-08:00",
+            "LastUpdatedTime": "2025-12-17T13:10:36-08:00"
+          }
+        },
+        {
+          "Name": "Accounts Receivable (A/R)",
+          "SubAccount": false,
+          "FullyQualifiedName": "Accounts Receivable (A/R)",
+          "Active": true,
+          "Classification": "Asset",
+          "AccountType": "Accounts Receivable",
+          "AccountSubType": "AccountsReceivable",
+          "CurrentBalance": 5281.52,
+          "CurrentBalanceWithSubAccounts": 5281.52,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "84",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T14:49:29-08:00",
+            "LastUpdatedTime": "2025-12-17T13:16:17-08:00"
+          }
+        },
+        {
+          "Name": "Advertising",
+          "SubAccount": false,
+          "FullyQualifiedName": "Advertising",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "AdvertisingPromotional",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "7",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Arizona Dept. of Revenue Payable",
+          "SubAccount": false,
+          "FullyQualifiedName": "Arizona Dept. of Revenue Payable",
+          "Active": true,
+          "Classification": "Liability",
+          "AccountType": "Other Current Liability",
+          "AccountSubType": "GlobalTaxPayable",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "89",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-16T12:17:04-08:00",
+            "LastUpdatedTime": "2025-12-17T13:05:01-08:00"
+          }
+        },
+        {
+          "Name": "Automobile",
+          "SubAccount": false,
+          "FullyQualifiedName": "Automobile",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "Auto",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "55",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:15:53-08:00",
+            "LastUpdatedTime": "2025-12-14T10:16:05-08:00"
+          }
+        },
+        {
+          "Name": "Bank Charges",
+          "SubAccount": false,
+          "FullyQualifiedName": "Bank Charges",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "BankCharges",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "8",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Billable Expense Income",
+          "SubAccount": false,
+          "FullyQualifiedName": "Billable Expense Income",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "ServiceFeeIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "85",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T14:54:12-08:00",
+            "LastUpdatedTime": "2025-12-14T14:54:12-08:00"
+          }
+        },
+        {
+          "Name": "Board of Equalization Payable",
+          "SubAccount": false,
+          "FullyQualifiedName": "Board of Equalization Payable",
+          "Active": true,
+          "Classification": "Liability",
+          "AccountType": "Other Current Liability",
+          "AccountSubType": "GlobalTaxPayable",
+          "CurrentBalance": -370.94,
+          "CurrentBalanceWithSubAccounts": -370.94,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "90",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-16T12:17:04-08:00",
+            "LastUpdatedTime": "2025-12-17T13:16:17-08:00"
+          }
+        },
+        {
+          "Name": "Bookkeeper",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "12"
+          },
+          "FullyQualifiedName": "Legal & Professional Fees:Bookkeeper",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "LegalProfessionalFees",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "70",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:25:30-08:00",
+            "LastUpdatedTime": "2025-12-14T10:25:30-08:00"
+          }
+        },
+        {
+          "Name": "Building Repairs",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "72"
+          },
+          "FullyQualifiedName": "Maintenance and Repair:Building Repairs",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "RepairMaintenance",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "73",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:27:37-08:00",
+            "LastUpdatedTime": "2025-12-14T10:27:37-08:00"
+          }
+        },
+        {
+          "Name": "Checking",
+          "SubAccount": false,
+          "FullyQualifiedName": "Checking",
+          "Active": true,
+          "Classification": "Asset",
+          "AccountType": "Bank",
+          "AccountSubType": "Checking",
+          "CurrentBalance": 1201,
+          "CurrentBalanceWithSubAccounts": 1201,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "35",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-13T12:08:20-08:00",
+            "LastUpdatedTime": "2025-12-31T14:35:37-08:00"
+          }
+        },
+        {
+          "Name": "Commissions & fees",
+          "SubAccount": false,
+          "FullyQualifiedName": "Commissions & fees",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "OtherMiscellaneousServiceCost",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "9",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Computer Repairs",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "72"
+          },
+          "FullyQualifiedName": "Maintenance and Repair:Computer Repairs",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "RepairMaintenance",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "74",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:28:49-08:00",
+            "LastUpdatedTime": "2025-12-14T10:28:49-08:00"
+          }
+        },
+        {
+          "Name": "Cost of Goods Sold",
+          "SubAccount": false,
+          "FullyQualifiedName": "Cost of Goods Sold",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Cost of Goods Sold",
+          "AccountSubType": "SuppliesMaterialsCogs",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "80",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:36:04-08:00",
+            "LastUpdatedTime": "2025-12-14T10:36:04-08:00"
+          }
+        },
+        {
+          "Name": "Cost of Labor",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "58"
+          },
+          "FullyQualifiedName": "Job Expenses:Cost of Labor",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "OtherMiscellaneousServiceCost",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "59",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:18:46-08:00",
+            "LastUpdatedTime": "2025-12-14T10:19:26-08:00"
+          }
+        },
+        {
+          "Name": "Decks and Patios",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "46"
+          },
+          "FullyQualifiedName": "Landscaping Services:Job Materials:Decks and Patios",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "OtherPrimaryIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "47",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:06:54-08:00",
+            "LastUpdatedTime": "2025-12-14T10:06:54-08:00"
+          }
+        },
+        {
+          "Name": "Decks and Patios",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "63"
+          },
+          "FullyQualifiedName": "Job Expenses:Job Materials:Decks and Patios",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "SuppliesMaterials",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "64",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:22:18-08:00",
+            "LastUpdatedTime": "2025-12-14T10:22:18-08:00"
+          }
+        },
+        {
+          "Name": "Depreciation",
+          "SubAccount": false,
+          "FullyQualifiedName": "Depreciation",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Other Expense",
+          "AccountSubType": "Depreciation",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "40",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-13T12:11:07-08:00",
+            "LastUpdatedTime": "2025-12-13T12:11:07-08:00"
+          }
+        },
+        {
+          "Name": "Depreciation",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "37"
+          },
+          "FullyQualifiedName": "Truck:Depreciation",
+          "Active": true,
+          "Classification": "Asset",
+          "AccountType": "Fixed Asset",
+          "AccountSubType": "AccumulatedDepreciation",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "39",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-13T12:11:07-08:00",
+            "LastUpdatedTime": "2025-12-13T12:11:07-08:00"
+          }
+        },
+        {
+          "Name": "Design income",
+          "SubAccount": false,
+          "FullyQualifiedName": "Design income",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "OtherPrimaryIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "82",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:40:45-08:00",
+            "LastUpdatedTime": "2025-12-14T10:40:45-08:00"
+          }
+        },
+        {
+          "Name": "Discounts given",
+          "SubAccount": false,
+          "FullyQualifiedName": "Discounts given",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "DiscountsRefundsGiven",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "86",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T14:54:12-08:00",
+            "LastUpdatedTime": "2025-12-14T14:54:12-08:00"
+          }
+        },
+        {
+          "Name": "Disposal Fees",
+          "SubAccount": false,
+          "FullyQualifiedName": "Disposal Fees",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "OtherMiscellaneousServiceCost",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "28",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Dues & Subscriptions",
+          "SubAccount": false,
+          "FullyQualifiedName": "Dues & Subscriptions",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "DuesSubscriptions",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "10",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Equipment Rental",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "58"
+          },
+          "FullyQualifiedName": "Job Expenses:Equipment Rental",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "EquipmentRental",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "62",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:19:52-08:00",
+            "LastUpdatedTime": "2025-12-14T10:19:52-08:00"
+          }
+        },
+        {
+          "Name": "Equipment Rental",
+          "SubAccount": false,
+          "FullyQualifiedName": "Equipment Rental",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "EquipmentRental",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "29",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Equipment Repairs",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "72"
+          },
+          "FullyQualifiedName": "Maintenance and Repair:Equipment Repairs",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "RepairMaintenance",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "75",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:29:17-08:00",
+            "LastUpdatedTime": "2025-12-14T10:29:17-08:00"
+          }
+        },
+        {
+          "Name": "Fees Billed",
+          "SubAccount": false,
+          "FullyQualifiedName": "Fees Billed",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "ServiceFeeIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "5",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Fountain and Garden Lighting",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "63"
+          },
+          "FullyQualifiedName": "Job Expenses:Job Materials:Fountain and Garden Lighting",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "SuppliesMaterials",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "65",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:22:40-08:00",
+            "LastUpdatedTime": "2025-12-14T10:22:40-08:00"
+          }
+        },
+        {
+          "Name": "Fountains and Garden Lighting",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "46"
+          },
+          "FullyQualifiedName": "Landscaping Services:Job Materials:Fountains and Garden Lighting",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "OtherPrimaryIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "48",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:07:22-08:00",
+            "LastUpdatedTime": "2025-12-14T10:07:22-08:00"
+          }
+        },
+        {
+          "Name": "Fuel",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "55"
+          },
+          "FullyQualifiedName": "Automobile:Fuel",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "Auto",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "56",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:16:05-08:00",
+            "LastUpdatedTime": "2025-12-14T10:16:05-08:00"
+          }
+        },
+        {
+          "Name": "Gas and Electric",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "24"
+          },
+          "FullyQualifiedName": "Utilities:Gas and Electric",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "Utilities",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "76",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:30:29-08:00",
+            "LastUpdatedTime": "2025-12-14T10:30:29-08:00"
+          }
+        },
+        {
+          "Name": "Installation",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "59"
+          },
+          "FullyQualifiedName": "Job Expenses:Cost of Labor:Installation",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "OtherMiscellaneousServiceCost",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "60",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:19:07-08:00",
+            "LastUpdatedTime": "2025-12-14T10:19:07-08:00"
+          }
+        },
+        {
+          "Name": "Installation",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "51"
+          },
+          "FullyQualifiedName": "Landscaping Services:Labor:Installation",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "OtherPrimaryIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "52",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:09:35-08:00",
+            "LastUpdatedTime": "2025-12-14T10:09:35-08:00"
+          }
+        },
+        {
+          "Name": "Insurance",
+          "SubAccount": false,
+          "FullyQualifiedName": "Insurance",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "Insurance",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "11",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-14T10:17:24-08:00"
+          }
+        },
+        {
+          "Name": "Interest Earned",
+          "SubAccount": false,
+          "FullyQualifiedName": "Interest Earned",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Other Income",
+          "AccountSubType": "InterestEarned",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "25",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Inventory Asset",
+          "SubAccount": false,
+          "FullyQualifiedName": "Inventory Asset",
+          "Active": true,
+          "Classification": "Asset",
+          "AccountType": "Other Current Asset",
+          "AccountSubType": "Inventory",
+          "CurrentBalance": 596.25,
+          "CurrentBalanceWithSubAccounts": 596.25,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "81",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:36:05-08:00",
+            "LastUpdatedTime": "2025-12-17T13:16:17-08:00"
+          }
+        },
+        {
+          "Name": "Job Expenses",
+          "SubAccount": false,
+          "FullyQualifiedName": "Job Expenses",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "OtherMiscellaneousServiceCost",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "58",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:18:01-08:00",
+            "LastUpdatedTime": "2025-12-14T10:24:32-08:00"
+          }
+        },
+        {
+          "Name": "Job Materials",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "58"
+          },
+          "FullyQualifiedName": "Job Expenses:Job Materials",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "SuppliesMaterials",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "63",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:20:21-08:00",
+            "LastUpdatedTime": "2025-12-14T10:23:30-08:00"
+          }
+        },
+        {
+          "Name": "Job Materials",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "45"
+          },
+          "FullyQualifiedName": "Landscaping Services:Job Materials",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "OtherPrimaryIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "46",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:06:12-08:00",
+            "LastUpdatedTime": "2025-12-14T10:08:06-08:00"
+          }
+        },
+        {
+          "Name": "Labor",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "45"
+          },
+          "FullyQualifiedName": "Landscaping Services:Labor",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "OtherPrimaryIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "51",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:08:54-08:00",
+            "LastUpdatedTime": "2025-12-14T10:12:11-08:00"
+          }
+        },
+        {
+          "Name": "Landscaping Services",
+          "SubAccount": false,
+          "FullyQualifiedName": "Landscaping Services",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "OtherPrimaryIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "45",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:05:43-08:00",
+            "LastUpdatedTime": "2025-12-14T10:08:54-08:00"
+          }
+        },
+        {
+          "Name": "Lawyer",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "12"
+          },
+          "FullyQualifiedName": "Legal & Professional Fees:Lawyer",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "LegalProfessionalFees",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "71",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:26:24-08:00",
+            "LastUpdatedTime": "2025-12-14T10:26:24-08:00"
+          }
+        },
+        {
+          "Name": "Legal & Professional Fees",
+          "SubAccount": false,
+          "FullyQualifiedName": "Legal & Professional Fees",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "LegalProfessionalFees",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "12",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-14T10:26:24-08:00"
+          }
+        },
+        {
+          "Name": "Loan Payable",
+          "SubAccount": false,
+          "FullyQualifiedName": "Loan Payable",
+          "Active": true,
+          "Classification": "Liability",
+          "AccountType": "Other Current Liability",
+          "AccountSubType": "OtherCurrentLiabilities",
+          "CurrentBalance": -4000,
+          "CurrentBalanceWithSubAccounts": -4000,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "43",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:03:25-08:00",
+            "LastUpdatedTime": "2025-12-14T10:03:25-08:00"
+          }
+        },
+        {
+          "Name": "Maintenance and Repair",
+          "SubAccount": false,
+          "FullyQualifiedName": "Maintenance and Repair",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "RepairMaintenance",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "72",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:26:55-08:00",
+            "LastUpdatedTime": "2025-12-14T10:29:17-08:00"
+          }
+        },
+        {
+          "Name": "Maintenance and Repair",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "51"
+          },
+          "FullyQualifiedName": "Landscaping Services:Labor:Maintenance and Repair",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "OtherPrimaryIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "53",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:12:11-08:00",
+            "LastUpdatedTime": "2025-12-14T10:12:11-08:00"
+          }
+        },
+        {
+          "Name": "Maintenance and Repairs",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "59"
+          },
+          "FullyQualifiedName": "Job Expenses:Cost of Labor:Maintenance and Repairs",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "OtherMiscellaneousServiceCost",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "61",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:19:26-08:00",
+            "LastUpdatedTime": "2025-12-14T10:19:26-08:00"
+          }
+        },
+        {
+          "Name": "Mastercard",
+          "SubAccount": false,
+          "FullyQualifiedName": "Mastercard",
+          "Active": true,
+          "Classification": "Liability",
+          "AccountType": "Credit Card",
+          "AccountSubType": "CreditCard",
+          "CurrentBalance": -1312.7,
+          "CurrentBalanceWithSubAccounts": -1312.7,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "41",
+          "SyncToken": "1",
+          "MetaData": {
+            "CreateTime": "2025-12-14T09:59:08-08:00",
+            "LastUpdatedTime": "2026-02-16T22:59:57-08:00"
+          }
+        },
+        {
+          "Name": "Meals and Entertainment",
+          "SubAccount": false,
+          "FullyQualifiedName": "Meals and Entertainment",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "EntertainmentMeals",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "13",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Miscellaneous",
+          "SubAccount": false,
+          "FullyQualifiedName": "Miscellaneous",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Other Expense",
+          "AccountSubType": "OtherMiscellaneousExpense",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "14",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Notes Payable",
+          "SubAccount": false,
+          "FullyQualifiedName": "Notes Payable",
+          "Active": true,
+          "Classification": "Liability",
+          "AccountType": "Long Term Liability",
+          "AccountSubType": "OtherLongTermLiabilities",
+          "CurrentBalance": -25000,
+          "CurrentBalanceWithSubAccounts": -25000,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "44",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:04:24-08:00",
+            "LastUpdatedTime": "2025-12-14T10:04:24-08:00"
+          }
+        },
+        {
+          "Name": "Office Expenses",
+          "SubAccount": false,
+          "FullyQualifiedName": "Office Expenses",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "OfficeGeneralAdministrativeExpenses",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "15",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Opening Balance Equity",
+          "SubAccount": false,
+          "FullyQualifiedName": "Opening Balance Equity",
+          "Active": true,
+          "Classification": "Equity",
+          "AccountType": "Equity",
+          "AccountSubType": "OpeningBalanceEquity",
+          "CurrentBalance": 9337.5,
+          "CurrentBalanceWithSubAccounts": 9337.5,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "34",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-13T12:08:20-08:00",
+            "LastUpdatedTime": "2025-12-17T12:47:05-08:00"
+          }
+        },
+        {
+          "Name": "Original Cost",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "37"
+          },
+          "FullyQualifiedName": "Truck:Original Cost",
+          "Active": true,
+          "Classification": "Asset",
+          "AccountType": "Fixed Asset",
+          "AccountSubType": "Vehicles",
+          "CurrentBalance": 13495,
+          "CurrentBalanceWithSubAccounts": 13495,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "38",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-13T12:11:06-08:00",
+            "LastUpdatedTime": "2025-12-13T12:11:06-08:00"
+          }
+        },
+        {
+          "Name": "Other Income",
+          "SubAccount": false,
+          "FullyQualifiedName": "Other Income",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "OtherPrimaryIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "83",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:48:53-08:00",
+            "LastUpdatedTime": "2025-12-14T10:48:53-08:00"
+          }
+        },
+        {
+          "Name": "Other Portfolio Income",
+          "SubAccount": false,
+          "FullyQualifiedName": "Other Portfolio Income",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Other Income",
+          "AccountSubType": "OtherMiscellaneousIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "26",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Penalties & Settlements",
+          "SubAccount": false,
+          "FullyQualifiedName": "Penalties & Settlements",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Other Expense",
+          "AccountSubType": "PenaltiesSettlements",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "27",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Permits",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "58"
+          },
+          "FullyQualifiedName": "Job Expenses:Permits",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "OtherMiscellaneousServiceCost",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "68",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:24:32-08:00",
+            "LastUpdatedTime": "2025-12-14T10:24:32-08:00"
+          }
+        },
+        {
+          "Name": "Pest Control Services",
+          "SubAccount": false,
+          "FullyQualifiedName": "Pest Control Services",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "OtherPrimaryIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "54",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:14:56-08:00",
+            "LastUpdatedTime": "2025-12-14T10:14:56-08:00"
+          }
+        },
+        {
+          "Name": "Plants and Soil",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "46"
+          },
+          "FullyQualifiedName": "Landscaping Services:Job Materials:Plants and Soil",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "OtherPrimaryIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "49",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:07:40-08:00",
+            "LastUpdatedTime": "2025-12-14T10:07:40-08:00"
+          }
+        },
+        {
+          "Name": "Plants and Soil",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "63"
+          },
+          "FullyQualifiedName": "Job Expenses:Job Materials:Plants and Soil",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "SuppliesMaterials",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "66",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:23:04-08:00",
+            "LastUpdatedTime": "2025-12-14T10:23:04-08:00"
+          }
+        },
+        {
+          "Name": "Prepaid Expenses",
+          "SubAccount": false,
+          "FullyQualifiedName": "Prepaid Expenses",
+          "Active": true,
+          "Classification": "Asset",
+          "AccountType": "Other Current Asset",
+          "AccountSubType": "PrepaidExpenses",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "3",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Promotional",
+          "SubAccount": false,
+          "FullyQualifiedName": "Promotional",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "AdvertisingPromotional",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "16",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Purchases",
+          "SubAccount": false,
+          "FullyQualifiedName": "Purchases",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "SuppliesMaterials",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "78",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:36:03-08:00",
+            "LastUpdatedTime": "2025-12-14T10:36:03-08:00"
+          }
+        },
+        {
+          "Name": "Refunds-Allowances",
+          "SubAccount": false,
+          "FullyQualifiedName": "Refunds-Allowances",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "DiscountsRefundsGiven",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "6",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Rent or Lease",
+          "SubAccount": false,
+          "FullyQualifiedName": "Rent or Lease",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "RentOrLeaseOfBuildings",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "17",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Retained Earnings",
+          "SubAccount": false,
+          "FullyQualifiedName": "Retained Earnings",
+          "Active": true,
+          "Classification": "Equity",
+          "AccountType": "Equity",
+          "AccountSubType": "RetainedEarnings",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "2",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:05-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:05-08:00"
+          }
+        },
+        {
+          "Name": "Sales of Product Income",
+          "SubAccount": false,
+          "FullyQualifiedName": "Sales of Product Income",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "SalesOfProductIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "79",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:36:03-08:00",
+            "LastUpdatedTime": "2025-12-14T10:36:03-08:00"
+          }
+        },
+        {
+          "Name": "Savings",
+          "SubAccount": false,
+          "FullyQualifiedName": "Savings",
+          "Active": true,
+          "Classification": "Asset",
+          "AccountType": "Bank",
+          "AccountSubType": "Savings",
+          "CurrentBalance": 800,
+          "CurrentBalanceWithSubAccounts": 800,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "36",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-13T12:09:00-08:00",
+            "LastUpdatedTime": "2025-12-17T13:00:56-08:00"
+          }
+        },
+        {
+          "Name": "Services",
+          "SubAccount": false,
+          "FullyQualifiedName": "Services",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "ServiceFeeIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "1",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:05-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:05-08:00"
+          }
+        },
+        {
+          "Name": "Sprinklers and Drip Systems",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "46"
+          },
+          "FullyQualifiedName": "Landscaping Services:Job Materials:Sprinklers and Drip Systems",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "OtherPrimaryIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "50",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:08:06-08:00",
+            "LastUpdatedTime": "2025-12-14T10:08:06-08:00"
+          }
+        },
+        {
+          "Name": "Sprinklers and Drip Systems",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "63"
+          },
+          "FullyQualifiedName": "Job Expenses:Job Materials:Sprinklers and Drip Systems",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "SuppliesMaterials",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "67",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:23:30-08:00",
+            "LastUpdatedTime": "2025-12-14T10:23:30-08:00"
+          }
+        },
+        {
+          "Name": "Stationery & Printing",
+          "SubAccount": false,
+          "FullyQualifiedName": "Stationery & Printing",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "OfficeGeneralAdministrativeExpenses",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "19",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Supplies",
+          "SubAccount": false,
+          "FullyQualifiedName": "Supplies",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "SuppliesMaterials",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "20",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Taxes & Licenses",
+          "SubAccount": false,
+          "FullyQualifiedName": "Taxes & Licenses",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "TaxesPaid",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "21",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Telephone",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "24"
+          },
+          "FullyQualifiedName": "Utilities:Telephone",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "Utilities",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "77",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:30:53-08:00",
+            "LastUpdatedTime": "2025-12-14T10:30:53-08:00"
+          }
+        },
+        {
+          "Name": "Travel",
+          "SubAccount": false,
+          "FullyQualifiedName": "Travel",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "Travel",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "22",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Travel Meals",
+          "SubAccount": false,
+          "FullyQualifiedName": "Travel Meals",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "TravelMeals",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "23",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:07-08:00"
+          }
+        },
+        {
+          "Name": "Truck",
+          "SubAccount": false,
+          "FullyQualifiedName": "Truck",
+          "Active": true,
+          "Classification": "Asset",
+          "AccountType": "Fixed Asset",
+          "AccountSubType": "Vehicles",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 13495,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "37",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-13T12:11:06-08:00",
+            "LastUpdatedTime": "2025-12-13T12:11:07-08:00"
+          }
+        },
+        {
+          "Name": "Unapplied Cash Bill Payment Expense",
+          "SubAccount": false,
+          "FullyQualifiedName": "Unapplied Cash Bill Payment Expense",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "UnappliedCashBillPaymentExpense",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "88",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T15:28:48-08:00",
+            "LastUpdatedTime": "2025-12-14T15:28:48-08:00"
+          }
+        },
+        {
+          "Name": "Unapplied Cash Payment Income",
+          "SubAccount": false,
+          "FullyQualifiedName": "Unapplied Cash Payment Income",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "UnappliedCashPaymentIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "87",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T15:08:16-08:00",
+            "LastUpdatedTime": "2025-12-14T15:08:16-08:00"
+          }
+        },
+        {
+          "Name": "Uncategorized Asset",
+          "SubAccount": false,
+          "FullyQualifiedName": "Uncategorized Asset",
+          "Active": true,
+          "Classification": "Asset",
+          "AccountType": "Other Current Asset",
+          "AccountSubType": "OtherCurrentAssets",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "32",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:46:30-08:00",
+            "LastUpdatedTime": "2025-12-09T14:46:30-08:00"
+          }
+        },
+        {
+          "Name": "Uncategorized Expense",
+          "SubAccount": false,
+          "FullyQualifiedName": "Uncategorized Expense",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "OtherMiscellaneousServiceCost",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "31",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:46:30-08:00",
+            "LastUpdatedTime": "2025-12-09T14:46:30-08:00"
+          }
+        },
+        {
+          "Name": "Uncategorized Income",
+          "SubAccount": false,
+          "FullyQualifiedName": "Uncategorized Income",
+          "Active": true,
+          "Classification": "Revenue",
+          "AccountType": "Income",
+          "AccountSubType": "ServiceFeeIncome",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "30",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:46:30-08:00",
+            "LastUpdatedTime": "2025-12-09T14:46:30-08:00"
+          }
+        },
+        {
+          "Name": "Undeposited Funds",
+          "SubAccount": false,
+          "FullyQualifiedName": "Undeposited Funds",
+          "Active": true,
+          "Classification": "Asset",
+          "AccountType": "Other Current Asset",
+          "AccountSubType": "UndepositedFunds",
+          "CurrentBalance": 2062.52,
+          "CurrentBalanceWithSubAccounts": 2062.52,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "4",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-17T13:13:33-08:00"
+          }
+        },
+        {
+          "Name": "Utilities",
+          "SubAccount": false,
+          "FullyQualifiedName": "Utilities",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "Utilities",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "24",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:07-08:00",
+            "LastUpdatedTime": "2025-12-14T10:30:53-08:00"
+          }
+        },
+        {
+          "Name": "Visa",
+          "SubAccount": false,
+          "FullyQualifiedName": "Visa",
+          "Active": true,
+          "Classification": "Liability",
+          "AccountType": "Credit Card",
+          "AccountSubType": "CreditCard",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "42",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:00:09-08:00",
+            "LastUpdatedTime": "2025-12-14T10:00:09-08:00"
+          }
+        },
+        {
+          "Name": "Workers Compensation",
+          "SubAccount": true,
+          "ParentRef": {
+            "value": "11"
+          },
+          "FullyQualifiedName": "Insurance:Workers Compensation",
+          "Active": true,
+          "Classification": "Expense",
+          "AccountType": "Expense",
+          "AccountSubType": "Insurance",
+          "CurrentBalance": 0,
+          "CurrentBalanceWithSubAccounts": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "57",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-14T10:17:24-08:00",
+            "LastUpdatedTime": "2025-12-14T10:17:24-08:00"
+          }
+        }
+      ]
+    },
+    {
+      "category": "Vendors",
+      "count": 35,
+      "data": [
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "59",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-12T16:45:43-08:00",
+            "LastUpdatedTime": "2026-01-12T16:45:43-08:00"
+          },
+          "DisplayName": "Ace Hardware",
+          "PrintOnCheckName": "Ace Hardware",
+          "Active": true,
+          "V4IDPseudonym": "002098cd7952c77dba40ca9d75ffa231fdcd8b"
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "65",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-13T06:51:08-08:00",
+            "LastUpdatedTime": "2026-01-13T06:51:08-08:00"
+          },
+          "DisplayName": "Autozone",
+          "PrintOnCheckName": "Autozone",
+          "Active": true,
+          "V4IDPseudonym": "002098696c14b6c0f543b5abc788c1ff7613d1"
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "63",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-13T06:31:06-08:00",
+            "LastUpdatedTime": "2026-01-13T06:31:06-08:00"
+          },
+          "DisplayName": "Becks Paint, Hardware & Decor",
+          "PrintOnCheckName": "Becks Paint, Hardware & Decor",
+          "Active": true,
+          "V4IDPseudonym": "002098a3c7a575ace84b0899e8d44bea8aae2d"
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "56",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-31T14:28:52-08:00",
+            "LastUpdatedTime": "2025-12-31T14:28:52-08:00"
+          },
+          "DisplayName": "Bob's Burger Joint",
+          "PrintOnCheckName": "Bob's Burger Joint",
+          "Active": true,
+          "V4IDPseudonym": "00209824b9b0172ea74c9f97f1be15f8f3e304"
+        },
+        {
+          "BillAddr": {
+            "Id": "31",
+            "Line1": "15 Main St.",
+            "City": "Palo Alto",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94303",
+            "Lat": "37.445013",
+            "Long": "-122.1391443"
+          },
+          "Balance": 0,
+          "AcctNum": "1345",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "30",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:07:56-08:00",
+            "LastUpdatedTime": "2025-12-15T11:13:46-08:00"
+          },
+          "GivenName": "Bessie",
+          "FamilyName": "Williams",
+          "CompanyName": "Books by Bessie",
+          "DisplayName": "Books by Bessie",
+          "PrintOnCheckName": "Books by Bessie",
+          "Active": true,
+          "V4IDPseudonym": "0020988089f3d04371430587f7854a49be709a",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-7745"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Books@Intuit.com"
+          },
+          "WebAddr": {
+            "URI": "http://www.booksbybessie.co"
+          }
+        },
+        {
+          "BillAddr": {
+            "Id": "32",
+            "Line1": "P.O. Box 5",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94482",
+            "Lat": "43.8249453",
+            "Long": "-79.2639122"
+          },
+          "Balance": 241.23,
+          "AcctNum": "7653412",
+          "Vendor1099": true,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "31",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:12:02-08:00",
+            "LastUpdatedTime": "2025-12-14T15:28:48-08:00"
+          },
+          "GivenName": "Nick",
+          "FamilyName": "Brosnahan",
+          "CompanyName": "Brosnahan Insurance Agency",
+          "DisplayName": "Brosnahan Insurance Agency",
+          "PrintOnCheckName": "Brosnahan Insurance Agency",
+          "Active": true,
+          "V4IDPseudonym": "002098b0754b1fa7ab427e96b7fe968f1cb5b8",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-9912"
+          },
+          "Mobile": {
+            "FreeFormNumber": "(650) 555-9874"
+          },
+          "Fax": {
+            "FreeFormNumber": "(555) 123-4567"
+          },
+          "WebAddr": {
+            "URI": "http://BrosnahanInsuranceAgency.org"
+          }
+        },
+        {
+          "BillAddr": {
+            "Id": "33",
+            "Line1": "10 Main St.",
+            "City": "Palo Alto",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94303",
+            "Lat": "37.445013",
+            "Long": "-122.1391443"
+          },
+          "TermRef": {
+            "value": "1",
+            "name": "Due on receipt"
+          },
+          "Balance": 0,
+          "BillRate": 25,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "32",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:13:24-08:00",
+            "LastUpdatedTime": "2025-12-17T12:55:23-08:00"
+          },
+          "CompanyName": "Cal Telephone",
+          "DisplayName": "Cal Telephone",
+          "PrintOnCheckName": "Cal Telephone",
+          "Active": true,
+          "V4IDPseudonym": "002098197d43514f9d463fbc6f53270f6fe665",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-1616"
+          }
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "33",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:13:52-08:00",
+            "LastUpdatedTime": "2025-12-10T10:13:52-08:00"
+          },
+          "CompanyName": "Chin's Gas and Oil",
+          "DisplayName": "Chin's Gas and Oil",
+          "PrintOnCheckName": "Chin's Gas and Oil",
+          "Active": true,
+          "V4IDPseudonym": "0020987e55978108524ba8ab1144ffea515077"
+        },
+        {
+          "Balance": 0,
+          "AcctNum": "123456789",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "34",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:14:48-08:00",
+            "LastUpdatedTime": "2025-12-10T10:14:48-08:00"
+          },
+          "CompanyName": "Cigna Health Care",
+          "DisplayName": "Cigna Health Care",
+          "PrintOnCheckName": "Cigna Health Care",
+          "Active": true,
+          "V4IDPseudonym": "0020984a268a2a43b940c2b7171c7d6eb07f8d",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(520) 555-9874"
+          }
+        },
+        {
+          "BillAddr": {
+            "Id": "34",
+            "Line1": "1515 Main St.",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94482",
+            "Lat": "37.3787808",
+            "Long": "-122.1158227"
+          },
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "35",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:16:29-08:00",
+            "LastUpdatedTime": "2025-12-10T10:16:29-08:00"
+          },
+          "GivenName": "Jenni",
+          "FamilyName": "Winslow",
+          "CompanyName": "Computers by Jenni",
+          "DisplayName": "Computers by Jenni",
+          "PrintOnCheckName": "Computers by Jenni",
+          "Active": true,
+          "V4IDPseudonym": "002098946fc8b1c3dd487bb2b232c8e5fded6b",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-8721"
+          },
+          "Mobile": {
+            "FreeFormNumber": "(650) 111-5648"
+          },
+          "Fax": {
+            "FreeFormNumber": "(650) 999-2663"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Msfixit@Intuit.com"
+          }
+        },
+        {
+          "Balance": 755,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "36",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:16:54-08:00",
+            "LastUpdatedTime": "2025-12-15T11:31:42-08:00"
+          },
+          "CompanyName": "Diego's Road Warrior Bodyshop",
+          "DisplayName": "Diego's Road Warrior Bodyshop",
+          "PrintOnCheckName": "Diego's Road Warrior Bodyshop",
+          "Active": true,
+          "V4IDPseudonym": "002098732a5c455bba49ddaefc6136fc114fab"
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "37",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:17:10-08:00",
+            "LastUpdatedTime": "2025-12-10T10:17:10-08:00"
+          },
+          "CompanyName": "EDD",
+          "DisplayName": "EDD",
+          "PrintOnCheckName": "EDD",
+          "Active": true,
+          "V4IDPseudonym": "00209874d5c1ef72d84f0ba0b0f9fa7cf1d49e"
+        },
+        {
+          "BillAddr": {
+            "Id": "35",
+            "Line1": "45896 Main St.",
+            "City": "Middlefield",
+            "Country": "USA",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94303",
+            "Lat": "37.445013",
+            "Long": "-122.1391443"
+          },
+          "Balance": 0,
+          "AcctNum": "39765",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "38",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:19:42-08:00",
+            "LastUpdatedTime": "2025-12-10T10:19:42-08:00"
+          },
+          "Title": "Ms.",
+          "GivenName": "Julie",
+          "MiddleName": "I.",
+          "FamilyName": "Ellis",
+          "CompanyName": "Ellis Equipment Rental",
+          "DisplayName": "Ellis Equipment Rental",
+          "PrintOnCheckName": "Ellis Equipment Rental",
+          "Active": true,
+          "V4IDPseudonym": "0020988103208d83d64617a8061dff294f55cb",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-3333"
+          },
+          "Mobile": {
+            "FreeFormNumber": "(650) 445-3333"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Rental@intuit.com"
+          },
+          "WebAddr": {
+            "URI": "http://rental.intuit.com"
+          }
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "39",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:20:03-08:00",
+            "LastUpdatedTime": "2025-12-10T10:20:03-08:00"
+          },
+          "CompanyName": "Fidelity",
+          "DisplayName": "Fidelity",
+          "PrintOnCheckName": "Fidelity",
+          "Active": true,
+          "V4IDPseudonym": "0020983076f76a0d134cbea005886fe11e9efc"
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "60",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-13T06:23:32-08:00",
+            "LastUpdatedTime": "2026-01-13T06:23:32-08:00"
+          },
+          "DisplayName": "Graeters",
+          "PrintOnCheckName": "Graeters",
+          "Active": true,
+          "V4IDPseudonym": "002098e9a02f8320d84d8889a86c812a503a68"
+        },
+        {
+          "BillAddr": {
+            "Id": "36",
+            "Line1": "P.O.Box 357",
+            "City": "South Orange",
+            "CountrySubDivisionCode": "NJ",
+            "PostalCode": "07079",
+            "Lat": "40.7489277",
+            "Long": "-74.2609903"
+          },
+          "Balance": 0,
+          "BillRate": 18,
+          "AcctNum": "55642",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "40",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:24:28-08:00",
+            "LastUpdatedTime": "2025-12-16T13:43:08-08:00"
+          },
+          "GivenName": "Melanie",
+          "FamilyName": "Hall",
+          "CompanyName": "Hall Properties",
+          "DisplayName": "Hall Properties",
+          "PrintOnCheckName": "Hall Properties",
+          "Active": true,
+          "V4IDPseudonym": "002098e2ca18067e824993ad5470c5f859f577",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(973) 555-3827"
+          },
+          "Mobile": {
+            "FreeFormNumber": "(973) 888-6222"
+          },
+          "WebAddr": {
+            "URI": "http://www.hallproperties.intuit.org"
+          }
+        },
+        {
+          "BillAddr": {
+            "Id": "37",
+            "Line1": "42 Main St.",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94303",
+            "Lat": "37.445013",
+            "Long": "-122.1391443"
+          },
+          "Balance": 0,
+          "AcctNum": "556223",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "41",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:26:56-08:00",
+            "LastUpdatedTime": "2025-12-16T13:01:57-08:00"
+          },
+          "GivenName": "Geoff",
+          "FamilyName": "Hicks",
+          "CompanyName": "Hicks Hardware",
+          "DisplayName": "Hicks Hardware",
+          "PrintOnCheckName": "Hicks Hardware",
+          "Active": true,
+          "V4IDPseudonym": "002098667fba3207e545469568a7a61ba353cc",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 554-1973"
+          },
+          "Mobile": {
+            "FreeFormNumber": "(650) 445-6666"
+          },
+          "WebAddr": {
+            "URI": "http://Hickshardware.co"
+          }
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "66",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-13T06:53:02-08:00",
+            "LastUpdatedTime": "2026-01-13T06:53:02-08:00"
+          },
+          "DisplayName": "Home Depot",
+          "PrintOnCheckName": "Home Depot",
+          "Active": true,
+          "V4IDPseudonym": "002098c843f99a3082495d922e8f163bc79932"
+        },
+        {
+          "BillAddr": {
+            "Id": "38",
+            "Line1": "53 Main St.",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94303",
+            "Lat": "37.445013",
+            "Long": "-122.1391443"
+          },
+          "Balance": 0,
+          "AcctNum": "776543",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "42",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:28:25-08:00",
+            "LastUpdatedTime": "2025-12-10T10:28:25-08:00"
+          },
+          "Title": "Mrs.",
+          "GivenName": "Laurel",
+          "MiddleName": "J.",
+          "FamilyName": "Lee",
+          "CompanyName": "Lee Advertising",
+          "DisplayName": "Lee Advertising",
+          "PrintOnCheckName": "Lee Advertising",
+          "Active": true,
+          "V4IDPseudonym": "00209854c9642b289e483fa3f67f61f75d8fe2",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 554-4622"
+          }
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "58",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-12T14:23:11-08:00",
+            "LastUpdatedTime": "2026-01-12T14:23:11-08:00"
+          },
+          "DisplayName": "Lowe's",
+          "PrintOnCheckName": "Lowe's",
+          "Active": true,
+          "V4IDPseudonym": "0020983e74c9dcd8494e0a884eb563bd6b13ce"
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "43",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:28:46-08:00",
+            "LastUpdatedTime": "2025-12-10T10:28:46-08:00"
+          },
+          "CompanyName": "Mahoney Mugs",
+          "DisplayName": "Mahoney Mugs",
+          "PrintOnCheckName": "Mahoney Mugs",
+          "Active": true,
+          "V4IDPseudonym": "002098195c8928294c459191d43c3b1dd1d29f"
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "44",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:29:10-08:00",
+            "LastUpdatedTime": "2025-12-10T10:29:10-08:00"
+          },
+          "CompanyName": "Met Life Dental",
+          "DisplayName": "Met Life Dental",
+          "PrintOnCheckName": "Met Life Dental",
+          "Active": true,
+          "V4IDPseudonym": "002098245a7287f77b431781996eea1bb727f4"
+        },
+        {
+          "BillAddr": {
+            "Id": "39",
+            "Line1": "123 Anywhere Ave",
+            "City": "Tucson",
+            "CountrySubDivisionCode": "AZ",
+            "PostalCode": "85704",
+            "Lat": "32.3477051",
+            "Long": "-110.9992777"
+          },
+          "TermRef": {
+            "value": "3",
+            "name": "Net 30"
+          },
+          "Balance": 0,
+          "AcctNum": "164978565103482659421",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "45",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:31:37-08:00",
+            "LastUpdatedTime": "2025-12-10T10:31:37-08:00"
+          },
+          "CompanyName": "National Eye Care",
+          "DisplayName": "National Eye Care",
+          "PrintOnCheckName": "National Eye Care",
+          "Active": true,
+          "V4IDPseudonym": "002098798a6d332e9049609908eb32ce0b4113",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(800) 555-5555"
+          },
+          "Fax": {
+            "FreeFormNumber": "(800) 666-6666"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Nateyecare@intuit.com, pauliejones15@intuit.com"
+          },
+          "WebAddr": {
+            "URI": "http://www.nateyecare.intuit.com"
+          }
+        },
+        {
+          "BillAddr": {
+            "Id": "40",
+            "Line1": "4528 Country Road",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94303",
+            "Lat": "37.3752919",
+            "Long": "-122.1692159"
+          },
+          "Balance": 205,
+          "AcctNum": "32980256",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "46",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:32:55-08:00",
+            "LastUpdatedTime": "2025-12-17T13:10:36-08:00"
+          },
+          "GivenName": "Julie",
+          "FamilyName": "Norton",
+          "CompanyName": "Norton Lumber and Building Materials",
+          "DisplayName": "Norton Lumber and Building Materials",
+          "PrintOnCheckName": "Norton Lumber and Building Materials",
+          "Active": true,
+          "V4IDPseudonym": "0020988509aa9c26224cb29f6e7375962f04d4",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 363-6578"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Materials@intuit.com"
+          }
+        },
+        {
+          "BillAddr": {
+            "Id": "42",
+            "Line1": "4 Main St.",
+            "City": "Palo Alto",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94303",
+            "Lat": "37.445013",
+            "Long": "-122.1391443"
+          },
+          "Balance": 86.44,
+          "AcctNum": "00649587213",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "48",
+          "SyncToken": "1",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:36:57-08:00",
+            "LastUpdatedTime": "2025-12-16T13:00:36-08:00"
+          },
+          "CompanyName": "PG&E",
+          "DisplayName": "PG&E",
+          "PrintOnCheckName": "PG&E",
+          "Active": true,
+          "V4IDPseudonym": "0020983c026ad56e7f45058b825ee9f294f6fb",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(888) 555-9465"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "utilities@noemail.com"
+          }
+        },
+        {
+          "BillAddr": {
+            "Id": "41",
+            "Line1": "P.O. Box 15",
+            "City": "Bayshore",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94326",
+            "Lat": "45.2720537",
+            "Long": "-79.7935909"
+          },
+          "TermRef": {
+            "value": "1",
+            "name": "Due on receipt"
+          },
+          "Balance": 0,
+          "AcctNum": "64132549",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "47",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:35:10-08:00",
+            "LastUpdatedTime": "2025-12-10T10:35:10-08:00"
+          },
+          "GivenName": "Pam",
+          "FamilyName": "Seitz",
+          "CompanyName": "Pam Seitz, CPA",
+          "DisplayName": "Pam Seitz",
+          "PrintOnCheckName": "Pam Seitz",
+          "Active": true,
+          "V4IDPseudonym": "002098ebbe672a560d4bb9b3f5465dc44242b9",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 557-8855"
+          },
+          "Mobile": {
+            "FreeFormNumber": "(650) 888-4446"
+          },
+          "Fax": {
+            "FreeFormNumber": "(556) 454-5555"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "SeitzCPA@noemail.com"
+          },
+          "WebAddr": {
+            "URI": "http://seitzcpas.intuit.com"
+          }
+        },
+        {
+          "BillAddr": {
+            "Id": "43",
+            "Line1": "P.O. Box 147",
+            "City": "Bayshore",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94326",
+            "Lat": "45.2720537",
+            "Long": "-79.7935909"
+          },
+          "Balance": 315,
+          "AcctNum": "000005641",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "49",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:38:12-08:00",
+            "LastUpdatedTime": "2025-12-17T12:36:59-08:00"
+          },
+          "GivenName": "Jenny",
+          "FamilyName": "Robertson",
+          "CompanyName": "Robertson & Associates",
+          "DisplayName": "Robertson & Associates",
+          "PrintOnCheckName": "Robertson & Associates",
+          "Active": true,
+          "V4IDPseudonym": "002098e5ebc17b5a924172bf8bcfc4970e7f16",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 557-1111"
+          }
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "61",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-13T06:28:11-08:00",
+            "LastUpdatedTime": "2026-01-13T06:28:11-08:00"
+          },
+          "DisplayName": "Shell Gas",
+          "PrintOnCheckName": "Shell Gas",
+          "Active": true,
+          "V4IDPseudonym": "002098c8a29746679f4452acc9dc343ab026af"
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "64",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-13T06:36:23-08:00",
+            "LastUpdatedTime": "2026-01-13T06:36:23-08:00"
+          },
+          "DisplayName": "Speedway Gas",
+          "PrintOnCheckName": "Speedway Gas",
+          "Active": true,
+          "V4IDPseudonym": "0020987714c5cf65f14b41999dc28792f2091a"
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "57",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-31T14:29:35-08:00",
+            "LastUpdatedTime": "2025-12-31T14:29:35-08:00"
+          },
+          "DisplayName": "Squeaky Kleen Car Wash",
+          "PrintOnCheckName": "Squeaky Kleen Car Wash",
+          "Active": true,
+          "V4IDPseudonym": "002098c30f3a88d55d4e3d96cc6615cf570724"
+        },
+        {
+          "BillAddr": {
+            "Id": "44",
+            "Line1": "1111 Elm St.",
+            "City": "Middlefield",
+            "Country": "USA",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94482",
+            "Lat": "37.4604972",
+            "Long": "-122.1547528"
+          },
+          "Balance": 0,
+          "AcctNum": "2154",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "50",
+          "SyncToken": "1",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:40:09-08:00",
+            "LastUpdatedTime": "2025-12-15T15:10:33-08:00"
+          },
+          "GivenName": "Tania",
+          "FamilyName": "Kronberg",
+          "CompanyName": "Tania's Nursery",
+          "DisplayName": "Tania's Nursery",
+          "PrintOnCheckName": "Tania's Nursery",
+          "Active": true,
+          "V4IDPseudonym": "002098e952edeb074843bbae6f685bbc9bb41a",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(886) 554-2265"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "plantqueen@taniasnursery.com"
+          }
+        },
+        {
+          "BillAddr": {
+            "Id": "45",
+            "Line1": "3948 Elm St.",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94482",
+            "Lat": "37.4604972",
+            "Long": "-122.1547528"
+          },
+          "Balance": 0,
+          "AcctNum": "0078965",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "51",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:42:31-08:00",
+            "LastUpdatedTime": "2025-12-16T13:06:58-08:00"
+          },
+          "GivenName": "Tim",
+          "FamilyName": "Philip",
+          "CompanyName": "Tim Philip Masonry",
+          "DisplayName": "Tim Philip Masonry",
+          "PrintOnCheckName": "Tim Philip Masonry",
+          "Active": true,
+          "V4IDPseudonym": "00209832ece84afdb44abd95ecdea8962ffd23",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(800) 556-1254"
+          },
+          "Mobile": {
+            "FreeFormNumber": "(650) 555-1549"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "tim.philip@timphilipmasonry.com"
+          },
+          "WebAddr": {
+            "URI": "http://www.bricksbytim4less.co"
+          }
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "52",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:43:57-08:00",
+            "LastUpdatedTime": "2025-12-10T10:43:57-08:00"
+          },
+          "Title": "Mr.",
+          "GivenName": "Tony",
+          "MiddleName": "L",
+          "FamilyName": "Rodonuwu",
+          "Suffix": "Jr.",
+          "DisplayName": "Tony Rondonuwu",
+          "PrintOnCheckName": "Tony Rondonuwu",
+          "Active": true,
+          "V4IDPseudonym": "00209826b49391a3a742669835fe36c9cbab23",
+          "PrimaryEmailAddr": {
+            "Address": "tonyrjr@intuit.com"
+          }
+        },
+        {
+          "BillAddr": {
+            "Id": "46",
+            "Line1": "5568 Capital Drive",
+            "City": "Tucson",
+            "CountrySubDivisionCode": "AZ",
+            "PostalCode": "85718",
+            "Lat": "32.3389931",
+            "Long": "-110.9268201"
+          },
+          "Balance": 0,
+          "AcctNum": "00000111546",
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "53",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-10T10:46:00-08:00",
+            "LastUpdatedTime": "2025-12-10T10:46:00-08:00"
+          },
+          "DisplayName": "United States Treasury",
+          "PrintOnCheckName": "United States Treasury",
+          "Active": true,
+          "V4IDPseudonym": "002098e6bd4eb32a17478199cae5ad453ba0e1",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(888) 555-6454"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "taxesaregreat@intuit.com"
+          },
+          "WebAddr": {
+            "URI": "http://www.ustreasury.gov"
+          }
+        },
+        {
+          "Balance": 0,
+          "Vendor1099": false,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "62",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-13T06:28:25-08:00",
+            "LastUpdatedTime": "2026-01-13T06:28:25-08:00"
+          },
+          "DisplayName": "wawa",
+          "PrintOnCheckName": "wawa",
+          "Active": true,
+          "V4IDPseudonym": "0020981a3190534eca47ec8d5a68a86375fd2c"
+        }
+      ]
+    },
+    {
+      "category": "Purchase Transactions",
+      "count": 10,
+      "data": [
+        {
+          "AccountRef": {
+            "value": "41",
+            "name": "Mastercard"
+          },
+          "PaymentType": "CreditCard",
+          "EntityRef": {
+            "value": "66",
+            "name": "Home Depot",
+            "type": "Vendor"
+          },
+          "Credit": false,
+          "TotalAmt": 132.86,
+          "PurchaseEx": {
+            "any": [
+              {
+                "name": "{http://schema.intuit.com/finance/v3}NameValue",
+                "declaredType": "com.intuit.schema.finance.v3.NameValue",
+                "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+                "value": {
+                  "Name": "TxnType",
+                  "Value": "54"
+                },
+                "nil": false,
+                "globalScope": true,
+                "typeSubstituted": false
+              }
+            ]
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "153",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-13T07:32:58-08:00",
+            "LastUpdatedTime": "2026-01-13T07:32:58-08:00"
+          },
+          "TxnDate": "2026-01-05",
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PrivateNote": "Receipt from Home Depot\nProject: 225-057 - 225-057  3200 Vandercar Way Dumpster Gate\nReceipt ID: 9df587eb-946d-4634-a4b3-60c5d7041613",
+          "Line": [
+            {
+              "Id": "1",
+              "Description": "Receipt from Home Depot",
+              "Amount": 132.86,
+              "DetailType": "AccountBasedExpenseLineDetail",
+              "AccountBasedExpenseLineDetail": {
+                "AccountRef": {
+                  "value": "69",
+                  "name": "Legal & Professional Fees:Accounting"
+                },
+                "BillableStatus": "NotBillable",
+                "TaxCodeRef": {
+                  "value": "NON"
+                }
+              },
+              "CustomExtensions": []
+            }
+          ]
+        },
+        {
+          "AccountRef": {
+            "value": "41",
+            "name": "Mastercard"
+          },
+          "PaymentType": "CreditCard",
+          "EntityRef": {
+            "value": "64",
+            "name": "Speedway Gas",
+            "type": "Vendor"
+          },
+          "Credit": false,
+          "TotalAmt": 54.81,
+          "PurchaseEx": {
+            "any": [
+              {
+                "name": "{http://schema.intuit.com/finance/v3}NameValue",
+                "declaredType": "com.intuit.schema.finance.v3.NameValue",
+                "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+                "value": {
+                  "Name": "TxnType",
+                  "Value": "54"
+                },
+                "nil": false,
+                "globalScope": true,
+                "typeSubstituted": false
+              }
+            ]
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "152",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-13T07:00:11-08:00",
+            "LastUpdatedTime": "2026-01-13T07:00:11-08:00"
+          },
+          "TxnDate": "2025-12-30",
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PrivateNote": "Receipt from Speedway Gas\nProject: 001-GAS - Gas Expense\nReceipt ID: 292e62a1-6823-4654-abe4-e9b52bcd944f",
+          "Line": [
+            {
+              "Id": "1",
+              "Description": "Receipt from Speedway Gas",
+              "Amount": 54.81,
+              "DetailType": "AccountBasedExpenseLineDetail",
+              "AccountBasedExpenseLineDetail": {
+                "AccountRef": {
+                  "value": "8",
+                  "name": "Bank Charges"
+                },
+                "BillableStatus": "NotBillable",
+                "TaxCodeRef": {
+                  "value": "NON"
+                }
+              },
+              "CustomExtensions": []
+            }
+          ]
+        },
+        {
+          "AccountRef": {
+            "value": "41",
+            "name": "Mastercard"
+          },
+          "PaymentType": "CreditCard",
+          "EntityRef": {
+            "value": "63",
+            "name": "Becks Paint, Hardware & Decor",
+            "type": "Vendor"
+          },
+          "Credit": false,
+          "TotalAmt": 10.55,
+          "PurchaseEx": {
+            "any": [
+              {
+                "name": "{http://schema.intuit.com/finance/v3}NameValue",
+                "declaredType": "com.intuit.schema.finance.v3.NameValue",
+                "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+                "value": {
+                  "Name": "TxnType",
+                  "Value": "54"
+                },
+                "nil": false,
+                "globalScope": true,
+                "typeSubstituted": false
+              }
+            ]
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "151",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-13T06:49:46-08:00",
+            "LastUpdatedTime": "2026-01-13T06:49:46-08:00"
+          },
+          "TxnDate": "2025-12-30",
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PrivateNote": "Receipt from Becks Paint, Hardware & Decor\nProject: 225-012 - UC Piedmont Executive Health\nReceipt ID: 87787e52-c470-485e-9255-5025e8b5d64f",
+          "Line": [
+            {
+              "Id": "1",
+              "Description": "Receipt from Becks Paint, Hardware & Decor",
+              "Amount": 10.55,
+              "DetailType": "AccountBasedExpenseLineDetail",
+              "AccountBasedExpenseLineDetail": {
+                "AccountRef": {
+                  "value": "59",
+                  "name": "Job Expenses:Cost of Labor"
+                },
+                "BillableStatus": "NotBillable",
+                "TaxCodeRef": {
+                  "value": "NON"
+                }
+              },
+              "CustomExtensions": []
+            }
+          ]
+        },
+        {
+          "AccountRef": {
+            "value": "41",
+            "name": "Mastercard"
+          },
+          "PaymentType": "CreditCard",
+          "EntityRef": {
+            "value": "60",
+            "name": "Graeters",
+            "type": "Vendor"
+          },
+          "Credit": false,
+          "TotalAmt": 26.39,
+          "PurchaseEx": {
+            "any": [
+              {
+                "name": "{http://schema.intuit.com/finance/v3}NameValue",
+                "declaredType": "com.intuit.schema.finance.v3.NameValue",
+                "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+                "value": {
+                  "Name": "TxnType",
+                  "Value": "54"
+                },
+                "nil": false,
+                "globalScope": true,
+                "typeSubstituted": false
+              }
+            ]
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "150",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-13T06:23:54-08:00",
+            "LastUpdatedTime": "2026-01-13T06:23:54-08:00"
+          },
+          "TxnDate": "2026-01-09",
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PrivateNote": "Receipt from Graeters\nProject: 005-MEAL - Meals & Entertainment\nReceipt ID: fad04c7f-277b-4b21-831b-c18999849357",
+          "Line": [
+            {
+              "Id": "1",
+              "Description": "Receipt from Graeters",
+              "Amount": 26.39,
+              "DetailType": "AccountBasedExpenseLineDetail",
+              "AccountBasedExpenseLineDetail": {
+                "AccountRef": {
+                  "value": "74",
+                  "name": "Maintenance and Repair:Computer Repairs"
+                },
+                "BillableStatus": "NotBillable",
+                "TaxCodeRef": {
+                  "value": "NON"
+                }
+              },
+              "CustomExtensions": []
+            }
+          ]
+        },
+        {
+          "AccountRef": {
+            "value": "41",
+            "name": "Mastercard"
+          },
+          "PaymentType": "CreditCard",
+          "EntityRef": {
+            "value": "59",
+            "name": "Ace Hardware",
+            "type": "Vendor"
+          },
+          "Credit": false,
+          "TotalAmt": 7.74,
+          "PurchaseEx": {
+            "any": [
+              {
+                "name": "{http://schema.intuit.com/finance/v3}NameValue",
+                "declaredType": "com.intuit.schema.finance.v3.NameValue",
+                "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+                "value": {
+                  "Name": "TxnType",
+                  "Value": "54"
+                },
+                "nil": false,
+                "globalScope": true,
+                "typeSubstituted": false
+              }
+            ]
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "149",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-12T17:02:34-08:00",
+            "LastUpdatedTime": "2026-01-12T17:02:34-08:00"
+          },
+          "TxnDate": "2026-01-11",
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PrivateNote": "Receipt from Ace Hardware\nProject: 225-037 - 3120 Burnett Ave Pharmacy\nReceipt ID: cd5f6eac-7bf2-40ca-a4d5-7d2919620f77",
+          "Line": [
+            {
+              "Id": "1",
+              "Description": "Receipt from Ace Hardware",
+              "Amount": 7.74,
+              "DetailType": "AccountBasedExpenseLineDetail",
+              "AccountBasedExpenseLineDetail": {
+                "AccountRef": {
+                  "value": "80",
+                  "name": "Cost of Goods Sold"
+                },
+                "BillableStatus": "NotBillable",
+                "TaxCodeRef": {
+                  "value": "NON"
+                }
+              },
+              "CustomExtensions": []
+            }
+          ]
+        },
+        {
+          "AccountRef": {
+            "value": "41",
+            "name": "Mastercard"
+          },
+          "PaymentType": "CreditCard",
+          "EntityRef": {
+            "value": "59",
+            "name": "Ace Hardware",
+            "type": "Vendor"
+          },
+          "Credit": false,
+          "TotalAmt": 555.55,
+          "PurchaseEx": {
+            "any": [
+              {
+                "name": "{http://schema.intuit.com/finance/v3}NameValue",
+                "declaredType": "com.intuit.schema.finance.v3.NameValue",
+                "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+                "value": {
+                  "Name": "TxnType",
+                  "Value": "54"
+                },
+                "nil": false,
+                "globalScope": true,
+                "typeSubstituted": false
+              }
+            ]
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "148",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-12T16:45:55-08:00",
+            "LastUpdatedTime": "2026-01-12T16:45:55-08:00"
+          },
+          "TxnDate": "2026-01-13",
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PrivateNote": "Receipt from Ace Hardware\nProject: 225-037 - 3120 Burnett Ave Pharmacy\nReceipt ID: f282c698-dd91-45be-baa0-2ebbc1c50af0",
+          "Line": [
+            {
+              "Id": "1",
+              "Description": "Other expense",
+              "Amount": 555.55,
+              "DetailType": "AccountBasedExpenseLineDetail",
+              "AccountBasedExpenseLineDetail": {
+                "AccountRef": {
+                  "value": "63",
+                  "name": "Job Expenses:Job Materials"
+                },
+                "BillableStatus": "NotBillable",
+                "TaxCodeRef": {
+                  "value": "NON"
+                }
+              },
+              "CustomExtensions": []
+            }
+          ]
+        },
+        {
+          "AccountRef": {
+            "value": "41",
+            "name": "Mastercard"
+          },
+          "PaymentType": "CreditCard",
+          "EntityRef": {
+            "value": "58",
+            "name": "Lowe's",
+            "type": "Vendor"
+          },
+          "Credit": false,
+          "TotalAmt": 367.08,
+          "PurchaseEx": {
+            "any": [
+              {
+                "name": "{http://schema.intuit.com/finance/v3}NameValue",
+                "declaredType": "com.intuit.schema.finance.v3.NameValue",
+                "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+                "value": {
+                  "Name": "TxnType",
+                  "Value": "54"
+                },
+                "nil": false,
+                "globalScope": true,
+                "typeSubstituted": false
+              }
+            ]
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "147",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-12T16:40:06-08:00",
+            "LastUpdatedTime": "2026-01-12T16:40:06-08:00"
+          },
+          "TxnDate": "2026-01-12",
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PrivateNote": "Receipt from Lowe's\nProject: SYS-000 - Multiple Projects\nDescription: testing disregard\nReceipt ID: ee8c53b9-4e03-4e16-befb-56c7a003514e",
+          "Line": [
+            {
+              "Id": "1",
+              "Description": "testing disregard",
+              "Amount": 367.08,
+              "DetailType": "AccountBasedExpenseLineDetail",
+              "AccountBasedExpenseLineDetail": {
+                "AccountRef": {
+                  "value": "63",
+                  "name": "Job Expenses:Job Materials"
+                },
+                "BillableStatus": "NotBillable",
+                "TaxCodeRef": {
+                  "value": "NON"
+                }
+              },
+              "CustomExtensions": []
+            }
+          ]
+        },
+        {
+          "AccountRef": {
+            "value": "41",
+            "name": "Mastercard"
+          },
+          "PaymentType": "CreditCard",
+          "Credit": false,
+          "TotalAmt": 34,
+          "PurchaseEx": {
+            "any": [
+              {
+                "name": "{http://schema.intuit.com/finance/v3}NameValue",
+                "declaredType": "com.intuit.schema.finance.v3.NameValue",
+                "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+                "value": {
+                  "Name": "TxnType",
+                  "Value": "1"
+                },
+                "nil": false,
+                "globalScope": true,
+                "typeSubstituted": false
+              }
+            ]
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "144",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2026-01-11T14:04:25-08:00",
+            "LastUpdatedTime": "2026-01-11T14:04:25-08:00"
+          },
+          "TxnDate": "2026-01-11",
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "Line": [
+            {
+              "Id": "1",
+              "Amount": 34,
+              "DetailType": "AccountBasedExpenseLineDetail",
+              "AccountBasedExpenseLineDetail": {
+                "AccountRef": {
+                  "value": "55",
+                  "name": "Automobile"
+                },
+                "BillableStatus": "NotBillable",
+                "TaxCodeRef": {
+                  "value": "NON"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "AccountRef": {
+            "value": "41",
+            "name": "Mastercard"
+          },
+          "PaymentType": "CreditCard",
+          "EntityRef": {
+            "value": "41",
+            "name": "Hicks Hardware",
+            "type": "Vendor"
+          },
+          "Credit": false,
+          "TotalAmt": 42.4,
+          "PurchaseEx": {
+            "any": [
+              {
+                "name": "{http://schema.intuit.com/finance/v3}NameValue",
+                "declaredType": "com.intuit.schema.finance.v3.NameValue",
+                "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+                "value": {
+                  "Name": "TxnType",
+                  "Value": "1"
+                },
+                "nil": false,
+                "globalScope": true,
+                "typeSubstituted": false
+              }
+            ]
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "143",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-31T14:45:20-08:00",
+            "LastUpdatedTime": "2025-12-31T14:45:20-08:00"
+          },
+          "TxnDate": "2025-12-23",
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "Line": [
+            {
+              "Id": "1",
+              "Amount": 42.4,
+              "DetailType": "AccountBasedExpenseLineDetail",
+              "AccountBasedExpenseLineDetail": {
+                "AccountRef": {
+                  "value": "64",
+                  "name": "Job Expenses:Job Materials:Decks and Patios"
+                },
+                "BillableStatus": "NotBillable",
+                "TaxCodeRef": {
+                  "value": "NON"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "AccountRef": {
+            "value": "41",
+            "name": "Mastercard"
+          },
+          "PaymentType": "CreditCard",
+          "EntityRef": {
+            "value": "57",
+            "name": "Squeaky Kleen Car Wash",
+            "type": "Vendor"
+          },
+          "Credit": false,
+          "TotalAmt": 19.99,
+          "PurchaseEx": {
+            "any": [
+              {
+                "name": "{http://schema.intuit.com/finance/v3}NameValue",
+                "declaredType": "com.intuit.schema.finance.v3.NameValue",
+                "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+                "value": {
+                  "Name": "TxnType",
+                  "Value": "1"
+                },
+                "nil": false,
+                "globalScope": true,
+                "typeSubstituted": false
+              }
+            ]
+          },
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "142",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-31T14:37:54-08:00",
+            "LastUpdatedTime": "2025-12-31T14:37:54-08:00"
+          },
+          "TxnDate": "2025-12-29",
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "Line": [
+            {
+              "Id": "1",
+              "Amount": 19.99,
+              "DetailType": "AccountBasedExpenseLineDetail",
+              "AccountBasedExpenseLineDetail": {
+                "AccountRef": {
+                  "value": "55",
+                  "name": "Automobile"
+                },
+                "BillableStatus": "NotBillable",
+                "TaxCodeRef": {
+                  "value": "NON"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Customers",
+      "count": 20,
+      "data": [
+        {
+          "Taxable": true,
+          "BillAddr": {
+            "Id": "2",
+            "Line1": "4581 Finch St.",
+            "City": "Bayshore",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94326",
+            "Lat": "INVALID",
+            "Long": "INVALID"
+          },
+          "ShipAddr": {
+            "Id": "2",
+            "Line1": "4581 Finch St.",
+            "City": "Bayshore",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94326",
+            "Lat": "INVALID",
+            "Long": "INVALID"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 239,
+          "BalanceWithJobs": 239,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "1",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T16:48:43-08:00",
+            "LastUpdatedTime": "2025-12-16T13:39:32-08:00"
+          },
+          "GivenName": "Amy",
+          "FamilyName": "Lauterbach",
+          "FullyQualifiedName": "Amy's Bird Sanctuary",
+          "CompanyName": "Amy's Bird Sanctuary",
+          "DisplayName": "Amy's Bird Sanctuary",
+          "PrintOnCheckName": "Amy's Bird Sanctuary",
+          "Active": true,
+          "V4IDPseudonym": "00209866a1f9b6fc1b46b4ae57fab833a43ea7",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-3311"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Birds@Intuit.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "3",
+            "Line1": "12 Ocean Dr.",
+            "City": "Half Moon Bay",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94213",
+            "Lat": "37.4307072",
+            "Long": "-122.4295234"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 85,
+          "BalanceWithJobs": 85,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "2",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T16:49:28-08:00",
+            "LastUpdatedTime": "2025-12-16T12:56:01-08:00"
+          },
+          "GivenName": "Bill",
+          "FamilyName": "Lucchini",
+          "FullyQualifiedName": "Bill's Windsurf Shop",
+          "CompanyName": "Bill's Windsurf Shop",
+          "DisplayName": "Bill's Windsurf Shop",
+          "PrintOnCheckName": "Bill's Windsurf Shop",
+          "Active": true,
+          "V4IDPseudonym": "002098abcabe55234c49e0bc7bb0e5b4245597",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(415) 444-6538"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Surf@Intuit.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "4",
+            "Line1": "65 Ocean Dr.",
+            "City": "Half Moon Bay",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94213",
+            "Lat": "37.4300318",
+            "Long": "-122.4336537"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 0,
+          "BalanceWithJobs": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "3",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T16:51:22-08:00",
+            "LastUpdatedTime": "2025-12-17T12:59:21-08:00"
+          },
+          "GivenName": "Grace",
+          "FamilyName": "Pariente",
+          "FullyQualifiedName": "Cool Cars",
+          "CompanyName": "Cool Cars",
+          "DisplayName": "Cool Cars",
+          "PrintOnCheckName": "Cool Cars",
+          "Active": true,
+          "V4IDPseudonym": "002098e0c0c19352264fb188de3e062f42ac8a",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(415) 555-9933"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Cool_Cars@intuit.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "5",
+            "Line1": "321 Channing",
+            "City": "Palo Alto",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94303",
+            "Lat": "37.443231",
+            "Long": "-122.1561846"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 0,
+          "BalanceWithJobs": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "4",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T16:52:08-08:00",
+            "LastUpdatedTime": "2025-12-09T16:52:08-08:00"
+          },
+          "GivenName": "Diego",
+          "FamilyName": "Rodriguez",
+          "FullyQualifiedName": "Diego Rodriguez",
+          "DisplayName": "Diego Rodriguez",
+          "PrintOnCheckName": "Diego Rodriguez",
+          "Active": true,
+          "V4IDPseudonym": "00209884942bbb284849db9c127b3f1e08bbcb",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-4477"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Diego@Rodriguez.com"
+          }
+        },
+        {
+          "Taxable": true,
+          "BillAddr": {
+            "Id": "6",
+            "Line1": "25 Court St.",
+            "City": "Tucson",
+            "CountrySubDivisionCode": "AZ",
+            "PostalCode": "85719",
+            "Lat": "32.2841116",
+            "Long": "-110.9744298"
+          },
+          "ShipAddr": {
+            "Id": "6",
+            "Line1": "25 Court St.",
+            "City": "Tucson",
+            "CountrySubDivisionCode": "AZ",
+            "PostalCode": "85719",
+            "Lat": "32.2841116",
+            "Long": "-110.9744298"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 0,
+          "BalanceWithJobs": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "5",
+          "SyncToken": "1",
+          "MetaData": {
+            "CreateTime": "2025-12-09T16:54:59-08:00",
+            "LastUpdatedTime": "2025-12-16T13:28:29-08:00"
+          },
+          "GivenName": "Peter",
+          "FamilyName": "Dukes",
+          "FullyQualifiedName": "Dukes Basketball Camp",
+          "CompanyName": "Dukes Basketball Camp",
+          "DisplayName": "Dukes Basketball Camp",
+          "PrintOnCheckName": "Dukes Basketball Camp",
+          "Active": true,
+          "V4IDPseudonym": "00209861f8471b306948a28024e9ecf8670fc8",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(520) 420-5638"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Dukes_bball@intuit.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 0,
+          "BalanceWithJobs": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "6",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T16:55:21-08:00",
+            "LastUpdatedTime": "2025-12-09T16:55:21-08:00"
+          },
+          "GivenName": "Dylan",
+          "FamilyName": "Sollfrank",
+          "FullyQualifiedName": "Dylan Sollfrank",
+          "DisplayName": "Dylan Sollfrank",
+          "PrintOnCheckName": "Dylan Sollfrank",
+          "Active": true,
+          "V4IDPseudonym": "002098ae39534eabe84eb596515119e4db4f17"
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "7",
+            "Line1": "370 Easy St.",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94482",
+            "Lat": "37.4031672",
+            "Long": "-122.0642815"
+          },
+          "ShipAddr": {
+            "Id": "7",
+            "Line1": "370 Easy St.",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94482",
+            "Lat": "37.4031672",
+            "Long": "-122.0642815"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 0,
+          "BalanceWithJobs": 562.5,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "7",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T16:57:10-08:00",
+            "LastUpdatedTime": "2025-12-17T13:15:36-08:00"
+          },
+          "GivenName": "Kirby",
+          "FamilyName": "Freeman",
+          "FullyQualifiedName": "Freeman Sporting Goods",
+          "CompanyName": "Freeman Sporting Goods",
+          "DisplayName": "Freeman Sporting Goods",
+          "PrintOnCheckName": "Freeman Sporting Goods",
+          "Active": true,
+          "V4IDPseudonym": "002098097be39d2aa94e5fad1ee605a945a8b3",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-0987"
+          },
+          "Mobile": {
+            "FreeFormNumber": "(973) 555-8849"
+          },
+          "Fax": {
+            "FreeFormNumber": "(520) 555-7894"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Sporting_goods@intuit.com"
+          },
+          "WebAddr": {
+            "URI": "http://sportinggoods.intuit.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "8",
+            "Line1": "370 Easy St.",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94482",
+            "Lat": "37.4031672",
+            "Long": "-122.0642815"
+          },
+          "ShipAddr": {
+            "Id": "8",
+            "Line1": "370 Easy St.",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94482",
+            "Lat": "37.4031672",
+            "Long": "-122.0642815"
+          },
+          "Job": true,
+          "BillWithParent": false,
+          "ParentRef": {
+            "value": "7"
+          },
+          "Level": 1,
+          "Balance": 477.5,
+          "BalanceWithJobs": 477.5,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "8",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T17:00:01-08:00",
+            "LastUpdatedTime": "2025-12-17T13:15:36-08:00"
+          },
+          "GivenName": "Sasha",
+          "FamilyName": "Tillou",
+          "FullyQualifiedName": "Freeman Sporting Goods:0969 Ocean View Road",
+          "CompanyName": "Freeman Sporting Goods",
+          "DisplayName": "0969 Ocean View Road",
+          "PrintOnCheckName": "Freeman Sporting Goods",
+          "Active": true,
+          "V4IDPseudonym": "0020985de6ed4b9d8d44fab3f46232a950b5ec",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(415) 555-9933"
+          },
+          "Mobile": {
+            "FreeFormNumber": "(973) 555-8849"
+          },
+          "Fax": {
+            "FreeFormNumber": "(520) 555-7894"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Sporting_goods@intuit.com"
+          },
+          "WebAddr": {
+            "URI": "http://sportinggoods.intuit.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "9",
+            "Line1": "370 Easy St.",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94482",
+            "Lat": "37.4031672",
+            "Long": "-122.0642815"
+          },
+          "ShipAddr": {
+            "Id": "9",
+            "Line1": "370 Easy St.",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94482",
+            "Lat": "37.4031672",
+            "Long": "-122.0642815"
+          },
+          "Job": true,
+          "BillWithParent": false,
+          "ParentRef": {
+            "value": "7"
+          },
+          "Level": 1,
+          "Balance": 85,
+          "BalanceWithJobs": 85,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "9",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T17:01:00-08:00",
+            "LastUpdatedTime": "2025-12-16T13:23:52-08:00"
+          },
+          "GivenName": "Amelia",
+          "FullyQualifiedName": "Freeman Sporting Goods:55 Twin Lane",
+          "CompanyName": "Freeman Sporting Goods",
+          "DisplayName": "55 Twin Lane",
+          "PrintOnCheckName": "Freeman Sporting Goods",
+          "Active": true,
+          "V4IDPseudonym": "002098b853c62d1d0a4c51b973d3187012fc36",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-0987"
+          },
+          "Mobile": {
+            "FreeFormNumber": "(973) 555-8849"
+          },
+          "Fax": {
+            "FreeFormNumber": "(520) 555-7894"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Sporting_goods@intuit.com"
+          },
+          "WebAddr": {
+            "URI": "http://sportinggoods.intuit.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "10",
+            "Line1": "1987 Main St.",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94303",
+            "Lat": "37.445013",
+            "Long": "-122.1391443"
+          },
+          "ShipAddr": {
+            "Id": "10",
+            "Line1": "1987 Main St.",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94303",
+            "Lat": "37.445013",
+            "Long": "-122.1391443"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 629.1,
+          "BalanceWithJobs": 629.1,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "10",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T17:02:22-08:00",
+            "LastUpdatedTime": "2025-12-16T13:41:59-08:00"
+          },
+          "GivenName": "Geeta",
+          "FamilyName": "Kalapatapu",
+          "FullyQualifiedName": "Geeta Kalapatapu",
+          "DisplayName": "Geeta Kalapatapu",
+          "PrintOnCheckName": "Geeta Kalapatapu",
+          "Active": true,
+          "V4IDPseudonym": "0020984589e10744874c52ad033a026cf90595",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-0022"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Geeta@Kalapatapu.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "11",
+            "Line1": "1045 Main St.",
+            "City": "Half Moon Bay",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94213",
+            "Lat": "37.4559621",
+            "Long": "-122.429939"
+          },
+          "ShipAddr": {
+            "Id": "11",
+            "Line1": "1045 Main St.",
+            "City": "Half Moon Bay",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94213",
+            "Lat": "37.4559621",
+            "Long": "-122.429939"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 0,
+          "BalanceWithJobs": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "11",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T17:04:02-08:00",
+            "LastUpdatedTime": "2025-12-09T17:04:02-08:00"
+          },
+          "GivenName": "Lisa",
+          "FamilyName": "Gevelber",
+          "FullyQualifiedName": "Gevelber Photography",
+          "CompanyName": "Gevelber Photography",
+          "DisplayName": "Gevelber Photography",
+          "PrintOnCheckName": "Gevelber Photography",
+          "Active": true,
+          "V4IDPseudonym": "0020980936c1194a754914b20a39b1609d1dd3",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(415) 222-4345"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Photography@intuit.com"
+          },
+          "WebAddr": {
+            "URI": "http://gevelberphotography.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "12",
+            "Line1": "12 Willow Rd.",
+            "City": "Menlo Park",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94305",
+            "Lat": "37.4495308",
+            "Long": "-122.1726923"
+          },
+          "ShipAddr": {
+            "Id": "12",
+            "Line1": "12 Willow Rd.",
+            "City": "Menlo Park",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94305",
+            "Lat": "37.4495308",
+            "Long": "-122.1726923"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 81,
+          "BalanceWithJobs": 81,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "12",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T17:05:09-08:00",
+            "LastUpdatedTime": "2025-12-16T13:25:43-08:00"
+          },
+          "GivenName": "Jeff",
+          "FamilyName": "Chin",
+          "FullyQualifiedName": "Jeff's Jalopies",
+          "CompanyName": "Jeff's Jalopies",
+          "DisplayName": "Jeff's Jalopies",
+          "PrintOnCheckName": "Jeff's Jalopies",
+          "Active": true,
+          "V4IDPseudonym": "002098d04889cb3808430ba29dba6e4a9cdda2",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-8989"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Jalopies@intuit.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "13",
+            "Line1": "85 Pine St.",
+            "City": "Menlo Park",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94304",
+            "Lat": "37.4451342",
+            "Long": "-122.1409626"
+          },
+          "ShipAddr": {
+            "Id": "13",
+            "Line1": "85 Pine St.",
+            "City": "Menlo Park",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94304",
+            "Lat": "37.4451342",
+            "Long": "-122.1409626"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 450,
+          "BalanceWithJobs": 450,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "13",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T17:06:42-08:00",
+            "LastUpdatedTime": "2025-12-15T11:06:49-08:00"
+          },
+          "GivenName": "John",
+          "FamilyName": "Melton",
+          "FullyQualifiedName": "John Melton",
+          "DisplayName": "John Melton",
+          "PrintOnCheckName": "John Melton",
+          "Active": true,
+          "V4IDPseudonym": "002098e45c79b2fba448c696e85b4833459c85",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-5879"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "John@Melton.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "14",
+            "Line1": "45 First St.",
+            "City": "Menlo Park",
+            "Country": "USA",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94304",
+            "Lat": "37.4585825",
+            "Long": "-122.1352789"
+          },
+          "ShipAddr": {
+            "Id": "14",
+            "Line1": "45 First St.",
+            "City": "Menlo Park",
+            "Country": "USA",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94304",
+            "Lat": "37.4585825",
+            "Long": "-122.1352789"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 0,
+          "BalanceWithJobs": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "14",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T17:08:02-08:00",
+            "LastUpdatedTime": "2025-12-09T17:08:02-08:00"
+          },
+          "GivenName": "Kate",
+          "FamilyName": "Whelan",
+          "FullyQualifiedName": "Kate Whelan",
+          "DisplayName": "Kate Whelan",
+          "PrintOnCheckName": "Kate Whelan",
+          "Active": true,
+          "V4IDPseudonym": "0020982362168d28354711912b29ab9dafbcde",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 554-8822"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Kate@Whelan.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "16",
+            "Line1": "789 Sugar Lane",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94303",
+            "Lat": "37.4530553",
+            "Long": "-122.1178261"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 75,
+          "BalanceWithJobs": 75,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "16",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T17:11:27-08:00",
+            "LastUpdatedTime": "2025-12-15T15:18:18-08:00"
+          },
+          "GivenName": "Kathy",
+          "FamilyName": "Kuplis",
+          "FullyQualifiedName": "Kookies by Kathy",
+          "CompanyName": "Kookies by Kathy",
+          "DisplayName": "Kookies by Kathy",
+          "PrintOnCheckName": "Kookies by Kathy",
+          "Active": true,
+          "V4IDPseudonym": "00209819ee6e81d3b04b569b074e340020e267",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-7896"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "qbwebsamplecompany@yahoo.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "17",
+            "Line1": "36 Willow Rd",
+            "City": "Menlo Park",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94304",
+            "Lat": "37.450412",
+            "Long": "-122.170593"
+          },
+          "ShipAddr": {
+            "Id": "17",
+            "Line1": "36 Willow Rd",
+            "City": "Menlo Park",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94304",
+            "Lat": "37.450412",
+            "Long": "-122.170593"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 314.28,
+          "BalanceWithJobs": 314.28,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "17",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T17:12:16-08:00",
+            "LastUpdatedTime": "2025-12-17T12:57:24-08:00"
+          },
+          "GivenName": "Mark",
+          "FamilyName": "Cho",
+          "FullyQualifiedName": "Mark Cho",
+          "DisplayName": "Mark Cho",
+          "PrintOnCheckName": "Mark Cho",
+          "Active": true,
+          "V4IDPseudonym": "0020984496f8d0193045eda6176a1d3510deaf",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 554-1479"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Mark@Cho.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "18",
+            "Line1": "900 Main St.",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94303",
+            "Lat": "37.445013",
+            "Long": "-122.1391443"
+          },
+          "ShipAddr": {
+            "Id": "19",
+            "Line1": "38921 S. Boise Ave",
+            "City": "Middlefield",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94304",
+            "Lat": "37.3989376",
+            "Long": "-122.1443935"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 954.75,
+          "BalanceWithJobs": 954.75,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "18",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T17:13:37-08:00",
+            "LastUpdatedTime": "2025-12-15T11:43:20-08:00"
+          },
+          "GivenName": "Kathy",
+          "FamilyName": "Paulsen",
+          "FullyQualifiedName": "Paulsen Medical Supplies",
+          "CompanyName": "Paulsen Medical Supplies",
+          "DisplayName": "Paulsen Medical Supplies",
+          "PrintOnCheckName": "Paulsen Medical Supplies",
+          "Active": true,
+          "V4IDPseudonym": "0020985f887953f40e4a7186ce6c9db9d56f8d",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 557-4569"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Medical@intuit.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "15",
+            "Line1": "350 Mountain View Dr.",
+            "City": "South Orange",
+            "CountrySubDivisionCode": "NJ",
+            "PostalCode": "07079",
+            "Lat": "40.7633073",
+            "Long": "-74.2426072"
+          },
+          "ShipAddr": {
+            "Id": "15",
+            "Line1": "350 Mountain View Dr.",
+            "City": "South Orange",
+            "CountrySubDivisionCode": "NJ",
+            "PostalCode": "07079",
+            "Lat": "40.7633073",
+            "Long": "-74.2426072"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 0,
+          "BalanceWithJobs": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "15",
+          "SyncToken": "1",
+          "MetaData": {
+            "CreateTime": "2025-12-09T17:10:24-08:00",
+            "LastUpdatedTime": "2025-12-15T15:30:27-08:00"
+          },
+          "GivenName": "Karen",
+          "FamilyName": "Pye",
+          "FullyQualifiedName": "Pye's Cakes",
+          "CompanyName": "Pye's Cakes",
+          "DisplayName": "Pye's Cakes",
+          "PrintOnCheckName": "Pye's Cakes",
+          "Active": true,
+          "V4IDPseudonym": "002098066591fa0e814fe2bf7fd8ec684e9068",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(973) 555-4652"
+          },
+          "Mobile": {
+            "FreeFormNumber": "(973) 555-2234"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "pyescakes@intuit.com"
+          },
+          "WebAddr": {
+            "URI": "http://www.pyescakes.intuit.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "20",
+            "Line1": "753 Cedar St.",
+            "City": "Bayshore",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94326",
+            "Lat": "37.7077016",
+            "Long": "-122.4273232"
+          },
+          "ShipAddr": {
+            "Id": "20",
+            "Line1": "753 Cedar St.",
+            "City": "Bayshore",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94326",
+            "Lat": "37.7077016",
+            "Long": "-122.4273232"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 0,
+          "BalanceWithJobs": 0,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "19",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T17:14:24-08:00",
+            "LastUpdatedTime": "2025-12-09T17:14:24-08:00"
+          },
+          "GivenName": "Jeff",
+          "FamilyName": "Rago",
+          "FullyQualifiedName": "Rago Travel Agency",
+          "CompanyName": "Rago Travel Agency",
+          "DisplayName": "Rago Travel Agency",
+          "PrintOnCheckName": "Rago Travel Agency",
+          "Active": true,
+          "V4IDPseudonym": "002098e05547820efa4c8e8c68798ac42a47ba",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-1596"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "Rago_Travel@intuit.com"
+          }
+        },
+        {
+          "Taxable": false,
+          "BillAddr": {
+            "Id": "21",
+            "Line1": "500 Red Rock Rd.",
+            "City": "Bayshore",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94326",
+            "Lat": "INVALID",
+            "Long": "INVALID"
+          },
+          "ShipAddr": {
+            "Id": "21",
+            "Line1": "500 Red Rock Rd.",
+            "City": "Bayshore",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94326",
+            "Lat": "INVALID",
+            "Long": "INVALID"
+          },
+          "Job": false,
+          "BillWithParent": false,
+          "Balance": 226,
+          "BalanceWithJobs": 226,
+          "CurrencyRef": {
+            "value": "USD",
+            "name": "United States Dollar"
+          },
+          "PreferredDeliveryMethod": "Print",
+          "IsProject": false,
+          "ClientEntityId": "0",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "20",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T17:15:14-08:00",
+            "LastUpdatedTime": "2025-12-16T12:44:45-08:00"
+          },
+          "GivenName": "Stephanie",
+          "FamilyName": "Martini",
+          "FullyQualifiedName": "Red Rock Diner",
+          "CompanyName": "Red Rock Diner",
+          "DisplayName": "Red Rock Diner",
+          "PrintOnCheckName": "Red Rock Diner",
+          "Active": true,
+          "V4IDPseudonym": "002098c6a788fdaac44b1a9e27d22938112c5f",
+          "PrimaryPhone": {
+            "FreeFormNumber": "(650) 555-4973"
+          },
+          "PrimaryEmailAddr": {
+            "Address": "qbwebsamplecompany@yahoo.com"
+          }
+        }
+      ]
+    },
+    {
+      "category": "Classes",
+      "count": 0,
+      "data": []
+    },
+    {
+      "category": "Payment Methods",
+      "count": 7,
+      "data": [
+        {
+          "Name": "American Express",
+          "Active": true,
+          "Type": "CREDIT_CARD",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "6",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:05-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:05-08:00"
+          }
+        },
+        {
+          "Name": "Cash",
+          "Active": true,
+          "Type": "NON_CREDIT_CARD",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "1",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:05-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:05-08:00"
+          }
+        },
+        {
+          "Name": "Check",
+          "Active": true,
+          "Type": "NON_CREDIT_CARD",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "2",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:05-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:05-08:00"
+          }
+        },
+        {
+          "Name": "Diners Club",
+          "Active": true,
+          "Type": "CREDIT_CARD",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "7",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:05-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:05-08:00"
+          }
+        },
+        {
+          "Name": "Discover",
+          "Active": true,
+          "Type": "CREDIT_CARD",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "5",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:05-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:05-08:00"
+          }
+        },
+        {
+          "Name": "MasterCard",
+          "Active": true,
+          "Type": "CREDIT_CARD",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "4",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:05-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:05-08:00"
+          }
+        },
+        {
+          "Name": "Visa",
+          "Active": true,
+          "Type": "CREDIT_CARD",
+          "domain": "QBO",
+          "sparse": false,
+          "Id": "3",
+          "SyncToken": "0",
+          "MetaData": {
+            "CreateTime": "2025-12-09T14:42:05-08:00",
+            "LastUpdatedTime": "2025-12-09T14:42:05-08:00"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bulk Sync Clients to QuickBooks</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-top: 0;
+    }
+    .stats {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 10px;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #2563eb;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      margin: 20px 0;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+    .log {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 20px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+    .log-entry {
+      margin: 4px 0;
+      padding: 4px 0;
+      border-bottom: 1px solid #334155;
+    }
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+    .success { color: #10b981; }
+    .error { color: #ef4444; }
+    .info { color: #60a5fa; }
+    .warning { color: #f59e0b; }
+    .progress {
+      background: #e2e8f0;
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 20px 0;
+    }
+    .progress-bar {
+      background: linear-gradient(90deg, #3b82f6, #2563eb);
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 Bulk Sync Clients to QuickBooks</h1>
+    
+    <div class="stats">
+      <h3 style="margin-top: 0;">Status</h3>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value" id="total-count">--</div>
+          <div class="stat-label">Total Clients</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value success" id="success-count">0</div>
+          <div class="stat-label">Synced</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value error" id="fail-count">0</div>
+          <div class="stat-label">Failed</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="progress" id="progress-container" style="display: none;">
+      <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+    </div>
+
+    <button id="sync-btn" onclick="startSync()">Start Bulk Sync</button>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://clsjdxwbsjbhjibvlqbz.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsc2pkeHdic2piaGppYnZscWJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NjQ1OTUsImV4cCI6MjA3MzU0MDU5NX0.rN4HUHV1ZTSUHTDEsqmPDJcC5aIdVRWQjpf3RY3dQxA';
+
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let clients = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function updateStats() {
+      document.getElementById('success-count').textContent = successCount;
+      document.getElementById('fail-count').textContent = failCount;
+    }
+
+    function updateProgress() {
+      const total = clients.length;
+      const completed = successCount + failCount;
+      const percentage = (completed / total) * 100;
+      document.getElementById('progress-bar').style.width = percentage + '%';
+    }
+
+    async function loadClients() {
+      log('Fetching clients from database...', 'info');
+      
+      const { data, error } = await supabaseClient
+        .from('clients')
+        .select('id, client_name, quickbooks_customer_id')
+        .order('client_name');
+
+      if (error) {
+        log(`Error fetching clients: ${error.message}`, 'error');
+        return false;
+      }
+
+      clients = data.filter(c => !c.quickbooks_customer_id);
+      const alreadySynced = data.length - clients.length;
+
+      document.getElementById('total-count').textContent = clients.length;
+      log(`Found ${data.length} total clients`, 'info');
+      log(`Already synced: ${alreadySynced}`, 'info');
+      log(`Need syncing: ${clients.length}`, 'info');
+
+      return true;
+    }
+
+    async function syncClient(client) {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Not authenticated - please log in to the main app first');
+      }
+
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/quickbooks-sync-customer`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ clientId: client.id }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || result.message || 'Unknown error');
+      }
+
+      return result;
+    }
+
+    async function startSync() {
+      const btn = document.getElementById('sync-btn');
+      btn.disabled = true;
+      btn.textContent = 'Syncing...';
+      
+      document.getElementById('progress-container').style.display = 'block';
+      
+      successCount = 0;
+      failCount = 0;
+      updateStats();
+
+      log('='.repeat(60), 'info');
+      log('Starting bulk sync process...', 'info');
+      log('='.repeat(60), 'info');
+
+      const loaded = await loadClients();
+      if (!loaded || clients.length === 0) {
+        btn.disabled = false;
+        btn.textContent = 'Start Bulk Sync';
+        if (clients.length === 0) {
+          log('All clients are already synced!', 'success');
+        }
+        return;
+      }
+
+      for (let i = 0; i < clients.length; i++) {
+        const client = clients[i];
+        const progress = `[${i + 1}/${clients.length}]`;
+
+        log(`${progress} Syncing: "${client.client_name}"`, 'info');
+
+        try {
+          const result = await syncClient(client);
+          successCount++;
+          log(`   ✅ Success! QB Customer ID: ${result.quickbooks_customer_id}`, 'success');
+        } catch (error) {
+          failCount++;
+          log(`   ❌ Failed: ${error.message}`, 'error');
+        }
+
+        updateStats();
+        updateProgress();
+
+        // Small delay to avoid overwhelming the API
+        if (i < clients.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      log('='.repeat(60), 'info');
+      log('🎉 Bulk sync complete!', 'success');
+      log(`✅ Successful: ${successCount}`, 'success');
+      log(`❌ Failed: ${failCount}`, failCount > 0 ? 'error' : 'info');
+      log(`📈 Success Rate: ${((successCount / clients.length) * 100).toFixed(1)}%`, 'info');
+      
+      btn.textContent = 'Sync Complete!';
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.textContent = 'Start Bulk Sync';
+      }, 3000);
+    }
+
+    // Initialize
+    log('Ready to sync clients to QuickBooks', 'info');
+    log('Make sure you are logged in to the main app first!', 'warning');
+  </script>
+</body>
+</html>
