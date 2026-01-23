@@ -53,12 +53,79 @@ await write({
 });
 ```
 
+## Troubleshooting Deployment Failures
+
+### "Failed to bundle function" Error
+
+This error is **misleading** - it often means migration validation failed, NOT an edge function syntax error.
+
+**Diagnosis workflow:**
+
+1. **Check migration alignment first:**
+   ```sql
+   SELECT COUNT(*) FROM supabase_migrations.schema_migrations;
+   ```
+   Compare to: `(Get-ChildItem supabase\migrations\*.sql).Count`
+
+2. **If counts don't match - sync missing migrations:**
+   ```sql
+   SELECT version, name FROM supabase_migrations.schema_migrations 
+   WHERE version > '20260101000000' 
+   ORDER BY version;
+   ```
+   Create placeholder files for any missing migrations
+
+3. **Then check edge function syntax:**
+   - Use `ReadLints` on edge function files
+   - Look for duplicate variable declarations
+   - Check for incomplete template literals
+   - Verify all imports are valid
+
+### Periodic Health Check
+
+Run this check weekly or after using Lovable:
+
+```typescript
+// 1. Get DB migration count
+const dbCount = await mcp_supabase_execute_sql({
+  query: "SELECT COUNT(*) FROM supabase_migrations.schema_migrations"
+});
+
+// 2. Count local files
+const localCount = (await glob("supabase/migrations/*.sql")).length;
+
+// 3. If mismatch, query missing migrations and create placeholders
+if (dbCount !== localCount) {
+  // Query DB for all migrations
+  // Compare to local files
+  // Create missing placeholder files
+}
+```
+
 ## Database Best Practices
 
 1. **Always use `mcp_supabase_apply_migration` for DDL operations** (CREATE, ALTER, DROP)
 2. **Use `mcp_supabase_execute_sql` only for queries and DML** (SELECT, INSERT, UPDATE, DELETE)
 3. **Never hardcode UUIDs in migrations** - they won't match between environments
 4. **Test migrations on a branch first** before applying to production
+5. **After working in Lovable** - always verify migration alignment before deploying
+
+## Edge Functions Best Practices
+
+### Common Pitfalls to Avoid
+
+1. **Duplicate variable declarations** - Check for accidental copy-paste duplicates
+2. **Incomplete template literals** - Ensure all backtick strings are properly closed
+3. **Variable scope in try-catch** - Declare variables outside try block if used in catch
+4. **Missing Deno imports** - Always import from official Deno/ESM sources
+
+### Pre-deployment Checklist
+
+Before committing edge function changes:
+- Run `ReadLints` on the edge function file
+- Check for duplicate `const/let/var` declarations
+- Verify all template literals are complete
+- Test locally if possible with `supabase functions serve`
 
 ## Code Style
 
