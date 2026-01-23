@@ -402,7 +402,8 @@ Otherwise respond with:
 
     return { success: false, error: 'Could not generate retry query' };
   } catch (retryError) {
-    return { success: false, error: `Retry failed: ${retryError.message}` };
+    const message = retryError instanceof Error ? retryError.message : String(retryError);
+    return { success: false, error: `Retry failed: ${message}` };
   }
 }
 
@@ -533,9 +534,13 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  let query: string | undefined;
+  let queryStartTime = Date.now();
+
   try {
-    const queryStartTime = Date.now();
-    const { query, conversationHistory = [] } = await req.json();
+    const body = await req.json();
+    query = body.query;
+    const conversationHistory = body.conversationHistory || [];
     
     if (!query) {
       return new Response(JSON.stringify({ error: "Query is required" }), {
@@ -554,6 +559,9 @@ serve(async (req) => {
 
     // Initialize Supabase
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY environment variable is not set");
+    }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
