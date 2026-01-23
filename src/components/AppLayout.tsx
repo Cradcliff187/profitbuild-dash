@@ -190,7 +190,7 @@ export default function AppLayout() {
           {/* Main content area - pages render here */}
           <main className={cn(
             "flex-1 overflow-auto w-full max-w-full box-border min-w-0",
-            (location.pathname === '/time-tracker' || location.pathname === '/reports' || location.pathname.startsWith('/reports/')) ? '' : 'p-3 sm:p-4 md:p-6 lg:p-8'
+            (location.pathname === '/time-tracker' || location.pathname === '/reports' || location.pathname.startsWith('/reports/')) ? '' : 'p-3 sm:p-4 md:p-6 lg:p-5'
           )} style={{ width: '100%', maxWidth: '100%' }}>
             <Outlet />
           </main>

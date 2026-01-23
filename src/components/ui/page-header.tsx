@@ -22,8 +22,8 @@ export function PageHeader({
   showAccent = true,
 }: PageHeaderProps) {
   return (
-    <div className={cn("bg-white border-b border-slate-200 shadow-sm w-full max-w-full overflow-hidden mb-4", className)}>
-      <div className="px-3 sm:px-6 py-4">
+    <div className={cn("bg-white border-b border-slate-200 shadow-sm w-full max-w-full overflow-hidden mb-4 lg:mb-3", className)}>
+      <div className="px-3 sm:px-6 lg:px-4 py-4 lg:py-3">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
           {/* Left side: Icon + Title + Description */}
           <div className="flex items-start gap-3 min-w-0">
