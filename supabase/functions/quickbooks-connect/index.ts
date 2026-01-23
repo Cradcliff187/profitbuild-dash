@@ -151,8 +151,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('QuickBooks connect error:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
     return new Response(
-      JSON.stringify({ error: error.message, stack: error.stack }),
+      JSON.stringify({ error: err.message, stack: err.stack }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -186,10 +186,11 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error in admin-create-user:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: errorMessage,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

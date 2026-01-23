@@ -206,7 +206,7 @@ serve(async (req) => {
       console.error('❌ Whisper transcription failed:', whisperError);
       
       // Parse error and return specific user-facing message
-      const errorMessage = whisperError.message;
+      const errorMessage = whisperError instanceof Error ? whisperError.message : 'Unknown error';
       
       // Check for empty transcription error
       if (errorMessage.includes('NO_SPEECH_DETECTED')) {
@@ -260,8 +260,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Transcription error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

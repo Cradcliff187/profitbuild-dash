@@ -152,8 +152,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('QuickBooks callback error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return new Response(
-      `<html><body><h1>Error</h1><p>${error.message}</p></body></html>`,
+      `<html><body><h1>Error</h1><p>${errorMessage}</p></body></html>`,
       { status: 500, headers: { 'Content-Type': 'text/html' } }
     );
   }

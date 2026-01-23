@@ -196,10 +196,11 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Error generating report:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: error.stack 
+        error: err.message,
+        details: err.stack 
       }),
       {
         status: 500,
