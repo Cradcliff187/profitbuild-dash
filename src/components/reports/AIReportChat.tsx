@@ -29,8 +29,6 @@ export function AIReportChat() {
   const { messages, isLoading, sendQuery, clearHistory } = useAIReportAssistant();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const hasTranscribedRef = useRef(false);
-  const hasHandledTranscriptionRef = useRef(false);
 
   // Audio recording
   const {
@@ -103,10 +101,6 @@ export function AIReportChat() {
     let timeout: NodeJS.Timeout;
 
     if (isRecording) {
-      // Reset transcription guards when a new recording starts
-      hasTranscribedRef.current = false;
-      hasHandledTranscriptionRef.current = false;
-      
       // Start duration counter
       setRecordingDuration(0);
       interval = setInterval(() => {
@@ -128,19 +122,16 @@ export function AIReportChat() {
     };
   }, [isRecording, stopRecording]);
 
-  // Auto-transcribe when recording stops (with guard to prevent duplicates)
+  // Auto-transcribe when recording stops
   useEffect(() => {
-    if (audioData && audioFormat && !isRecording && !hasTranscribedRef.current) {
-      hasTranscribedRef.current = true;
+    if (audioData && audioFormat && !isRecording) {
       transcribe(audioData, audioFormat);
     }
   }, [audioData, audioFormat, isRecording, transcribe]);
 
   // Put transcription in input field (NOT auto-send)
   useEffect(() => {
-    if (transcription && !hasHandledTranscriptionRef.current) {
-      hasHandledTranscriptionRef.current = true;
-      
+    if (transcription) {
       // Put transcription in input field for user review
       setInputValue(transcription);
 
