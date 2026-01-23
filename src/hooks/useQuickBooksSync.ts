@@ -39,7 +39,7 @@ export function useQuickBooksSync(): UseQuickBooksSyncReturn {
       }
 
       setIsEnabled(data?.enabled || false);
-      setConfig(data?.config as QuickBooksSyncConfig || {
+      setConfig((data?.config as unknown as QuickBooksSyncConfig) || {
         sync_frequency: 'manual',
         default_days_back: 30
       });

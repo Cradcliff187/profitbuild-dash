@@ -37,7 +37,7 @@ export function useQuickBooksConnection() {
         throw error;
       }
 
-      return data;
+      return data as QuickBooksConnection;
     },
   });
 

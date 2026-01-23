@@ -52,7 +52,7 @@ export const QuickBooksSyncHistory: React.FC<QuickBooksSyncHistoryProps> = ({
         throw fetchError;
       }
 
-      setSyncs(data || []);
+      setSyncs((data || []) as SyncRecord[]);
     } catch (err) {
       console.error('Error fetching sync history:', err);
       setError(err instanceof Error ? err.message : 'Failed to load sync history');
