@@ -4,12 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Send, Sparkles, Trash2, Loader2, User, Bot, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { Send, Sparkles, Trash2, Loader2, User, Bot, FileText, ChevronDown, ChevronUp, Mic, MicOff } from "lucide-react";
 import { useAIReportAssistant, AIMessage } from '@/hooks/useAIReportAssistant';
+import { useAudioRecording } from '@/hooks/useAudioRecording';
+import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { ReportViewer } from './ReportViewer';
 import { AIInsightsCard } from './AIInsightsCard';
 import { ExportControls } from './ExportControls';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const EXAMPLE_PROMPTS = [
   "How many projects are over budget?",
@@ -27,6 +30,33 @@ export function AIReportChat() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Audio recording
+  const {
+    startRecording,
+    stopRecording,
+    isRecording,
+    audioData,
+    audioFormat,
+    duration,  // Hook returns 'duration', not 'recordingDuration'
+    reset: resetRecording  // Hook returns 'reset', aliased as 'resetRecording'
+  } = useAudioRecording();
+
+  // Transcription
+  const {
+    transcribe,
+    isTranscribing,
+    transcription,
+    error: transcriptionError,
+    reset: resetTranscription  // Hook returns 'reset', aliased as 'resetTranscription'
+  } = useAudioTranscription();
+
+  // Microphone permission state
+  const [hasMicPermission, setHasMicPermission] = useState<boolean | null>(null);
+
+  // Recording duration (local state for UI display, hook provides 'duration' but we need our own counter for 30s limit)
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const MAX_RECORDING_SECONDS = 30;
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollRef.current) {
@@ -42,6 +72,116 @@ export function AIReportChat() {
       }
     });
   }, [messages]);
+
+  // Check microphone permission on mount
+  useEffect(() => {
+    // Check if microphone permission is available
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: 'microphone' as PermissionName })
+        .then(result => {
+          setHasMicPermission(result.state !== 'denied');
+          // Listen for permission changes
+          result.addEventListener('change', () => {
+            setHasMicPermission(result.state !== 'denied');
+          });
+        })
+        .catch(() => {
+          // Permissions API not supported, show button anyway
+          setHasMicPermission(true);
+        });
+    } else {
+      // Permissions API not supported, show button anyway
+      setHasMicPermission(true);
+    }
+  }, []);
+
+  // Recording duration timer and auto-stop
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    let timeout: NodeJS.Timeout;
+
+    if (isRecording) {
+      // Start duration counter
+      setRecordingDuration(0);
+      interval = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+
+      // Auto-stop at max duration
+      timeout = setTimeout(() => {
+        stopRecording();
+        toast.info(`Recording stopped - ${MAX_RECORDING_SECONDS} second limit`);
+      }, MAX_RECORDING_SECONDS * 1000);
+    } else {
+      setRecordingDuration(0);
+    }
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [isRecording, stopRecording]);
+
+  // Auto-transcribe when recording stops
+  useEffect(() => {
+    if (audioData && audioFormat && !isRecording) {
+      transcribe(audioData, audioFormat);
+    }
+  }, [audioData, audioFormat, isRecording, transcribe]);
+
+  // Put transcription in input field (NOT auto-send)
+  useEffect(() => {
+    if (transcription) {
+      // Put transcription in input field for user review
+      setInputValue(transcription);
+
+      // Focus input so user can edit or press Enter
+      inputRef.current?.focus();
+
+      // Show success feedback
+      toast.success('Transcription complete - review and press Enter to send');
+
+      // Reset for next recording
+      resetTranscription();
+      resetRecording();
+    }
+  }, [transcription, resetTranscription, resetRecording]);
+
+  // Handle transcription errors
+  useEffect(() => {
+    if (transcriptionError) {
+      toast.error('Failed to transcribe audio. Please try again or type your question.');
+      resetRecording();
+      resetTranscription();
+    }
+  }, [transcriptionError, resetRecording, resetTranscription]);
+
+  const handleMicClick = async () => {
+    if (isRecording) {
+      // Stop recording
+      stopRecording();
+    } else {
+      // Start recording
+      try {
+        await startRecording();
+      } catch (error) {
+        console.error('Failed to start recording:', error);
+
+        if (error instanceof DOMException && error.name === 'NotAllowedError') {
+          toast.error('Microphone access denied. Please enable microphone permissions in your browser settings.');
+          setHasMicPermission(false);
+        } else {
+          toast.error('Failed to start recording. Please try again.');
+        }
+      }
+    }
+  };
+
+  const handleCancelRecording = () => {
+    stopRecording();
+    resetRecording();
+    toast.info('Recording cancelled');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,18 +365,98 @@ export function AIReportChat() {
             ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Ask about projects, expenses, quotes..."
-            disabled={isLoading}
+            placeholder={isRecording ? "Recording..." : "Ask about projects, expenses, quotes..."}
+            disabled={isLoading || isRecording || isTranscribing}
             className="flex-1 h-8 text-sm"
           />
-          <Button type="submit" disabled={isLoading || !inputValue.trim()} size="sm" className="h-8 w-8 p-0">
+
+          {/* Microphone Button */}
+          {hasMicPermission !== false && (
+            <div className="relative">
+              {isRecording ? (
+                <div className="flex items-center gap-1">
+                  {/* Recording duration indicator */}
+                  <span className="text-xs text-red-500 font-mono min-w-[32px]">
+                    {recordingDuration}s
+                  </span>
+
+                  {/* Stop button */}
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    onClick={handleMicClick}
+                    className="h-12 w-12 min-h-[48px] min-w-[48px] animate-pulse"
+                    title="Stop recording"
+                  >
+                    <MicOff className="h-5 w-5" />
+                  </Button>
+
+                  {/* Cancel button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelRecording}
+                    className="h-12 min-h-[48px]"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : isTranscribing ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon"
+                  disabled
+                  className="h-12 w-12 min-h-[48px] min-w-[48px]"
+                  title="Transcribing..."
+                >
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleMicClick}
+                  disabled={isLoading}
+                  className="h-12 w-12 min-h-[48px] min-w-[48px]"
+                  title="Record voice query"
+                >
+                  <Mic className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            disabled={isLoading || !inputValue.trim() || isRecording || isTranscribing}
+            className="h-12 min-h-[48px]"
+          >
             {isLoading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Send className="h-3.5 w-3.5" />
+              <Send className="h-4 w-4" />
             )}
           </Button>
         </form>
+
+        {/* Recording state visual feedback */}
+        {isRecording && (
+          <div className="flex items-center gap-2 text-sm text-red-500 animate-pulse mt-2">
+            <div className="h-2 w-2 rounded-full bg-red-500" />
+            <span>Recording... Tap mic to stop ({MAX_RECORDING_SECONDS - recordingDuration}s remaining)</span>
+          </div>
+        )}
+
+        {isTranscribing && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>Transcribing your question...</span>
+          </div>
+        )}
       </div>
     </Card>
   );
