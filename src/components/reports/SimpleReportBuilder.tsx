@@ -203,12 +203,25 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
   ]
 };
 
+// Default sort columns for each data source (fallback when created_at doesn't exist)
+const DEFAULT_SORT_COLUMNS: Record<string, string> = {
+  projects: 'created_at',
+  expenses: 'expense_date',
+  quotes: 'created_at',
+  time_entries: 'expense_date',
+  estimate_line_items: 'sort_order',
+  internal_costs: 'expense_date',
+  internal_labor_hours: 'expense_date',
+  weekly_labor_hours: 'week_start_sunday',
+  'reporting.training_status': 'assigned_at',
+};
+
 export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: ReportConfig, fields: ReportField[]) => void }) {
   const [step, setStep] = useState(1);
   const [dataSource, setDataSource] = useState<ReportConfig['data_source']>('projects');
   const [selectedFields, setSelectedFields] = useState<string[]>(['project_number', 'project_name', 'contracted_amount', 'current_margin']);
   const [filters, setFilters] = useState<ReportFilter[]>([]);
-  const [sortBy, setSortBy] = useState('created_at');
+  const [sortBy, setSortBy] = useState(DEFAULT_SORT_COLUMNS['projects'] || 'created_at');
   const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('DESC');
   const { executeReport, isLoading, error } = useReportExecution();
   const [reportData, setReportData] = useState<any[]>([]);
@@ -450,9 +463,10 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
               <Label>Data Source</Label>
               <Select value={dataSource} onValueChange={(value) => {
                 setDataSource(value as ReportConfig['data_source']);
-                // Reset fields when data source changes
+                // Reset fields and sort when data source changes
                 const defaultFields = AVAILABLE_FIELDS[value as keyof typeof AVAILABLE_FIELDS];
                 setSelectedFields(defaultFields?.slice(0, 4).map(f => f.key) || []);
+                setSortBy(DEFAULT_SORT_COLUMNS[value] || 'created_at');
               }}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
