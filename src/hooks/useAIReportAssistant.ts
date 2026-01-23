@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ReportField } from '@/utils/reportExporter';
 
@@ -33,8 +33,16 @@ export function useAIReportAssistant() {
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isSubmittingRef = useRef(false);
 
   const sendQuery = useCallback(async (query: string): Promise<AIReportResult | null> => {
+    // Guard against double submission
+    if (isSubmittingRef.current) {
+      console.log('[AIReportAssistant] Ignoring duplicate submission');
+      return null;
+    }
+    isSubmittingRef.current = true;
+    
     setIsLoading(true);
     setError(null);
 
@@ -122,6 +130,7 @@ export function useAIReportAssistant() {
       };
     } finally {
       setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   }, [messages]);
 
