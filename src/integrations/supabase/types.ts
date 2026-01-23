@@ -3000,6 +3000,7 @@ export type Database = {
         Args: { source_quote_id: string; target_estimate_id: string }
         Returns: string
       }
+      execute_ai_query: { Args: { p_query: string }; Returns: Json }
       execute_simple_report: {
         Args: {
           p_data_source: string
@@ -3026,6 +3027,7 @@ export type Database = {
         Args: { project_id_param: string; project_number_param: string }
         Returns: string
       }
+      get_database_schema: { Args: never; Returns: Json }
       get_next_project_number: { Args: never; Returns: string }
       get_profit_analysis_data: {
         Args: { status_filter?: string[] }
