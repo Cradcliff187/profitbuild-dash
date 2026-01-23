@@ -7,6 +7,8 @@ export interface AIMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  answer?: string;
+  showDetailsByDefault?: boolean;
   reportData?: any[];
   reportFields?: ReportField[];
   insights?: string;
@@ -16,6 +18,8 @@ export interface AIMessage {
 
 export interface AIReportResult {
   success: boolean;
+  answer?: string;
+  showDetailsByDefault?: boolean;
   config?: any;
   data?: any[];
   fields?: ReportField[];
@@ -61,7 +65,7 @@ export function useAIReportAssistant() {
         throw new Error(invokeError.message);
       }
 
-      if (data.error) {
+      if (data.error && !data.answer) {
         throw new Error(data.error);
       }
 
@@ -72,11 +76,13 @@ export function useAIReportAssistant() {
         type: f.type || 'text'
       }));
 
-      // Add assistant message with results
+      // Add assistant message with conversational answer
       const assistantMessage: AIMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: data.explanation || 'Here are your results:',
+        content: data.answer || data.explanation || 'Here are your results:',
+        answer: data.answer,
+        showDetailsByDefault: data.showDetailsByDefault ?? false,
         timestamp: new Date(),
         reportData: data.data,
         reportFields: formattedFields,
@@ -88,6 +94,8 @@ export function useAIReportAssistant() {
 
       return {
         success: true,
+        answer: data.answer,
+        showDetailsByDefault: data.showDetailsByDefault,
         config: data.config,
         data: data.data,
         fields: formattedFields,
