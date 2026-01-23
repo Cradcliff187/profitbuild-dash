@@ -29,6 +29,7 @@ export function AIReportChat() {
   const { messages, isLoading, sendQuery, clearHistory } = useAIReportAssistant();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const hasTranscribedRef = useRef(false);
 
   // Audio recording
   const {
@@ -101,6 +102,9 @@ export function AIReportChat() {
     let timeout: NodeJS.Timeout;
 
     if (isRecording) {
+      // Reset transcription guard when a new recording starts
+      hasTranscribedRef.current = false;
+      
       // Start duration counter
       setRecordingDuration(0);
       interval = setInterval(() => {
@@ -122,9 +126,10 @@ export function AIReportChat() {
     };
   }, [isRecording, stopRecording]);
 
-  // Auto-transcribe when recording stops
+  // Auto-transcribe when recording stops (with guard to prevent duplicates)
   useEffect(() => {
-    if (audioData && audioFormat && !isRecording) {
+    if (audioData && audioFormat && !isRecording && !hasTranscribedRef.current) {
+      hasTranscribedRef.current = true;
       transcribe(audioData, audioFormat);
     }
   }, [audioData, audioFormat, isRecording, transcribe]);

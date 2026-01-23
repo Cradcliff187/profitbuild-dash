@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useAudioTranscription() {
@@ -6,7 +6,7 @@ export function useAudioTranscription() {
   const [transcription, setTranscription] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const transcribe = async (audioBase64: string, format: string = 'audio/wav') => {
+  const transcribe = useCallback(async (audioBase64: string, format: string = 'audio/wav') => {
     try {
       setIsTranscribing(true);
       setError(null);
@@ -111,13 +111,13 @@ export function useAudioTranscription() {
     } finally {
       setIsTranscribing(false);
     }
-  };
+  }, []);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setTranscription(null);
     setError(null);
     setIsTranscribing(false);
-  };
+  }, []);
 
   return {
     transcribe,
