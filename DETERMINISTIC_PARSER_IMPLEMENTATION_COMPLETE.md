@@ -254,8 +254,8 @@ If issues arise:
 ## Documentation
 
 All specifications preserved in:
-- `docs/ESTIMATE_IMPORT_IMPLEMENTATION.md` - Full specification
-- `docs/BUDGET_IMPORT_FIXES_V5.md` - Previous issues resolved
+- `docs/estimate-import/ESTIMATE_IMPORT_IMPLEMENTATION.md` - Full specification
+- `docs/budget-import/BUDGET_IMPORT_FIXES_V5.md` - Previous issues resolved
 - This file - Implementation completion summary
 
 ---
