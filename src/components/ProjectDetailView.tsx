@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Outlet, useOutletContext } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, FileText, DollarSign, Target, FileEdit, Edit, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, FileText, DollarSign, Target, FileEdit, Edit, Calendar, ChevronLeft, ChevronRight, MapPin, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ChangeOrderForm } from "@/components/ChangeOrderForm";
@@ -742,93 +742,132 @@ export const ProjectDetailView = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Compact Header */}
-        <header className="sticky top-0 z-10 flex h-auto flex-col gap-3 border-b bg-background px-3 py-3 sm:h-16 sm:flex-row sm:items-center sm:gap-3">
-          <div className="flex items-center gap-3">
-            <Separator orientation="vertical" className="hidden sm:block h-8" />
-          </div>
+        <header className="sticky top-0 z-10 border-b bg-background px-3 py-3 sm:px-4 sm:py-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            {/* Left: Project Switcher */}
+            <div className={cn("min-w-0", isMobile ? "w-full" : "flex-1 max-w-xl")}>
+              <Popover open={projectSwitcherOpen} onOpenChange={setProjectSwitcherOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "h-10 gap-2 truncate border-border focus-visible:border-foreground/40 focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.15)]", 
+                      isMobile ? "w-full justify-between" : "justify-between max-w-[480px]"
+                    )}
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <span className="truncate text-left">
+                        {formatProjectLabel(project.project_number, project.project_name)}
+                      </span>
+                    </div>
+                    <ChevronsUpDown className="h-3 w-3 opacity-60" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[320px] sm:w-[480px] overflow-hidden p-0 border border-border rounded-lg shadow-md" align="start">
+                  <Command className="bg-background">
+                    <div className="px-2 py-2">
+                      <CommandInput placeholder="Search projects..." className="h-9 text-sm rounded-md border border-border focus-visible:border-foreground/40 focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.15)]" />
+                    </div>
+                    <CommandEmpty>No projects found.</CommandEmpty>
+                    <CommandList>
+                      <CommandGroup>
+                        {projectOptions.map((proj) => (
+                          <CommandItem
+                            key={proj.id}
+                            value={`${formatProjectLabel(proj.project_number, proj.project_name)} ${proj.client_name ?? ''}`}
+                            onSelect={() => handleProjectSwitch(proj.id)}
+                          >
+                            <div className="flex w-full items-center gap-2">
+                              <ProjectOption
+                                projectNumber={proj.project_number}
+                                projectName={proj.project_name}
+                                clientName={proj.client_name}
+                                size="sm"
+                                className="flex-1 min-w-0"
+                              />
+                              {proj.id === project.id && (
+                                <Check className="h-4 w-4 text-primary" />
+                              )}
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
 
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className={cn("flex items-center gap-2", isMobile ? "w-full" : "min-w-0")}
-              >
-                <Popover open={projectSwitcherOpen} onOpenChange={setProjectSwitcherOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "h-10 gap-2 truncate border-border focus-visible:border-foreground/40 focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.15)]", 
-                        isMobile ? "w-full justify-between" : "justify-between max-w-[480px]"
-                      )}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span className="truncate text-left">
-                          {formatProjectLabel(project.project_number, project.project_name)}
-                        </span>
-                      </div>
-                      <ChevronsUpDown className="h-3 w-3 opacity-60" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[320px] sm:w-[480px] overflow-hidden p-0 border border-border rounded-lg shadow-md" align="start">
-                    <Command className="bg-background">
-                      <div className="px-2 py-2">
-                        <CommandInput placeholder="Search projects..." className="h-9 text-sm rounded-md border border-border focus-visible:border-foreground/40 focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.15)]" />
-                      </div>
-                      <CommandEmpty>No projects found.</CommandEmpty>
-                      <CommandList>
-                        <CommandGroup>
-                          {projectOptions.map((proj) => (
-                            <CommandItem
-                              key={proj.id}
-                              value={`${formatProjectLabel(proj.project_number, proj.project_name)} ${proj.client_name ?? ''}`}
-                              onSelect={() => handleProjectSwitch(proj.id)}
-                            >
-                              <div className="flex w-full items-center gap-2">
-                                <ProjectOption
-                                  projectNumber={proj.project_number}
-                                  projectName={proj.project_name}
-                                  clientName={proj.client_name}
-                                  size="sm"
-                                  className="flex-1 min-w-0"
-                                />
-                                {proj.id === project.id && (
-                                  <Check className="h-4 w-4 text-primary" />
-                                )}
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:gap-2 sm:text-right">
-                <div className="flex items-center gap-2">
-                  <span className="truncate max-w-[200px] sm:max-w-[180px]">
+            {/* Right: Metadata */}
+            <div className="flex items-start justify-between gap-3 sm:items-center sm:gap-3">
+              {/* Client Info + Address Group */}
+              <div className="flex-1 min-w-0 space-y-1.5 sm:flex-initial sm:space-y-1.5">
+                <div className={cn(
+                  "flex flex-wrap items-center gap-x-2 gap-y-1",
+                  isMobile ? "text-sm" : "text-sm sm:justify-end"
+                )}>
+                  <span className={cn(
+                    "truncate font-medium",
+                    isMobile ? "max-w-[200px]" : ""
+                  )}>
                     {project.client_name}
                   </span>
                   {project.customer_po_number && (
-                    <span className="truncate">PO {project.customer_po_number}</span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      PO {project.customer_po_number}
+                    </span>
                   )}
                 </div>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "text-xs flex-shrink-0 capitalize px-2 py-0.5",
-                    project.status === 'approved' && 'border-green-200 text-green-700 bg-green-50',
-                    project.status === 'estimating' && 'border-gray-200 text-gray-700 bg-gray-50',
-                    project.status === 'quoted' && 'border-blue-200 text-blue-700 bg-blue-50',
-                    project.status === 'in_progress' && 'border-purple-200 text-purple-700 bg-purple-50',
-                    project.status === 'complete' && 'border-green-200 text-green-700 bg-green-50',
-                    project.status === 'on_hold' && 'border-yellow-200 text-yellow-700 bg-yellow-50',
-                    project.status === 'cancelled' && 'border-red-200 text-red-700 bg-red-50'
-                  )}
-                >
-                  {project.status?.replace(/_/g, ' ')}
-                </Badge>
+                {project.address && (
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "group flex items-center gap-1.5 text-xs text-muted-foreground transition-colors",
+                      isMobile ? "py-1 -ml-1 pl-1 active:text-foreground" : "hover:text-foreground sm:justify-end"
+                    )}
+                    title={project.address}
+                  >
+                    <MapPin className={cn("flex-shrink-0", isMobile ? "h-4 w-4" : "h-3.5 w-3.5")} />
+                    <span className={cn(
+                      "truncate",
+                      isMobile ? "flex-1" : "max-w-xs"
+                    )}>
+                      {project.address}
+                    </span>
+                    <ExternalLink className={cn(
+                      "flex-shrink-0 transition-opacity",
+                      isMobile ? "h-3.5 w-3.5" : "h-3 w-3 opacity-0 group-hover:opacity-100"
+                    )} />
+                  </a>
+                )}
               </div>
+
+              {/* Divider (Desktop only) */}
+              {!isMobile && (
+                <div className="hidden sm:block h-10 w-px bg-border flex-shrink-0" />
+              )}
+
+              {/* Status Badge */}
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-xs flex-shrink-0 capitalize px-2 py-0.5",
+                  project.status === 'approved' && 'border-green-200 text-green-700 bg-green-50',
+                  project.status === 'estimating' && 'border-gray-200 text-gray-700 bg-gray-50',
+                  project.status === 'quoted' && 'border-blue-200 text-blue-700 bg-blue-50',
+                  project.status === 'in_progress' && 'border-purple-200 text-purple-700 bg-purple-50',
+                  project.status === 'complete' && 'border-green-200 text-green-700 bg-green-50',
+                  project.status === 'on_hold' && 'border-yellow-200 text-yellow-700 bg-yellow-50',
+                  project.status === 'cancelled' && 'border-red-200 text-red-700 bg-red-50'
+                )}
+              >
+                {project.status?.replace(/_/g, ' ')}
+              </Badge>
+            </div>
           </div>
         </header>
 

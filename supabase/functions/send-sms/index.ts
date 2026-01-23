@@ -226,20 +226,48 @@ Deno.serve(async (req) => {
       }),
     });
 
+    const httpStatus = textbeltResponse.status;
     const textbeltResult = await textbeltResponse.json();
-    console.log('📱 Textbelt response:', textbeltResult);
     
-    // If Textbelt returned an error, log the full details
+    console.log('📱 Textbelt API Response:', {
+      httpStatus,
+      success: textbeltResult.success,
+      textId: textbeltResult.textId,
+      error: textbeltResult.error,
+      quotaRemaining: textbeltResult.quotaRemaining,
+      phone: finalPhone,
+      recipientName,
+    });
+    
+    // Enhanced error logging with full diagnostic info
     if (!textbeltResult.success) {
-      console.error('❌ Textbelt API error:', {
-        error: textbeltResult.error,
+      console.error('❌ Textbelt API Failure - Full Diagnostic Info:', {
+        httpStatus,
+        error: textbeltResult.error || 'NO ERROR MESSAGE PROVIDED BY TEXTBELT',
+        quotaRemaining: textbeltResult.quotaRemaining,
+        textId: textbeltResult.textId,
         fullResponse: textbeltResult,
         requestPayload: {
           phone: finalPhone,
+          recipientName,
           messageLength: finalMessage.length,
           hasLink: !!finalLink,
-        }
+          linkType,
+        },
+        timestamp: new Date().toISOString(),
       });
+    }
+
+    // Prepare comprehensive error message
+    let errorMessage = null;
+    if (!textbeltResult.success) {
+      if (textbeltResult.error) {
+        errorMessage = textbeltResult.error;
+      } else if (httpStatus !== 200) {
+        errorMessage = `HTTP ${httpStatus} - No error message from Textbelt`;
+      } else {
+        errorMessage = 'Unknown error - Textbelt returned success:false with no error message';
+      }
     }
 
     // Log to sms_messages table (skip in test mode)
@@ -257,17 +285,20 @@ Deno.serve(async (req) => {
           sent_by: sender.id, // Use schedule creator for internal calls, user for manual sends
           project_id: projectId,
           textbelt_text_id: textbeltResult.textId?.toString(),
+          textbelt_http_status: httpStatus,
           delivery_status: textbeltResult.success ? 'sent' : 'failed',
-          error_message: textbeltResult.success ? null : textbeltResult.error,
+          error_message: errorMessage,
         });
 
       if (logError) {
-        console.error('Failed to log SMS:', logError);
+        console.error('Failed to log SMS to database:', logError);
+      } else if (!textbeltResult.success) {
+        console.log('✅ Failed SMS logged to database with error details');
       }
     }
 
     if (!textbeltResult.success) {
-      throw new Error(textbeltResult.error || 'Failed to send SMS');
+      throw new Error(errorMessage || 'Failed to send SMS');
     }
 
     return new Response(
@@ -284,7 +315,12 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ SMS Error:', error);
+    console.error('❌ SMS Error (Exception):', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
+    
     return new Response(
       JSON.stringify({
         success: false,

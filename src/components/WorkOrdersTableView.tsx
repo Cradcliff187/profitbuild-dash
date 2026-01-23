@@ -130,8 +130,8 @@ export const WorkOrdersTableView = ({
   ];
 
   const widths: Record<string, string> = {
-    project_number: "w-28",
-    project_name: "w-48",
+    project_number: "w-32",
+    project_name: "w-64",
     client_name: "w-40",
     status: "w-24",
     customer_po_number: "w-32",
@@ -571,14 +571,16 @@ export const WorkOrdersTableView = ({
                       switch (colKey) {
                         case "project_number":
                           return (
-                            <TableCell key={colKey} className="p-1.5 font-mono text-xs">
+                            <TableCell key={colKey} className="p-1.5 font-mono font-bold text-foreground text-xs">
                               {workOrder.project_number}
                             </TableCell>
                           );
                         case "project_name":
                           return (
-                            <TableCell key={colKey} className="p-1.5 text-xs font-medium">
-                              {workOrder.project_name}
+                            <TableCell key={colKey} className="p-1.5">
+                              <div className="text-xs font-medium truncate max-w-[250px]" title={workOrder.project_name}>
+                                {workOrder.project_name}
+                              </div>
                             </TableCell>
                           );
                         case "client_name":

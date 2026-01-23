@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RefreshCw, CheckCircle2, Clock, XCircle, HelpCircle, Phone, MessageSquare } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RefreshCw, CheckCircle2, Clock, XCircle, HelpCircle, Phone, MessageSquare, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -20,6 +22,7 @@ interface SMSMessage {
   delivery_status: string;
   textbelt_text_id: string | null;
   error_message: string | null;
+  textbelt_http_status: number | null;
 }
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; bg: string }> = {
@@ -94,17 +97,44 @@ export function SMSHistory() {
     setRefreshingId(null);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, errorMessage?: string | null, httpStatus?: number | null) => {
     const upperStatus = status.toUpperCase();
     const config = STATUS_CONFIG[upperStatus] || STATUS_CONFIG[status] || STATUS_CONFIG.UNKNOWN;
     const Icon = config.icon;
+    const isFailed = status.toLowerCase() === 'failed';
 
-    return (
+    const badge = (
       <Badge variant="outline" className={`${config.bg} ${config.color} border-0`}>
         <Icon className="h-3 w-3 mr-1" />
         {status}
       </Badge>
     );
+
+    // Show tooltip with error details for failed messages
+    if (isFailed && (errorMessage || httpStatus)) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1 cursor-help">
+                {badge}
+                <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <div className="space-y-1 text-xs">
+                <div className="font-semibold">Error Details:</div>
+                {errorMessage && <div>{errorMessage}</div>}
+                {httpStatus && <div className="text-muted-foreground">HTTP Status: {httpStatus}</div>}
+                {!errorMessage && !httpStatus && <div className="text-muted-foreground">No error details available</div>}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    return badge;
   };
 
   return (
@@ -137,95 +167,120 @@ export function SMSHistory() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {messages.map(message => (
-                    <TableRow key={message.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{message.recipient_name}</div>
-                          <div className="text-xs text-muted-foreground">{message.recipient_phone}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-xs">
-                        <div className="truncate text-sm">{message.message_body}</div>
-                        {message.link_type && (
-                          <Badge variant="outline" className="text-xs mt-1">
-                            {message.link_type}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(new Date(message.sent_at), 'MMM d, h:mm a')}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(message.delivery_status)}
-                      </TableCell>
-                      <TableCell>
-                        {message.textbelt_text_id && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => refreshStatus(message)}
-                            disabled={refreshingId === message.id}
-                          >
-                            <RefreshCw className={`h-3 w-3 ${refreshingId === message.id ? 'animate-spin' : ''}`} />
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {messages.map(message => {
+                    const isFailed = message.delivery_status.toLowerCase() === 'failed';
+                    return (
+                      <TableRow key={message.id} className={isFailed ? 'bg-destructive/5' : ''}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{message.recipient_name}</div>
+                            <div className="text-xs text-muted-foreground">{message.recipient_phone}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-xs">
+                          <div className="truncate text-sm">{message.message_body}</div>
+                          {message.link_type && (
+                            <Badge variant="outline" className="text-xs mt-1">
+                              {message.link_type}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(message.sent_at), 'MMM d, h:mm a')}
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(message.delivery_status, message.error_message, message.textbelt_http_status)}
+                        </TableCell>
+                        <TableCell>
+                          {message.textbelt_text_id && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => refreshStatus(message)}
+                              disabled={refreshingId === message.id}
+                            >
+                              <RefreshCw className={`h-3 w-3 ${refreshingId === message.id ? 'animate-spin' : ''}`} />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
 
             {/* Mobile Card View */}
             <div className="sm:hidden space-y-3">
-              {messages.map(message => (
-                <Card key={message.id} className="overflow-hidden">
-                  <CardHeader className="p-3 bg-gradient-to-r from-primary/5 to-transparent">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <div className="font-medium text-sm truncate">{message.recipient_name}</div>
+              {messages.map(message => {
+                const isFailed = message.delivery_status.toLowerCase() === 'failed';
+                return (
+                  <Card key={message.id} className={`overflow-hidden ${isFailed ? 'border-destructive/50' : ''}`}>
+                    <CardHeader className={`p-3 ${isFailed ? 'bg-destructive/5' : 'bg-gradient-to-r from-primary/5 to-transparent'}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <div className="font-medium text-sm truncate">{message.recipient_name}</div>
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">{message.recipient_phone}</div>
                         </div>
-                        <div className="text-xs text-muted-foreground truncate">{message.recipient_phone}</div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {getStatusBadge(message.delivery_status, message.error_message, message.textbelt_http_status)}
+                          {message.textbelt_text_id && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={() => refreshStatus(message)}
+                              disabled={refreshingId === message.id}
+                            >
+                              <RefreshCw className={`h-3.5 w-3.5 ${refreshingId === message.id ? 'animate-spin' : ''}`} />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {getStatusBadge(message.delivery_status)}
-                        {message.textbelt_text_id && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => refreshStatus(message)}
-                            disabled={refreshingId === message.id}
-                          >
-                            <RefreshCw className={`h-3.5 w-3.5 ${refreshingId === message.id ? 'animate-spin' : ''}`} />
-                          </Button>
+                    </CardHeader>
+                    <CardContent className="p-3 space-y-2 pt-2">
+                      {/* Error Alert for Failed Messages */}
+                      {isFailed && (message.error_message || message.textbelt_http_status) && (
+                        <Alert variant="destructive" className="py-2">
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          <AlertDescription className="text-xs ml-6">
+                            <div className="font-semibold mb-0.5">Delivery Failed</div>
+                            {message.error_message && <div>{message.error_message}</div>}
+                            {message.textbelt_http_status && (
+                              <div className="text-[10px] mt-0.5 opacity-75">
+                                HTTP Status: {message.textbelt_http_status}
+                              </div>
+                            )}
+                            {!message.error_message && !message.textbelt_http_status && (
+                              <div className="opacity-75">No error details available</div>
+                            )}
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                          <MessageSquare className="h-3 w-3" />
+                          <span>Message</span>
+                        </div>
+                        <div className="text-sm">{message.message_body}</div>
+                        {message.link_type && (
+                          <Badge variant="outline" className="text-[10px] mt-1">
+                            {message.link_type}
+                          </Badge>
                         )}
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-3 space-y-2 pt-2">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                        <MessageSquare className="h-3 w-3" />
-                        <span>Message</span>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1 border-t">
+                        <Clock className="h-3 w-3 shrink-0" />
+                        <span>{format(new Date(message.sent_at), 'MMM d, yyyy h:mm a')}</span>
                       </div>
-                      <div className="text-sm">{message.message_body}</div>
-                      {message.link_type && (
-                        <Badge variant="outline" className="text-[10px] mt-1">
-                          {message.link_type}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1 border-t">
-                      <Clock className="h-3 w-3 shrink-0" />
-                      <span>{format(new Date(message.sent_at), 'MMM d, yyyy h:mm a')}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </>
         )}

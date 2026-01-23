@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, Calendar, Clock, AlertTriangle, Filter, Trash2, ChevronsUpDown } from "lucide-react";
+import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, Calendar, Clock, AlertTriangle, Filter, Trash2, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { ProjectStatusSelector } from "@/components/ProjectStatusSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CompletePagination } from "@/components/ui/complete-pagination";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
@@ -27,10 +29,21 @@ import { Progress } from "@/components/ui/progress";
 import { format, differenceInDays, isPast, isFuture } from "date-fns";
 import { Project, ProjectStatus } from "@/types/project";
 import { ProjectWithFinancials } from "@/utils/projectFinancials";
-import { FinancialTableTemplate, FinancialTableColumn, FinancialTableGroup } from "@/components/FinancialTableTemplate";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
 
 import { cn, formatCurrency } from "@/lib/utils";
 import { ColumnSelector } from "@/components/ui/column-selector";
+
+interface FinancialTableColumn<T> {
+  key: string;
+  label: string;
+  align?: 'left' | 'center' | 'right';
+  width?: string;
+  sortable?: boolean;
+  render?: (item: T) => React.ReactNode;
+  getSortValue?: (item: T) => string | number;
+}
 
 interface ProjectsTableViewProps {
   projects: ProjectWithFinancials[];
@@ -41,6 +54,15 @@ interface ProjectsTableViewProps {
   onArchive?: (projectId: string) => void;
   onCreateNew: () => void;
   isLoading?: boolean;
+  selectedIds?: string[];
+  onSelectAll?: (checked: boolean) => void;
+  onSelectOne?: (id: string, checked: boolean) => void;
+  totalCount?: number;
+  pageSize?: number;
+  onPageSizeChange?: (size: number) => void;
+  currentPage?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }
 
 export const ProjectsTableView = ({ 
@@ -51,7 +73,16 @@ export const ProjectsTableView = ({
   onDelete,
   onArchive,
   onCreateNew,
-  isLoading = false 
+  isLoading = false,
+  selectedIds = [],
+  onSelectAll,
+  onSelectOne,
+  totalCount = 0,
+  pageSize = 25,
+  onPageSizeChange,
+  currentPage = 1,
+  totalPages = 1,
+  onPageChange,
 }: ProjectsTableViewProps) => {
   const isMobile = useIsMobile();
   const [deleteConfirm, setDeleteConfirm] = useState<{open: boolean; project: Project | null}>({
@@ -60,19 +91,14 @@ export const ProjectsTableView = ({
   });
 
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-
-  // Initialize all groups as collapsed on first load
-  useEffect(() => {
-    if (projects.length > 0 && collapsedGroups.size === 0) {
-      const allKeys = new Set(projects.map(p => p.id));
-      setCollapsedGroups(allKeys);
-    }
-  }, [projects.length]);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Define column metadata for selector
   const columnDefinitions = [
     { key: 'project_number', label: 'Project #', required: true },
+    { key: 'project_name', label: 'Project Name', required: true },
+    { key: 'client_name', label: 'Client', required: false },
     { key: 'status', label: 'Status', required: true },
     { key: 'customer_po_number', label: 'Customer PO #', required: false },
     { key: 'start_date', label: 'Start Date', required: false },
@@ -110,13 +136,24 @@ export const ProjectsTableView = ({
     if (saved) {
       const savedVisible = JSON.parse(saved);
       // Filter out invalid column keys
-      return savedVisible.filter((key: string) => 
+      let validVisible = savedVisible.filter((key: string) => 
         columnDefinitions.some(col => col.key === key)
       );
+      // Ensure project_name is included (it's required)
+      if (!validVisible.includes('project_name')) {
+        validVisible.push('project_name');
+      }
+      // Ensure client_name is included (it's a default visible column)
+      if (!validVisible.includes('client_name')) {
+        validVisible.push('client_name');
+      }
+      return validVisible;
     }
     // Default visible columns
     return [
       'project_number',
+      'project_name',
+      'client_name',
       'status',
       'start_date',
       'end_date',
@@ -137,10 +174,56 @@ export const ProjectsTableView = ({
     if (saved) {
       const savedOrder = JSON.parse(saved);
       // Filter out any invalid column keys that no longer exist
-      const validOrder = savedOrder.filter((key: string) => 
+      let validOrder = savedOrder.filter((key: string) => 
         columnDefinitions.some(col => col.key === key)
       );
-      // Add any new columns that aren't in saved order
+      
+      // Ensure project_name comes right after project_number
+      if (!validOrder.includes('project_name')) {
+        const projectNumberIndex = validOrder.indexOf('project_number');
+        if (projectNumberIndex !== -1) {
+          validOrder.splice(projectNumberIndex + 1, 0, 'project_name');
+        } else {
+          // If project_number not found, add project_name at the beginning
+          validOrder.unshift('project_name');
+        }
+      } else {
+        // project_name exists but might not be in the right position
+        // Remove it from wherever it is
+        validOrder = validOrder.filter(key => key !== 'project_name');
+        // Insert it right after project_number
+        const projectNumberIndex = validOrder.indexOf('project_number');
+        if (projectNumberIndex !== -1) {
+          validOrder.splice(projectNumberIndex + 1, 0, 'project_name');
+        } else {
+          validOrder.unshift('project_name');
+        }
+      }
+      
+      // Ensure client_name comes right after project_name
+      if (!validOrder.includes('client_name')) {
+        const projectNameIndex = validOrder.indexOf('project_name');
+        if (projectNameIndex !== -1) {
+          validOrder.splice(projectNameIndex + 1, 0, 'client_name');
+        } else {
+          // If project_name not found, add after project_number
+          const projectNumberIndex = validOrder.indexOf('project_number');
+          if (projectNumberIndex !== -1) {
+            validOrder.splice(projectNumberIndex + 1, 0, 'client_name');
+          }
+        }
+      } else {
+        // client_name exists but might not be in the right position
+        // Remove it from wherever it is
+        validOrder = validOrder.filter(key => key !== 'client_name');
+        // Insert it right after project_name
+        const projectNameIndex = validOrder.indexOf('project_name');
+        if (projectNameIndex !== -1) {
+          validOrder.splice(projectNameIndex + 1, 0, 'client_name');
+        }
+      }
+      
+      // Add any other new columns that aren't in saved order
       const newColumns = columnDefinitions
         .map(col => col.key)
         .filter(key => !validOrder.includes(key));
@@ -414,12 +497,13 @@ export const ProjectsTableView = ({
     {
       key: 'project_number',
       label: 'Project #',
+      width: '120px',
       sortable: true,
       getSortValue: (project) => project.project_number,
       render: (project) => (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="font-mono text-foreground/80 cursor-help whitespace-nowrap text-xs">
+            <div className="font-mono font-bold text-foreground cursor-help whitespace-nowrap text-xs">
               {project.project_number}
             </div>
           </TooltipTrigger>
@@ -432,6 +516,29 @@ export const ProjectsTableView = ({
             </div>
           </TooltipContent>
         </Tooltip>
+      ),
+    },
+    {
+      key: 'project_name',
+      label: 'Project Name',
+      sortable: true,
+      getSortValue: (project) => project.project_name,
+      render: (project) => (
+        <div className="text-xs font-medium truncate max-w-[250px]" title={project.project_name}>
+          {project.project_name}
+        </div>
+      ),
+    },
+    {
+      key: 'client_name',
+      label: 'Client',
+      width: '160px',
+      sortable: true,
+      getSortValue: (project) => project.client_name,
+      render: (project) => (
+        <div className="text-xs truncate" title={project.client_name}>
+          {project.client_name}
+        </div>
       ),
     },
     {
@@ -1194,63 +1301,60 @@ export const ProjectsTableView = ({
     },
   ];
 
-  // Group by project - one project per group
-  const sortedProjects = [...projects].sort((a, b) => 
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+  // Sort projects based on current sort column
+  const sortedProjects = React.useMemo(() => {
+    if (!sortColumn) {
+      return [...projects].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
 
-  // Convert to grouped format - one group per project
-  const groupedData: FinancialTableGroup<ProjectWithFinancials>[] = sortedProjects.map(project => ({
-    groupKey: project.id,
-    groupLabel: (
-      <div className="flex items-center gap-2">
-        <span>{project.project_number} - {project.project_name}</span>
-        {getStatusBadge(project.status)}
-      </div>
-    ),
-    items: [project],
-    isCollapsible: true,
-    defaultExpanded: false,
-  }));
+    const column = allColumns.find(col => col.key === sortColumn);
+    if (!column) return projects;
 
-  // Filter columns based on visibility AND sort by custom order
-  const columns = columnOrder
-    .map(key => allColumns.find(col => col.key === key))
-    .filter((col): col is FinancialTableColumn<ProjectWithFinancials> => 
-      col !== undefined && visibleColumns.includes(col.key)
-    );
+    return [...projects].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
 
-  const toggleAllGroups = () => {
-    if (collapsedGroups.size > 0) {
-      setCollapsedGroups(new Set());
+      if (column.getSortValue) {
+        aValue = column.getSortValue(a);
+        bValue = column.getSortValue(b);
+      } else {
+        aValue = (a as any)[sortColumn];
+        bValue = (b as any)[sortColumn];
+      }
+
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      
+      return sortDirection === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+    });
+  }, [projects, sortColumn, sortDirection, allColumns]);
+
+  const handleSort = (columnKey: string) => {
+    if (sortColumn === columnKey) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      const allKeys = new Set(groupedData.map(g => g.groupKey));
-      setCollapsedGroups(allKeys);
+      setSortColumn(columnKey);
+      setSortDirection('asc');
     }
   };
 
-  const collapseButton = (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 gap-2"
-          onClick={toggleAllGroups}
-        >
-          <ChevronsUpDown className="h-4 w-4" />
-          <span className="hidden sm:inline">
-            {collapsedGroups.size > 0 ? 'Expand All' : 'Collapse All'}
-          </span>
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        {collapsedGroups.size > 0 ? 'Expand all groups' : 'Collapse all groups'}
-      </TooltipContent>
-    </Tooltip>
-  );
-
-  const ProjectsTable = FinancialTableTemplate<ProjectWithFinancials>;
+  const renderSortIcon = (columnKey: string) => {
+    if (sortColumn !== columnKey) {
+      return <ChevronsUpDown className="h-3 w-3 ml-1 text-muted-foreground/50" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ChevronUp className="h-3 w-3 ml-1" /> 
+      : <ChevronDown className="h-3 w-3 ml-1" />;
+  };
 
   return (
     <TooltipProvider>
@@ -1267,25 +1371,137 @@ export const ProjectsTableView = ({
               columnOrder={columnOrder}
               onColumnOrderChange={setColumnOrder}
             />
-            {collapseButton}
           </div>
         </div>
         
-        <ProjectsTable
-          data={groupedData}
-          columns={columns}
-          isGrouped={true}
-          collapsedGroups={collapsedGroups}
-          onCollapsedGroupsChange={setCollapsedGroups}
-          collapseAllButton={undefined}
-          onView={handleViewDetails}
-          onEdit={onEdit}
-          getItemId={(project) => project.id}
-          emptyMessage="No projects found. Create your first project to get started."
-          emptyIcon={<Building2 className="h-16 w-16 mx-auto mb-4 opacity-50" />}
-          showActions={false} // We handle actions in the dropdown
-          sortable={true}
-        />
+        {/* Flat table structure */}
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+              <Table>
+                <TableHeader className="sticky top-0 bg-muted z-20 border-b">
+                  <TableRow className="h-8">
+                    {/* Checkbox Column */}
+                    {onSelectAll && (
+                      <TableHead className="w-[40px] p-2">
+                        <Checkbox
+                          checked={selectedIds.length === projects.length && projects.length > 0}
+                          onCheckedChange={onSelectAll}
+                        />
+                      </TableHead>
+                    )}
+                    
+                    {columnOrder.map((colKey) => {
+                      if (!visibleColumns.includes(colKey)) return null;
+                      
+                      const column = allColumns.find(col => col.key === colKey);
+                      if (!column) return null;
+
+                      const isSortable = column.sortable !== false;
+
+                      return (
+                        <TableHead 
+                          key={colKey} 
+                          className={cn(
+                            `p-2 text-xs font-medium h-8 ${column.width || ''} ${column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : ''}`,
+                            isSortable && "cursor-pointer hover:text-foreground select-none"
+                          )}
+                          onClick={() => isSortable && handleSort(colKey)}
+                        >
+                          <div className={cn(
+                            "flex items-center",
+                            column.align === "right" && "justify-end",
+                            column.align === "center" && "justify-center"
+                          )}>
+                            {column.label}
+                            {isSortable && renderSortIcon(colKey)}
+                          </div>
+                        </TableHead>
+                      );
+                    })}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedProjects.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={visibleColumns.length + (onSelectOne ? 1 : 0)} className="h-24 text-center">
+                        <div className="flex flex-col items-center gap-2 py-8">
+                          <Building2 className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                          <p className="text-sm text-muted-foreground">No projects found. Create your first project to get started.</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    sortedProjects.map((project) => (
+                      <TableRow key={project.id} className="h-9 hover:bg-muted/50">
+                        {/* Checkbox Column */}
+                        {onSelectOne && (
+                          <TableCell className="w-[40px] p-2">
+                            <Checkbox
+                              checked={selectedIds.includes(project.id)}
+                              onCheckedChange={(checked) => onSelectOne(project.id, checked as boolean)}
+                            />
+                          </TableCell>
+                        )}
+                        
+                        {columnOrder.map((colKey) => {
+                          if (!visibleColumns.includes(colKey)) return null;
+
+                          const column = allColumns.find(col => col.key === colKey);
+                          if (!column || !column.render) return null;
+
+                          return (
+                            <TableCell 
+                              key={`${project.id}-${colKey}`} 
+                              className={cn(
+                                "p-1.5",
+                                column.align === 'right' && 'text-right',
+                                column.align === 'center' && 'text-center'
+                              )}
+                            >
+                              {column.render(project)}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            {totalCount > 0 && (
+              <div className="p-3 border-t flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Rows per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      if (onPageSizeChange) {
+                        onPageSizeChange(Number(e.target.value));
+                      }
+                    }}
+                    className="border rounded px-2 py-1 text-sm"
+                  >
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                  </select>
+                </div>
+
+                {totalCount > pageSize && onPageChange && (
+                  <CompletePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={onPageChange}
+                  />
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <AlertDialog open={deleteConfirm.open} onOpenChange={(open) => setDeleteConfirm({open, project: null})}>
           <AlertDialogContent>

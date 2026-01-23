@@ -2586,6 +2586,7 @@ export type Database = {
           sent_at: string | null
           sent_by: string
           status_checked_at: string | null
+          textbelt_http_status: number | null
           textbelt_text_id: string | null
           updated_at: string | null
         }
@@ -2604,6 +2605,7 @@ export type Database = {
           sent_at?: string | null
           sent_by: string
           status_checked_at?: string | null
+          textbelt_http_status?: number | null
           textbelt_text_id?: string | null
           updated_at?: string | null
         }
@@ -2622,6 +2624,7 @@ export type Database = {
           sent_at?: string | null
           sent_by?: string
           status_checked_at?: string | null
+          textbelt_http_status?: number | null
           textbelt_text_id?: string | null
           updated_at?: string | null
         }

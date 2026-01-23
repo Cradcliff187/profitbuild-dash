@@ -378,24 +378,16 @@ export default function BranchBids() {
         description="Track and manage project bids"
         actions={
           <>
-            <div className="hidden sm:flex items-center gap-2">
-              <ColumnSelector 
-                columns={columnDefinitions}
-                visibleColumns={visibleColumns}
-                onVisibleColumnsChange={setVisibleColumns}
-                columnOrder={columnOrder}
-                onColumnOrderChange={setColumnOrder}
-              />
-              <Button 
-                onClick={() => setShowExportModal(true)} 
-                variant="outline" 
-                size="sm"
-                disabled={!bids || bids.length === 0}
-              >
-                <Download className="h-3 w-3 mr-1" />
-                Export
-              </Button>
-            </div>
+            <Button 
+              onClick={() => setShowExportModal(true)} 
+              variant="ghost" 
+              size="sm"
+              disabled={!bids || bids.length === 0}
+              className="hidden sm:flex"
+            >
+              <Download className="h-3 w-3 mr-1" />
+              Export
+            </Button>
             <Button onClick={() => setShowCreateDialog(true)} size="sm" className="hidden sm:flex">
               <Plus className="h-3 w-3 mr-1" />
               New Bid
@@ -404,83 +396,101 @@ export default function BranchBids() {
         }
       />
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2">
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center space-x-2">
-              <FileText className="h-4 w-4 text-primary" />
-              <div>
-                <p className="text-xs text-muted-foreground">Total Bids</p>
-                <p className="text-xl font-bold">{statistics.totalBids}</p>
+      <div className="space-y-2">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2">
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center space-x-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Bids</p>
+                  <p className="text-xl font-bold">{statistics.totalBids}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center space-x-2">
-              <ExternalLink className="h-4 w-4 text-yellow-600" />
-              <div>
-                <p className="text-xs text-muted-foreground">Pending</p>
-                <p className="text-xl font-bold">{statistics.pendingBids}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center space-x-2">
+                <ExternalLink className="h-4 w-4 text-yellow-600" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Pending</p>
+                  <p className="text-xl font-bold">{statistics.pendingBids}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center space-x-2">
-              <Users className="h-4 w-4 text-blue-600" />
-              <div>
-                <p className="text-xs text-muted-foreground">With Clients</p>
-                <p className="text-xl font-bold">{statistics.withClients}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center space-x-2">
+                <Users className="h-4 w-4 text-blue-600" />
+                <div>
+                  <p className="text-xs text-muted-foreground">With Clients</p>
+                  <p className="text-xl font-bold">{statistics.withClients}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center space-x-2">
-              <FileText className="h-4 w-4 text-green-600" />
-              <div>
-                <p className="text-xs text-muted-foreground">This Month</p>
-                <p className="text-xl font-bold">{statistics.thisMonth}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center space-x-2">
+                <FileText className="h-4 w-4 text-green-600" />
+                <div>
+                  <p className="text-xs text-muted-foreground">This Month</p>
+                  <p className="text-xl font-bold">{statistics.thisMonth}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <BidFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          resultCount={filteredBids.length}
+          clients={clients}
+        />
+
+        {/* Count and Column Selector */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {sortedBids.length} {sortedBids.length === 1 ? 'bid' : 'bids'}
+          </div>
+          <div className="flex items-center gap-2">
+            <ColumnSelector 
+              columns={columnDefinitions}
+              visibleColumns={visibleColumns}
+              onVisibleColumnsChange={setVisibleColumns}
+              columnOrder={columnOrder}
+              onColumnOrderChange={setColumnOrder}
+            />
+          </div>
+        </div>
+
+        {/* Bulk Actions */}
+        <BidBulkActions
+          selectedCount={selectedIds.length}
+          onDelete={() => setBulkDeleteDialogOpen(true)}
+          onCancel={() => setSelectedIds([])}
+        />
+
+        {/* Table */}
+        <BidsTableView
+          bids={sortedBids}
+          onDelete={(id) => deleteMutation.mutate(id)}
+          selectedIds={selectedIds}
+          onSelectAll={handleSelectAll}
+          onSelectOne={handleSelectOne}
+          visibleColumns={visibleColumns}
+          columnOrder={columnOrder}
+          sortColumn={sortColumn}
+          sortDirection={sortDirection}
+          onSort={handleSort}
+          renderSortIcon={renderSortIcon}
+        />
       </div>
-
-      {/* Filters */}
-      <BidFilters
-        filters={filters}
-        onFiltersChange={setFilters}
-        resultCount={filteredBids.length}
-        clients={clients}
-      />
-
-      {/* Bulk Actions */}
-      <BidBulkActions
-        selectedCount={selectedIds.length}
-        onDelete={() => setBulkDeleteDialogOpen(true)}
-        onCancel={() => setSelectedIds([])}
-      />
-
-      {/* Table */}
-      <BidsTableView
-        bids={sortedBids}
-        onDelete={(id) => deleteMutation.mutate(id)}
-        selectedIds={selectedIds}
-        onSelectAll={handleSelectAll}
-        onSelectOne={handleSelectOne}
-        visibleColumns={visibleColumns}
-        columnOrder={columnOrder}
-        sortColumn={sortColumn}
-        sortDirection={sortDirection}
-        onSort={handleSort}
-        renderSortIcon={renderSortIcon}
-      />
 
       {/* Mobile FAB */}
       {isMobile && (
