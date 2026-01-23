@@ -36,8 +36,38 @@ verify_jwt = false
 [functions.get-textbelt-key]
 verify_jwt = true
 
-[functions.parse-estimate-import]
-verify_jwt = false
+[functions.check-sms-quota]
+verify_jwt = true
+
+[functions.check-sms-status]
+verify_jwt = true
+
+[functions.admin-disable-user]
+verify_jwt = true
+
+[functions.enrich-estimate-items]
+verify_jwt = true
+
+[functions.generate-video-thumbnail]
+verify_jwt = true
 
 [functions.quickbooks-backfill-ids]
 verify_jwt = false
+
+[functions.quickbooks-bulk-sync-customers]
+verify_jwt = true
+
+[functions.quickbooks-bulk-sync-projects]
+verify_jwt = true
+
+[functions.quickbooks-callback]
+verify_jwt = false
+
+[functions.quickbooks-connect]
+verify_jwt = true
+
+[functions.quickbooks-sync-customer]
+verify_jwt = true
+
+[functions.quickbooks-sync-project]
+verify_jwt = true
