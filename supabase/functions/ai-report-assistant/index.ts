@@ -38,6 +38,21 @@ interface SchemaInfo {
   }>;
 }
 
+// Detect if user wants to see detailed data vs just an answer
+function wantsDetailedData(query: string): boolean {
+  const detailPatterns = [
+    /\bshow\s+(me\s+)?/i,
+    /\blist\s+(all\s+)?/i,
+    /\bexport\b/i,
+    /\breport\b/i,
+    /\bbreakdown\b/i,
+    /\bdetail(s|ed)?\b/i,
+    /\btable\b/i,
+    /\ball\s+\w+/i,
+  ];
+  return detailPatterns.some(pattern => pattern.test(query));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -84,9 +99,24 @@ serve(async (req) => {
       `${r.table_name}.${r.column_name} → ${r.foreign_table}.${r.foreign_column}`
     ).join('\n') || '';
 
+    // Detect user intent
+    const showDetailsByDefault = wantsDetailedData(query);
+
     // Build system prompt with actual schema
-    const systemPrompt = `You are a SQL expert for RCG Work, a construction project management application.
-Your job is to generate PostgreSQL SELECT queries to answer user questions about their data.
+    const systemPrompt = `You are a helpful AI assistant for RCG Work, a construction project management application.
+Your job is to answer user questions about their business data.
+
+## YOUR RESPONSE STYLE:
+- Give DIRECT, CONVERSATIONAL answers first
+- Use specific numbers from the data
+- Keep answers brief (1-3 sentences for simple questions)
+- Be friendly and helpful like a knowledgeable coworker
+
+## EXAMPLES OF GOOD ANSWERS:
+- "Johnnie worked 8.5 hours last Tuesday (January 21st)."
+- "You have 3 projects over budget, totaling $45,200 in overruns. The biggest is Project ABC at -$23,000."
+- "Total expenses this month are $47,320 across 156 transactions."
+- "Yes, there are 4 unpaid invoices totaling $28,450. ABC Corp owes the most at $12,000."
 
 ## DATABASE SCHEMA (Auto-discovered)
 
@@ -134,15 +164,15 @@ ${relationshipsSummary}
 
 Today's date is ${new Date().toISOString().split('T')[0]}.
 
-Generate a query to answer the user's question. Always explain what the query does.`;
+Generate a query to get the data, then provide a natural language answer based on the results.`;
 
-    // Tool for generating SQL queries
+    // Tool for generating SQL queries with conversational answer
     const tools = [
       {
         type: "function",
         function: {
           name: "execute_sql_query",
-          description: "Generate and execute a SQL SELECT query to answer the user's question",
+          description: "Generate a SQL SELECT query to get data for answering the user's question",
           parameters: {
             type: "object",
             properties: {
@@ -152,7 +182,7 @@ Generate a query to answer the user's question. Always explain what the query do
               },
               explanation: {
                 type: "string",
-                description: "Brief explanation of what this query does and what data it returns"
+                description: "Brief technical explanation of the query (for debugging)"
               }
             },
             required: ["query", "explanation"]
@@ -184,7 +214,7 @@ Generate a query to answer the user's question. Always explain what the query do
         model: "google/gemini-3-flash-preview",
         messages,
         tools,
-        tool_choice: { type: "function", function: { name: "execute_sql_query" } },
+        tool_choice: "auto",
       }),
     });
 
@@ -212,15 +242,62 @@ Generate a query to answer the user's question. Always explain what the query do
     }
 
     const aiData = await aiResponse.json();
-    console.log("AI Response received");
+    console.log("AI Response structure:", JSON.stringify(aiData, null, 2));
 
-    // Extract the tool call
+    // Extract the tool call with robust parsing
+    let sqlQuery: string | null = null;
+    let explanation: string = "";
+    
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall || toolCall.function.name !== "execute_sql_query") {
-      throw new Error("AI did not generate a valid SQL query");
+    
+    if (toolCall && toolCall.function?.name === "execute_sql_query") {
+      // Standard tool call format
+      try {
+        const args = JSON.parse(toolCall.function.arguments);
+        sqlQuery = args.query;
+        explanation = args.explanation || "";
+      } catch (parseError) {
+        console.error("Failed to parse tool call arguments:", parseError);
+      }
+    }
+    
+    // Fallback: Try to extract SQL from text content
+    if (!sqlQuery) {
+      const content = aiData.choices?.[0]?.message?.content;
+      if (content) {
+        console.log("Attempting to extract SQL from content:", content);
+        // Try to parse as JSON
+        try {
+          const parsed = JSON.parse(content);
+          if (parsed.query) {
+            sqlQuery = parsed.query;
+            explanation = parsed.explanation || "";
+          }
+        } catch {
+          // Try to extract SQL from markdown code block
+          const sqlMatch = content.match(/```sql\n?([\s\S]*?)```/);
+          if (sqlMatch) {
+            sqlQuery = sqlMatch[1].trim();
+            explanation = content.replace(sqlMatch[0], '').trim();
+          }
+        }
+      }
     }
 
-    const { query: sqlQuery, explanation } = JSON.parse(toolCall.function.arguments);
+    if (!sqlQuery) {
+      console.error("Could not extract SQL query from AI response");
+      return new Response(JSON.stringify({
+        success: true,
+        answer: "I'm sorry, I couldn't understand that question. Could you rephrase it? Try asking something like 'How many hours did John work last week?' or 'Show me projects over budget'.",
+        showDetailsByDefault: false,
+        data: [],
+        fields: [],
+        rowCount: 0
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     console.log("Generated SQL:", sqlQuery);
     console.log("Explanation:", explanation);
 
@@ -232,12 +309,12 @@ Generate a query to answer the user's question. Always explain what the query do
     if (queryError) {
       console.error("Query execution error:", queryError);
       
-      // Return error with the query so user can see what went wrong
       return new Response(JSON.stringify({
         success: false,
         error: queryError.message,
         query: sqlQuery,
-        explanation
+        explanation,
+        answer: `I tried to look that up but ran into an issue: ${queryError.message}. Could you try rephrasing your question?`
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -250,23 +327,85 @@ Generate a query to answer the user's question. Always explain what the query do
 
     console.log(`Query returned ${rowCount} rows${truncated ? ' (truncated)' : ''}`);
 
-    // Generate insights if we have data
-    let insights = null;
-    if (reportData.length > 0) {
-      const insightsPrompt = `Analyze this query result and provide 3-5 brief, actionable insights.
+    // Generate conversational answer based on the data
+    let answer = "";
+    
+    if (reportData.length === 0) {
+      answer = "I couldn't find any data matching your question. This could mean there are no records for that criteria, or the data hasn't been entered yet.";
+    } else {
+      // Generate a natural language answer from the data
+      const answerPrompt = `Based on this data, give a BRIEF, CONVERSATIONAL answer to the user's question.
 
 User question: "${query}"
-Query: ${sqlQuery}
-Results: ${rowCount} rows${truncated ? ' (showing first 500)' : ''}
+Query result: ${rowCount} rows
+
+Data:
+${JSON.stringify(reportData.slice(0, 20), null, 2)}
+
+RULES:
+- Be direct and specific - use actual numbers from the data
+- Keep it to 1-3 sentences for simple questions
+- For lists, mention top 2-3 items then summarize the rest
+- Don't say "based on the data" or "according to the query" - just answer naturally
+- If appropriate, offer to show more details
+
+Examples of good answers:
+- "Johnnie worked 8.5 hours last Tuesday."
+- "You have 3 projects over budget totaling $45,200 in overruns."
+- "The top expense category is Materials at $32,400, followed by Labor at $28,100."`;
+
+      try {
+        const answerResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              { role: "system", content: "You are a helpful assistant that gives brief, natural answers. Be conversational and use specific numbers." },
+              { role: "user", content: answerPrompt }
+            ],
+          }),
+        });
+
+        if (answerResponse.ok) {
+          const answerData = await answerResponse.json();
+          answer = answerData.choices?.[0]?.message?.content || "";
+        }
+      } catch (answerError) {
+        console.error("Failed to generate answer:", answerError);
+      }
+
+      // Fallback answer if AI fails
+      if (!answer) {
+        if (rowCount === 1) {
+          const firstRow = reportData[0];
+          const values = Object.values(firstRow);
+          if (values.length === 1) {
+            answer = `The answer is ${values[0]}.`;
+          } else {
+            answer = `Found 1 result. ${explanation}`;
+          }
+        } else {
+          answer = `Found ${rowCount} results. ${explanation}`;
+        }
+      }
+    }
+
+    // Generate insights only if showing detailed data
+    let insights = null;
+    if (showDetailsByDefault && reportData.length > 0) {
+      const insightsPrompt = `Analyze this query result and provide 2-3 brief, actionable insights.
+
+User question: "${query}"
+Results: ${rowCount} rows
 
 Sample data (first 10 rows):
 ${JSON.stringify(reportData.slice(0, 10), null, 2)}
 
-Be concise and business-focused. Use specific numbers from the data. Format as bullet points.
-Focus on:
-1. Key findings that answer the question
-2. Any concerning patterns or outliers
-3. Actionable recommendations`;
+Be concise. Use bullet points. Focus on actionable takeaways.`;
 
       try {
         const insightsResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -290,7 +429,6 @@ Focus on:
         }
       } catch (insightError) {
         console.error("Failed to generate insights:", insightError);
-        // Continue without insights
       }
     }
 
@@ -301,7 +439,7 @@ Focus on:
           let type = 'text';
           if (typeof sampleValue === 'number') {
             type = key.includes('percent') || key.includes('margin') ? 'percent' : 
-                   key.includes('amount') || key.includes('cost') || key.includes('price') || key.includes('total') ? 'currency' : 'number';
+                   key.includes('amount') || key.includes('cost') || key.includes('price') || key.includes('total') || key.includes('hours') ? 'currency' : 'number';
           } else if (typeof sampleValue === 'string' && /^\d{4}-\d{2}-\d{2}/.test(sampleValue)) {
             type = 'date';
           }
@@ -311,6 +449,8 @@ Focus on:
 
     return new Response(JSON.stringify({
       success: true,
+      answer,
+      showDetailsByDefault,
       query: sqlQuery,
       explanation,
       data: reportData,
@@ -326,7 +466,8 @@ Focus on:
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     console.error("AI Report Assistant error:", errorMessage);
     return new Response(JSON.stringify({ 
-      error: errorMessage
+      error: errorMessage,
+      answer: "Sorry, I encountered an error processing your request. Please try again."
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
