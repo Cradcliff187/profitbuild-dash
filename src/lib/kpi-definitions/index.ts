@@ -14,15 +14,27 @@
 // Types
 export * from './types';
 
-// KPI Definitions by Domain
-export { projectFinancialKPIs } from './project-kpis';
-export { estimateKPIs } from './estimate-kpis';
-export { expenseKPIs } from './expense-kpis';
-export { quoteKPIs } from './quote-kpis';
-export { revenueKPIs } from './revenue-kpis';
-export { changeOrderKPIs } from './change-order-kpis';
-export { workOrderKPIs } from './work-order-kpis';
-export { deprecatedKPIs } from './deprecated-kpis';
+// KPI Definitions by Domain - import for local use
+import { projectFinancialKPIs } from './project-kpis';
+import { estimateKPIs } from './estimate-kpis';
+import { expenseKPIs } from './expense-kpis';
+import { quoteKPIs } from './quote-kpis';
+import { revenueKPIs } from './revenue-kpis';
+import { changeOrderKPIs } from './change-order-kpis';
+import { workOrderKPIs } from './work-order-kpis';
+import { deprecatedKPIs } from './deprecated-kpis';
+
+// Re-export for external consumers
+export {
+  projectFinancialKPIs,
+  estimateKPIs,
+  expenseKPIs,
+  quoteKPIs,
+  revenueKPIs,
+  changeOrderKPIs,
+  workOrderKPIs,
+  deprecatedKPIs,
+};
 
 // Semantic Mappings
 export { semanticMappings } from './semantic-mappings';

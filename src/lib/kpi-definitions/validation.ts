@@ -290,6 +290,7 @@ function calculateStats(kpis: KPIMeasure[]): {
     time_entry: 0,
     payee: 0,
     training: 0,
+    deprecated: 0,
   };
 
   for (const kpi of kpis) {
