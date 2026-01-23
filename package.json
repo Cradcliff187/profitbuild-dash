@@ -15,7 +15,8 @@
     "create-test-project": "tsx scripts/create-test-project.ts",
     "cleanup-test-data": "tsx scripts/cleanup-test-data.ts",
     "pre-deploy": "bash scripts/pre-deploy-checks.sh",
-    "verify-migration": "tsx scripts/verify-bid-media-migration.ts"
+    "verify-migration": "tsx scripts/verify-bid-media-migration.ts",
+    "validate:kpis": "tsx src/lib/kpi-definitions/run-validation.ts"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
