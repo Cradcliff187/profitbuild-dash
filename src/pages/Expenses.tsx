@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Upload, BarChart3, List, Clock, FileDown, Receipt, DollarSign } from "lucide-react";
+import { Plus, Upload, BarChart3, List, Clock, FileDown, Receipt, DollarSign, RefreshCw, History } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +15,8 @@ import { ExpenseExportModal } from "@/components/ExpenseExportModal";
 import { TimesheetGridView } from "@/components/TimesheetGridView";
 import { RevenueFormSheet } from "@/components/RevenueFormSheet";
 import { RevenuesList } from "@/components/RevenuesList";
+import { QuickBooksSyncModal } from "@/components/QuickBooksSyncModal";
+import { QuickBooksSyncHistory } from "@/components/QuickBooksSyncHistory";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { ProjectRevenue } from "@/types/revenue";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +25,7 @@ import { ColumnSelector } from "@/components/ui/column-selector";
 import { MobileResponsiveHeader } from "@/components/ui/mobile-responsive-header";
 import { parseDateOnly } from "@/utils/dateUtils";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useQuickBooksSync } from '@/hooks/useQuickBooksSync';
 
 type ViewMode = "overview" | "list" | "invoices";
 
@@ -55,8 +58,11 @@ const Expenses = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showTimesheetModal, setShowTimesheetModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showQuickBooksSync, setShowQuickBooksSync] = useState(false);
+  const [showSyncHistory, setShowSyncHistory] = useState(false);
   const expensesListRef = useRef<ExpensesListRef>(null);
   const { toast } = useToast();
+  const { isEnabled: isQuickBooksSyncEnabled, config: qbSyncConfig } = useQuickBooksSync();
 
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
@@ -449,9 +455,21 @@ const Expenses = () => {
         actions={
           <>
             <div className="hidden sm:flex items-center gap-2">
+              {isQuickBooksSyncEnabled && (
+                <>
+                  <Button variant="outline" onClick={() => setShowQuickBooksSync(true)} size="sm">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Sync from QB
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowSyncHistory(true)} size="sm">
+                    <History className="h-4 w-4 mr-2" />
+                    Sync History
+                  </Button>
+                </>
+              )}
               <Button variant="outline" onClick={() => setShowImportModal(true)} size="sm">
                 <Upload className="h-4 w-4 mr-2" />
-                Import
+                Import CSV
               </Button>
               <Button variant="outline" onClick={() => setShowExportModal(true)} size="sm">
                 <FileDown className="h-4 w-4 mr-2" />
@@ -591,6 +609,18 @@ const Expenses = () => {
         onOpenChange={setRevenueFormOpen}
         revenue={selectedRevenue}
         onSave={handleSaveRevenue}
+      />
+
+      <QuickBooksSyncModal
+        open={showQuickBooksSync}
+        onClose={() => setShowQuickBooksSync(false)}
+        onSuccess={handleImportSuccess}
+        defaultDaysBack={qbSyncConfig?.default_days_back}
+      />
+
+      <QuickBooksSyncHistory
+        open={showSyncHistory}
+        onClose={() => setShowSyncHistory(false)}
       />
 
       {/* Mobile FAB */}

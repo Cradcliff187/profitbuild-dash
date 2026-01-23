@@ -60,10 +60,14 @@ export const EstimateSummaryCard: React.FC<EstimateSummaryCardProps> = ({
   // True profit = hidden (cushion) + visible (markup)
   const trueProfitMargin = laborCushion ? grossProfit + laborCushion : null;
   
-  // True profit margin should be calculated against ACTUAL labor cost (not billing cost)
-  // to show the real margin percentage on what it actually costs you
-  const trueProfitPercent = trueProfitMargin && laborActualCost && laborActualCost > 0
-    ? (trueProfitMargin / laborActualCost) * 100 
+  // Calculate true actual cost (total cost minus the labor cushion to get real cost basis)
+  // This represents what the project actually costs you internally
+  const trueActualCost = laborCushion ? totalCost - laborCushion : totalCost;
+  
+  // Max Potential Margin = (Max Profit / True Actual Cost) × 100
+  // This shows your maximum achievable margin percentage based on real internal costs
+  const trueProfitPercent = trueProfitMargin && trueActualCost > 0
+    ? (trueProfitMargin / trueActualCost) * 100 
     : null;
   
   const laborCushionPerHour = laborAvgBillingRate && laborAvgActualRate 
@@ -129,7 +133,7 @@ export const EstimateSummaryCard: React.FC<EstimateSummaryCardProps> = ({
           />
           
           {/* Max Potential Margin */}
-          {trueProfitPercent !== null && laborActualCost && laborActualCost > 0 && (
+          {trueProfitPercent !== null && (
             <SummaryRow
               label="Max Potential Margin"
               value={`${trueProfitPercent.toFixed(1)}%`}

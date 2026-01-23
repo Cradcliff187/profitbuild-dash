@@ -17,11 +17,11 @@ export interface LineItem {
   totalCost: number; // quantity * costPerUnit
   totalMarkup: number; // quantity * (pricePerUnit - costPerUnit)
   
-  // Internal Labor tracking fields (optional - only for labor_internal category)
-  laborHours?: number;
-  billingRatePerHour?: number;
-  actualCostRatePerHour?: number;
-  laborCushionAmount?: number;
+  // Labor-specific fields (only populated for labor_internal category)
+  laborHours?: number | null;
+  billingRatePerHour?: number | null;
+  actualCostRatePerHour?: number | null;
+  laborCushionAmount?: number | null; // Generated column - read only
 }
 
 export interface Estimate {
@@ -56,6 +56,8 @@ export interface Estimate {
   project_name?: string;
   project_number?: string;
   client_name?: string;
+  // Labor cushion summary
+  totalLaborCushion?: number;
 }
 
 export type EstimateStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'expired';

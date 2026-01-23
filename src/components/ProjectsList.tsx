@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText, Info, ChevronDown, Eye, ChevronRight } from "lucide-react";
+import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText, Info, Eye } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,19 +71,6 @@ export const ProjectsList = ({
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { navigateToProjectDetail } = useSmartNavigation();
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
-
-  const toggleCard = (projectId: string) => {
-    setExpandedCards(prev => {
-      const next = new Set(prev);
-      if (next.has(projectId)) {
-        next.delete(projectId);
-      } else {
-        next.add(projectId);
-      }
-      return next;
-    });
-  };
 
   const getStatusColor = (status: ProjectStatus) => {
     switch (status) {
@@ -461,9 +447,7 @@ export const ProjectsList = ({
             );
           }
 
-          // MOBILE: New collapsible implementation
-          const isExpanded = expandedCards.has(project.id);
-          
+          // MOBILE: Simple card implementation without collapsible
           // When showing estimate details, use estimate's own data consistently
           // When showing project details, use project's actual data
           let contract: number;
@@ -492,54 +476,28 @@ export const ProjectsList = ({
           return (
             <Card
               key={project.id}
-              className="compact-card border"
+              className="compact-card border hover:shadow-sm transition-shadow"
             >
-              <Collapsible open={isExpanded} onOpenChange={() => toggleCard(project.id)}>
-                {/* COLLAPSED VIEW - Enhanced header with gradient */}
-                <CardHeader 
-                  className="p-3 pb-2 bg-gradient-to-r from-primary/5 to-transparent cursor-pointer"
-                  onClick={() => navigateToProjectDetail(project.id)}
-                >
-                  <div className="space-y-0.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <CardTitle className="text-sm font-medium truncate flex-1">{project.project_name}</CardTitle>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <Badge className={`compact-badge ${getStatusColor(project.status)}`}>
-                          {project.status.replace('_', ' ').toUpperCase()}
-                        </Badge>
-                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                      </div>
-                    </div>
-                    <div className="text-label text-muted-foreground truncate">
-                      {project.project_number} • {project.client_name}
+              <CardHeader 
+                className="p-3 pb-2 cursor-pointer"
+                onClick={() => navigateToProjectDetail(project.id)}
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-sm font-medium truncate flex-1">{project.project_name}</CardTitle>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <Badge className={`compact-badge ${getStatusColor(project.status)}`}>
+                        {project.status.replace('_', ' ').toUpperCase()}
+                      </Badge>
                     </div>
                   </div>
-                </CardHeader>
-
-                <div className="flex items-center justify-between px-3 py-2 border-t">
-                  {showEstimateDetails || (project.contracted_amount || project.original_margin !== null) ? (
-                    <span className="text-sm font-medium">
-                      {formatCurrency(projectedMargin)} • {marginPctToShow.toFixed(1)}%
-                    </span>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">No financial data</span>
-                  )}
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                    </Button>
-                  </CollapsibleTrigger>
+                  <div className="text-label text-muted-foreground truncate">
+                    {project.project_number} • {project.client_name}
+                  </div>
                 </div>
+              </CardHeader>
 
-                {/* EXPANDED VIEW - Full card content */}
-                <CollapsibleContent className="relative z-0">
-                  <div className="space-y-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                    <CardContent className="p-3 space-y-2 bg-background">
+              <CardContent className="p-3 space-y-2 bg-background">
                       {/* Financial Summary - 3-Column Grid (matching quotes style) */}
                         {(showEstimateDetails || (project.contracted_amount || project.original_margin !== null)) && (() => {
                           const changeOrderRevenue = project.changeOrderRevenue || 0;
@@ -714,9 +672,6 @@ export const ProjectsList = ({
                         })()}
                       </div>
                     </CardContent>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
             </Card>
           );
         })}

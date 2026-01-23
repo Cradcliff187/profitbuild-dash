@@ -12,7 +12,8 @@ import { ProjectsList } from "@/components/ProjectsList";
 import { ProjectsTableView } from "@/components/ProjectsTableView";
 import { ProjectFilters, ProjectSearchFilters } from "@/components/ProjectFilters";
 import { ProjectExportModal } from "@/components/ProjectExportModal";
-import { Project, ProjectStatus } from "@/types/project";
+import { ProjectBulkActions } from "@/components/ProjectBulkActions";
+import { Project, ProjectStatus, PROJECT_STATUSES } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
@@ -22,6 +23,17 @@ import { ProjectWithFinancials, calculateMultipleProjectFinancials } from "@/uti
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { parseDateOnly } from "@/utils/dateUtils";
+import { usePagination } from "@/hooks/usePagination";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type ViewMode = 'list' | 'create';
 
@@ -47,6 +59,9 @@ const Projects = () => {
     sortBy: 'date',
     sortOrder: 'desc',
   });
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [pageSize, setPageSize] = useState(25);
 
   // Apply URL parameters to filters on mount
   useEffect(() => {
@@ -293,6 +308,80 @@ const Projects = () => {
     }
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(paginatedProjects.map((p) => p.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds([...selectedIds, id]);
+    } else {
+      setSelectedIds(selectedIds.filter((sid) => sid !== id));
+    }
+  };
+
+  const handleBulkStatusUpdate = async (status: ProjectStatus) => {
+    if (selectedIds.length === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ status })
+        .in('id', selectedIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${selectedIds.length} ${selectedIds.length === 1 ? 'project' : 'projects'} updated to ${PROJECT_STATUSES.find(s => s.value === status)?.label || status}`,
+      });
+
+      setSelectedIds([]);
+      loadProjects();
+    } catch (error: any) {
+      console.error('Error updating project status:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update project status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    try {
+      // Use the secure RPC function for atomic deletion
+      for (const projectId of selectedIds) {
+        const { error } = await supabase.rpc('delete_project_cascade', {
+          p_project_id: projectId
+        });
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: `${selectedIds.length} ${selectedIds.length === 1 ? 'project' : 'projects'} deleted successfully`,
+      });
+
+      setSelectedIds([]);
+      setBulkDeleteDialogOpen(false);
+      loadProjects();
+    } catch (error: any) {
+      console.error('Error deleting projects:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete projects",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCancel = () => {
     setViewMode('list');
   };
@@ -371,6 +460,20 @@ const Projects = () => {
     return sorted;
   }, [projects, filters]);
 
+  // Pagination
+  const pagination = usePagination({
+    totalItems: filteredAndSortedProjects.length,
+    pageSize,
+    initialPage: 1,
+  });
+
+  // Get paginated projects
+  const paginatedProjects = useMemo(() => {
+    const start = pagination.startIndex;
+    const end = pagination.endIndex;
+    return filteredAndSortedProjects.slice(start, end);
+  }, [filteredAndSortedProjects, pagination.startIndex, pagination.endIndex]);
+
   return (
     <MobilePageWrapper onRefresh={loadProjects} enablePullToRefresh>
       <PageHeader
@@ -413,6 +516,14 @@ const Projects = () => {
                 clients={clients}
               />
 
+              {/* Bulk Actions */}
+              <ProjectBulkActions
+                selectedCount={selectedIds.length}
+                onStatusUpdate={(status) => handleBulkStatusUpdate(status)}
+                onDelete={() => setBulkDeleteDialogOpen(true)}
+                onCancel={() => setSelectedIds([])}
+              />
+
               {/* Display Projects */}
               {isMobile ? (
                 <ProjectsList
@@ -425,13 +536,25 @@ const Projects = () => {
                 />
               ) : (
                 <ProjectsTableView
-                  projects={filteredAndSortedProjects}
+                  projects={paginatedProjects}
                   estimates={estimates}
                   onEdit={handleEdit}
                   onView={handleEdit}
                   onDelete={handleDelete}
                   onCreateNew={handleCreateNew}
                   isLoading={isLoading}
+                  selectedIds={selectedIds}
+                  onSelectAll={handleSelectAll}
+                  onSelectOne={handleSelectOne}
+                  totalCount={filteredAndSortedProjects.length}
+                  pageSize={pageSize}
+                  onPageSizeChange={(size) => {
+                    setPageSize(size);
+                    pagination.goToPage(1);
+                  }}
+                  currentPage={pagination.currentPage}
+                  totalPages={Math.ceil(filteredAndSortedProjects.length / pageSize)}
+                  onPageChange={pagination.goToPage}
                 />
               )}
               
@@ -457,6 +580,28 @@ const Projects = () => {
           onCancel={handleCancel}
         />
       )}
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Projects</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.length} {selectedIds.length === 1 ? 'project' : 'projects'}? 
+              This action cannot be undone and will also delete all associated estimates, expenses, and change orders.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ProjectExportModal 
         isOpen={showExportModal}

@@ -652,24 +652,16 @@ const WorkOrders = () => {
         description="Manage work orders and assignments"
         actions={
           <>
-            <div className="hidden sm:flex items-center gap-2">
-              <ColumnSelector
-                columns={columnDefinitions}
-                visibleColumns={visibleColumns}
-                onVisibleColumnsChange={setVisibleColumns}
-                columnOrder={columnOrder}
-                onColumnOrderChange={setColumnOrder}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                disabled={sortedWorkOrders.length === 0}
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Export
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={sortedWorkOrders.length === 0}
+              className="hidden sm:flex"
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Export
+            </Button>
             <Button onClick={handleCreateNew} size="sm" className="hidden sm:flex items-center gap-1">
               <Plus className="h-4 w-4" />
               New Work Order
@@ -740,6 +732,22 @@ const WorkOrders = () => {
             resultCount={sortedWorkOrders.length}
             clients={clients}
           />
+
+          {/* Count and Column Selector */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {sortedWorkOrders.length} {sortedWorkOrders.length === 1 ? 'work order' : 'work orders'}
+            </div>
+            <div className="flex items-center gap-2">
+              <ColumnSelector
+                columns={columnDefinitions}
+                visibleColumns={visibleColumns}
+                onVisibleColumnsChange={setVisibleColumns}
+                columnOrder={columnOrder}
+                onColumnOrderChange={setColumnOrder}
+              />
+            </div>
+          </div>
 
           {/* Bulk Actions */}
           <WorkOrderBulkActions
