@@ -559,7 +559,7 @@ export { LineItemAllocationSheet } from './LineItemAllocationSheet';
 ## Cursor Prompt
 
 ```
-Implement Phase 5.1: Line Item Allocation Tracking following docs/PHASE_5_1_LINE_ITEM_ALLOCATION.md
+Implement Phase 5.1: Line Item Allocation Tracking following docs/line-items/PHASE_5_1_LINE_ITEM_ALLOCATION.md
 
 1. Update src/components/profit-analysis/hooks/useProjectFinancialDetail.ts:
    - Add AllocationSummary and LineItemAllocationDetail interfaces

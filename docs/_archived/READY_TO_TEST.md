@@ -204,11 +204,11 @@ LIMIT 20;
 
 All implementation details are documented in:
 
-- **`docs/QUICKBOOKS_CUSTOMERREF_IMPLEMENTATION.md`** - Full implementation guide
+- **`docs/quickbooks/QUICKBOOKS_CUSTOMERREF_IMPLEMENTATION.md`** - Full implementation guide
 - **`DEPLOYMENT_COMPLETE.md`** - Deployment details and testing workflow
 - **`DEPLOYMENT_STATUS.md`** - Original deployment planning
-- **`docs/QUICKBOOKS_CUSTOM_FIELDS_RESEARCH.md`** - Research on custom fields
-- **`docs/QUICKBOOKS_CUSTOM_FIELDS_TEST_RESULTS.md`** - Test results confirming limitations
+- **`docs/quickbooks/QUICKBOOKS_CUSTOM_FIELDS_RESEARCH.md`** - Research on custom fields
+- **`docs/quickbooks/QUICKBOOKS_CUSTOM_FIELDS_TEST_RESULTS.md`** - Test results confirming limitations
 
 ---
 

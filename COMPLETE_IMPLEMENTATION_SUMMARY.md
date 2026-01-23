@@ -131,7 +131,7 @@ Total to Client:       $937.50
    - 9 labor cushion KPI metrics documented
    - View definitions and formulas
 
-10. **docs/CUSHION_HOURS_CAPACITY_UPDATE.md**
+10. **docs/labor-cushion/CUSHION_HOURS_CAPACITY_UPDATE.md**
     - 3 new hours capacity metrics
     - Use cases and examples
     - Integration guidance
@@ -308,8 +308,8 @@ estimated_labor_hours
 
 ### Created
 6. LABOR_CUSHION_IMPLEMENTATION.md
-7. docs/LABOR_CUSHION_KPI_UPDATE.md
-8. docs/CUSHION_HOURS_CAPACITY_UPDATE.md
+7. docs/labor-cushion/LABOR_CUSHION_KPI_UPDATE.md
+8. docs/labor-cushion/CUSHION_HOURS_CAPACITY_UPDATE.md
 9. COMPLETE_IMPLEMENTATION_SUMMARY.md
 
 ### Database

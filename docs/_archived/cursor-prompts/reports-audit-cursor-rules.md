@@ -95,7 +95,7 @@ src/utils/reportExporter.ts
 src/pages/KPIGuide.tsx
 docs/REPORTS_QUICK_REFERENCE.md
 docs/REPORTS_BUILDER_COMPREHENSIVE_PLAN.md
-docs/project-category-implementation/
+docs/project-category/
 ```
 
 ### Financial Calculation Logic

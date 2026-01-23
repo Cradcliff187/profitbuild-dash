@@ -4,7 +4,7 @@
 We are implementing a project category system to replace hardcoded project_number filtering. The ExpensesList component has several places that check for specific project numbers.
 
 ## Reference Document
-Read `/docs/project-category-implementation/02-COMPONENT-UPDATES.md` for full context.
+Read `/docs/project-category/02-COMPONENT-UPDATES.md` for full context.
 
 ## Task
 Update `src/components/ExpensesList.tsx` to use category-based project checks where appropriate.

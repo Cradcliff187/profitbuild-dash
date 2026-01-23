@@ -103,11 +103,11 @@ When ready to deploy QuickBooks to production:
 - `scripts/sync-customer-id-from-quickbooks.ts`
 
 **Documentation (5):**
-- `docs/QUICKBOOKS_INTEGRATION_SPEC.md`
-- `docs/QUICKBOOKS_CUSTOM_FIELDS_RESEARCH.md`
-- `docs/QUICKBOOKS_CUSTOM_FIELDS_TEST_RESULTS.md`
-- `docs/QUICKBOOKS_CUSTOMERREF_IMPLEMENTATION.md`
-- `docs/QUICKBOOKS_SETUP_CHECKLIST.md`
+- `docs/quickbooks/QUICKBOOKS_INTEGRATION_SPEC.md`
+- `docs/quickbooks/QUICKBOOKS_CUSTOM_FIELDS_RESEARCH.md`
+- `docs/quickbooks/QUICKBOOKS_CUSTOM_FIELDS_TEST_RESULTS.md`
+- `docs/quickbooks/QUICKBOOKS_CUSTOMERREF_IMPLEMENTATION.md`
+- `docs/quickbooks/QUICKBOOKS_SETUP_CHECKLIST.md`
 
 **Other:**
 - `quickbooks-schema.json`

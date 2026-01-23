@@ -21,7 +21,7 @@ Adds a `category` column to the `projects` table to replace hardcoded project nu
 ## File Structure
 
 ```
-project-category-implementation/
+project-category/
 ├── README.md                    ← You are here
 ├── EXECUTION-GUIDE.md           ← Step-by-step implementation guide
 ├── 00-IMPLEMENTATION-PLAN.md    ← Overview and context

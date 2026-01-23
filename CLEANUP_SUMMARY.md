@@ -71,8 +71,8 @@ Moved to `docs/_archived/`:
   - **Default**: Disabled (deterministic by default)
 
 ### Documentation (Active)
-- ✅ `docs/ESTIMATE_IMPORT_IMPLEMENTATION.md` - **MAIN SPEC** (canonical reference)
-- ✅ `docs/BUDGET_IMPORT_FIXES_V5.md` - Known issues that were resolved
+- ✅ `docs/estimate-import/ESTIMATE_IMPORT_IMPLEMENTATION.md` - **MAIN SPEC** (canonical reference)
+- ✅ `docs/budget-import/BUDGET_IMPORT_FIXES_V5.md` - Known issues that were resolved
 - ✅ `DETERMINISTIC_PARSER_IMPLEMENTATION_COMPLETE.md` - Implementation summary
 
 ---
@@ -153,7 +153,7 @@ supabase functions delete parse-estimate-import --project-ref clsjdxwbsjbhjibvlq
    - All import logic is client-side + deterministic
 
 3. **Documentation Review**
-   - Keep: `docs/ESTIMATE_IMPORT_IMPLEMENTATION.md` (main spec)
+   - Keep: `docs/estimate-import/ESTIMATE_IMPORT_IMPLEMENTATION.md` (main spec)
    - Archive: Any additional old import docs if found
 
 ---

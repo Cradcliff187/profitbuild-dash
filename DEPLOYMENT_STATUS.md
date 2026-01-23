@@ -119,9 +119,9 @@ If any issues occur:
 
 ## Documentation
 
-- **Implementation Guide**: `docs/QUICKBOOKS_CUSTOMERREF_IMPLEMENTATION.md`
-- **Custom Fields Research**: `docs/QUICKBOOKS_CUSTOM_FIELDS_RESEARCH.md`
-- **Custom Fields Test Results**: `docs/QUICKBOOKS_CUSTOM_FIELDS_TEST_RESULTS.md`
+- **Implementation Guide**: `docs/quickbooks/QUICKBOOKS_CUSTOMERREF_IMPLEMENTATION.md`
+- **Custom Fields Research**: `docs/quickbooks/QUICKBOOKS_CUSTOM_FIELDS_RESEARCH.md`
+- **Custom Fields Test Results**: `docs/quickbooks/QUICKBOOKS_CUSTOM_FIELDS_TEST_RESULTS.md`
 - **API Reference**: `docs/compass_artifact_wf-95ef1ce5-9482-49c5-a94c-b6e300af74b1_text_markdown.md`
 
 ## Next Steps After Deployment

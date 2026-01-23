@@ -4,7 +4,7 @@
 We are implementing a project category system to replace hardcoded project_number filtering. The expense validation utilities need to check project category instead of project numbers.
 
 ## Reference Document
-Read `/docs/project-category-implementation/02-COMPONENT-UPDATES.md` for full context.
+Read `/docs/project-category/02-COMPONENT-UPDATES.md` for full context.
 
 ## Task
 Update `src/utils/expenseValidation.ts` to use category-based project checks.

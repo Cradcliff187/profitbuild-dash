@@ -147,10 +147,10 @@ ABC Construction Co.         $12,450.00
 ## 📚 Documentation
 
 All implementation details are documented in:
-- **Implementation Guide**: `docs/QUICKBOOKS_CUSTOMERREF_IMPLEMENTATION.md`
+- **Implementation Guide**: `docs/quickbooks/QUICKBOOKS_CUSTOMERREF_IMPLEMENTATION.md`
 - **Deployment Status**: `DEPLOYMENT_STATUS.md`
-- **Custom Fields Research**: `docs/QUICKBOOKS_CUSTOM_FIELDS_RESEARCH.md`
-- **Test Results**: `docs/QUICKBOOKS_CUSTOM_FIELDS_TEST_RESULTS.md`
+- **Custom Fields Research**: `docs/quickbooks/QUICKBOOKS_CUSTOM_FIELDS_RESEARCH.md`
+- **Test Results**: `docs/quickbooks/QUICKBOOKS_CUSTOM_FIELDS_TEST_RESULTS.md`
 
 ## 🚀 Summary
 
