@@ -497,7 +497,7 @@ export const ProjectsTableView = ({
     {
       key: 'project_number',
       label: 'Project #',
-      width: '140px',
+      width: 'w-32',
       sortable: true,
       getSortValue: (project) => project.project_number,
       render: (project) => (
@@ -1455,6 +1455,7 @@ export const ProjectsTableView = ({
                               key={`${project.id}-${colKey}`} 
                               className={cn(
                                 "p-1.5",
+                                column.width,
                                 column.align === 'right' && 'text-right',
                                 column.align === 'center' && 'text-center'
                               )}
