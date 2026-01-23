@@ -497,7 +497,7 @@ export const ProjectsTableView = ({
     {
       key: 'project_number',
       label: 'Project #',
-      width: '120px',
+      width: '140px',
       sortable: true,
       getSortValue: (project) => project.project_number,
       render: (project) => (
