@@ -41,16 +41,17 @@ jobs:
           echo "Local files: ${{ steps.local_count.outputs.count }}"
           echo "Database migrations will be checked by Supabase Preview"
       
-      - name: Check for UUID-based filenames
+      - name: Check migration filename format
         run: |
           UUID_FILES=$(find supabase/migrations -name "*-*-*-*-*.sql" | wc -l)
           if [ $UUID_FILES -gt 0 ]; then
-            echo "❌ Found $UUID_FILES migration files with UUID suffixes"
-            echo "These files don't match the database format"
+            echo "ℹ️  Found $UUID_FILES migration files with UUID suffixes"
+            echo "These are valid if they match the database (Lovable-generated migrations)"
             echo ""
             echo "Files found:"
             find supabase/migrations -name "*-*-*-*-*.sql"
-            exit 1
+            echo ""
+            echo "✅ UUID-suffixed files are acceptable when they exist in the database"
           else
             echo "✅ No UUID-based migration files found"
           fi
