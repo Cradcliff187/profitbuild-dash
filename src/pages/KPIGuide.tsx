@@ -35,6 +35,7 @@ import {
   deprecatedKPIs,
   KPI_DEFINITIONS_VERSION,
   LAST_UPDATED,
+  type KPIMeasure,
 } from '@/lib/kpi-definitions';
 
 const KPI_GUIDE_METADATA = {

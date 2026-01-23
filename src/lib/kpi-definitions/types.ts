@@ -46,7 +46,8 @@ export type KPIDomain =
   | 'work_order'
   | 'time_entry'
   | 'payee'
-  | 'training';
+  | 'training'
+  | 'deprecated';
 
 /**
  * Core KPI measure definition
