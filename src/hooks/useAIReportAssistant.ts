@@ -65,21 +65,6 @@ export function useAIReportAssistant() {
         throw new Error(invokeError.message);
       }
 
-      // If there's an error but also an answer, display the helpful answer instead of throwing
-      if (data.error && data.answer) {
-        const assistantMessage: AIMessage = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: data.answer,
-          timestamp: new Date(),
-          explanation: data.explanation || data.error,
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-        setError(data.error);
-        setIsLoading(false);
-        return { success: false, error: data.error, answer: data.answer };
-      }
-
       if (data.error && !data.answer) {
         throw new Error(data.error);
       }

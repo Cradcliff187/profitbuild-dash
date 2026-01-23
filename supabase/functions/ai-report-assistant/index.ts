@@ -12,7 +12,7 @@
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ============================================================================
 // STRUCTURED LOGGING
@@ -113,7 +113,7 @@ const KPI_CONTEXT = {
   criticalRules: [
     "Use `reporting.project_financials` view for project financial queries (not raw projects table)",
     "NEVER use receipts table for financial calculations - receipts are documentation only",
-    "Time entries are in `expenses` table with category = 'labor_internal'",
+    "Time entries are in `expenses` table with expense_category = 'labor_internal'",
     "Always filter projects by category = 'construction' unless user asks for overhead/system",
     "Use ILIKE with wildcards for name searches (names may vary)",
   ],
@@ -157,7 +157,7 @@ const KPI_CONTEXT = {
     {
       q: "How many hours did John work last week?",
       reasoning: "Time entries in expenses table, calculate net hours from start/end time minus lunch, join payees for employee, use ILIKE for name",
-      sql: `SELECT p.payee_name, SUM(CASE WHEN e.lunch_taken = true THEN (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0) ELSE (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) END) as total_hours FROM expenses e JOIN payees p ON e.payee_id = p.id WHERE p.is_internal = true AND p.payee_name ILIKE '%john%' AND e.category = 'labor_internal' AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days' GROUP BY p.payee_name`
+      sql: `SELECT p.payee_name, SUM(CASE WHEN e.lunch_taken = true THEN (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0) ELSE (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) END) as total_hours FROM expenses e JOIN payees p ON e.payee_id = p.id WHERE p.is_internal = true AND p.payee_name ILIKE '%john%' AND e.expense_category = 'labor_internal' AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days' GROUP BY p.payee_name`
     },
     {
       q: "Show me projects over budget",
@@ -402,8 +402,7 @@ Otherwise respond with:
 
     return { success: false, error: 'Could not generate retry query' };
   } catch (retryError) {
-    const message = retryError instanceof Error ? retryError.message : String(retryError);
-    return { success: false, error: `Retry failed: ${message}` };
+    return { success: false, error: `Retry failed: ${retryError.message}` };
   }
 }
 
@@ -534,13 +533,9 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  let query: string | undefined;
-  let queryStartTime = Date.now();
-
   try {
-    const body = await req.json();
-    query = body.query;
-    const conversationHistory = body.conversationHistory || [];
+    const queryStartTime = Date.now();
+    const { query, conversationHistory = [] } = await req.json();
     
     if (!query) {
       return new Response(JSON.stringify({ error: "Query is required" }), {
@@ -559,9 +554,6 @@ serve(async (req) => {
 
     // Initialize Supabase
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY environment variable is not set");
-    }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
