@@ -747,15 +747,12 @@ serve(async (req) => {
 Original query failed with: ${queryError.message}
 Retried with simpler query that returned ${retryRowCount} rows
 
-          // Generate answer with retry results
-          const retryAnswerPrompt = 'User asked: "' + query + '"\n\n' +
-            'Original query failed with: ' + queryError.message + '\n' +
-            'Retried with simpler query that returned ' + retryRowCount + ' rows\n\n' +
-            (retryData.length > 0
-              ? 'Data (first 20):\n' + JSON.stringify(retryData.slice(0, 20), null, 2)
-              : 'Still no results. The simplified query also returned no data.'
-            ) + '\n\n' +
-            'Give a helpful response explaining that the original query had issues but we found an alternative approach.';
+${retryData.length > 0
+  ? `Data (first 20):\n${JSON.stringify(retryData.slice(0, 20), null, 2)}`
+  : 'Still no results. The simplified query also returned no data.'
+}
+
+Give a helpful response explaining that the original query had issues but we found an alternative approach.`;
 
           let retryAnswer = "";
           try {
