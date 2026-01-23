@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
     }
 
     // Check if this is the last admin
-    const { data: adminCount } = await supabaseClient
+    const { count: adminCount } = await supabaseClient
       .from('user_roles')
       .select('user_id', { count: 'exact', head: true })
       .eq('role', 'admin');
@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
 
     const isTargetAdmin = targetUserRoles?.some(r => r.role === 'admin');
     
-    if (isTargetAdmin && adminCount && adminCount <= 1) {
+    if (isTargetAdmin && (adminCount ?? 0) <= 1) {
       return new Response(
         JSON.stringify({ error: 'Cannot delete the last admin user' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -197,8 +197,9 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Unexpected error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return new Response(
-      JSON.stringify({ error: error.message || 'An unexpected error occurred' }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

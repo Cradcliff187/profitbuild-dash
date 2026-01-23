@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
             prevMinute.setMinutes(prevMinute.getMinutes() - 1);
             
             const nextRun = cron.nextRun(prevMinute);
-            shouldRun = nextRun && nextRun <= now && (!lastRun || lastRun < prevMinute);
+            shouldRun = Boolean(nextRun && nextRun <= now && (!lastRun || lastRun < prevMinute));
             
             if (shouldRun) {
               console.log(`⏰ Schedule ${schedule.id} (${schedule.name}) matches cron: ${schedule.cron_expression}`);
