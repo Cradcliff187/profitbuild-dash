@@ -81,7 +81,7 @@ const trueProfitPercent = trueProfitMargin && trueActualCost > 0
   - Updated Total Measures count: 61 → 70 measures
 
 ### 3. **Documentation Updates**
-- **File:** `docs/LABOR_CUSHION_KPI_UPDATE.md`
+- **File:** `docs/labor-cushion/LABOR_CUSHION_KPI_UPDATE.md`
 - **Changes:**
   - Updated Max Potential Margin formula to be explicit: `(max_profit / (total_cost - labor_cushion)) × 100`
   - Changed source from "database" to "frontend" (it's calculated in UI, not stored)
@@ -158,8 +158,8 @@ Labor: 220 hrs @ $75/hr billing, $35/hr actual
 
 ## Related Documentation
 
-- **Labor Cushion Implementation:** `docs/LABOR_CUSHION_IMPLEMENTATION.md`
-- **Labor Cushion KPI Update:** `docs/LABOR_CUSHION_KPI_UPDATE.md`
+- **Labor Cushion Implementation:** `docs/labor-cushion/LABOR_CUSHION_IMPLEMENTATION.md`
+- **Labor Cushion KPI Update:** `docs/labor-cushion/LABOR_CUSHION_KPI_UPDATE.md`
 - **KPI Guide (Live):** Navigate to Settings → KPI Guide in app
 - **Labor Calculations Utility:** `src/utils/laborCalculations.ts`
 

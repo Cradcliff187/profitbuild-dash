@@ -4,7 +4,7 @@
 We are implementing a project category system to replace hardcoded project_number filtering. Receipt modals should show BOTH construction AND overhead projects (unlike time tracker which only shows construction).
 
 ## Reference Document
-Read `/docs/project-category-implementation/02-COMPONENT-UPDATES.md` for full context.
+Read `/docs/project-category/02-COMPONENT-UPDATES.md` for full context.
 
 ## Task
 Update `src/components/time-tracker/AddReceiptModal.tsx` and `src/components/time-tracker/EditReceiptModal.tsx` to use category-based project filtering.

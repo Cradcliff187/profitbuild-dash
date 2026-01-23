@@ -4,7 +4,7 @@
 We are implementing a project category system to replace hardcoded project_number filtering. The FieldProjectSelector is used for field workers (media capture) and should only show construction projects.
 
 ## Reference Document
-Read `/docs/project-category-implementation/02-COMPONENT-UPDATES.md` for full context.
+Read `/docs/project-category/02-COMPONENT-UPDATES.md` for full context.
 
 ## Task
 Update `src/components/FieldProjectSelector.tsx` to use category-based project filtering.

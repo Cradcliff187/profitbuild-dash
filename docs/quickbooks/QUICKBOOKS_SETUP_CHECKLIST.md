@@ -247,7 +247,7 @@ supabase secrets set QUICKBOOKS_REDIRECT_URI=https://clsjdxwbsjbhjibvlqbz.supaba
 
 ## Questions or Issues?
 
-- Check `docs/QUICKBOOKS_INTEGRATION_SPEC.md` for full implementation details
+- Check `docs/quickbooks/QUICKBOOKS_INTEGRATION_SPEC.md` for full implementation details
 - Review `.cursorrules` for Supabase MCP workflow
 - Verify migration sync: `supabase/migrations/` should have 254 files
 - Database migration count should also be 254

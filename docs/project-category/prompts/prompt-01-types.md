@@ -4,7 +4,7 @@
 We are implementing a project category system to replace hardcoded project_number filtering. This prompt updates the TypeScript types.
 
 ## Reference Document
-Read `/docs/project-category-implementation/03-TYPESCRIPT-TYPES.md` for full specifications.
+Read `/docs/project-category/03-TYPESCRIPT-TYPES.md` for full specifications.
 
 ## Task
 Update `src/types/project.ts` to add category-based project classification.

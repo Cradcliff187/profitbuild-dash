@@ -47,7 +47,7 @@ See `02-COMPONENT-UPDATES.md` for complete list
 ## File Structure
 
 ```
-docs/project-category-implementation/
+docs/project-category/
 ├── 00-IMPLEMENTATION-PLAN.md      (this file)
 ├── 01-DATABASE-MIGRATIONS.md       (SQL migrations)
 ├── 02-COMPONENT-UPDATES.md         (all component changes)

@@ -4,7 +4,7 @@
 We are implementing a project category system to replace hardcoded project_number filtering. The Dashboard should only show construction projects in its statistics.
 
 ## Reference Document
-Read `/docs/project-category-implementation/02-COMPONENT-UPDATES.md` for full context.
+Read `/docs/project-category/02-COMPONENT-UPDATES.md` for full context.
 
 ## Task
 Update `src/pages/Dashboard.tsx` to use category-based project filtering instead of hardcoded project numbers.
