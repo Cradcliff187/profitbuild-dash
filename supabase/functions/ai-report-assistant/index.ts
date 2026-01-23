@@ -6,109 +6,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Data sources available for reports
-const DATA_SOURCES = [
-  { value: 'projects', label: 'Projects', description: 'Project financial data, margins, budgets, and status' },
-  { value: 'expenses', label: 'Expenses', description: 'Project expenses by category, payee, and date' },
-  { value: 'quotes', label: 'Quotes', description: 'Vendor quotes with amounts and status' },
-  { value: 'time_entries', label: 'Time Entries', description: 'Employee time tracking records' },
-  { value: 'weekly_labor_hours', label: 'Weekly Labor Hours', description: 'Weekly labor summary by employee' },
-  { value: 'estimate_line_items', label: 'Estimate Line Items', description: 'Detailed estimate line items' },
-  { value: 'internal_costs', label: 'Internal Costs', description: 'Internal labor and management costs' },
-];
-
-// Available fields per data source with their types and filter operators
-const AVAILABLE_FIELDS: Record<string, any[]> = {
-  projects: [
-    { key: 'project_number', label: 'Project #', type: 'text' },
-    { key: 'project_name', label: 'Project Name', type: 'text' },
-    { key: 'client_name', label: 'Client', type: 'text' },
-    { key: 'status', label: 'Status', type: 'text', enumValues: ['bidding', 'in_progress', 'on_hold', 'completed', 'cancelled', 'warranty'] },
-    { key: 'contracted_amount', label: 'Contract Amount', type: 'currency' },
-    { key: 'current_margin', label: 'Current Margin', type: 'currency' },
-    { key: 'margin_percentage', label: 'Margin %', type: 'percent' },
-    { key: 'total_expenses', label: 'Total Expenses', type: 'currency' },
-    { key: 'target_margin', label: 'Target Margin', type: 'currency' },
-    { key: 'projected_margin', label: 'Projected Margin', type: 'currency' },
-    { key: 'remaining_budget', label: 'Remaining Budget', type: 'currency' },
-    { key: 'cost_variance', label: 'Cost Variance', type: 'currency' },
-    { key: 'budget_utilization_percent', label: 'Budget Utilization %', type: 'percent' },
-    { key: 'contingency_remaining', label: 'Contingency Remaining', type: 'currency' },
-    { key: 'start_date', label: 'Start Date', type: 'date' },
-    { key: 'end_date', label: 'End Date', type: 'date' },
-    { key: 'change_order_revenue', label: 'Change Order Revenue', type: 'currency' },
-    { key: 'change_order_count', label: 'Change Order Count', type: 'number' },
-    { key: 'total_invoiced', label: 'Total Invoiced', type: 'currency' },
-  ],
-  expenses: [
-    { key: 'expense_date', label: 'Date', type: 'date' },
-    { key: 'amount', label: 'Amount', type: 'currency' },
-    { key: 'category', label: 'Category', type: 'text', enumValues: ['labor_internal', 'subcontractors', 'materials', 'equipment', 'other', 'permits', 'management', 'office_expenses', 'vehicle_expenses', 'tools', 'software', 'vehicle_maintenance', 'gas', 'meals'] },
-    { key: 'payee_name', label: 'Payee', type: 'text' },
-    { key: 'project_number', label: 'Project #', type: 'text' },
-    { key: 'project_name', label: 'Project Name', type: 'text' },
-    { key: 'description', label: 'Description', type: 'text' },
-    { key: 'approval_status', label: 'Status', type: 'text', enumValues: ['pending', 'approved', 'rejected'] },
-  ],
-  quotes: [
-    { key: 'quote_number', label: 'Quote #', type: 'text' },
-    { key: 'total_amount', label: 'Total Amount', type: 'currency' },
-    { key: 'status', label: 'Status', type: 'text', enumValues: ['pending', 'accepted', 'rejected', 'expired'] },
-    { key: 'date_received', label: 'Date Received', type: 'date' },
-    { key: 'payee_name', label: 'Vendor', type: 'text' },
-    { key: 'project_number', label: 'Project #', type: 'text' },
-    { key: 'project_name', label: 'Project Name', type: 'text' },
-  ],
-  time_entries: [
-    { key: 'expense_date', label: 'Date', type: 'date' },
-    { key: 'worker_name', label: 'Employee', type: 'text' },
-    { key: 'employee_number', label: 'Employee #', type: 'text' },
-    { key: 'hours', label: 'Hours', type: 'number' },
-    { key: 'amount', label: 'Total Amount', type: 'currency' },
-    { key: 'hourly_rate', label: 'Hourly Rate', type: 'currency' },
-    { key: 'project_number', label: 'Project #', type: 'text' },
-    { key: 'project_name', label: 'Project Name', type: 'text' },
-    { key: 'approval_status', label: 'Status', type: 'text', enumValues: ['pending', 'approved', 'rejected'] },
-  ],
-  weekly_labor_hours: [
-    { key: 'employee_number', label: 'Employee #', type: 'text' },
-    { key: 'employee_name', label: 'Employee Name', type: 'text' },
-    { key: 'week_start_sunday', label: 'Week Starting', type: 'date' },
-    { key: 'total_hours', label: 'Total Hours', type: 'number' },
-    { key: 'total_cost', label: 'Total Cost', type: 'currency' },
-    { key: 'entry_count', label: 'Entry Count', type: 'number' },
-  ],
-  estimate_line_items: [
-    { key: 'estimate_number', label: 'Estimate #', type: 'text' },
-    { key: 'project_number', label: 'Project #', type: 'text' },
-    { key: 'project_name', label: 'Project Name', type: 'text' },
-    { key: 'category', label: 'Category', type: 'text' },
-    { key: 'description', label: 'Description', type: 'text' },
-    { key: 'quantity', label: 'Quantity', type: 'number' },
-    { key: 'total', label: 'Total', type: 'currency' },
-    { key: 'total_cost', label: 'Total Cost', type: 'currency' },
-  ],
-  internal_costs: [
-    { key: 'category', label: 'Category', type: 'text' },
-    { key: 'expense_date', label: 'Date', type: 'date' },
-    { key: 'hours', label: 'Hours', type: 'number' },
-    { key: 'amount', label: 'Amount', type: 'currency' },
-    { key: 'worker_name', label: 'Employee', type: 'text' },
-    { key: 'project_number', label: 'Project #', type: 'text' },
-    { key: 'project_name', label: 'Project Name', type: 'text' },
-  ],
-};
-
-// Filter operators
-const FILTER_OPERATORS = ['equals', 'not_equals', 'greater_than', 'less_than', 'contains', 'in', 'between', 'is_null'];
-
-interface ReportConfig {
-  data_source: string;
-  filters: Record<string, { field: string; operator: string; value: any }>;
-  sort_by?: string;
-  sort_dir?: 'ASC' | 'DESC';
-  limit?: number;
-  explanation?: string;
+interface SchemaInfo {
+  tables: Array<{
+    table_name: string;
+    columns: Array<{
+      column_name: string;
+      data_type: string;
+      udt_name: string;
+      is_nullable: string;
+    }>;
+  }>;
+  views: Array<{
+    view_name: string;
+    schema: string;
+    columns: Array<{
+      column_name: string;
+      data_type: string;
+      udt_name: string;
+    }>;
+  }>;
+  enums: Array<{
+    enum_name: string;
+    values: string[];
+  }>;
+  relationships: Array<{
+    constraint_name: string;
+    table_name: string;
+    column_name: string;
+    foreign_table: string;
+    foreign_column: string;
+  }>;
 }
 
 serve(async (req) => {
@@ -128,95 +55,107 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Build system prompt with full schema context
-    const systemPrompt = `You are an AI assistant for a construction project management application called RCG Work. 
-Your job is to help users generate reports by understanding their natural language queries and translating them into report configurations.
+    // Fetch live database schema
+    console.log("Fetching database schema...");
+    const { data: schema, error: schemaError } = await supabase.rpc('get_database_schema');
+    
+    if (schemaError) {
+      console.error("Schema fetch error:", schemaError);
+      throw new Error(`Failed to fetch database schema: ${schemaError.message}`);
+    }
 
-## Available Data Sources:
-${JSON.stringify(DATA_SOURCES, null, 2)}
+    const schemaInfo = schema as SchemaInfo;
+    console.log(`Schema loaded: ${schemaInfo.tables?.length || 0} tables, ${schemaInfo.views?.length || 0} views, ${schemaInfo.enums?.length || 0} enums`);
 
-## Available Fields per Data Source:
-${JSON.stringify(AVAILABLE_FIELDS, null, 2)}
+    // Build compact schema representation for the prompt
+    const tablesSummary = schemaInfo.tables?.map(t => 
+      `${t.table_name}: ${t.columns?.map(c => `${c.column_name} (${c.udt_name})`).join(', ')}`
+    ).join('\n') || '';
 
-## Filter Operators:
-- equals: Exact match
-- not_equals: Not equal to
-- greater_than: Greater than (for numbers, dates, currency)
-- less_than: Less than (for numbers, dates, currency)
-- contains: Text contains substring
-- in: Value is in a list
-- between: Value is between two values (use array [min, max])
-- is_null: Field is null/empty
+    const viewsSummary = schemaInfo.views?.map(v => 
+      `${v.schema}.${v.view_name}: ${v.columns?.map(c => `${c.column_name} (${c.udt_name})`).join(', ')}`
+    ).join('\n') || '';
 
-## Business Context:
-- This is a construction/contractor estimating and project management application
-- "Margin" refers to profit margin (contracted_amount - total_expenses)
-- "Losing money" or "negative margin" means current_margin < 0 or margin_percentage < 0
-- "Over budget" means total_expenses > contracted_amount or cost_variance > 0
-- Projects have statuses: bidding, in_progress, on_hold, completed, cancelled, warranty
-- Expenses are categorized: labor_internal, materials, subcontractor, equipment, permits, overhead, management, other
-- "This month" means the current calendar month
-- "This week" means the current calendar week
-- "Overtime" typically means hours > 40 per week
+    const enumsSummary = schemaInfo.enums?.map(e => 
+      `${e.enum_name}: ${e.values?.join(', ')}`
+    ).join('\n') || '';
 
-When a user asks for a report, use the generate_report tool to create the appropriate configuration.
-Always explain what report you're generating in the 'explanation' field.
+    const relationshipsSummary = schemaInfo.relationships?.map(r => 
+      `${r.table_name}.${r.column_name} → ${r.foreign_table}.${r.foreign_column}`
+    ).join('\n') || '';
 
-For financial concerns (over budget, losing money), use:
-- margin_percentage less_than 0 for negative margins
-- current_margin less_than 0 for dollar losses
-- cost_variance greater_than 0 for over budget
+    // Build system prompt with actual schema
+    const systemPrompt = `You are a SQL expert for RCG Work, a construction project management application.
+Your job is to generate PostgreSQL SELECT queries to answer user questions about their data.
 
-For date filters, use ISO format (YYYY-MM-DD). For "this month", use the first and last day of the current month.
-Today's date is ${new Date().toISOString().split('T')[0]}.`;
+## DATABASE SCHEMA (Auto-discovered)
 
-    // Tool definition for generating reports
+### Tables:
+${tablesSummary}
+
+### Views (reporting schema):
+${viewsSummary}
+
+### Enums:
+${enumsSummary}
+
+### Foreign Key Relationships:
+${relationshipsSummary}
+
+## QUERY RULES:
+1. Generate ONLY SELECT queries (no INSERT, UPDATE, DELETE, etc.)
+2. Use appropriate JOINs based on foreign key relationships
+3. Use aggregations (SUM, COUNT, AVG, GROUP BY) when asking for totals or summaries
+4. Always alias columns clearly for readability
+5. Limit results to 100 rows unless asking for aggregations
+6. For views in the reporting schema, prefix with "reporting." (e.g., reporting.project_financials)
+7. Cast enum columns to text when selecting: status::text
+
+## BUSINESS CONTEXT:
+- "Projects" track construction jobs with budgets, margins, and expenses
+- "Expenses" are costs against projects (labor, materials, subcontractors, etc.)
+- "Estimates" are project cost estimates with line items
+- "Quotes" are vendor quotes attached to estimates
+- "Change orders" modify project scope and budget
+- "Payees" include employees (is_internal=true) and vendors/subcontractors
+- "Project revenues" track invoices and payments from clients
+- "Profiles" are system users
+
+## COMMON ALIASES:
+- "AR" or "receivables" = project_revenues table
+- "employees" = payees WHERE is_internal = true
+- "subcontractors" = payees WHERE payee_type = 'subcontractor'
+- "over budget" = projects WHERE current_margin < 0
+- "losing money" = projects WHERE margin_percentage < 0
+- "this month" = date >= date_trunc('month', CURRENT_DATE)
+- "this week" = date >= date_trunc('week', CURRENT_DATE)
+- "approved" for change orders = status = 'approved'
+- "accepted" for quotes = status = 'accepted'
+
+Today's date is ${new Date().toISOString().split('T')[0]}.
+
+Generate a query to answer the user's question. Always explain what the query does.`;
+
+    // Tool for generating SQL queries
     const tools = [
       {
         type: "function",
         function: {
-          name: "generate_report",
-          description: "Generate a report configuration based on the user's natural language query",
+          name: "execute_sql_query",
+          description: "Generate and execute a SQL SELECT query to answer the user's question",
           parameters: {
             type: "object",
             properties: {
-              data_source: {
+              query: {
                 type: "string",
-                enum: DATA_SOURCES.map(ds => ds.value),
-                description: "The data source to query"
-              },
-              filters: {
-                type: "object",
-                description: "Filters to apply. Each key is a unique filter name, value is {field, operator, value}",
-                additionalProperties: {
-                  type: "object",
-                  properties: {
-                    field: { type: "string" },
-                    operator: { type: "string", enum: FILTER_OPERATORS },
-                    value: {}
-                  },
-                  required: ["field", "operator", "value"]
-                }
-              },
-              sort_by: {
-                type: "string",
-                description: "Field to sort by"
-              },
-              sort_dir: {
-                type: "string",
-                enum: ["ASC", "DESC"],
-                description: "Sort direction"
-              },
-              limit: {
-                type: "number",
-                description: "Maximum number of rows to return (default 100)"
+                description: "The PostgreSQL SELECT query to execute"
               },
               explanation: {
                 type: "string",
-                description: "Brief explanation of what this report shows and why you configured it this way"
+                description: "Brief explanation of what this query does and what data it returns"
               }
             },
-            required: ["data_source", "explanation"]
+            required: ["query", "explanation"]
           }
         }
       }
@@ -225,16 +164,16 @@ Today's date is ${new Date().toISOString().split('T')[0]}.`;
     // Build messages array
     const messages = [
       { role: "system", content: systemPrompt },
-      ...conversationHistory.map((msg: any) => ({
+      ...conversationHistory.map((msg: { role: string; content: string }) => ({
         role: msg.role,
         content: msg.content
       })),
       { role: "user", content: query }
     ];
 
-    console.log("Calling Lovable AI with query:", query);
+    console.log("Calling AI to generate SQL for:", query);
 
-    // Call Lovable AI Gateway
+    // Call AI to generate SQL
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -245,7 +184,7 @@ Today's date is ${new Date().toISOString().split('T')[0]}.`;
         model: "google/gemini-3-flash-preview",
         messages,
         tools,
-        tool_choice: { type: "function", function: { name: "generate_report" } },
+        tool_choice: { type: "function", function: { name: "execute_sql_query" } },
       }),
     });
 
@@ -273,94 +212,121 @@ Today's date is ${new Date().toISOString().split('T')[0]}.`;
     }
 
     const aiData = await aiResponse.json();
-    console.log("AI Response:", JSON.stringify(aiData, null, 2));
+    console.log("AI Response received");
 
     // Extract the tool call
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall || toolCall.function.name !== "generate_report") {
-      throw new Error("AI did not generate a valid report configuration");
+    if (!toolCall || toolCall.function.name !== "execute_sql_query") {
+      throw new Error("AI did not generate a valid SQL query");
     }
 
-    const reportConfig: ReportConfig = JSON.parse(toolCall.function.arguments);
-    console.log("Generated report config:", JSON.stringify(reportConfig, null, 2));
+    const { query: sqlQuery, explanation } = JSON.parse(toolCall.function.arguments);
+    console.log("Generated SQL:", sqlQuery);
+    console.log("Explanation:", explanation);
 
-    // Execute the report using the RPC function
-    const { data: reportResult, error: reportError } = await supabase.rpc('execute_simple_report', {
-      p_data_source: reportConfig.data_source,
-      p_filters: reportConfig.filters || {},
-      p_sort_by: reportConfig.sort_by || 'created_at',
-      p_sort_dir: reportConfig.sort_dir || 'DESC',
-      p_limit: reportConfig.limit || 100
+    // Execute the query safely
+    const { data: queryResult, error: queryError } = await supabase.rpc('execute_ai_query', {
+      p_query: sqlQuery
     });
 
-    if (reportError) {
-      console.error("Report execution error:", reportError);
-      throw new Error(`Failed to execute report: ${reportError.message}`);
+    if (queryError) {
+      console.error("Query execution error:", queryError);
+      
+      // Return error with the query so user can see what went wrong
+      return new Response(JSON.stringify({
+        success: false,
+        error: queryError.message,
+        query: sqlQuery,
+        explanation
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Extract data from the result
-    const reportData = (reportResult?.data || []).map((item: any) => item.row_to_json || item);
-    const rowCount = reportResult?.metadata?.row_count || reportData.length;
+    const reportData = queryResult?.data || [];
+    const rowCount = queryResult?.row_count || 0;
+    const truncated = queryResult?.truncated || false;
 
-    console.log(`Report returned ${rowCount} rows`);
+    console.log(`Query returned ${rowCount} rows${truncated ? ' (truncated)' : ''}`);
 
     // Generate insights if we have data
     let insights = null;
     if (reportData.length > 0) {
-      const insightsPrompt = `Analyze this report data and provide 3-5 brief, actionable insights. Focus on:
-1. Summary of what you found
-2. Any concerning patterns or outliers
-3. Recommendations
+      const insightsPrompt = `Analyze this query result and provide 3-5 brief, actionable insights.
 
-Data source: ${reportConfig.data_source}
-Query: "${query}"
-Results: ${rowCount} rows
+User question: "${query}"
+Query: ${sqlQuery}
+Results: ${rowCount} rows${truncated ? ' (showing first 500)' : ''}
 
 Sample data (first 10 rows):
 ${JSON.stringify(reportData.slice(0, 10), null, 2)}
 
-Be concise and business-focused. Use specific numbers from the data. Format as bullet points.`;
+Be concise and business-focused. Use specific numbers from the data. Format as bullet points.
+Focus on:
+1. Key findings that answer the question
+2. Any concerning patterns or outliers
+3. Actionable recommendations`;
 
-      const insightsResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: "You are a construction business analyst. Provide brief, actionable insights." },
-            { role: "user", content: insightsPrompt }
-          ],
-        }),
-      });
+      try {
+        const insightsResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              { role: "system", content: "You are a construction business analyst. Provide brief, actionable insights." },
+              { role: "user", content: insightsPrompt }
+            ],
+          }),
+        });
 
-      if (insightsResponse.ok) {
-        const insightsData = await insightsResponse.json();
-        insights = insightsData.choices?.[0]?.message?.content || null;
+        if (insightsResponse.ok) {
+          const insightsData = await insightsResponse.json();
+          insights = insightsData.choices?.[0]?.message?.content || null;
+        }
+      } catch (insightError) {
+        console.error("Failed to generate insights:", insightError);
+        // Continue without insights
       }
     }
 
-    // Get field metadata for the data source
-    const fields = AVAILABLE_FIELDS[reportConfig.data_source] || [];
+    // Infer field types from the data
+    const fields = reportData.length > 0 
+      ? Object.keys(reportData[0]).map(key => {
+          const sampleValue = reportData[0][key];
+          let type = 'text';
+          if (typeof sampleValue === 'number') {
+            type = key.includes('percent') || key.includes('margin') ? 'percent' : 
+                   key.includes('amount') || key.includes('cost') || key.includes('price') || key.includes('total') ? 'currency' : 'number';
+          } else if (typeof sampleValue === 'string' && /^\d{4}-\d{2}-\d{2}/.test(sampleValue)) {
+            type = 'date';
+          }
+          return { key, label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), type };
+        })
+      : [];
 
     return new Response(JSON.stringify({
       success: true,
-      config: reportConfig,
+      query: sqlQuery,
+      explanation,
       data: reportData,
-      fields: fields,
+      fields,
       rowCount,
-      insights,
-      explanation: reportConfig.explanation
+      truncated,
+      insights
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  } catch (error) {
-    console.error("AI Report Assistant error:", error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    console.error("AI Report Assistant error:", errorMessage);
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Unknown error occurred" 
+      error: errorMessage
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
