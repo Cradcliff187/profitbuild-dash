@@ -102,23 +102,12 @@ serve(async (req) => {
     // Detect user intent
     const showDetailsByDefault = wantsDetailedData(query);
 
-    // Build system prompt with actual schema
+    // Build system prompt with actual schema - keep it simple, let AI be smart
     const systemPrompt = `You are a helpful AI assistant for RCG Work, a construction project management application.
-Your job is to answer user questions about their business data.
 
-## YOUR RESPONSE STYLE:
-- Give DIRECT, CONVERSATIONAL answers first
-- Use specific numbers from the data
-- Keep answers brief (1-3 sentences for simple questions)
-- Be friendly and helpful like a knowledgeable coworker
+You have access to the full database schema below. Use it to answer questions about projects, expenses, employees, invoices, and more.
 
-## EXAMPLES OF GOOD ANSWERS:
-- "Johnnie worked 8.5 hours last Tuesday (January 21st)."
-- "You have 3 projects over budget, totaling $45,200 in overruns. The biggest is Project ABC at -$23,000."
-- "Total expenses this month are $47,320 across 156 transactions."
-- "Yes, there are 4 unpaid invoices totaling $28,450. ABC Corp owes the most at $12,000."
-
-## DATABASE SCHEMA (Auto-discovered)
+## DATABASE SCHEMA
 
 ### Tables:
 ${tablesSummary}
@@ -129,42 +118,15 @@ ${viewsSummary}
 ### Enums:
 ${enumsSummary}
 
-### Foreign Key Relationships:
+### Relationships:
 ${relationshipsSummary}
 
-## QUERY RULES:
-1. Generate ONLY SELECT queries (no INSERT, UPDATE, DELETE, etc.)
-2. Use appropriate JOINs based on foreign key relationships
-3. Use aggregations (SUM, COUNT, AVG, GROUP BY) when asking for totals or summaries
-4. Always alias columns clearly for readability
-5. Limit results to 100 rows unless asking for aggregations
-6. For views in the reporting schema, prefix with "reporting." (e.g., reporting.project_financials)
-7. Cast enum columns to text when selecting: status::text
+## CONTEXT
+- This is a construction company's data
+- Payees with is_internal=true are employees
+- Today is ${new Date().toISOString().split('T')[0]}
 
-## BUSINESS CONTEXT:
-- "Projects" track construction jobs with budgets, margins, and expenses
-- "Expenses" are costs against projects (labor, materials, subcontractors, etc.)
-- "Estimates" are project cost estimates with line items
-- "Quotes" are vendor quotes attached to estimates
-- "Change orders" modify project scope and budget
-- "Payees" include employees (is_internal=true) and vendors/subcontractors
-- "Project revenues" track invoices and payments from clients
-- "Profiles" are system users
-
-## COMMON ALIASES:
-- "AR" or "receivables" = project_revenues table
-- "employees" = payees WHERE is_internal = true
-- "subcontractors" = payees WHERE payee_type = 'subcontractor'
-- "over budget" = projects WHERE current_margin < 0
-- "losing money" = projects WHERE margin_percentage < 0
-- "this month" = date >= date_trunc('month', CURRENT_DATE)
-- "this week" = date >= date_trunc('week', CURRENT_DATE)
-- "approved" for change orders = status = 'approved'
-- "accepted" for quotes = status = 'accepted'
-
-Today's date is ${new Date().toISOString().split('T')[0]}.
-
-Generate a query to get the data, then provide a natural language answer based on the results.`;
+Generate a SELECT query to answer the user's question. Be smart about name matching - if searching for a person, consider partial matches or variations.`;
 
     // Tool for generating SQL queries with conversational answer
     const tools = [
@@ -327,70 +289,55 @@ Generate a query to get the data, then provide a natural language answer based o
 
     console.log(`Query returned ${rowCount} rows${truncated ? ' (truncated)' : ''}`);
 
-    // Generate conversational answer based on the data
+    // Always let AI interpret results - including empty results
     let answer = "";
     
-    if (reportData.length === 0) {
-      answer = "I couldn't find any data matching your question. This could mean there are no records for that criteria, or the data hasn't been entered yet.";
-    } else {
-      // Generate a natural language answer from the data
-      const answerPrompt = `Based on this data, give a BRIEF, CONVERSATIONAL answer to the user's question.
+    const answerPrompt = `User asked: "${query}"
 
-User question: "${query}"
-Query result: ${rowCount} rows
+SQL executed: ${sqlQuery}
+Results: ${rowCount} rows
 
-Data:
-${JSON.stringify(reportData.slice(0, 20), null, 2)}
+${reportData.length > 0 
+  ? `Data:\n${JSON.stringify(reportData.slice(0, 20), null, 2)}`
+  : `No results returned. Think about why - maybe the name spelling is different in the database? Maybe you should suggest looking for similar names or ask for clarification?`
+}
 
-RULES:
-- Be direct and specific - use actual numbers from the data
-- Keep it to 1-3 sentences for simple questions
-- For lists, mention top 2-3 items then summarize the rest
-- Don't say "based on the data" or "according to the query" - just answer naturally
-- If appropriate, offer to show more details
+Give a helpful, natural response. Be conversational and use specific numbers from the data. If no data was found, be smart about why and offer to help find what they're looking for.`;
 
-Examples of good answers:
-- "Johnnie worked 8.5 hours last Tuesday."
-- "You have 3 projects over budget totaling $45,200 in overruns."
-- "The top expense category is Materials at $32,400, followed by Labor at $28,100."`;
+    try {
+      const answerResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: "You are a helpful assistant that gives brief, natural answers. Be conversational and use specific numbers. If a query returned no results, think about why and be helpful." },
+            { role: "user", content: answerPrompt }
+          ],
+        }),
+      });
 
-      try {
-        const answerResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
-            messages: [
-              { role: "system", content: "You are a helpful assistant that gives brief, natural answers. Be conversational and use specific numbers." },
-              { role: "user", content: answerPrompt }
-            ],
-          }),
-        });
-
-        if (answerResponse.ok) {
-          const answerData = await answerResponse.json();
-          answer = answerData.choices?.[0]?.message?.content || "";
-        }
-      } catch (answerError) {
-        console.error("Failed to generate answer:", answerError);
+      if (answerResponse.ok) {
+        const answerData = await answerResponse.json();
+        answer = answerData.choices?.[0]?.message?.content || "";
       }
+    } catch (answerError) {
+      console.error("Failed to generate answer:", answerError);
+    }
 
-      // Fallback answer if AI fails
-      if (!answer) {
-        if (rowCount === 1) {
-          const firstRow = reportData[0];
-          const values = Object.values(firstRow);
-          if (values.length === 1) {
-            answer = `The answer is ${values[0]}.`;
-          } else {
-            answer = `Found 1 result. ${explanation}`;
-          }
-        } else {
-          answer = `Found ${rowCount} results. ${explanation}`;
-        }
+    // Fallback answer if AI fails
+    if (!answer) {
+      if (rowCount === 0) {
+        answer = `The query returned no results. You might want to try different search terms.`;
+      } else if (rowCount === 1) {
+        const firstRow = reportData[0];
+        const values = Object.values(firstRow);
+        answer = values.length === 1 ? `The answer is ${values[0]}.` : `Found 1 result.`;
+      } else {
+        answer = `Found ${rowCount} results.`;
       }
     }
 
