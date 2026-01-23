@@ -35,6 +35,7 @@ const DATA_SOURCES = [
   { value: 'expenses', label: 'Expenses' },
   { value: 'quotes', label: 'Quotes' },
   { value: 'time_entries', label: 'Time Entries' },
+  { value: 'weekly_labor_hours', label: 'Weekly Labor Hours' },
   { value: 'estimate_line_items', label: 'Estimate Line Items' },
   { value: 'internal_costs', label: 'Internal Costs' },
   { value: 'reporting.training_status', label: 'Training Status' }
@@ -172,6 +173,20 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'lunch_taken', label: 'Lunch Taken', type: 'boolean', group: 'time', helpText: 'Whether lunch was taken' },
     { key: 'lunch_duration_minutes', label: 'Lunch Duration', type: 'number', group: 'time', helpText: 'Lunch duration in minutes' },
     { key: 'gross_hours', label: 'Gross Hours', type: 'number', group: 'time', helpText: 'Total shift duration before lunch deduction' }
+  ],
+  weekly_labor_hours: [
+    { key: 'employee_number', label: 'Employee #', type: 'text', group: 'employee', helpText: 'Employee identification number' },
+    { key: 'employee_name', label: 'Employee Name', type: 'text', group: 'employee', dataSource: 'workers', allowedOperators: ['equals', 'in', 'contains'] },
+    { key: 'week_start_sunday', label: 'Week Starting (Sunday)', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'First day of the week (Sunday)' },
+    { key: 'week_end_saturday', label: 'Week Ending (Saturday)', type: 'date', group: 'dates', helpText: 'Last day of the week (Saturday)' },
+    { key: 'total_hours', label: 'Total Hours', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Net hours after lunch deductions' },
+    { key: 'gross_hours', label: 'Gross Hours', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Hours before lunch deductions' },
+    { key: 'total_cost', label: 'Total Cost', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total labor cost for the week' },
+    { key: 'hourly_rate', label: 'Hourly Rate', type: 'currency', group: 'financial', helpText: 'Employee hourly rate' },
+    { key: 'entry_count', label: 'Entry Count', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Number of time entries in the week' },
+    { key: 'approved_entries', label: 'Approved Entries', type: 'number', group: 'status', helpText: 'Number of approved time entries' },
+    { key: 'pending_entries', label: 'Pending Entries', type: 'number', group: 'status', helpText: 'Number of pending time entries' },
+    { key: 'rejected_entries', label: 'Rejected Entries', type: 'number', group: 'status', helpText: 'Number of rejected time entries' }
   ],
   'reporting.training_status': [
     { key: 'employee_name', label: 'Employee Name', type: 'text', group: 'Training' },
