@@ -43,7 +43,7 @@ const AVAILABLE_FIELDS: Record<string, any[]> = {
   expenses: [
     { key: 'expense_date', label: 'Date', type: 'date' },
     { key: 'amount', label: 'Amount', type: 'currency' },
-    { key: 'category', label: 'Category', type: 'text', enumValues: ['labor_internal', 'materials', 'subcontractor', 'equipment', 'permits', 'overhead', 'management', 'other'] },
+    { key: 'category', label: 'Category', type: 'text', enumValues: ['labor_internal', 'subcontractors', 'materials', 'equipment', 'other', 'permits', 'management', 'office_expenses', 'vehicle_expenses', 'tools', 'software', 'vehicle_maintenance', 'gas', 'meals'] },
     { key: 'payee_name', label: 'Payee', type: 'text' },
     { key: 'project_number', label: 'Project #', type: 'text' },
     { key: 'project_name', label: 'Project Name', type: 'text' },
