@@ -71,3 +71,6 @@ verify_jwt = true
 
 [functions.quickbooks-sync-project]
 verify_jwt = true
+
+[functions.ai-report-assistant]
+verify_jwt = true

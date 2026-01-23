@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, FileBarChart, Receipt, DollarSign, BarChart3, FileEdit } from "lucide-react";
+import { Plus, FileText, FileBarChart, Receipt, DollarSign, BarChart3, FileEdit, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,7 @@ import { ReportViewer } from "@/components/reports/ReportViewer";
 import { ExportControls } from "@/components/reports/ExportControls";
 import { FilterSummary } from "@/components/reports/FilterSummary";
 import { SimpleFilterPanel } from "@/components/reports/SimpleFilterPanel";
+import { AIReportChat } from "@/components/reports/AIReportChat";
 import { useReportExecution, ReportConfig, ReportFilter } from "@/hooks/useReportExecution";
 import { ReportTemplate, useReportTemplates } from "@/hooks/useReportTemplates";
 import { ReportField } from "@/utils/reportExporter";
@@ -264,6 +265,12 @@ const ReportsPage = () => {
 
   const tabOptions = [
     {
+      value: 'ai',
+      label: 'AI Assistant',
+      icon: Sparkles,
+      badgeCount: 0,
+    },
+    {
       value: 'standard',
       label: 'Standard',
       icon: BarChart3,
@@ -344,7 +351,9 @@ const ReportsPage = () => {
       
       <div className="px-3 py-4 sm:p-4 space-y-4 w-full max-w-full overflow-x-hidden min-w-0" style={{ maxWidth: '100vw' }}>
 
-            {hasResults ? (
+            {selectedCategory === 'ai' ? (
+              <AIReportChat />
+            ) : hasResults ? (
               <div className="space-y-4">
                 <Card className="w-full max-w-full overflow-hidden">
             <CardHeader className="px-3 sm:px-6 py-4">

@@ -1,4 +1,5 @@
 export type ReportCategory = 
+  | 'ai'
   | 'standard' 
   | 'custom' 
   | 'financial' 
@@ -7,4 +8,3 @@ export type ReportCategory =
   | 'labor' 
   | 'training'
   | 'other';
-
