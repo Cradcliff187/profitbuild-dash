@@ -53,7 +53,8 @@ export function useAIReportAssistant() {
 
     try {
       // Build conversation history (last 10 messages for context)
-      const conversationHistory = messages.slice(-10).map(msg => ({
+      // IMPORTANT: Include the new user message in history since state update is async
+      const conversationHistory = [...messages, userMessage].slice(-10).map(msg => ({
         role: msg.role,
         content: msg.content
       }));
