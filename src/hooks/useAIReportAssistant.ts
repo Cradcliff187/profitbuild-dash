@@ -117,6 +117,9 @@ export function useAIReportAssistant() {
         errorMessage = 'Service temporarily unavailable. Please try again in a moment.';
       }
       
+      // Always update error state so components know an error occurred
+      setError(errorMessage);
+      
       const now = Date.now();
       
       // Check if this is a duplicate error within the debounce window
@@ -127,10 +130,8 @@ export function useAIReportAssistant() {
       if (!isDuplicate) {
         // Update last error tracker
         lastErrorRef.current = { message: errorMessage, timestamp: now };
-        
-        setError(errorMessage);
 
-        // Add error message to chat
+        // Add error message to chat (only for non-duplicates)
         const errorAssistantMessage: AIMessage = {
           id: crypto.randomUUID(),
           role: 'assistant',
@@ -139,7 +140,7 @@ export function useAIReportAssistant() {
         };
         setMessages(prev => [...prev, errorAssistantMessage]);
       } else {
-        console.log('[AI Assistant] Duplicate error suppressed:', errorMessage);
+        console.log('[AI Assistant] Duplicate error suppressed from chat:', errorMessage);
       }
 
       return {
