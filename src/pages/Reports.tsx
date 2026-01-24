@@ -554,15 +554,15 @@ const ReportsPage = () => {
             )}
       </div>
 
-      {/* Mobile FAB Button */}
-      {isMobile && !hasResults && (
+      {/* Floating AI Assistant Button - shows when not on AI tab */}
+      {selectedCategory !== 'ai' && (
         <Button
           variant="default"
-          onClick={() => setShowBuilder(true)}
+          onClick={() => handleCategoryChange('ai')}
           size="icon"
           className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
         >
-          <Plus className="h-6 w-6 !text-white" />
+          <Sparkles className="h-6 w-6 !text-white" />
         </Button>
       )}
     </MobilePageWrapper>
