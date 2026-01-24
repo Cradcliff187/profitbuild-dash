@@ -115,7 +115,8 @@ const KPI_CONTEXT = {
     "NEVER use receipts table for financial calculations - receipts are documentation only",
     "Time entries are in `expenses` table with expense_category = 'labor_internal'",
     "Always filter projects by category = 'construction' unless user asks for overhead/system",
-    "Use ILIKE with wildcards for name searches (names may vary)",
+    "ALWAYS use ILIKE '%name%' for ANY name search - NEVER use exact match (=)",
+    "Handle nicknames: Johnny->John, Mike->Michael, Bob->Robert, etc. Use the BASE name with ILIKE",
   ],
 
   // Margin terminology
@@ -155,8 +156,8 @@ const KPI_CONTEXT = {
       sql: `SELECT SUM(actual_margin) as total_profit FROM reporting.project_financials WHERE category = 'construction' AND start_date >= DATE_TRUNC('month', CURRENT_DATE)`
     },
     {
-      q: "How many hours did John work last week?",
-      reasoning: "Time entries in expenses table, calculate net hours from start/end time minus lunch, join payees for employee, use ILIKE for name",
+      q: "How many hours did Johnny work last week?",
+      reasoning: "Johnny is a nickname for John. Use ILIKE '%john%' to find 'John', 'Johnny', 'Johnson', etc. Time entries in expenses, calculate net hours, join payees",
       sql: `SELECT p.payee_name, SUM(CASE WHEN e.lunch_taken = true THEN (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0) ELSE (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) END) as total_hours FROM expenses e JOIN payees p ON e.payee_id = p.id WHERE p.is_internal = true AND p.payee_name ILIKE '%john%' AND e.expense_category = 'labor_internal' AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days' GROUP BY p.payee_name`
     },
     {
@@ -168,6 +169,11 @@ const KPI_CONTEXT = {
       q: "Compare expected vs actual revenue",
       reasoning: "contracted_amount is expected, total_invoiced is actual",
       sql: `SELECT project_number, project_name, contracted_amount as expected, total_invoiced as actual, revenue_variance as gap FROM reporting.project_financials WHERE category = 'construction' AND status IN ('in_progress', 'approved') ORDER BY revenue_variance DESC`
+    },
+    {
+      q: "Show me Mike's last five time entries",
+      reasoning: "Mike could be Michael. Use ILIKE '%mike%' to find both. Get last 5 from expenses table ordered by date",
+      sql: `SELECT p.payee_name, e.expense_date, e.description, CASE WHEN e.lunch_taken = true THEN (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0) ELSE (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) END as hours FROM expenses e JOIN payees p ON e.payee_id = p.id WHERE p.is_internal = true AND p.payee_name ILIKE '%mike%' AND e.expense_category = 'labor_internal' ORDER BY e.expense_date DESC LIMIT 5`
     },
   ],
 };
@@ -233,7 +239,7 @@ ${viewsSummary}
 ${enumsSummary}
 
 ## QUERY GUIDELINES
-1. Use ILIKE '%name%' for name searches (names vary)
+1. **CRITICAL**: ALWAYS use ILIKE '%name%' for ANY name - convert nicknames to base names (Johnny→john, Mike→mike, Bob→robert)
 2. Filter category = 'construction' unless asked otherwise
 3. Use reporting.project_financials for project queries
 4. Include helpful column aliases
