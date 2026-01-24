@@ -402,7 +402,8 @@ Otherwise respond with:
 
     return { success: false, error: 'Could not generate retry query' };
   } catch (retryError) {
-    return { success: false, error: `Retry failed: ${retryError.message}` };
+    const message = retryError instanceof Error ? retryError.message : String(retryError);
+    return { success: false, error: `Retry failed: ${message}` };
   }
 }
 
@@ -533,9 +534,15 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Declare variables outside try block so they're accessible in catch
+  let query: string | undefined;
+  let queryStartTime: number = Date.now();
+
   try {
-    const queryStartTime = Date.now();
-    const { query, conversationHistory = [] } = await req.json();
+    queryStartTime = Date.now();
+    const requestBody = await req.json();
+    query = requestBody.query;
+    const conversationHistory = requestBody.conversationHistory || [];
     
     if (!query) {
       return new Response(JSON.stringify({ error: "Query is required" }), {
@@ -554,6 +561,17 @@ serve(async (req) => {
 
     // Initialize Supabase
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    
+    // Guard: Ensure LOVABLE_API_KEY is defined
+    if (!LOVABLE_API_KEY) {
+      return new Response(JSON.stringify({
+        error: "LOVABLE_API_KEY not configured",
+        answer: "The AI assistant is not properly configured. Please contact support."
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
