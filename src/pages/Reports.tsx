@@ -30,9 +30,7 @@ import { ReportCategory } from "@/types/reports";
 const ReportsPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [selectedCategory, setSelectedCategory] = useState<ReportCategory>(
-    typeof window !== 'undefined' && window.innerWidth < 640 ? 'ai' : 'standard'
-  );
+  const [selectedCategory, setSelectedCategory] = useState<ReportCategory>('ai');
   const [showBuilder, setShowBuilder] = useState(false);
   const [hasResults, setHasResults] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
