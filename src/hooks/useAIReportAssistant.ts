@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ReportField } from '@/utils/reportExporter';
 
@@ -33,6 +33,10 @@ export function useAIReportAssistant() {
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Track last error to prevent duplicates
+  const lastErrorRef = useRef<{ message: string; timestamp: number } | null>(null);
+  const ERROR_DEBOUNCE_MS = 2000; // Prevent same error within 2 seconds
 
   const sendQuery = useCallback(async (query: string): Promise<AIReportResult | null> => {
     setIsLoading(true);
@@ -104,17 +108,39 @@ export function useAIReportAssistant() {
         explanation: data.explanation,
       };
     } catch (err: any) {
-      const errorMessage = err.message || 'Failed to process query';
-      setError(errorMessage);
+      let errorMessage = err.message || 'Failed to process query';
+      
+      // Provide user-friendly messages for common errors
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+        errorMessage = 'Network connection issue. Please check your internet connection and try again.';
+      } else if (errorMessage.includes('CORS') || errorMessage.includes('preflight')) {
+        errorMessage = 'Service temporarily unavailable. Please try again in a moment.';
+      }
+      
+      const now = Date.now();
+      
+      // Check if this is a duplicate error within the debounce window
+      const isDuplicate = lastErrorRef.current 
+        && lastErrorRef.current.message === errorMessage
+        && (now - lastErrorRef.current.timestamp) < ERROR_DEBOUNCE_MS;
+      
+      if (!isDuplicate) {
+        // Update last error tracker
+        lastErrorRef.current = { message: errorMessage, timestamp: now };
+        
+        setError(errorMessage);
 
-      // Add error message
-      const errorAssistantMessage: AIMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `Sorry, I encountered an error: ${errorMessage}. Please try rephrasing your question.`,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorAssistantMessage]);
+        // Add error message to chat
+        const errorAssistantMessage: AIMessage = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: `Sorry, I encountered an error: ${errorMessage}. Please try rephrasing your question.`,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, errorAssistantMessage]);
+      } else {
+        console.log('[AI Assistant] Duplicate error suppressed:', errorMessage);
+      }
 
       return {
         success: false,
@@ -128,6 +154,7 @@ export function useAIReportAssistant() {
   const clearHistory = useCallback(() => {
     setMessages([]);
     setError(null);
+    lastErrorRef.current = null; // Reset error tracking
   }, []);
 
   return {
