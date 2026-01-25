@@ -42,6 +42,15 @@ export { semanticMappings } from './semantic-mappings';
 // Business Rules
 export { businessRules } from './business-rules';
 
+// Business Benchmarks
+export {
+  businessBenchmarks,
+  getBenchmarkForMetric,
+  evaluateMetric,
+  getBenchmarksForPrompt,
+} from './business-benchmarks';
+export type { Benchmark } from './business-benchmarks';
+
 // Few-Shot Examples
 export { fewShotExamples } from './few-shot-examples';
 

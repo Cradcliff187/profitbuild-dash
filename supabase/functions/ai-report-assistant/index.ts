@@ -7,8 +7,9 @@
  * - Few-shot examples
  * - Business rules enforcement
  * - Retry logic for empty results
+ * - Adaptive response mode (simple vs analytical)
  * 
- * @version 2.0.0
+ * @version 3.0.0
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -108,7 +109,7 @@ const corsHeaders = {
 // ============================================================================
 
 const KPI_CONTEXT = {
-  version: '2.0.0',
+  version: '3.0.0',
   
   // Critical business rules
   criticalRules: [
@@ -141,6 +142,13 @@ const KPI_CONTEXT = {
       formula: "contracted_amount - original_est_costs", 
       useWhen: "BASELINE comparison"
     },
+  },
+
+  // Business benchmarks
+  benchmarks: {
+    project_margin: { healthy: '15-25%', warning: '<10%', critical: '<5%' },
+    cost_variance: { healthy: '±5%', warning: '>10%', critical: '>20%' },
+    contingency_usage: { healthy: '<50%', warning: '>75%', critical: '100%' },
   },
 
   // Entity lookups
@@ -205,31 +213,113 @@ function generateSystemPrompt(schemaInfo: any): string {
     `Q: "${ex.q}"\nReasoning: ${ex.reasoning}\nSQL: ${ex.sql}`
   ).join('\n\n');
 
-  return `You are a SQL expert for RCG Work, a construction project management system.
+  return `You are a financial analyst for RCG Work, a construction project management system.
+Your job is to help users understand their business - from field workers checking hours to owners reviewing portfolio health.
 
-## ⚠️ CRITICAL RULES (NEVER VIOLATE)
+## ADAPTIVE RESPONSE MODE
+
+**Detect the question type and respond appropriately:**
+
+### SIMPLE MODE
+**Triggers:** "my hours", "my time", "show me", "list", single project lookup, single person lookup, "what is", "how many"
+**Behavior:**
+- Answer directly in 1-2 sentences
+- One query only
+- No unsolicited comparisons or analysis
+- Plain, conversational language
+
+**Example:**
+Q: "How many hours did I work this week?"
+A: "You worked 42.5 hours this week across 3 projects."
+
+Q: "What's the margin on Smith Kitchen?"
+A: "Smith Kitchen is at 18% margin with $12,400 profit so far. That's healthy."
+
+### ANALYTICAL MODE
+**Triggers:** "how are we doing", "analyze", "compare", "trends", "health check", "worried about", "portfolio", "performance", "any problems", "overview"
+**Behavior:**
+- Think like a CFO's analyst
+- Use CTEs for multi-step analysis when valuable
+- Compare to previous periods when relevant
+- Reference benchmarks
+- Proactively flag anomalies and concerns
+- Still use plain language - no jargon
+
+**Example:**
+Q: "How are we doing this month?"
+A: "Strong month - profit is $45,230, up 12% from last month. Average margin across 8 projects is 22%. One concern: the Oak Street project dropped to 8% margin, below our 15% target."
+
+## LANGUAGE RULES (ALWAYS APPLY)
+
+**Say this → Not this:**
+- "over budget" → "positive cost variance"
+- "under budget" → "negative cost variance"  
+- "profit" or "margin" → "actual margin"
+- "left to bill" → "revenue variance"
+- "expected profit" → "current margin"
+- "$45,230" → "$45,230.47" (round to whole dollars unless asked)
+
+**Response structure:**
+1. Lead with the answer
+2. Add context if it helps (mode-dependent)
+3. Flag concerns if relevant (analytical mode)
+4. Keep it conversational
+
+## CRITICAL DATA RULES
+
 ${KPI_CONTEXT.criticalRules.map(r => `- ${r}`).join('\n')}
 
-## MARGIN TERMINOLOGY
-| Metric | Formula | When to Use |
-|--------|---------|-------------|
-| actual_margin | total_invoiced - total_expenses | User asks about REAL/ACTUAL profit |
-| current_margin | contracted_amount - total_expenses | User asks about EXPECTED profit (default) |
-| projected_margin | contracted_amount - adjusted_est_costs | User asks about FORECAST |
-| original_margin | contracted_amount - original_est_costs | User asks about BASELINE |
+## MARGIN TERMINOLOGY (Know the difference)
 
-**Key insight:** "profit" = actual_margin (real money). "margin" = current_margin (expected).
+| Field | Formula | Use When |
+|-------|---------|----------|
+| actual_margin | total_invoiced - total_expenses | User asks about REAL/ACTUAL/TRUE profit |
+| current_margin | contracted_amount - total_expenses | User asks about EXPECTED profit |
+| projected_margin | contracted_amount - adjusted_est_costs | User asks about FORECAST |
+| margin_percentage | (contracted - expenses) / contracted × 100 | User asks for percentage |
+
+## BUSINESS BENCHMARKS (RCG Targets)
+
+- project_margin: 15-30% (Project margins below 15% may indicate pricing issues or scope creep)
+- cost_variance: -5-5% (Cost variance above 10% requires investigation)
+- billing_progress: 70-100% (Projects should be >70% billed by completion)
+- labor_cushion_rate: 35-50 (Target $40/hr cushion (billing $75 vs $35 actual cost))
+- contingency_usage: 0-50% (Using >75% contingency early is a risk indicator)
+- weekly_hours: 35-45 (Standard work week with reasonable overtime)
+
+Use these to provide context like "that's healthy" or "below target" - but only in analytical mode or when the value is concerning.
 
 ## ENTITY LOOKUPS
-- Employees: payees WHERE is_internal = true
-- Vendors: payees WHERE payee_type = 'vendor' AND is_internal = false
-- Subcontractors: payees WHERE payee_type = 'subcontractor'
+
+- **Employees:** \`payees WHERE is_internal = true\`
+- **Vendors:** \`payees WHERE payee_type = 'vendor' AND is_internal = false\`
+- **Subcontractors:** \`payees WHERE payee_type = 'subcontractor' AND is_internal = false\`
+- **Time entries:** \`expenses WHERE category = 'labor_internal'\`
+
+## NAME MATCHING
+
+ALWAYS use \`ILIKE '%name%'\` for name searches. Handle nicknames:
+- Johnny, John, Jonathan → \`ILIKE '%john%'\`
+- Mike, Michael → \`ILIKE '%mik%'\` or \`ILIKE '%michael%'\`
+- Bob, Robert → \`ILIKE '%bob%'\` OR \`ILIKE '%robert%'\`
+
+## TIME CALCULATIONS
+
+Hours are calculated from start_time/end_time, accounting for lunch:
+\`\`\`sql
+CASE 
+  WHEN lunch_taken = true THEN
+    (EXTRACT(EPOCH FROM (end_time - start_time)) / 3600) - (lunch_duration_minutes / 60.0)
+  ELSE
+    (EXTRACT(EPOCH FROM (end_time - start_time)) / 3600)
+END as net_hours
+\`\`\`
 
 ## EXAMPLES
 
 ${examplesText}
 
-## DATABASE SCHEMA
+${tablesSummary || viewsSummary || enumsSummary ? `## DATABASE SCHEMA
 
 ### Tables:
 ${tablesSummary}
@@ -239,15 +329,13 @@ ${viewsSummary}
 
 ### Enums:
 ${enumsSummary}
+` : ''}
 
-## QUERY GUIDELINES
-1. **CRITICAL**: ALWAYS use ILIKE '%name%' for ANY name - convert nicknames to base names (Johnny→john, Mike→mike, Bob→robert)
-2. Filter category = 'construction' unless asked otherwise
-3. Use reporting.project_financials for project queries
-4. Include helpful column aliases
-5. If 0 rows, think about why and suggest alternatives
+## FINAL REMINDER
 
-Today is ${new Date().toISOString().split('T')[0]}`;
+Read the question carefully. A field worker asking "my hours?" wants a quick number. An owner asking "how's the portfolio?" wants analysis. Match your response depth to their need.
+
+Today's date: ${new Date().toISOString().split('T')[0]}`;
 }
 
 // ============================================================================
@@ -523,6 +611,35 @@ Respond with JSON:
 // DETECT USER INTENT
 // ============================================================================
 
+function detectQueryIntent(query: string): 'simple' | 'analytical' {
+  const analyticalTriggers = [
+    'how are we', 'analyze', 'analysis', 'compare', 'comparison',
+    'trend', 'health', 'portfolio', 'overview', 'performance',
+    'worried', 'concern', 'problem', 'issue', 'risk',
+    'this month vs', 'last month', 'this week vs', 'quarter'
+  ];
+  
+  const simpleTriggers = [
+    'my hours', 'my time', 'show me', 'list', 'what is the',
+    'how many', 'how much did', 'when did'
+  ];
+  
+  const lowerQuery = query.toLowerCase();
+  
+  // Check for explicit analytical triggers
+  if (analyticalTriggers.some(t => lowerQuery.includes(t))) {
+    return 'analytical';
+  }
+  
+  // Check for simple triggers
+  if (simpleTriggers.some(t => lowerQuery.includes(t))) {
+    return 'simple';
+  }
+  
+  // Default based on query length/complexity
+  return query.split(' ').length > 8 ? 'analytical' : 'simple';
+}
+
 function wantsDetailedData(query: string): boolean {
   const detailKeywords = [
     'show', 'list', 'all', 'table', 'report', 'export', 'details',
@@ -618,7 +735,8 @@ serve(async (req) => {
 
     // Generate system prompt with KPI context
     const systemPrompt = generateSystemPrompt(schema);
-    const showDetailsByDefault = wantsDetailedData(query);
+    const queryIntent = detectQueryIntent(query);
+    const showDetailsByDefault = queryIntent === 'analytical' || wantsDetailedData(query);
 
     // Build messages with conversation history
     const messages = [
@@ -736,14 +854,14 @@ serve(async (req) => {
     }
 
     // Extract query intent and KPIs for logging
-    const queryIntent = extractQueryIntent(sqlQuery, explanation);
+    const queryCategory = extractQueryIntent(sqlQuery, explanation);
     const kpisUsed = extractKPIsUsed(sqlQuery, explanation);
 
     logQuery({
       timestamp: new Date().toISOString(),
       userQuery: query,
       sqlQuery: sqlQuery,
-      queryIntent: queryIntent,
+      queryIntent: queryCategory,
       kpisUsed: kpisUsed,
       status: 'success',
       rowCount: 0,
@@ -760,7 +878,7 @@ serve(async (req) => {
       const errorInfo = await parseQueryError(queryError, sqlQuery);
 
       // Attempt retry if the error is recoverable
-      let retryResult = null;
+      let retryResult: { success: boolean; data?: any; error?: any; cannotRetry?: boolean } | null = null;
       let retrySuccessful = false;
 
       if (errorInfo.canRetry) {
@@ -781,7 +899,7 @@ serve(async (req) => {
             timestamp: new Date().toISOString(),
             userQuery: query,
             sqlQuery: sqlQuery,
-            queryIntent: queryIntent,
+            queryIntent: queryCategory,
             kpisUsed: kpisUsed,
             status: 'retry_success',
             rowCount: retryResult.data?.row_count || 0,
@@ -854,7 +972,7 @@ Give a helpful response explaining that the original query had issues but we fou
           return new Response(JSON.stringify({
             success: true,
             answer: retryAnswer || `I had trouble with your original query (${errorInfo.message}), but I tried a simpler approach and found ${retryRowCount} results.`,
-            showDetailsByDefault: wantsDetailedData(query),
+            showDetailsByDefault: queryIntent === 'analytical' || wantsDetailedData(query),
             query: sqlQuery, // Keep original query for transparency
             simplifiedQuery: retryResult.data?.query || sqlQuery,
             explanation: `Original query failed, but simplified version worked`,
@@ -875,7 +993,7 @@ Give a helpful response explaining that the original query had issues but we fou
         timestamp: new Date().toISOString(),
         userQuery: query,
         sqlQuery: sqlQuery,
-        queryIntent: queryIntent,
+        queryIntent: queryCategory,
         kpisUsed: kpisUsed,
         status: 'error',
         rowCount: 0,
@@ -916,7 +1034,7 @@ Give a helpful response explaining that the original query had issues but we fou
       timestamp: new Date().toISOString(),
       userQuery: query,
       sqlQuery: sqlQuery,
-      queryIntent: queryIntent,
+      queryIntent: queryCategory,
       kpisUsed: kpisUsed,
       status: rowCount === 0 ? 'empty' : 'success',
       rowCount: rowCount,

@@ -224,4 +224,7 @@ export interface FewShotExample {
   
   /** Category of question */
   category: 'aggregation' | 'filtering' | 'comparison' | 'time_based' | 'lookup';
+  
+  /** Response mode - simple for direct answers, analytical for insights */
+  responseMode?: 'simple' | 'analytical';
 }
