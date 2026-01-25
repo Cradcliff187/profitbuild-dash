@@ -19,7 +19,7 @@
 
 #### Business Rules Accuracy
 - [x] Time entries are in `expenses` table ✓
-- [x] `expense_category = 'labor_internal'` is correct ✓
+- [x] `category = 'labor_internal'` is correct ✓
 - [x] `payees.is_internal = true` for employees ✓
 - [x] `payees.payee_type` fields exist ✓
 - [x] Never use receipts table for financial calculations ✓
@@ -67,7 +67,7 @@ FROM expenses e
 JOIN payees p ON e.payee_id = p.id
 WHERE p.is_internal = true
   AND p.payee_name ILIKE '%john%'
-  AND e.expense_category = 'labor_internal'
+  AND e.category = 'labor_internal'
   AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days'
 GROUP BY p.payee_name
 ```
