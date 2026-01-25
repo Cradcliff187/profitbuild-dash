@@ -118,6 +118,7 @@ const KPI_CONTEXT = {
     "Always filter projects by category = 'construction' unless user asks for overhead/system",
     "ALWAYS use ILIKE '%name%' for ANY name search - NEVER use exact match (=)",
     "Handle nicknames: Johnny->John, Mike->Michael, Bob->Robert, etc. Use the BASE name with ILIKE",
+    "CRITICAL DATA INTEGRITY: ONLY cite numbers/amounts/hours that appear in SQL results. NEVER invent, estimate, or recall from memory. If data doesn't show something, say 'I don't see that in the results'. When in doubt, show raw data and let user interpret.",
   ],
 
   // Margin terminology
@@ -537,11 +538,24 @@ function wantsDetailedData(query: string): boolean {
 
 serve(async (req) => {
   // Handle CORS preflight - MUST be first, before any other processing
+  // Wrap in try-catch to prevent any errors from crashing the OPTIONS handler
   if (req.method === "OPTIONS") {
-    return new Response('ok', { 
-      status: 200,
-      headers: corsHeaders 
-    });
+    try {
+      return new Response('ok', { 
+        status: 200,
+        headers: corsHeaders 
+      });
+    } catch (error) {
+      console.error('[OPTIONS] Error in preflight handler:', error);
+      return new Response('ok', { 
+        status: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+        }
+      });
+    }
   }
 
   // Declare variables outside try block so they're accessible in catch
@@ -563,7 +577,7 @@ serve(async (req) => {
     
     if (!query) {
       return new Response(JSON.stringify({ error: "Query is required" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

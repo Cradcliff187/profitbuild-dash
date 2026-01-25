@@ -78,7 +78,13 @@ export function useAIReportAssistant() {
       });
 
       if (invokeError) {
-        throw new Error(invokeError.message);
+        console.error('[AI Hook] Edge function invoke error:', {
+          message: invokeError.message,
+          status: invokeError.status,
+          context: invokeError.context,
+          name: invokeError.name
+        });
+        throw new Error(invokeError.message || 'Failed to send a request to the Edge Function');
       }
 
       if (data.error && !data.answer) {
