@@ -145,6 +145,70 @@ if (dbCount !== localCount) {
 
 **Note:** Even for small changes (like CORS headers), always run the full checklist. It takes seconds and prevents deployment failures.
 
+## Edge Function Dependencies - CRITICAL
+
+### Version Pinning Rule
+
+**⚠️ ALWAYS pin exact versions for edge function dependencies**
+
+**DO:**
+```typescript
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+```
+
+**DON'T:**
+```typescript
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from '@supabase/supabase-js'; // bare imports don't work in Deno
+```
+
+**Why:** Floating versions (`@2`, `@latest`) resolve to different versions depending on:
+- When the deployment happens (CDN may return newer versions)
+- Which deployment system is used (Lovable vs Supabase MCP)
+- CDN caching state
+
+This causes "works in dev, breaks in production" issues.
+
+### Lovable Auto-Deployment Behavior
+
+**⚠️ IMPORTANT: This project is hosted on Lovable**
+
+When you push to GitHub:
+1. **Lovable automatically deploys** everything including edge functions
+2. **Lovable's deployment environment** may behave differently than Supabase MCP
+3. **Always verify** edge functions work after Lovable deploys
+
+### Edge Function Change Workflow
+
+**Normal changes (recommended):**
+1. Make changes to edge function locally
+2. Commit and push to GitHub
+3. Lovable auto-deploys
+4. **Verify function works** (test with a real query)
+
+**Emergency fixes (when production is broken):**
+1. Make changes locally
+2. Deploy directly via `user-supabase-deploy_edge_function` (bypasses Lovable)
+3. Verify fix works immediately
+4. Then push to GitHub to keep code in sync
+
+**Major changes (safest):**
+1. Use a feature branch
+2. Test in Lovable preview/staging first
+3. Merge to main only after verification
+
+### Known Issues & Lessons Learned
+
+**Problem:** `createRequire` errors in Lovable deployments
+- **Cause:** Floating version imports (`@2`) resolve to versions with Node.js code that doesn't work in Deno edge runtime
+- **Solution:** Always use pinned versions (`@2.57.4`)
+- **Fixed:** January 2026 - `ai-report-assistant` imports now pinned
+
+**Problem:** Edge function works in Cursor MCP but breaks in Lovable
+- **Cause:** Different deployment environments may resolve dependencies differently
+- **Solution:** Pin exact versions that work in both environments
+- **Lesson:** Always test in Lovable after deployment, not just in Cursor
+
 ## Code Style
 
 - Use TypeScript for all new files
