@@ -138,7 +138,7 @@ Catches issues automatically:
 
 ## Validation Results
 
-See `docs/AI_REPORTS_VALIDATION_NOTES.md` for complete validation findings.
+See `AI_REPORTS_VALIDATION_NOTES.md` for complete validation findings.
 
 ### Key Corrections Made
 
