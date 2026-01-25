@@ -32,9 +32,9 @@ export const businessRules: BusinessRule[] = [
   {
     id: 'time_entries_are_expenses',
     category: 'data_source',
-    rule: 'Time entries are stored in the `expenses` table with expense_category = \'labor_internal\'',
+    rule: 'Time entries are stored in the `expenses` table with category = \'labor_internal\'',
     reason: 'Time tracking uses the expenses table with specific category, not a separate time_entries table.',
-    correctExample: "SELECT * FROM expenses WHERE expense_category = 'labor_internal'",
+    correctExample: "SELECT * FROM expenses WHERE category = 'labor_internal'",
     incorrectExample: 'SELECT * FROM time_entries (wrong table name)',
     severity: 'critical'
   },

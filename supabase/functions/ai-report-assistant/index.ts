@@ -114,7 +114,7 @@ const KPI_CONTEXT = {
   criticalRules: [
     "Use `reporting.project_financials` view for project financial queries (not raw projects table)",
     "NEVER use receipts table for financial calculations - receipts are documentation only",
-    "Time entries are in `expenses` table with expense_category = 'labor_internal'",
+    "Time entries are in `expenses` table with category = 'labor_internal'",
     "Always filter projects by category = 'construction' unless user asks for overhead/system",
     "ALWAYS use ILIKE '%name%' for ANY name search - NEVER use exact match (=)",
     "Handle nicknames: Johnny->John, Mike->Michael, Bob->Robert, etc. Use the BASE name with ILIKE",
@@ -159,7 +159,7 @@ const KPI_CONTEXT = {
     {
       q: "How many hours did Johnny work last week?",
       reasoning: "Johnny is a nickname for John. Use ILIKE '%john%' to find 'John', 'Johnny', 'Johnson', etc. Time entries in expenses, calculate net hours, join payees",
-      sql: `SELECT p.payee_name, SUM(CASE WHEN e.lunch_taken = true THEN (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0) ELSE (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) END) as total_hours FROM expenses e JOIN payees p ON e.payee_id = p.id WHERE p.is_internal = true AND p.payee_name ILIKE '%john%' AND e.expense_category = 'labor_internal' AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days' GROUP BY p.payee_name`
+      sql: `SELECT p.payee_name, SUM(CASE WHEN e.lunch_taken = true THEN (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0) ELSE (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) END) as total_hours FROM expenses e JOIN payees p ON e.payee_id = p.id WHERE p.is_internal = true AND p.payee_name ILIKE '%john%' AND e.category = 'labor_internal' AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days' GROUP BY p.payee_name`
     },
     {
       q: "Show me projects over budget",
@@ -174,7 +174,7 @@ const KPI_CONTEXT = {
     {
       q: "Show me Mike's last five time entries",
       reasoning: "Mike could be Michael. Use ILIKE '%mike%' to find both. Get last 5 from expenses table ordered by date",
-      sql: `SELECT p.payee_name, e.expense_date, e.description, CASE WHEN e.lunch_taken = true THEN (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0) ELSE (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) END as hours FROM expenses e JOIN payees p ON e.payee_id = p.id WHERE p.is_internal = true AND p.payee_name ILIKE '%mike%' AND e.expense_category = 'labor_internal' ORDER BY e.expense_date DESC LIMIT 5`
+      sql: `SELECT p.payee_name, e.expense_date, e.description, CASE WHEN e.lunch_taken = true THEN (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0) ELSE (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) END as hours FROM expenses e JOIN payees p ON e.payee_id = p.id WHERE p.is_internal = true AND p.payee_name ILIKE '%mike%' AND e.category = 'labor_internal' ORDER BY e.expense_date DESC LIMIT 5`
     },
   ],
 };
@@ -536,9 +536,9 @@ function wantsDetailedData(query: string): boolean {
 // ============================================================================
 
 serve(async (req) => {
-  // Handle CORS preflight
+  // Handle CORS preflight - MUST be first, before any other processing
   if (req.method === "OPTIONS") {
-    return new Response(null, { 
+    return new Response('ok', { 
       status: 200,
       headers: corsHeaders 
     });
@@ -553,6 +553,13 @@ serve(async (req) => {
     const requestBody = await req.json();
     query = requestBody.query;
     const conversationHistory = requestBody.conversationHistory || [];
+    
+    console.log('[AI Debug] Request received:', {
+      query,
+      historyLength: conversationHistory.length,
+      historyRoles: conversationHistory.map((m: any) => m.role),
+      firstHistoryContent: conversationHistory[0]?.content?.substring(0, 100)
+    });
     
     if (!query) {
       return new Response(JSON.stringify({ error: "Query is required" }), {
@@ -626,6 +633,10 @@ serve(async (req) => {
       }
     }];
 
+    console.log('[AI Debug] Sending to AI Gateway:', {
+      messageCount: messages.length,
+      roles: messages.map((m: any) => m.role)
+    });
     console.log("Calling AI to generate SQL...");
 
     // Call AI Gateway
@@ -859,20 +870,25 @@ Give a helpful response explaining that the original query had issues but we fou
         retryAttempted: errorInfo.canRetry
       });
 
-      // Return error response
-      const errorMessage = retryResult?.cannotRetry
-        ? retryResult.error
+      // Return error response with user-friendly message
+      const userFriendlyError = retryResult?.cannotRetry
+        ? `I ran into a problem with that query. Technical details: ${retryResult.error}. This might be a system configuration issue - try a different question or report this if it keeps happening.`
         : errorInfo.canRetry
-          ? `${errorInfo.message}. ${errorInfo.suggestion}. I tried simplifying the query but couldn't find a working alternative.`
-          : `${errorInfo.message}. ${errorInfo.suggestion}`;
+          ? `I ran into a problem with that query. ${errorInfo.message}. ${errorInfo.suggestion}. I tried simplifying the query but couldn't find a working alternative. Technical details: ${queryError.message}.`
+          : `I ran into a problem with that query. Technical details: ${queryError.message}. ${errorInfo.suggestion}. This might be a system configuration issue - try a different question or report this if it keeps happening.`;
 
       return new Response(JSON.stringify({
         success: false,
         error: queryError.message,
         query: sqlQuery,
-        answer: errorMessage
+        answer: userFriendlyError,
+        debugInfo: {
+          sqlAttempted: sqlQuery,
+          errorType: errorInfo.category,
+          suggestion: errorInfo.suggestion
+        }
       }), {
-        status: 400,
+        status: 200,  // Return 200 so frontend displays the message
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

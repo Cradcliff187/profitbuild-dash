@@ -30,7 +30,7 @@ WHERE category = 'construction'
   SUM(e.amount) as total_materials,
   COUNT(*) as expense_count
 FROM expenses e
-WHERE e.expense_category = 'materials'
+WHERE e.category = 'materials'
   AND e.expense_date >= DATE_TRUNC('year', CURRENT_DATE)`,
     kpisUsed: ['total_expenses'],
     category: 'aggregation'
@@ -124,7 +124,7 @@ FROM expenses e
 JOIN payees p ON e.payee_id = p.id
 WHERE p.is_internal = true
   AND p.payee_name ILIKE '%john%'
-  AND e.expense_category = 'labor_internal'
+  AND e.category = 'labor_internal'
   AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days'
 GROUP BY p.payee_name`,
     kpisUsed: ['hours_worked'],
@@ -148,7 +148,7 @@ GROUP BY p.payee_name`,
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
 WHERE p.is_internal = true
-  AND e.expense_category = 'labor_internal'
+  AND e.category = 'labor_internal'
   AND e.expense_date >= DATE_TRUNC('month', CURRENT_DATE)
 GROUP BY p.payee_name
 ORDER BY total_hours DESC`,
@@ -229,7 +229,7 @@ WHERE category = 'construction'
     reasoning: "Direct lookup by project number. Get expense details.",
     sql: `SELECT
   e.expense_date,
-  e.expense_category,
+  e.category,
   e.amount,
   e.description,
   p.payee_name as vendor
@@ -273,7 +273,7 @@ ORDER BY end_date DESC`,
     sql: `SELECT
   e.expense_date,
   proj.project_number,
-  e.expense_category,
+  e.category,
   e.amount,
   e.description,
   p.payee_name

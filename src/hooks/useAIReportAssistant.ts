@@ -53,11 +53,22 @@ export function useAIReportAssistant() {
 
     try {
       // Build conversation history (last 10 messages for context)
-      // IMPORTANT: Include the new user message in history since state update is async
-      const conversationHistory = [...messages, userMessage].slice(-10).map(msg => ({
+      // NOTE: Do NOT include the current userMessage - the edge function adds the query itself
+      // Including it here would create duplicate user messages which Gemini rejects
+      // Truncate assistant responses to prevent bloated history
+      const conversationHistory = messages.slice(-10).map(msg => ({
         role: msg.role,
-        content: msg.content
+        content: msg.role === 'assistant' 
+          ? (msg.answer || msg.content).substring(0, 500) 
+          : msg.content
       }));
+
+      console.log('[AI Debug] Sending to edge function:', {
+        query,
+        historyLength: conversationHistory.length,
+        historyRoles: conversationHistory.map(m => m.role),
+        fullHistory: conversationHistory
+      });
 
       const { data, error: invokeError } = await supabase.functions.invoke('ai-report-assistant', {
         body: { 

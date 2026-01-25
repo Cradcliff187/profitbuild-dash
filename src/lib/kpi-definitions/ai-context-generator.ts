@@ -49,7 +49,7 @@ export function generateAIContext(): AIKPIContext {
     businessRules,
     preferredSources: {
       'project financials': 'reporting.project_financials',
-      'time entries': "expenses WHERE expense_category = 'labor_internal'",
+      'time entries': "expenses WHERE category = 'labor_internal'",
       'employees': 'payees WHERE is_internal = true',
       'vendors': "payees WHERE payee_type = 'vendor' AND is_internal = false",
       'subcontractors': "payees WHERE payee_type = 'subcontractor' AND is_internal = false",
@@ -104,7 +104,7 @@ ${dbSchema ? `## DATABASE SCHEMA\n${dbSchema}` : ''}
 1. Always use ILIKE with wildcards for name searches (names may vary)
 2. Always filter by category = 'construction' unless specifically asked otherwise
 3. Use the reporting.project_financials view for project queries (handles splits correctly)
-4. Time entries are in expenses table with expense_category = 'labor_internal'
+4. Time entries are in expenses table with category = 'labor_internal'
 5. Include helpful column aliases in SELECT for clarity
 6. If a query returns 0 rows, suggest alternative searches
 
@@ -198,7 +198,7 @@ CRITICAL RULES:
 - Use reporting.project_financials view (not raw projects table)
 - Filter: WHERE category = 'construction' (excludes internal projects)
 - NEVER use receipts table (documentation only, not financial data)
-- Time entries: expenses WHERE expense_category = 'labor_internal'
+- Time entries: expenses WHERE category = 'labor_internal'
 - Employees: payees WHERE is_internal = true
 - Use ILIKE '%name%' for fuzzy name matching
 

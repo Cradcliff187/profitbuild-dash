@@ -2,7 +2,7 @@
  * Expense KPI Definitions
  *
  * Metrics related to project expenses, time tracking, and cost allocation.
- * Time entries are stored in the expenses table with expense_category = 'labor_internal'.
+ * Time entries are stored in the expenses table with category = 'labor_internal'.
  *
  * AUDIT NOTES (2026-01-23):
  * - Time entries are in expenses table with category='labor_internal'
@@ -187,7 +187,7 @@ export const expenseKPIs: KPIMeasure[] = [
     id: 'expense_expense_category',
     name: 'Expense Category',
     source: 'database',
-    field: 'expenses.expense_category',
+    field: 'expenses.category',
     formula: "ENUM: 'labor_internal' | 'materials' | 'subcontractor' | 'equipment' | etc.",
     dataType: 'enum',
     domain: 'expense',
