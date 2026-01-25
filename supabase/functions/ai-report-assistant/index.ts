@@ -100,6 +100,7 @@ function extractKPIsUsed(sqlQuery: string, explanation: string): string[] {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 // ============================================================================
@@ -537,7 +538,10 @@ function wantsDetailedData(query: string): boolean {
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    });
   }
 
   // Declare variables outside try block so they're accessible in catch

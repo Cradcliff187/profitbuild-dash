@@ -119,13 +119,31 @@ if (dbCount !== localCount) {
 3. **Variable scope in try-catch** - Declare variables outside try block if used in catch
 4. **Missing Deno imports** - Always import from official Deno/ESM sources
 
-### Pre-deployment Checklist
+### Pre-deployment Checklist - MANDATORY
 
-Before committing edge function changes:
-- Run `ReadLints` on the edge function file
-- Check for duplicate `const/let/var` declarations
-- Verify all template literals are complete
-- Test locally if possible with `supabase functions serve`
+**⚠️ CRITICAL: ALWAYS follow this checklist BEFORE deploying ANY edge function changes:**
+
+1. **Run `ReadLints` on the edge function file**
+   - Use: `read_lints` tool with path to the edge function
+   - Fix any errors before proceeding
+
+2. **Check for duplicate `const/let/var` declarations**
+   - Use `grep` to find all declarations: `grep -E "const|let|var" path/to/file.ts`
+   - Verify no duplicate variable names in same scope
+
+3. **Verify all template literals are complete**
+   - Check all backtick strings (`` `...` ``) are properly closed
+   - Ensure no unclosed template literals
+
+4. **Test locally if possible**
+   - Run `supabase functions serve` to test locally
+   - Verify function starts without errors
+
+5. **Only then deploy using MCP**
+   - Use `mcp_supabase_deploy_edge_function` after all checks pass
+   - Never skip the checklist - it catches issues before deployment
+
+**Note:** Even for small changes (like CORS headers), always run the full checklist. It takes seconds and prevents deployment failures.
 
 ## Code Style
 
