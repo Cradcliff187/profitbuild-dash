@@ -300,28 +300,127 @@ $dbMigrations = @(
 Write-Host "Database migrations count: $($dbMigrations.Count)" -ForegroundColor Yellow
 Write-Host "Last DB migration: $($dbMigrations[-1].version)_$($dbMigrations[-1].name)`n" -ForegroundColor Yellow
 
-# Compare
-$dbVersions = $dbMigrations | ForEach-Object { $_.version }
-$localVersions = $localFiles | ForEach-Object { $_.version }
+# CRITICAL: Compare full filename format {version}_{name}.sql, not just versions
+# This ensures exact filename matching as required by Supabase CI/CD
+# The cursor rules emphasize: "Filenames MUST match exactly: {version}_{name}.sql"
 
-# Find migrations in DB but not in local files
-$dbNotInLocal = $dbVersions | Where-Object { $_ -notin $localVersions }
+# Build composite keys for database migrations: {version}_{name}
+$dbKeys = $dbMigrations | ForEach-Object {
+    $version = $_.version
+    $name = $_.name
+    if ([string]::IsNullOrEmpty($name)) {
+        "${version}_migration"
+    } else {
+        "${version}_${name}"
+    }
+} | Sort-Object
+
+# Build composite keys for local files: {version}_{name} (from filename)
+$localKeys = $localFiles | ForEach-Object {
+    $version = $_.version
+    $name = $_.name
+    if ([string]::IsNullOrEmpty($name) -or $name -eq "migration") {
+        "${version}_migration"
+    } else {
+        "${version}_${name}"
+    }
+} | Sort-Object
+
+# Create lookup dictionaries for detailed reporting
+$dbLookup = @{}
+$dbMigrations | ForEach-Object {
+    $version = $_.version
+    $name = $_.name
+    $key = if ([string]::IsNullOrEmpty($name)) { "${version}_migration" } else { "${version}_${name}" }
+    $dbLookup[$key] = @{version=$version; name=$name}
+}
+
+$localLookup = @{}
+$localFiles | ForEach-Object {
+    $version = $_.version
+    $name = $_.name
+    $key = if ([string]::IsNullOrEmpty($name) -or $name -eq "migration") { "${version}_migration" } else { "${version}_${name}" }
+    $localLookup[$key] = @{version=$version; name=$name; filename=$_.filename}
+}
+
+# Find migrations in DB but not in local files (by full filename match)
+$dbNotInLocal = $dbKeys | Where-Object { $_ -notin $localKeys }
 if ($dbNotInLocal.Count -gt 0) {
-    Write-Host "ALERT: Migrations in DATABASE but NOT in local files:" -ForegroundColor Red
-    $dbNotInLocal | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
+    Write-Host "`n❌ ALERT: Migrations in DATABASE but NOT in local files (by filename):" -ForegroundColor Red
+    $dbNotInLocal | ForEach-Object {
+        $migration = $dbLookup[$_]
+        $expectedFile = if ([string]::IsNullOrEmpty($migration.name)) {
+            "$($migration.version)_migration.sql"
+        } else {
+            "$($migration.version)_$($migration.name).sql"
+        }
+        Write-Host "  - Missing: $expectedFile" -ForegroundColor Red
+    }
 } else {
-    Write-Host "✓ All database migrations have local files" -ForegroundColor Green
+    Write-Host "✓ All database migrations have matching local files (by full filename)" -ForegroundColor Green
 }
 
-# Find local files not in DB
-$localNotInDb = $localVersions | Where-Object { $_ -notin $dbVersions }
+# Find local files not in DB (by full filename match)
+$localNotInDb = $localKeys | Where-Object { $_ -notin $dbKeys }
 if ($localNotInDb.Count -gt 0) {
-    Write-Host "`nALERT: Migrations in LOCAL FILES but NOT in database:" -ForegroundColor Magenta
-    $localNotInDb | ForEach-Object { Write-Host "  - $_" -ForegroundColor Magenta }
+    Write-Host "`n⚠️  ALERT: Migrations in LOCAL FILES but NOT in database (by filename):" -ForegroundColor Magenta
+    $localNotInDb | ForEach-Object {
+        $file = $localLookup[$_]
+        Write-Host "  - Orphaned: $($file.filename)" -ForegroundColor Magenta
+    }
 } else {
-    Write-Host "✓ All local migrations exist in database" -ForegroundColor Green
+    Write-Host "✓ All local migrations exist in database (by full filename)" -ForegroundColor Green
 }
 
-if ($dbNotInLocal.Count -eq 0 -and $localNotInDb.Count -eq 0) {
-    Write-Host "`n✅ PERFECT ALIGNMENT! All 279 migrations match!" -ForegroundColor Green
+# Additional validation: Check for version-only matches with wrong names
+# This catches cases where version matches but name doesn't (e.g., wrong UUID)
+$versionMismatches = @()
+foreach ($dbKey in $dbKeys) {
+    $dbMigration = $dbLookup[$dbKey]
+    $dbVersion = $dbMigration.version
+    
+    # Find local files with same version but different name
+    $matchingLocal = $localFiles | Where-Object { $_.version -eq $dbVersion }
+    if ($matchingLocal) {
+        foreach ($local in $matchingLocal) {
+            $localKey = if ([string]::IsNullOrEmpty($local.name) -or $local.name -eq "migration") {
+                "${local.version}_migration"
+            } else {
+                "${local.version}_$($local.name)"
+            }
+            
+            if ($localKey -ne $dbKey) {
+                $versionMismatches += @{
+                    version = $dbVersion
+                    dbName = $dbMigration.name
+                    localName = $local.name
+                    localFile = $local.filename
+                    expectedFile = if ([string]::IsNullOrEmpty($dbMigration.name)) {
+                        "${dbVersion}_migration.sql"
+                    } else {
+                        "${dbVersion}_$($dbMigration.name).sql"
+                    }
+                }
+            }
+        }
+    }
+}
+
+if ($versionMismatches.Count -gt 0) {
+    Write-Host "`n❌ CRITICAL: Filename mismatches (same version, different name):" -ForegroundColor Red
+    Write-Host "   These files have the correct version but WRONG name suffix!" -ForegroundColor Red
+    $versionMismatches | ForEach-Object {
+        Write-Host "  Version: $($_.version)" -ForegroundColor Yellow
+        Write-Host "    DB expects: $($_.expectedFile)" -ForegroundColor Red
+        Write-Host "    Local has:  $($_.localFile)" -ForegroundColor Red
+        Write-Host ""
+    }
+}
+
+if ($dbNotInLocal.Count -eq 0 -and $localNotInDb.Count -eq 0 -and $versionMismatches.Count -eq 0) {
+    Write-Host "`n✅ PERFECT ALIGNMENT! All $($dbMigrations.Count) migrations match by full filename!" -ForegroundColor Green
+    exit 0
+} else {
+    Write-Host "`n❌ VALIDATION FAILED: See issues above" -ForegroundColor Red
+    exit 1
 }
