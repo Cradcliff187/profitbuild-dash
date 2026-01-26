@@ -86,11 +86,16 @@ export const AdminTimeEntryForm = ({
       const start = new Date(`2000-01-01T${startTime}`);
       const end = new Date(`2000-01-01T${endTime}`);
       if (end > start) {
-        const calculatedHours = ((end.getTime() - start.getTime()) / (1000 * 60 * 60)).toFixed(2);
-        setHours(calculatedHours);
+        const { netHours } = calculateTimeEntryHours(
+          start,
+          end,
+          lunchTaken,
+          lunchDuration
+        );
+        setHours(netHours.toFixed(2));
       }
     }
-  }, [startTime, endTime, setHours]);
+  }, [startTime, endTime, lunchTaken, lunchDuration, setHours]);
 
   const loadData = async () => {
     // Load all internal workers (no auto-selection for admin)
