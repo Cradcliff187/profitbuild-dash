@@ -1,104 +1,50 @@
 
-# Fix Schedule FAB Visibility on Desktop
 
-## Problem Summary
+# Fix Schedule FAB Position on Desktop
 
-The Schedule FAB (blue button, bottom-left) and Manual Entry FAB (primary color, bottom-right) are not visible on desktop because:
+## Problem
 
-1. **Z-index conflict**: The sidebar uses `z-30` while FABs use `z-20`
-2. **Nested rendering**: FABs are inside view-specific conditional blocks, making them subject to parent container clipping
-3. **Duplicate code**: The Schedule FAB is defined twice (Timer view + Entries view)
+The Schedule FAB uses `fixed left-6` (24px from left), but the sidebar is 200px wide on desktop. This causes the FAB to appear **inside** the sidebar area, overlapping navigation items.
 
-## Solution Overview
+## Solution
 
-Move both FAB buttons to the component root level and increase their z-index to appear above the sidebar on all screen sizes.
-
----
+Offset the FAB position on desktop to account for the sidebar width. The FAB should appear 24px (6 = 1.5rem) from the left edge of the **main content area**, not the viewport.
 
 ## Changes Required
 
 ### File: `src/components/time-tracker/MobileTimeTracker.tsx`
 
-### Step 1: Remove FABs from Timer View
+**Location:** Line 1750 (Schedule FAB button)
 
-**Location:** Lines 1438-1445
+**Current:**
+```tsx
+className="fixed bottom-6 left-6 bg-gradient-to-br ..."
+```
 
-Remove the Schedule FAB from inside the timer view conditional block.
+**Updated:**
+```tsx
+className="fixed bottom-6 left-6 lg:left-[calc(12.5rem+1.5rem)] bg-gradient-to-br ..."
+```
 
-### Step 2: Remove FABs from Entries View
+### Calculation Breakdown
+- `12.5rem` = 200px sidebar width (from `SIDEBAR_WIDTH` constant)
+- `1.5rem` = 24px (same as `left-6`) margin from sidebar edge
+- Total: FAB appears 24px to the right of the sidebar on desktop
 
-**Location:** Lines 1556-1572
-
-Remove both the Manual Entry FAB and Schedule FAB from inside the entries "today" conditional block.
-
-### Step 3: Add FABs at Component Root Level
-
-**Location:** Just before `ProjectScheduleSelector` (around line 1772)
-
-Add both FABs at the root level with:
-- `z-50` instead of `z-20` to appear above the sidebar (`z-30`)
-- Schedule FAB: Always visible (useful from any view)
-- Manual Entry FAB: Conditionally visible when `view === 'entries' && entriesDateRange === 'today'`
-
----
+### Responsive Behavior
+- **Mobile (< 1024px):** `left-6` = 24px from viewport edge (no sidebar visible)
+- **Desktop (≥ 1024px):** `left-[calc(12.5rem+1.5rem)]` = 224px from viewport edge (to the right of sidebar)
 
 ## Technical Details
 
-### Z-Index Hierarchy After Fix
-```text
-z-65  - Dialogs/Modals (highest)
-z-50  - FAB buttons (new)
-z-30  - Sidebar
-z-20  - Previous FAB position (too low)
-z-10  - Sticky headers
-```
-
-### Code Structure After Fix
-```text
-return (
-  <div className="min-h-screen...">
-    {/* Header */}
-    {/* Navigation Tabs */}
-    
-    {view === 'timer' && (...)}      // No FABs inside
-    {view === 'entries' && (...)}    // No FABs inside
-    {view === 'receipts' && (...)}
-    
-    {/* Dialogs and Modals */}
-    
-    {/* FABs at root level - NEW LOCATION */}
-    <button className="fixed bottom-6 left-6 z-50...">  {/* Schedule */}
-    {view === 'entries' && entriesDateRange === 'today' && (
-      <button className="fixed bottom-6 right-6 z-50...">  {/* Manual Entry */}
-    )}
-    
-    <ProjectScheduleSelector ... />
-  </div>
-);
-```
-
----
+The `lg:` prefix targets screens 1024px and wider, which matches when the sidebar becomes visible. This approach:
+- Uses the same CSS variable value as the sidebar (`12.5rem`)
+- Maintains the same visual spacing (`1.5rem`) from the sidebar as mobile has from the viewport edge
+- Uses Tailwind's arbitrary value syntax `[calc(...)]` for precise positioning
 
 ## Expected Result
 
-- **Schedule FAB** (blue, bottom-left): Visible on ALL screen sizes in ALL views
-- **Manual Entry FAB** (primary, bottom-right): Visible on ALL screen sizes when on Entries > Today view
-- Both buttons float above the sidebar navigation on desktop
-- No visual changes on mobile (already working there)
+- **Mobile:** FAB at bottom-left, 24px from edge (unchanged)
+- **Desktop:** FAB at bottom-left of main content area, 24px from sidebar's right edge
+- FAB will never overlap sidebar navigation items
 
----
-
-## Validation Checklist
-
-After implementation:
-- [ ] Schedule FAB visible on desktop in Timer view
-- [ ] Schedule FAB visible on desktop in Entries view (both Today and Week tabs)
-- [ ] Schedule FAB visible on desktop in Receipts view
-- [ ] Manual Entry FAB visible on desktop in Entries > Today view
-- [ ] Manual Entry FAB hidden in Entries > Week view
-- [ ] Manual Entry FAB hidden in Timer view
-- [ ] Manual Entry FAB hidden in Receipts view
-- [ ] Both FABs appear above sidebar
-- [ ] Both FABs remain below dialogs/modals when opened
-- [ ] No TypeScript errors
-- [ ] Mobile behavior unchanged
