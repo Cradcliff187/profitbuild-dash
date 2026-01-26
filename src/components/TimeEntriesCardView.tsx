@@ -9,6 +9,7 @@ import { CompletePagination } from "@/components/ui/complete-pagination";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { parseDateOnly } from "@/utils/dateUtils";
 import { toast } from "@/hooks/use-toast";
 
 interface TimeEntry {
@@ -234,7 +235,7 @@ export const TimeEntriesCardView = ({
                           <div>
                             <div className="text-muted-foreground">Date</div>
                             <div className="font-medium">
-                              {format(new Date(entry.expense_date), "MMM dd, yyyy")}
+                              {format(parseDateOnly(entry.expense_date), "MMM dd, yyyy")}
                             </div>
                           </div>
                           <div>
