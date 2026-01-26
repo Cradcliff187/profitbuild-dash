@@ -309,7 +309,10 @@ export const AdminTimeEntryForm = ({
           value={date}
           onChange={(e) => setDate(e.target.value)}
           disabled={disabled}
-          className={cn(isMobile ? "h-12" : "h-10")}
+          className={cn(
+            "border-2 border-border rounded-lg",
+            isMobile ? "h-12 p-4" : "h-10 p-3"
+          )}
           style={{ fontSize: isMobile ? '16px' : undefined }}
         />
       </div>
@@ -325,7 +328,10 @@ export const AdminTimeEntryForm = ({
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
             disabled={disabled}
-            className={cn(isMobile ? "h-12" : "h-10")}
+            className={cn(
+              "border-2 border-border rounded-lg",
+              isMobile ? "h-12 p-4" : "h-10 p-3"
+            )}
             style={{ fontSize: isMobile ? '16px' : undefined }}
           />
         </div>
@@ -339,7 +345,10 @@ export const AdminTimeEntryForm = ({
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
             disabled={disabled}
-            className={cn(isMobile ? "h-12" : "h-10")}
+            className={cn(
+              "border-2 border-border rounded-lg",
+              isMobile ? "h-12 p-4" : "h-10 p-3"
+            )}
             style={{ fontSize: isMobile ? '16px' : undefined }}
           />
         </div>
@@ -358,7 +367,10 @@ export const AdminTimeEntryForm = ({
           value={hours}
           onChange={(e) => setHours(e.target.value)}
           disabled={disabled}
-          className={cn(isMobile ? "h-12" : "h-10")}
+          className={cn(
+            "border-2 border-border rounded-lg",
+            isMobile ? "h-12 p-4" : "h-10 p-3"
+          )}
           style={{ fontSize: isMobile ? '16px' : undefined }}
         />
         {lunchTaken && startTime && endTime && date && (
