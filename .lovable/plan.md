@@ -1,64 +1,69 @@
 
-# Fix Hours Field to Display Net Hours
+# Fix Date Input Border Styling Inconsistency
 
 ## Problem
-The Hours field in `AdminTimeEntryForm` displays **gross hours** (total shift duration) instead of **net hours** (after lunch deduction). This creates confusion because:
-- User enters 8 AM - 7 PM with 30 min lunch
-- Hours field shows **11.00** (gross)
-- But the actual saved/billed amount is based on **10.50** (net)
+The Date input field appears to have no visible border compared to the Project selector, creating visual inconsistency in the Add Time Entry form.
 
 ## Root Cause
-The `useEffect` at lines 84-93 only considers start/end times:
-```typescript
-useEffect(() => {
-  if (startTime && endTime) {
-    const start = new Date(`2000-01-01T${startTime}`);
-    const end = new Date(`2000-01-01T${endTime}`);
-    if (end > start) {
-      const calculatedHours = ((end.getTime() - start.getTime()) / (1000 * 60 * 60)).toFixed(2);
-      setHours(calculatedHours);
-    }
-  }
-}, [startTime, endTime, setHours]);
-```
-
-Issues:
-1. Ignores `lunchTaken` and `lunchDuration` in calculation
-2. Missing these variables from dependency array (won't recalculate when lunch changes)
+The Project selector uses custom styling with a **2px border** (`border-2 border-border`), while the Date input uses the standard Input component with a **1px border** (`border border-input`). Both use the same color, but the thinner border on the Date field is barely visible.
 
 ## Solution
+Make the Date, Start Time, End Time, and Hours input fields consistent with the Project/Team Member selector styling by applying `border-2 border-border` classes.
 
 ### File: `src/components/time-entries/AdminTimeEntryForm.tsx`
 
-**Update the useEffect (lines 84-93)** to:
-1. Use the existing `calculateTimeEntryHours` utility (already imported)
-2. Add `lunchTaken` and `lunchDuration` to dependencies
-3. Display net hours instead of gross hours
-
+**Update Date Input (line 312):**
 ```typescript
-useEffect(() => {
-  if (startTime && endTime) {
-    const start = new Date(`2000-01-01T${startTime}`);
-    const end = new Date(`2000-01-01T${endTime}`);
-    if (end > start) {
-      const { netHours } = calculateTimeEntryHours(
-        start,
-        end,
-        lunchTaken,
-        lunchDuration
-      );
-      setHours(netHours.toFixed(2));
-    }
-  }
-}, [startTime, endTime, lunchTaken, lunchDuration, setHours]);
+// Before:
+className={cn(isMobile ? "h-12" : "h-10")}
+
+// After:
+className={cn(
+  "border-2 border-border rounded-lg",
+  isMobile ? "h-12 p-4" : "h-10 p-3"
+)}
+```
+
+**Update Start Time Input (around line 328):**
+```typescript
+// Before:
+className={cn(isMobile ? "h-12" : "h-10")}
+
+// After:
+className={cn(
+  "border-2 border-border rounded-lg",
+  isMobile ? "h-12 p-4" : "h-10 p-3"
+)}
+```
+
+**Update End Time Input (around line 340):**
+```typescript
+// Before:
+className={cn(isMobile ? "h-12" : "h-10")}
+
+// After:
+className={cn(
+  "border-2 border-border rounded-lg",
+  isMobile ? "h-12 p-4" : "h-10 p-3"
+)}
+```
+
+**Update Hours Input (around line 356):**
+```typescript
+// Before:
+className={cn(isMobile ? "h-12" : "h-10")}
+
+// After:
+className={cn(
+  "border-2 border-border rounded-lg",
+  isMobile ? "h-12 p-4" : "h-10 p-3"
+)}
 ```
 
 ## Result
-- Toggling lunch ON with 8 AM - 7 PM will now show **10.50** in the Hours field
-- Changing lunch duration will immediately update the Hours field
-- The displayed value will match what gets saved to the database
+All form fields will have consistent 2px borders with matching border radius (`rounded-lg`), creating visual harmony throughout the Add Time Entry form.
 
-## Technical Details
-- The `calculateTimeEntryHours` utility is already imported and used elsewhere in this file (lines 365-370 for the info text)
-- This change reuses the same calculation logic, ensuring consistency
-- No new dependencies required
+## Technical Notes
+- Uses existing Tailwind classes - no new CSS needed
+- Matches the selector button styling pattern already in use
+- Maintains mobile-responsive sizing with conditional classes
