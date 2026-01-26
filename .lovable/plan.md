@@ -1,50 +1,64 @@
 
-
-# Fix Schedule FAB Position on Desktop
+# Fix Hours Field to Display Net Hours
 
 ## Problem
+The Hours field in `AdminTimeEntryForm` displays **gross hours** (total shift duration) instead of **net hours** (after lunch deduction). This creates confusion because:
+- User enters 8 AM - 7 PM with 30 min lunch
+- Hours field shows **11.00** (gross)
+- But the actual saved/billed amount is based on **10.50** (net)
 
-The Schedule FAB uses `fixed left-6` (24px from left), but the sidebar is 200px wide on desktop. This causes the FAB to appear **inside** the sidebar area, overlapping navigation items.
+## Root Cause
+The `useEffect` at lines 84-93 only considers start/end times:
+```typescript
+useEffect(() => {
+  if (startTime && endTime) {
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
+    if (end > start) {
+      const calculatedHours = ((end.getTime() - start.getTime()) / (1000 * 60 * 60)).toFixed(2);
+      setHours(calculatedHours);
+    }
+  }
+}, [startTime, endTime, setHours]);
+```
+
+Issues:
+1. Ignores `lunchTaken` and `lunchDuration` in calculation
+2. Missing these variables from dependency array (won't recalculate when lunch changes)
 
 ## Solution
 
-Offset the FAB position on desktop to account for the sidebar width. The FAB should appear 24px (6 = 1.5rem) from the left edge of the **main content area**, not the viewport.
+### File: `src/components/time-entries/AdminTimeEntryForm.tsx`
 
-## Changes Required
+**Update the useEffect (lines 84-93)** to:
+1. Use the existing `calculateTimeEntryHours` utility (already imported)
+2. Add `lunchTaken` and `lunchDuration` to dependencies
+3. Display net hours instead of gross hours
 
-### File: `src/components/time-tracker/MobileTimeTracker.tsx`
-
-**Location:** Line 1750 (Schedule FAB button)
-
-**Current:**
-```tsx
-className="fixed bottom-6 left-6 bg-gradient-to-br ..."
+```typescript
+useEffect(() => {
+  if (startTime && endTime) {
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
+    if (end > start) {
+      const { netHours } = calculateTimeEntryHours(
+        start,
+        end,
+        lunchTaken,
+        lunchDuration
+      );
+      setHours(netHours.toFixed(2));
+    }
+  }
+}, [startTime, endTime, lunchTaken, lunchDuration, setHours]);
 ```
 
-**Updated:**
-```tsx
-className="fixed bottom-6 left-6 lg:left-[calc(12.5rem+1.5rem)] bg-gradient-to-br ..."
-```
-
-### Calculation Breakdown
-- `12.5rem` = 200px sidebar width (from `SIDEBAR_WIDTH` constant)
-- `1.5rem` = 24px (same as `left-6`) margin from sidebar edge
-- Total: FAB appears 24px to the right of the sidebar on desktop
-
-### Responsive Behavior
-- **Mobile (< 1024px):** `left-6` = 24px from viewport edge (no sidebar visible)
-- **Desktop (≥ 1024px):** `left-[calc(12.5rem+1.5rem)]` = 224px from viewport edge (to the right of sidebar)
+## Result
+- Toggling lunch ON with 8 AM - 7 PM will now show **10.50** in the Hours field
+- Changing lunch duration will immediately update the Hours field
+- The displayed value will match what gets saved to the database
 
 ## Technical Details
-
-The `lg:` prefix targets screens 1024px and wider, which matches when the sidebar becomes visible. This approach:
-- Uses the same CSS variable value as the sidebar (`12.5rem`)
-- Maintains the same visual spacing (`1.5rem`) from the sidebar as mobile has from the viewport edge
-- Uses Tailwind's arbitrary value syntax `[calc(...)]` for precise positioning
-
-## Expected Result
-
-- **Mobile:** FAB at bottom-left, 24px from edge (unchanged)
-- **Desktop:** FAB at bottom-left of main content area, 24px from sidebar's right edge
-- FAB will never overlap sidebar navigation items
-
+- The `calculateTimeEntryHours` utility is already imported and used elsewhere in this file (lines 365-370 for the info text)
+- This change reuses the same calculation logic, ensuring consistency
+- No new dependencies required
