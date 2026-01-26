@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { parseDateOnly } from '@/utils/dateUtils';
 import {
   Table,
   TableBody,
@@ -51,7 +52,7 @@ function formatValue(value: any, type?: string): string {
     
     case 'date':
       if (value) {
-        return new Date(value).toLocaleDateString();
+        return parseDateOnly(value).toLocaleDateString();
       }
       return '';
     
