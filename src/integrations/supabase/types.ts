@@ -95,6 +95,59 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_action_log: {
+        Row: {
+          action_type: string
+          ai_response: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string
+          error_message: string | null
+          execution_time_ms: number | null
+          id: string
+          parameters: Json | null
+          performed_by: string | null
+          success: boolean | null
+          user_message: string | null
+        }
+        Insert: {
+          action_type: string
+          ai_response?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          parameters?: Json | null
+          performed_by?: string | null
+          success?: boolean | null
+          user_message?: string | null
+        }
+        Update: {
+          action_type?: string
+          ai_response?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          parameters?: Json | null
+          performed_by?: string | null
+          success?: boolean | null
+          user_message?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_action_log_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bid_media: {
         Row: {
           altitude: number | null
@@ -2959,6 +3012,62 @@ export type Database = {
       }
     }
     Functions: {
+      ai_create_project: {
+        Args: {
+          p_address?: string
+          p_client_id: string
+          p_created_by?: string
+          p_do_not_exceed?: number
+          p_end_date?: string
+          p_job_type?: string
+          p_minimum_margin_threshold?: number
+          p_notes?: string
+          p_payment_terms?: string
+          p_project_name: string
+          p_project_type?: Database["public"]["Enums"]["project_type"]
+          p_start_date?: string
+          p_status?: Database["public"]["Enums"]["project_status"]
+          p_target_margin?: number
+          p_user_message?: string
+        }
+        Returns: Json
+      }
+      ai_find_client_by_name: {
+        Args: { p_search_term: string }
+        Returns: {
+          client_name: string
+          confidence: number
+          email: string
+          id: string
+          match_type: string
+          phone: string
+        }[]
+      }
+      ai_get_project_summary: { Args: { p_project_id: string }; Returns: Json }
+      ai_resolve_project: {
+        Args: { p_search_term: string }
+        Returns: {
+          client_name: string
+          confidence: number
+          id: string
+          match_type: string
+          project_name: string
+          project_number: string
+          project_type: Database["public"]["Enums"]["project_type"]
+          status: Database["public"]["Enums"]["project_status"]
+        }[]
+      }
+      ai_update_project_status: {
+        Args: {
+          p_force?: boolean
+          p_new_status: Database["public"]["Enums"]["project_status"]
+          p_note?: string
+          p_project_id: string
+          p_updated_by?: string
+          p_user_message?: string
+        }
+        Returns: Json
+      }
       calculate_contingency_remaining: {
         Args: { project_id_param: string }
         Returns: number
