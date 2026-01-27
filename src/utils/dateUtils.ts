@@ -102,12 +102,27 @@ export const parseCsvDateForDB = (
     }
   }
   
-  // MM-DD-YYYY format
+  // MM-DD-YYYY or DD-MM-YYYY format (ambiguous - need validation)
   if (!parsed) {
     const dashMatch = trimmed.match(/^(\d{2})-(\d{2})-(\d{4})$/);
     if (dashMatch) {
-      const [, month, day, year] = dashMatch;
-      parsed = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0);
+      const [, first, second, year] = dashMatch;
+      const firstNum = parseInt(first);
+      const secondNum = parseInt(second);
+      
+      // Validate and disambiguate:
+      // If first > 12, it must be DD-MM-YYYY (day-month-year)
+      // If first <= 12 and second <= 12, assume MM-DD-YYYY (US format)
+      // If first <= 12 and second > 12, it must be MM-DD-YYYY (month-day-year)
+      
+      if (firstNum > 12 && secondNum >= 1 && secondNum <= 12) {
+        // DD-MM-YYYY: first is day, second is month
+        parsed = new Date(parseInt(year), secondNum - 1, firstNum, 12, 0, 0);
+      } else if (firstNum >= 1 && firstNum <= 12) {
+        // MM-DD-YYYY: first is month, second is day
+        parsed = new Date(parseInt(year), firstNum - 1, secondNum, 12, 0, 0);
+      }
+      // If both > 12, invalid date - leave parsed as null
     }
   }
   
@@ -132,14 +147,24 @@ export const parseCsvDateForDB = (
  * @param dateString - Date string to analyze
  * @returns Detected format or 'unknown'
  */
-export const detectDateFormat = (dateString: string | null | undefined): 'M/D/YYYY' | 'YYYY-MM-DD' | 'MM-DD-YYYY' | 'unknown' => {
+export const detectDateFormat = (dateString: string | null | undefined): 'M/D/YYYY' | 'YYYY-MM-DD' | 'MM-DD-YYYY' | 'DD-MM-YYYY' | 'unknown' => {
   if (!dateString?.trim()) return 'unknown';
   
   const trimmed = dateString.trim();
   
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) return 'M/D/YYYY';
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return 'YYYY-MM-DD';
-  if (/^\d{2}-\d{2}-\d{4}$/.test(trimmed)) return 'MM-DD-YYYY';
+  
+  // Check for DD-DD-YYYY format (ambiguous between MM-DD-YYYY and DD-MM-YYYY)
+  if (/^\d{2}-\d{2}-\d{4}$/.test(trimmed)) {
+    const [first, second] = trimmed.split('-').map(n => parseInt(n));
+    // If first > 12, it's definitely DD-MM-YYYY
+    if (first > 12) return 'DD-MM-YYYY';
+    // If second > 12, it's definitely MM-DD-YYYY
+    if (second > 12) return 'MM-DD-YYYY';
+    // Otherwise ambiguous, default to US format
+    return 'MM-DD-YYYY';
+  }
   
   return 'unknown';
 };
