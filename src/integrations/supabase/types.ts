@@ -1306,6 +1306,7 @@ export type Database = {
           is_internal: boolean | null
           last_synced_at: string | null
           license_number: string | null
+          notes: string | null
           payee_name: string
           payee_type: string | null
           permit_issuer: boolean | null
@@ -1336,6 +1337,7 @@ export type Database = {
           is_internal?: boolean | null
           last_synced_at?: string | null
           license_number?: string | null
+          notes?: string | null
           payee_name: string
           payee_type?: string | null
           permit_issuer?: boolean | null
@@ -1366,6 +1368,7 @@ export type Database = {
           is_internal?: boolean | null
           last_synced_at?: string | null
           license_number?: string | null
+          notes?: string | null
           payee_name?: string
           payee_type?: string | null
           permit_issuer?: boolean | null

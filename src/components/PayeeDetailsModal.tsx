@@ -153,6 +153,12 @@ export const PayeeDetailsModal: React.FC<PayeeDetailsModalProps> = ({
         )
       ]
     },
+    ...(payee.notes ? [{
+      title: 'Notes',
+      fields: [
+        { label: 'Notes', value: payee.notes, fullWidth: true }
+      ]
+    }] : []),
     {
       title: 'System Information',
       fields: [
