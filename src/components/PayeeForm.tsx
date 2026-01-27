@@ -37,6 +37,7 @@ const payeeSchema = z.object({
   permit_issuer: z.boolean().optional(),
   hourly_rate: z.number().positive().optional().or(z.literal("")),
   employee_number: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 type PayeeFormData = z.infer<typeof payeeSchema>;
@@ -83,6 +84,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
       permit_issuer: payee?.permit_issuer || false,
       hourly_rate: payee?.hourly_rate || (defaultPayeeType === PayeeType.INTERNAL_LABOR ? 75 : ""),
       employee_number: payee?.employee_number || "",
+      notes: payee?.notes || "",
     },
   });
 
@@ -119,6 +121,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
           permit_issuer: data.permit_issuer || false,
           hourly_rate: typeof data.hourly_rate === 'number' ? data.hourly_rate : null,
           employee_number: data.employee_number || null,
+          notes: data.notes || null,
         };
 
         const { error } = await supabase
@@ -152,6 +155,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
           permit_issuer: data.permit_issuer || false,
           hourly_rate: typeof data.hourly_rate === 'number' ? data.hourly_rate : null,
           employee_number: data.employee_number || null,
+          notes: data.notes || null,
         };
 
         const { error } = await supabase
@@ -531,6 +535,24 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notes</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Internal notes, special instructions, payment preferences..."
+                    rows={3}
+                    {...field} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
       </form>
