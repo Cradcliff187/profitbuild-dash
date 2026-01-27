@@ -20,6 +20,8 @@ import { PayeeType } from "@/types/payee";
 
 const payeeSchema = z.object({
   payee_name: z.string().min(1, "Payee name is required"),
+  full_name: z.string().optional(),
+  account_number: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   phone_numbers: z.string().optional(),
   billing_address: z.string().optional(),
@@ -29,6 +31,7 @@ const payeeSchema = z.object({
   provides_materials: z.boolean().optional(),
   requires_1099: z.boolean().optional(),
   is_internal: z.boolean().optional(),
+  is_active: z.boolean().optional(),
   insurance_expires: z.date().optional(),
   license_number: z.string().optional(),
   permit_issuer: z.boolean().optional(),
@@ -63,6 +66,8 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
     resolver: zodResolver(payeeSchema),
     defaultValues: {
       payee_name: payee?.payee_name || "",
+      full_name: payee?.full_name || "",
+      account_number: payee?.account_number || "",
       email: payee?.email || "",
       phone_numbers: payee?.phone_numbers || "",
       billing_address: payee?.billing_address || "",
@@ -72,6 +77,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
       provides_materials: payee?.provides_materials || false,
       requires_1099: payee?.requires_1099 || false,
       is_internal: payee?.is_internal || defaultIsInternal || false,
+      is_active: payee?.is_active ?? true,
       insurance_expires: payee?.insurance_expires ? new Date(payee.insurance_expires) : undefined,
       license_number: payee?.license_number || "",
       permit_issuer: payee?.permit_issuer || false,
@@ -96,6 +102,8 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
         // Update existing payee
         const payeeData = {
           payee_name: data.payee_name,
+          full_name: data.full_name || null,
+          account_number: data.account_number || null,
           email: data.email || null,
           phone_numbers: data.phone_numbers || null,
           billing_address: data.billing_address || null,
@@ -105,6 +113,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
           provides_materials: data.provides_materials || false,
           requires_1099: data.requires_1099 || false,
           is_internal: data.is_internal || false,
+          is_active: data.is_active ?? true,
           insurance_expires: data.insurance_expires ? data.insurance_expires.toISOString().split('T')[0] : null,
           license_number: data.license_number || null,
           permit_issuer: data.permit_issuer || false,
@@ -127,6 +136,8 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
         // Create new payee
         const payeeData = {
           payee_name: data.payee_name,
+          full_name: data.full_name || null,
+          account_number: data.account_number || null,
           email: data.email || null,
           phone_numbers: data.phone_numbers || null,
           billing_address: data.billing_address || null,
@@ -173,19 +184,35 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
       <form id="payee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         {/* Basic Information */}
         <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="payee_name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payee Name *</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="payee_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payee Name *</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="full_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Legal or full name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
@@ -248,31 +275,45 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
 
             <FormField
               control={form.control}
-              name="payee_type"
+              name="account_number"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Payee Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select payee type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={PayeeType.SUBCONTRACTOR}>Subcontractor</SelectItem>
-                      <SelectItem value={PayeeType.MATERIAL_SUPPLIER}>Material Supplier</SelectItem>
-                      <SelectItem value={PayeeType.EQUIPMENT_RENTAL}>Equipment Rental</SelectItem>
-                      <SelectItem value={PayeeType.INTERNAL_LABOR}>Internal Labor</SelectItem>
-                      <SelectItem value={PayeeType.MANAGEMENT}>Management</SelectItem>
-                      <SelectItem value={PayeeType.PERMIT_AUTHORITY}>Permit Authority</SelectItem>
-                      <SelectItem value={PayeeType.OTHER}>Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Account Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Vendor account number" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name="payee_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payee Type</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payee type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={PayeeType.SUBCONTRACTOR}>Subcontractor</SelectItem>
+                    <SelectItem value={PayeeType.MATERIAL_SUPPLIER}>Material Supplier</SelectItem>
+                    <SelectItem value={PayeeType.EQUIPMENT_RENTAL}>Equipment Rental</SelectItem>
+                    <SelectItem value={PayeeType.INTERNAL_LABOR}>Internal Labor</SelectItem>
+                    <SelectItem value={PayeeType.MANAGEMENT}>Management</SelectItem>
+                    <SelectItem value={PayeeType.PERMIT_AUTHORITY}>Permit Authority</SelectItem>
+                    <SelectItem value={PayeeType.OTHER}>Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         {/* Capabilities & Requirements */}
@@ -353,136 +394,144 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="permit_issuer"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-sm font-normal">Can Issue Permits</FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            {payee && (
+              <FormField
+                control={form.control}
+                name="is_active"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-normal">Active</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
           </div>
         </div>
 
-        {/* Additional Information (Conditional) */}
-        {(watchedPayeeType === PayeeType.SUBCONTRACTOR || watchedPayeeType === PayeeType.INTERNAL_LABOR || watchedPayeeType === PayeeType.PERMIT_AUTHORITY) && (
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium">Additional Information</h3>
+        {/* Additional Information */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium">Additional Information</h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {watchedPayeeType === PayeeType.SUBCONTRACTOR && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="license_number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>License Number</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Professional license number" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="insurance_expires"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Insurance Expires</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>Pick expiration date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="license_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>License Number</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Professional license number" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
+            />
 
-              {watchedPayeeType === PayeeType.INTERNAL_LABOR && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="employee_number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Employee Number</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="e.g., EMP-001"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="hourly_rate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Hourly Rate</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.01"
-                            placeholder="75.00"
-                            {...field} 
-                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : "")}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-
-              {watchedPayeeType === PayeeType.PERMIT_AUTHORITY && (
-                <FormField
-                  control={form.control}
-                  name="permit_issuer"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+            <FormField
+              control={form.control}
+              name="insurance_expires"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Insurance Expires</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick expiration date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="text-sm font-normal">Can Issue Permits</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
               )}
-            </div>
+            />
+
+            <FormField
+              control={form.control}
+              name="employee_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Employee Number</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="e.g., EMP-001"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="hourly_rate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Hourly Rate</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      step="0.01"
+                      placeholder="75.00"
+                      {...field} 
+                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : "")}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
-        )}
+        </div>
 
       </form>
     </Form>
