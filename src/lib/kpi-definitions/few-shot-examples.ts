@@ -175,7 +175,7 @@ WHERE e.category = 'labor_internal'
   AND EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600 > 8
 ORDER BY gross_hours DESC`,
     kpisUsed: ['expense_gross_hours', 'expense_net_hours'],
-    category: 'time_entry'
+    category: 'filtering'
   },
 
   // ==========================================================================
