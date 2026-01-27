@@ -815,6 +815,7 @@ const TimeEntriesPage = () => {
         onClose={() => setExportModalOpen(false)}
         entries={timeEntries || []}
         filters={filters}
+        totalCount={totalCount}
       />
     </MobilePageWrapper>
   );

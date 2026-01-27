@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 import { ExpenseCategory, TransactionType } from '@/types/expense';
+import { parseCsvDateForDB, detectDateFormat, formatDateForDB } from './dateUtils';
 
 export interface ExpenseCSVRow {
   [key: string]: string;
@@ -153,6 +154,17 @@ export const validateExpenseCSVData = (
     if (emptyDates.length > 0) {
       errors.push(`${emptyDates.length} rows have empty dates`);
     }
+    
+    // Validate date formats
+    const invalidDates = data.filter(row => {
+      const dateStr = row[mapping.expense_date!]?.trim();
+      if (!dateStr) return false;
+      const format = detectDateFormat(dateStr);
+      return format === 'unknown';
+    });
+    if (invalidDates.length > 0) {
+      errors.push(`${invalidDates.length} rows have invalid date format (expected M/D/YYYY or YYYY-MM-DD)`);
+    }
   }
   
   if (mapping.description) {
@@ -221,7 +233,7 @@ export const mapCSVToExpenses = (
         category: 'other' as ExpenseCategory, // Default category
         transaction_type: 'expense' as TransactionType, // Default type
         amount: parseFloat(row[mapping.amount!]?.replace(/[,$]/g, '') || '0'),
-        expense_date: formatDateForDB(row[mapping.expense_date!]?.trim() || ''),
+        expense_date: parseCsvDateForDB(row[mapping.expense_date!]?.trim(), true) || formatDateForDB(new Date()),
         is_planned: false
       };
       
@@ -259,20 +271,6 @@ export const mapCSVToExpenses = (
       
       return expense;
     });
-};
-
-// Helper function to format date for database
-const formatDateForDB = (dateString: string): string => {
-  if (!dateString) return new Date().toISOString();
-  
-  // Try to parse various date formats
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) {
-    // If parsing fails, return current date
-    return new Date().toISOString();
-  }
-  
-  return date.toISOString();
 };
 
 // Helper function to map category values

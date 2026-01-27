@@ -4,8 +4,9 @@ import { parseDateOnly } from "@/utils/dateUtils";
 
 export const exportTimeEntriesToCSV = (entries: TimeEntryListItem[]) => {
   const headers = [
-    "Date",
+    "Work Date",           // expense_date - when work happened
     "Worker",
+    "Employee #",
     "Project Number",
     "Project Name",
     "Client",
@@ -20,18 +21,31 @@ export const exportTimeEntriesToCSV = (entries: TimeEntryListItem[]) => {
     "Amount",
     "Status",
     "Notes",
-    "Submitted At",
+    "Created At",          // When record was created
+    "Submitted At",        // When submitted for approval
+    "Approved At",         // When approved
   ];
 
   const rows = entries.map((entry) => {
-    const entryDate = parseDateOnly(entry.expense_date);
+    const workDate = parseDateOnly(entry.expense_date);
     const startTime = entry.start_time ? format(new Date(entry.start_time), "HH:mm") : "";
     const endTime = entry.end_time ? format(new Date(entry.end_time), "HH:mm") : "";
-    const submittedAt = format(new Date(entry.created_at), "yyyy-MM-dd HH:mm");
+
+    // Format timestamps correctly
+    const createdAt = entry.created_at
+      ? format(new Date(entry.created_at), "yyyy-MM-dd HH:mm")
+      : "";
+    const submittedAt = entry.submitted_for_approval_at
+      ? format(new Date(entry.submitted_for_approval_at), "yyyy-MM-dd HH:mm")
+      : "";
+    const approvedAt = entry.approved_at
+      ? format(new Date(entry.approved_at), "yyyy-MM-dd HH:mm")
+      : "";
 
     return [
-      format(entryDate, "yyyy-MM-dd"),
+      format(workDate, "yyyy-MM-dd"),      // Work Date
       entry.worker_name,
+      entry.payee?.employee_number || "",
       entry.project_number,
       entry.project_name,
       entry.client_name,
@@ -41,12 +55,14 @@ export const exportTimeEntriesToCSV = (entries: TimeEntryListItem[]) => {
       entry.gross_hours?.toFixed(2) || entry.hours.toFixed(2),
       entry.lunch_taken ? "Yes" : "No",
       entry.lunch_taken ? (entry.lunch_duration_minutes?.toString() || "") : "",
-      entry.hours.toFixed(2),  // Net hours
+      entry.hours.toFixed(2),
       entry.hourly_rate.toFixed(2),
       entry.amount.toFixed(2),
       entry.approval_status || "pending",
       entry.note || "",
+      createdAt,
       submittedAt,
+      approvedAt,
     ];
   });
 

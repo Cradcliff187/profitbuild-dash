@@ -91,13 +91,16 @@ export const EditTimeEntryDialog = ({ entry, open, onOpenChange, onSaved }: Edit
       const end = new Date(entry.end_time);
       setStartTime(format(start, 'HH:mm'));
       setEndTime(format(end, 'HH:mm'));
+      // Set hours from net (billable) hours including lunch deduction
+      const taken = entry.lunch_taken || false;
+      const duration = entry.lunch_duration_minutes ?? DEFAULT_LUNCH_DURATION;
+      const { netHours } = calculateTimeEntryHours(start, end, taken, duration);
+      setHours(netHours.toFixed(2));
     } else {
       setStartTime('08:00');
       setEndTime('17:00');
+      setHours('8'); // Default fallback when no start/end
     }
-    
-    // Hours are calculated from start_time/end_time or amount/hourly_rate
-    setHours('8'); // Default fallback
   };
 
   const handleSave = async () => {

@@ -8,6 +8,9 @@ export interface TimeEntryListItem {
   approval_status: 'pending' | 'approved' | 'rejected' | null;
   rejection_reason?: string;
   created_at: string;
+  submitted_for_approval_at?: string | null;
+  approved_at?: string | null;
+  approved_by?: string | null;
   user_id: string;
   worker_name: string;
   project_number: string;

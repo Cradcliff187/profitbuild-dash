@@ -127,14 +127,20 @@ export const TimeEntryForm = ({
 
   useEffect(() => {
     if (startTime && endTime) {
-      const start = new Date(`2000-01-01T${startTime}`);
-      const end = new Date(`2000-01-01T${endTime}`);
+      const start = new Date(`${date || '2000-01-01'}T${startTime}`);
+      const end = new Date(`${date || '2000-01-01'}T${endTime}`);
       if (end > start) {
-        const calculatedHours = ((end.getTime() - start.getTime()) / (1000 * 60 * 60)).toFixed(2);
-        setHours(calculatedHours);
+        // Calculate net hours (after lunch deduction)
+        const { netHours } = calculateTimeEntryHours(
+          start,
+          end,
+          lunchTaken,
+          lunchDuration
+        );
+        setHours(netHours.toFixed(2));
       }
     }
-  }, [startTime, endTime]);
+  }, [startTime, endTime, lunchTaken, lunchDuration, date]);
 
   const loadData = async () => {
     const [workersRes, projectsRes, userRes] = await Promise.all([

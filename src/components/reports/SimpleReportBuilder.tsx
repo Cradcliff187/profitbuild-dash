@@ -107,10 +107,13 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'project_name', label: 'Project Name', type: 'text', group: 'project_info' }
   ],
   time_entries: [
-    { key: 'expense_date', label: 'Date', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Date when time was worked' },
+    { key: 'expense_date', label: 'Work Date', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Date when work was performed (business date for payroll)' },
+    { key: 'created_at', label: 'Created At', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'When the time entry record was created in the system' },
+    { key: 'submitted_for_approval_at', label: 'Submitted At', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between', 'is_null', 'is_not_null'], helpText: 'When the entry was submitted for approval' },
+    { key: 'approved_at', label: 'Approved At', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between', 'is_null', 'is_not_null'], helpText: 'When the entry was approved or rejected' },
     { key: 'worker_name', label: 'Employee', type: 'text', group: 'employee', dataSource: 'workers', allowedOperators: ['equals', 'in', 'contains'], helpText: 'Employee who worked the hours' },
     { key: 'employee_number', label: 'Employee #', type: 'text', group: 'employee', allowedOperators: ['equals', 'contains'], helpText: 'Employee identification number' },
-    { key: 'hours', label: 'Hours', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Number of hours worked' },
+    { key: 'hours', label: 'Hours (Net)', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Net billable hours (after lunch deduction). Use gross_hours for total shift duration.' },
     { key: 'amount', label: 'Total Amount', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total cost (hours × hourly rate)' },
     { key: 'hourly_rate', label: 'Hourly Rate', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Employee hourly rate' },
     { key: 'project_number', label: 'Project #', type: 'text', group: 'project_info' },
@@ -122,7 +125,7 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'end_time', label: 'End Time', type: 'text', group: 'time', helpText: 'Time entry end time' },
     { key: 'lunch_taken', label: 'Lunch Taken', type: 'boolean', group: 'time', helpText: 'Whether lunch was taken' },
     { key: 'lunch_duration_minutes', label: 'Lunch Duration', type: 'number', group: 'time', helpText: 'Lunch duration in minutes' },
-    { key: 'gross_hours', label: 'Gross Hours', type: 'number', group: 'time', helpText: 'Total shift duration before lunch deduction' }
+    { key: 'gross_hours', label: 'Gross Hours', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total shift duration (end_time - start_time) before lunch deduction. Use hours for billable hours.' }
   ],
   estimate_line_items: [
     { key: 'estimate_number', label: 'Estimate #', type: 'text', group: 'project_info' },
@@ -179,8 +182,8 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'employee_name', label: 'Employee Name', type: 'text', group: 'employee', dataSource: 'workers', allowedOperators: ['equals', 'in', 'contains'] },
     { key: 'week_start_sunday', label: 'Week Starting (Sunday)', type: 'date', group: 'dates', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'First day of the week (Sunday)' },
     { key: 'week_end_saturday', label: 'Week Ending (Saturday)', type: 'date', group: 'dates', helpText: 'Last day of the week (Saturday)' },
-    { key: 'total_hours', label: 'Total Hours', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Net hours after lunch deductions' },
-    { key: 'gross_hours', label: 'Gross Hours', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Hours before lunch deductions' },
+    { key: 'total_hours', label: 'Total Hours (Net)', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Net billable hours after lunch deductions. Use gross_hours for total shift duration.' },
+    { key: 'gross_hours', label: 'Gross Hours', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total shift duration before lunch deduction. Use total_hours for billable hours.' },
     { key: 'total_cost', label: 'Total Cost', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total labor cost for the week' },
     { key: 'hourly_rate', label: 'Hourly Rate', type: 'currency', group: 'financial', helpText: 'Employee hourly rate' },
     { key: 'entry_count', label: 'Entry Count', type: 'number', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Number of time entries in the week' },

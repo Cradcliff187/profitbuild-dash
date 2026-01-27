@@ -154,7 +154,14 @@ ALWAYS use \`ILIKE '%name%'\` for name searches. Handle nicknames:
 
 ## TIME CALCULATIONS
 
-Hours are calculated from start_time/end_time, accounting for lunch:
+Time entries track both gross and net hours:
+
+**Gross Hours (Total Shift Duration):**
+\`\`\`sql
+EXTRACT(EPOCH FROM (end_time - start_time)) / 3600 as gross_hours
+\`\`\`
+
+**Net Hours (Billable Hours after Lunch):**
 \`\`\`sql
 CASE 
   WHEN lunch_taken = true THEN
@@ -163,6 +170,17 @@ CASE
     (EXTRACT(EPOCH FROM (end_time - start_time)) / 3600)
 END as net_hours
 \`\`\`
+
+**Database Fields:**
+- \`expenses.hours\` = net/billable hours (use for payroll, billing)
+- \`expenses.gross_hours\` = total shift duration (use for compliance, shift tracking)
+- \`expenses.lunch_taken\` = boolean
+- \`expenses.lunch_duration_minutes\` = integer (15-120)
+
+**When to use which:**
+- "How many hours did X work?" → Use net hours (billable)
+- "What was X's shift length?" → Use gross hours (total duration)
+- "Show me overtime" → Use gross hours (>8 hours gross may indicate OT eligibility)
 
 ${examplesSection}
 

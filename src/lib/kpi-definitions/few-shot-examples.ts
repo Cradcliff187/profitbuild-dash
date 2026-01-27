@@ -155,6 +155,28 @@ ORDER BY total_hours DESC`,
     kpisUsed: ['hours_worked'],
     category: 'time_based'
   },
+  {
+    question: "Show me employees who worked over 8 hour shifts this week",
+    reasoning: "Use gross_hours (total shift duration) not hours (net billable). This is about shift length for compliance, not billable hours.",
+    sql: `SELECT
+  p.payee_name as employee,
+  e.expense_date as work_date,
+  EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600 as gross_hours,
+  CASE
+    WHEN e.lunch_taken = true THEN
+      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0)
+    ELSE
+      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
+  END as net_hours
+FROM expenses e
+JOIN payees p ON e.payee_id = p.id
+WHERE e.category = 'labor_internal'
+  AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days'
+  AND EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600 > 8
+ORDER BY gross_hours DESC`,
+    kpisUsed: ['expense_gross_hours', 'expense_net_hours'],
+    category: 'time_entry'
+  },
 
   // ==========================================================================
   // COMPARISON QUERIES
@@ -490,6 +512,83 @@ ORDER BY total_hours DESC
 LIMIT 10`,
     kpisUsed: [],
     category: 'aggregation',
+    responseMode: 'analytical'
+  },
+
+  // ==========================================================================
+  // DATE FIELD USAGE EXAMPLES
+  // ==========================================================================
+  {
+    question: "Show me time entries submitted for approval yesterday",
+    reasoning: "User wants entries by SUBMISSION date, not work date. Use submitted_for_approval_at field.",
+    sql: `SELECT
+  p.payee_name,
+  e.expense_date as work_date,
+  e.submitted_for_approval_at,
+  e.approval_status,
+  CASE
+    WHEN e.lunch_taken = true THEN
+      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0)
+    ELSE
+      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
+  END as hours
+FROM expenses e
+JOIN payees p ON e.payee_id = p.id
+WHERE e.category = 'labor_internal'
+  AND e.submitted_for_approval_at >= CURRENT_DATE - INTERVAL '1 day'
+  AND e.submitted_for_approval_at < CURRENT_DATE
+ORDER BY e.submitted_for_approval_at DESC`,
+    kpisUsed: [],
+    category: 'time_based',
+    responseMode: 'simple'
+  },
+  {
+    question: "What time entries were approved today?",
+    reasoning: "User wants entries by APPROVAL date. Use approved_at field.",
+    sql: `SELECT
+  p.payee_name,
+  e.expense_date as work_date,
+  e.approved_at,
+  CASE
+    WHEN e.lunch_taken = true THEN
+      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0)
+    ELSE
+      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
+  END as hours,
+  e.amount
+FROM expenses e
+JOIN payees p ON e.payee_id = p.id
+WHERE e.category = 'labor_internal'
+  AND e.approval_status = 'approved'
+  AND e.approved_at >= CURRENT_DATE
+ORDER BY e.approved_at DESC`,
+    kpisUsed: [],
+    category: 'time_based',
+    responseMode: 'simple'
+  },
+  {
+    question: "How long have pending time entries been waiting for approval?",
+    reasoning: "Calculate days since submission. Use submitted_for_approval_at to calculate pending duration.",
+    sql: `SELECT
+  p.payee_name,
+  e.expense_date as work_date,
+  e.submitted_for_approval_at,
+  EXTRACT(DAY FROM (NOW() - e.submitted_for_approval_at)) as days_pending,
+  CASE
+    WHEN e.lunch_taken = true THEN
+      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0)
+    ELSE
+      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
+  END as hours,
+  e.amount
+FROM expenses e
+JOIN payees p ON e.payee_id = p.id
+WHERE e.category = 'labor_internal'
+  AND e.approval_status = 'pending'
+  AND e.submitted_for_approval_at IS NOT NULL
+ORDER BY e.submitted_for_approval_at ASC`,
+    kpisUsed: [],
+    category: 'time_based',
     responseMode: 'analytical'
   }
 ];

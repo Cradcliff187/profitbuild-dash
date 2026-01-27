@@ -4,6 +4,7 @@ import { PayeeType } from '@/types/payee';
 import { supabase } from '@/integrations/supabase/client';
 import { fuzzyMatchPayee, PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 import { QB_ACCOUNT_MAPPING, resolveQBAccountCategory } from '@/utils/quickbooksMapping';
+import { parseCsvDateForDB } from './dateUtils';
 
 // Type for QB account mapping (matches database schema)
 type QuickBooksAccountMapping = { qb_account_name: string; qb_account_full_path: string; app_category: string };
@@ -584,14 +585,9 @@ export const mapQuickBooksToExpenses = async (
 
     for (const transaction of uniqueTransactions) {
       try {
-        // Parse date
-        let expense_date = new Date();
-        if (transaction.date) {
-          const parsedDate = new Date(transaction.date);
-          if (!isNaN(parsedDate.getTime())) {
-            expense_date = parsedDate;
-          }
-        }
+        // Parse date using centralized utility
+        const expense_date_str = parseCsvDateForDB(transaction.date, true) || '';
+        const expense_date = new Date(expense_date_str + 'T12:00:00'); // Parse back to Date at noon
 
         // Parse amount using robust parser
         const amount = parseQuickBooksAmount(transaction.amount);

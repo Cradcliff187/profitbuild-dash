@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { fuzzyMatchPayee, PartialPayee, FuzzyMatchResult } from '@/utils/fuzzyPayeeMatcher';
 import { PayeeType } from '@/types/payee';
 import { resolveQBAccountCategory } from '@/utils/quickbooksMapping';
+import { parseCsvDateForDB, parseDateOnly, formatDateForDB } from './dateUtils';
 
 // Type for QB account mapping (matches database schema)
 type QuickBooksAccountMapping = { qb_account_name: string; qb_account_full_path: string; app_category: string };
@@ -321,7 +322,7 @@ export const processTransactionImport = async (
       if (transactionType === 'invoice') continue;
       
       const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
-      const date = formatDateForDB(row['Date']);
+      const date = parseCsvDateForDB(row['Date'], true) || '';
       const name = row['Name']?.trim() || '';
       const projectWO = row['Project/WO #']?.trim() || '';
       const accountFullName = row['Account full name']?.trim() || '';
@@ -520,7 +521,7 @@ export const processTransactionImport = async (
       if (transactionType !== 'invoice') continue;
       
       const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
-      const date = formatDateForDB(row['Date']);
+      const date = parseCsvDateForDB(row['Date'], true) || '';
       const name = row['Name']?.trim() || '';
       const projectWO = row['Project/WO #']?.trim() || '';
       const accountFullName = row['Account full name']?.trim() || '';
@@ -670,18 +671,6 @@ const normalizeString = (str: string): string => {
   return str.toLowerCase().replace(/[^a-z0-9]/g, '');
 };
 
-const formatDateForDB = (dateString: string): string => {
-  if (!dateString) return new Date().toISOString().split('T')[0];
-  
-  // Parse M/D/YYYY format
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) {
-    return new Date().toISOString().split('T')[0];
-  }
-  
-  return date.toISOString().split('T')[0];
-};
-
 const mapAccountToCategory = (accountFullName: string): ExpenseCategory | null => {
   if (!accountFullName) return null;
   
@@ -713,7 +702,7 @@ const detectInFileDuplicates = (
       continue;
     }
 
-    const date = formatDateForDB(row['Date']);
+    const date = parseCsvDateForDB(row['Date'], true) || '';
     const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
     const name = row['Name']?.trim() || '';
 
@@ -752,7 +741,7 @@ const detectRevenueInFileDuplicates = (
       continue;
     }
 
-    const date = formatDateForDB(row['Date']);
+    const date = parseCsvDateForDB(row['Date'], true) || '';
     const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
     const name = row['Name']?.trim() || '';
     const invoiceNumber = row['Invoice #']?.trim() || '';

@@ -478,13 +478,73 @@ function normalizeString(str: string): string {
   return str.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-function formatDateForDB(dateString: string): string {
-  if (!dateString) return new Date().toISOString().split('T')[0];
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) {
-    return new Date().toISOString().split('T')[0];
+/**
+ * Format a Date object to YYYY-MM-DD string for database storage.
+ * Extracts date components directly to avoid timezone issues with toISOString().
+ */
+function formatDateForDB(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Parse a CSV date string to YYYY-MM-DD format for database storage.
+ * Handles multiple formats and creates dates at noon to prevent timezone shifts.
+ * 
+ * Supported formats:
+ * - M/D/YYYY (QuickBooks format)
+ * - YYYY-MM-DD (ISO format)
+ * - MM-DD-YYYY
+ */
+function parseCsvDateForDB(
+  dateString: string | null | undefined,
+  fallbackToToday: boolean = true
+): string | null {
+  if (!dateString?.trim()) {
+    return fallbackToToday ? formatDateForDB(new Date()) : null;
   }
-  return date.toISOString().split('T')[0];
+
+  const trimmed = dateString.trim();
+  let parsed: Date | null = null;
+  
+  // M/D/YYYY (QuickBooks format)
+  const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashMatch) {
+    const [, month, day, year] = slashMatch;
+    parsed = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0);
+  }
+  
+  // YYYY-MM-DD (ISO format)
+  if (!parsed) {
+    const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoMatch) {
+      const [, year, month, day] = isoMatch;
+      parsed = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0);
+    }
+  }
+  
+  // MM-DD-YYYY format
+  if (!parsed) {
+    const dashMatch = trimmed.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (dashMatch) {
+      const [, month, day, year] = dashMatch;
+      parsed = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0);
+    }
+  }
+  
+  // Fallback: native parsing with component extraction
+  if (!parsed) {
+    const native = new Date(trimmed);
+    if (!isNaN(native.getTime())) {
+      parsed = new Date(native.getFullYear(), native.getMonth(), native.getDate(), 12, 0, 0);
+    }
+  }
+  
+  return parsed && !isNaN(parsed.getTime()) 
+    ? formatDateForDB(parsed) 
+    : (fallbackToToday ? formatDateForDB(new Date()) : null);
 }
 
 function mapAccountToCategory(accountFullName: string): string | null {
@@ -512,7 +572,7 @@ function detectInFileDuplicates(
       continue;
     }
 
-    const date = formatDateForDB(row['Date']);
+    const date = parseCsvDateForDB(row['Date'], true) || '';
     const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
     const name = row['Name']?.trim() || '';
     const key = createExpenseKey(date, amount, name);
@@ -545,7 +605,7 @@ function detectRevenueInFileDuplicates(
       continue;
     }
 
-    const date = formatDateForDB(row['Date']);
+    const date = parseCsvDateForDB(row['Date'], true) || '';
     const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
     const name = row['Name']?.trim() || '';
     const invoiceNumber = row['Invoice #']?.trim() || '';

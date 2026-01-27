@@ -1,6 +1,6 @@
 /**
  * AI Report Assistant Edge Function
- * 
+ *
  * UPDATED VERSION with:
  * - KPI-aware system prompt (from kpi-definitions)
  * - Semantic understanding of business terms
@@ -8,8 +8,12 @@
  * - Business rules enforcement
  * - Retry logic for empty results
  * - Adaptive response mode (simple vs analytical)
- * 
+ *
  * @version 3.0.0
+ *
+ * VERSION PINNING (.cursorrules): Keep these exact versions so deployment sticks.
+ * - supabase-js: https://esm.sh/@supabase/supabase-js@2.57.4 (do not use @2 or @latest)
+ * - deno std: https://deno.land/std@0.168.0/http/server.ts
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -120,6 +124,12 @@ const KPI_CONTEXT = {
     "ALWAYS use ILIKE '%name%' for ANY name search - NEVER use exact match (=)",
     "Handle nicknames: Johnny->John, Mike->Michael, Bob->Robert, etc. Use the BASE name with ILIKE",
     "CRITICAL DATA INTEGRITY: ONLY cite numbers/amounts/hours that appear in SQL results. NEVER invent, estimate, or recall from memory. If data doesn't show something, say 'I don't see that in the results'. When in doubt, show raw data and let user interpret.",
+    "DATE FIELD GUIDE: Use expense_date for 'when work happened' queries (last week's hours, monthly expenses, payroll)",
+    "DATE FIELD GUIDE: Use created_at for 'when was this entered' queries (audit trails, record creation)",
+    "DATE FIELD GUIDE: Use submitted_for_approval_at for 'when was this submitted' queries (pending duration, workflow)",
+    "DATE FIELD GUIDE: Use approved_at for 'when was this approved' queries (approval audit, compliance)",
+    "DATE FIELD GUIDE: For time entries, start_time/end_time are the actual clock times; expense_date is the business date",
+    "TIME ENTRY QUERIES: Always use expense_date for date filtering (e.g., 'last week', 'this month', 'yesterday')",
   ],
 
   // Margin terminology
@@ -184,6 +194,11 @@ const KPI_CONTEXT = {
       q: "Show me Mike's last five time entries",
       reasoning: "Mike could be Michael. Use ILIKE '%mike%' to find both. Get last 5 from expenses table ordered by date",
       sql: `SELECT p.payee_name, e.expense_date, e.description, CASE WHEN e.lunch_taken = true THEN (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0) ELSE (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) END as hours FROM expenses e JOIN payees p ON e.payee_id = p.id WHERE p.is_internal = true AND p.payee_name ILIKE '%mike%' AND e.category = 'labor_internal' ORDER BY e.expense_date DESC LIMIT 5`
+    },
+    {
+      q: "Show me employees who worked over 8 hour shifts this week",
+      reasoning: "Use gross_hours (total shift duration) not hours (net billable). This is about shift length for compliance, not billable hours.",
+      sql: `SELECT p.payee_name as employee, e.expense_date as work_date, EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600 as gross_hours, CASE WHEN e.lunch_taken = true THEN (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0) ELSE (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) END as net_hours FROM expenses e JOIN payees p ON e.payee_id = p.id WHERE e.category = 'labor_internal' AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days' AND EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600 > 8 ORDER BY gross_hours DESC`
     },
   ],
 };
@@ -305,7 +320,14 @@ ALWAYS use \`ILIKE '%name%'\` for name searches. Handle nicknames:
 
 ## TIME CALCULATIONS
 
-Hours are calculated from start_time/end_time, accounting for lunch:
+Time entries track both gross and net hours:
+
+**Gross Hours (Total Shift Duration):**
+\`\`\`sql
+EXTRACT(EPOCH FROM (end_time - start_time)) / 3600 as gross_hours
+\`\`\`
+
+**Net Hours (Billable Hours after Lunch):**
 \`\`\`sql
 CASE 
   WHEN lunch_taken = true THEN
@@ -314,6 +336,17 @@ CASE
     (EXTRACT(EPOCH FROM (end_time - start_time)) / 3600)
 END as net_hours
 \`\`\`
+
+**Database Fields:**
+- \`expenses.hours\` = net/billable hours (use for payroll, billing)
+- \`expenses.gross_hours\` = total shift duration (use for compliance, shift tracking)
+- \`expenses.lunch_taken\` = boolean
+- \`expenses.lunch_duration_minutes\` = integer (15-120)
+
+**When to use which:**
+- "How many hours did X work?" → Use net hours (billable)
+- "What was X's shift length?" → Use gross hours (total duration)
+- "Show me overtime" → Use gross hours (>8 hours gross may indicate OT eligibility)
 
 ## EXAMPLES
 

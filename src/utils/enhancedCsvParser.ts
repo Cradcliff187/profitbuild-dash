@@ -4,7 +4,7 @@ import { Expense, ExpenseCategory, TransactionType } from '@/types/expense';
 import { ProjectRevenue, CreateProjectRevenueData } from '@/types/revenue';
 import { fuzzyMatchPayee, PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 import { Client } from '@/types/client';
-import { parseDateOnly } from '@/utils/dateUtils';
+import { parseDateOnly, parseCsvDateForDB } from '@/utils/dateUtils';
 
 // Enhanced QB transaction interface
 export interface QBTransaction {
@@ -504,7 +504,8 @@ export const processEnhancedQuickBooksImport = async (
     for (const transaction of revenueTransactions) {
       try {
         const amount = parseQuickBooksAmount(transaction.amount);
-        const invoiceDate = new Date(transaction.date);
+        const invoiceDateStr = parseCsvDateForDB(transaction.date, true) || '';
+        const invoiceDate = parseDateOnly(invoiceDateStr); // Convert to Date at noon
         
         const projectMatch = matchProject(transaction.project_wo_number, projects);
         if (!projectMatch.project) {
@@ -580,7 +581,8 @@ export const processEnhancedQuickBooksImport = async (
     for (const transaction of expenseTransactions) {
       try {
         const amount = Math.abs(parseQuickBooksAmount(transaction.amount)); // Ensure positive
-        const expenseDate = new Date(transaction.date);
+        const expenseDateStr = parseCsvDateForDB(transaction.date, true) || '';
+        const expenseDate = parseDateOnly(expenseDateStr); // Convert to Date at noon
         
         const projectMatch = matchProject(transaction.project_wo_number, projects);
         if (!projectMatch.project) {

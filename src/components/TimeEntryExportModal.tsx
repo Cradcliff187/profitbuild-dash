@@ -10,12 +10,14 @@ import { Download, Clock, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { TimeEntryListItem, TimeEntryFilters } from "@/types/timeEntry";
 import { parseDateOnly } from "@/utils/dateUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TimeEntryExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   entries: TimeEntryListItem[];
   filters: TimeEntryFilters;
+  totalCount: number;
 }
 
 interface ExportOptions {
@@ -24,13 +26,15 @@ interface ExportOptions {
   includeProjectDetails: boolean;
   includeTimeBreakdown: boolean;
   includeNotes: boolean;
+  exportScope: 'current_page' | 'all_filtered';
 }
 
 export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
   isOpen,
   onClose,
   entries,
-  filters
+  filters,
+  totalCount
 }) => {
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
@@ -39,18 +43,135 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
     includeWorkerDetails: true,
     includeProjectDetails: true,
     includeTimeBreakdown: true,
-    includeNotes: true
+    includeNotes: true,
+    exportScope: 'current_page'
   });
 
   const updateOptions = (updates: Partial<ExportOptions>) => {
     setExportOptions({ ...exportOptions, ...updates });
   };
 
+  const calculateHours = (
+    startTime: string | null,
+    endTime: string | null,
+    description: string,
+    lunchTaken: boolean,
+    lunchDurationMinutes: number | null
+  ): number => {
+    if (startTime && endTime) {
+      const start = new Date(startTime);
+      const end = new Date(endTime);
+      const grossHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+      const lunchHours = lunchTaken && lunchDurationMinutes ? lunchDurationMinutes / 60 : 0;
+      return Math.max(0, grossHours - lunchHours);
+    }
+    const timeMatch = description?.match(/(\d+\.?\d*)\s*hours?/i);
+    return timeMatch ? parseFloat(timeMatch[1]) : 0;
+  };
+
+  const fetchAllFilteredEntries = async (): Promise<TimeEntryListItem[]> => {
+    let query = supabase
+      .from('expenses')
+      .select(`
+        id,
+        expense_date,
+        start_time,
+        end_time,
+        amount,
+        description,
+        approval_status,
+        rejection_reason,
+        created_at,
+        submitted_for_approval_at,
+        approved_at,
+        approved_by,
+        user_id,
+        payee_id,
+        project_id,
+        attachment_url,
+        is_locked,
+        lunch_taken,
+        lunch_duration_minutes,
+        payees!inner(payee_name, hourly_rate, employee_number),
+        projects!inner(project_number, project_name, client_name, address)
+      `)
+      .eq('category', 'labor_internal')
+      .order('expense_date', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (filters.dateFrom) query = query.gte('expense_date', filters.dateFrom);
+    if (filters.dateTo) query = query.lte('expense_date', filters.dateTo);
+    if (filters.status.length > 0) query = query.in('approval_status', filters.status);
+    if (filters.workerIds.length > 0) query = query.in('payee_id', filters.workerIds);
+    if (filters.projectIds.length > 0) query = query.in('project_id', filters.projectIds);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return (data || []).map((entry: any) => {
+      const lunchTaken = entry.lunch_taken || false;
+      const lunchDurationMinutes = entry.lunch_duration_minutes ?? null;
+      const hours = calculateHours(
+        entry.start_time,
+        entry.end_time,
+        entry.description,
+        lunchTaken,
+        lunchDurationMinutes
+      );
+      const grossHours =
+        entry.start_time && entry.end_time
+          ? (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) / (1000 * 60 * 60)
+          : hours;
+
+      return {
+        id: entry.id,
+        expense_date: entry.expense_date,
+        start_time: entry.start_time,
+        end_time: entry.end_time,
+        amount: entry.amount,
+        description: entry.description,
+        approval_status: entry.approval_status,
+        rejection_reason: entry.rejection_reason,
+        created_at: entry.created_at,
+        submitted_for_approval_at: entry.submitted_for_approval_at,
+        approved_at: entry.approved_at,
+        approved_by: entry.approved_by,
+        user_id: entry.user_id,
+        worker_name: entry.payees?.payee_name ?? 'Unknown',
+        project_number: entry.projects?.project_number ?? '',
+        project_name: entry.projects?.project_name ?? '',
+        client_name: entry.projects?.client_name ?? '',
+        project_address: entry.projects?.address ?? null,
+        hours,
+        hourly_rate: entry.payees?.hourly_rate ?? 0,
+        note: entry.description,
+        attachment_url: entry.attachment_url,
+        payee_id: entry.payee_id,
+        project_id: entry.project_id,
+        is_locked: entry.is_locked,
+        lunch_taken: lunchTaken,
+        lunch_duration_minutes: lunchDurationMinutes,
+        gross_hours: grossHours,
+        payee: entry.payees ? { employee_number: entry.payees.employee_number } : undefined,
+      };
+    });
+  };
+
   const handleExport = async () => {
     setIsExporting(true);
-    
+
     try {
-      if (entries.length === 0) {
+      let entriesToExport = entries;
+
+      if (exportOptions.exportScope === 'all_filtered') {
+        toast({
+          title: "Fetching entries",
+          description: `Loading all ${totalCount} filtered entries...`,
+        });
+        entriesToExport = await fetchAllFilteredEntries();
+      }
+
+      if (entriesToExport.length === 0) {
         toast({
           title: "No data to export",
           description: "No time entries match the current filters.",
@@ -60,11 +181,11 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
         return;
       }
 
-      await exportToCSV(entries);
-      
+      await exportToCSV(entriesToExport);
+
       toast({
         title: "Export successful",
-        description: `Successfully exported ${entries.length} time entries`,
+        description: `Successfully exported ${entriesToExport.length} time entries`,
       });
 
       onClose();
@@ -82,7 +203,7 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
 
   const exportToCSV = async (entries: TimeEntryListItem[]) => {
     // Build headers based on options
-    const headers: string[] = ["Date"];
+    const headers: string[] = ["Work Date"];
 
     if (exportOptions.includeWorkerDetails) {
       headers.push("Worker");
@@ -93,7 +214,7 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
     }
 
     if (exportOptions.includeTimeBreakdown) {
-      headers.push("Start Time", "End Time", "Hours");
+      headers.push("Start Time", "End Time", "Gross Hours", "Lunch Taken", "Lunch Duration (min)", "Net Hours");
     }
 
     headers.push("Rate", "Amount", "Status");
@@ -102,14 +223,22 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
       headers.push("Notes");
     }
 
-    headers.push("Submitted At");
+    headers.push("Created At", "Submitted At", "Approved At");
 
     // Build rows
     const rows = entries.map((entry) => {
       const entryDate = parseDateOnly(entry.expense_date);
       const startTime = entry.start_time ? format(new Date(entry.start_time), "HH:mm") : "";
       const endTime = entry.end_time ? format(new Date(entry.end_time), "HH:mm") : "";
-      const submittedAt = format(new Date(entry.created_at), "yyyy-MM-dd HH:mm");
+      const createdAt = entry.created_at
+        ? format(new Date(entry.created_at), "yyyy-MM-dd HH:mm")
+        : "";
+      const submittedAt = entry.submitted_for_approval_at
+        ? format(new Date(entry.submitted_for_approval_at), "yyyy-MM-dd HH:mm")
+        : "";
+      const approvedAt = entry.approved_at
+        ? format(new Date(entry.approved_at), "yyyy-MM-dd HH:mm")
+        : "";
 
       const row: string[] = [format(entryDate, "yyyy-MM-dd")];
 
@@ -127,7 +256,11 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
       }
 
       if (exportOptions.includeTimeBreakdown) {
-        row.push(startTime, endTime, entry.hours.toFixed(2));
+        const grossHours = entry.gross_hours != null ? entry.gross_hours.toFixed(2) : entry.hours.toFixed(2);
+        const lunchTaken = entry.lunch_taken ? "Yes" : "No";
+        const lunchDuration = entry.lunch_taken ? (entry.lunch_duration_minutes?.toString() ?? "") : "";
+        const netHours = entry.hours.toFixed(2);
+        row.push(startTime, endTime, grossHours, lunchTaken, lunchDuration, netHours);
       }
 
       row.push(
@@ -140,7 +273,7 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
         row.push(entry.note || "");
       }
 
-      row.push(submittedAt);
+      row.push(createdAt, submittedAt, approvedAt);
 
       return row;
     });
@@ -258,6 +391,27 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Export Scope */}
+            <div className="space-y-2 pt-2 border-t">
+              <label className="text-sm font-medium">Export Scope</label>
+              <Select
+                value={exportOptions.exportScope}
+                onValueChange={(value) => updateOptions({ exportScope: value as 'current_page' | 'all_filtered' })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="current_page">
+                    Current Page Only ({entries.length} entries)
+                  </SelectItem>
+                  <SelectItem value="all_filtered">
+                    All Filtered Entries ({totalCount} total)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </ScrollArea>
 
@@ -266,9 +420,12 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
           <Button variant="outline" onClick={onClose} className="flex-1" disabled={isExporting}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleExport} 
-            disabled={isExporting || entries.length === 0}
+          <Button
+            onClick={handleExport}
+            disabled={
+              isExporting ||
+              (exportOptions.exportScope === 'current_page' ? entries.length === 0 : totalCount === 0)
+            }
             className="flex-1"
           >
             {isExporting ? (
@@ -279,7 +436,7 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
             ) : (
               <>
                 <Download className="h-4 w-4 mr-2" />
-                Export {entries.length} Entries
+                Export {exportOptions.exportScope === 'current_page' ? entries.length : totalCount} Entries
               </>
             )}
           </Button>
