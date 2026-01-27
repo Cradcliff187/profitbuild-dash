@@ -16,7 +16,8 @@
     "cleanup-test-data": "tsx scripts/cleanup-test-data.ts",
     "pre-deploy": "bash scripts/pre-deploy-checks.sh",
     "verify-migration": "tsx scripts/verify-bid-media-migration.ts",
-    "validate:kpis": "tsx src/lib/kpi-definitions/run-validation.ts"
+    "validate:kpis": "tsx src/lib/kpi-definitions/run-validation.ts",
+    "sync:edge-kpis": "tsx scripts/sync-edge-kpi-context.ts"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
@@ -109,11 +110,12 @@
     "@types/node": "^22.16.5",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react-swc": "^3.11.0",
-    "@vitest/ui": "^4.0.17",
     "@typescript-eslint/eslint-plugin": "^8.44.0",
     "@typescript-eslint/parser": "^8.44.0",
+    "@vitejs/plugin-react-swc": "^3.11.0",
+    "@vitest/ui": "^4.0.17",
     "autoprefixer": "^10.4.21",
+    "baseline-browser-mapping": "^2.9.18",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",

@@ -18,6 +18,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { KPI_CONTEXT } from "./kpi-context.generated.ts";
 
 // ============================================================================
 // STRUCTURED LOGGING
@@ -109,101 +110,6 @@ const corsHeaders = {
 };
 
 // ============================================================================
-// KPI CONTEXT (Embedded for edge function - in production, this would be imported)
-// ============================================================================
-
-const KPI_CONTEXT = {
-  version: '3.0.0',
-  
-  // Critical business rules
-  criticalRules: [
-    "Use `reporting.project_financials` view for project financial queries (not raw projects table)",
-    "NEVER use receipts table for financial calculations - receipts are documentation only",
-    "Time entries are in `expenses` table with category = 'labor_internal'",
-    "Always filter projects by category = 'construction' unless user asks for overhead/system",
-    "ALWAYS use ILIKE '%name%' for ANY name search - NEVER use exact match (=)",
-    "Handle nicknames: Johnny->John, Mike->Michael, Bob->Robert, etc. Use the BASE name with ILIKE",
-    "CRITICAL DATA INTEGRITY: ONLY cite numbers/amounts/hours that appear in SQL results. NEVER invent, estimate, or recall from memory. If data doesn't show something, say 'I don't see that in the results'. When in doubt, show raw data and let user interpret.",
-    "DATE FIELD GUIDE: Use expense_date for 'when work happened' queries (last week's hours, monthly expenses, payroll)",
-    "DATE FIELD GUIDE: Use created_at for 'when was this entered' queries (audit trails, record creation)",
-    "DATE FIELD GUIDE: Use submitted_for_approval_at for 'when was this submitted' queries (pending duration, workflow)",
-    "DATE FIELD GUIDE: Use approved_at for 'when was this approved' queries (approval audit, compliance)",
-    "DATE FIELD GUIDE: For time entries, start_time/end_time are the actual clock times; expense_date is the business date",
-    "TIME ENTRY QUERIES: Always use expense_date for date filtering (e.g., 'last week', 'this month', 'yesterday')",
-  ],
-
-  // Margin terminology
-  marginGuide: {
-    actual_margin: { 
-      formula: "total_invoiced - total_expenses", 
-      useWhen: "REAL/ACTUAL/TRUE profit",
-      aliases: ["real profit", "actual profit", "true margin", "profit"]
-    },
-    current_margin: { 
-      formula: "contracted_amount - total_expenses", 
-      useWhen: "EXPECTED profit based on contract",
-      aliases: ["margin", "expected margin"]
-    },
-    projected_margin: { 
-      formula: "contracted_amount - adjusted_est_costs", 
-      useWhen: "FORECAST/PROJECTED final profit"
-    },
-    original_margin: { 
-      formula: "contracted_amount - original_est_costs", 
-      useWhen: "BASELINE comparison"
-    },
-  },
-
-  // Business benchmarks
-  benchmarks: {
-    project_margin: { healthy: '15-25%', warning: '<10%', critical: '<5%' },
-    cost_variance: { healthy: '±5%', warning: '>10%', critical: '>20%' },
-    contingency_usage: { healthy: '<50%', warning: '>75%', critical: '100%' },
-  },
-
-  // Entity lookups
-  entityMappings: {
-    employee: "payees WHERE is_internal = true",
-    vendor: "payees WHERE payee_type = 'vendor' AND is_internal = false",
-    subcontractor: "payees WHERE payee_type = 'subcontractor' AND is_internal = false",
-  },
-
-  // Few-shot examples
-  examples: [
-    {
-      q: "What's our total profit this month?",
-      reasoning: "Use actual_margin (real profit) from reporting view, filter current month + construction",
-      sql: `SELECT SUM(actual_margin) as total_profit FROM reporting.project_financials WHERE category = 'construction' AND start_date >= DATE_TRUNC('month', CURRENT_DATE)`
-    },
-    {
-      q: "How many hours did Johnny work last week?",
-      reasoning: "Johnny is a nickname for John. Use ILIKE '%john%' to find 'John', 'Johnny', 'Johnson', etc. Time entries in expenses, calculate net hours, join payees",
-      sql: `SELECT p.payee_name, SUM(CASE WHEN e.lunch_taken = true THEN (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0) ELSE (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) END) as total_hours FROM expenses e JOIN payees p ON e.payee_id = p.id WHERE p.is_internal = true AND p.payee_name ILIKE '%john%' AND e.category = 'labor_internal' AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days' GROUP BY p.payee_name`
-    },
-    {
-      q: "Show me projects over budget",
-      reasoning: "cost_variance > 0 means over budget, use reporting view",
-      sql: `SELECT project_number, project_name, cost_variance, budget_utilization_percent FROM reporting.project_financials WHERE category = 'construction' AND cost_variance > 0 ORDER BY cost_variance DESC`
-    },
-    {
-      q: "Compare expected vs actual revenue",
-      reasoning: "contracted_amount is expected, total_invoiced is actual",
-      sql: `SELECT project_number, project_name, contracted_amount as expected, total_invoiced as actual, revenue_variance as gap FROM reporting.project_financials WHERE category = 'construction' AND status IN ('in_progress', 'approved') ORDER BY revenue_variance DESC`
-    },
-    {
-      q: "Show me Mike's last five time entries",
-      reasoning: "Mike could be Michael. Use ILIKE '%mike%' to find both. Get last 5 from expenses table ordered by date",
-      sql: `SELECT p.payee_name, e.expense_date, e.description, CASE WHEN e.lunch_taken = true THEN (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0) ELSE (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) END as hours FROM expenses e JOIN payees p ON e.payee_id = p.id WHERE p.is_internal = true AND p.payee_name ILIKE '%mike%' AND e.category = 'labor_internal' ORDER BY e.expense_date DESC LIMIT 5`
-    },
-    {
-      q: "Show me employees who worked over 8 hour shifts this week",
-      reasoning: "Use gross_hours (total shift duration) not hours (net billable). This is about shift length for compliance, not billable hours.",
-      sql: `SELECT p.payee_name as employee, e.expense_date as work_date, EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600 as gross_hours, CASE WHEN e.lunch_taken = true THEN (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0) ELSE (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) END as net_hours FROM expenses e JOIN payees p ON e.payee_id = p.id WHERE e.category = 'labor_internal' AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days' AND EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600 > 8 ORDER BY gross_hours DESC`
-    },
-  ],
-};
-
-// ============================================================================
 // SYSTEM PROMPT GENERATOR
 // ============================================================================
 
@@ -223,9 +129,9 @@ function generateSystemPrompt(schemaInfo: any): string {
     `${e.enum_name}: ${e.values?.join(', ')}`
   ).join('\n') || '';
 
-  // Format examples
-  const examplesText = KPI_CONTEXT.examples.map(ex => 
-    `Q: "${ex.q}"\nReasoning: ${ex.reasoning}\nSQL: ${ex.sql}`
+  // Format examples (from generated fewShotExamples: .question, .reasoning, .sql)
+  const examplesText = KPI_CONTEXT.fewShotExamples.map((ex: { question: string; reasoning: string; sql: string }) =>
+    `Q: "${ex.question}"\nReasoning: ${ex.reasoning}\nSQL: ${ex.sql}`
   ).join('\n\n');
 
   return `You are a financial analyst for RCG Work, a construction project management system.
@@ -282,7 +188,19 @@ A: "Strong month - profit is $45,230, up 12% from last month. Average margin acr
 
 ## CRITICAL DATA RULES
 
-${KPI_CONTEXT.criticalRules.map(r => `- ${r}`).join('\n')}
+${KPI_CONTEXT.criticalRules.map((r: string) => `- ${r}`).join('\n')}
+
+## SEMANTIC MAPPINGS
+
+When users say these terms, use these database fields:
+${Object.entries(KPI_CONTEXT.semanticLookup)
+  .slice(0, 50)
+  .map(([term, field]) => `- "${term}" → ${field}`)
+  .join('\n')}
+
+## TERM DISAMBIGUATION
+
+${Array.isArray(KPI_CONTEXT.disambiguationGuide) ? KPI_CONTEXT.disambiguationGuide.join('\n') : String(KPI_CONTEXT.disambiguationGuide)}
 
 ## MARGIN TERMINOLOGY (Know the difference)
 
@@ -295,12 +213,12 @@ ${KPI_CONTEXT.criticalRules.map(r => `- ${r}`).join('\n')}
 
 ## BUSINESS BENCHMARKS (RCG Targets)
 
-- project_margin: 15-30% (Project margins below 15% may indicate pricing issues or scope creep)
-- cost_variance: -5-5% (Cost variance above 10% requires investigation)
-- billing_progress: 70-100% (Projects should be >70% billed by completion)
-- labor_cushion_rate: 35-50 (Target $40/hr cushion (billing $75 vs $35 actual cost))
-- contingency_usage: 0-50% (Using >75% contingency early is a risk indicator)
-- weekly_hours: 35-45 (Standard work week with reasonable overtime)
+${Object.entries(KPI_CONTEXT.benchmarks)
+  .map(([id, b]) => {
+    const crit = 'critical' in b && b.critical ? `, ${b.critical} (critical)` : '';
+    return `- ${id}: ${b.healthy} (healthy)${b.warning ? `, ${b.warning} (warning)` : ''}${crit}`;
+  })
+  .join('\n')}
 
 Use these to provide context like "that's healthy" or "below target" - but only in analytical mode or when the value is concerning.
 
@@ -768,6 +686,7 @@ serve(async (req) => {
 
     // Generate system prompt with KPI context
     const systemPrompt = generateSystemPrompt(schema);
+    console.log('[AI Debug] KPI context version:', KPI_CONTEXT.version);
     const queryIntent = detectQueryIntent(query);
     const showDetailsByDefault = queryIntent === 'analytical' || wantsDetailedData(query);
 
