@@ -20,6 +20,7 @@ const operatorLabels: Record<ReportFilter['operator'], string> = {
   in: 'in',
   between: 'between',
   is_null: 'is null',
+  is_not_null: 'is not null',
   contains_any: 'contains any',
   contains_only: 'contains only',
   contains_all: 'contains all'
