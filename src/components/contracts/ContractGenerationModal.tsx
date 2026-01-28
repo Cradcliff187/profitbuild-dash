@@ -74,7 +74,7 @@ const contractFormSchema = z.object({
   propertyOwner: z.string().min(1, 'Property owner is required'),
   projectStartDate: z.date({ required_error: 'Start date is required' }),
   projectEndDate: z.date({ required_error: 'End date is required' }),
-  subcontractNumber: z.string().min(1, 'Subcontract number is required'),
+  subcontractNumber: z.string().optional(),
   subcontractPrice: z.number().positive('Price must be greater than zero'),
   agreementDate: z.date({ required_error: 'Agreement date is required' }),
   primeContractOwner: z.string().min(1, 'Prime contract owner is required'),
@@ -220,7 +220,7 @@ export function ContractGenerationModal({
         endDate: formatProjectDate(values.projectEndDate),
       },
       contract: {
-        subcontractNumber: values.subcontractNumber,
+        subcontractNumber: values.subcontractNumber || '',
         subcontractPrice: values.subcontractPrice,
         subcontractPriceFormatted: formatCurrency(values.subcontractPrice),
         agreementDate: formatAgreementDate(values.agreementDate),
@@ -300,7 +300,7 @@ export function ContractGenerationModal({
       onSuccess?.(result);
       toast({
         title: 'Contract Generated',
-        description: `Subcontractor Project Agreement ${result.contractNumber} has been created successfully.`,
+        description: `Subcontractor Project Agreement ${(result as { internalReference?: string }).internalReference || result.contractNumber || ''} has been created successfully.`,
       });
     } catch (err) {
       console.error('Contract generation error:', err);
@@ -637,9 +637,9 @@ export function ContractGenerationModal({
                       name="subcontractNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Subcontract Number *</FormLabel>
+                          <FormLabel>Subcontract Number (optional)</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} placeholder="Enter subcontractor's reference number" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

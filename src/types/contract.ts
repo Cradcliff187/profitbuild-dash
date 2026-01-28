@@ -136,7 +136,8 @@ export interface ContractGenerationRequest {
 export interface ContractGenerationResponse {
   success: boolean;
   contractId: string;
-  contractNumber: string;
+  contractNumber: string | null;
+  internalReference?: string;
   contractType?: ContractType;
   docxUrl?: string;
   pdfUrl?: string;
@@ -152,7 +153,8 @@ export interface Contract {
   estimate_id: string | null;
   quote_id: string | null;
   payee_id: string;
-  contract_number: string;
+  internal_reference: string;      // Auto-generated (Q-AB-225001-01)
+  contract_number: string | null;  // Nullable, user-entered subcontract number
   contract_type: ContractType;
   subcontract_price: number;
   agreement_date: string;

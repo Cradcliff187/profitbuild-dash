@@ -61,6 +61,16 @@ const CONTRACT_TEMPLATE_FILENAMES: Record<string, string> = {
   subcontractor_project_agreement: 'subcontractor-project-agreement-template.docx',
 };
 
+/** Generate payee initials from company name (2-3 chars, e.g., "A&B Flooring" -> "AB") */
+function getPayeeInitials(payeeName: string): string {
+  if (!payeeName) return 'XX';
+  // Remove special characters and split into words
+  const cleaned = payeeName.replace(/[&,.'"-]/g, ' ').trim();
+  const words = cleaned.split(/\s+/).filter(w => w.length > 0);
+  const initials = words.map(w => w[0].toUpperCase()).join('');
+  return initials.slice(0, 3) || 'XX';
+}
+
 function getNestedValue(obj: Record<string, unknown>, path: string): string {
   const value = path.split('.').reduce((cur: unknown, key) => (cur as Record<string, unknown>)?.[key], obj);
   return value != null ? String(value) : '';
@@ -219,7 +229,7 @@ Deno.serve(async (req) => {
       if (suffixMatch && suffixMatch.index !== undefined) {
         const endOfStreet = suffixMatch.index + suffixMatch[0].length;
         const street = beforeStateZip.substring(0, endOfStreet).trim();
-        const city = beforeStateZip.substring(endOfStreet).trim();
+        const city = beforeStateZip.substring(endOfStreet).replace(/^[,\s]+/, '').trim();
         return {
           street,
           cityStateZip: city ? `${city}, ${state} ${zipCode}` : `${state} ${zipCode}`,
@@ -270,9 +280,34 @@ Deno.serve(async (req) => {
     }
 
     const docxBuffer = await zip.generateAsync({ type: 'arraybuffer' });
-    const contractNumber = getNestedValue(fieldValues, 'contract.subcontractNumber');
+    const contractNumber = getNestedValue(fieldValues, 'contract.subcontractNumber') || null;
     const timestamp = new Date().toISOString().split('T')[0];
-    const baseFilename = `${contractNumber}_SubcontractorProjectAgreement_${timestamp}`;
+    
+    // Fetch project number for internal reference
+    const { data: projectData } = await supabase
+      .from('projects')
+      .select('project_number')
+      .eq('id', projectId)
+      .single();
+    const projectNumber = (projectData?.project_number ?? 'NEW').replace(/-/g, '');
+    
+    // Fetch payee name for initials
+    const payeeName = getNestedValue(fieldValues, 'subcontractor.company');
+    const payeeInitials = getPayeeInitials(payeeName);
+    
+    // Get existing contract count for this project to determine version
+    const { count: existingCount } = await supabase
+      .from('contracts')
+      .select('id', { count: 'exact', head: true })
+      .eq('project_id', projectId);
+    const version = (existingCount ?? 0) + 1;
+    
+    // Generate internal reference: Q-{initials}-{projectNumber}-{version}
+    const internalReference = `Q-${payeeInitials}-${projectNumber}-${String(version).padStart(2, '0')}`;
+    console.log(`Generated internal reference: ${internalReference}`);
+    
+    // Use internal reference for file naming (stable, descriptive)
+    const baseFilename = `${internalReference}_SubcontractorProjectAgreement_${timestamp}`;
     const docxPath = `contracts/${projectId}/${baseFilename}.docx`;
 
     const { error: uploadError } = await supabase.storage
@@ -305,7 +340,8 @@ Deno.serve(async (req) => {
         estimate_id: estimateId || null,
         quote_id: quoteId || null,
         payee_id: payeeId,
-        contract_number: contractNumber,
+        internal_reference: internalReference,
+        contract_number: contractNumber || null,
         contract_type: 'subcontractor_project_agreement',
         subcontract_price: subcontractPrice,
         agreement_date: agreementDateShort || timestamp,
@@ -345,6 +381,7 @@ Deno.serve(async (req) => {
         success: true,
         contractId: contract.id,
         contractNumber: contract.contract_number,
+        internalReference: contract.internal_reference,
         contractType: 'subcontractor_project_agreement',
         docxUrl,
         pdfUrl: null,
