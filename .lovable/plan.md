@@ -1,62 +1,87 @@
 
-
-# Fix Contract Price - Use Cost from Line Items
+# Fix Validation Error Messages - Show Field Name
 
 ## Problem
 
-The contract shows **$1,800** (sell price) instead of **$1,440** (cost to pay subcontractor).
+When clicking "Continue to Preview", if a required field is missing, the toast shows:
+- **Title**: "Validation Error"
+- **Description**: "This field is required"
 
-- Current code at line 119: `const subcontractPrice = Number(quote?.total_amount ?? estimate?.total_amount ?? 0);`
-- This pulls `quotes.total_amount` which is the **sell price**
-- The **cost** is stored in `quote_line_items.total_cost`
+This doesn't tell you **which field** is missing. Very frustrating!
 
----
+## Root Cause
+
+In `ContractGenerationModal.tsx` (lines 251-257), the validation error display only shows the error message, not the field name:
+
+```typescript
+const firstError = Object.values(validation.errors)[0];  // Only gets "This field is required"
+toast({
+  title: 'Validation Error',
+  description: firstError,  // Generic message, no field info
+});
+```
 
 ## Solution
 
-Add a query to fetch `total_cost` from `quote_line_items` and sum it.
+Update the error display to include the field name in a human-readable format.
 
 ---
 
 ## Technical Changes
 
-### File: `src/hooks/useContractData.ts`
+### File: `src/components/contracts/ContractGenerationModal.tsx`
 
-**1. Add query for quote line items (in Promise.all, after line 83):**
+**1. Add a helper function to convert field paths to readable labels:**
+
 ```typescript
-quoteId
-  ? supabase.from('quote_line_items').select('total_cost').eq('quote_id', quoteId)
-  : Promise.resolve({ data: null, error: null }),
+function fieldPathToLabel(path: string): string {
+  const labels: Record<string, string> = {
+    'subcontractor.company': 'Company Name',
+    'subcontractor.contactName': 'Contact Name',
+    'subcontractor.address': 'Address',
+    'subcontractor.legalForm': 'Legal Form',
+    'subcontractor.stateOfFormation': 'State of Formation',
+    'project.projectNameNumber': 'Project Name/Number',
+    'project.location': 'Project Location',
+    'project.propertyOwner': 'Property Owner',
+    'project.startDate': 'Start Date',
+    'project.endDate': 'End Date',
+    'contract.subcontractNumber': 'Subcontract Number',
+    'contract.subcontractPrice': 'Subcontract Price',
+    'contract.agreementDate': 'Agreement Date',
+  };
+  return labels[path] || path.split('.').pop() || path;
+}
 ```
 
-**2. Extract and sum the costs (after line 104):**
-```typescript
-const quoteLineItems = quoteLineItemsResult.data as { total_cost: number }[] | null;
-const quoteTotalCost = quoteLineItems?.reduce((sum, item) => sum + (item.total_cost || 0), 0) ?? 0;
-```
+**2. Update error display to show field name (lines 251-258):**
 
-**3. Use cost instead of sell price (line 119):**
 ```typescript
-// Before:
-const subcontractPrice = Number(quote?.total_amount ?? estimate?.total_amount ?? 0);
-
-// After:
-const subcontractPrice = quoteTotalCost || Number(estimate?.total_amount ?? 0);
+if (!validation.isValid) {
+  const [firstField, firstMessage] = Object.entries(validation.errors)[0];
+  const fieldLabel = fieldPathToLabel(firstField);
+  toast({
+    title: 'Missing Required Field',
+    description: `${fieldLabel}: ${firstMessage}`,
+    variant: 'destructive',
+  });
+  return;
+}
 ```
 
 ---
 
 ## Result
 
-| Quote | Before | After |
-|-------|--------|-------|
-| 225-001-QTE-01-01 | $1,800 (sell) | $1,440 (cost) |
+| Before | After |
+|--------|-------|
+| "This field is required" | "State of Formation: This field is required" |
+| No idea which field | Clear indication of missing field |
 
 ---
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/hooks/useContractData.ts` | Add line items query, sum costs, use for contract price |
-
+| File | Changes |
+|------|---------|
+| `src/components/contracts/ContractGenerationModal.tsx` | Add field label helper, update toast to show field name |
