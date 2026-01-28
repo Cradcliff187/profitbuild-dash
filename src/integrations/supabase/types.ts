@@ -654,7 +654,7 @@ export type Database = {
       contracts: {
         Row: {
           agreement_date: string
-          contract_number: string
+          contract_number: string | null
           contract_type: string
           created_at: string
           created_by: string | null
@@ -663,6 +663,7 @@ export type Database = {
           estimate_id: string | null
           field_values: Json
           id: string
+          internal_reference: string | null
           notes: string | null
           payee_id: string
           pdf_storage_path: string | null
@@ -678,7 +679,7 @@ export type Database = {
         }
         Insert: {
           agreement_date: string
-          contract_number: string
+          contract_number?: string | null
           contract_type?: string
           created_at?: string
           created_by?: string | null
@@ -687,6 +688,7 @@ export type Database = {
           estimate_id?: string | null
           field_values: Json
           id?: string
+          internal_reference?: string | null
           notes?: string | null
           payee_id: string
           pdf_storage_path?: string | null
@@ -702,7 +704,7 @@ export type Database = {
         }
         Update: {
           agreement_date?: string
-          contract_number?: string
+          contract_number?: string | null
           contract_type?: string
           created_at?: string
           created_by?: string | null
@@ -711,6 +713,7 @@ export type Database = {
           estimate_id?: string | null
           field_values?: Json
           id?: string
+          internal_reference?: string | null
           notes?: string | null
           payee_id?: string
           pdf_storage_path?: string | null

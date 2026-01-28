@@ -129,7 +129,7 @@ export function QuoteViewRoute() {
                   className="flex items-center justify-between rounded-lg border p-3 text-sm"
                 >
                   <div>
-                    <span className="font-medium">{c.contract_number}</span>
+                    <span className="font-medium">{(c as { internal_reference?: string }).internal_reference || c.contract_number || '—'}</span>
                     {c.agreement_date && (
                       <span className="text-muted-foreground ml-2">
                         {format(new Date(c.agreement_date), "MMM d, yyyy")}

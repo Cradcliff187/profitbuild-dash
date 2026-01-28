@@ -144,11 +144,7 @@ export function useContractData({
           endDate: project?.end_date ? formatProjectDate(project.end_date) : '',
         },
         contract: {
-          subcontractNumber: generateContractNumber(
-            project?.project_number ?? 'NEW',
-            clientName,
-            existingNumbers
-          ),
+        subcontractNumber: '', // User enters the subcontractor's reference number manually
           subcontractPrice,
           subcontractPriceFormatted: formatCurrency(subcontractPrice),
           agreementDate: formatAgreementDate(new Date()),

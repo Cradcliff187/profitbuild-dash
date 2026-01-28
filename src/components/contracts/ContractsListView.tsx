@@ -89,7 +89,7 @@ export function ContractsListView({ projectId }: ContractsListViewProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Contract #</TableHead>
+                <TableHead>Reference</TableHead>
                 <TableHead>Subcontractor</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Agreement date</TableHead>
@@ -100,7 +100,7 @@ export function ContractsListView({ projectId }: ContractsListViewProps) {
             <TableBody>
               {contracts.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.contract_number}</TableCell>
+                  <TableCell className="font-medium">{(c as { internal_reference?: string }).internal_reference || c.contract_number || '—'}</TableCell>
                   <TableCell>{c.payee_name ?? '—'}</TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(c.subcontract_price)}
