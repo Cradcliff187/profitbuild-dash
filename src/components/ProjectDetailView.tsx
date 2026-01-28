@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Outlet, useOutletContext } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, FileText, DollarSign, Target, FileEdit, Edit, Calendar, ChevronLeft, ChevronRight, MapPin, ExternalLink } from "lucide-react";
+import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, FileText, FileSignature, DollarSign, Target, FileEdit, Edit, Calendar, ChevronLeft, ChevronRight, MapPin, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ChangeOrderForm } from "@/components/ChangeOrderForm";
@@ -79,6 +79,7 @@ const getNavigationGroups = (): NavGroup[] => {
       label: "CONTRACTS & ESTIMATES",
       items: [
         { title: "Estimates & Quotes", url: "estimates", icon: FileText },
+        { title: "Contracts", url: "contracts", icon: FileSignature },
         { title: "Change Orders", url: "changes", icon: FileEdit },
       ],
     },

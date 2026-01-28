@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { Payee } from "@/types/payee";
 import { PayeeType } from "@/types/payee";
+import { LEGAL_FORM_OPTIONS, US_STATE_OPTIONS } from "@/constants/contractFields";
 
 const payeeSchema = z.object({
   payee_name: z.string().min(1, "Payee name is required"),
@@ -38,6 +39,10 @@ const payeeSchema = z.object({
   hourly_rate: z.number().positive().optional().or(z.literal("")),
   employee_number: z.string().optional(),
   notes: z.string().optional(),
+  contact_name: z.string().optional(),
+  contact_title: z.string().optional(),
+  legal_form: z.string().optional(),
+  state_of_formation: z.string().optional(),
 });
 
 type PayeeFormData = z.infer<typeof payeeSchema>;
@@ -122,6 +127,10 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
           hourly_rate: typeof data.hourly_rate === 'number' ? data.hourly_rate : null,
           employee_number: data.employee_number || null,
           notes: data.notes || null,
+          contact_name: data.contact_name || null,
+          contact_title: data.contact_title || null,
+          legal_form: data.legal_form || null,
+          state_of_formation: data.state_of_formation || null,
         };
 
         const { error } = await supabase
@@ -156,6 +165,10 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
           hourly_rate: typeof data.hourly_rate === 'number' ? data.hourly_rate : null,
           employee_number: data.employee_number || null,
           notes: data.notes || null,
+          contact_name: data.contact_name || null,
+          contact_title: data.contact_title || null,
+          legal_form: data.legal_form || null,
+          state_of_formation: data.state_of_formation || null,
         };
 
         const { error } = await supabase
@@ -553,6 +566,94 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
               </FormItem>
             )}
           />
+        </div>
+
+        {/* Contract Information (for contract generation) */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium">Contract Information</h3>
+          <p className="text-sm text-muted-foreground">
+            Used for auto-filling subcontractor agreements
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="contact_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="e.g., John Smith" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="contact_title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Title</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="e.g., President, Owner" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="legal_form"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Legal Form</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select legal entity type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {LEGAL_FORM_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="state_of_formation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>State of Formation</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select state" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="max-h-[300px]">
+                      {US_STATE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
       </form>

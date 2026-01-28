@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Dialog,
@@ -31,6 +31,8 @@ export const OfficeDocumentPreviewModal: React.FC<OfficeDocumentPreviewModalProp
   const [contentLoaded, setContentLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [showDownloadFallback, setShowDownloadFallback] = useState(false);
+  const contentLoadedRef = useRef(false);
+  contentLoadedRef.current = contentLoaded;
 
   // Detect file type from extension if not provided
   const detectedFileType = fileType || (() => {
@@ -77,15 +79,21 @@ export const OfficeDocumentPreviewModal: React.FC<OfficeDocumentPreviewModalProp
       // On mobile, show download fallback after 3 seconds if content hasn't loaded
       if (isMobile) {
         const fallbackTimer = setTimeout(() => {
-          if (!contentLoaded) {
-            setShowDownloadFallback(true);
-          }
+          setShowDownloadFallback(true);
         }, 3000);
-        
         return () => clearTimeout(fallbackTimer);
       }
+
+      // On desktop, show download fallback after 10s if iframe hasn't loaded
+      const loadTimeout = setTimeout(() => {
+        if (!contentLoadedRef.current) {
+          console.warn('Document preview timed out after 10s');
+          setShowDownloadFallback(true);
+        }
+      }, 10000);
+      return () => clearTimeout(loadTimeout);
     }
-  }, [open, isMobile, contentLoaded]);
+  }, [open, isMobile]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Save, Calendar as CalendarIcon, Plus, TrendingUp, TrendingDown } from "lucide-react";
+import { Save, Calendar as CalendarIcon, Plus, TrendingUp, TrendingDown, FileText, Download, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateQuoteFinancials, calculateQuoteTotalProfit, calculateQuoteProfitMargin, getProfitStatus } from "@/utils/quoteFinancials";
 import { calculateEstimateFinancials } from "@/utils/estimateFinancials";
+import { OfficeDocumentPreviewModal } from "@/components/OfficeDocumentPreviewModal";
 
 interface QuoteValidationResult {
   isValid: boolean;
@@ -60,6 +61,15 @@ const validateQuoteAmount = (costPerUnit: number, quantity: number, estimateLine
   return { isValid: true };
 };
 
+/** Minimal contract shape for showing generated contracts in the Quote Document section */
+export interface GeneratedContractForQuote {
+  id: string;
+  contract_number: string;
+  docx_url: string | null;
+  pdf_url: string | null;
+  agreement_date?: string;
+}
+
 interface QuoteFormProps {
   estimates: Estimate[];
   initialQuote?: Quote;
@@ -67,9 +77,11 @@ interface QuoteFormProps {
   onSave: (quote: Quote) => void;
   onCancel: () => void;
   mode?: 'edit' | 'view';
+  /** When provided, generated contract(s) for this quote are shown in the Quote Document section */
+  generatedContractsForQuote?: GeneratedContractForQuote[];
 }
 
-export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSave, onCancel, mode = 'edit' }: QuoteFormProps) => {
+export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSave, onCancel, mode = 'edit', generatedContractsForQuote }: QuoteFormProps) => {
   const { toast } = useToast();
   const isEdit = !!initialQuote;
   const isViewMode = mode === 'view';
@@ -96,6 +108,9 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
     lowestCost: number | null;
     hasAccepted: boolean;
   }>>({});
+  const [previewContractOpen, setPreviewContractOpen] = useState(false);
+  const [previewContractUrl, setPreviewContractUrl] = useState<string | null>(null);
+  const [previewContractFileName, setPreviewContractFileName] = useState<string>('');
 
   // Auto-select estimate when navigating from project details
   useEffect(() => {
@@ -1126,10 +1141,65 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
             />
           </div>
 
-          {/* Quote Document Upload */}
+          {/* Quote Document: generated contract(s) + upload */}
           {selectedEstimate && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label className="text-sm font-medium">Quote Document</Label>
+              {generatedContractsForQuote && generatedContractsForQuote.length > 0 && (
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Generated contract{generatedContractsForQuote.length > 1 ? "s" : ""}
+                  </p>
+                  {generatedContractsForQuote.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center justify-between gap-2 text-sm"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{c.contract_number}</p>
+                          {c.agreement_date && (
+                            <p className="text-muted-foreground text-xs">
+                              {format(new Date(c.agreement_date), "MMM d, yyyy")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {c.docx_url && (
+                          <>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setPreviewContractUrl(c.docx_url!);
+                                setPreviewContractFileName(`${c.contract_number}.docx`);
+                                setPreviewContractOpen(true);
+                              }}
+                              title="Preview"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => window.open(c.docx_url!, "_blank")}
+                              title="Download DOCX"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               <QuoteAttachmentUpload
                 projectId={selectedEstimate.project_id}
                 onUploadSuccess={(url) => {
@@ -1167,6 +1237,14 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
           )}
         </div>
       </Card>
+
+      <OfficeDocumentPreviewModal
+        open={previewContractOpen}
+        onOpenChange={setPreviewContractOpen}
+        fileUrl={previewContractUrl || ''}
+        fileName={previewContractFileName}
+        fileType="word"
+      />
     </div>
   );
 };

@@ -22,6 +22,15 @@ Replaced or deprecated files (e.g., old README versions).
 ### `/fixes-and-audits/`
 One-time fix documentation, validation reports, and audit documents for completed corrections.
 
+### `/root-completion-notes/` (added Jan 2026)
+One-off completion and status docs that lived at repo root: cleanup summaries, deployment complete/status, implementation complete notes, QB/Labor/SMS redeploy guides.
+
+### `/contract-build-docs/` (added Jan 2026)
+Contract feature build-time docs: `contract-generation-spec.md`, `contract-generation-cursor-prompts.md`, `CONTRACT_TEMPLATE_TEST_RESULTS.md`. Current contract reference: root `CONTRACT_MIGRATIONS_APPLIED.md` and `docs/contract-template-setup.md`, `docs/contract-template-final-docs.md`.
+
+### `/quickbooks-artifacts/`
+Generated or one-off QuickBooks workflow artifacts (e.g. compass export with hash filenames). Active QB docs remain in `docs/quickbooks/`.
+
 ## Archive Index
 
 ### Deployments

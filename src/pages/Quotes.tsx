@@ -4,7 +4,10 @@ import { FileText, Plus, BarChart3, Download } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { QuoteForm } from "@/components/QuoteForm";
+import { QuoteStatusSelector } from "@/components/QuoteStatusSelector";
+import { ContractGenerationModal } from "@/components/contracts/ContractGenerationModal";
 import { QuotesList } from "@/components/QuotesList";
 import { QuoteComparison } from "@/components/QuoteComparison";
 import { QuoteFilters, QuoteSearchFilters } from "@/components/QuoteFilters";
@@ -12,10 +15,17 @@ import { QuoteExportModal } from "@/components/QuoteExportModal";
 import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
+import type { Contract } from "@/types/contract";
 import { useToast } from "@/hooks/use-toast";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { BrandedLoader } from "@/components/ui/branded-loader";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const Quotes = () => {
   const { toast } = useToast();
@@ -31,6 +41,9 @@ const Quotes = () => {
   const [clients, setClients] = useState<Array<{ id: string; client_name: string; }>>([]);
   const [payees, setPayees] = useState<Array<{ id: string; payee_name: string; }>>([]);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [viewedQuoteStatus, setViewedQuoteStatus] = useState<QuoteStatus | string>(QuoteStatus.PENDING);
+  const [quoteContracts, setQuoteContracts] = useState<Contract[]>([]);
   const [preSelectedEstimateId, setPreSelectedEstimateId] = useState<string | undefined>();
   const [returnUrl, setReturnUrl] = useState<string | null>(null);
   const [searchFilters, setSearchFilters] = useState<QuoteSearchFilters>({
@@ -48,6 +61,35 @@ const Quotes = () => {
     loadClients();
     loadPayees();
   }, []);
+
+  // Sync viewed quote status when viewing a quote
+  useEffect(() => {
+    if (view === 'view' && selectedQuote) {
+      setViewedQuoteStatus(selectedQuote.status);
+    }
+  }, [view, selectedQuote?.id, selectedQuote?.status]);
+
+  // Fetch contracts for the selected quote
+  useEffect(() => {
+    const fetchQuoteContracts = async () => {
+      if (!selectedQuote?.id || view !== 'view') {
+        setQuoteContracts([]);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from("contracts")
+          .select("*")
+          .eq("quote_id", selectedQuote.id)
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        setQuoteContracts((data as Contract[]) ?? []);
+      } catch {
+        setQuoteContracts([]);
+      }
+    };
+    fetchQuoteContracts();
+  }, [selectedQuote?.id, view]);
 
   // Apply filters when quotes or filters change
   useEffect(() => {
@@ -808,13 +850,90 @@ const Quotes = () => {
       )}
 
       {view === 'view' && selectedQuote && (
-        <QuoteForm
-          mode="view"
-          estimates={estimates}
-          initialQuote={selectedQuote}
-          onSave={() => {}}
-          onCancel={() => { setView('list'); setSelectedQuote(undefined); }}
-        />
+        <>
+          <Card className="mb-4">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Quote Status</h3>
+                  <QuoteStatusSelector
+                    quoteId={selectedQuote.id}
+                    currentStatus={viewedQuoteStatus as QuoteStatus}
+                    quoteNumber={selectedQuote.quoteNumber}
+                    payeeName={selectedQuote.quotedBy}
+                    projectId={selectedQuote.project_id}
+                    totalAmount={selectedQuote.total}
+                    onStatusChange={(newStatus) => {
+                      setViewedQuoteStatus(newStatus);
+                      setSelectedQuote((prev) => (prev ? { ...prev, status: newStatus } : undefined));
+                      fetchData();
+                    }}
+                    showLabel={false}
+                  />
+                </div>
+                <TooltipProvider>
+                  {(viewedQuoteStatus === QuoteStatus.ACCEPTED || viewedQuoteStatus === 'accepted') ? (
+                    <Button onClick={() => setShowContractModal(true)}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Generate Contract
+                    </Button>
+                  ) : (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-block">
+                          <Button disabled>
+                            <FileText className="mr-2 h-4 w-4" />
+                            Generate Contract
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Accept the quote to generate a contract
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </TooltipProvider>
+              </div>
+            </CardContent>
+          </Card>
+          <QuoteForm
+            mode="view"
+            estimates={estimates}
+            initialQuote={selectedQuote}
+            onSave={() => {}}
+            onCancel={() => { setView('list'); setSelectedQuote(undefined); }}
+            generatedContractsForQuote={quoteContracts}
+          />
+          <ContractGenerationModal
+            open={showContractModal}
+            onOpenChange={setShowContractModal}
+            projectId={selectedQuote.project_id}
+            estimateId={selectedQuote.estimate_id}
+            quoteId={selectedQuote.id}
+            payeeId={selectedQuote.payee_id}
+            onSuccess={(result) => {
+              toast({
+                title: "Contract generated",
+                description: result.docxUrl
+                  ? "Download available from the project's Contracts tab."
+                  : `Contract ${result.contractNumber} created.`,
+              });
+              setShowContractModal(false);
+              fetchData();
+              // Refetch contracts to show the newly generated one
+              if (selectedQuote?.id) {
+                supabase
+                  .from("contracts")
+                  .select("*")
+                  .eq("quote_id", selectedQuote.id)
+                  .order("created_at", { ascending: false })
+                  .then(({ data }) => {
+                    if (data) setQuoteContracts(data as Contract[]);
+                  });
+              }
+            }}
+          />
+        </>
       )}
 
       {view === 'compare' && selectedQuote && selectedEstimate && (

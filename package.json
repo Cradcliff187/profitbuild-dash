@@ -17,7 +17,8 @@
     "pre-deploy": "bash scripts/pre-deploy-checks.sh",
     "verify-migration": "tsx scripts/verify-bid-media-migration.ts",
     "validate:kpis": "tsx src/lib/kpi-definitions/run-validation.ts",
-    "sync:edge-kpis": "tsx scripts/sync-edge-kpi-context.ts"
+    "sync:edge-kpis": "tsx scripts/sync-edge-kpi-context.ts",
+    "upload:template": "tsx scripts/upload-contract-template.ts"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",

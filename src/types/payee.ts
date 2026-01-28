@@ -32,6 +32,10 @@ export interface Payee {
   hourly_rate?: number | null;
   employee_number?: string;
   notes?: string;
+  contact_name?: string;
+  contact_title?: string;
+  legal_form?: string;
+  state_of_formation?: string;
   created_at: string;
   updated_at: string;
 }
@@ -55,6 +59,10 @@ export interface CreatePayeeData {
   hourly_rate?: number | null;
   employee_number?: string;
   notes?: string;
+  contact_name?: string;
+  contact_title?: string;
+  legal_form?: string;
+  state_of_formation?: string;
 }
 
 export interface UpdatePayeeData extends Partial<CreatePayeeData> {
