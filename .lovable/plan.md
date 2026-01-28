@@ -1,25 +1,20 @@
 
-# Fix Contract Price Bug - Use Cost Instead of Sell Price
+
+# Fix Contract Price - Use Cost from Line Items
 
 ## Problem
 
-The contract is showing **$1,800** (the sell price to the client) instead of **$1,440** (the cost to pay the subcontractor).
+The contract shows **$1,800** (sell price) instead of **$1,440** (cost to pay subcontractor).
 
-**Database Data for Quote 225-001-QTE-01-01:**
-- `quotes.total_amount`: 1800 (sell price - what client pays)
-- `quote_line_items.total_cost`: 1440 (cost - what you pay subcontractor)
-
-**Current Code (useContractData.ts line 119):**
-```typescript
-const subcontractPrice = Number(quote?.total_amount ?? estimate?.total_amount ?? 0);
-```
-This incorrectly uses `total_amount` (sell price) instead of the sum of line item costs.
+- Current code at line 119: `const subcontractPrice = Number(quote?.total_amount ?? estimate?.total_amount ?? 0);`
+- This pulls `quotes.total_amount` which is the **sell price**
+- The **cost** is stored in `quote_line_items.total_cost`
 
 ---
 
 ## Solution
 
-Update `useContractData.ts` to fetch and sum `total_cost` from `quote_line_items` instead of using `quotes.total_amount`.
+Add a query to fetch `total_cost` from `quote_line_items` and sum it.
 
 ---
 
@@ -27,35 +22,21 @@ Update `useContractData.ts` to fetch and sum `total_cost` from `quote_line_items
 
 ### File: `src/hooks/useContractData.ts`
 
-**1. Add a new query to fetch quote line items total cost:**
-
+**1. Add query for quote line items (in Promise.all, after line 83):**
 ```typescript
-// Add this query in the Promise.all block (around line 76-84)
 quoteId
-  ? supabase
-      .from('quote_line_items')
-      .select('total_cost')
-      .eq('quote_id', quoteId)
+  ? supabase.from('quote_line_items').select('total_cost').eq('quote_id', quoteId)
   : Promise.resolve({ data: null, error: null }),
 ```
 
-**2. Calculate the sum of costs from line items:**
-
+**2. Extract and sum the costs (after line 104):**
 ```typescript
-// After extracting results (around line 99-104)
 const quoteLineItems = quoteLineItemsResult.data as { total_cost: number }[] | null;
-
-// Calculate total cost from line items
-const quoteTotalCost = quoteLineItems?.reduce(
-  (sum, item) => sum + (item.total_cost || 0), 
-  0
-) ?? 0;
+const quoteTotalCost = quoteLineItems?.reduce((sum, item) => sum + (item.total_cost || 0), 0) ?? 0;
 ```
 
-**3. Use the cost sum for the contract price:**
-
+**3. Use cost instead of sell price (line 119):**
 ```typescript
-// Update line 119
 // Before:
 const subcontractPrice = Number(quote?.total_amount ?? estimate?.total_amount ?? 0);
 
@@ -65,18 +46,17 @@ const subcontractPrice = quoteTotalCost || Number(estimate?.total_amount ?? 0);
 
 ---
 
-## Summary
+## Result
 
-| Field | Before | After |
+| Quote | Before | After |
 |-------|--------|-------|
-| Source | `quotes.total_amount` | `SUM(quote_line_items.total_cost)` |
-| Value for 225-001-QTE-01-01 | $1,800 | $1,440 |
-| Meaning | Sell price to client | Cost to pay subcontractor |
+| 225-001-QTE-01-01 | $1,800 (sell) | $1,440 (cost) |
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/hooks/useContractData.ts` | Add query for quote line items, sum total_cost, use for contract price |
+| File | Change |
+|------|--------|
+| `src/hooks/useContractData.ts` | Add line items query, sum costs, use for contract price |
+
