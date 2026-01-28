@@ -1,5 +1,6 @@
+-- Idempotent: safe when company_settings already exists (e.g. from an earlier migration or MCP).
 -- Company settings for RCG info used in contract headers/footers and elsewhere
-CREATE TABLE company_settings (
+CREATE TABLE IF NOT EXISTS company_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   setting_key TEXT NOT NULL UNIQUE,
   setting_value TEXT NOT NULL,
@@ -19,13 +20,16 @@ INSERT INTO company_settings (setting_key, setting_value, description) VALUES
   ('company_website', 'teamradcliff.com', 'Company website'),
   ('signatory_name', 'Matt Radcliff', 'Default signatory name'),
   ('signatory_title', 'President/Owner', 'Default signatory title'),
-  ('contract_number_prefix', '', 'Prefix for auto-generated contract numbers');
+  ('contract_number_prefix', '', 'Prefix for auto-generated contract numbers')
+ON CONFLICT (setting_key) DO NOTHING;
 
 ALTER TABLE company_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view company settings" ON company_settings;
 CREATE POLICY "Users can view company settings" ON company_settings
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Admins can update company settings" ON company_settings;
 CREATE POLICY "Admins can update company settings" ON company_settings
   FOR UPDATE USING (
     EXISTS (
@@ -35,6 +39,7 @@ CREATE POLICY "Admins can update company settings" ON company_settings
     )
   );
 
+DROP TRIGGER IF EXISTS update_company_settings_updated_at ON company_settings;
 CREATE TRIGGER update_company_settings_updated_at
   BEFORE UPDATE ON company_settings
   FOR EACH ROW

@@ -1,3 +1,6 @@
+-- Idempotent: safe when contracts was already created by 20260128025804 (applied via MCP).
+-- Supabase Preview may run this file on a DB that already has the table.
+
 -- Ensure trigger function exists for updated_at
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -8,7 +11,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Contracts table: supports multiple contract types; this implementation uses subcontractor_project_agreement
-CREATE TABLE contracts (
+CREATE TABLE IF NOT EXISTS contracts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
   -- Relationships
@@ -53,12 +56,13 @@ CREATE TABLE contracts (
   UNIQUE(project_id, contract_number)
 );
 
-CREATE INDEX idx_contracts_project_id ON contracts(project_id);
-CREATE INDEX idx_contracts_payee_id ON contracts(payee_id);
-CREATE INDEX idx_contracts_status ON contracts(status);
-CREATE INDEX idx_contracts_created_at ON contracts(created_at DESC);
-CREATE INDEX idx_contracts_contract_type ON contracts(contract_type);
+CREATE INDEX IF NOT EXISTS idx_contracts_project_id ON contracts(project_id);
+CREATE INDEX IF NOT EXISTS idx_contracts_payee_id ON contracts(payee_id);
+CREATE INDEX IF NOT EXISTS idx_contracts_status ON contracts(status);
+CREATE INDEX IF NOT EXISTS idx_contracts_created_at ON contracts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_contracts_contract_type ON contracts(contract_type);
 
+DROP TRIGGER IF EXISTS update_contracts_updated_at ON contracts;
 CREATE TRIGGER update_contracts_updated_at
   BEFORE UPDATE ON contracts
   FOR EACH ROW
@@ -66,12 +70,15 @@ CREATE TRIGGER update_contracts_updated_at
 
 ALTER TABLE contracts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view contracts" ON contracts;
 CREATE POLICY "Users can view contracts" ON contracts
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Users can insert contracts" ON contracts;
 CREATE POLICY "Users can insert contracts" ON contracts
   FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Users can update contracts" ON contracts;
 CREATE POLICY "Users can update contracts" ON contracts
   FOR UPDATE USING (true);
 
