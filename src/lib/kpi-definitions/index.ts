@@ -7,8 +7,8 @@
  * - supabase/functions/ai-report-assistant (AI context)
  * - Validation scripts (CI/CD)
  *
- * @version 2.0.0
- * @lastUpdated 2026-01-23
+ * @version 3.0.0
+ * @lastUpdated 2026-01-28
  */
 
 // Types
@@ -37,7 +37,8 @@ export {
 };
 
 // Semantic Mappings
-export { semanticMappings } from './semantic-mappings';
+import { semanticMappings } from './semantic-mappings';
+export { semanticMappings };
 
 // Business Rules
 export { businessRules } from './business-rules';
@@ -115,9 +116,8 @@ export function findKPIById(id: string) {
  * Find KPIs by semantic concept
  */
 export function findKPIsByConcept(concept: string) {
-  const { semanticMappings } = require('./semantic-mappings');
   const mapping = semanticMappings.find(
-    (m: any) => m.concept === concept || m.aliases.includes(concept)
+    (m) => m.concept === concept || m.aliases.includes(concept)
   );
   if (!mapping) return [];
 

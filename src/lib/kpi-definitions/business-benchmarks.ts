@@ -51,7 +51,7 @@ export const businessBenchmarks: Benchmark[] = [
   },
   {
     id: 'billing_progress',
-    metric: 'billing_progress_percent',
+    metric: 'budget_utilization_percent',
     healthyRange: { min: 70, max: 100 },
     warningThreshold: 50,
     unit: 'percent',
@@ -64,7 +64,7 @@ export const businessBenchmarks: Benchmark[] = [
   },
   {
     id: 'labor_cushion_rate',
-    metric: 'labor_cushion_per_hour',
+    metric: 'estimated_labor_cushion',
     healthyRange: { min: 35, max: 50 },
     unit: 'currency',
     context: 'Target $40/hr cushion (billing $75 vs $35 actual cost)',
@@ -76,7 +76,7 @@ export const businessBenchmarks: Benchmark[] = [
   },
   {
     id: 'contingency_usage',
-    metric: 'contingency_used_percent',
+    metric: 'contingency_percent',
     healthyRange: { min: 0, max: 50 },
     warningThreshold: 75,
     criticalThreshold: 100,
@@ -90,7 +90,7 @@ export const businessBenchmarks: Benchmark[] = [
   },
   {
     id: 'weekly_hours',
-    metric: 'hours_per_week',
+    metric: 'expense_net_hours',
     healthyRange: { min: 35, max: 45 },
     warningThreshold: 50,
     unit: 'hours',
@@ -114,15 +114,51 @@ export function evaluateMetric(
   const benchmark = getBenchmarkForMetric(metricId);
   if (!benchmark) return { status: 'unknown', message: '' };
 
-  if (benchmark.criticalThreshold !== undefined && Math.abs(value) >= benchmark.criticalThreshold) {
-    return { status: 'critical', message: benchmark.plainLanguage.critical };
+  // Check if value is within healthy range first
+  const inHealthyRange = (
+    (benchmark.healthyRange.min === undefined || value >= benchmark.healthyRange.min) &&
+    (benchmark.healthyRange.max === undefined || value <= benchmark.healthyRange.max)
+  );
+
+  if (inHealthyRange) {
+    return { status: 'healthy', message: benchmark.plainLanguage.healthy };
   }
-  if (benchmark.warningThreshold !== undefined && Math.abs(value) >= benchmark.warningThreshold) {
-    return { status: 'warning', message: benchmark.plainLanguage.warning };
+
+  // For metrics where LOW values are bad (margin, billing progress):
+  // criticalThreshold < warningThreshold < healthyRange.min
+  // For metrics where HIGH values are bad (cost variance, contingency usage, hours):
+  // healthyRange.max < warningThreshold < criticalThreshold
+  const isLowerBad = benchmark.criticalThreshold !== undefined &&
+    benchmark.warningThreshold !== undefined &&
+    benchmark.criticalThreshold < benchmark.warningThreshold;
+
+  if (isLowerBad) {
+    // Low values are bad (e.g., margin: critical=5, warning=10, healthy=15-30)
+    if (value <= benchmark.criticalThreshold!) {
+      return { status: 'critical', message: benchmark.plainLanguage.critical };
+    }
+    if (value <= benchmark.warningThreshold!) {
+      return { status: 'warning', message: benchmark.plainLanguage.warning };
+    }
+  } else {
+    // High values are bad (e.g., cost variance: healthy=-5 to 5, warning=10, critical=20)
+    if (benchmark.criticalThreshold !== undefined && Math.abs(value) >= benchmark.criticalThreshold) {
+      return { status: 'critical', message: benchmark.plainLanguage.critical };
+    }
+    if (benchmark.warningThreshold !== undefined && Math.abs(value) >= benchmark.warningThreshold) {
+      return { status: 'warning', message: benchmark.plainLanguage.warning };
+    }
   }
+
+  // Below healthy range but not at warning/critical levels
   if (benchmark.healthyRange.min !== undefined && value < benchmark.healthyRange.min) {
     return { status: 'warning', message: benchmark.plainLanguage.warning };
   }
+  // Above healthy range but not at warning/critical levels
+  if (benchmark.healthyRange.max !== undefined && value > benchmark.healthyRange.max) {
+    return { status: 'warning', message: benchmark.plainLanguage.warning };
+  }
+
   return { status: 'healthy', message: benchmark.plainLanguage.healthy };
 }
 

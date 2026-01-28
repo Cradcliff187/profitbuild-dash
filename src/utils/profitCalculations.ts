@@ -157,7 +157,15 @@ export function calculateProfitTrends(projectProfits: ProjectProfitData[]): Prof
       marginPercentage: data.totalRevenue > 0 ? (data.totalProfit / data.totalRevenue) * 100 : 0,
       projectCount: data.projectCount
     }))
-    .sort((a, b) => `${a.year}-${a.month}`.localeCompare(`${b.year}-${b.month}`));
+    .sort((a, b) => {
+      // Sort chronologically using the Map's monthKey (YYYY-MM), not the display month name
+      if (a.year !== b.year) return a.year - b.year;
+      // Extract month index from the display name for proper ordering
+      const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const aMonthIdx = monthOrder.findIndex(m => a.month.startsWith(m));
+      const bMonthIdx = monthOrder.findIndex(m => b.month.startsWith(m));
+      return aMonthIdx - bMonthIdx;
+    });
 }
 
 export function calculateProfitAnalytics(

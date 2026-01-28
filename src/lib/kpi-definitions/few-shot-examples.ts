@@ -127,7 +127,7 @@ WHERE p.is_internal = true
   AND e.category = 'labor_internal'
   AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days'
 GROUP BY p.payee_name`,
-    kpisUsed: ['hours_worked'],
+    kpisUsed: ['expense_net_hours'],
     category: 'time_based'
   },
   {
@@ -152,7 +152,7 @@ WHERE p.is_internal = true
   AND e.expense_date >= DATE_TRUNC('month', CURRENT_DATE)
 GROUP BY p.payee_name
 ORDER BY total_hours DESC`,
-    kpisUsed: ['hours_worked'],
+    kpisUsed: ['expense_net_hours'],
     category: 'time_based'
   },
   {

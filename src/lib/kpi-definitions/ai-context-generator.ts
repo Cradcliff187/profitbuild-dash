@@ -26,7 +26,7 @@ import { getBenchmarksForPrompt } from './business-benchmarks';
 
 // Version tracking for cache invalidation
 export const KPI_DEFINITIONS_VERSION = '3.0.0';
-export const LAST_UPDATED = '2026-01-25';
+export const LAST_UPDATED = '2026-01-28';
 
 /**
  * Generate the complete AI context object
@@ -72,6 +72,7 @@ export function generateSystemPrompt(dbSchema?: string): string {
 
   const benchmarksSection = getBenchmarksForPrompt();
   const marginSection = generateMarginSection();
+  const semanticSection = generateSemanticSection();
   const examplesSection = generateExamplesSection();
 
   return `You are a financial analyst for RCG Work, a construction project management system.
@@ -131,6 +132,8 @@ A: "Strong month - profit is $45,230, up 12% from last month. Average margin acr
 ${criticalRules}
 
 ${marginSection}
+
+${semanticSection}
 
 ## BUSINESS BENCHMARKS (RCG Targets)
 

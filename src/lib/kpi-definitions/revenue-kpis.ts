@@ -70,7 +70,7 @@ export const revenueKPIs: KPIMeasure[] = [
     whereUsed: 'Project financial summary, dashboards, profit calculations',
     notes: 'Total revenue actually received. Handles split revenues correctly via the view.',
     aliases: ['total invoiced', 'total revenue', 'invoiced total', 'revenue received'],
-    relatedTo: ['revenue_actual_margin', 'revenue_invoice_count'],
+    relatedTo: ['actual_margin', 'revenue_invoice_count'],
     preferWhen: 'User asks about actual/real revenue received',
   },
   {
@@ -100,7 +100,7 @@ export const revenueKPIs: KPIMeasure[] = [
     whereUsed: 'Variance analysis, billing progress, financial dashboards',
     notes: 'How much is left to bill. Positive = still owed, Negative = overbilled.',
     aliases: ['billing gap', 'remaining to bill', 'unbilled amount', 'revenue gap'],
-    relatedTo: ['revenue_total_invoiced', 'project_contracted_amount'],
+    relatedTo: ['revenue_total_invoiced', 'contracted_amount'],
   },
   {
     id: 'revenue_revenue_variance_percent',

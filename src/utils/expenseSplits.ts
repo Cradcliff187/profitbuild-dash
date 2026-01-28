@@ -105,19 +105,30 @@ export async function createExpenseSplits(
     
     if (expenseError) throw expenseError;
     if (!expense) throw new Error('Expense not found');
-    
-    // Validate split amounts
+
+    // Validate minimum split count
+    if (splits.length < 2) {
+      return { success: false, error: 'At least 2 splits are required' };
+    }
+
+    // Validate no negative or zero split amounts
+    const invalidSplit = splits.find(s => s.split_amount <= 0);
+    if (invalidSplit) {
+      return { success: false, error: 'All split amounts must be positive' };
+    }
+
+    // Validate split amounts total
     const validation = validateSplitTotal(expense.amount, splits.map(s => s.split_amount));
     if (!validation.valid) {
       return { success: false, error: validation.error };
     }
-    
-    // Calculate percentages for each split
+
+    // Calculate percentages for each split (guard against division by zero)
     const splitsWithPercentages = splits.map(s => ({
       expense_id: expenseId,
       project_id: s.project_id,
       split_amount: s.split_amount,
-      split_percentage: (s.split_amount / expense.amount) * 100,
+      split_percentage: expense.amount > 0 ? (s.split_amount / expense.amount) * 100 : 0,
       notes: s.notes
     }));
     

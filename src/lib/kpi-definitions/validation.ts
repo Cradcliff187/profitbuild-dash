@@ -49,9 +49,11 @@ export function validateKPIDefinitions(): ValidationResult {
   issues.push(...checkDuplicateFields(allKPIs));
   issues.push(...checkViewConsistency(allKPIs));
   issues.push(...checkDeprecatedReferences(allKPIs));
+  issues.push(...checkRelatedToReferences(allKPIs));
   issues.push(...checkSemanticMappings(allKPIs));
   issues.push(...checkRequiredFields(allKPIs));
   issues.push(...checkBusinessRuleReferences(allKPIs));
+  issues.push(...checkFieldPathFormats(allKPIs));
 
   // Calculate stats
   const stats = calculateStats(allKPIs);
@@ -228,6 +230,58 @@ function checkRequiredFields(kpis: KPIMeasure[]): ValidationIssue[] {
           kpiId: kpi.id || 'UNKNOWN',
           message: `KPI "${kpi.name || 'UNNAMED'}" is missing required field "${field}"`,
           suggestion: `Add the ${field} property to the KPI definition.`
+        });
+      }
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Check that relatedTo references point to valid KPI IDs
+ */
+function checkRelatedToReferences(kpis: KPIMeasure[]): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const validIds = new Set(kpis.map(k => k.id));
+
+  for (const kpi of kpis) {
+    if (kpi.relatedTo) {
+      for (const relatedId of kpi.relatedTo) {
+        if (!validIds.has(relatedId)) {
+          issues.push({
+            type: 'orphaned',
+            severity: 'warning',
+            kpiId: kpi.id,
+            message: `KPI "${kpi.name}" relatedTo references non-existent KPI "${relatedId}"`,
+            suggestion: `Update relatedTo to use a valid KPI ID or remove the reference.`
+          });
+        }
+      }
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Check that database-sourced KPIs have valid table.column field paths
+ */
+function checkFieldPathFormats(kpis: KPIMeasure[]): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const validFieldPattern = /^[a-z_]+\.[a-z_]+$/;
+  const validViewFieldPattern = /^reporting\.[a-z_]+\.[a-z_]+$/;
+
+  for (const kpi of kpis) {
+    if (kpi.source === 'database' || kpi.source === 'view') {
+      const isValid = validFieldPattern.test(kpi.field) || validViewFieldPattern.test(kpi.field);
+      if (!isValid) {
+        issues.push({
+          type: 'inconsistent',
+          severity: 'info',
+          kpiId: kpi.id,
+          message: `KPI "${kpi.name}" has non-standard field path: "${kpi.field}"`,
+          suggestion: `Use table.column format (e.g., "expenses.amount" or "reporting.project_financials.total_invoiced").`
         });
       }
     }
