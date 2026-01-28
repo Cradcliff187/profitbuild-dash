@@ -36,7 +36,7 @@ CREATE POLICY "Admins can update company settings" ON company_settings
     EXISTS (
       SELECT 1 FROM user_roles
       WHERE user_id = auth.uid()
-      AND role IN ('admin', 'executive')
+      AND role = 'admin'
     )
   );
 
