@@ -138,10 +138,11 @@ export function ContractGenerationModal({
     },
   });
 
-  const { fields: exhibitFields, append: appendExhibit, remove: removeExhibit } = useFieldArray({
+  const exhibitFieldArray = useFieldArray({
     control: form.control,
-    name: 'listOfExhibits',
+    name: 'listOfExhibits' as never,
   });
+  const { fields: exhibitFields, append: appendExhibit, remove: removeExhibit } = exhibitFieldArray;
 
   useEffect(() => {
     if (fieldValues) {
