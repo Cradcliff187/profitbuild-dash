@@ -1,9 +1,10 @@
-import { Payee } from "@/types/payee";
+import { Payee, PayeeType } from "@/types/payee";
 
 export interface PartialPayee {
   id: string;
   payee_name: string;
   full_name?: string;
+  payee_type?: PayeeType;
 }
 
 export interface PayeeMatch {

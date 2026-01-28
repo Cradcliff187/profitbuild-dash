@@ -9,6 +9,14 @@ export interface PayeeColumnMapping {
   email?: string;
   phone_numbers?: string;
   billing_address?: string;
+  full_name?: string;
+  contact_name?: string;
+  contact_title?: string;
+  legal_form?: string;
+  state_of_formation?: string;
+  notes?: string;
+  account_number?: string;
+  terms?: string;
 }
 
 export interface ParsedPayeeCSV {
@@ -142,6 +150,76 @@ export interface PayeeImportData {
   email?: string;
   phone_numbers?: string;
   billing_address?: string;
+  full_name?: string;
+  contact_name?: string;
+  contact_title?: string;
+  legal_form?: string;
+  state_of_formation?: string;
+  notes?: string;
+  account_number?: string;
+  terms?: string;
+}
+
+/** Normalize payee name for in-file dedupe (trim, lowercase, collapse spaces). Consistent with exact-match behavior in fuzzyPayeeMatcher. */
+export function normalizePayeeNameForDedupe(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export interface DedupePayeesResult {
+  unique: PayeeImportData[];
+  mergedCount: number;
+  mergedRows: { canonicalIndex: number; mergedNames: string[] }[];
+}
+
+/**
+ * Dedupe payees within the CSV by normalized name. Keeps one canonical row per name (first occurrence), optionally merging non-empty email/phone/address from others.
+ */
+export function dedupePayeesInFile(payees: PayeeImportData[]): DedupePayeesResult {
+  const mergedRows: { canonicalIndex: number; mergedNames: string[] }[] = [];
+  const byKey = new Map<string, { canonical: PayeeImportData; names: string[]; index: number }>();
+  let mergedCount = 0;
+
+  payees.forEach((p) => {
+    const key = normalizePayeeNameForDedupe(p.payee_name);
+    if (!key) return;
+
+    const existing = byKey.get(key);
+    if (existing) {
+      mergedCount++;
+      existing.names.push(p.payee_name);
+      // Merge non-empty fields into canonical
+      if (p.email?.trim() && !existing.canonical.email) existing.canonical.email = p.email.trim();
+      if (p.phone_numbers?.trim() && !existing.canonical.phone_numbers) existing.canonical.phone_numbers = p.phone_numbers.trim();
+      if (p.billing_address?.trim() && !existing.canonical.billing_address) existing.canonical.billing_address = p.billing_address.trim();
+      if (p.full_name?.trim() && !existing.canonical.full_name) existing.canonical.full_name = p.full_name.trim();
+      if (p.contact_name?.trim() && !existing.canonical.contact_name) existing.canonical.contact_name = p.contact_name.trim();
+      if (p.contact_title?.trim() && !existing.canonical.contact_title) existing.canonical.contact_title = p.contact_title.trim();
+      if (p.legal_form?.trim() && !existing.canonical.legal_form) existing.canonical.legal_form = p.legal_form.trim();
+      if (p.state_of_formation?.trim() && !existing.canonical.state_of_formation) existing.canonical.state_of_formation = p.state_of_formation.trim();
+      if (p.notes?.trim() && !existing.canonical.notes) existing.canonical.notes = p.notes.trim();
+      if (p.account_number?.trim() && !existing.canonical.account_number) existing.canonical.account_number = p.account_number.trim();
+      if (p.terms?.trim() && !existing.canonical.terms) existing.canonical.terms = p.terms.trim();
+    } else {
+      const index = byKey.size;
+      byKey.set(key, { canonical: { ...p }, names: [p.payee_name], index });
+    }
+  });
+
+  const unique = Array.from(byKey.values())
+    .sort((a, b) => a.index - b.index)
+    .map((v) => v.canonical);
+
+  byKey.forEach((v) => {
+    if (v.names.length > 1) {
+      mergedRows.push({ canonicalIndex: v.index, mergedNames: v.names });
+    }
+  });
+
+  return { unique, mergedCount, mergedRows };
 }
 
 export const mapCSVToPayees = (
@@ -167,7 +245,14 @@ export const mapCSVToPayees = (
       if (mapping.billing_address && row[mapping.billing_address]?.trim()) {
         payee.billing_address = row[mapping.billing_address].trim();
       }
-      
+      if (mapping.full_name && row[mapping.full_name]?.trim()) payee.full_name = row[mapping.full_name].trim();
+      if (mapping.contact_name && row[mapping.contact_name]?.trim()) payee.contact_name = row[mapping.contact_name].trim();
+      if (mapping.contact_title && row[mapping.contact_title]?.trim()) payee.contact_title = row[mapping.contact_title].trim();
+      if (mapping.legal_form && row[mapping.legal_form]?.trim()) payee.legal_form = row[mapping.legal_form].trim();
+      if (mapping.state_of_formation && row[mapping.state_of_formation]?.trim()) payee.state_of_formation = row[mapping.state_of_formation].trim();
+      if (mapping.notes && row[mapping.notes]?.trim()) payee.notes = row[mapping.notes].trim();
+      if (mapping.account_number && row[mapping.account_number]?.trim()) payee.account_number = row[mapping.account_number].trim();
+      if (mapping.terms && row[mapping.terms]?.trim()) payee.terms = row[mapping.terms].trim();
       return payee;
     });
 };

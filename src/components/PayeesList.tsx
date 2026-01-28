@@ -333,6 +333,7 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
     {
       key: 'payee_name',
       label: 'Payee Name',
+      sortable: true,
       render: (payee: Payee) => (
         <div className="font-medium">{payee.payee_name}</div>
       )
@@ -340,6 +341,7 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
     {
       key: 'payee_type',
       label: 'Type',
+      sortable: true,
       render: (payee: Payee) => (
         <Badge 
           variant={getPayeeTypeBadgeVariant(payee.payee_type)} 
@@ -370,11 +372,13 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
     },
     {
       key: 'email',
-      label: 'Email'
+      label: 'Email',
+      sortable: true
     },
     {
       key: 'phone_numbers',
-      label: 'Phone'
+      label: 'Phone',
+      sortable: true
     },
     {
       key: 'services',
@@ -488,6 +492,9 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
           data={filteredPayees}
           columns={columns}
           isLoading={isLoading}
+          enableSorting
+          defaultSortColumn="payee_name"
+          defaultSortDirection="asc"
           selectedItems={selectedPayees}
           onSelectItem={handleSelectPayee}
           onSelectAll={handleSelectAll}
