@@ -1,58 +1,34 @@
 
 
-# Add Notes Section to Payees
+# Trigger Supabase Types Regeneration
 
 ## Summary
-This is a simple, low-risk change that requires adding a `notes` column to the database and updating 3 files in the UI.
+Apply a harmless schema change to trigger Lovable's automatic type regeneration, which will add the missing `contracts` table to the TypeScript types file.
 
-## Complexity: Low
-- One database migration
-- Three TypeScript files to update
-- No breaking changes
+## Approach
+Run a SQL migration that adds a comment to the `contracts` table. This:
+- Does not modify any data or schema structure
+- Triggers the types file regeneration process
+- Is a clean, reversible change
 
----
-
-## Database Change
-
-**Add `notes` column to `payees` table:**
+## Database Migration
 
 ```sql
-ALTER TABLE payees ADD COLUMN notes text;
+-- Trigger types regeneration by adding table comment
+COMMENT ON TABLE contracts IS 'Stores generated subcontractor contracts linked to projects and quotes';
 ```
 
-This is a nullable text column (no constraints), so it won't affect existing records.
+## Expected Result
+After the migration runs:
+1. Lovable will regenerate `src/integrations/supabase/types.ts`
+2. The `contracts` table definition will be added automatically
+3. All 17+ build errors related to the missing table will be resolved
 
----
+## Additional Fix Needed
+There's also a type error in `EstimateStatusActions.tsx` comparing against `'approved'` which isn't in the type union. After types regenerate, I'll check if this needs a separate fix (it may be unrelated to the contracts table issue).
 
-## Frontend Changes
-
-### 1. Update TypeScript Types
-**File:** `src/types/payee.ts`
-
-Add `notes?: string;` to both interfaces:
-- `Payee` interface
-- `CreatePayeeData` interface
-
-### 2. Update Payee Form (Editor)
-**File:** `src/components/PayeeForm.tsx`
-
-- Add `notes: z.string().optional()` to the Zod schema
-- Add `notes: payee?.notes || ""` to default values
-- Add a Textarea field for notes in the "Additional Information" section
-- Include `notes` in the submit handler for both create and update operations
-
-### 3. Update Payee Details Modal (Viewer)
-**File:** `src/components/PayeeDetailsModal.tsx`
-
-- Add a new "Notes" section at the bottom (before System Information)
-- Display notes in a full-width field since notes can be longer text
-
----
-
-## Result
-After implementation:
-- Users can add notes when creating or editing payees
-- Notes will display in the payee details view
-- Existing payees will show empty notes (no impact on current data)
-- Useful for tracking special instructions, payment preferences, contact notes, etc.
+## Complexity: Minimal
+- One simple SQL comment statement
+- No code changes required for the contracts errors
+- Types file updates automatically
 
