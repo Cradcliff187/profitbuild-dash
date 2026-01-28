@@ -55,6 +55,26 @@ import type {
   LegalFormType,
   USState,
 } from '@/types/contract';
+
+/** Convert field paths to human-readable labels for validation errors */
+function fieldPathToLabel(path: string): string {
+  const labels: Record<string, string> = {
+    'subcontractor.company': 'Company Name',
+    'subcontractor.contactName': 'Contact Name',
+    'subcontractor.address': 'Address',
+    'subcontractor.legalForm': 'Legal Form',
+    'subcontractor.stateOfFormation': 'State of Formation',
+    'project.projectNameNumber': 'Project Name/Number',
+    'project.location': 'Project Location',
+    'project.propertyOwner': 'Property Owner',
+    'project.startDate': 'Start Date',
+    'project.endDate': 'End Date',
+    'contract.subcontractNumber': 'Subcontract Number',
+    'contract.subcontractPrice': 'Subcontract Price',
+    'contract.agreementDate': 'Agreement Date',
+  };
+  return labels[path] || path.split('.').pop() || path;
+}
 import { ContractStepper } from '@/components/contracts/ContractStepper';
 import { ContractFieldSummary } from '@/components/contracts/ContractFieldSummary';
 import { ContractDocumentPreview } from '@/components/contracts/ContractDocumentPreview';
@@ -249,10 +269,11 @@ export function ContractGenerationModal({
     const completeFieldValues = buildFieldValues(values);
     const validation = validateContractFields(completeFieldValues);
     if (!validation.isValid) {
-      const firstError = Object.values(validation.errors)[0];
+      const [firstField, firstMessage] = Object.entries(validation.errors)[0];
+      const fieldLabel = fieldPathToLabel(firstField);
       toast({
-        title: 'Validation Error',
-        description: firstError,
+        title: 'Missing Required Field',
+        description: `${fieldLabel}: ${firstMessage}`,
         variant: 'destructive',
       });
       return;
