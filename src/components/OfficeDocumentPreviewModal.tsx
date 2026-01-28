@@ -8,7 +8,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, ExternalLink, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { Download, ExternalLink, FileText, Loader2, AlertCircle, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -64,6 +64,13 @@ export const OfficeDocumentPreviewModal: React.FC<OfficeDocumentPreviewModalProp
 
   const handleOpenInNewTab = () => {
     window.open(fileUrl, '_blank');
+  };
+
+  const handlePrint = () => {
+    // Open in Google Viewer in new tab for printing
+    const printUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}`;
+    window.open(printUrl, '_blank');
+    toast.info('Use Ctrl+P (or Cmd+P) to print, then select "Save as PDF"');
   };
 
   // Google Docs Viewer URL
@@ -225,6 +232,15 @@ export const OfficeDocumentPreviewModal: React.FC<OfficeDocumentPreviewModalProp
         <div className={cn("border-t flex items-center justify-end gap-2", isMobile ? "px-3 py-3 pb-safe" : "px-4 py-3")}>
           {!isMobile && (
             <>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handlePrint}
+                title="Print / Save as PDF"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Print
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm" 

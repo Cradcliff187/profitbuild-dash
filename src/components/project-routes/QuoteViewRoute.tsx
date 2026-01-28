@@ -5,7 +5,7 @@ import { QuoteForm } from "@/components/QuoteForm";
 import { QuoteStatusSelector } from "@/components/QuoteStatusSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Loader2 } from "lucide-react";
+import { FileText, Download, Loader2, Printer } from "lucide-react";
 import { QuoteStatus } from "@/types/quote";
 import { ContractGenerationModal } from "@/components/contracts/ContractGenerationModal";
 import { useToast } from "@/hooks/use-toast";
@@ -138,14 +138,28 @@ export function QuoteViewRoute() {
                   </div>
                   <div className="flex items-center gap-1">
                     {c.docx_url && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(c.docx_url!, "_blank")}
-                      >
-                        <Download className="h-3 w-3 mr-1" />
-                        DOCX
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const printUrl = `https://docs.google.com/gview?url=${encodeURIComponent(c.docx_url!)}`;
+                            window.open(printUrl, '_blank');
+                          }}
+                          title="Print / Save as PDF"
+                        >
+                          <Printer className="h-3 w-3 mr-1" />
+                          Print
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(c.docx_url!, "_blank")}
+                        >
+                          <Download className="h-3 w-3 mr-1" />
+                          DOCX
+                        </Button>
+                      </>
                     )}
                     {c.pdf_url && (
                       <Button
