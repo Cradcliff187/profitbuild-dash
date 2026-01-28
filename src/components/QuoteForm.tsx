@@ -64,7 +64,8 @@ const validateQuoteAmount = (costPerUnit: number, quantity: number, estimateLine
 /** Minimal contract shape for showing generated contracts in the Quote Document section */
 export interface GeneratedContractForQuote {
   id: string;
-  contract_number: string;
+  contract_number: string | null;
+  internal_reference: string | null;
   docx_url: string | null;
   pdf_url: string | null;
   agreement_date?: string;
@@ -1176,7 +1177,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                               className="h-8 w-8"
                               onClick={() => {
                                 setPreviewContractUrl(c.docx_url!);
-                                setPreviewContractFileName(`${c.contract_number}.docx`);
+                                setPreviewContractFileName(`${c.internal_reference || c.contract_number || 'Contract'}.docx`);
                                 setPreviewContractOpen(true);
                               }}
                               title="Preview"
