@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -140,6 +140,7 @@ export function ContractGenerationModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentStep, setCurrentStep] = useState<'configure' | 'preview' | 'complete'>('configure');
   const [previewData, setPreviewData] = useState<ContractFieldValues | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [generationResult, setGenerationResult] = useState<ContractGenerationResponse | null>(null);
 
   const { fieldValues, isLoading, error } = useContractData({
@@ -215,6 +216,13 @@ export function ContractGenerationModal({
       setGenerationResult(null);
     }
   }, [open]);
+
+  // Scroll to top when step changes
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTop = 0;
+    }
+  }, [currentStep]);
 
   function buildFieldValues(values: ContractFormValues): ContractFieldValues {
     if (!fieldValues) throw new Error('Field values not loaded');
@@ -367,7 +375,7 @@ export function ContractGenerationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent ref={contentRef} className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
