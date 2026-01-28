@@ -64,10 +64,10 @@ export async function createRevenueSplits(
       };
     }
 
-    // Get parent revenue for validation
+    // Get parent revenue for validation (include project_id for rollback)
     const { data: parentRevenue, error: parentError } = await supabase
       .from('project_revenues')
-      .select('amount')
+      .select('amount, project_id')
       .eq('id', revenueId)
       .single();
 
@@ -78,8 +78,13 @@ export async function createRevenueSplits(
       };
     }
 
+    // Validate no negative or zero split amounts
+    const invalidSplit = splits.find(s => s.split_amount <= 0);
+    if (invalidSplit) {
+      return { success: false, error: 'All split amounts must be positive' };
+    }
+
     // Validate split total matches parent amount
-    const splitTotal = splits.reduce((sum, s) => sum + s.split_amount, 0);
     const validation = validateSplitTotal(parentRevenue.amount, splits.map(s => s.split_amount));
     if (!validation.valid) {
       return {
@@ -124,10 +129,14 @@ export async function createRevenueSplits(
       `);
 
     if (insertError) {
-      // Attempt to rollback parent update
+      // Rollback parent update: restore original project_id and is_split flag
       await supabase
         .from('project_revenues')
-        .update({ is_split: false })
+        .update({
+          project_id: parentRevenue.project_id,
+          is_split: false,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', revenueId);
       throw insertError;
     }
@@ -268,18 +277,17 @@ export async function deleteRevenueSplits(revenueId: string): Promise<RevenueSpl
         .select('id')
         .eq('project_number', '000-UNASSIGNED')
         .single();
-      revertProjectId = unassigned?.id || '';
+      if (!unassigned?.id) {
+        throw new Error('Cannot revert revenue: 000-UNASSIGNED project not found and no splits exist');
+      }
+      revertProjectId = unassigned.id;
     }
 
-    // Delete split records
-    const { error: deleteError } = await supabase
-      .from('revenue_splits')
-      .delete()
-      .eq('revenue_id', revenueId);
-
-    if (deleteError) throw deleteError;
-
-    // Update parent revenue
+    // Update parent revenue first, then delete splits.
+    // Tradeoff: if parent update succeeds but delete fails, orphaned split rows remain
+    // while the parent is already reverted. This is safer than the reverse (delete-then-update)
+    // where a failed parent update would leave splits gone and the parent stuck on SYS-000.
+    // Orphaned splits are recoverable; a parentless revenue on SYS-000 is not.
     const { error: updateError } = await supabase
       .from('project_revenues')
       .update({
@@ -290,6 +298,14 @@ export async function deleteRevenueSplits(revenueId: string): Promise<RevenueSpl
       .eq('id', revenueId);
 
     if (updateError) throw updateError;
+
+    // Delete split records (orphaned rows if this fails are harmless and cleanable)
+    const { error: deleteError } = await supabase
+      .from('revenue_splits')
+      .delete()
+      .eq('revenue_id', revenueId);
+
+    if (deleteError) throw deleteError;
 
     return { success: true };
   } catch (error) {

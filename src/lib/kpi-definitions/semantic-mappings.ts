@@ -119,7 +119,7 @@ export const semanticMappings: SemanticMapping[] = [
   // ==========================================================================
   {
     concept: 'contingency',
-    aliases: ['buffer', 'reserve', 'safety margin', 'cushion'],
+    aliases: ['buffer', 'reserve', 'safety margin'],
     description: 'Budget set aside for unknowns',
     kpiIds: ['contingency_amount', 'contingency_used', 'contingency_remaining'],
     defaultKpiId: 'contingency_remaining',
@@ -153,8 +153,19 @@ export const semanticMappings: SemanticMapping[] = [
   // ==========================================================================
   {
     concept: 'hours',
-    aliases: ['time worked', 'hours logged', 'time entries'],
-    description: 'Employee work hours',
+    aliases: ['time worked', 'hours logged', 'time entries', 'hours worked'],
+    description: 'Actual employee work hours from time entries',
+    kpiIds: ['expense_net_hours', 'expense_gross_hours'],
+    defaultKpiId: 'expense_net_hours',
+    disambiguation: {
+      expense_net_hours: 'Billable hours after lunch deduction (default for payroll/billing)',
+      expense_gross_hours: 'Total shift duration before lunch deduction (for compliance/overtime)'
+    }
+  },
+  {
+    concept: 'estimated hours',
+    aliases: ['planned hours', 'budgeted hours', 'labor estimate'],
+    description: 'Planned/estimated labor hours from estimates',
     kpiIds: ['estimated_labor_hours'],
     defaultKpiId: 'estimated_labor_hours'
   },

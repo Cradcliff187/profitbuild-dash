@@ -32,8 +32,8 @@ const Dashboard = () => {
   const [workOrderContractValue, setWorkOrderContractValue] = useState(0);
   const [workOrderEstimatedCosts, setWorkOrderEstimatedCosts] = useState(0);
   const [workOrderCompletedValue, setWorkOrderCompletedValue] = useState(0);
-  const [workOrderGrossMargin, setWorkOrderGrossMargin] = useState(0);
-  const [workOrderGrossMarginPercent, setWorkOrderGrossMarginPercent] = useState(0);
+  const [workOrderProjectedMargin, setWorkOrderProjectedMargin] = useState(0);
+  const [workOrderProjectedMarginPercent, setWorkOrderProjectedMarginPercent] = useState(0);
   const [workOrdersWithoutEstimates, setWorkOrdersWithoutEstimates] = useState(0);
   
   // Needs Attention metrics
@@ -52,8 +52,8 @@ const Dashboard = () => {
   const [activeContractValue, setActiveContractValue] = useState(0);
   const [activeEstimatedCosts, setActiveEstimatedCosts] = useState(0);
   const [completedContractValue, setCompletedContractValue] = useState(0);
-  const [activeGrossMargin, setActiveGrossMargin] = useState(0);
-  const [activeGrossMarginPercent, setActiveGrossMarginPercent] = useState(0);
+  const [activeProjectedMargin, setActiveProjectedMargin] = useState(0);
+  const [activeProjectedMarginPercent, setActiveProjectedMarginPercent] = useState(0);
 
   useEffect(() => {
     loadDashboardData();
@@ -112,8 +112,10 @@ const Dashboard = () => {
       return;
     }
 
-    const activeCount = data?.filter(p => 
-      ['in_progress', 'approved', 'quoted'].includes(p.status)
+    // Count active projects: approved + in_progress only
+    // (matches the financial metrics filter for consistency)
+    const activeCount = data?.filter(p =>
+      ['in_progress', 'approved'].includes(p.status)
     ).length || 0;
 
     setActiveProjectCount(activeCount);
@@ -218,8 +220,8 @@ const Dashboard = () => {
 
     setWorkOrderContractValue(totalContractValue);
     setWorkOrderEstimatedCosts(totalEstCosts);
-    setWorkOrderGrossMargin(totalProjectedMargin);
-    setWorkOrderGrossMarginPercent(aggregateMarginPercent);
+    setWorkOrderProjectedMargin(totalProjectedMargin);
+    setWorkOrderProjectedMarginPercent(aggregateMarginPercent);
     setWorkOrderCompletedValue(totalCompleted);
     setWorkOrdersWithoutEstimates(withoutEstimates);
   };
@@ -349,8 +351,8 @@ const Dashboard = () => {
       
       setActiveContractValue(totalContractValue);
       setActiveEstimatedCosts(totalEstCosts);
-      setActiveGrossMargin(totalProjectedMargin);
-      setActiveGrossMarginPercent(aggregateMarginPercent);
+      setActiveProjectedMargin(totalProjectedMargin);
+      setActiveProjectedMarginPercent(aggregateMarginPercent);
     }
 
     // Get completed projects
@@ -431,8 +433,8 @@ const Dashboard = () => {
             activeContractValue={activeContractValue}
             activeEstimatedCosts={activeEstimatedCosts}
             completedContractValue={completedContractValue}
-            activeGrossMargin={activeGrossMargin}
-            activeGrossMarginPercent={activeGrossMarginPercent}
+            activeProjectedMargin={activeProjectedMargin}
+            activeProjectedMarginPercent={activeProjectedMarginPercent}
           />
 
           <WorkOrderStatusCard
@@ -440,8 +442,8 @@ const Dashboard = () => {
             activeContractValue={workOrderContractValue}
             activeEstimatedCosts={workOrderEstimatedCosts}
             completedContractValue={workOrderCompletedValue}
-            activeGrossMargin={workOrderGrossMargin}
-            activeGrossMarginPercent={workOrderGrossMarginPercent}
+            activeProjectedMargin={workOrderProjectedMargin}
+            activeProjectedMarginPercent={workOrderProjectedMarginPercent}
           />
         </div>
       </div>

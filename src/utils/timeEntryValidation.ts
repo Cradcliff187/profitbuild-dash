@@ -75,7 +75,12 @@ export const checkTimeOverlap = async (
     return { hasOverlap: false };
   } catch (error) {
     console.error('Error checking time overlap:', error);
-    return { hasOverlap: false };
+    // Return overlap=true on error to prevent potentially overlapping entries
+    // being created when we can't verify. The user can retry.
+    return {
+      hasOverlap: true,
+      message: 'Unable to verify time overlap. Please try again.'
+    };
   }
 };
 

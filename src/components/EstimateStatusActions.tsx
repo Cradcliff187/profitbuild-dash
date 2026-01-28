@@ -31,7 +31,7 @@ export const EstimateStatusActions = ({
   const updateStatus = async (newStatus: EstimateStatus) => {
     setIsUpdating(true);
     try {
-      // First, get the current estimate data to access project_id and total_amount
+      // First, get the current estimate data to access project_id, total_amount, and fresh status
       const { data: estimate, error: fetchError } = await supabase
         .from('estimates')
         .select('id, project_id, total_amount, status')
@@ -40,36 +40,37 @@ export const EstimateStatusActions = ({
 
       if (fetchError) throw fetchError;
 
-      // Update the estimate status
-      const { error: updateError } = await supabase
-        .from('estimates')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', estimateId);
+      // Guard: Use the fresh database status (not stale prop) to prevent race conditions
+      const freshStatus = estimate.status as EstimateStatus;
 
-      if (updateError) throw updateError;
+      // Guard: Prevent no-op transitions (already in target status)
+      if (freshStatus === newStatus) {
+        toast({
+          title: "No Change",
+          description: `Estimate is already in ${newStatus} status`,
+        });
+        return;
+      }
 
       // Handle project contracted_amount and status updates
       if (newStatus === 'approved') {
-        // When approving an estimate, set it as the contract value
-        // First, set THIS estimate as approved AND current version
-        const { error: currentVersionError } = await supabase
+        // When approving: single write that sets status + is_current_version together
+        // (eliminates the previous double-write pattern)
+        const { error: approveError } = await supabase
           .from('estimates')
-          .update({ 
+          .update({
             status: newStatus,
             is_current_version: true,
             updated_at: new Date().toISOString()
           })
           .eq('id', estimateId);
 
-        if (currentVersionError) throw currentVersionError;
+        if (approveError) throw approveError;
 
-        // Then, un-approve any other estimates for this project and mark as not current
+        // Un-approve any other estimates for this project and mark as not current
         const { error: unApproveError } = await supabase
           .from('estimates')
-          .update({ 
+          .update({
             status: 'sent',
             is_current_version: false
           })
@@ -93,13 +94,13 @@ export const EstimateStatusActions = ({
 
         toast({
           title: "Estimate Approved",
-          description: `Estimate approved and set as contract value (${new Intl.NumberFormat('en-US', { 
-            style: 'currency', 
-            currency: 'USD' 
+          description: `Estimate approved and set as contract value (${new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD'
           }).format(estimate.total_amount)})`,
         });
-      } else if (currentStatus === ('approved' as EstimateStatus) && newStatus !== ('approved' as EstimateStatus)) {
-        // When un-approving an estimate, clear the contract value and current version
+      } else if (freshStatus === 'approved' && newStatus !== 'approved') {
+        // When un-approving: use fresh DB status (not stale prop) for this check
         const { error: estimateError } = await supabase
           .from('estimates')
           .update({
@@ -111,11 +112,21 @@ export const EstimateStatusActions = ({
 
         if (estimateError) throw estimateError;
 
+        // Only revert project to 'quoted' if it's currently 'in_progress' or 'approved'
+        // Don't forcefully revert projects that have progressed further (e.g., 'complete')
+        const { data: project } = await supabase
+          .from('projects')
+          .select('status')
+          .eq('id', estimate.project_id)
+          .single();
+
+        const safeToRevert = project && ['in_progress', 'approved'].includes(project.status);
+
         const { error: projectError } = await supabase
           .from('projects')
           .update({
             contracted_amount: null,
-            status: 'quoted' as any, // Revert to quoted status
+            ...(safeToRevert ? { status: 'quoted' as any } : {}),
             updated_at: new Date().toISOString()
           })
           .eq('id', estimate.project_id);
@@ -127,6 +138,17 @@ export const EstimateStatusActions = ({
           description: `Estimate status changed to ${newStatus} and contract value cleared`,
         });
       } else {
+        // Simple status update (non-approval transitions)
+        const { error: updateError } = await supabase
+          .from('estimates')
+          .update({
+            status: newStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', estimateId);
+
+        if (updateError) throw updateError;
+
         toast({
           title: "Status Updated",
           description: `Estimate status changed to ${newStatus}`,

@@ -96,9 +96,9 @@ export const businessRules: BusinessRule[] = [
   {
     id: 'use_database_calculations',
     category: 'calculation',
-    rule: 'Use pre-calculated fields from database (margin, totals) instead of recalculating in queries',
+    rule: 'Use pre-calculated fields from the reporting view or projects table instead of recalculating in queries. Prefer reporting.project_financials for multi-project queries; projects table is OK for single project lookups.',
     reason: 'Database triggers maintain these calculations accurately. Manual calculations may be inconsistent.',
-    correctExample: 'SELECT current_margin FROM projects WHERE id = ...',
+    correctExample: 'SELECT current_margin FROM reporting.project_financials WHERE project_id = ...',
     incorrectExample: 'SELECT (contracted_amount - (SELECT SUM(amount) FROM expenses...)) as margin',
     severity: 'important'
   },

@@ -77,20 +77,23 @@ export const KPI_CONTEXT = {
   "buffer": "projects.contingency_remaining",
   "reserve": "projects.contingency_remaining",
   "safety margin": "projects.contingency_remaining",
-  "cushion": "projects.contingency_remaining",
   "labor": "reporting.project_financials.estimated_labor_hours",
   "workers": "reporting.project_financials.estimated_labor_hours",
-  "hours": "reporting.project_financials.estimated_labor_hours",
-  "time": "reporting.project_financials.estimated_labor_hours",
   "labor costs": "reporting.project_financials.estimated_labor_hours",
   "labor cushion": "reporting.project_financials.estimated_labor_cushion",
   "labor opportunity": "reporting.project_financials.estimated_labor_cushion",
   "labor profit": "reporting.project_financials.estimated_labor_cushion",
   "hidden profit": "reporting.project_financials.estimated_labor_cushion",
   "rate spread": "reporting.project_financials.estimated_labor_cushion",
-  "time worked": "reporting.project_financials.estimated_labor_hours",
-  "hours logged": "reporting.project_financials.estimated_labor_hours",
-  "time entries": "reporting.project_financials.estimated_labor_hours",
+  "hours": "expenses.hours",
+  "time worked": "expenses.hours",
+  "hours logged": "expenses.hours",
+  "time entries": "expenses.hours",
+  "hours worked": "expenses.hours",
+  "time": "expenses.hours",
+  "estimated hours": "reporting.project_financials.estimated_labor_hours",
+  "planned hours": "reporting.project_financials.estimated_labor_hours",
+  "budgeted hours": "reporting.project_financials.estimated_labor_hours",
   "employee": "",
   "worker": "",
   "staff": "",
@@ -272,8 +275,8 @@ export const KPI_CONTEXT = {
       "budget used",
       "spend rate"
     ],
-    "formula": "(total_expenses / contracted_amount) × 100",
-    "notes": "Percentage of budget consumed."
+    "formula": "(total_expenses / adjusted_est_costs) × 100",
+    "notes": "Percentage of estimated budget consumed. Uses adjusted_est_costs (budget) as denominator, not contracted_amount (revenue)."
   },
   "remaining_budget": {
     "field": "reporting.project_financials.remaining_budget",
@@ -281,8 +284,8 @@ export const KPI_CONTEXT = {
       "budget remaining",
       "available budget"
     ],
-    "formula": "contracted_amount - total_expenses",
-    "notes": "How much budget is left to spend."
+    "formula": "adjusted_est_costs - total_expenses",
+    "notes": "How much of the estimated budget is left to spend. Different from current_margin which uses contracted_amount (revenue)."
   },
   "contingency_amount": {
     "field": "projects.contingency_amount",
@@ -676,7 +679,7 @@ export const KPI_CONTEXT = {
     "notes": "Only meaningful when lunch_taken = true. Typically 30-60 minutes."
   },
   "expense_gross_hours": {
-    "field": "Calculated from start_time/end_time",
+    "field": "expenses.gross_hours",
     "aliases": [
       "gross hours",
       "total hours",
@@ -687,7 +690,7 @@ export const KPI_CONTEXT = {
     "notes": "Total shift duration before lunch deduction. Calculated from timestamp fields."
   },
   "expense_net_hours": {
-    "field": "expenses.amount / hourly_rate OR calculated",
+    "field": "expenses.hours",
     "aliases": [
       "hours",
       "billable hours",
@@ -737,7 +740,7 @@ export const KPI_CONTEXT = {
     "formula": "Timestamp when time entry ended",
     "notes": "Only populated for labor_internal expenses."
   },
-  "expense_expense_category": {
+  "expense_category": {
     "field": "expenses.category",
     "aliases": [
       "category",
@@ -1629,7 +1632,7 @@ export const KPI_CONTEXT = {
     "warning": ">10%",
     "critical": ">20%"
   },
-  "billing_progress": {
+  "budget_progress": {
     "healthy": "70-100%",
     "warning": ">50%"
   },
