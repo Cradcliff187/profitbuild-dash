@@ -1159,7 +1159,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                         <div className="min-w-0">
-                          <p className="font-medium truncate">{c.contract_number}</p>
+                          <p className="font-medium truncate">{c.internal_reference || c.contract_number}</p>
                           {c.agreement_date && (
                             <p className="text-muted-foreground text-xs">
                               {format(new Date(c.agreement_date), "MMM d, yyyy")}
