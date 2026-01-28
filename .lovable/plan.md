@@ -1,118 +1,39 @@
 
-# Fix: Align Quotes Page Contract Display with Project Documents
+# Cleanup Plan: Remove All Test Contract Data
 
-## Problem Summary
+## Current State
+| Table | Count |
+|-------|-------|
+| `project_documents` (contract type) | 28 records |
+| `contracts` | 3 records |
 
-Two misalignments exist between the Quotes page and Project Documents:
-
-1. **Display Mismatch**: The Quotes page shows `contract_number` (user-entered like "4545") while Project Documents shows the `internal_reference` (auto-generated like "Q-ABF-225001-03")
-
-2. **Data Orphans**: When contracts are deleted from the `contracts` table, the corresponding entries in `project_documents` remain (orphaned records)
-
----
-
-## Root Cause Analysis
-
-**Contract Generation Flow:**
-```
-User clicks "Generate Contract"
-       ↓
-Edge Function executes
-       ↓
-┌─────────────────────────────────────┐
-│  1. Creates row in `contracts`      │
-│     - contract_number: user input   │
-│     - internal_reference: auto      │
-│                                     │
-│  2. Creates row in `project_documents`
-│     - file_name: uses internal_ref  │
-│     - related_quote_id: links quote │
-└─────────────────────────────────────┘
-```
-
-**Current Display Logic:**
-
-| Location | Code | Shows |
-|----------|------|-------|
-| QuoteForm.tsx line 1162 | `{c.contract_number}` | "4545" |
-| QuoteViewRoute.tsx line 132 | `internal_reference \|\| contract_number` | Correct! |
-| ContractsListView.tsx line 84 | `internal_reference \|\| contract_number` | Correct! |
-
-The QuoteForm is the only component still showing `contract_number` instead of `internal_reference`.
+**Note:** The 3 existing contracts link to quote `87deacb6-7f9d-4219-b8cf-6761d3daba4f`, and all 28 document entries reference the same quote. Since you confirmed these are all test data, we'll clean them all.
 
 ---
 
-## Solution
+## Cleanup Steps
 
-### Change 1: Fix QuoteForm.tsx Display
-
-**File:** `src/components/QuoteForm.tsx`
-
-Update line 1162 to prefer `internal_reference`:
-
-```typescript
-// Before:
-<p className="font-medium truncate">{c.contract_number}</p>
-
-// After:
-<p className="font-medium truncate">{c.internal_reference || c.contract_number}</p>
-```
-
-This matches the pattern already used in `QuoteViewRoute.tsx` and `ContractsListView.tsx`.
-
----
-
-### Change 2: Cascade Delete from project_documents
-
-When a contract is deleted, the related document should also be deleted. Options:
-
-**Option A: Database Trigger (Recommended)**
-
-Create a trigger on `contracts` table that deletes related `project_documents` entries:
-
-```sql
-CREATE OR REPLACE FUNCTION delete_related_project_documents()
-RETURNS TRIGGER AS $$
-BEGIN
-  DELETE FROM project_documents 
-  WHERE related_quote_id = OLD.quote_id 
-    AND document_type = 'contract';
-  RETURN OLD;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER contracts_delete_cascade
-BEFORE DELETE ON contracts
-FOR EACH ROW EXECUTE FUNCTION delete_related_project_documents();
-```
-
-**Option B: Manual Cleanup Query**
-
-For existing orphaned documents, run:
-
+### Step 1: Delete all contract documents from `project_documents`
 ```sql
 DELETE FROM project_documents 
-WHERE document_type = 'contract' 
-  AND related_quote_id NOT IN (SELECT quote_id FROM contracts WHERE quote_id IS NOT NULL);
+WHERE document_type = 'contract';
+```
+
+### Step 2: Delete all contracts from `contracts` table
+```sql
+DELETE FROM contracts;
 ```
 
 ---
 
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/components/QuoteForm.tsx` | Line 1162: Use `internal_reference \|\| contract_number` |
-
-## Database Changes
-
-| Change | Type |
-|--------|------|
-| Create cascade delete trigger | SQL migration |
-| Clean up orphaned documents | One-time SQL query |
+## After Cleanup
+- Both tables will be empty of contract data
+- The cascade delete trigger we just created will prevent future orphans
+- New contracts you generate will use the aligned display (`internal_reference`)
 
 ---
 
-## Summary
-
-This is primarily a **1-line code fix** in QuoteForm.tsx to align the display, plus optional database trigger to prevent future orphaned documents.
+## What This Cleans Up
+- All 28 document timeline entries
+- All 3 contract records
+- Clears the slate for fresh, properly-synced data
