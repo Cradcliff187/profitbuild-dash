@@ -100,3 +100,14 @@ Our change does not add or remove migration files; it only changes SQL inside `2
 
 - The fix is **aligned** with .cursorrules: we edited an existing migration; we didn’t apply via MCP, didn’t add/remove files, and didn’t change version/name.
 - Before **recommitting**, the rules require: **pull**, **descriptive commit**, and **your approval** before pushing to main. Best practice is to **test this migration on a branch** before merging to main.
+
+---
+
+## Supabase Preview: "Remote migration versions not found in local"
+
+That error means the database has migration versions in `schema_migrations` with no matching local file. Per .cursorrules, create a matching local placeholder for every remote version:
+
+- Filename: `supabase/migrations/{version}_{name}.sql` (name empty → `migration`)
+- Content: `-- Applied via Supabase dashboard since the actual SQL is already in your database.`
+
+**Applied:** Contract migrations were applied via MCP as `20260128025750_add_contract_fields_to_payees`, `20260128025804_create_contracts_table`, `20260128025855_create_contract_templates_bucket`. Those three placeholder files were added so local matches remote and Supabase Preview passes.
