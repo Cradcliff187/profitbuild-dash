@@ -59,7 +59,6 @@ export const ProjectStatusSelector = ({
           "text-xs capitalize px-2 py-0.5",
           status === 'approved' && 'border-green-200 text-green-700 bg-green-50',
           status === 'estimating' && 'border-gray-200 text-gray-700 bg-gray-50',
-          status === 'quoted' && 'border-blue-200 text-blue-700 bg-blue-50',
           status === 'in_progress' && 'border-purple-200 text-purple-700 bg-purple-50',
           status === 'complete' && 'border-green-200 text-green-700 bg-green-50',
           status === 'on_hold' && 'border-yellow-200 text-yellow-700 bg-yellow-50',
@@ -161,7 +160,6 @@ export const ProjectStatusSelector = ({
 
   const statusExplanations = {
     'estimating': 'Project is being estimated and scoped',
-    'quoted': 'Project has been quoted and waiting for client approval', 
     'approved': 'Project approved by client, ready to start work',
     'in_progress': 'Project is currently active and ongoing',
     'complete': 'Project has been finished and delivered',
@@ -213,7 +211,7 @@ export const ProjectStatusSelector = ({
                     <DropdownMenuSeparator />
                     
                     <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                      Workflow: Estimating → Quoted → Approved → In Progress → Complete
+                      Workflow: Estimating → Approved → In Progress → Complete
                     </div>
                   </DropdownMenuContent>
                 </DropdownMenu>

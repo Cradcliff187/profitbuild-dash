@@ -34,7 +34,6 @@ export function BillingProgressTable({ data, isLoading, onSelectProject }: Props
   const getStatusBadge = (status: string) => {
     const statusColors: Record<string, string> = {
       'estimating': 'text-[10px] h-4 px-1.5 bg-gray-50 text-gray-700 border-gray-300',
-      'quoted': 'text-[10px] h-4 px-1.5 bg-blue-50 text-blue-700 border-blue-300',
       'approved': 'text-[10px] h-4 px-1.5 bg-green-50 text-green-700 border-green-300',
       'in_progress': 'text-[10px] h-4 px-1.5 bg-purple-50 text-purple-700 border-purple-300',
       'complete': 'text-[10px] h-4 px-1.5 bg-green-50 text-green-700 border-green-300',

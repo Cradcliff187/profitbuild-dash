@@ -381,7 +381,7 @@ export const KPI_CONTEXT = {
     "aliases": [
       "status"
     ],
-    "formula": "ENUM: 'estimating' | 'quoted' | 'approved' | 'in_progress' | 'complete' | 'on_hold' | 'cancelled'"
+    "formula": "ENUM: 'estimating' | 'approved' | 'in_progress' | 'complete' | 'on_hold' | 'cancelled'"
   },
   "project_type": {
     "field": "projects.project_type",
@@ -1235,7 +1235,7 @@ export const KPI_CONTEXT = {
       "in progress WOs",
       "current work orders"
     ],
-    "formula": "COUNT(WOs WHERE status IN ('in_progress', 'estimating', 'quoted'))",
+    "formula": "COUNT(WOs WHERE status IN ('in_progress', 'estimating'))",
     "notes": "Work orders currently being worked on or in process."
   },
   "work_order_completed_this_week": {
@@ -1382,7 +1382,7 @@ export const KPI_CONTEXT = {
       "status",
       "WO status"
     ],
-    "formula": "ENUM: 'estimating' | 'quoted' | 'approved' | 'in_progress' | 'complete'",
+    "formula": "ENUM: 'estimating' | 'approved' | 'in_progress' | 'complete'",
     "notes": "Current status of the work order in the process."
   },
   "work_order_project_type": {

@@ -187,7 +187,7 @@ export const EstimateStatusSelector = ({
           .from('projects')
           .update({
             contracted_amount: null,
-            status: 'quoted' as any,
+            status: 'estimating' as any,
             updated_at: new Date().toISOString()
           })
           .eq('id', projectId);

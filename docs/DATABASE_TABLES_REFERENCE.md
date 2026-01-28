@@ -61,8 +61,7 @@
 | `updated_at` | TIMESTAMP | No | Last update | Sort, filter |
 
 ### Status Values
-- `estimating` - Initial phase
-- `quoted` - Estimate sent
+- `estimating` - Initial phase (estimating and quoting)
 - `approved` - Client approved
 - `in_progress` - Active work
 - `complete` - Finished

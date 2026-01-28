@@ -22,7 +22,7 @@
 | `change_order_status` | `pending`, `approved`, `rejected` | `change_orders.status`. Approval trigger enforces complementary data. |
 | `estimate_status` | `draft`, `sent`, `approved`, `rejected`, `expired` | `estimates.status`. |
 | `expense_category` | `labor_internal`, `subcontractors`, `materials`, `equipment`, `other`, `permits`, `management`, `office_expenses`, `vehicle_expenses` | Shared classification across estimates, quotes, expenses. |
-| `project_status` | `estimating`, `quoted`, `approved`, `in_progress`, `complete`, `on_hold`, `cancelled` | `projects.status`. |
+| `project_status` | `estimating`, `approved`, `in_progress`, `complete`, `on_hold`, `cancelled` | `projects.status`. |
 | `project_type` | `construction_project`, `work_order` | `projects.project_type`. |
 | `project_category` | `construction`, `system`, `overhead` | `projects.category`. Used for filtering project visibility across the application. |
 | `quote_status` | `pending`, `accepted`, `rejected`, `expired` | `quotes.status`. |
