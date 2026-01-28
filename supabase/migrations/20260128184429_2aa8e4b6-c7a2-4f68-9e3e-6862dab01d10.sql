@@ -9,7 +9,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create trigger for automatic cleanup
+-- Create trigger for automatic cleanup (idempotent for Preview)
+DROP TRIGGER IF EXISTS contracts_delete_cascade ON contracts;
 CREATE TRIGGER contracts_delete_cascade
 BEFORE DELETE ON contracts
 FOR EACH ROW EXECUTE FUNCTION delete_related_project_documents();
