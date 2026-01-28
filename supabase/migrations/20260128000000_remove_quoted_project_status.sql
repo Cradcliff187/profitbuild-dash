@@ -16,12 +16,9 @@ BEGIN
   END IF;
 END $$;
 
--- Step 2: Drop dependent views temporarily (they'll be recreated later by their own migrations)
-DROP VIEW IF EXISTS reporting.internal_labor_hours_by_project CASCADE;
-DROP VIEW IF EXISTS reporting.project_financials CASCADE;
-DROP VIEW IF EXISTS reporting.weekly_labor_hours CASCADE;
-
--- Step 3: Change the enum if 'quoted' still exists
+-- Step 2 & 3: Drop dependent views and change the enum if 'quoted' still exists.
+-- Views must be dropped in the same transaction/block before altering the column type,
+-- because reporting.internal_labor_hours_by_project (and others) depend on projects.status.
 DO $$
 DECLARE
   has_quoted boolean;
@@ -34,6 +31,11 @@ BEGIN
   ) INTO has_quoted;
 
   IF has_quoted THEN
+    -- Drop dependent views first (they depend on projects.status)
+    DROP VIEW IF EXISTS reporting.internal_labor_hours_by_project CASCADE;
+    DROP VIEW IF EXISTS reporting.project_financials CASCADE;
+    DROP VIEW IF EXISTS reporting.weekly_labor_hours CASCADE;
+
     -- Drop the default temporarily
     ALTER TABLE projects ALTER COLUMN status DROP DEFAULT;
 
