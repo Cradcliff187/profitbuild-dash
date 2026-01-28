@@ -1,63 +1,100 @@
 
+# Fix: Align Quotes Page Contract Display with Project Documents
 
-# Fix: Scroll Reset Timing Issue
+## Problem Summary
 
-## Problem
+Two misalignments exist between the Quotes page and Project Documents:
 
-The scroll-to-top effect runs **before** the preview content renders. The sequence is:
-1. `setCurrentStep('preview')` triggers
-2. `useEffect` fires immediately (same tick)
-3. `scrollTop = 0` executes on OLD content
-4. React then renders the NEW preview content (still at old scroll position)
+1. **Display Mismatch**: The Quotes page shows `contract_number` (user-entered like "4545") while Project Documents shows the `internal_reference` (auto-generated like "Q-ABF-225001-03")
+
+2. **Data Orphans**: When contracts are deleted from the `contracts` table, the corresponding entries in `project_documents` remain (orphaned records)
+
+---
+
+## Root Cause Analysis
+
+**Contract Generation Flow:**
+```
+User clicks "Generate Contract"
+       ↓
+Edge Function executes
+       ↓
+┌─────────────────────────────────────┐
+│  1. Creates row in `contracts`      │
+│     - contract_number: user input   │
+│     - internal_reference: auto      │
+│                                     │
+│  2. Creates row in `project_documents`
+│     - file_name: uses internal_ref  │
+│     - related_quote_id: links quote │
+└─────────────────────────────────────┘
+```
+
+**Current Display Logic:**
+
+| Location | Code | Shows |
+|----------|------|-------|
+| QuoteForm.tsx line 1162 | `{c.contract_number}` | "4545" |
+| QuoteViewRoute.tsx line 132 | `internal_reference \|\| contract_number` | Correct! |
+| ContractsListView.tsx line 84 | `internal_reference \|\| contract_number` | Correct! |
+
+The QuoteForm is the only component still showing `contract_number` instead of `internal_reference`.
+
+---
 
 ## Solution
 
-Add a small delay to ensure the new content has rendered before scrolling.
+### Change 1: Fix QuoteForm.tsx Display
 
----
+**File:** `src/components/QuoteForm.tsx`
 
-## Technical Change
-
-### File: `src/components/contracts/ContractGenerationModal.tsx`
-
-**Update the scroll useEffect (lines 220-225):**
+Update line 1162 to prefer `internal_reference`:
 
 ```typescript
-// Before (current code):
-useEffect(() => {
-  if (contentRef.current) {
-    contentRef.current.scrollTop = 0;
-  }
-}, [currentStep]);
+// Before:
+<p className="font-medium truncate">{c.contract_number}</p>
 
-// After (with render delay):
-useEffect(() => {
-  // Use requestAnimationFrame to wait for the next paint cycle
-  // This ensures the new step's content has rendered before scrolling
-  requestAnimationFrame(() => {
-    if (contentRef.current) {
-      contentRef.current.scrollTop = 0;
-    }
-  });
-}, [currentStep]);
+// After:
+<p className="font-medium truncate">{c.internal_reference || c.contract_number}</p>
 ```
 
----
-
-## Why This Works
-
-| Method | When it runs |
-|--------|--------------|
-| Direct `scrollTop = 0` | Immediately, before React re-renders |
-| `requestAnimationFrame` | After browser has painted new content |
-
-This ensures the preview content is actually in the DOM before we scroll.
+This matches the pattern already used in `QuoteViewRoute.tsx` and `ContractsListView.tsx`.
 
 ---
 
-## Alternative (if needed)
+### Change 2: Cascade Delete from project_documents
 
-If the single `requestAnimationFrame` isn't enough, we could use `setTimeout(() => ..., 0)` or double `requestAnimationFrame`, but typically one is sufficient.
+When a contract is deleted, the related document should also be deleted. Options:
+
+**Option A: Database Trigger (Recommended)**
+
+Create a trigger on `contracts` table that deletes related `project_documents` entries:
+
+```sql
+CREATE OR REPLACE FUNCTION delete_related_project_documents()
+RETURNS TRIGGER AS $$
+BEGIN
+  DELETE FROM project_documents 
+  WHERE related_quote_id = OLD.quote_id 
+    AND document_type = 'contract';
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER contracts_delete_cascade
+BEFORE DELETE ON contracts
+FOR EACH ROW EXECUTE FUNCTION delete_related_project_documents();
+```
+
+**Option B: Manual Cleanup Query**
+
+For existing orphaned documents, run:
+
+```sql
+DELETE FROM project_documents 
+WHERE document_type = 'contract' 
+  AND related_quote_id NOT IN (SELECT quote_id FROM contracts WHERE quote_id IS NOT NULL);
+```
 
 ---
 
@@ -65,9 +102,17 @@ If the single `requestAnimationFrame` isn't enough, we could use `setTimeout(() 
 
 | File | Change |
 |------|--------|
-| `src/components/contracts/ContractGenerationModal.tsx` | Wrap scroll in `requestAnimationFrame` |
+| `src/components/QuoteForm.tsx` | Line 1162: Use `internal_reference \|\| contract_number` |
+
+## Database Changes
+
+| Change | Type |
+|--------|------|
+| Create cascade delete trigger | SQL migration |
+| Clean up orphaned documents | One-time SQL query |
 
 ---
 
-This is a 3-line change that ensures the scroll reset happens after React has rendered the new step's content.
+## Summary
 
+This is primarily a **1-line code fix** in QuoteForm.tsx to align the display, plus optional database trigger to prevent future orphaned documents.
