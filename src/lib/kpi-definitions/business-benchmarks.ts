@@ -50,16 +50,16 @@ export const businessBenchmarks: Benchmark[] = [
     }
   },
   {
-    id: 'billing_progress',
+    id: 'budget_progress',
     metric: 'budget_utilization_percent',
     healthyRange: { min: 70, max: 100 },
     warningThreshold: 50,
     unit: 'percent',
-    context: 'Projects should be >70% billed by completion',
+    context: 'Projects should have >70% budget utilized by completion',
     plainLanguage: {
-      healthy: 'Billing on track',
-      warning: 'Behind on billing',
-      critical: 'Significantly underbilled'
+      healthy: 'Budget spend on track',
+      warning: 'Budget underutilized - verify scope progress',
+      critical: 'Significantly under budget utilization'
     }
   },
   {
@@ -94,7 +94,7 @@ export const businessBenchmarks: Benchmark[] = [
     healthyRange: { min: 35, max: 45 },
     warningThreshold: 50,
     unit: 'hours',
-    context: 'Standard work week with reasonable overtime',
+    context: 'Standard work week with reasonable overtime. NOTE: This benchmark expects aggregate weekly hours per person (SUM of expense_net_hours grouped by person/week), not individual time entry hours.',
     plainLanguage: {
       healthy: 'Normal work hours',
       warning: 'High overtime',

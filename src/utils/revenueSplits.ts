@@ -283,7 +283,11 @@ export async function deleteRevenueSplits(revenueId: string): Promise<RevenueSpl
       revertProjectId = unassigned.id;
     }
 
-    // Update parent revenue first (before deleting splits, so splits exist for recovery if this fails)
+    // Update parent revenue first, then delete splits.
+    // Tradeoff: if parent update succeeds but delete fails, orphaned split rows remain
+    // while the parent is already reverted. This is safer than the reverse (delete-then-update)
+    // where a failed parent update would leave splits gone and the parent stuck on SYS-000.
+    // Orphaned splits are recoverable; a parentless revenue on SYS-000 is not.
     const { error: updateError } = await supabase
       .from('project_revenues')
       .update({
@@ -295,7 +299,7 @@ export async function deleteRevenueSplits(revenueId: string): Promise<RevenueSpl
 
     if (updateError) throw updateError;
 
-    // Now delete split records
+    // Delete split records (orphaned rows if this fails are harmless and cleanable)
     const { error: deleteError } = await supabase
       .from('revenue_splits')
       .delete()

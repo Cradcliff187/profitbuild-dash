@@ -1629,7 +1629,7 @@ export const KPI_CONTEXT = {
     "warning": ">10%",
     "critical": ">20%"
   },
-  "billing_progress": {
+  "budget_progress": {
     "healthy": "70-100%",
     "warning": ">50%"
   },

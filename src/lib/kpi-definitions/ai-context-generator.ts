@@ -221,7 +221,7 @@ function generateSemanticSection(): string {
     .filter(m => ['profit', 'margin', 'revenue', 'costs', 'employee', 'vendor'].includes(m.concept))
     .map(m => {
       const aliases = m.aliases.slice(0, 3).join(', ');
-      return `- **${m.concept}** (${aliases}): Use \`${m.defaultKpiId || m.disambiguation?.[''] || 'see disambiguation'}\``;
+      return `- **${m.concept}** (${aliases}): Use \`${m.defaultKpiId ?? 'see disambiguation'}\``;
     })
     .join('\n');
 
