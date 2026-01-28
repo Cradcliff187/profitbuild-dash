@@ -77,18 +77,20 @@ function escapeXml(str: string): string {
 
 /**
  * Merge placeholder text split across Word runs so {{PLACEHOLDER}} is contiguous.
- * Word often splits e.g. "{{SUBCONTRACT_NUMBER}}" into "<w:t>{{SUBCONTRACT_</w:t></w:r><w:r><w:t>NUMBER}}</w:t>".
- * This runs in a loop to handle 3+ run splits.
+ * Word often splits e.g. "{{SUBCONTRACT_NUMBER}}" into "<w:t>{{SUBCONTRACT_</w:t></w:r><w:r><w:rPr>...</w:rPr><w:t>NUMBER}}</w:t>".
+ * This function strips ALL XML tags from inside any {{...}} pattern.
  */
 function normalizePlaceholderRuns(xml: string): string {
-  const runBoundary = /(\{\{[^}]*)<\/w:t>\s*<\/w:r>\s*<w:r[^>]*>\s*<w:t[^>]*>([^}]*\}\})/g;
-  let prev = '';
-  let result = xml;
-  while (prev !== result) {
-    prev = result;
-    result = result.replace(runBoundary, '$1$2');
-  }
-  return result;
+  // Match anything that looks like {{...}} (including XML tags inside)
+  // The pattern captures placeholders that may have XML tags embedded within them
+  return xml.replace(
+    /\{\{([^{}]*(?:<[^>]*>[^{}]*)*)\}\}/g,
+    (match) => {
+      // Remove all XML tags from inside the placeholder, keeping only text
+      const cleaned = match.replace(/<[^>]*>/g, '');
+      return cleaned;
+    }
+  );
 }
 
 /** Build OOXML for list-of-exhibits so each line is a <w:t> run with <w:br/> between. */

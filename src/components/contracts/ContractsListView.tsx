@@ -46,7 +46,7 @@ export function ContractsListView({ projectId }: ContractsListViewProps) {
           payee_name: (row.payees as { payee_name?: string } | null)?.payee_name
             ?? (row.field_values as { subcontractor?: { company?: string } })?.subcontractor?.company
             ?? '—',
-        }));
+        })) as unknown as (Contract & { payee_name?: string })[];
         setContracts(rows);
       } catch (err) {
         console.error('Error fetching contracts:', err);

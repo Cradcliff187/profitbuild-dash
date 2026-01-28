@@ -83,7 +83,7 @@ const Quotes = () => {
           .eq("quote_id", selectedQuote.id)
           .order("created_at", { ascending: false });
         if (error) throw error;
-        setQuoteContracts((data as Contract[]) ?? []);
+        setQuoteContracts((data as unknown as Contract[]) ?? []);
       } catch {
         setQuoteContracts([]);
       }
@@ -928,7 +928,7 @@ const Quotes = () => {
                   .eq("quote_id", selectedQuote.id)
                   .order("created_at", { ascending: false })
                   .then(({ data }) => {
-                    if (data) setQuoteContracts(data as Contract[]);
+                    if (data) setQuoteContracts(data as unknown as Contract[]);
                   });
               }
             }}

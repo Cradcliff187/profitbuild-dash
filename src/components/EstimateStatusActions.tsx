@@ -41,7 +41,7 @@ export const EstimateStatusActions = ({
       if (fetchError) throw fetchError;
 
       // Guard: Use the fresh database status (not stale prop) to prevent race conditions
-      const freshStatus = estimate.status as EstimateStatus;
+      const freshStatus = String(estimate.status) as EstimateStatus;
 
       // Guard: Prevent no-op transitions (already in target status)
       if (freshStatus === newStatus) {
@@ -99,7 +99,7 @@ export const EstimateStatusActions = ({
             currency: 'USD'
           }).format(estimate.total_amount)})`,
         });
-      } else if (freshStatus === 'approved' && newStatus !== 'approved') {
+      } else if (String(freshStatus) === 'approved') {
         // When un-approving: use fresh DB status (not stale prop) for this check
         const { error: estimateError } = await supabase
           .from('estimates')
