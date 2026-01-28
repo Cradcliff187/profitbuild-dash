@@ -219,9 +219,13 @@ export function ContractGenerationModal({
 
   // Scroll to top when step changes
   useEffect(() => {
-    if (contentRef.current) {
-      contentRef.current.scrollTop = 0;
-    }
+    // Use requestAnimationFrame to wait for the next paint cycle
+    // This ensures the new step's content has rendered before scrolling
+    requestAnimationFrame(() => {
+      if (contentRef.current) {
+        contentRef.current.scrollTop = 0;
+      }
+    });
   }, [currentStep]);
 
   function buildFieldValues(values: ContractFormValues): ContractFieldValues {
