@@ -60,6 +60,7 @@ export function useContractData({
         payeeResult,
         estimateResult,
         quoteResult,
+        quoteLineItemsResult,
         settingsResult,
         existingContractsResult,
       ] = await Promise.all([
@@ -78,6 +79,9 @@ export function useContractData({
           : Promise.resolve({ data: null, error: null }),
         quoteId
           ? supabase.from('quotes').select('total_amount').eq('id', quoteId).single()
+          : Promise.resolve({ data: null, error: null }),
+        quoteId
+          ? supabase.from('quote_line_items').select('total_cost').eq('quote_id', quoteId)
           : Promise.resolve({ data: null, error: null }),
         supabase.from('company_settings').select('setting_key, setting_value'),
         supabase.from('contracts').select('contract_number').eq('project_id', projectId),
@@ -98,6 +102,8 @@ export function useContractData({
       const payee = payeeResult.data as PayeeWithContractFields | null;
       const estimate = estimateResult.data as { total_amount?: number } | null;
       const quote = quoteResult.data as { total_amount?: number } | null;
+      const quoteLineItems = quoteLineItemsResult.data as { total_cost: number }[] | null;
+      const quoteTotalCost = quoteLineItems?.reduce((sum, item) => sum + (item.total_cost || 0), 0) ?? 0;
       const settings = (settingsResult.data || []) as { setting_key: string; setting_value: string }[];
       const existingNumbers = ((existingContractsResult.data || []) as { contract_number: string }[]).map(
         (c) => c.contract_number
@@ -116,7 +122,7 @@ export function useContractData({
       };
 
       const clientName = project?.client_name ?? '';
-      const subcontractPrice = Number(quote?.total_amount ?? estimate?.total_amount ?? 0);
+      const subcontractPrice = quoteTotalCost || Number(estimate?.total_amount ?? 0);
 
       const values: ContractFieldValues = {
         subcontractor: {
