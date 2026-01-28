@@ -1,11 +1,18 @@
 
-# Fix: Scroll to Top When Moving to Preview Step
+
+# Fix: Scroll Reset Timing Issue
 
 ## Problem
-When clicking "Continue to Preview", the modal content stays at its current scroll position instead of scrolling to the top, making the preview appear in the middle of the page.
+
+The scroll-to-top effect runs **before** the preview content renders. The sequence is:
+1. `setCurrentStep('preview')` triggers
+2. `useEffect` fires immediately (same tick)
+3. `scrollTop = 0` executes on OLD content
+4. React then renders the NEW preview content (still at old scroll position)
 
 ## Solution
-Add a scroll-to-top action when transitioning to the preview step.
+
+Add a small delay to ensure the new content has rendered before scrolling.
 
 ---
 
@@ -13,39 +20,44 @@ Add a scroll-to-top action when transitioning to the preview step.
 
 ### File: `src/components/contracts/ContractGenerationModal.tsx`
 
-**Add a ref to the DialogContent and scroll to top on step change:**
+**Update the scroll useEffect (lines 220-225):**
 
-1. **Add useRef import** (line 1):
 ```typescript
-import { useState, useEffect, useRef } from 'react';
-```
-
-2. **Create ref for scroll container** (around line 141, with other state):
-```typescript
-const contentRef = useRef<HTMLDivElement>(null);
-```
-
-3. **Add useEffect to scroll on step change** (after line 217):
-```typescript
+// Before (current code):
 useEffect(() => {
   if (contentRef.current) {
     contentRef.current.scrollTop = 0;
   }
 }, [currentStep]);
-```
 
-4. **Attach ref to DialogContent** (line 370):
-```typescript
-<DialogContent ref={contentRef} className="max-w-2xl max-h-[90vh] overflow-y-auto">
+// After (with render delay):
+useEffect(() => {
+  // Use requestAnimationFrame to wait for the next paint cycle
+  // This ensures the new step's content has rendered before scrolling
+  requestAnimationFrame(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTop = 0;
+    }
+  });
+}, [currentStep]);
 ```
 
 ---
 
-## Result
+## Why This Works
 
-| Before | After |
-|--------|-------|
-| Preview shows mid-scroll | Preview shows from the top |
+| Method | When it runs |
+|--------|--------------|
+| Direct `scrollTop = 0` | Immediately, before React re-renders |
+| `requestAnimationFrame` | After browser has painted new content |
+
+This ensures the preview content is actually in the DOM before we scroll.
+
+---
+
+## Alternative (if needed)
+
+If the single `requestAnimationFrame` isn't enough, we could use `setTimeout(() => ..., 0)` or double `requestAnimationFrame`, but typically one is sufficient.
 
 ---
 
@@ -53,8 +65,9 @@ useEffect(() => {
 
 | File | Change |
 |------|--------|
-| `src/components/contracts/ContractGenerationModal.tsx` | Add ref + scroll reset on step change |
+| `src/components/contracts/ContractGenerationModal.tsx` | Wrap scroll in `requestAnimationFrame` |
 
 ---
 
-This is a ~5 line change that ensures the modal scrolls to top whenever the user moves between steps.
+This is a 3-line change that ensures the scroll reset happens after React has rendered the new step's content.
+
