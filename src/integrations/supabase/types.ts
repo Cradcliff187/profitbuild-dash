@@ -651,6 +651,117 @@ export type Database = {
         }
         Relationships: []
       }
+      contracts: {
+        Row: {
+          agreement_date: string
+          contract_number: string
+          contract_type: string
+          created_at: string
+          created_by: string | null
+          docx_storage_path: string | null
+          docx_url: string | null
+          estimate_id: string | null
+          field_values: Json
+          id: string
+          notes: string | null
+          payee_id: string
+          pdf_storage_path: string | null
+          pdf_url: string | null
+          project_end_date: string | null
+          project_id: string
+          project_start_date: string | null
+          quote_id: string | null
+          status: string
+          subcontract_price: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          agreement_date: string
+          contract_number: string
+          contract_type?: string
+          created_at?: string
+          created_by?: string | null
+          docx_storage_path?: string | null
+          docx_url?: string | null
+          estimate_id?: string | null
+          field_values: Json
+          id?: string
+          notes?: string | null
+          payee_id: string
+          pdf_storage_path?: string | null
+          pdf_url?: string | null
+          project_end_date?: string | null
+          project_id: string
+          project_start_date?: string | null
+          quote_id?: string | null
+          status?: string
+          subcontract_price: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          agreement_date?: string
+          contract_number?: string
+          contract_type?: string
+          created_at?: string
+          created_by?: string | null
+          docx_storage_path?: string | null
+          docx_url?: string | null
+          estimate_id?: string | null
+          field_values?: Json
+          id?: string
+          notes?: string | null
+          payee_id?: string
+          pdf_storage_path?: string | null
+          pdf_url?: string | null
+          project_end_date?: string | null
+          project_id?: string
+          project_start_date?: string | null
+          quote_id?: string | null
+          status?: string
+          subcontract_price?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_financial_summary"
+            referencedColumns: ["estimate_id"]
+          },
+          {
+            foreignKeyName: "contracts_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_payee_id_fkey"
+            columns: ["payee_id"]
+            isOneToOne: false
+            referencedRelation: "payees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_line_items: {
         Row: {
           actual_cost_rate_per_hour: number | null
@@ -1295,6 +1406,8 @@ export type Database = {
         Row: {
           account_number: string | null
           billing_address: string | null
+          contact_name: string | null
+          contact_title: string | null
           created_at: string | null
           email: string | null
           employee_number: string | null
@@ -1305,6 +1418,7 @@ export type Database = {
           is_active: boolean | null
           is_internal: boolean | null
           last_synced_at: string | null
+          legal_form: string | null
           license_number: string | null
           notes: string | null
           payee_name: string
@@ -1318,6 +1432,7 @@ export type Database = {
           quickbooks_vendor_id: string | null
           quickbooks_vendor_name: string | null
           requires_1099: boolean | null
+          state_of_formation: string | null
           sync_status: Database["public"]["Enums"]["sync_status"] | null
           terms: string | null
           updated_at: string | null
@@ -1326,6 +1441,8 @@ export type Database = {
         Insert: {
           account_number?: string | null
           billing_address?: string | null
+          contact_name?: string | null
+          contact_title?: string | null
           created_at?: string | null
           email?: string | null
           employee_number?: string | null
@@ -1336,6 +1453,7 @@ export type Database = {
           is_active?: boolean | null
           is_internal?: boolean | null
           last_synced_at?: string | null
+          legal_form?: string | null
           license_number?: string | null
           notes?: string | null
           payee_name: string
@@ -1349,6 +1467,7 @@ export type Database = {
           quickbooks_vendor_id?: string | null
           quickbooks_vendor_name?: string | null
           requires_1099?: boolean | null
+          state_of_formation?: string | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
           terms?: string | null
           updated_at?: string | null
@@ -1357,6 +1476,8 @@ export type Database = {
         Update: {
           account_number?: string | null
           billing_address?: string | null
+          contact_name?: string | null
+          contact_title?: string | null
           created_at?: string | null
           email?: string | null
           employee_number?: string | null
@@ -1367,6 +1488,7 @@ export type Database = {
           is_active?: boolean | null
           is_internal?: boolean | null
           last_synced_at?: string | null
+          legal_form?: string | null
           license_number?: string | null
           notes?: string | null
           payee_name?: string
@@ -1380,6 +1502,7 @@ export type Database = {
           quickbooks_vendor_id?: string | null
           quickbooks_vendor_name?: string | null
           requires_1099?: boolean | null
+          state_of_formation?: string | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
           terms?: string | null
           updated_at?: string | null
@@ -3015,26 +3138,6 @@ export type Database = {
       }
     }
     Functions: {
-      ai_create_project: {
-        Args: {
-          p_address?: string
-          p_client_id: string
-          p_created_by?: string
-          p_do_not_exceed?: number
-          p_end_date?: string
-          p_job_type?: string
-          p_minimum_margin_threshold?: number
-          p_notes?: string
-          p_payment_terms?: string
-          p_project_name: string
-          p_project_type?: Database["public"]["Enums"]["project_type"]
-          p_start_date?: string
-          p_status?: Database["public"]["Enums"]["project_status"]
-          p_target_margin?: number
-          p_user_message?: string
-        }
-        Returns: Json
-      }
       ai_find_client_by_name: {
         Args: { p_search_term: string }
         Returns: {
@@ -3059,17 +3162,6 @@ export type Database = {
           project_type: Database["public"]["Enums"]["project_type"]
           status: Database["public"]["Enums"]["project_status"]
         }[]
-      }
-      ai_update_project_status: {
-        Args: {
-          p_force?: boolean
-          p_new_status: Database["public"]["Enums"]["project_status"]
-          p_note?: string
-          p_project_id: string
-          p_updated_by?: string
-          p_user_message?: string
-        }
-        Returns: Json
       }
       calculate_contingency_remaining: {
         Args: { project_id_param: string }
@@ -3279,11 +3371,11 @@ export type Database = {
       project_category: "construction" | "system" | "overhead"
       project_status:
         | "estimating"
+        | "approved"
         | "in_progress"
         | "complete"
-        | "cancelled"
-        | "approved"
         | "on_hold"
+        | "cancelled"
       project_type: "construction_project" | "work_order"
       quote_status: "pending" | "accepted" | "rejected" | "expired"
       sync_status: "success" | "failed" | "pending"
@@ -3445,11 +3537,11 @@ export const Constants = {
       project_category: ["construction", "system", "overhead"],
       project_status: [
         "estimating",
+        "approved",
         "in_progress",
         "complete",
-        "cancelled",
-        "approved",
         "on_hold",
+        "cancelled",
       ],
       project_type: ["construction_project", "work_order"],
       quote_status: ["pending", "accepted", "rejected", "expired"],
