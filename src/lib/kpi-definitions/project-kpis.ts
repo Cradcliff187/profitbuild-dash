@@ -392,7 +392,7 @@ export const projectFinancialKPIs: KPIMeasure[] = [
     name: 'Project Status',
     source: 'database',
     field: 'projects.status',
-    formula: "ENUM: 'estimating' | 'quoted' | 'approved' | 'in_progress' | 'complete' | 'on_hold' | 'cancelled'",
+    formula: "ENUM: 'estimating' | 'approved' | 'in_progress' | 'complete' | 'on_hold' | 'cancelled'",
     dataType: 'enum',
     domain: 'project',
     whereUsed: 'All project views, filtering',

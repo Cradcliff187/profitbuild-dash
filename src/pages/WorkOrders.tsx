@@ -372,7 +372,7 @@ const WorkOrders = () => {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const pendingInProgress = workOrders.filter(wo => 
-      wo.status === 'in_progress' || wo.status === 'estimating' || wo.status === 'quoted'
+      wo.status === 'in_progress' || wo.status === 'estimating'
     ).length;
 
     const completedThisWeek = workOrders.filter(wo => {

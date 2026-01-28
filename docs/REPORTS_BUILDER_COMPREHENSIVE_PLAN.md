@@ -53,11 +53,11 @@ This document provides a complete analysis of the ProfitBuild application's data
 
 **Project Status Flow**:
 ```
-estimating → quoted → approved → in_progress → complete
-                                            ↓
-                                        on_hold
-                                            ↓
-                                        cancelled
+estimating → approved → in_progress → complete
+                                  ↓
+                              on_hold
+                                  ↓
+                              cancelled
 ```
 
 **Estimate Status**:

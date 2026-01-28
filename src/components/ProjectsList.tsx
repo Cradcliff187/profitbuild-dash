@@ -76,8 +76,6 @@ export const ProjectsList = ({
     switch (status) {
       case 'estimating':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'quoted':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'approved':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'in_progress':
@@ -195,8 +193,8 @@ export const ProjectsList = ({
           // Find current estimate for this project
           const projectEstimates = estimates.filter(e => e.project_id === project.id);
           const currentEstimate = projectEstimates.find(e => e.is_current_version);
-          const isEstimatingOrQuoted = project.status === 'estimating' || project.status === 'quoted';
-          const showEstimateDetails = isEstimatingOrQuoted && currentEstimate;
+          const isEstimating = project.status === 'estimating';
+          const showEstimateDetails = isEstimating && currentEstimate;
           
           // DESKTOP: Use exact current implementation (NO CHANGES)
           if (!isMobile) {

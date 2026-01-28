@@ -3279,7 +3279,6 @@ export type Database = {
       project_category: "construction" | "system" | "overhead"
       project_status:
         | "estimating"
-        | "quoted"
         | "in_progress"
         | "complete"
         | "cancelled"
@@ -3446,7 +3445,6 @@ export const Constants = {
       project_category: ["construction", "system", "overhead"],
       project_status: [
         "estimating",
-        "quoted",
         "in_progress",
         "complete",
         "cancelled",

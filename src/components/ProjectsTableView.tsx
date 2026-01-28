@@ -257,7 +257,6 @@ export const ProjectsTableView = ({
           "text-xs capitalize px-2 py-0.5",
           status === 'approved' && 'border-green-200 text-green-700 bg-green-50',
           status === 'estimating' && 'border-gray-200 text-gray-700 bg-gray-50',
-          status === 'quoted' && 'border-blue-200 text-blue-700 bg-blue-50',
           status === 'in_progress' && 'border-purple-200 text-purple-700 bg-purple-50',
           status === 'complete' && 'border-green-200 text-green-700 bg-green-50',
           status === 'on_hold' && 'border-yellow-200 text-yellow-700 bg-yellow-50',
@@ -302,7 +301,6 @@ export const ProjectsTableView = ({
   const getMarginContext = (status: ProjectStatus) => {
     switch (status) {
       case 'estimating':
-      case 'quoted':
         return 'Projected';
       case 'complete':
         return 'Final';
@@ -323,7 +321,6 @@ export const ProjectsTableView = ({
     if (isEndDate) {
       switch (status) {
         case 'estimating':
-        case 'quoted':
         case 'approved':
           label = 'Target';
           className += ' text-muted-foreground';
@@ -348,7 +345,6 @@ export const ProjectsTableView = ({
     } else {
       switch (status) {
         case 'estimating':
-        case 'quoted':
         case 'approved':
           label = 'Planned';
           className += ' text-muted-foreground';
@@ -386,7 +382,6 @@ export const ProjectsTableView = ({
     
     switch (status) {
       case 'estimating':
-      case 'quoted':
       case 'approved': {
         // If start date is in the future - show countdown to start
         if (start > today) {
@@ -595,7 +590,6 @@ export const ProjectsTableView = ({
         const getDateContext = () => {
           switch (project.status) {
             case 'estimating':
-            case 'quoted':
             case 'approved':
               return 'Planned start date for project execution';
             case 'in_progress':
@@ -636,7 +630,6 @@ export const ProjectsTableView = ({
         const getEndDateContext = () => {
           switch (project.status) {
             case 'estimating':
-            case 'quoted':
             case 'approved':
               return 'Target completion date for project delivery';
             case 'in_progress':
@@ -693,7 +686,6 @@ export const ProjectsTableView = ({
           const baseText = `Project schedule: ${durationData.display}`;
           switch (project.status) {
             case 'estimating':
-            case 'quoted':
             case 'approved':
               if (durationData.status === 'overdue') {
                 return `${baseText}. Approved project is past its target completion date and should be moved to in-progress or reviewed.`;

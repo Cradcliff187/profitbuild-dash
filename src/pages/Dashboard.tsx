@@ -138,11 +138,10 @@ const Dashboard = () => {
       return acc;
     }, {}) || {};
 
-    const statusOrder = ['estimating', 'approved', 'in_progress', 'complete', 'cancelled', 'quoted', 'on_hold'];
+    const statusOrder = ['estimating', 'approved', 'in_progress', 'complete', 'cancelled', 'on_hold'];
     const statusLabels: Record<string, string> = {
       'in_progress': 'In Progress',
       'estimating': 'Estimating',
-      'quoted': 'Quoted',
       'approved': 'Approved',
       'complete': 'Complete',
       'on_hold': 'On Hold',
@@ -177,11 +176,10 @@ const Dashboard = () => {
       return acc;
     }, {}) || {};
 
-    const statusOrder = ['estimating', 'approved', 'in_progress', 'complete', 'cancelled', 'quoted', 'on_hold'];
+    const statusOrder = ['estimating', 'approved', 'in_progress', 'complete', 'cancelled', 'on_hold'];
     const statusLabels: Record<string, string> = {
       'in_progress': 'In Progress',
       'estimating': 'Estimating',
-      'quoted': 'Quoted',
       'approved': 'Approved',
       'complete': 'Complete',
       'on_hold': 'On Hold',

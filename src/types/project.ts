@@ -36,9 +36,8 @@ export interface Project {
 
 export type ProjectType = 'construction_project' | 'work_order';
 
-export type ProjectStatus = 
+export type ProjectStatus =
   | 'estimating'
-  | 'quoted' 
   | 'approved'
   | 'in_progress'
   | 'complete'
@@ -94,7 +93,6 @@ export const JOB_TYPES = [
 
 export const PROJECT_STATUSES = [
   { value: 'estimating', label: 'Estimating' },
-  { value: 'quoted', label: 'Quoted' },
   { value: 'approved', label: 'Approved' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'complete', label: 'Complete' },

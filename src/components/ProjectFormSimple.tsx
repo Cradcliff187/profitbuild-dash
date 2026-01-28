@@ -20,7 +20,7 @@ const formSchema = z.object({
   address: z.string().optional(),
   customer_po_number: z.string().optional(),
   project_type: z.enum(["construction_project", "work_order"]),
-  status: z.enum(["estimating", "quoted", "approved", "in_progress", "complete", "on_hold", "cancelled"]),
+  status: z.enum(["estimating", "approved", "in_progress", "complete", "on_hold", "cancelled"]),
   job_type: z.string().optional(),
   payment_terms: z.string(),
   minimum_margin_threshold: z.number().min(0).max(100),
@@ -249,7 +249,6 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="estimating">Estimating</SelectItem>
-                    <SelectItem value="quoted">Quoted</SelectItem>
                     <SelectItem value="approved">Approved</SelectItem>
                     <SelectItem value="in_progress">In Progress</SelectItem>
                     <SelectItem value="complete">Complete</SelectItem>

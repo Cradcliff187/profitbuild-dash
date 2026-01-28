@@ -38,8 +38,6 @@ const WorkOrderCard = ({ workOrder, onUpdate }: WorkOrderCardProps) => {
     switch (status) {
       case 'estimating':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'quoted':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'approved':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'in_progress':

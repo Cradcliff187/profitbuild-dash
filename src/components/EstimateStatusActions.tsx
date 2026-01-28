@@ -112,7 +112,7 @@ export const EstimateStatusActions = ({
 
         if (estimateError) throw estimateError;
 
-        // Only revert project to 'quoted' if it's currently 'in_progress' or 'approved'
+        // Only revert project to 'estimating' if it's currently 'in_progress' or 'approved'
         // Don't forcefully revert projects that have progressed further (e.g., 'complete')
         const { data: project } = await supabase
           .from('projects')
@@ -126,7 +126,7 @@ export const EstimateStatusActions = ({
           .from('projects')
           .update({
             contracted_amount: null,
-            ...(safeToRevert ? { status: 'quoted' as any } : {}),
+            ...(safeToRevert ? { status: 'estimating' as any } : {}),
             updated_at: new Date().toISOString()
           })
           .eq('id', estimate.project_id);
