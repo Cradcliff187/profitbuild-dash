@@ -12,12 +12,31 @@ WHERE status = 'quoted';
 
 -- Only proceed if 'quoted' still exists in the enum
 DO $$
+DECLARE
+  has_quoted boolean;
+  old_default text;
 BEGIN
-  IF EXISTS (
+  -- Check if 'quoted' exists in the enum
+  SELECT EXISTS (
     SELECT 1 FROM pg_enum
     WHERE enumlabel = 'quoted'
     AND enumtypid = 'project_status'::regtype
-  ) THEN
+  ) INTO has_quoted;
+
+  IF has_quoted THEN
+    -- Store the current default value
+    SELECT pg_get_expr(adbin, adrelid)
+    INTO old_default
+    FROM pg_attrdef
+    JOIN pg_attribute ON pg_attribute.attrelid = pg_attrdef.adrelid 
+      AND pg_attribute.attnum = pg_attrdef.adnum
+    JOIN pg_class ON pg_class.oid = pg_attribute.attrelid
+    WHERE pg_class.relname = 'projects'
+      AND pg_attribute.attname = 'status';
+
+    -- Drop the default temporarily
+    ALTER TABLE projects ALTER COLUMN status DROP DEFAULT;
+
     -- Rename the old enum
     ALTER TYPE project_status RENAME TO project_status_old;
 
@@ -35,6 +54,12 @@ BEGIN
     ALTER TABLE projects
       ALTER COLUMN status TYPE project_status
       USING status::text::project_status;
+
+    -- Restore the default (it will automatically use the new enum type)
+    IF old_default IS NOT NULL THEN
+      EXECUTE format('ALTER TABLE projects ALTER COLUMN status SET DEFAULT %s', 
+        replace(old_default, 'project_status_old', 'project_status'));
+    END IF;
 
     -- Drop the old enum
     DROP TYPE project_status_old;
