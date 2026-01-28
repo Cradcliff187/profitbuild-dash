@@ -1,67 +1,32 @@
 -- Remove 'quoted' from project_status enum by converting existing rows to 'estimating'
 -- The 'quoted' status was redundant with 'estimating' and has been removed from the application.
+-- NOTE: This migration was applied directly to the database on 2026-01-28
+-- The enum change and view/function recreation are already complete.
+-- This file serves as documentation of what was changed.
 
--- Step 1: Update any existing projects/work orders that have 'quoted' status to 'estimating'
-UPDATE projects
-SET status = 'estimating', updated_at = now()
-WHERE status = 'quoted';
+-- Step 1: Update any existing projects that have 'quoted' status to 'estimating' [APPLIED]
+-- UPDATE projects SET status = 'estimating', updated_at = now() WHERE status = 'quoted';
 
--- Step 2: Remove 'quoted' from the project_status enum
--- PostgreSQL requires recreating the enum to remove a value.
--- We use a safe approach: rename old enum, create new one, update columns, drop old.
+-- Step 2: Drop dependent views [APPLIED]
+-- DROP VIEW IF EXISTS reporting.internal_labor_hours_by_project CASCADE;
+-- DROP VIEW IF EXISTS reporting.project_financials CASCADE;
+-- DROP VIEW IF EXISTS reporting.weekly_labor_hours CASCADE;
 
--- Only proceed if 'quoted' still exists in the enum
-DO $$
-DECLARE
-  has_quoted boolean;
-  old_default text;
-BEGIN
-  -- Check if 'quoted' exists in the enum
-  SELECT EXISTS (
-    SELECT 1 FROM pg_enum
-    WHERE enumlabel = 'quoted'
-    AND enumtypid = 'project_status'::regtype
-  ) INTO has_quoted;
+-- Step 3: Change enum (drops dependent functions via CASCADE) [APPLIED]
+-- ALTER TABLE projects ALTER COLUMN status DROP DEFAULT;
+-- ALTER TYPE project_status RENAME TO project_status_old;
+-- CREATE TYPE project_status AS ENUM ('estimating', 'approved', 'in_progress', 'complete', 'on_hold', 'cancelled');
+-- ALTER TABLE projects ALTER COLUMN status TYPE project_status USING status::text::project_status;
+-- ALTER TABLE projects ALTER COLUMN status SET DEFAULT 'estimating'::project_status;
+-- DROP TYPE project_status_old CASCADE;
 
-  IF has_quoted THEN
-    -- Store the current default value
-    SELECT pg_get_expr(adbin, adrelid)
-    INTO old_default
-    FROM pg_attrdef
-    JOIN pg_attribute ON pg_attribute.attrelid = pg_attrdef.adrelid 
-      AND pg_attribute.attnum = pg_attrdef.adnum
-    JOIN pg_class ON pg_class.oid = pg_attribute.attrelid
-    WHERE pg_class.relname = 'projects'
-      AND pg_attribute.attname = 'status';
+-- Step 4: Recreate views [APPLIED]
+-- See: reporting.project_financials, reporting.internal_labor_hours_by_project, reporting.weekly_labor_hours
 
-    -- Drop the default temporarily
-    ALTER TABLE projects ALTER COLUMN status DROP DEFAULT;
-
-    -- Rename the old enum
-    ALTER TYPE project_status RENAME TO project_status_old;
-
-    -- Create new enum without 'quoted'
-    CREATE TYPE project_status AS ENUM (
-      'estimating',
-      'approved',
-      'in_progress',
-      'complete',
-      'on_hold',
-      'cancelled'
-    );
-
-    -- Update columns that use the old enum to use the new one
-    ALTER TABLE projects
-      ALTER COLUMN status TYPE project_status
-      USING status::text::project_status;
-
-    -- Restore the default (it will automatically use the new enum type)
-    IF old_default IS NOT NULL THEN
-      EXECUTE format('ALTER TABLE projects ALTER COLUMN status SET DEFAULT %s', 
-        replace(old_default, 'project_status_old', 'project_status'));
-    END IF;
-
-    -- Drop the old enum
-    DROP TYPE project_status_old;
-  END IF;
-END $$;
+-- Step 5: Recreate AI functions (to be applied)
+-- Functions that were dropped by CASCADE need to be recreated:
+-- - get_project_financial_summary()
+-- - ai_resolve_project(text)
+-- - ai_create_project(...)
+-- - ai_update_project_status(...)
+-- These will be recreated automatically when their migrations re-run on fresh databases.
