@@ -1,9 +1,10 @@
 -- Idempotent: safe when company_settings already exists (e.g. from an earlier migration or MCP).
--- Company settings for RCG info used in contract headers/footers and elsewhere
+-- Company settings for RCG info used in contract headers/footers and elsewhere.
+-- setting_value is JSONB to match production and 20260128162416; use to_jsonb(...::text) in INSERTs.
 CREATE TABLE IF NOT EXISTS company_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   setting_key TEXT NOT NULL UNIQUE,
-  setting_value TEXT NOT NULL,
+  setting_value JSONB NOT NULL,
   setting_type TEXT NOT NULL DEFAULT 'text'
     CHECK (setting_type IN ('text', 'number', 'boolean', 'json')),
   description TEXT,
@@ -12,15 +13,15 @@ CREATE TABLE IF NOT EXISTS company_settings (
 );
 
 INSERT INTO company_settings (setting_key, setting_value, description) VALUES
-  ('company_legal_name', 'RCG LLC, a Kentucky limited liability company', 'Full legal name for contracts'),
-  ('company_display_name', 'Radcliff Construction Group, LLC', 'Display name for signature blocks'),
-  ('company_address', '23 Erlanger Road, Erlanger, KY 41017', 'Primary business address'),
-  ('company_phone', '(859) 802-0746', 'Main phone number'),
-  ('company_email', 'matt@radcliffcg.com', 'Main contact email'),
-  ('company_website', 'teamradcliff.com', 'Company website'),
-  ('signatory_name', 'Matt Radcliff', 'Default signatory name'),
-  ('signatory_title', 'President/Owner', 'Default signatory title'),
-  ('contract_number_prefix', '', 'Prefix for auto-generated contract numbers')
+  ('company_legal_name', to_jsonb('RCG LLC, a Kentucky limited liability company'::text), 'Full legal name for contracts'),
+  ('company_display_name', to_jsonb('Radcliff Construction Group, LLC'::text), 'Display name for signature blocks'),
+  ('company_address', to_jsonb('23 Erlanger Road, Erlanger, KY 41017'::text), 'Primary business address'),
+  ('company_phone', to_jsonb('(859) 802-0746'::text), 'Main phone number'),
+  ('company_email', to_jsonb('matt@radcliffcg.com'::text), 'Main contact email'),
+  ('company_website', to_jsonb('teamradcliff.com'::text), 'Company website'),
+  ('signatory_name', to_jsonb('Matt Radcliff'::text), 'Default signatory name'),
+  ('signatory_title', to_jsonb('President/Owner'::text), 'Default signatory title'),
+  ('contract_number_prefix', to_jsonb(''::text), 'Prefix for auto-generated contract numbers')
 ON CONFLICT (setting_key) DO NOTHING;
 
 ALTER TABLE company_settings ENABLE ROW LEVEL SECURITY;
