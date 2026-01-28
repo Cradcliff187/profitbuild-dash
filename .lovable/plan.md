@@ -1,39 +1,76 @@
 
-# Cleanup Plan: Remove All Test Contract Data
+# Plan: Add Print to PDF Option for Contracts
 
-## Current State
-| Table | Count |
-|-------|-------|
-| `project_documents` (contract type) | 28 records |
-| `contracts` | 3 records |
+## Overview
+Add a "Print / Save as PDF" button across all contract display locations. This uses the browser's native print functionality with Google Docs Viewer, allowing users to select "Save as PDF" as the destination.
 
-**Note:** The 3 existing contracts link to quote `87deacb6-7f9d-4219-b8cf-6761d3daba4f`, and all 28 document entries reference the same quote. Since you confirmed these are all test data, we'll clean them all.
+## Locations Requiring Print Button
 
----
+| Location | File | Current Buttons |
+|----------|------|-----------------|
+| Quote View Page | `QuoteViewRoute.tsx` | DOCX, PDF download buttons |
+| Quote Form (view mode) | `QuoteForm.tsx` | Preview (Eye), Download buttons |
+| Contracts List View | `ContractsListView.tsx` | Download DOCX, PDF, Open buttons |
+| Office Preview Modal | `OfficeDocumentPreviewModal.tsx` | Download, Open in New Tab |
+| Contract Generation Success | `ContractGenerationSuccess.tsx` | Download buttons |
 
-## Cleanup Steps
+## Implementation Details
 
-### Step 1: Delete all contract documents from `project_documents`
-```sql
-DELETE FROM project_documents 
-WHERE document_type = 'contract';
+### 1. Add Print Button to OfficeDocumentPreviewModal.tsx
+Add a "Print" button in the footer that opens the document in Google Docs Viewer in a new tab (full browser window where user can Ctrl+P).
+
+```typescript
+const handlePrint = () => {
+  // Open in Google Viewer in new tab for printing
+  const printUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}`;
+  window.open(printUrl, '_blank');
+  toast.info('Use Ctrl+P (or Cmd+P) to print, then select "Save as PDF"');
+};
 ```
 
-### Step 2: Delete all contracts from `contracts` table
-```sql
-DELETE FROM contracts;
-```
+### 2. Add Print Button to QuoteViewRoute.tsx (lines 80-103)
+Add a Printer icon button alongside the existing DOCX/PDF download buttons in the contract display.
 
----
+### 3. Add Print Button to QuoteForm.tsx (lines 1170-1200)
+Add a Printer icon button in the contract actions section (where Eye and Download buttons are).
 
-## After Cleanup
-- Both tables will be empty of contract data
-- The cascade delete trigger we just created will prevent future orphans
-- New contracts you generate will use the aligned display (`internal_reference`)
+### 4. Add Print Button to ContractsListView.tsx (lines 98-116)
+Add a Printer icon button in the actions column of the contracts table.
 
----
+### 5. Update ContractGenerationModal.tsx
+Remove the PDF and "Both" output format options since server-side PDF generation is not implemented. This simplifies the UI to DOCX-only with a print option.
 
-## What This Cleans Up
-- All 28 document timeline entries
-- All 3 contract records
-- Clears the slate for fresh, properly-synced data
+### 6. Update ContractGenerationSuccess.tsx
+Replace the non-functional PDF download button with "Open for Print / Save as PDF" button.
+
+## UI Changes
+
+### Button Appearance
+- Icon: `Printer` from lucide-react
+- Tooltip: "Print / Save as PDF"
+- Size: Consistent with existing action buttons (sm/icon)
+
+### User Flow
+1. User clicks Print button
+2. Document opens in Google Docs Viewer in new tab
+3. User presses Ctrl+P (or Cmd+P on Mac)
+4. User selects "Save as PDF" as printer destination
+5. High-quality PDF is saved locally
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/OfficeDocumentPreviewModal.tsx` | Add Print button in footer, add `handlePrint` function |
+| `src/components/project-routes/QuoteViewRoute.tsx` | Add Printer button to contract row (line ~90) |
+| `src/components/QuoteForm.tsx` | Add Printer button to contract actions (line ~1195) |
+| `src/components/contracts/ContractsListView.tsx` | Add Printer button to actions column (line ~107) |
+| `src/components/contracts/ContractGenerationModal.tsx` | Remove PDF/Both format options, simplify to DOCX |
+| `src/components/contracts/ContractGenerationSuccess.tsx` | Replace PDF button with Print button |
+
+## Benefits
+- No external API dependencies or costs
+- Works on all modern browsers and devices
+- High-quality PDF output (browser/OS handles conversion)
+- Familiar workflow for users (print dialog is universal)
+- Simple implementation leveraging existing Google Viewer infrastructure
