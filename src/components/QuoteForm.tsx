@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Save, Calendar as CalendarIcon, Plus, TrendingUp, TrendingDown, FileText, Download, Eye } from "lucide-react";
+import { Save, Calendar as CalendarIcon, Plus, TrendingUp, TrendingDown, FileText, Download, Eye, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1183,6 +1183,19 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                               title="Preview"
                             >
                               <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                const printUrl = `https://docs.google.com/gview?url=${encodeURIComponent(c.docx_url!)}`;
+                                window.open(printUrl, '_blank');
+                              }}
+                              title="Print / Save as PDF"
+                            >
+                              <Printer className="h-4 w-4" />
                             </Button>
                             <Button
                               type="button"

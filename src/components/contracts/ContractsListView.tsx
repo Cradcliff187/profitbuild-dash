@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, ExternalLink, Loader2 } from 'lucide-react';
+import { FileText, Download, ExternalLink, Loader2, Printer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
@@ -116,15 +116,29 @@ export function ContractsListView({ projectId }: ContractsListViewProps) {
                   <TableCell>
                     <div className="flex items-center gap-1">
                     {c.docx_url && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => window.open(c.docx_url!, '_blank')}
-                        title="Download DOCX"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            const printUrl = `https://docs.google.com/gview?url=${encodeURIComponent(c.docx_url!)}`;
+                            window.open(printUrl, '_blank');
+                          }}
+                          title="Print / Save as PDF"
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => window.open(c.docx_url!, '_blank')}
+                          title="Download DOCX"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </>
                     )}
                     {c.pdf_url && (
                       <Button
@@ -135,17 +149,6 @@ export function ContractsListView({ projectId }: ContractsListViewProps) {
                         title="Download PDF"
                       >
                         <FileText className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {c.docx_url && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => window.open(c.docx_url!, '_blank')}
-                        title="Open"
-                      >
-                        <ExternalLink className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
