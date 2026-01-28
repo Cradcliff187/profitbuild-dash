@@ -3,7 +3,7 @@
  * This module is used by both frontend CSV import and backend API sync
  */
 
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 
 // Type definitions
 export interface TransactionCSVRow {
