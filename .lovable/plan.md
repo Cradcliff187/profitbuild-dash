@@ -1,47 +1,82 @@
 
-# Fix Contract Preview - Filename Issue
+# Fix Contract Price Bug - Use Cost Instead of Sell Price
 
-## Root Cause
+## Problem
 
-After investigating both the working Documents page and the broken Quote view preview, I found the issue:
+The contract is showing **$1,800** (the sell price to the client) instead of **$1,440** (the cost to pay the subcontractor).
 
-**QuoteForm.tsx line 1179:**
+**Database Data for Quote 225-001-QTE-01-01:**
+- `quotes.total_amount`: 1800 (sell price - what client pays)
+- `quote_line_items.total_cost`: 1440 (cost - what you pay subcontractor)
+
+**Current Code (useContractData.ts line 119):**
 ```typescript
-setPreviewContractFileName(`${c.contract_number}.docx`);
+const subcontractPrice = Number(quote?.total_amount ?? estimate?.total_amount ?? 0);
 ```
-
-This uses `contract_number` (now the user-entered subcontract number like `testionew#542`) as the filename. The `#` character in the filename breaks Google Docs Viewer because it's a URL fragment identifier.
-
-**Documents page works because:**
-It uses the actual `file_name` from the database: `Q-ABF-225001-26_SubcontractorProjectAgreement_2026-01-28.docx` (no special characters).
+This incorrectly uses `total_amount` (sell price) instead of the sum of line item costs.
 
 ---
 
-## Fix
+## Solution
 
-Update `QuoteForm.tsx` to use `internal_reference` instead of `contract_number` for the preview filename.
+Update `useContractData.ts` to fetch and sum `total_cost` from `quote_line_items` instead of using `quotes.total_amount`.
 
-### File: `src/components/QuoteForm.tsx`
+---
 
-**Before (line 1179):**
+## Technical Changes
+
+### File: `src/hooks/useContractData.ts`
+
+**1. Add a new query to fetch quote line items total cost:**
+
 ```typescript
-setPreviewContractFileName(`${c.contract_number}.docx`);
+// Add this query in the Promise.all block (around line 76-84)
+quoteId
+  ? supabase
+      .from('quote_line_items')
+      .select('total_cost')
+      .eq('quote_id', quoteId)
+  : Promise.resolve({ data: null, error: null }),
 ```
 
-**After:**
+**2. Calculate the sum of costs from line items:**
+
 ```typescript
-setPreviewContractFileName(`${c.internal_reference || c.contract_number || 'Contract'}.docx`);
+// After extracting results (around line 99-104)
+const quoteLineItems = quoteLineItemsResult.data as { total_cost: number }[] | null;
+
+// Calculate total cost from line items
+const quoteTotalCost = quoteLineItems?.reduce(
+  (sum, item) => sum + (item.total_cost || 0), 
+  0
+) ?? 0;
 ```
 
-This uses:
-1. `internal_reference` (safe auto-generated value like `Q-ABF-225001-26`) if available
-2. Falls back to `contract_number` for older contracts
-3. Falls back to "Contract" as a last resort
+**3. Use the cost sum for the contract price:**
+
+```typescript
+// Update line 119
+// Before:
+const subcontractPrice = Number(quote?.total_amount ?? estimate?.total_amount ?? 0);
+
+// After:
+const subcontractPrice = quoteTotalCost || Number(estimate?.total_amount ?? 0);
+```
 
 ---
 
 ## Summary
 
-- **1 file to update**: `src/components/QuoteForm.tsx`
-- **Change**: Use `internal_reference` for preview filename instead of user-entered `contract_number`
-- **Result**: Preview will work again since the filename won't contain URL-breaking characters like `#`
+| Field | Before | After |
+|-------|--------|-------|
+| Source | `quotes.total_amount` | `SUM(quote_line_items.total_cost)` |
+| Value for 225-001-QTE-01-01 | $1,800 | $1,440 |
+| Meaning | Sell price to client | Cost to pay subcontractor |
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/hooks/useContractData.ts` | Add query for quote line items, sum total_cost, use for contract price |
