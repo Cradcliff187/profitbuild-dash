@@ -54,6 +54,8 @@ const Dashboard = () => {
   const [completedContractValue, setCompletedContractValue] = useState(0);
   const [activeProjectedMargin, setActiveProjectedMargin] = useState(0);
   const [activeProjectedMarginPercent, setActiveProjectedMarginPercent] = useState(0);
+  const [totalInvoiced, setTotalInvoiced] = useState(0);
+  const [workOrderTotalInvoiced, setWorkOrderTotalInvoiced] = useState(0);
 
   useEffect(() => {
     loadDashboardData();
@@ -162,7 +164,7 @@ const Dashboard = () => {
   const loadWorkOrderStatusCounts = async () => {
     const { data, error } = await supabase
       .from('projects')
-      .select('status, category, contracted_amount, adjusted_est_costs, projected_margin, margin_percentage, estimates!left(id, is_auto_generated)')
+      .select('id, status, category, contracted_amount, adjusted_est_costs, projected_margin, margin_percentage, estimates!left(id, is_auto_generated)')
       .eq('category', 'construction')
       .eq('project_type', 'work_order');
 
@@ -222,6 +224,21 @@ const Dashboard = () => {
     setWorkOrderProjectedMarginPercent(aggregateMarginPercent);
     setWorkOrderCompletedValue(totalCompleted);
     setWorkOrdersWithoutEstimates(withoutEstimates);
+
+    // Calculate total invoiced for work orders
+    const workOrderIds = data?.map(wo => wo.id) || [];
+    if (workOrderIds.length > 0) {
+      const { data: woRevenues, error: woRevenueError } = await supabase
+        .from('project_revenues')
+        .select('amount')
+        .in('project_id', workOrderIds)
+        .eq('is_split', false);
+
+      if (!woRevenueError && woRevenues) {
+        const woInvoicedTotal = woRevenues.reduce((sum, r) => sum + (r.amount || 0), 0);
+        setWorkOrderTotalInvoiced(woInvoicedTotal);
+      }
+    }
   };
 
   const loadPendingApprovals = async () => {
@@ -330,9 +347,10 @@ const Dashboard = () => {
     // Get active projects (approved + in_progress)
     const { data: activeProjects, error: activeError } = await supabase
       .from('projects')
-      .select('contracted_amount, adjusted_est_costs, projected_margin, margin_percentage, category')
+      .select('id, contracted_amount, adjusted_est_costs, projected_margin, margin_percentage, category')
       .in('status', ['approved', 'in_progress'])
-      .eq('category', 'construction');
+      .eq('category', 'construction')
+      .neq('project_type', 'work_order');
 
     if (activeError) {
       console.error('Error loading active project financials:', activeError);
@@ -356,9 +374,10 @@ const Dashboard = () => {
     // Get completed projects
     const { data: completedProjects, error: completedError } = await supabase
       .from('projects')
-      .select('contracted_amount, category')
+      .select('id, contracted_amount, category')
       .eq('status', 'complete')
-      .eq('category', 'construction');
+      .eq('category', 'construction')
+      .neq('project_type', 'work_order');
 
     if (completedError) {
       console.error('Error loading completed project financials:', completedError);
@@ -367,6 +386,25 @@ const Dashboard = () => {
         sum + (p.contracted_amount || 0), 0) || 0;
       
       setCompletedContractValue(totalCompleted);
+    }
+
+    // Calculate total invoiced for construction projects (excluding work orders)
+    const allProjectIds = [
+      ...(activeProjects?.map(p => p.id) || []),
+      ...(completedProjects?.map(p => p.id) || [])
+    ];
+
+    if (allProjectIds.length > 0) {
+      const { data: revenues, error: revenueError } = await supabase
+        .from('project_revenues')
+        .select('amount')
+        .in('project_id', allProjectIds)
+        .eq('is_split', false);
+
+      if (!revenueError && revenues) {
+        const totalInvoicedAmount = revenues.reduce((sum, r) => sum + (r.amount || 0), 0);
+        setTotalInvoiced(totalInvoicedAmount);
+      }
     }
   };
 
@@ -433,6 +471,7 @@ const Dashboard = () => {
             completedContractValue={completedContractValue}
             activeProjectedMargin={activeProjectedMargin}
             activeProjectedMarginPercent={activeProjectedMarginPercent}
+            totalInvoiced={totalInvoiced}
           />
 
           <WorkOrderStatusCard
@@ -442,6 +481,7 @@ const Dashboard = () => {
             completedContractValue={workOrderCompletedValue}
             activeProjectedMargin={workOrderProjectedMargin}
             activeProjectedMarginPercent={workOrderProjectedMarginPercent}
+            totalInvoiced={workOrderTotalInvoiced}
           />
         </div>
       </div>
