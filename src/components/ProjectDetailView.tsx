@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Outlet, useOutletContext } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, FileText, FileSignature, DollarSign, Target, FileEdit, Edit, Calendar, ChevronLeft, ChevronRight, MapPin, ExternalLink } from "lucide-react";
+import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, FileText, FileSignature, DollarSign, Target, FileEdit, Edit, Calendar, ChevronLeft, ChevronRight, MapPin, ExternalLink, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ChangeOrderForm } from "@/components/ChangeOrderForm";
@@ -624,19 +624,59 @@ export const ProjectDetailView = () => {
   if (isMobile) {
     return (
       <div className="flex flex-col h-full">
-        {/* Mobile Project Header */}
-        <header className="flex items-center gap-2 p-3 border-b bg-background">
-          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Building2 className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0">
-              <NavContent />
-            </SheetContent>
-          </Sheet>
-          <span className="font-semibold truncate">Project Details</span>
+        {/* Mobile Project Header - Enhanced */}
+        <header className="border-b bg-background">
+          <div className="flex items-center gap-2 p-3 pb-2">
+            <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-12 w-12 flex-shrink-0">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64 p-0">
+                <NavContent />
+              </SheetContent>
+            </Sheet>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm font-semibold text-muted-foreground">
+                  {project.project_number}
+                </span>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-[10px] px-1.5 py-0 h-5 capitalize",
+                    project.status === 'approved' && 'border-green-200 text-green-700 bg-green-50 dark:border-green-800 dark:text-green-300 dark:bg-green-950/50',
+                    project.status === 'estimating' && 'border-gray-200 text-gray-700 bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:bg-gray-800',
+                    project.status === 'in_progress' && 'border-purple-200 text-purple-700 bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:bg-purple-950/50',
+                    project.status === 'complete' && 'border-green-200 text-green-700 bg-green-50 dark:border-green-800 dark:text-green-300 dark:bg-green-950/50',
+                    project.status === 'on_hold' && 'border-yellow-200 text-yellow-700 bg-yellow-50 dark:border-yellow-800 dark:text-yellow-300 dark:bg-yellow-950/50',
+                    project.status === 'cancelled' && 'border-red-200 text-red-700 bg-red-50 dark:border-red-800 dark:text-red-300 dark:bg-red-950/50'
+                  )}
+                >
+                  {project.status?.replace(/_/g, ' ')}
+                </Badge>
+              </div>
+              <div className="text-sm font-medium truncate">{project.project_name}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 px-3 pb-3 text-xs text-muted-foreground">
+            <span className="truncate max-w-[150px]">{project.client_name}</span>
+            {project.address && (
+              <>
+                <span className="text-border">•</span>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-primary hover:underline active:text-primary/80 min-w-0"
+                >
+                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate max-w-[120px]">{project.address}</span>
+                </a>
+              </>
+            )}
+          </div>
         </header>
 
         {/* Content */}

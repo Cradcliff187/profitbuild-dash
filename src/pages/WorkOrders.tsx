@@ -181,9 +181,11 @@ const WorkOrders = () => {
           *,
           estimates!left (
             id,
+            is_current_version,
             total_amount,
-            is_auto_generated,
-            status
+            total_cost,
+            status,
+            is_auto_generated
           ),
           expenses!left (
             id,
@@ -205,7 +207,9 @@ const WorkOrders = () => {
             *,
             estimates!left (
               id,
+              is_current_version,
               total_amount,
+              total_cost,
               status,
               is_auto_generated
             ),
@@ -733,21 +737,23 @@ const WorkOrders = () => {
             clients={clients}
           />
 
-          {/* Count and Column Selector */}
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              {sortedWorkOrders.length} {sortedWorkOrders.length === 1 ? 'work order' : 'work orders'}
+          {/* Count and Column Selector (desktop only) */}
+          {!isMobile && (
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                {sortedWorkOrders.length} {sortedWorkOrders.length === 1 ? 'work order' : 'work orders'}
+              </div>
+              <div className="flex items-center gap-2">
+                <ColumnSelector
+                  columns={columnDefinitions}
+                  visibleColumns={visibleColumns}
+                  onVisibleColumnsChange={setVisibleColumns}
+                  columnOrder={columnOrder}
+                  onColumnOrderChange={setColumnOrder}
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <ColumnSelector
-                columns={columnDefinitions}
-                visibleColumns={visibleColumns}
-                onVisibleColumnsChange={setVisibleColumns}
-                columnOrder={columnOrder}
-                onColumnOrderChange={setColumnOrder}
-              />
-            </div>
-          </div>
+          )}
 
           {/* Bulk Actions */}
           <WorkOrderBulkActions

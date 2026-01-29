@@ -55,6 +55,7 @@ const TimeEntriesPage = () => {
   
   // Tab state
   const tabFromUrl = searchParams.get("tab") === "receipts" ? "receipts" : "entries";
+  const projectFromUrl = searchParams.get("project");
   const [activeTab, setActiveTab] = useState(tabFromUrl);
   
   // Filters state
@@ -209,6 +210,12 @@ const TimeEntriesPage = () => {
           setReceiptStatistics(stats);
           const filters = receiptsManagementRef.current.getFilters();
           setReceiptFilters(filters);
+          // Apply project from URL when present and not already filtered by it
+          if (projectFromUrl && !filters.projectIds?.includes(projectFromUrl)) {
+            const nextFilters = { ...filters, projectIds: [projectFromUrl] };
+            receiptsManagementRef.current.setFilters(nextFilters);
+            setReceiptFilters(nextFilters);
+          }
           
           const payees = receiptsManagementRef.current.getPayees();
           const projects = receiptsManagementRef.current.getProjects();
@@ -245,7 +252,20 @@ const TimeEntriesPage = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [activeTab]);
+  }, [activeTab, projectFromUrl]);
+
+  // Apply project filter from URL when on receipts tab (e.g. from project dashboard link)
+  useEffect(() => {
+    if (activeTab === "receipts" && projectFromUrl && receiptsManagementRef.current) {
+      const currentFilters = receiptsManagementRef.current.getFilters?.();
+      if (!currentFilters?.projectIds?.includes(projectFromUrl)) {
+        receiptsManagementRef.current.setFilters?.({
+          ...currentFilters,
+          projectIds: [projectFromUrl],
+        });
+      }
+    }
+  }, [activeTab, projectFromUrl]);
 
   // Sync receipt data periodically when on receipts tab
   useEffect(() => {

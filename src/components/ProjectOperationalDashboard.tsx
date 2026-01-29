@@ -19,7 +19,7 @@ import {
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { getMarginThresholdStatus, getThresholdStatusColor } from '@/utils/thresholdUtils';
 import { calculateBudgetStatus, calculateScheduleStatus, getExpiringQuotes, getProjectScheduleDates } from '@/utils/projectDashboard';
 import type { Project } from '@/types/project';
@@ -95,7 +95,7 @@ export function ProjectOperationalDashboard({
         count: pendingReceipts,
         color: 'blue',
         icon: FileText,
-        onClick: () => navigate('/time-entries?tab=receipts&status=pending')
+        onClick: () => navigate(`/time-entries?tab=receipts&project=${project.id}`)
       });
     }
     
@@ -155,6 +155,69 @@ export function ProjectOperationalDashboard({
     };
   }, [changeOrders]);
 
+  const financialDisplay = useMemo(() => {
+    const status = project.status;
+    const currentEstimate = estimates?.find(e => e.is_current_version);
+
+    if (status === 'estimating') {
+      const estimateValue = currentEstimate?.total_amount ?? 0;
+      const estimatedCosts = currentEstimate?.total_cost ?? 0;
+      const estimatedMargin = estimateValue - estimatedCosts;
+      const estimatedMarginPct = estimateValue > 0 ? (estimatedMargin / estimateValue) * 100 : 0;
+      return {
+        label1: 'Estimate Value',
+        value1: estimateValue,
+        label2: 'Estimated Costs',
+        value2: estimatedCosts,
+        marginLabel: 'Estimated Margin',
+        marginValue: estimatedMargin,
+        marginPct: estimatedMarginPct,
+        showBudgetStatus: false,
+        showVariance: false,
+      };
+    }
+
+    if (status === 'complete') {
+      const contractValue = project.contracted_amount ?? 0;
+      const actualExpenses = (project as any).total_expenses
+        ?? expenses?.reduce((sum, e) => sum + ((e as any).display_amount ?? e.amount ?? 0), 0)
+        ?? 0;
+      const actualMargin = (project as any).actual_margin ?? contractValue - actualExpenses;
+      const actualMarginPct = contractValue > 0 ? (actualMargin / contractValue) * 100 : 0;
+      const originalMargin = project.original_margin ?? 0;
+      const varianceAmount = actualMargin - originalMargin;
+      const variancePct = originalMargin !== 0
+        ? ((actualMargin - originalMargin) / Math.abs(originalMargin)) * 100
+        : 0;
+      return {
+        label1: 'Contract Value',
+        value1: contractValue,
+        label2: 'Actual Expenses',
+        value2: actualExpenses,
+        marginLabel: 'Actual Margin',
+        marginValue: actualMargin,
+        marginPct: actualMarginPct,
+        showBudgetStatus: true,
+        showVariance: true,
+        varianceAmount,
+        variancePct,
+        originalMargin,
+      };
+    }
+
+    return {
+      label1: 'Contract Value',
+      value1: project.contracted_amount ?? 0,
+      label2: 'Adjusted Est. Cost',
+      value2: project.adjusted_est_costs ?? 0,
+      marginLabel: 'Projected Margin',
+      marginValue: project.projected_margin ?? 0,
+      marginPct: project.margin_percentage ?? 0,
+      showBudgetStatus: true,
+      showVariance: false,
+    };
+  }, [project, estimates, expenses]);
+
   const marginStatus = getMarginThresholdStatus(
     project.margin_percentage,
     project.minimum_margin_threshold,
@@ -210,89 +273,107 @@ export function ProjectOperationalDashboard({
         <CardContent className="p-3 pt-0">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Contract Value</div>
-              <div className="text-base sm:text-xl font-bold">{formatCurrency(project.contracted_amount)}</div>
+              <div className="text-xs text-muted-foreground mb-1">{financialDisplay.label1}</div>
+              <div className="text-base sm:text-xl font-bold">{formatCurrency(financialDisplay.value1)}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Adjusted Est. Cost</div>
+              <div className="text-xs text-muted-foreground mb-1">{financialDisplay.label2}</div>
               <div className="text-base sm:text-xl font-bold text-foreground">
-                {formatCurrency(project.adjusted_est_costs)}
+                {formatCurrency(financialDisplay.value2)}
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Original Margin</div>
-              <div className="text-base sm:text-xl font-bold text-foreground">
-                {formatCurrency(project.original_margin)}
+              <div className="text-xs text-muted-foreground mb-1">
+                {project.status !== 'estimating' ? 'Original Margin' : 'Target Margin'}
               </div>
-              {originalMarginPercent && (
+              <div className="text-base sm:text-xl font-bold text-foreground">
+                {project.status !== 'estimating'
+                  ? formatCurrency(project.original_margin ?? 0)
+                  : '20%'}
+              </div>
+              {project.status !== 'estimating' && originalMarginPercent != null && (
                 <div className="text-xs text-muted-foreground">
                   {originalMarginPercent.toFixed(1)}%
                 </div>
               )}
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Projected Margin</div>
-              <div 
+              <div className="text-xs text-muted-foreground mb-1">{financialDisplay.marginLabel}</div>
+              <div
                 className="text-base sm:text-xl font-bold flex items-center gap-1"
-                style={{ color: getThresholdStatusColor(marginStatus) }}
+                style={{ color: project.status === 'estimating' ? 'inherit' : getThresholdStatusColor(marginStatus) }}
               >
-                {formatCurrency(project.projected_margin)}
-                {marginDelta !== null && (
-                  marginDelta >= 0 
+                {formatCurrency(financialDisplay.marginValue)}
+                {project.status !== 'estimating' && marginDelta !== null && (
+                  marginDelta >= 0
                     ? <TrendingUp className="h-4 w-4 text-green-600" />
                     : <TrendingDown className="h-4 w-4 text-destructive" />
                 )}
               </div>
-              {project.margin_percentage && (
-                <div className="text-xs flex items-center gap-1">
-                  <span>{project.margin_percentage.toFixed(1)}%</span>
-                  {marginDelta !== null && (
-                    <span className={marginDelta >= 0 ? 'text-green-600' : 'text-destructive'}>
-                      ({marginDelta >= 0 ? '+' : ''}{marginDelta.toFixed(1)}%)
-                    </span>
-                  )}
-                </div>
-              )}
+              <div className="text-xs flex items-center gap-1">
+                <span>{financialDisplay.marginPct.toFixed(1)}%</span>
+                {project.status !== 'estimating' && marginDelta !== null && (
+                  <span className={marginDelta >= 0 ? 'text-green-600' : 'text-destructive'}>
+                    ({marginDelta >= 0 ? '+' : ''}{marginDelta.toFixed(1)}%)
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+          {financialDisplay.showVariance && (
+            <div className="mt-3 pt-3 border-t flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">vs Original Margin</span>
+              <span className={cn(
+                "font-semibold",
+                (financialDisplay.varianceAmount ?? 0) >= 0 ? "text-green-600" : "text-destructive"
+              )}>
+                {(financialDisplay.varianceAmount ?? 0) >= 0 ? '+' : ''}
+                {formatCurrency(financialDisplay.varianceAmount ?? 0)}
+                <span className="text-xs ml-1">
+                  ({(financialDisplay.variancePct ?? 0) >= 0 ? '+' : ''}{(financialDisplay.variancePct ?? 0).toFixed(1)}%)
+                </span>
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Budget Status & Schedule */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Budget Status */}
-        <Card>
-          <CardHeader className="p-3 pb-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Budget Status</h3>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Adjusted Est. Cost:</span>
-                <span className="font-medium">{formatCurrency(project.adjusted_est_costs)}</span>
+        {financialDisplay.showBudgetStatus && (
+          <Card>
+            <CardHeader className="p-3 pb-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Budget Status</h3>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Spent:</span>
-                <span className="font-medium">{formatCurrency(budgetStatus.totalSpent)}</span>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Adjusted Est. Cost:</span>
+                  <span className="font-medium">{formatCurrency(project.adjusted_est_costs)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Spent:</span>
+                  <span className="font-medium">{formatCurrency(budgetStatus.totalSpent)}</span>
+                </div>
+                <Progress 
+                  value={budgetStatus.percentSpent} 
+                  className={`h-2 ${
+                    budgetStatus.status === 'critical' ? '[&>div]:bg-destructive' :
+                    budgetStatus.status === 'warning' ? '[&>div]:bg-warning' :
+                    '[&>div]:bg-success'
+                  }`}
+                />
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">{budgetStatus.percentSpent.toFixed(1)}% spent</span>
+                  <span className="font-medium">{formatCurrency(budgetStatus.remaining)} remaining</span>
+                </div>
               </div>
-              <Progress 
-                value={budgetStatus.percentSpent} 
-                className={`h-2 ${
-                  budgetStatus.status === 'critical' ? '[&>div]:bg-destructive' :
-                  budgetStatus.status === 'warning' ? '[&>div]:bg-warning' :
-                  '[&>div]:bg-success'
-                }`}
-              />
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">{budgetStatus.percentSpent.toFixed(1)}% spent</span>
-                <span className="font-medium">{formatCurrency(budgetStatus.remaining)} remaining</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Schedule */}
         <Card>
@@ -428,13 +509,13 @@ export function ProjectOperationalDashboard({
                 </div>
               </button>
               <button 
-                onClick={() => navigate('/time-entries?tab=receipts')}
+                onClick={() => navigate(`/time-entries?tab=receipts&project=${project.id}`)}
                 className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
               >
                 <Receipt className="h-4 w-4 text-green-600" />
                 <div>
                   <div className="text-sm font-medium">{pendingReceipts}</div>
-                  <div className="text-xs text-muted-foreground">Receipts</div>
+                  <div className="text-xs text-muted-foreground">Pending Receipts</div>
                 </div>
               </button>
               <button 

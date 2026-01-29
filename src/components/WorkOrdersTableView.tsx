@@ -32,6 +32,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface WorkOrderWithDetails extends Project {
   has_estimate: boolean;
@@ -39,6 +44,13 @@ interface WorkOrderWithDetails extends Project {
   total_expenses: number;
   expense_count: number;
   estimate_amount: number | null;
+  estimates?: Array<{
+    id: string;
+    is_current_version?: boolean;
+    total_amount?: number;
+    total_cost?: number;
+    status?: string;
+  }>;
 }
 
 interface WorkOrdersTableViewProps {
@@ -107,6 +119,39 @@ export const WorkOrdersTableView = ({
       }
       return next;
     });
+  };
+
+  const getFinancialDisplayValues = (workOrder: WorkOrderWithDetails) => {
+    const status = workOrder.status;
+    if (status === "estimating") {
+      const currentEstimate = workOrder.estimates?.find((e: { is_current_version?: boolean }) => e.is_current_version);
+      if (currentEstimate) {
+        const estimateValue = currentEstimate.total_amount ?? 0;
+        const estimatedCosts = currentEstimate.total_cost ?? 0;
+        const estimatedMargin = estimateValue - estimatedCosts;
+        const estimatedMarginPct = estimateValue > 0 ? (estimatedMargin / estimateValue) * 100 : 0;
+        return {
+          contractLabel: "Est. Value",
+          contractValue: estimateValue,
+          costsLabel: "Est. Costs",
+          costsValue: estimatedCosts,
+          marginLabel: "Est. Margin",
+          marginValue: estimatedMargin,
+          marginPct: estimatedMarginPct,
+          isEstimate: true,
+        };
+      }
+    }
+    return {
+      contractLabel: "Contract",
+      contractValue: workOrder.contracted_amount ?? 0,
+      costsLabel: "Adj. Est. Costs",
+      costsValue: workOrder.adjusted_est_costs ?? 0,
+      marginLabel: "Proj. Margin",
+      marginValue: workOrder.projected_margin ?? 0,
+      marginPct: workOrder.margin_percentage ?? 0,
+      isEstimate: false,
+    };
   };
 
   const columnDefinitions = [
@@ -319,11 +364,19 @@ export const WorkOrdersTableView = ({
                 {/* Always visible row with key info and chevron */}
                 <div className="flex items-center justify-between px-3 py-2 border-t">
                   <span className="text-sm font-medium">
-                    {workOrder.contracted_amount ? formatCurrency(workOrder.contracted_amount) : '—'} • {
-                      workOrder.projected_margin !== null && workOrder.projected_margin !== undefined
-                        ? formatCurrency(workOrder.projected_margin)
-                        : '—'
-                    }
+                    {(() => {
+                      const display = getFinancialDisplayValues(workOrder);
+                      const hasContract = display.contractValue != null && display.contractValue !== 0;
+                      const hasMargin = display.marginValue != null && display.marginValue !== undefined;
+                      return (
+                        <>
+                          {hasContract ? formatCurrency(display.contractValue) : '—'} • {
+                            hasMargin ? formatCurrency(display.marginValue) : '—'
+                          }
+                          {display.isEstimate && <span className="text-[10px] text-muted-foreground italic ml-1">estimate</span>}
+                        </>
+                      );
+                    })()}
                   </span>
                   <Button
                     variant="ghost"
@@ -346,33 +399,46 @@ export const WorkOrdersTableView = ({
                     <div className="space-y-2 pt-2">
                       {/* Financial Summary */}
                       <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2 rounded mx-3">
-                        {workOrder.contracted_amount && (
-                          <div>
-                            <div className="text-muted-foreground">Contract Value</div>
-                            <div className="font-semibold font-mono">{formatCurrency(workOrder.contracted_amount)}</div>
-                          </div>
-                        )}
-                        {workOrder.projected_margin !== null && workOrder.projected_margin !== undefined && (
-                          <div>
-                            <div className="text-muted-foreground">Projected Margin</div>
-                            <div className={cn(
-                              "font-semibold font-mono",
-                              workOrder.projected_margin >= 0 ? "text-green-600" : "text-red-600"
-                            )}>
-                              {formatCurrency(workOrder.projected_margin)}
-                            </div>
-                          </div>
-                        )}
-                        {workOrder.adjusted_est_costs && (
-                          <div>
-                            <div className="text-muted-foreground">Est. Costs</div>
-                            <div className="font-semibold font-mono">{formatCurrency(workOrder.adjusted_est_costs)}</div>
-                          </div>
-                        )}
-                        <div>
-                          <div className="text-muted-foreground">Actual Expenses</div>
-                          <div className="font-semibold font-mono">{formatCurrency(workOrder.total_expenses)}</div>
-                        </div>
+                        {(() => {
+                          const display = getFinancialDisplayValues(workOrder);
+                          const hasContract = display.contractValue != null && display.contractValue !== 0;
+                          const hasMargin = display.marginValue != null && display.marginValue !== undefined;
+                          const hasCosts = display.costsValue != null && display.costsValue !== 0;
+                          return (
+                            <>
+                              {hasContract && (
+                                <div>
+                                  <div className="text-muted-foreground">{display.contractLabel}</div>
+                                  <div className="font-semibold font-mono">{formatCurrency(display.contractValue)}</div>
+                                  {display.isEstimate && <div className="text-[10px] text-muted-foreground italic">estimate</div>}
+                                </div>
+                              )}
+                              {hasMargin && (
+                                <div>
+                                  <div className="text-muted-foreground">{display.marginLabel}</div>
+                                  <div className={cn(
+                                    "font-semibold font-mono",
+                                    display.marginValue >= 0 ? "text-green-600" : "text-red-600"
+                                  )}>
+                                    {formatCurrency(display.marginValue)}
+                                  </div>
+                                  {display.isEstimate && <div className="text-[10px] text-muted-foreground italic">estimate</div>}
+                                </div>
+                              )}
+                              {hasCosts && (
+                                <div>
+                                  <div className="text-muted-foreground">{display.costsLabel}</div>
+                                  <div className="font-semibold font-mono">{formatCurrency(display.costsValue)}</div>
+                                  {display.isEstimate && <div className="text-[10px] text-muted-foreground italic">estimate</div>}
+                                </div>
+                              )}
+                              <div>
+                                <div className="text-muted-foreground">Actual Expenses</div>
+                                <div className="font-semibold font-mono">{formatCurrency(workOrder.total_expenses)}</div>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
 
                       {/* Additional Info */}
@@ -383,17 +449,23 @@ export const WorkOrdersTableView = ({
                             <div className="font-medium font-mono">{workOrder.customer_po_number}</div>
                           </div>
                         )}
-                        {workOrder.margin_percentage !== null && workOrder.margin_percentage !== undefined && (
-                          <div>
-                            <div className="text-muted-foreground">Margin %</div>
-                            <div className={cn(
-                              "font-medium font-mono",
-                              workOrder.margin_percentage >= 0 ? "text-green-600" : "text-red-600"
-                            )}>
-                              {workOrder.margin_percentage.toFixed(1)}%
+                        {(() => {
+                          const display = getFinancialDisplayValues(workOrder);
+                          const hasPct = display.marginPct !== null && display.marginPct !== undefined;
+                          if (!hasPct) return null;
+                          return (
+                            <div>
+                              <div className="text-muted-foreground">Margin %</div>
+                              <div className={cn(
+                                "font-medium font-mono",
+                                display.marginPct >= 0 ? "text-green-600" : "text-red-600"
+                              )}>
+                                {display.marginPct.toFixed(1)}%
+                              </div>
+                              {display.isEstimate && <div className="text-[10px] text-muted-foreground italic">estimate</div>}
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                         {workOrder.start_date && (
                           <div>
                             <div className="text-muted-foreground">Start Date</div>
@@ -602,12 +674,29 @@ export const WorkOrdersTableView = ({
                               {workOrder.customer_po_number || "—"}
                             </TableCell>
                           );
-                        case "contracted_amount":
+                        case "contracted_amount": {
+                          const display = getFinancialDisplayValues(workOrder);
                           return (
                             <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right">
-                              {workOrder.contracted_amount ? formatCurrency(workOrder.contracted_amount) : "—"}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="text-right cursor-help">
+                                    <div className="font-medium tabular-nums">
+                                      {display.contractValue ? formatCurrency(display.contractValue) : "—"}
+                                    </div>
+                                    {display.isEstimate && (
+                                      <div className="text-[10px] text-muted-foreground italic">estimate</div>
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{display.contractLabel}: {display.contractValue ? formatCurrency(display.contractValue) : "—"}</p>
+                                  {display.isEstimate && <p className="text-xs italic">From current estimate (not yet approved)</p>}
+                                </TooltipContent>
+                              </Tooltip>
                             </TableCell>
                           );
+                        }
                         case "do_not_exceed":
                           return (
                             <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right">
@@ -620,20 +709,56 @@ export const WorkOrdersTableView = ({
                               {workOrder.original_est_costs ? formatCurrency(workOrder.original_est_costs) : "—"}
                             </TableCell>
                           );
-                        case "adjusted_est_costs":
+                        case "adjusted_est_costs": {
+                          const display = getFinancialDisplayValues(workOrder);
                           return (
                             <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right">
-                              {workOrder.adjusted_est_costs ? formatCurrency(workOrder.adjusted_est_costs) : "—"}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="text-right cursor-help">
+                                    <div className="font-medium tabular-nums">
+                                      {display.costsValue ? formatCurrency(display.costsValue) : "—"}
+                                    </div>
+                                    {display.isEstimate && (
+                                      <div className="text-[10px] text-muted-foreground italic">estimate</div>
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{display.costsLabel}: {display.costsValue ? formatCurrency(display.costsValue) : "—"}</p>
+                                  {display.isEstimate && <p className="text-xs italic">From current estimate (not yet approved)</p>}
+                                </TooltipContent>
+                              </Tooltip>
                             </TableCell>
                           );
-                        case "projected_margin":
+                        }
+                        case "projected_margin": {
+                          const display = getFinancialDisplayValues(workOrder);
+                          const hasMargin = display.marginValue !== null && display.marginValue !== undefined;
                           return (
                             <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right">
-                              {workOrder.projected_margin !== null && workOrder.projected_margin !== undefined 
-                                ? formatCurrency(workOrder.projected_margin) 
-                                : "—"}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="text-right cursor-help">
+                                    <div className={cn(
+                                      "font-medium tabular-nums",
+                                      hasMargin && display.marginValue >= 0 ? "text-green-600" : hasMargin ? "text-red-600" : ""
+                                    )}>
+                                      {hasMargin ? formatCurrency(display.marginValue) : "—"}
+                                    </div>
+                                    {display.isEstimate && (
+                                      <div className="text-[10px] text-muted-foreground italic">estimate</div>
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{display.marginLabel}: {hasMargin ? formatCurrency(display.marginValue) : "—"}</p>
+                                  {display.isEstimate && <p className="text-xs italic">From current estimate (not yet approved)</p>}
+                                </TooltipContent>
+                              </Tooltip>
                             </TableCell>
                           );
+                        }
                         case "current_margin":
                           return (
                             <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right">
@@ -642,14 +767,33 @@ export const WorkOrdersTableView = ({
                                 : "—"}
                             </TableCell>
                           );
-                        case "margin_percentage":
+                        case "margin_percentage": {
+                          const display = getFinancialDisplayValues(workOrder);
+                          const hasPct = display.marginPct !== null && display.marginPct !== undefined;
                           return (
                             <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right">
-                              {workOrder.margin_percentage !== null && workOrder.margin_percentage !== undefined 
-                                ? `${workOrder.margin_percentage.toFixed(1)}%` 
-                                : "—"}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="text-right cursor-help">
+                                    <div className={cn(
+                                      "font-medium tabular-nums",
+                                      hasPct && display.marginPct >= 0 ? "text-green-600" : hasPct ? "text-red-600" : ""
+                                    )}>
+                                      {hasPct ? `${display.marginPct.toFixed(1)}%` : "—"}
+                                    </div>
+                                    {display.isEstimate && (
+                                      <div className="text-[10px] text-muted-foreground italic">estimate</div>
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{display.marginLabel}: {hasPct ? `${display.marginPct.toFixed(1)}%` : "—"}</p>
+                                  {display.isEstimate && <p className="text-xs italic">From current estimate (not yet approved)</p>}
+                                </TooltipContent>
+                              </Tooltip>
                             </TableCell>
                           );
+                        }
                         case "has_estimate":
                           return (
                             <TableCell key={colKey} className="p-1.5">

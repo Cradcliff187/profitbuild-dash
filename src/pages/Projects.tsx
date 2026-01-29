@@ -159,6 +159,7 @@ const Projects = () => {
         valid_until: estimate.valid_until ? new Date(estimate.valid_until) : undefined,
         status: estimate.status,
         total_amount: estimate.total_amount,
+        total_cost: estimate.total_cost || 0,
         notes: estimate.notes,
         created_by: estimate.created_by,
         contingency_percent: estimate.contingency_percent ?? 10.0,

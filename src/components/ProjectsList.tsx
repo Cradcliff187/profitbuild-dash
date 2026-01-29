@@ -26,7 +26,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Project, ProjectStatus, ProjectType } from "@/types/project";
+import { Estimate } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { getMarginThresholdStatus, getThresholdStatusColor, getThresholdStatusLabel, formatContingencyRemaining } from "@/utils/thresholdUtils";
 import { usePagination } from "@/hooks/usePagination";
@@ -46,6 +48,167 @@ interface ProjectWithVariance extends Project {
   adjusted_est_costs?: number;
   original_est_costs?: number;
 }
+
+interface StatusKPIs {
+  primary: {
+    label1: string;
+    value1: number;
+    label2: string;
+    value2: number;
+    label3: string;
+    value3: number;
+    isPercent3: boolean;
+  };
+  secondary?: {
+    budgetUtilization?: number;
+    contingencyRemaining?: number;
+    varianceAmount?: number;
+    variancePct?: number;
+    varianceLabel?: string;
+  };
+}
+
+const getStatusKPIs = (
+  project: ProjectWithVariance,
+  currentEstimate: Estimate | null
+): StatusKPIs => {
+  const status = project.status;
+
+  // Estimate phase data (use line items if total_cost missing)
+  const estimateValue = currentEstimate?.total_amount ?? 0;
+  const estimatedCosts = currentEstimate?.total_cost ?? (currentEstimate?.lineItems && currentEstimate.lineItems.length > 0
+    ? calculateEstimateTotalCost(currentEstimate.lineItems)
+    : 0);
+  const estimatedMarginPct = estimateValue > 0
+    ? ((estimateValue - estimatedCosts) / estimateValue) * 100
+    : 0;
+
+  // Project phase data
+  const contractValue = project.contracted_amount ?? 0;
+  const adjustedEstCosts = project.adjusted_est_costs ?? 0;
+  const projectedMarginPct = contractValue > 0
+    ? ((project.projected_margin ?? 0) / contractValue) * 100
+    : 0;
+
+  // Actuals: use actualExpenses (camelCase from frontend enrichment)
+  const actualExpenses = project.actualExpenses ?? 0;
+  const actualMarginPct = contractValue > 0
+    ? ((project.actual_margin ?? 0) / contractValue) * 100
+    : 0;
+
+  // Budget utilization: computed from actualExpenses / adjusted_est_costs
+  const budgetUtilizationPct = adjustedEstCosts > 0 ? (actualExpenses / adjustedEstCosts) * 100 : 0;
+
+  switch (status) {
+    case 'estimating':
+      return {
+        primary: {
+          label1: 'Estimate',
+          value1: estimateValue,
+          label2: 'Est. Costs',
+          value2: estimatedCosts,
+          label3: 'Margin',
+          value3: estimatedMarginPct,
+          isPercent3: true,
+        },
+      };
+
+    case 'approved':
+      return {
+        primary: {
+          label1: 'Contract',
+          value1: contractValue,
+          label2: 'Est. Costs',
+          value2: adjustedEstCosts,
+          label3: 'Margin',
+          value3: projectedMarginPct,
+          isPercent3: true,
+        },
+      };
+
+    case 'in_progress':
+      return {
+        primary: {
+          label1: 'Contract',
+          value1: contractValue,
+          label2: 'Est. Costs',
+          value2: adjustedEstCosts,
+          label3: 'Margin',
+          value3: projectedMarginPct,
+          isPercent3: true,
+        },
+        secondary: {
+          budgetUtilization: budgetUtilizationPct,
+          contingencyRemaining: project.contingency_remaining ?? 0,
+        },
+      };
+
+    case 'complete': {
+      const originalMargin = project.original_margin ?? 0;
+      const actualMargin = project.actual_margin ?? 0;
+      const varianceAmt = actualMargin - originalMargin;
+      const variancePct = originalMargin !== 0
+        ? ((actualMargin - originalMargin) / Math.abs(originalMargin)) * 100
+        : 0;
+
+      return {
+        primary: {
+          label1: 'Contract',
+          value1: contractValue,
+          label2: 'Actual Costs',
+          value2: actualExpenses,
+          label3: 'Margin',
+          value3: actualMarginPct,
+          isPercent3: true,
+        },
+        secondary: {
+          varianceAmount: varianceAmt,
+          variancePct: variancePct,
+          varianceLabel: 'vs Original',
+        },
+      };
+    }
+
+    case 'on_hold':
+      return {
+        primary: {
+          label1: 'Contract',
+          value1: contractValue,
+          label2: 'Spent',
+          value2: actualExpenses,
+          label3: 'Margin',
+          value3: projectedMarginPct,
+          isPercent3: true,
+        },
+      };
+
+    case 'cancelled':
+      return {
+        primary: {
+          label1: 'Contract',
+          value1: contractValue,
+          label2: 'Spent',
+          value2: actualExpenses,
+          label3: 'Loss',
+          value3: actualExpenses,
+          isPercent3: false,
+        },
+      };
+
+    default:
+      return {
+        primary: {
+          label1: 'Contract',
+          value1: contractValue,
+          label2: 'Est. Costs',
+          value2: adjustedEstCosts,
+          label3: 'Margin',
+          value3: projectedMarginPct,
+          isPercent3: true,
+        },
+      };
+  }
+};
 
 interface ProjectsListProps {
   projects: ProjectWithVariance[];
@@ -105,6 +268,74 @@ export const ProjectsList = ({
       style: 'currency',
       currency: 'USD',
     }).format(amount);
+  };
+
+  const ProjectKPIDisplay = ({ kpis, status }: { kpis: StatusKPIs; status: string }) => {
+    const { primary, secondary } = kpis;
+    return (
+      <div className="space-y-2">
+        <div className="grid grid-cols-3 gap-2 text-label bg-muted/30 p-3 rounded-lg">
+          <div className="text-center">
+            <div className="text-muted-foreground text-[10px]">{primary.label1}</div>
+            <div className="font-mono font-semibold text-sm">{formatCurrency(primary.value1)}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-muted-foreground text-[10px]">{primary.label2}</div>
+            <div className="font-mono font-semibold text-sm">{formatCurrency(primary.value2)}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-muted-foreground text-[10px]">{primary.label3}</div>
+            <div className={cn(
+              "font-mono font-semibold text-sm",
+              primary.isPercent3
+                ? primary.value3 >= 20 ? "text-green-600 dark:text-green-400" : primary.value3 >= 10 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400"
+                : ""
+            )}>
+              {primary.isPercent3 ? `${primary.value3.toFixed(1)}%` : formatCurrency(primary.value3)}
+            </div>
+          </div>
+        </div>
+        {secondary?.budgetUtilization !== undefined && status === 'in_progress' && (
+          <div className="px-1">
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+              <span>Budget Utilized</span>
+              <span className="font-mono">{secondary.budgetUtilization.toFixed(0)}%</span>
+            </div>
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all",
+                  secondary.budgetUtilization > 100 ? "bg-red-500" :
+                  secondary.budgetUtilization > 80 ? "bg-yellow-500" : "bg-green-500"
+                )}
+                style={{ width: `${Math.min(secondary.budgetUtilization, 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+        {secondary?.contingencyRemaining !== undefined && secondary.contingencyRemaining > 0 && status === 'in_progress' && (
+          <div className="flex justify-between text-[10px] px-1">
+            <span className="text-muted-foreground">Contingency</span>
+            <span className="font-mono text-blue-600 dark:text-blue-400">{formatCurrency(secondary.contingencyRemaining)}</span>
+          </div>
+        )}
+        {secondary?.varianceLabel && status === 'complete' && (
+          <div className="flex justify-between items-center text-[10px] px-1 pt-1 border-t border-border/50">
+            <span className="text-muted-foreground">{secondary.varianceLabel}</span>
+            <span className={cn(
+              "font-mono font-medium",
+              (secondary.varianceAmount ?? 0) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+            )}>
+              {(secondary.varianceAmount ?? 0) >= 0 ? '+' : ''}
+              {formatCurrency(secondary.varianceAmount ?? 0)}
+              <span className="text-[9px] ml-1">
+                ({(secondary.variancePct ?? 0) >= 0 ? '+' : ''}{(secondary.variancePct ?? 0).toFixed(1)}%)
+              </span>
+            </span>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const handleDeleteProject = async (projectId: string) => {
@@ -446,31 +677,6 @@ export const ProjectsList = ({
           }
 
           // MOBILE: Simple card implementation without collapsible
-          // When showing estimate details, use estimate's own data consistently
-          // When showing project details, use project's actual data
-          let contract: number;
-          let adjustedCosts: number;
-          let projectedMargin: number;
-          
-          if (showEstimateDetails && currentEstimate) {
-            // Estimate details: use estimate data exclusively
-            contract = currentEstimate.total_amount ?? 0;
-            // Use estimate's total_cost if available, otherwise calculate from lineItems
-            adjustedCosts = currentEstimate.total_cost ?? 
-              (currentEstimate.lineItems && currentEstimate.lineItems.length > 0
-                ? calculateEstimateTotalCost(currentEstimate.lineItems)
-                : 0);
-            // Calculate margin using estimate's own contract and cost data
-            projectedMargin = contract - adjustedCosts;
-          } else {
-            // Project details: use project actuals
-            contract = project.contracted_amount ?? 0;
-            adjustedCosts = project.adjusted_est_costs ?? 0;
-            projectedMargin = project.projected_margin ?? (contract - adjustedCosts);
-          }
-          const derivedMarginPct = contract > 0 ? (projectedMargin / contract) * 100 : 0;
-          const marginPctToShow = project.margin_percentage ?? derivedMarginPct;
-
           return (
             <Card
               key={project.id}
@@ -496,101 +702,14 @@ export const ProjectsList = ({
               </CardHeader>
 
               <CardContent className="p-3 space-y-2 bg-background">
-                      {/* Financial Summary - 3-Column Grid (matching quotes style) */}
-                        {(showEstimateDetails || (project.contracted_amount || project.original_margin !== null)) && (() => {
-                          const changeOrderRevenue = project.changeOrderRevenue || 0;
-                          const changeOrderCosts = project.changeOrderCosts || 0;
-                          const changeOrderNetMargin = changeOrderRevenue - changeOrderCosts;
-                          const originalCosts = project.original_est_costs || 0;
-                          const quoteVariance = (adjustedCosts - originalCosts) - changeOrderCosts;
-                          const originalMargin = project.original_margin || 0;
-
-                        return (
-                          <>
-                            <div className="grid grid-cols-3 gap-2 text-label bg-muted/30 p-3 rounded-lg">
-                              <div className="text-center">
-                                <div className="text-muted-foreground text-[10px]">
-                                  {showEstimateDetails ? 'Estimate Value' : 'Contract Value'}
-                                </div>
-                                <div className="text-interface font-bold font-mono">
-                                  {formatCurrency(contract)}
-                                </div>
-                              </div>
-                              <div className="text-center border-x border-border">
-                                <div className="text-muted-foreground text-[10px]">
-                                  {showEstimateDetails ? 'Estimate Margin' : 'Projected Margin'}
-                                </div>
-                                <div className={`text-interface font-bold font-mono ${
-                                  projectedMargin < 0 ? 'text-red-600 dark:text-red-400' :
-                                  projectedMargin >= (project.target_margin || 20) * contract / 100 ? 'text-green-600 dark:text-green-400' :
-                                  'text-orange-600 dark:text-orange-400'
-                                }`}>
-                                  {formatCurrency(projectedMargin)}
-                                </div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-muted-foreground text-[10px]">Margin %</div>
-                                <div className="text-interface font-bold font-mono">
-                                  {marginPctToShow.toFixed(1)}%
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Margin Breakdown Section (matching quotes profit impact style) */}
-                            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-medium">Margin Breakdown</span>
-                                <Badge
-                                  variant={projectedMargin >= 0 ? 'default' : 'destructive'}
-                                  className="font-mono compact-badge"
-                                >
-                                  {formatCurrency(projectedMargin)}
-                                </Badge>
-                              </div>
-                                <div className="space-y-1 text-xs font-mono tabular-nums">
-                                  <div className="flex justify-between gap-2">
-                                    <span className="text-muted-foreground">Original Margin:</span>
-                                    <span>{formatCurrency(originalMargin)}</span>
-                                  </div>
-                                  {changeOrderNetMargin !== 0 && (
-                                    <div className="flex justify-between gap-2 text-blue-600 dark:text-blue-400">
-                                      <span>+ Change Orders:</span>
-                                      <span>{formatCurrency(changeOrderNetMargin)}</span>
-                                    </div>
-                                  )}
-                                  {quoteVariance !== 0 && (
-                                    <div
-                                      className={`flex justify-between gap-2 ${
-                                        quoteVariance > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
-                                      }`}
-                                    >
-                                      <span>{quoteVariance > 0 ? '−' : '+'} Quote Variance:</span>
-                                      <span>{formatCurrency(Math.abs(quoteVariance))}</span>
-                                    </div>
-                                  )}
-                                  <div className="flex justify-between gap-2 border-t pt-1 font-semibold">
-                                    <span>= Projected Margin:</span>
-                                    <span>{formatCurrency(projectedMargin)}</span>
-                                  </div>
-                                </div>
-                            </div>
-                          </>
-                        );
+                      {/* Status-Aware Financial KPIs (mobile only) */}
+                      {(() => {
+                        const kpis = getStatusKPIs(project, currentEstimate);
+                        return <ProjectKPIDisplay kpis={kpis} status={project.status} />;
                       })()}
 
-                      {/* Other Details - Compact Grid */}
+                      {/* Other Details - Type / Created */}
                       <div className="grid grid-cols-2 gap-2 text-label pt-2 border-t">
-                        <div>
-                          <div className="text-muted-foreground text-label">Adjusted Est. Costs</div>
-                          <div className="font-medium font-mono text-data">{formatCurrency(adjustedCosts)}</div>
-                        </div>
-                        {project.contingency_remaining > 0 && (
-                          <div>
-                            <div className="text-muted-foreground text-label">Contingency</div>
-                            <div className="font-medium font-mono text-data text-blue-600">{formatCurrency(project.contingency_remaining)}</div>
-                          </div>
-                        )}
-
                         <div>
                           <p className="text-muted-foreground text-label">Type</p>
                           <p className="text-data font-medium truncate">
