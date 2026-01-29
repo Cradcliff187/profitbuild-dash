@@ -23,6 +23,7 @@ import { revenueKPIs } from './revenue-kpis';
 import { changeOrderKPIs } from './change-order-kpis';
 import { workOrderKPIs } from './work-order-kpis';
 import { deprecatedKPIs } from './deprecated-kpis';
+import { viewKPIs } from './view-kpis';
 
 // Re-export for external consumers
 export {
@@ -33,6 +34,7 @@ export {
   revenueKPIs,
   changeOrderKPIs,
   workOrderKPIs,
+  viewKPIs,
   deprecatedKPIs,
 };
 
@@ -83,6 +85,7 @@ export function getAllKPIs() {
     ...revenueKPIs,
     ...changeOrderKPIs,
     ...workOrderKPIs,
+    ...viewKPIs,
     ...deprecatedKPIs,
   ];
 }
@@ -100,6 +103,8 @@ export function getKPIsByDomain(domain: string) {
     change_order: changeOrderKPIs,
     work_order: workOrderKPIs,
     deprecated: deprecatedKPIs,
+    time_entry: viewKPIs.filter(k => k.domain === 'time_entry'),
+    training: viewKPIs.filter(k => k.domain === 'training'),
   };
   return domainMap[domain] || [];
 }

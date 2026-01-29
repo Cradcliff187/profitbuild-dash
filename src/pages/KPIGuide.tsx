@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, Download, Building, Calculator, FileText, Receipt, DollarSign, RefreshCw, Clipboard, Archive } from 'lucide-react';
+import { BookOpen, Download, Building, Calculator, FileText, Receipt, DollarSign, RefreshCw, Clipboard, Archive, Database } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ import {
   revenueKPIs,
   changeOrderKPIs,
   workOrderKPIs,
+  viewKPIs,
   deprecatedKPIs,
   KPI_DEFINITIONS_VERSION,
   LAST_UPDATED,
@@ -42,6 +43,7 @@ const KPI_GUIDE_METADATA = {
   lastUpdated: LAST_UPDATED,
   version: KPI_DEFINITIONS_VERSION,
   changelog: [
+    { date: '2026-01-29', version: '3.0', changes: 'Added View KPIs section (21 measures) for weekly_labor_hours and training_status views. Added 8 new expense KPIs for joined fields (worker_name, employee_number, hourly_rate, approval_status, description, project fields). Updated gross_hours to frontend-calculated.' },
     { date: '2026-01-23', version: '2.0', changes: 'Migrated to centralized KPI definitions library. Added semantic mappings, business rules, and validation. Fixed SQL examples for time tracking calculations.' },
     { date: '2026-01-21', version: '1.4', changes: 'Added Labor Cushion metrics (9 new measures) - labor_cushion_amount, max_gross_profit_potential, max_potential_margin_percent, and labor financial tracking' },
     { date: '2024-12-01', version: '1.3', changes: 'Added Lunch Tracking section (4 metrics) - lunch_taken, lunch_duration_minutes, gross_hours, net_hours for time entries' },
@@ -74,6 +76,7 @@ export default function KPIGuide() {
     { value: 'revenue', label: 'Revenue', icon: DollarSign },
     { value: 'change-orders', label: 'Change Orders', icon: RefreshCw },
     { value: 'work-orders', label: 'Work Orders', icon: Clipboard },
+    { value: 'views', label: 'Views', icon: Database },
     { value: 'reference', label: 'Reference', icon: BookOpen },
     { value: 'deprecated', label: 'Deprecated', icon: Archive },
   ];
@@ -153,9 +156,9 @@ export default function KPIGuide() {
     );
   };
 
-  const totalMeasures = projectFinancialKPIs.length + estimateKPIs.length + quoteKPIs.length + expenseKPIs.length + revenueKPIs.length + changeOrderKPIs.length + workOrderKPIs.length + deprecatedKPIs.length;
-  const dbMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, revenueKPIs, changeOrderKPIs, workOrderKPIs].flat().filter(k => k.source === 'database' || k.source === 'view').length;
-  const frontendMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, revenueKPIs, changeOrderKPIs, workOrderKPIs].flat().filter(k => k.source === 'frontend').length;
+  const totalMeasures = projectFinancialKPIs.length + estimateKPIs.length + quoteKPIs.length + expenseKPIs.length + revenueKPIs.length + changeOrderKPIs.length + workOrderKPIs.length + viewKPIs.length + deprecatedKPIs.length;
+  const dbMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, revenueKPIs, changeOrderKPIs, workOrderKPIs, viewKPIs].flat().filter(k => k.source === 'database' || k.source === 'view').length;
+  const frontendMeasures = [projectFinancialKPIs, estimateKPIs, quoteKPIs, expenseKPIs, revenueKPIs, changeOrderKPIs, workOrderKPIs, viewKPIs].flat().filter(k => k.source === 'frontend').length;
 
   return (
     <MobilePageWrapper>
@@ -314,6 +317,18 @@ export default function KPIGuide() {
             </CardHeader>
             <CardContent className="p-0">
               {renderKPITable(workOrderKPIs)}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="views" className="mt-0 sm:mt-4">
+          <Card>
+            <CardHeader className="p-4">
+              <CardTitle className="text-base">View Measures ({viewKPIs.length})</CardTitle>
+              <CardDescription className="text-sm">Database view columns including weekly labor hours, training status, and aggregated metrics</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {renderKPITable(viewKPIs)}
             </CardContent>
           </Card>
         </TabsContent>

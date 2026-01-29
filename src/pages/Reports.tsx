@@ -351,7 +351,27 @@ const ReportsPage = () => {
       
       <div className="px-3 py-4 sm:p-4 space-y-4 w-full max-w-full overflow-x-hidden min-w-0" style={{ maxWidth: '100vw' }}>
 
-            {selectedCategory === 'ai' ? (
+            {showBuilder ? (
+              <Card className="w-full max-w-full overflow-hidden">
+                <CardHeader className="px-3 sm:px-6 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="truncate">Create Custom Report</CardTitle>
+                      <CardDescription>
+                        Build your own report step by step
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setShowBuilder(false)} className="flex-shrink-0">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Back to Templates
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="px-3 sm:px-6 pb-4">
+                  <SimpleReportBuilder onRunReport={handleRunReport} />
+                </CardContent>
+              </Card>
+            ) : selectedCategory === 'ai' ? (
               <AIReportChat />
             ) : hasResults ? (
               <div className="space-y-4">
@@ -477,26 +497,6 @@ const ReportsPage = () => {
                 </CardContent>
               </Card>
               </div>
-            ) : showBuilder ? (
-              <Card className="w-full max-w-full overflow-hidden">
-                <CardHeader className="px-3 sm:px-6 py-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
-                    <div className="min-w-0 flex-1">
-                      <CardTitle className="truncate">Create Custom Report</CardTitle>
-                      <CardDescription>
-                        Build your own report step by step
-                      </CardDescription>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => setShowBuilder(false)} className="flex-shrink-0">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Back to Templates
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="px-3 sm:px-6 pb-4">
-                  <SimpleReportBuilder onRunReport={handleRunReport} />
-                </CardContent>
-              </Card>
             ) : (
               <div className="space-y-6">
                 {/* Quick Access Line Item Reports */}
