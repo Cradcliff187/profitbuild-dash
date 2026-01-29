@@ -16,6 +16,7 @@ interface WorkOrderStatusCardProps {
   completedContractValue: number;
   activeProjectedMargin: number;
   activeProjectedMarginPercent: number;
+  totalInvoiced: number;
 }
 
 export function WorkOrderStatusCard({ 
@@ -24,7 +25,8 @@ export function WorkOrderStatusCard({
   activeEstimatedCosts,
   completedContractValue,
   activeProjectedMargin,
-  activeProjectedMarginPercent
+  activeProjectedMarginPercent,
+  totalInvoiced
 }: WorkOrderStatusCardProps) {
   const navigate = useNavigate();
 
@@ -89,6 +91,14 @@ export function WorkOrderStatusCard({
             <div className="flex-1 min-w-0">
               <div className="text-[10px] text-muted-foreground">Completed WO Value</div>
               <div className="text-xs font-semibold text-green-600 truncate">{formatCurrency(completedContractValue)}</div>
+            </div>
+          </div>
+          
+          <div className="flex items-start gap-1.5">
+            <DollarSign className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] text-muted-foreground">Total WO Invoiced</div>
+              <div className="text-xs font-semibold truncate">{formatCurrency(totalInvoiced)}</div>
             </div>
           </div>
         </div>
