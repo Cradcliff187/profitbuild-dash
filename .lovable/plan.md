@@ -1,30 +1,56 @@
 
-# Add CheckSquare Icon Import to MobileTimeTracker.tsx
+# Update Today Summary Card with Shift/Paid Terminology
 
 ## Overview
-Add the `CheckSquare` icon to the lucide-react import in `MobileTimeTracker.tsx`. This icon is needed for the lunch indicator in the "Today" view cards.
+Update the Today Summary Card in `MobileTimeTracker.tsx` to show both shift hours and paid hours when lunch deductions are present, matching the terminology used in the Week view.
 
 ## File to Modify
 **File:** `src/components/time-tracker/MobileTimeTracker.tsx`
 
-## Current State (Line 2)
+## Current State (Lines 1478-1482)
 ```typescript
-import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check, AlertTriangle, BarChart3, Coffee } from 'lucide-react';
+            <div className="p-4 space-y-3 relative pb-24">
+              <div className="bg-card rounded-xl shadow-sm p-4">
+                <div className="text-3xl font-bold text-primary">{todayTotal.toFixed(1)} hrs</div>
+                <div className="text-sm text-muted-foreground">Total today • {todayEntries.length} entries</div>
+              </div>
 ```
-
-**Note:** `Square` is already imported (used elsewhere in the component).
 
 ## Change Details
 
-### Update Line 2
+### Replace Lines 1478-1482
 **After:**
 ```typescript
-import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check, AlertTriangle, BarChart3, Coffee, CheckSquare } from 'lucide-react';
+            <div className="p-4 space-y-3 relative pb-24">
+              {(() => {
+                const todayShiftTotal = todayEntries.reduce((sum, entry) => {
+                  // Calculate gross hours from start/end time if available
+                  if (entry.startTime && entry.endTime) {
+                    return sum + (entry.endTime.getTime() - entry.startTime.getTime()) / (1000 * 60 * 60);
+                  }
+                  return sum + entry.hours;
+                }, 0);
+                const hasLunchDeductions = todayShiftTotal > todayTotal + 0.01;
+                
+                return (
+                  <div className="bg-card rounded-xl shadow-sm p-4">
+                    <div className="text-3xl font-bold text-primary">
+                      {todayTotal.toFixed(1)} hrs{hasLunchDeductions ? ' paid' : ''}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {hasLunchDeductions 
+                        ? `${todayShiftTotal.toFixed(1)} hrs shift • ${todayEntries.length} entries`
+                        : `Total today • ${todayEntries.length} entries`
+                      }
+                    </div>
+                  </div>
+                );
+              })()}
 ```
 
-## Icon Usage
-- **CheckSquare** (green): Indicates lunch was recorded
-- **Square** (amber): Indicates no lunch recorded for shifts >6 hours
+## Behavior
+- **Without lunch deductions:** Shows `"X.X hrs"` with `"Total today • N entries"`
+- **With lunch deductions:** Shows `"X.X hrs paid"` with `"Y.Y hrs shift • N entries"`
 
-## No Other Changes
-This is a targeted import update only. No other code in the file will be modified.
+## Scope
+Only the summary card is modified. The empty state check and `todayEntries.map` that follow remain unchanged.
