@@ -75,6 +75,9 @@ interface TimeEntry {
   startTimeString?: string;
   endTimeString?: string;
   approval_status?: string;
+  lunch_taken?: boolean;
+  lunch_duration_minutes?: number | null;
+  gross_hours?: number;
 }
 
 interface ActiveTimer {
