@@ -1,43 +1,60 @@
 
-# Standardize Lunch Indicator Colors with Dark Mode Support
+
+# Update TimeEntry Interface with Lunch Tracking Fields
 
 ## Overview
-Update the lunch status indicators in `MobileTimeTracker.tsx` to match the emerald/amber color scheme used in `WeekView.tsx` and add proper dark mode support.
+Add lunch tracking fields to the `TimeEntry` interface in `MobileTimeTracker.tsx` to properly support the lunch indicator logic that was recently implemented in the entry cards.
 
 ## File to Modify
 **File:** `src/components/time-tracker/MobileTimeTracker.tsx`
 
-## Changes
-
-### Change 1: Lunch Taken Indicator (Line 1601)
-**Current:**
+## Current State (Lines 66-78)
 ```typescript
-<div className="flex items-center gap-1.5 mt-2 text-xs text-green-600">
+interface TimeEntry {
+  id: string;
+  teamMember: TeamMember;
+  project: Project;
+  hours: number;
+  receiptUrl?: string;
+  attachment_url?: string;
+  startTime: Date;
+  endTime: Date;
+  startTimeString?: string;
+  endTimeString?: string;
+  approval_status?: string;
+}
 ```
 
+## Change Details
+
+### Replace Lines 66-78
 **Updated:**
 ```typescript
-<div className="flex items-center gap-1.5 mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+interface TimeEntry {
+  id: string;
+  teamMember: TeamMember;
+  project: Project;
+  hours: number;
+  receiptUrl?: string;
+  attachment_url?: string;
+  startTime: Date;
+  endTime: Date;
+  startTimeString?: string;
+  endTimeString?: string;
+  approval_status?: string;
+  lunch_taken?: boolean;
+  lunch_duration_minutes?: number | null;
+  gross_hours?: number;
+}
 ```
 
-### Change 2: No Lunch Warning (Line 1609)
-**Current:**
-```typescript
-<div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600">
-```
+## New Fields Added
+| Field | Type | Description |
+|-------|------|-------------|
+| `lunch_taken` | `boolean \| undefined` | Whether lunch was recorded for the entry |
+| `lunch_duration_minutes` | `number \| null \| undefined` | Duration of lunch break in minutes |
+| `gross_hours` | `number \| undefined` | Total shift hours before lunch deduction |
 
-**Updated:**
-```typescript
-<div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600 dark:text-amber-400">
-```
+## Purpose
+These fields will allow the entry card rendering logic to use the actual database values for lunch tracking instead of calculating/inferring from gross vs net hours, ensuring consistency with the `WeekView` component.
 
-## Summary
-| Indicator | Before | After |
-|-----------|--------|-------|
-| Lunch taken (checkmark) | `text-green-600` | `text-emerald-600 dark:text-emerald-400` |
-| No lunch warning | `text-amber-600` | `text-amber-600 dark:text-amber-400` |
-
-## Result
-- Visual consistency between MobileTimeTracker and WeekView
-- Proper dark mode support for both indicators
-- More modern/professional emerald color for lunch confirmation
