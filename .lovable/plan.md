@@ -1,9 +1,9 @@
 
 
-# Update Lucide-React Import in WeekView.tsx
+# Update Week Summary Card in WeekView.tsx
 
 ## Overview
-Add `CheckSquare` and `Square` icons to the existing lucide-react import statement for future use in the time tracker component.
+Replace the simple Week Summary Card with an enhanced version using an IIFE (Immediately Invoked Function Expression) that calculates both paid hours and shift hours, showing lunch deduction context when applicable.
 
 ## File to Modify
 
@@ -11,29 +11,74 @@ Add `CheckSquare` and `Square` icons to the existing lucide-react import stateme
 
 ## Change Details
 
-**Location:** Line 3
+**Location:** Lines 165-177
 
 **Current Code:**
 ```typescript
-import { ChevronLeft, ChevronRight, Calendar, Clock } from 'lucide-react';
+      {/* Week Summary Card */}
+      <div className="bg-card rounded-xl shadow-sm p-4 mb-4 border">
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="text-3xl font-bold text-primary">
+              {entries.reduce((sum, e) => sum + e.hours, 0).toFixed(1)} hrs
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Total hours this week • {entries.length} entries
+            </div>
+          </div>
+        </div>
+      </div>
 ```
 
-**Updated Code:**
+**Replacement Code:**
 ```typescript
-import { ChevronLeft, ChevronRight, Calendar, Clock, CheckSquare, Square } from 'lucide-react';
+      {/* Week Summary Card */}
+      {(() => {
+        const totalPaidHours = entries.reduce((sum, e) => sum + e.hours, 0);
+        const totalShiftHours = entries.reduce((sum, e) => sum + (e.gross_hours || e.hours), 0);
+        const hasLunchDeductions = totalShiftHours > totalPaidHours + 0.01;
+        
+        return (
+          <div className="bg-card rounded-xl shadow-sm p-4 mb-4 border">
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="text-3xl font-bold text-primary">
+                  {totalPaidHours.toFixed(1)} hrs{hasLunchDeductions ? ' paid' : ''}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {hasLunchDeductions 
+                    ? `${totalShiftHours.toFixed(1)} hrs shift • ${entries.length} entries`
+                    : `${entries.length} entries this week`
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 ```
 
-## Purpose
-These icons will be used for:
-- `CheckSquare` - Indicating completed/checked items (lunch taken, etc.)
-- `Square` - Indicating unchecked/incomplete items
+## What This Changes
 
-## Note: Existing Build Errors
-There are multiple unrelated build errors in the codebase regarding:
-1. `adjusted_est_margin` missing from several type interfaces
-2. `project_id_param` → `p_project_id` parameter name change in RPC calls
-3. `ref` prop issue in status-badge component
-4. `const` assertion error in EstimatesCardView
+| Aspect | Before | After |
+|--------|--------|-------|
+| Display | Simple total hours | Shows "paid" label when lunch deductions exist |
+| Secondary info | "Total hours this week" | Shows shift hours vs entries based on context |
+| Calculation | Single reduce | Calculates both paid and gross hours |
 
-These are separate issues that need to be addressed independently.
+## User Experience
+
+**Without lunch deductions:**
+```
+42.5 hrs
+12 entries this week
+```
+
+**With lunch deductions:**
+```
+42.5 hrs paid
+46.5 hrs shift • 12 entries
+```
+
+This gives users clear visibility into how lunch breaks affect their total hours.
 
