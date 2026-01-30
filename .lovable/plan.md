@@ -1,84 +1,69 @@
 
-
-# Update Week Summary Card in WeekView.tsx
+# Fix Build Errors - Add Missing Types
 
 ## Overview
-Replace the simple Week Summary Card with an enhanced version using an IIFE (Immediately Invoked Function Expression) that calculates both paid hours and shift hours, showing lunch deduction context when applicable.
+Add the missing `adjusted_est_margin` property to all type interfaces that extend `Project` and fix a few other minor issues.
 
-## File to Modify
+## Changes Required
 
-**File:** `src/components/time-tracker/WeekView.tsx`
+### 1. Add `adjusted_est_margin` to `Project` interface
+**File:** `src/types/project.ts` (Line 28)
 
-## Change Details
-
-**Location:** Lines 165-177
-
-**Current Code:**
+Add after `actual_margin`:
 ```typescript
-      {/* Week Summary Card */}
-      <div className="bg-card rounded-xl shadow-sm p-4 mb-4 border">
-        <div className="flex justify-between items-center">
-          <div>
-            <div className="text-3xl font-bold text-primary">
-              {entries.reduce((sum, e) => sum + e.hours, 0).toFixed(1)} hrs
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Total hours this week • {entries.length} entries
-            </div>
-          </div>
-        </div>
-      </div>
+adjusted_est_margin?: number | null;
 ```
 
-**Replacement Code:**
+### 2. Add `adjusted_est_margin` to `ProjectWithVariance` interface
+**File:** `src/components/ProjectsList.tsx` (Line 42-53)
+
+Add to the interface:
 ```typescript
-      {/* Week Summary Card */}
-      {(() => {
-        const totalPaidHours = entries.reduce((sum, e) => sum + e.hours, 0);
-        const totalShiftHours = entries.reduce((sum, e) => sum + (e.gross_hours || e.hours), 0);
-        const hasLunchDeductions = totalShiftHours > totalPaidHours + 0.01;
-        
-        return (
-          <div className="bg-card rounded-xl shadow-sm p-4 mb-4 border">
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="text-3xl font-bold text-primary">
-                  {totalPaidHours.toFixed(1)} hrs{hasLunchDeductions ? ' paid' : ''}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {hasLunchDeductions 
-                    ? `${totalShiftHours.toFixed(1)} hrs shift • ${entries.length} entries`
-                    : `${entries.length} entries this week`
-                  }
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+adjusted_est_margin?: number | null;
 ```
 
-## What This Changes
+### 3. Add `adjusted_est_margin` to `WorkOrderWithDetails` in WorkOrders.tsx
+**File:** `src/pages/WorkOrders.tsx` (Line 36-42)
 
-| Aspect | Before | After |
-|--------|--------|-------|
-| Display | Simple total hours | Shows "paid" label when lunch deductions exist |
-| Secondary info | "Total hours this week" | Shows shift hours vs entries based on context |
-| Calculation | Single reduce | Calculates both paid and gross hours |
-
-## User Experience
-
-**Without lunch deductions:**
-```
-42.5 hrs
-12 entries this week
+Add to the interface:
+```typescript
+adjusted_est_margin?: number | null;
 ```
 
-**With lunch deductions:**
-```
-42.5 hrs paid
-46.5 hrs shift • 12 entries
+### 4. Add `adjusted_est_margin` to `WorkOrderWithDetails` in WorkOrdersTableView.tsx
+**File:** `src/components/WorkOrdersTableView.tsx` (Line 42-55)
+
+Add to the interface:
+```typescript
+adjusted_est_margin?: number | null;
 ```
 
-This gives users clear visibility into how lunch breaks affect their total hours.
+### 5. Add `adjusted_est_margin` to `ProfitAnalysisProject` interface
+**File:** `src/types/profitAnalysis.ts` (Line 17-22, Margins section)
 
+Add after `margin_percentage`:
+```typescript
+adjusted_est_margin: number;
+```
+
+### 6. Fix RPC parameter names
+**Files:** 
+- `src/components/ProjectFinancialReconciliation.tsx` (Line 79)
+- `src/components/QuoteStatusSelector.tsx` (Line 153)
+
+Change `project_id_param` to `p_project_id`
+
+### 7. Fix StatusBadge ref forwarding
+**File:** `src/components/ui/status-badge.tsx` (Line 82)
+
+Remove the `ref` prop from Badge since it doesn't support forwarding
+
+### 8. Fix EstimatesCardView const assertion
+**File:** `src/components/EstimatesCardView.tsx` (Line 231)
+
+Fix the invalid `as const` assertion
+
+---
+
+## Summary
+This is a quick type synchronization to add the `adjusted_est_margin` property that was recently added to the database but not yet reflected in all TypeScript interfaces.
