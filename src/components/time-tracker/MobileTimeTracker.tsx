@@ -1476,10 +1476,30 @@ export const MobileTimeTracker: React.FC = () => {
           {/* Content based on selected range */}
           {entriesDateRange === 'today' ? (
             <div className="p-4 space-y-3 relative pb-24">
-              <div className="bg-card rounded-xl shadow-sm p-4">
-                <div className="text-3xl font-bold text-primary">{todayTotal.toFixed(1)} hrs</div>
-                <div className="text-sm text-muted-foreground">Total today • {todayEntries.length} entries</div>
-              </div>
+              {(() => {
+                const todayShiftTotal = todayEntries.reduce((sum, entry) => {
+                  // Calculate gross hours from start/end time if available
+                  if (entry.startTime && entry.endTime) {
+                    return sum + (entry.endTime.getTime() - entry.startTime.getTime()) / (1000 * 60 * 60);
+                  }
+                  return sum + entry.hours;
+                }, 0);
+                const hasLunchDeductions = todayShiftTotal > todayTotal + 0.01;
+                
+                return (
+                  <div className="bg-card rounded-xl shadow-sm p-4">
+                    <div className="text-3xl font-bold text-primary">
+                      {todayTotal.toFixed(1)} hrs{hasLunchDeductions ? ' paid' : ''}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {hasLunchDeductions 
+                        ? `${todayShiftTotal.toFixed(1)} hrs shift • ${todayEntries.length} entries`
+                        : `Total today • ${todayEntries.length} entries`
+                      }
+                    </div>
+                  </div>
+                );
+              })()}
               
               {todayEntries.length === 0 ? (
                 <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl shadow-sm p-8 text-center border-2 border-dashed border-primary/20">
