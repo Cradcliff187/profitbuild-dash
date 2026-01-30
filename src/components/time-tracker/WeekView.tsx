@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar, Clock, CheckSquare, Square } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Clock, CheckSquare, Square, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -224,9 +224,9 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
               {dayEntries.map(entry => {
                 const isPTO = isPTOProject(entry.project.project_number);
                 const hasLunch = entry.lunch_taken && entry.lunch_duration_minutes && entry.lunch_duration_minutes > 0;
-                const showBothHours = hasLunch && entry.gross_hours && Math.abs(entry.gross_hours - entry.hours) > 0.01;
+                const showShiftHours = hasLunch && entry.gross_hours && Math.abs(entry.gross_hours - entry.hours) > 0.01;
                 const isLongShiftNoLunch = !isPTO && !entry.lunch_taken && entry.gross_hours && entry.gross_hours > 6;
-                
+
                 return (
                   <div 
                     key={entry.id} 
@@ -260,48 +260,36 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
                       </div>
                     )}
                     
-                    {/* Row 3: Hours Display */}
-                    <div className="space-y-1">
-                      {showBothHours ? (
-                        <>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Shift:</span>
+                    {/* Row 3: Hours Display + Lunch Badge */}
+                    <div className="flex justify-between items-end">
+                      <div className="space-y-0.5">
+                        {showShiftHours && (
+                          <div className="flex gap-2 text-sm text-muted-foreground">
+                            <span className="w-10">Shift:</span>
                             <span className="font-mono">{entry.gross_hours?.toFixed(1)} hrs</span>
                           </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Paid:</span>
-                            <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs</span>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex justify-between text-sm">
-                          {isPTO ? (
-                            <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs paid</span>
-                          ) : (
-                            <>
-                              <span className="text-muted-foreground">Hours:</span>
-                              <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs</span>
-                            </>
-                          )}
+                        )}
+                        <div className="flex gap-2 text-sm">
+                          <span className="w-10 text-muted-foreground">Paid:</span>
+                          <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs</span>
+                        </div>
+                      </div>
+                      
+                      {/* Lunch Badge - Compact indicator */}
+                      {hasLunch && (
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs">
+                          <CheckSquare className="h-3 w-3" />
+                          <span>{entry.lunch_duration_minutes}m</span>
+                        </div>
+                      )}
+                      
+                      {isLongShiftNoLunch && (
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs">
+                          <AlertTriangle className="h-3 w-3" />
+                          <span>No lunch</span>
                         </div>
                       )}
                     </div>
-                    
-                    {/* Row 4: Lunch Status Indicator */}
-                    {hasLunch && (
-                      <div className="flex items-center gap-1.5 mt-2 text-xs text-emerald-600 dark:text-emerald-400">
-                        <CheckSquare className="h-3.5 w-3.5" />
-                        <span>{entry.lunch_duration_minutes} min lunch</span>
-                      </div>
-                    )}
-                    
-                    {/* Row 4 Alt: No Lunch Warning for long shifts */}
-                    {isLongShiftNoLunch && (
-                      <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600 dark:text-amber-400">
-                        <Square className="h-3.5 w-3.5" />
-                        <span>No lunch recorded</span>
-                      </div>
-                    )}
                   </div>
                 );
               })}
