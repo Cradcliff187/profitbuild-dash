@@ -90,10 +90,14 @@ const getStatusKPIs = (
     ? (((project.adjusted_est_margin ?? project.projected_margin) ?? 0) / contractValue) * 100
     : 0;
 
-  // Actuals: use actualExpenses (camelCase from frontend enrichment)
-  const actualExpenses = project.actualExpenses ?? 0;
-  const actualMarginPct = contractValue > 0
-    ? ((project.actual_margin ?? 0) / contractValue) * 100
+  // Actuals: use total_expenses from reporting view when available, else actualExpenses (frontend enrichment)
+  const totalInvoiced = (project as { total_invoiced?: number }).total_invoiced ?? 0;
+  const totalExpenses = (project as { total_expenses?: number }).total_expenses ?? 0;
+  const actualExpenses = totalExpenses > 0 ? totalExpenses : (project.actualExpenses ?? 0);
+  // For complete/cancelled with no contract, use total_invoiced as denominator for margin %
+  const actualRevenueDenom = contractValue || totalInvoiced;
+  const actualMarginPct = actualRevenueDenom > 0
+    ? ((project.actual_margin ?? 0) / actualRevenueDenom) * 100
     : 0;
 
   // Budget utilization: computed from actualExpenses / adjusted_est_costs
@@ -167,13 +171,16 @@ const getStatusKPIs = (
       const variancePct = originalMargin !== 0
         ? ((actualMargin - originalMargin) / Math.abs(originalMargin)) * 100
         : 0;
+      // Use total_invoiced/total_expenses when contract is 0 (e.g. completed without approved estimate)
+      const displayValue1 = contractValue || totalInvoiced;
+      const displayValue2 = actualExpenses;
 
       return {
         primary: {
-          label1: 'Contract',
-          value1: contractValue,
+          label1: contractValue > 0 ? 'Contract' : 'Total Invoiced',
+          value1: displayValue1,
           label2: 'Actual Costs',
-          value2: actualExpenses,
+          value2: displayValue2,
           label3: 'Margin',
           value3: actualMarginPct,
           isPercent3: true,

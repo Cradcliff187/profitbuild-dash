@@ -101,7 +101,8 @@ const Projects = () => {
       setIsLoading(true);
       
       // Load all related data (exclude unassigned project and work orders)
-      const [projectsRes, estimatesRes, quotesRes, expensesRes, changeOrdersRes] = await Promise.all([
+      // Include reporting financials (total_invoiced, total_expenses) for complete/cancelled display
+      const [projectsRes, estimatesRes, quotesRes, expensesRes, changeOrdersRes, financialsRes] = await Promise.all([
         supabase.from('projects').select('*').eq('category', 'construction').or('project_type.eq.construction_project,project_type.is.null').order('created_at', { ascending: false }),
         supabase.from('estimates').select('*'),
         supabase.from('quotes').select('*'),
@@ -109,7 +110,8 @@ const Projects = () => {
           *,
           projects (project_number)
         `),
-        supabase.from('change_orders').select('project_id, client_amount, cost_impact, status').eq('status', 'approved')
+        supabase.from('change_orders').select('project_id, client_amount, cost_impact, status').eq('status', 'approved'),
+        supabase.rpc('get_profit_analysis_data', { status_filter: ['estimating', 'approved', 'in_progress', 'complete', 'on_hold', 'cancelled'] })
       ]);
 
       if (projectsRes.error) throw projectsRes.error;
@@ -117,8 +119,16 @@ const Projects = () => {
       if (quotesRes.error) throw quotesRes.error;
       if (expensesRes.error) throw expensesRes.error;
       if (changeOrdersRes.error) throw changeOrdersRes.error;
+      if (financialsRes.error) throw financialsRes.error;
+
+      // Map project id -> { total_invoiced, total_expenses } for merge into projects
+      const financialsByProjectId = (financialsRes.data || []).reduce((acc: Record<string, { total_invoiced: number; total_expenses: number }>, row: any) => {
+        acc[row.id] = { total_invoiced: row.total_invoiced ?? 0, total_expenses: row.total_expenses ?? 0 };
+        return acc;
+      }, {});
 
       const formattedProjects = projectsRes.data?.map((project: any) => {
+        const financials = financialsByProjectId[project.id] || { total_invoiced: 0, total_expenses: 0 };
         // Calculate change order aggregates for this project
         const projectChangeOrders = (changeOrdersRes.data || []).filter(co => co.project_id === project.id);
         const changeOrderCount = projectChangeOrders.length;
@@ -137,7 +147,9 @@ const Projects = () => {
           end_date: project.end_date ? new Date(project.end_date) : undefined,
           created_at: new Date(project.created_at),
           updated_at: new Date(project.updated_at),
-          
+          // From reporting.project_financials (via get_profit_analysis_data) for complete/cancelled display
+          total_invoiced: financials.total_invoiced,
+          total_expenses: financials.total_expenses,
           // Map database fields to ProjectWithFinancials interface
           originalContractAmount,
           changeOrderRevenue,
