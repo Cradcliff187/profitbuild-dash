@@ -4,6 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MobileListCard } from "@/components/ui/mobile-list-card";
 import { Badge } from "@/components/ui/badge";
 import { VarianceBadge } from "@/components/ui/variance-badge";
 import {
@@ -258,6 +259,7 @@ export const ProjectsList = ({
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { navigateToProjectDetail } = useSmartNavigation();
+  const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
 
   const getStatusColor = (status: ProjectStatus) => {
     switch (status) {
@@ -700,123 +702,108 @@ export const ProjectsList = ({
             );
           }
 
-          // MOBILE: Simple card implementation without collapsible
+          // MOBILE: MobileListCard with status-aware KPIs
           return (
-            <Card
+            <MobileListCard
               key={project.id}
-              className="compact-card border hover:shadow-sm transition-shadow"
-            >
-              <CardHeader 
-                className="p-3 pb-2 cursor-pointer"
-                onClick={() => navigateToProjectDetail(project.id)}
-              >
-                <div className="space-y-0.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-sm font-medium truncate flex-1">{project.project_name}</CardTitle>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <Badge className={`compact-badge ${getStatusColor(project.status)}`}>
-                        {project.status.replace('_', ' ').toUpperCase()}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="text-label text-muted-foreground truncate">
-                    {project.project_number} • {project.client_name}
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-3 space-y-2 bg-background">
-                      {/* Status-Aware Financial KPIs (mobile only) */}
-                      {(() => {
-                        const kpis = getStatusKPIs(project, currentEstimate);
-                        return <ProjectKPIDisplay kpis={kpis} status={project.status} />;
-                      })()}
-
-                      {/* Other Details - Type / Created */}
-                      <div className="grid grid-cols-2 gap-2 text-label pt-2 border-t">
-                        <div>
-                          <p className="text-muted-foreground text-label">Type</p>
-                          <p className="text-data font-medium truncate">
-                            {project.project_type === 'construction_project' ? 'Construction' : 'Work Order'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground text-label">Created</p>
-                          <p className="text-data font-medium">
-                            {format(project.created_at, "MMM dd")}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons - Inside Collapsed Area (matching quotes style) */}
-                      <div className="flex gap-1 pt-2 border-t border-primary/20">
-                        {(() => {
-                          const projectEstimates = estimates.filter(e => e.project_id === project.id);
-                          const hasEstimates = projectEstimates.length > 0;
-
-                          return (
-                            <>
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => navigateToProjectDetail(project.id)}
-                                className="h-btn-compact flex-1"
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                View
-                              </Button>
-                              {!hasEstimates && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => window.location.href = `/estimates?project=${project.id}`}
-                                  className="h-btn-compact text-label flex-1"
-                                >
-                                  <Calculator className="h-3 w-3 mr-1" />
-                                  Estimate
-                                </Button>
-                              )}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => onEdit(project)}
-                                className="h-btn-compact text-label flex-1"
-                              >
-                                <Edit className="h-3 w-3 mr-1" />
-                                Edit
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="outline" size="sm" className="h-btn-compact">
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Project</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to delete "{project.project_name}"?
-                                      This action will permanently delete the project and all related data including estimates, quotes, and expenses.
-                                      This cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteProject(project.id)}>
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </CardContent>
-            </Card>
+              title={project.project_name}
+              subtitle={`${project.project_number} • ${project.client_name || "No Client"}`}
+              badge={{
+                label: project.status.replace("_", " ").toUpperCase(),
+                className: getStatusColor(project.status),
+              }}
+              secondaryBadge={
+                project.project_type === "work_order"
+                  ? {
+                      label: "WORK ORDER",
+                      className:
+                        "border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-300",
+                    }
+                  : undefined
+              }
+              metrics={(() => {
+                const kpis = getStatusKPIs(project, currentEstimate);
+                const primary = kpis.primary;
+                return [
+                  { label: primary.label1, value: formatCurrency(primary.value1) },
+                  {
+                    label: primary.label2,
+                    value: formatCurrency(primary.value2),
+                  },
+                  {
+                    label: primary.label3,
+                    value: primary.isPercent3
+                      ? `${primary.value3.toFixed(1)}%`
+                      : formatCurrency(primary.value3),
+                    subtext: project.status === "estimating" ? "(est)" : undefined,
+                  },
+                ].slice(0, 2);
+              })()}
+              onTap={() => navigateToProjectDetail(project.id)}
+              actions={[
+                {
+                  icon: Eye,
+                  label: "View Details",
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    navigateToProjectDetail(project.id);
+                  },
+                },
+                {
+                  icon: Edit,
+                  label: "Edit",
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    onEdit(project);
+                  },
+                },
+                {
+                  icon: Trash2,
+                  label: "Delete",
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    setDeleteConfirmProjectId(project.id);
+                  },
+                  variant: "destructive" as const,
+                },
+              ]}
+            />
           );
         })}
       </div>
+
+      {/* Single delete confirmation dialog (mobile MobileListCard triggers this) */}
+      <AlertDialog
+        open={deleteConfirmProjectId !== null}
+        onOpenChange={(open) => !open && setDeleteConfirmProjectId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &quot;{projects.find((p) => p.id === deleteConfirmProjectId)?.project_name ?? "this project"}&quot;?
+              This action will permanently delete the project and all related data including estimates, quotes, and expenses.
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirmProjectId(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteConfirmProjectId) {
+                  handleDeleteProject(deleteConfirmProjectId);
+                  setDeleteConfirmProjectId(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {projects.length === 0 && (
         <Card>

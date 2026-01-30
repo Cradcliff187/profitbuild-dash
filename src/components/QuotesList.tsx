@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Eye, FileText, Trash2, ArrowUpDown, Edit, ChevronDown, Plus, Files } from "lucide-react";
+import { Eye, FileText, Trash2, ArrowUpDown, Edit, ChevronDown, Plus, Files, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MobileListCard } from "@/components/ui/mobile-list-card";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -15,11 +16,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
 import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
-import { QuoteStatusBadge } from "./QuoteStatusBadge";
 import { QuotesTableView } from "./QuotesTableView";
 import { DuplicateQuoteModal } from "./DuplicateQuoteModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,21 +43,8 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
   const [sortBy, setSortBy] = useState<'date' | 'project' | 'total'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const { toast } = useToast();
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
   const [quoteToDuplicate, setQuoteToDuplicate] = useState<Quote | null>(null);
-
-  const toggleCard = (quoteId: string) => {
-    setExpandedCards(prev => {
-      const next = new Set(prev);
-      if (next.has(quoteId)) {
-        next.delete(quoteId);
-      } else {
-        next.add(quoteId);
-      }
-      return next;
-    });
-  };
 
   const getEstimateForQuote = (quote: Quote): Estimate | undefined => {
     // Prioritize exact estimate_id match first
@@ -313,221 +299,96 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
 
       {/* Quotes Grid */}
       <div className="space-y-2">
-        {sortedQuotes.map((quote) => {
-          const estimate = getEstimateForQuote(quote);
-          
-          return (
-            <Card key={quote.id} className="compact-card border border-primary/10">
-              <CardHeader className="p-3 pb-2 bg-gradient-to-r from-primary/5 to-transparent">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1">
-                    <CardTitle className="text-sm font-medium">{quote.projectName}</CardTitle>
-                    <QuoteStatusBadge status={quote.status} />
-                  </div>
-                  <div className="text-label text-muted-foreground">
-                    {quote.client} • {quote.quoteNumber}
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="p-3 space-y-2">
-                {/* Always visible row with amount and payee */}
-                <div className="flex items-center justify-between px-3 py-2 border-t">
-                  <span className="text-sm font-medium">
-                    {formatCurrency(getQuotedCost(quote))} • {quote.quotedBy}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleCard(quote.id);
-                    }}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
-                      expandedCards.has(quote.id) ? 'rotate-180' : ''
-                    }`} />
-                  </Button>
-                </div>
-                
-                {/* Collapsible content */}
-                <Collapsible open={expandedCards.has(quote.id)}>
-                  <CollapsibleContent>
-                  <div className="space-y-2 pt-2">
-                    {/* Financial Summary - 3 key numbers */}
-                    <div className="grid grid-cols-3 gap-2 text-label bg-muted/30 p-3 rounded-lg">
-                      <div className="text-center">
-                        <div className="text-muted-foreground text-label">Price</div>
-                        <div className="text-interface font-bold font-mono">
-                          {(() => {
-                            const estimatePrice = getEstimateLineItemPrice(quote);
-                            return estimatePrice !== null ? formatCurrency(estimatePrice) : 'N/A';
-                          })()}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Customer</div>
-                      </div>
-                      <div className="text-center border-x border-border">
-                        <div className="text-muted-foreground text-label">Est. Cost</div>
-                        <div className="text-interface font-bold font-mono">
-                          {(() => {
-                            const estimateCost = getEstimateLineItemCost(quote);
-                            return estimateCost !== null ? formatCurrency(estimateCost) : 'N/A';
-                          })()}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Budgeted</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-muted-foreground text-label">Quoted Cost</div>
-                        <div className="text-interface font-bold font-mono text-primary">
-                          {formatCurrency(getQuotedCost(quote))}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Vendor</div>
-                      </div>
-                    </div>
-
-                    {/* Profit Impact Calculation */}
-                    {(() => {
-                      const estimatePrice = getEstimateLineItemPrice(quote);
-                      const estimateCost = getEstimateLineItemCost(quote);
-                      const quotedCost = getQuotedCost(quote);
-                      
-                      if (estimatePrice !== null && estimateCost !== null) {
-                        const originalProfit = estimatePrice - estimateCost;
-                        const newProfit = estimatePrice - quotedCost;
-                        const profitImpact = newProfit - originalProfit;
-                        
-                        return (
-                          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium">Profit Impact</span>
-                              <Badge 
-                                variant={profitImpact >= 0 ? 'default' : 'destructive'}
-                                className="font-mono"
-                              >
-                                {profitImpact >= 0 ? '+' : ''}
-                                {formatCurrency(profitImpact)}
-                              </Badge>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                              <div>
-                                <span className="text-muted-foreground">Original: </span>
-                                <span className="font-mono">{formatCurrency(originalProfit)}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">New: </span>
-                                <span className="font-mono">{formatCurrency(newProfit)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-
-                    {/* Other Details */}
-                    <div className="grid grid-cols-2 gap-2 text-label pt-2 border-t">
-                      <div>
-                        <div className="text-muted-foreground text-label">Quoted By</div>
-                        <div className="font-medium">{quote.quotedBy}</div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground text-label">Date Received</div>
-                        <div className="font-medium">{format(quote.dateReceived, "MMM dd, yyyy")}</div>
-                      </div>
-                      {quote.valid_until && (
-                        <div>
-                          <div className="text-muted-foreground">Valid Until</div>
-                          <div className="font-medium">{format(quote.valid_until, "MMM dd, yyyy")}</div>
-                        </div>
-                      )}
-                      {quote.accepted_date && (
-                        <div>
-                          <div className="text-muted-foreground">Accepted Date</div>
-                          <div className="font-medium">{format(quote.accepted_date, "MMM dd, yyyy")}</div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Rejection Reason */}
-                    {quote.status === QuoteStatus.REJECTED && quote.rejection_reason && (
-                      <div className="text-sm p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
-                        <div className="text-red-600 dark:text-red-400 font-medium mb-1">Rejection Reason</div>
-                        <div className="text-red-800 dark:text-red-200">{quote.rejection_reason}</div>
-                      </div>
-                    )}
-
-                    {/* Notes */}
-                    {quote.notes && (
-                      <div className="text-sm">
-                        <div className="text-muted-foreground mb-1">Notes</div>
-                        <div className="text-foreground">{quote.notes}</div>
-                      </div>
-                    )}
-
-                    {/* Action Buttons - Inside Collapsed Area */}
-                    <div className="flex gap-1 pt-2 border-t border-primary/20">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onEdit(quote)}
-                        className="h-btn-compact text-label flex-1"
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setQuoteToDuplicate(quote);
-                          setDuplicateModalOpen(true);
-                        }}
-                        className="h-btn-compact text-label flex-1"
-                      >
-                        <Files className="h-3 w-3 mr-1" />
-                        Duplicate
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onCompare(quote)}
-                        disabled={!estimate}
-                        className="h-btn-compact text-label flex-1"
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        Compare
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="h-btn-compact">
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Quote</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this quote from {quote.quotedBy}? 
-                              This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDelete(quote.id)}>
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                  </CollapsibleContent>
-                </Collapsible>
-            </CardContent>
-            </Card>
-          );
-        })}
+        {sortedQuotes.map((quote) => (
+          <MobileListCard
+            key={quote.id}
+            title={quote.quoteNumber || "No Quote #"}
+            subtitle={`${quote.projectName || "No Project"}${quote.quotedBy ? ` • ${quote.quotedBy}` : ""}`}
+            badge={{
+              label: (quote.status ?? QuoteStatus.PENDING).toUpperCase(),
+              className: (() => {
+                switch (quote.status) {
+                  case QuoteStatus.ACCEPTED:
+                    return "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300";
+                  case QuoteStatus.REJECTED:
+                    return "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300";
+                  case QuoteStatus.EXPIRED:
+                    return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+                  default:
+                    return "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300";
+                }
+              })(),
+            }}
+            metrics={[
+              {
+                label: "Quoted Cost",
+                value: formatCurrency(getQuotedCost(quote)),
+              },
+              {
+                label: "Est. Cost",
+                value: (() => {
+                  const estCost = getEstimateLineItemCost(quote);
+                  return estCost != null && estCost > 0 ? formatCurrency(estCost) : "—";
+                })(),
+              },
+            ]}
+            attention={(() => {
+              const quotedCost = getQuotedCost(quote);
+              const estCost = getEstimateLineItemCost(quote);
+              if (estCost == null || estCost <= 0 || quotedCost <= 0) return undefined;
+              const variance = ((quotedCost - estCost) / estCost) * 100;
+              if (variance > 10) {
+                return {
+                  message: `${variance.toFixed(0)}% over estimate`,
+                  variant: "error" as const,
+                };
+              }
+              if (variance < -10) {
+                return {
+                  message: `${Math.abs(variance).toFixed(0)}% under estimate`,
+                  variant: "info" as const,
+                };
+              }
+              return undefined;
+            })()}
+            onTap={() => onView?.(quote)}
+            actions={[
+              {
+                icon: Eye,
+                label: "View",
+                onClick: (e) => {
+                  e.stopPropagation();
+                  onView?.(quote);
+                },
+              },
+              {
+                icon: Edit,
+                label: "Edit",
+                onClick: (e) => {
+                  e.stopPropagation();
+                  onEdit(quote);
+                },
+              },
+              {
+                icon: BarChart3,
+                label: "Compare",
+                onClick: (e) => {
+                  e.stopPropagation();
+                  onCompare(quote);
+                },
+              },
+              {
+                icon: Trash2,
+                label: "Delete",
+                onClick: (e) => {
+                  e.stopPropagation();
+                  onDelete(quote.id);
+                },
+                variant: "destructive" as const,
+              },
+            ]}
+          />
+        ))}
       </div>
 
       {/* Duplicate Quote Modal */}

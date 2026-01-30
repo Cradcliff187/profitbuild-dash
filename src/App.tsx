@@ -47,6 +47,7 @@ const SMSAdmin = lazy(() => import("./pages/SMSAdmin"));
 const Training = lazy(() => import("./pages/Training"));
 const TrainingAdmin = lazy(() => import("./pages/TrainingAdmin"));
 const TrainingViewer = lazy(() => import("./pages/TrainingViewer"));
+const DevMobileCards = lazy(() => import("./pages/DevMobileCards"));
 
 // Project route components
 const ProjectOverviewRoute = lazy(() => import("./components/project-routes/ProjectOverviewRoute").then(m => ({ default: m.ProjectOverviewRoute })));
@@ -143,6 +144,7 @@ const App = () => (
                   <Route path="training" element={<LazyRoute component={Training} />} />
                   <Route path="training/admin" element={<LazyRoute component={TrainingAdmin} />} />
                   <Route path="training/:id" element={<LazyRoute component={TrainingViewer} />} />
+                  <Route path="dev/mobile-cards" element={<LazyRoute component={DevMobileCards} />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

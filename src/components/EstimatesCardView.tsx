@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Edit, Trash2, Eye, Plus, ChevronDown, History } from "lucide-react";
+import { FileText, Edit, Trash2, Eye, Plus, Copy, ChevronDown, History } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BudgetComparisonBadge, BudgetComparisonStatus } from "@/components/BudgetComparisonBadge";
 import { formatCurrency } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { MobileListCard } from "@/components/ui/mobile-list-card";
 
 export interface EstimatesCardViewProps {
   estimates: (Estimate & { quotes?: Array<{ id: string; total_amount: number; status: string }> })[];
@@ -24,7 +25,6 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [estimateToDelete, setEstimateToDelete] = useState<string | null>(null);
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   
   // Group estimates by project to show as families
   const estimatesByProject = estimates.reduce((groups, estimate) => {
@@ -89,6 +89,14 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
     const percentage = (variance / estimate.total_amount) * 100;
     
     return { variance, percentage };
+  };
+
+  const getMarginDisplay = (estimate: Estimate): string => {
+    const totalAmount = estimate.total_amount || 0;
+    if (totalAmount === 0) return "—";
+    const totalCost = estimate.total_cost ?? estimate.lineItems?.reduce((s, li) => s + (li.totalCost || 0), 0) ?? 0;
+    const margin = ((totalAmount - totalCost) / totalAmount) * 100;
+    return `${margin.toFixed(1)}%`;
   };
 
   const formatContingencyDisplay = (estimate: Estimate) => {
@@ -202,258 +210,190 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
           const quoteStatus = getQuoteStatus(currentVersion);
           const bestQuoteVariance = getBestQuoteVariance(currentVersion);
           
+          // Always show quote line when there are quotable items (excl. internal labor/management). Status/draft does not gate this.
+          const attention = (() => {
+            const lineItems = currentVersion.lineItems || [];
+            const quotableItems = lineItems.filter(
+              item =>
+                item.category !== "labor_internal" &&
+                item.category !== "management"
+            );
+            if (quotableItems.length === 0) {
+              return undefined;
+            }
+            const quoteCount = currentVersion.quotes?.length ?? 0;
+            const message =
+              quoteCount === 0
+                ? `${quotableItems.length} quotable items • No quotes received`
+                : `${quotableItems.length} quotable items • ${quoteCount} quote(s) received`;
+            return {
+              message,
+              variant: (quoteCount === 0 ? "warning" : "info") as const,
+            };
+          })();
+
           return (
-            <Card key={projectId} className="compact-card border border-primary/10 overflow-hidden max-w-full min-w-0">
-              <CardHeader className="p-3 pb-2 bg-gradient-to-r from-primary/5 to-transparent">
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2 flex-wrap">
-                    <CardTitle className="text-sm font-medium flex-1 min-w-0 truncate">
-                      {currentVersion.project_number ? `${currentVersion.project_number} - ${currentVersion.project_name}` : currentVersion.project_name}
-                    </CardTitle>
-                    <div className="flex gap-1 flex-shrink-0 min-w-0 overflow-hidden">
-                      <Badge className="compact-badge bg-primary text-primary-foreground font-medium">
-                        v{currentVersion.version_number || 1}
-                      </Badge>
-                      <Badge variant="outline" className="compact-badge border-success text-success bg-success/10">
-                        Current
-                      </Badge>
+            <MobileListCard
+              key={projectId}
+              title={currentVersion.project_number ? `${currentVersion.project_number} - ${currentVersion.project_name}` : currentVersion.project_name ?? ''}
+              subtitle={`${currentVersion.client_name ?? ''} • ${projectEstimates.length} version${projectEstimates.length !== 1 ? 's' : ''}`}
+              badge={{ label: `v${currentVersion.version_number || 1}`, className: "bg-primary text-primary-foreground font-medium" }}
+              secondaryBadge={{ label: "Current", className: "border-success text-success bg-success/10" }}
+              metrics={[
+                { label: "Total", value: formatCurrency(currentVersion.total_amount, { showCents: false }) },
+                { label: "Margin", value: getMarginDisplay(currentVersion) },
+              ]}
+              attention={attention}
+              onTap={() => onView(currentVersion)}
+              actions={[
+                { icon: Eye, label: "View", onClick: (e) => { e.stopPropagation(); onView(currentVersion); } },
+                { icon: Edit, label: "Edit", onClick: (e) => { e.stopPropagation(); onEdit(currentVersion); } },
+                { icon: Copy, label: "New Version", onClick: (e) => { e.stopPropagation(); createNewVersion(currentVersion); } },
+                { icon: Trash2, label: "Delete", onClick: (e) => { e.stopPropagation(); handleDeleteClick(currentVersion.id); }, variant: "destructive" },
+              ]}
+              expandable={true}
+              expandTriggerLabel="View Details"
+              expandedContent={
+                <div className="space-y-3 text-sm">
+                  <div className="compact-card-section border border-primary/20 rounded-md p-3 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-medium text-foreground">Latest Version</h3>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Badge className="compact-badge bg-primary text-primary-foreground font-medium">
+                          v{currentVersion.version_number || 1}
+                        </Badge>
+                        <Badge variant="outline" className={`compact-badge capitalize ${
+                          currentVersion.status === 'approved' ? 'border-success text-success bg-success/10' :
+                          currentVersion.status === 'draft' ? 'border-muted text-muted-foreground bg-muted/10' :
+                          'border-primary text-primary bg-primary/10'
+                        }`}>
+                          {currentVersion.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
+                      <span className="truncate">{currentVersion.estimate_number}</span>
+                      <span>•</span>
+                      <span>{format(currentVersion.date_created, 'MMM dd, yyyy')}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-lg font-bold text-foreground font-mono">
+                          {formatCurrency(currentVersion.total_amount, { showCents: false })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Total Amount</div>
+                      </div>
+                    </div>
+                    {(quoteStatus !== 'awaiting-quotes') && (
+                      <div className="pt-2 border-t border-primary/20">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-foreground">Budget vs Actual:</span>
+                          <div className="flex items-center gap-1">
+                            <BudgetComparisonBadge status={quoteStatus} />
+                            {bestQuoteVariance && (
+                              <span className={`text-sm font-mono font-medium ${
+                                bestQuoteVariance.variance < 0 ? 'text-success' : 'text-destructive'
+                              }`}>
+                                {formatCurrency(bestQuoteVariance.variance, { showCents: false })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex gap-1 pt-2">
+                      <Button variant="outline" size="sm" onClick={() => onView(currentVersion)} className="flex-1 h-btn-compact text-xs border-primary/20 hover:bg-primary/5">
+                        <Eye className="h-3 w-3 mr-1" /> View
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => onEdit(currentVersion)} className="flex-1 h-btn-compact text-xs border-primary/20 hover:bg-primary/5">
+                        <Edit className="h-3 w-3 mr-1" /> Edit
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => createNewVersion(currentVersion)} className="flex-1 h-btn-compact text-xs border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                        <Plus className="h-3 w-3 mr-1" /> New
+                      </Button>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {currentVersion.client_name} • {projectEstimates.length} version{projectEstimates.length !== 1 ? 's' : ''}
-                  </p>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-3 space-y-2">
-                {/* Always visible row with key info and chevron */}
-                <div className="flex items-center justify-between py-2 border-t">
-                  <span className="text-sm font-medium">
-                    {formatCurrency(currentVersion.total_amount, { showCents: false })} • {format(currentVersion.date_created, 'MMM dd, yyyy')}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setExpandedCards(prev => {
-                        const next = new Set(prev);
-                        if (next.has(currentVersion.id)) {
-                          next.delete(currentVersion.id);
-                        } else {
-                          next.add(currentVersion.id);
-                        }
-                        return next;
-                      });
-                    }}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
-                      expandedCards.has(currentVersion.id) ? 'rotate-180' : ''
-                    }`} />
-                  </Button>
-                </div>
-                
-                {/* Collapsible content */}
-                <Collapsible open={expandedCards.has(currentVersion.id)}>
-                  <CollapsibleContent className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                    <div className="compact-card-section border border-primary/20">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-sm font-medium text-foreground">Latest Version</h3>
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <Badge className="compact-badge bg-primary text-primary-foreground font-medium">
-                              v{currentVersion.version_number || 1}
-                            </Badge>
-                            <Badge variant="outline" className={`compact-badge capitalize ${
-                              currentVersion.status === 'approved' ? 'border-success text-success bg-success/10' :
-                              currentVersion.status === 'draft' ? 'border-muted text-muted-foreground bg-muted/10' :
-                              'border-primary text-primary bg-primary/10'
-                            }`}>
-                              {currentVersion.status}
-                            </Badge>
+                  {previousVersions.length > 0 && (
+                    <Collapsible>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="w-full justify-between p-3 h-auto border border-dashed border-primary/30 hover:bg-primary/5">
+                          <div className="flex items-center space-x-2">
+                            <History className="h-3.5 w-3.5 text-primary" />
+                            <span className="text-sm font-medium text-foreground">Version History ({previousVersions.length})</span>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
-                          <span className="truncate">{currentVersion.estimate_number}</span>
-                          <span>•</span>
-                          <span>{format(currentVersion.date_created, 'MMM dd, yyyy')}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-lg font-bold text-foreground font-mono">
-                              {formatCurrency(currentVersion.total_amount, { showCents: false })}
-                            </div>
-                            <div className="text-xs text-muted-foreground">Total Amount</div>
-                          </div>
-                        </div>
-
-                        {(quoteStatus !== 'awaiting-quotes') && (
-                          <div className="pt-2 border-t border-primary/20">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-foreground">Budget vs Actual:</span>
-                              <div className="flex items-center gap-1">
-                                <BudgetComparisonBadge status={quoteStatus} />
-                                {bestQuoteVariance && (
-                                  <span className={`text-sm font-mono font-medium ${
-                                    bestQuoteVariance.variance < 0 ? 'text-success' : 'text-destructive'
-                                  }`}>
-                                    {formatCurrency(bestQuoteVariance.variance, { showCents: false })}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex gap-1 pt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onView(currentVersion)}
-                            className="flex-1 h-btn-compact text-xs border-primary/20 hover:bg-primary/5"
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onEdit(currentVersion)}
-                            className="flex-1 h-btn-compact text-xs border-primary/20 hover:bg-primary/5"
-                          >
-                            <Edit className="h-3 w-3 mr-1" />
-                            Edit
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => createNewVersion(currentVersion)}
-                            className="flex-1 h-btn-compact text-xs border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            New
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-
-                {previousVersions.length > 0 && (
-                  <Collapsible>
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-between p-3 h-auto border border-dashed border-primary/30 hover:bg-primary/5">
-                        <div className="flex items-center space-x-2">
-                          <History className="h-3.5 w-3.5 text-primary" />
-                          <span className="text-sm font-medium text-foreground">
-                            Version History ({previousVersions.length})
-                          </span>
-                        </div>
-                        <ChevronDown className="h-3.5 w-3.5 text-primary" />
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-2 mt-2">
-                      <div className="pl-3 border-l-2 border-primary/20 space-y-2">
-                        {previousVersions.map((estimate, index) => (
-                          <Card key={estimate.id} className="bg-muted/20 border-muted-foreground/20">
-                            <CardContent className="p-3">
-                              {/* Mobile-optimized compact layout */}
-                              <div className="space-y-2">
-                                {/* Top row: Badges and Amount */}
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <Badge variant="outline" className="text-[10px] h-4 px-1.5">
-                                      v{estimate.version_number || 1}
-                                    </Badge>
-                                    <Badge variant="outline" className={`text-[10px] h-4 px-1.5 capitalize ${
-                                      estimate.status === 'approved' ? 'border-green-200 text-green-700 bg-green-50' :
-                                      estimate.status === 'draft' ? 'border-gray-200 text-gray-700 bg-gray-50' :
-                                      'border-blue-200 text-blue-700 bg-blue-50'
-                                    }`}>
-                                      {estimate.status}
-                                    </Badge>
-                                    {index === 0 && (
-                                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground border-muted-foreground/30">
-                                        Previous
+                          <ChevronDown className="h-3.5 w-3.5 text-primary" />
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-2 mt-2">
+                        <div className="pl-3 border-l-2 border-primary/20 space-y-2">
+                          {previousVersions.map((estimate, index) => (
+                            <Card key={estimate.id} className="bg-muted/20 border-muted-foreground/20">
+                              <CardContent className="p-3">
+                                <div className="space-y-2">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <Badge variant="outline" className="text-[10px] h-4 px-1.5">v{estimate.version_number || 1}</Badge>
+                                      <Badge variant="outline" className={`text-[10px] h-4 px-1.5 capitalize ${
+                                        estimate.status === 'approved' ? 'border-green-200 text-green-700 bg-green-50' :
+                                        estimate.status === 'draft' ? 'border-gray-200 text-gray-700 bg-gray-50' :
+                                        'border-blue-200 text-blue-700 bg-blue-50'
+                                      }`}>
+                                        {estimate.status}
                                       </Badge>
-                                    )}
+                                      {index === 0 && (
+                                        <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground border-muted-foreground/30">Previous</Badge>
+                                      )}
+                                    </div>
+                                    <div className="text-right flex-shrink-0">
+                                      <span className="font-semibold text-sm font-mono">{formatCurrency(estimate.total_amount, { showCents: false })}</span>
+                                    </div>
                                   </div>
-                                  <div className="text-right flex-shrink-0">
-                                    <span className="font-semibold text-sm font-mono">
-                                      {formatCurrency(estimate.total_amount, { showCents: false })}
-                                    </span>
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                                    <span className="truncate">{estimate.estimate_number}</span>
+                                    <span>•</span>
+                                    <span>{format(estimate.date_created, 'MMM dd, yyyy')}</span>
+                                  </div>
+                                  {estimate.contingency_percent > 0 && (
+                                    <div className="text-xs text-muted-foreground">Contingency: {formatContingencyDisplay(estimate)}</div>
+                                  )}
+                                  <div className="flex items-center justify-end gap-1 pt-2 border-t border-muted-foreground/20">
+                                    <Button variant="ghost" size="sm" onClick={() => onView(estimate)} className="h-7 w-7 p-0 hover:bg-primary/10">
+                                      <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => onEdit(estimate)} className="h-7 w-7 p-0 hover:bg-primary/10">
+                                      <Edit className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50">
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Delete Estimate Version</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to delete version {estimate.version_number || 1} of this estimate? This action cannot be undone.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction onClick={() => onDelete(estimate.id)}>Delete</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
                                   </div>
                                 </div>
-
-                                {/* Second row: Estimate number and date */}
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
-                                  <span className="truncate">{estimate.estimate_number}</span>
-                                  <span>•</span>
-                                  <span>{format(estimate.date_created, 'MMM dd, yyyy')}</span>
-                                </div>
-
-                                {/* Third row: Contingency (if exists) */}
-                                {estimate.contingency_percent > 0 && (
-                                  <div className="text-xs text-muted-foreground">
-                                    Contingency: {formatContingencyDisplay(estimate)}
-                                  </div>
-                                )}
-
-                                {/* Bottom row: Action buttons */}
-                                <div className="flex items-center justify-end gap-1 pt-2 border-t border-muted-foreground/20">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => onView(estimate)}
-                                    className="h-7 w-7 p-0 hover:bg-primary/10"
-                                  >
-                                    <Eye className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => onEdit(estimate)}
-                                    className="h-7 w-7 p-0 hover:bg-primary/10"
-                                  >
-                                    <Edit className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Delete Estimate Version</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Are you sure you want to delete version {estimate.version_number || 1} of this estimate? This action cannot be undone.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => onDelete(estimate.id)}>
-                                          Delete
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                )}
-              </CardContent>
-            </Card>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+                </div>
+              }
+            />
           );
         })}
       </div>

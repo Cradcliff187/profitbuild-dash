@@ -453,28 +453,32 @@ export default function BranchBids() {
           clients={clients}
         />
 
-        {/* Count and Column Selector */}
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {sortedBids.length} {sortedBids.length === 1 ? 'bid' : 'bids'}
+        {/* Count and Column Selector (desktop only; hidden on mobile) */}
+        {!isMobile && (
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {sortedBids.length} {sortedBids.length === 1 ? 'bid' : 'bids'}
+            </div>
+            <div className="flex items-center gap-2">
+              <ColumnSelector 
+                columns={columnDefinitions}
+                visibleColumns={visibleColumns}
+                onVisibleColumnsChange={setVisibleColumns}
+                columnOrder={columnOrder}
+                onColumnOrderChange={setColumnOrder}
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <ColumnSelector 
-              columns={columnDefinitions}
-              visibleColumns={visibleColumns}
-              onVisibleColumnsChange={setVisibleColumns}
-              columnOrder={columnOrder}
-              onColumnOrderChange={setColumnOrder}
-            />
-          </div>
-        </div>
+        )}
 
-        {/* Bulk Actions */}
-        <BidBulkActions
-          selectedCount={selectedIds.length}
-          onDelete={() => setBulkDeleteDialogOpen(true)}
-          onCancel={() => setSelectedIds([])}
-        />
+        {/* Bulk Actions (desktop only; mobile uses per-card actions) */}
+        {!isMobile && (
+          <BidBulkActions
+            selectedCount={selectedIds.length}
+            onDelete={() => setBulkDeleteDialogOpen(true)}
+            onCancel={() => setSelectedIds([])}
+          />
+        )}
 
         {/* Table */}
         <BidsTableView

@@ -333,6 +333,89 @@ textarea:focus-visible {
     @apply flex items-center gap-2 flex-shrink-0;
   }
 
+  /* ============================================================================
+     MOBILE LIST CARD SYSTEM
+     Standardized card component for all mobile list views
+     ============================================================================ */
+
+  /* Base Card */
+  .mobile-list-card {
+    @apply compact-card border hover:shadow-sm transition-shadow;
+  }
+
+  /* Header */
+  .mobile-list-card-header {
+    @apply p-3 pb-2;
+  }
+
+  /* Identity Block */
+  .mobile-list-card-identity {
+    @apply space-y-0.5;
+  }
+
+  .mobile-list-card-title {
+    @apply text-sm font-medium truncate;
+  }
+
+  .mobile-list-card-subtitle {
+    @apply text-label text-muted-foreground truncate;
+  }
+
+  /* Badge */
+  .mobile-list-card-badge {
+    @apply compact-badge;
+  }
+
+  /* Content */
+  .mobile-list-card-content {
+    @apply p-3 pt-0 space-y-2;
+  }
+
+  /* Attention Indicator */
+  .mobile-list-card-attention {
+    @apply text-xs px-2 py-1.5 rounded border font-medium;
+  }
+
+  /* Metrics Grid */
+  .mobile-list-card-metrics {
+    @apply grid grid-cols-2 gap-2 text-label pt-2 border-t;
+  }
+
+  .mobile-list-card-metrics.grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .mobile-list-card-metric {
+    @apply space-y-0.5;
+  }
+
+  .mobile-list-card-metric-label {
+    @apply text-muted-foreground text-label;
+  }
+
+  .mobile-list-card-metric-value {
+    @apply text-data font-medium;
+  }
+
+  .mobile-list-card-metric-subtext {
+    @apply text-[10px] text-muted-foreground italic ml-1;
+  }
+
+  /* Expand Trigger */
+  .mobile-list-card-expand-trigger {
+    @apply pt-2 border-t;
+  }
+
+  /* Expanded Content */
+  .mobile-list-card-expanded {
+    @apply compact-card-section border border-primary/20 mt-2;
+  }
+
+  /* Action Button (touch target) */
+  .mobile-list-card-action {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
   /* Field type utilities */
   .field-editable {
     @apply transition-all duration-200 hover:border-primary/50;

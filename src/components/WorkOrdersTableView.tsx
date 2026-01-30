@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Edit, Eye, Trash2, MoreHorizontal, FileText, Plus, CheckCircle, ChevronDown } from "lucide-react";
+import { Edit, Eye, Trash2, MoreHorizontal, FileText, Plus, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MobileListCard } from "@/components/ui/mobile-list-card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
@@ -23,7 +24,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { CompletePagination } from "@/components/ui/complete-pagination";
 import { Project, ProjectStatus } from "@/types/project";
 import { formatCurrency } from "@/lib/utils";
@@ -103,23 +103,10 @@ export const WorkOrdersTableView = ({
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [deleteConfirm, setDeleteConfirm] = useState<{open: boolean; workOrder: Project | null}>({
     open: false,
     workOrder: null
   });
-
-  const toggleCard = (workOrderId: string) => {
-    setExpandedCards(prev => {
-      const next = new Set(prev);
-      if (next.has(workOrderId)) {
-        next.delete(workOrderId);
-      } else {
-        next.add(workOrderId);
-      }
-      return next;
-    });
-  };
 
   const getFinancialDisplayValues = (workOrder: WorkOrderWithDetails) => {
     const status = workOrder.status;
@@ -336,219 +323,184 @@ export const WorkOrdersTableView = ({
     return (
       <>
         <div className="space-y-2">
-          {workOrders.map((workOrder) => (
-            <Card key={workOrder.id} className="hover:bg-muted/50 transition-colors">
-              <CardHeader className="p-3 pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <CardTitle className="text-sm font-semibold truncate">{workOrder.project_name}</CardTitle>
-                      {getStatusBadge(workOrder.status)}
+          {workOrders.map((workOrder) => {
+            const display = getFinancialDisplayValues(workOrder);
+            return (
+              <MobileListCard
+                key={workOrder.id}
+                title={workOrder.project_name}
+                subtitle={`${workOrder.project_number}${workOrder.client_name ? ` • ${workOrder.client_name}` : ""}`}
+                badge={{
+                  label: workOrder.status.replace("_", " ").toUpperCase(),
+                  className: (() => {
+                    switch (workOrder.status) {
+                      case "complete":
+                        return "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300";
+                      case "in_progress":
+                        return "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300";
+                      case "on_hold":
+                        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300";
+                      case "cancelled":
+                        return "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300";
+                      case "approved":
+                        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300";
+                      default:
+                        return "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300";
+                    }
+                  })(),
+                }}
+                secondaryBadge={
+                  workOrder.has_estimate
+                    ? workOrder.is_auto_generated_estimate
+                      ? { label: "AUTO EST", className: "border-gray-300 text-gray-600" }
+                      : { label: "ESTIMATE", className: "border-green-300 text-green-700" }
+                    : undefined
+                }
+                metrics={[
+                  {
+                    label: "Contract",
+                    value:
+                      display.contractValue != null && display.contractValue !== 0
+                        ? formatCurrency(display.contractValue)
+                        : "—",
+                    subtext: display.isEstimate ? "(est)" : undefined,
+                  },
+                  {
+                    label: "Margin",
+                    value:
+                      display.marginValue != null && display.marginValue !== undefined
+                        ? formatCurrency(display.marginValue)
+                        : "—",
+                  },
+                ]}
+                attention={(() => {
+                  if (
+                    workOrder.do_not_exceed &&
+                    (workOrder.total_expenses ?? 0) > workOrder.do_not_exceed
+                  ) {
+                    return { message: "Over DNE budget", variant: "error" as const };
+                  }
+                  if (!workOrder.has_estimate || workOrder.is_auto_generated_estimate) {
+                    return { message: "Needs real estimate", variant: "warning" as const };
+                  }
+                  return undefined;
+                })()}
+                expandable={true}
+                expandedContent={
+                  <div className="space-y-3 text-xs">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-muted-foreground">Total Expenses</p>
+                        <p className="font-medium">{formatCurrency(workOrder.total_expenses || 0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Expense Count</p>
+                        <p className="font-medium">{workOrder.expense_count ?? 0}</p>
+                      </div>
+                      {workOrder.do_not_exceed && (
+                        <>
+                          <div>
+                            <p className="text-muted-foreground">Do Not Exceed</p>
+                            <p className="font-medium">{formatCurrency(workOrder.do_not_exceed)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">DNE Remaining</p>
+                            <p
+                              className={cn(
+                                "font-medium",
+                                (workOrder.do_not_exceed - (workOrder.total_expenses ?? 0)) < 0 && "text-red-600"
+                              )}
+                            >
+                              {formatCurrency(workOrder.do_not_exceed - (workOrder.total_expenses ?? 0))}
+                            </p>
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <div className="text-xs text-muted-foreground font-mono">{workOrder.project_number}</div>
-                    {workOrder.client_name && (
-                      <div className="text-xs text-muted-foreground mt-0.5">{workOrder.client_name}</div>
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                      <div>
+                        <p className="text-muted-foreground">Start Date</p>
+                        <p className="font-medium">
+                          {workOrder.start_date
+                            ? format(new Date(workOrder.start_date), "MMM dd, yyyy")
+                            : "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">End Date</p>
+                        <p className="font-medium">
+                          {workOrder.end_date
+                            ? format(new Date(workOrder.end_date), "MMM dd, yyyy")
+                            : "—"}
+                        </p>
+                      </div>
+                    </div>
+                    {workOrder.customer_po_number && (
+                      <div className="pt-2 border-t">
+                        <p className="text-muted-foreground">Customer PO</p>
+                        <p className="font-medium font-mono">{workOrder.customer_po_number}</p>
+                      </div>
                     )}
                   </div>
-                  {onSelectOne && (
-                    <div>
-                      <Checkbox
-                        checked={selectedIds.includes(workOrder.id)}
-                        onCheckedChange={(checked) => onSelectOne(workOrder.id, checked as boolean)}
-                      />
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="p-3 pt-0 space-y-2">
-                {/* Always visible row with key info and chevron */}
-                <div className="flex items-center justify-between px-3 py-2 border-t">
-                  <span className="text-sm font-medium">
-                    {(() => {
-                      const display = getFinancialDisplayValues(workOrder);
-                      const hasContract = display.contractValue != null && display.contractValue !== 0;
-                      const hasMargin = display.marginValue != null && display.marginValue !== undefined;
-                      return (
-                        <>
-                          {hasContract ? formatCurrency(display.contractValue) : '—'} • {
-                            hasMargin ? formatCurrency(display.marginValue) : '—'
-                          }
-                          {display.isEstimate && <span className="text-[10px] text-muted-foreground italic ml-1">estimate</span>}
-                        </>
-                      );
-                    })()}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
+                }
+                selectable={!!onSelectOne}
+                selected={selectedIds.includes(workOrder.id)}
+                onSelectChange={(checked) => onSelectOne?.(workOrder.id, checked)}
+                onTap={() => navigate(`/projects/${workOrder.id}`)}
+                actions={[
+                  {
+                    icon: Eye,
+                    label: "View Details",
+                    onClick: (e) => {
                       e.stopPropagation();
-                      toggleCard(workOrder.id);
-                    }}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
-                      expandedCards.has(workOrder.id) ? 'rotate-180' : ''
-                    }`} />
-                  </Button>
-                </div>
-                
-                {/* Collapsible content */}
-                <Collapsible open={expandedCards.has(workOrder.id)}>
-                  <CollapsibleContent>
-                    <div className="space-y-2 pt-2">
-                      {/* Financial Summary */}
-                      <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2 rounded mx-3">
-                        {(() => {
-                          const display = getFinancialDisplayValues(workOrder);
-                          const hasContract = display.contractValue != null && display.contractValue !== 0;
-                          const hasMargin = display.marginValue != null && display.marginValue !== undefined;
-                          const hasCosts = display.costsValue != null && display.costsValue !== 0;
-                          return (
-                            <>
-                              {hasContract && (
-                                <div>
-                                  <div className="text-muted-foreground">{display.contractLabel}</div>
-                                  <div className="font-semibold font-mono">{formatCurrency(display.contractValue)}</div>
-                                  {display.isEstimate && <div className="text-[10px] text-muted-foreground italic">estimate</div>}
-                                </div>
-                              )}
-                              {hasMargin && (
-                                <div>
-                                  <div className="text-muted-foreground">{display.marginLabel}</div>
-                                  <div className={cn(
-                                    "font-semibold font-mono",
-                                    display.marginValue >= 0 ? "text-green-600" : "text-red-600"
-                                  )}>
-                                    {formatCurrency(display.marginValue)}
-                                  </div>
-                                  {display.isEstimate && <div className="text-[10px] text-muted-foreground italic">estimate</div>}
-                                </div>
-                              )}
-                              {hasCosts && (
-                                <div>
-                                  <div className="text-muted-foreground">{display.costsLabel}</div>
-                                  <div className="font-semibold font-mono">{formatCurrency(display.costsValue)}</div>
-                                  {display.isEstimate && <div className="text-[10px] text-muted-foreground italic">estimate</div>}
-                                </div>
-                              )}
-                              <div>
-                                <div className="text-muted-foreground">Actual Expenses</div>
-                                <div className="font-semibold font-mono">{formatCurrency(workOrder.total_expenses)}</div>
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
-
-                      {/* Additional Info */}
-                      <div className="grid grid-cols-2 gap-2 text-xs px-3">
-                        {workOrder.customer_po_number && (
-                          <div>
-                            <div className="text-muted-foreground">PO #</div>
-                            <div className="font-medium font-mono">{workOrder.customer_po_number}</div>
-                          </div>
-                        )}
-                        {(() => {
-                          const display = getFinancialDisplayValues(workOrder);
-                          const hasPct = display.marginPct !== null && display.marginPct !== undefined;
-                          if (!hasPct) return null;
-                          return (
-                            <div>
-                              <div className="text-muted-foreground">Margin %</div>
-                              <div className={cn(
-                                "font-medium font-mono",
-                                display.marginPct >= 0 ? "text-green-600" : "text-red-600"
-                              )}>
-                                {display.marginPct.toFixed(1)}%
-                              </div>
-                              {display.isEstimate && <div className="text-[10px] text-muted-foreground italic">estimate</div>}
-                            </div>
-                          );
-                        })()}
-                        {workOrder.start_date && (
-                          <div>
-                            <div className="text-muted-foreground">Start Date</div>
-                            <div className="font-medium">{format(new Date(workOrder.start_date), "MM/dd/yy")}</div>
-                          </div>
-                        )}
-                        {workOrder.end_date && (
-                          <div>
-                            <div className="text-muted-foreground">End Date</div>
-                            <div className="font-medium">{format(new Date(workOrder.end_date), "MM/dd/yy")}</div>
-                          </div>
-                        )}
-                        <div>
-                          <div className="text-muted-foreground">Estimate</div>
-                          <div>
-                            {workOrder.has_estimate ? (
-                              workOrder.is_auto_generated_estimate ? (
-                                <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-gray-50 text-gray-700 border-gray-300">
-                                  System
-                                </Badge>
-                              ) : (
-                                <Badge variant="default" className="text-[10px] h-4 px-1.5">Yes</Badge>
-                              )
-                            ) : (
-                              <Badge variant="secondary" className="text-[10px] h-4 px-1.5">No</Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center justify-end pt-2 border-t px-3" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-7 w-8 p-0" aria-label="Actions menu">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewDetails(workOrder)}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onEdit(workOrder)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleAddExpense(workOrder)}>
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add Expense
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleViewEstimate(workOrder)}>
-                              <FileText className="h-4 w-4 mr-2" />
-                              {workOrder.has_estimate && !workOrder.is_auto_generated_estimate ? 'View Estimate' : 'Create Estimate'}
-                            </DropdownMenuItem>
-                            {workOrder.status !== 'complete' && (
-                              <DropdownMenuItem onClick={() => handleMarkComplete(workOrder)}>
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Mark Complete
-                              </DropdownMenuItem>
-                            )}
-                            {onDelete && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  onClick={() => setDeleteConfirm({ open: true, workOrder })}
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              </CardContent>
-            </Card>
-          ))}
+                      navigate(`/projects/${workOrder.id}`);
+                    },
+                  },
+                  {
+                    icon: Edit,
+                    label: "Edit",
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      onEdit(workOrder);
+                    },
+                  },
+                  ...(!workOrder.has_estimate || workOrder.is_auto_generated_estimate
+                    ? [
+                        {
+                          icon: FileText,
+                          label: "Create Estimate",
+                          onClick: (e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            handleViewEstimate(workOrder);
+                          },
+                        },
+                      ]
+                    : []),
+                  ...(workOrder.status !== "complete"
+                    ? [
+                        {
+                          icon: CheckCircle,
+                          label: "Mark Complete",
+                          onClick: (e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            handleMarkComplete(workOrder);
+                          },
+                        },
+                      ]
+                    : []),
+                  {
+                    icon: Trash2,
+                    label: "Delete",
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      setDeleteConfirm({ open: true, workOrder });
+                    },
+                    variant: "destructive" as const,
+                  },
+                ]}
+              />
+            );
+          })}
         </div>
 
         <AlertDialog open={deleteConfirm.open} onOpenChange={(open) => setDeleteConfirm({open, workOrder: null})}>

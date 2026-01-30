@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Edit, Eye, Trash2, MoreHorizontal, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { Eye, Trash2, MoreHorizontal, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { MobileListCard } from "@/components/ui/mobile-list-card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
@@ -23,7 +24,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -66,23 +66,10 @@ export const BidsTableView = ({
 }: BidsTableViewProps) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [deleteConfirm, setDeleteConfirm] = useState<{open: boolean; bid: BranchBid | null}>({
     open: false,
     bid: null
   });
-
-  const toggleCard = (bidId: string) => {
-    setExpandedCards(prev => {
-      const next = new Set(prev);
-      if (next.has(bidId)) {
-        next.delete(bidId);
-      } else {
-        next.add(bidId);
-      }
-      return next;
-    });
-  };
 
   const columnDefinitions = [
     { key: "name", label: "Bid Name", required: true, sortable: true },
@@ -165,104 +152,42 @@ export const BidsTableView = ({
       <>
         <div className="space-y-2">
           {bids.map((bid) => (
-            <Card key={bid.id} className="hover:bg-muted/50 transition-colors">
-              <CardHeader className="p-3 pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-sm font-semibold truncate">{bid.name}</CardTitle>
-                    {bid.clients && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{bid.clients.client_name}</p>
-                    )}
-                  </div>
-                  {onSelectOne && (
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedIds.includes(bid.id)}
-                        onCheckedChange={(checked) => onSelectOne(bid.id, checked as boolean)}
-                      />
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="p-3 pt-0 space-y-2">
-                {/* Always visible row with key info and chevron */}
-                <div className="flex items-center justify-between px-3 py-2 border-t">
-                  <span className="text-sm font-medium">
-                    {format(new Date(bid.created_at), 'MMM d, yyyy')} • {bid.profiles?.full_name || 'Unknown'}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleCard(bid.id);
-                    }}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
-                      expandedCards.has(bid.id) ? 'rotate-180' : ''
-                    }`} />
-                  </Button>
-                </div>
-                
-                {/* Collapsible content */}
-                <Collapsible open={expandedCards.has(bid.id)}>
-                  <CollapsibleContent>
-                    <div className="space-y-2 pt-2">
-                      {bid.description && (
-                        <div className="px-3">
-                          <div className="text-xs text-muted-foreground mb-1">Description</div>
-                          <div className="text-sm">{bid.description}</div>
-                        </div>
-                      )}
-                      <div className="grid grid-cols-2 gap-2 text-xs px-3">
-                        {bid.clients && (
-                          <div>
-                            <div className="text-muted-foreground">Client</div>
-                            <div className="font-medium">{bid.clients.client_name}</div>
-                            {bid.clients.company_name && (
-                              <div className="text-muted-foreground text-[10px]">{bid.clients.company_name}</div>
-                            )}
-                          </div>
-                        )}
-                        {bid.projects && (
-                          <div>
-                            <div className="text-muted-foreground">Project</div>
-                            <Badge variant="secondary" className="text-[10px] h-4 px-1.5 mt-0.5">
-                              <ExternalLink className="h-2.5 w-2.5 mr-1" />
-                              {bid.projects.project_number}
-                            </Badge>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-end pt-2 border-t px-3" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-7 w-8 p-0" aria-label="Actions menu">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem onClick={() => handleViewDetails(bid)}>
-                              <Eye className="h-3 w-3 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={(e) => handleDeleteClick(bid, e)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="h-3 w-3 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              </CardContent>
-            </Card>
+            <MobileListCard
+              key={bid.id}
+              title={bid.name}
+              subtitle={(bid as BranchBid & { client_name?: string }).client_name || bid.clients?.client_name || 'No client'}
+              badge={bid.project_id ? {
+                label: 'LINKED',
+                className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+              } : undefined}
+              metrics={[
+                {
+                  label: 'Created',
+                  value: format(new Date(bid.created_at), 'MMM dd, yyyy'),
+                },
+                {
+                  label: 'Project',
+                  value: bid.projects?.project_number || '—',
+                },
+              ]}
+              onTap={() => handleViewDetails(bid)}
+              actions={[
+                {
+                  icon: Eye,
+                  label: 'View Details',
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    handleViewDetails(bid);
+                  },
+                },
+                {
+                  icon: Trash2,
+                  label: 'Delete',
+                  onClick: (e) => handleDeleteClick(bid, e),
+                  variant: 'destructive' as const,
+                },
+              ]}
+            />
           ))}
         </div>
 
