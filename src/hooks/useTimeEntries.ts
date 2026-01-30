@@ -41,6 +41,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           is_locked,
           lunch_taken,
           lunch_duration_minutes,
+          gross_hours,
           payees!inner(payee_name, hourly_rate, employee_number),
           projects!inner(project_number, project_name, client_name, address)
         `, { count: 'exact' })
@@ -86,10 +87,8 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
         );
         const hourlyRate = entry.payees?.hourly_rate || 0;
         
-        // Calculate gross hours (total shift duration)
-        const grossHours = entry.start_time && entry.end_time
-          ? (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) / (1000 * 60 * 60)
-          : hours;
+        // Use database gross_hours value
+        const grossHours = entry.gross_hours ?? hours;
         
         return {
           id: entry.id,

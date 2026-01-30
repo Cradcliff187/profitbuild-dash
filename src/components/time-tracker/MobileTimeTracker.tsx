@@ -573,9 +573,7 @@ export const MobileTimeTracker: React.FC = () => {
           endTimeString,
           lunch_taken: expense.lunch_taken || false,
           lunch_duration_minutes: expense.lunch_duration_minutes || null,
-          gross_hours: expense.gross_hours || ((startTime && endTime)
-            ? (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
-            : hours)
+          gross_hours: expense.gross_hours ?? hours
         };
       }) || [];
 
@@ -1490,11 +1488,8 @@ export const MobileTimeTracker: React.FC = () => {
             <div className="p-4 space-y-3 relative pb-24">
               {(() => {
                 const todayShiftTotal = todayEntries.reduce((sum, entry) => {
-                  // Calculate gross hours from start/end time if available
-                  if (entry.startTime && entry.endTime) {
-                    return sum + (entry.endTime.getTime() - entry.startTime.getTime()) / (1000 * 60 * 60);
-                  }
-                  return sum + entry.hours;
+                  // Use gross_hours from database
+                  return sum + (entry.gross_hours ?? entry.hours);
                 }, 0);
                 const hasLunchDeductions = todayShiftTotal > todayTotal + 0.01;
                 
@@ -1529,10 +1524,8 @@ export const MobileTimeTracker: React.FC = () => {
                 todayEntries.map(entry => {
                   const isPTO = isPTOProject(entry.project.project_number);
                   
-                  // Use pre-calculated gross hours or calculate from timestamps
-                  const grossHours = entry.gross_hours || (entry.startTime && entry.endTime
-                    ? (entry.endTime.getTime() - entry.startTime.getTime()) / (1000 * 60 * 60)
-                    : entry.hours);
+                  // Use gross_hours from database
+                  const grossHours = entry.gross_hours ?? entry.hours;
                   
                   // Use explicit lunch fields
                   const hasLunch = entry.lunch_taken && entry.lunch_duration_minutes && entry.lunch_duration_minutes > 0;
@@ -1553,12 +1546,19 @@ export const MobileTimeTracker: React.FC = () => {
                         if (data) setEditingEntry(data);
                       }}
                     >
+                      {/* Row 0: Employee Name (Admin/Manager only) */}
+                      {(isAdmin || isManager) && (
+                        <div className="text-xs text-muted-foreground mb-1">
+                          {entry.teamMember.payee_name}
+                        </div>
+                      )}
+                      
                       {/* Row 1: Project/PTO Name + Status Badge */}
                       <div className="flex justify-between items-start mb-1">
                         <div className="font-semibold text-foreground text-sm">
                           {isPTO 
                             ? entry.project.project_name 
-                            : `${entry.project.project_number} - ${entry.project.client_name}`
+                            : `${entry.project.project_number} - ${entry.project.project_name}`
                           }
                         </div>
                         <Badge 
@@ -1583,31 +1583,33 @@ export const MobileTimeTracker: React.FC = () => {
                       {/* Row 3: Hours Display + Lunch Badge */}
                       <div className="flex justify-between items-end">
                         <div className="space-y-0.5">
-                          {showShiftHours && (
-                            <div className="flex gap-2 text-sm text-muted-foreground">
-                              <span className="w-10">Shift:</span>
-                              <span className="font-mono">{grossHours.toFixed(1)} hrs</span>
-                            </div>
-                          )}
+                          <div className="flex gap-2 text-sm text-muted-foreground">
+                            <span className="w-10">Shift:</span>
+                            <span className="font-mono">{grossHours.toFixed(1)} hrs</span>
+                          </div>
                           <div className="flex gap-2 text-sm">
                             <span className="w-10 text-muted-foreground">Paid:</span>
                             <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs</span>
                           </div>
                         </div>
                         
-                        {/* Lunch Badge - Compact indicator */}
-                        {hasLunch && lunchMinutes && lunchMinutes > 0 && (
-                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs">
-                            <CheckSquare className="h-3 w-3" />
-                            <span>{lunchMinutes}m</span>
-                          </div>
-                        )}
-                        
-                        {isLongShiftNoLunch && (
-                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs">
-                            <AlertTriangle className="h-3 w-3" />
-                            <span>No lunch</span>
-                          </div>
+                        {/* Lunch Status - ALWAYS show */}
+                        {!isPTO && (
+                          hasLunch && lunchMinutes > 0 ? (
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs">
+                              <CheckSquare className="h-3 w-3" />
+                              <span>{lunchMinutes}m</span>
+                            </div>
+                          ) : grossHours > 6 ? (
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs">
+                              <AlertTriangle className="h-3 w-3" />
+                              <span>No lunch</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs">
+                              <span>No lunch</span>
+                            </div>
+                          )
                         )}
                       </div>
                     </div>

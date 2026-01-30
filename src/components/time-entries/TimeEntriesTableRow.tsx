@@ -121,28 +121,42 @@ const TimeEntriesTableRowComponent: React.FC<TimeEntriesTableRowProps> = ({
                 {entry.end_time ? format(new Date(entry.end_time), "HH:mm") : "-"}
               </TableCell>
             );
+          case "gross_hours":
+            return (
+              <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right text-muted-foreground">
+                {entry.gross_hours?.toFixed(2) || entry.hours.toFixed(2)}
+              </TableCell>
+            );
           case "hours":
             return (
               <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right">
-                <span title={entry.lunch_taken 
-                  ? `Gross: ${entry.gross_hours?.toFixed(2) || entry.hours.toFixed(2)}h - Lunch: ${entry.lunch_duration_minutes}min`
-                  : undefined
-                }>
-                  {entry.hours.toFixed(2)}
-                </span>
+                {entry.hours.toFixed(2)}
               </TableCell>
             );
           case "lunch":
+            const isPTO = ['006-SICK', '007-VAC', '008-HOL'].includes(entry.project_number);
+            
+            if (isPTO) {
+              return <TableCell key={colKey} className="p-1.5 text-center">-</TableCell>;
+            }
+            
             return (
-              <TableCell key={colKey} className="p-1.5 text-center">
-                {entry.lunch_taken && (
-                  <span 
-                    className="text-xs" 
-                    title={`${entry.lunch_duration_minutes} min lunch`}
-                  >
-                    🍴 {entry.lunch_duration_minutes}m
-                  </span>
-                )}
+              <TableCell key={colKey} className="p-1.5">
+                <div className="flex justify-center">
+                  {entry.lunch_taken && entry.lunch_duration_minutes ? (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px]">
+                      <span>✓ {entry.lunch_duration_minutes}m</span>
+                    </div>
+                  ) : (entry.gross_hours && entry.gross_hours > 6) ? (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px]">
+                      <span>⚠ No lunch</span>
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px]">
+                      <span>No lunch</span>
+                    </div>
+                  )}
+                </div>
               </TableCell>
             );
           case "amount":

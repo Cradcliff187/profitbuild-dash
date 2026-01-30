@@ -113,7 +113,7 @@ const TimeEntriesPage = () => {
 
   // Column state
   const [visibleColumns, setVisibleColumns] = useState<string[]>(
-    timeEntryColumnDefinitions.filter(col => col.required || col.key === "status" || col.key === "hours").map(col => col.key)
+    timeEntryColumnDefinitions.filter(col => col.required || col.key === "status" || col.key === "hours" || col.key === "gross_hours").map(col => col.key)
   );
   const [columnOrder, setColumnOrder] = useState<string[]>(timeEntryColumnDefinitions.map((col) => col.key));
 

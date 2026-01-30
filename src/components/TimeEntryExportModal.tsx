@@ -22,10 +22,26 @@ interface TimeEntryExportModalProps {
 
 interface ExportOptions {
   format: 'csv';
-  includeWorkerDetails: boolean;
-  includeProjectDetails: boolean;
-  includeTimeBreakdown: boolean;
+  includeWorker: boolean;
+  includeEmployeeNumber: boolean;
+  includeProjectNumber: boolean;
+  includeProjectName: boolean;
+  includeClient: boolean;
+  includeProjectAddress: boolean;
+  includeStartTime: boolean;
+  includeEndTime: boolean;
+  includeGrossHours: boolean;
+  includeNetHours: boolean;
+  includeLunchTaken: boolean;
+  includeLunchDuration: boolean;
+  includeHourlyRate: boolean;
+  includeAmount: boolean;
+  includeReceipt: boolean;
+  includeStatus: boolean;
   includeNotes: boolean;
+  includeCreatedAt: boolean;
+  includeSubmittedAt: boolean;
+  includeApprovedAt: boolean;
   exportScope: 'current_page' | 'all_filtered';
 }
 
@@ -40,10 +56,26 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
   const [isExporting, setIsExporting] = useState(false);
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
     format: 'csv',
-    includeWorkerDetails: true,
-    includeProjectDetails: true,
-    includeTimeBreakdown: true,
+    includeWorker: true,
+    includeEmployeeNumber: true,
+    includeProjectNumber: true,
+    includeProjectName: true,
+    includeClient: true,
+    includeProjectAddress: true,
+    includeStartTime: true,
+    includeEndTime: true,
+    includeGrossHours: true,
+    includeNetHours: true,
+    includeLunchTaken: true,
+    includeLunchDuration: true,
+    includeHourlyRate: true,
+    includeAmount: true,
+    includeReceipt: true,
+    includeStatus: true,
     includeNotes: true,
+    includeCreatedAt: true,
+    includeSubmittedAt: true,
+    includeApprovedAt: true,
     exportScope: 'current_page'
   });
 
@@ -92,6 +124,7 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
         is_locked,
         lunch_taken,
         lunch_duration_minutes,
+        gross_hours,
         payees!inner(payee_name, hourly_rate, employee_number),
         projects!inner(project_number, project_name, client_name, address)
       `)
@@ -118,10 +151,7 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
         lunchTaken,
         lunchDurationMinutes
       );
-      const grossHours =
-        entry.start_time && entry.end_time
-          ? (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) / (1000 * 60 * 60)
-          : hours;
+      const grossHours = entry.gross_hours ?? hours;
 
       return {
         id: entry.id,
@@ -202,28 +232,29 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
   };
 
   const exportToCSV = async (entries: TimeEntryListItem[]) => {
-    // Build headers based on options
+    // Build headers based on individual field options
     const headers: string[] = ["Work Date"];
 
-    if (exportOptions.includeWorkerDetails) {
-      headers.push("Worker");
-    }
-
-    if (exportOptions.includeProjectDetails) {
-      headers.push("Project Number", "Project Name", "Client", "Project Address");
-    }
-
-    if (exportOptions.includeTimeBreakdown) {
-      headers.push("Start Time", "End Time", "Gross Hours", "Lunch Taken", "Lunch Duration (min)", "Net Hours");
-    }
-
-    headers.push("Rate", "Amount", "Status");
-
-    if (exportOptions.includeNotes) {
-      headers.push("Notes");
-    }
-
-    headers.push("Created At", "Submitted At", "Approved At");
+    if (exportOptions.includeWorker) headers.push("Worker");
+    if (exportOptions.includeEmployeeNumber) headers.push("Employee #");
+    if (exportOptions.includeProjectNumber) headers.push("Project Number");
+    if (exportOptions.includeProjectName) headers.push("Project Name");
+    if (exportOptions.includeClient) headers.push("Client");
+    if (exportOptions.includeProjectAddress) headers.push("Project Address");
+    if (exportOptions.includeStartTime) headers.push("Start Time");
+    if (exportOptions.includeEndTime) headers.push("End Time");
+    if (exportOptions.includeGrossHours) headers.push("Gross Hours");
+    if (exportOptions.includeNetHours) headers.push("Net Hours");
+    if (exportOptions.includeLunchTaken) headers.push("Lunch Taken");
+    if (exportOptions.includeLunchDuration) headers.push("Lunch Duration (min)");
+    if (exportOptions.includeHourlyRate) headers.push("Hourly Rate");
+    if (exportOptions.includeAmount) headers.push("Amount");
+    if (exportOptions.includeReceipt) headers.push("Receipt");
+    if (exportOptions.includeStatus) headers.push("Status");
+    if (exportOptions.includeNotes) headers.push("Notes");
+    if (exportOptions.includeCreatedAt) headers.push("Created At");
+    if (exportOptions.includeSubmittedAt) headers.push("Submitted At");
+    if (exportOptions.includeApprovedAt) headers.push("Approved At");
 
     // Build rows
     const rows = entries.map((entry) => {
@@ -242,38 +273,32 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
 
       const row: string[] = [format(entryDate, "yyyy-MM-dd")];
 
-      if (exportOptions.includeWorkerDetails) {
-        row.push(entry.worker_name);
-      }
-
-      if (exportOptions.includeProjectDetails) {
-        row.push(
-          entry.project_number,
-          entry.project_name,
-          entry.client_name,
-          entry.project_address || ""
-        );
-      }
-
-      if (exportOptions.includeTimeBreakdown) {
+      if (exportOptions.includeWorker) row.push(entry.worker_name);
+      if (exportOptions.includeEmployeeNumber) row.push(entry.payee?.employee_number || "");
+      if (exportOptions.includeProjectNumber) row.push(entry.project_number);
+      if (exportOptions.includeProjectName) row.push(entry.project_name);
+      if (exportOptions.includeClient) row.push(entry.client_name);
+      if (exportOptions.includeProjectAddress) row.push(entry.project_address || "");
+      if (exportOptions.includeStartTime) row.push(startTime);
+      if (exportOptions.includeEndTime) row.push(endTime);
+      if (exportOptions.includeGrossHours) {
         const grossHours = entry.gross_hours != null ? entry.gross_hours.toFixed(2) : entry.hours.toFixed(2);
-        const lunchTaken = entry.lunch_taken ? "Yes" : "No";
+        row.push(grossHours);
+      }
+      if (exportOptions.includeNetHours) row.push(entry.hours.toFixed(2));
+      if (exportOptions.includeLunchTaken) row.push(entry.lunch_taken ? "Yes" : "No");
+      if (exportOptions.includeLunchDuration) {
         const lunchDuration = entry.lunch_taken ? (entry.lunch_duration_minutes?.toString() ?? "") : "";
-        const netHours = entry.hours.toFixed(2);
-        row.push(startTime, endTime, grossHours, lunchTaken, lunchDuration, netHours);
+        row.push(lunchDuration);
       }
-
-      row.push(
-        entry.hourly_rate.toFixed(2),
-        entry.amount.toFixed(2),
-        entry.approval_status || "pending"
-      );
-
-      if (exportOptions.includeNotes) {
-        row.push(entry.note || "");
-      }
-
-      row.push(createdAt, submittedAt, approvedAt);
+      if (exportOptions.includeHourlyRate) row.push(entry.hourly_rate.toFixed(2));
+      if (exportOptions.includeAmount) row.push(entry.amount.toFixed(2));
+      if (exportOptions.includeReceipt) row.push(entry.attachment_url ? "Yes" : "No");
+      if (exportOptions.includeStatus) row.push(entry.approval_status || "pending");
+      if (exportOptions.includeNotes) row.push(entry.note || "");
+      if (exportOptions.includeCreatedAt) row.push(createdAt);
+      if (exportOptions.includeSubmittedAt) row.push(submittedAt);
+      if (exportOptions.includeApprovedAt) row.push(approvedAt);
 
       return row;
     });
@@ -350,44 +375,240 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
             </div>
 
             {/* Include Options */}
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Include in Export</label>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Select Fields to Export</label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const allTrue = Object.keys(exportOptions).reduce((acc, key) => {
+                        if (key !== 'format' && key !== 'exportScope') acc[key] = true;
+                        return acc;
+                      }, {} as any);
+                      updateOptions(allTrue);
+                    }}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const allFalse = Object.keys(exportOptions).reduce((acc, key) => {
+                        if (key !== 'format' && key !== 'exportScope') acc[key] = false;
+                        return acc;
+                      }, {} as any);
+                      updateOptions(allFalse);
+                    }}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+              </div>
               
+              {/* Worker Information */}
               <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="workerDetails"
-                    checked={exportOptions.includeWorkerDetails}
-                    onCheckedChange={(checked) => updateOptions({ includeWorkerDetails: !!checked })}
-                  />
-                  <label htmlFor="workerDetails" className="text-sm cursor-pointer">Worker Details</label>
+                <div className="text-xs font-semibold text-muted-foreground uppercase">Worker Information</div>
+                <div className="grid grid-cols-2 gap-2 pl-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="worker"
+                      checked={exportOptions.includeWorker}
+                      onCheckedChange={(checked) => updateOptions({ includeWorker: !!checked })}
+                    />
+                    <label htmlFor="worker" className="text-sm cursor-pointer">Worker Name</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="employeeNumber"
+                      checked={exportOptions.includeEmployeeNumber}
+                      onCheckedChange={(checked) => updateOptions({ includeEmployeeNumber: !!checked })}
+                    />
+                    <label htmlFor="employeeNumber" className="text-sm cursor-pointer">Employee #</label>
+                  </div>
                 </div>
+              </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="projectDetails"
-                    checked={exportOptions.includeProjectDetails}
-                    onCheckedChange={(checked) => updateOptions({ includeProjectDetails: !!checked })}
-                  />
-                  <label htmlFor="projectDetails" className="text-sm cursor-pointer">Project Details</label>
+              {/* Project Information */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase">Project Information</div>
+                <div className="grid grid-cols-2 gap-2 pl-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="projectNumber"
+                      checked={exportOptions.includeProjectNumber}
+                      onCheckedChange={(checked) => updateOptions({ includeProjectNumber: !!checked })}
+                    />
+                    <label htmlFor="projectNumber" className="text-sm cursor-pointer">Project Number</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="projectName"
+                      checked={exportOptions.includeProjectName}
+                      onCheckedChange={(checked) => updateOptions({ includeProjectName: !!checked })}
+                    />
+                    <label htmlFor="projectName" className="text-sm cursor-pointer">Project Name</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="client"
+                      checked={exportOptions.includeClient}
+                      onCheckedChange={(checked) => updateOptions({ includeClient: !!checked })}
+                    />
+                    <label htmlFor="client" className="text-sm cursor-pointer">Client</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="projectAddress"
+                      checked={exportOptions.includeProjectAddress}
+                      onCheckedChange={(checked) => updateOptions({ includeProjectAddress: !!checked })}
+                    />
+                    <label htmlFor="projectAddress" className="text-sm cursor-pointer">Project Address</label>
+                  </div>
                 </div>
+              </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="timeBreakdown"
-                    checked={exportOptions.includeTimeBreakdown}
-                    onCheckedChange={(checked) => updateOptions({ includeTimeBreakdown: !!checked })}
-                  />
-                  <label htmlFor="timeBreakdown" className="text-sm cursor-pointer">Time Breakdown (Start/End Times)</label>
+              {/* Time & Hours */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase">Time & Hours</div>
+                <div className="grid grid-cols-2 gap-2 pl-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="startTime"
+                      checked={exportOptions.includeStartTime}
+                      onCheckedChange={(checked) => updateOptions({ includeStartTime: !!checked })}
+                    />
+                    <label htmlFor="startTime" className="text-sm cursor-pointer">Start Time</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="endTime"
+                      checked={exportOptions.includeEndTime}
+                      onCheckedChange={(checked) => updateOptions({ includeEndTime: !!checked })}
+                    />
+                    <label htmlFor="endTime" className="text-sm cursor-pointer">End Time</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="grossHours"
+                      checked={exportOptions.includeGrossHours}
+                      onCheckedChange={(checked) => updateOptions({ includeGrossHours: !!checked })}
+                    />
+                    <label htmlFor="grossHours" className="text-sm cursor-pointer">Gross Hours</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="netHours"
+                      checked={exportOptions.includeNetHours}
+                      onCheckedChange={(checked) => updateOptions({ includeNetHours: !!checked })}
+                    />
+                    <label htmlFor="netHours" className="text-sm cursor-pointer">Net Hours</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="lunchTaken"
+                      checked={exportOptions.includeLunchTaken}
+                      onCheckedChange={(checked) => updateOptions({ includeLunchTaken: !!checked })}
+                    />
+                    <label htmlFor="lunchTaken" className="text-sm cursor-pointer">Lunch Taken</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="lunchDuration"
+                      checked={exportOptions.includeLunchDuration}
+                      onCheckedChange={(checked) => updateOptions({ includeLunchDuration: !!checked })}
+                    />
+                    <label htmlFor="lunchDuration" className="text-sm cursor-pointer">Lunch Duration</label>
+                  </div>
                 </div>
+              </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="notes"
-                    checked={exportOptions.includeNotes}
-                    onCheckedChange={(checked) => updateOptions({ includeNotes: !!checked })}
-                  />
-                  <label htmlFor="notes" className="text-sm cursor-pointer">Notes</label>
+              {/* Financial */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase">Financial</div>
+                <div className="grid grid-cols-2 gap-2 pl-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="hourlyRate"
+                      checked={exportOptions.includeHourlyRate}
+                      onCheckedChange={(checked) => updateOptions({ includeHourlyRate: !!checked })}
+                    />
+                    <label htmlFor="hourlyRate" className="text-sm cursor-pointer">Hourly Rate</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="amount"
+                      checked={exportOptions.includeAmount}
+                      onCheckedChange={(checked) => updateOptions({ includeAmount: !!checked })}
+                    />
+                    <label htmlFor="amount" className="text-sm cursor-pointer">Amount</label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status & Documentation */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase">Status & Documentation</div>
+                <div className="grid grid-cols-2 gap-2 pl-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="status"
+                      checked={exportOptions.includeStatus}
+                      onCheckedChange={(checked) => updateOptions({ includeStatus: !!checked })}
+                    />
+                    <label htmlFor="status" className="text-sm cursor-pointer">Status</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="receipt"
+                      checked={exportOptions.includeReceipt}
+                      onCheckedChange={(checked) => updateOptions({ includeReceipt: !!checked })}
+                    />
+                    <label htmlFor="receipt" className="text-sm cursor-pointer">Receipt</label>
+                  </div>
+                  <div className="flex items-center space-x-2 col-span-2">
+                    <Checkbox
+                      id="notes"
+                      checked={exportOptions.includeNotes}
+                      onCheckedChange={(checked) => updateOptions({ includeNotes: !!checked })}
+                    />
+                    <label htmlFor="notes" className="text-sm cursor-pointer">Notes</label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timestamps */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase">Timestamps</div>
+                <div className="grid grid-cols-2 gap-2 pl-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="createdAt"
+                      checked={exportOptions.includeCreatedAt}
+                      onCheckedChange={(checked) => updateOptions({ includeCreatedAt: !!checked })}
+                    />
+                    <label htmlFor="createdAt" className="text-sm cursor-pointer">Created At</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="submittedAt"
+                      checked={exportOptions.includeSubmittedAt}
+                      onCheckedChange={(checked) => updateOptions({ includeSubmittedAt: !!checked })}
+                    />
+                    <label htmlFor="submittedAt" className="text-sm cursor-pointer">Submitted At</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="approvedAt"
+                      checked={exportOptions.includeApprovedAt}
+                      onCheckedChange={(checked) => updateOptions({ includeApprovedAt: !!checked })}
+                    />
+                    <label htmlFor="approvedAt" className="text-sm cursor-pointer">Approved At</label>
+                  </div>
                 </div>
               </div>
             </div>

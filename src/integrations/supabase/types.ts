@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -1193,6 +1193,7 @@ export type Database = {
           description: string | null
           end_time: string | null
           expense_date: string | null
+          gross_hours: number | null
           id: string
           invoice_number: string | null
           is_locked: boolean | null
@@ -1228,6 +1229,7 @@ export type Database = {
           description?: string | null
           end_time?: string | null
           expense_date?: string | null
+          gross_hours?: number | null
           id?: string
           invoice_number?: string | null
           is_locked?: boolean | null
@@ -1263,6 +1265,7 @@ export type Database = {
           description?: string | null
           end_time?: string | null
           expense_date?: string | null
+          gross_hours?: number | null
           id?: string
           invoice_number?: string | null
           is_locked?: boolean | null
@@ -3595,3 +3598,4 @@ export const Constants = {
     },
   },
 } as const
+

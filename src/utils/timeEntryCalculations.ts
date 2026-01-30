@@ -1,6 +1,11 @@
 /**
  * Time Entry Calculation Utilities
  * 
+ * ⚠️ IMPORTANT: These are for PRE-SAVE calculations only (forms, previews).
+ * For displaying saved data, ALWAYS use database values:
+ * - expenses.hours (net/billable)
+ * - expenses.gross_hours (total shift duration)
+ * 
  * These functions handle the core calculations for time entries,
  * including lunch break adjustments.
  */

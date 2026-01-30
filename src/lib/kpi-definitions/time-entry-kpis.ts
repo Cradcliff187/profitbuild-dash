@@ -141,13 +141,13 @@ export const timeEntryKPIs: KPIMeasure[] = [
   {
     id: 'time_entry_gross_hours',
     name: 'Gross Hours',
-    source: 'frontend', // Calculated, not stored
-    field: 'CALCULATED: (end_time - start_time) / 3600',
-    formula: 'EXTRACT(EPOCH FROM (end_time - start_time)) / 3600',
+    source: 'database',
+    field: 'expenses.gross_hours',
+    formula: 'Auto-calculated by trigger: EXTRACT(EPOCH FROM (end_time - start_time)) / 3600',
     dataType: 'number',
     domain: 'time_entry',
-    whereUsed: 'TimeEntries table, weekly_labor_hours view, compliance',
-    notes: 'CALCULATED FIELD - total shift duration before lunch deduction. Computed from start_time/end_time. For compliance tracking (e.g., >8 hours may indicate OT eligibility). Employee-facing term: "Shift Hours".',
+    whereUsed: 'TimeEntries table, weekly_labor_hours view, compliance, overtime tracking',
+    notes: 'STORED FIELD - auto-calculated by database trigger when start_time/end_time change. Total shift duration before lunch deduction. For compliance tracking (e.g., >8 hours may indicate OT eligibility). Employee-facing term: "Shift Hours".',
     aliases: ['gross hours', 'total hours', 'shift hours', 'raw hours', 'total time', 'time logged', 'clock time'],
     relatedTo: ['time_entry_hours', 'time_entry_start_time', 'time_entry_end_time'],
     preferWhen: 'User asks about total time worked, shift length, or overtime eligibility',

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useRoles } from '@/contexts/RoleContext';
 
 // PTO/Overhead project numbers that don't have traditional start/end times
 const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
@@ -59,6 +60,7 @@ interface WeekViewProps {
 }
 
 export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
+  const { isAdmin, isManager } = useRoles();
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,22 +93,20 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
       if (entriesError) throw entriesError;
 
       const formattedEntries = entriesData.map(entry => {
-        // Calculate hours from start/end time with lunch adjustment, or fallback to amount/rate
+        // Calculate net hours from start/end time with lunch adjustment
         let hours = 0;
-        let grossHours = 0;
         
         if (entry.start_time && entry.end_time) {
           const start = new Date(entry.start_time);
           const end = new Date(entry.end_time);
-          grossHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+          const shiftDuration = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
           const lunchHours = entry.lunch_taken && entry.lunch_duration_minutes 
             ? entry.lunch_duration_minutes / 60 
             : 0;
-          hours = Math.max(0, grossHours - lunchHours);
+          hours = Math.max(0, shiftDuration - lunchHours);
         } else {
           // Fallback: calculate from amount and rate
           hours = entry.amount / (entry.payees?.hourly_rate || 75);
-          grossHours = hours;
         }
         
         return {
@@ -114,7 +114,7 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
           payee: entry.payees,
           project: entry.projects,
           hours,
-          gross_hours: grossHours
+          gross_hours: entry.gross_hours ?? hours  // USE DATABASE VALUE
         };
       });
 
@@ -233,12 +233,19 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
                     className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary cursor-pointer hover:shadow-md transition-shadow border"
                     onClick={() => onEditEntry(entry)}
                   >
+                    {/* Row 0: Employee Name (Admin/Manager only) */}
+                    {(isAdmin || isManager) && (
+                      <div className="text-xs text-muted-foreground mb-1">
+                        {entry.payee.payee_name}
+                      </div>
+                    )}
+                    
                     {/* Row 1: Project/PTO Name + Status Badge */}
                     <div className="flex justify-between items-start mb-1">
                       <div className="font-semibold text-foreground text-sm">
                         {isPTO 
                           ? entry.project.project_name 
-                          : `${entry.project.project_number} - ${entry.project.client_name}`
+                          : `${entry.project.project_number} - ${entry.project.project_name}`
                         }
                       </div>
                       <Badge 
@@ -263,31 +270,33 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
                     {/* Row 3: Hours Display + Lunch Badge */}
                     <div className="flex justify-between items-end">
                       <div className="space-y-0.5">
-                        {showShiftHours && (
-                          <div className="flex gap-2 text-sm text-muted-foreground">
-                            <span className="w-10">Shift:</span>
-                            <span className="font-mono">{entry.gross_hours?.toFixed(1)} hrs</span>
-                          </div>
-                        )}
+                        <div className="flex gap-2 text-sm text-muted-foreground">
+                          <span className="w-10">Shift:</span>
+                          <span className="font-mono">{(entry.gross_hours || entry.hours).toFixed(1)} hrs</span>
+                        </div>
                         <div className="flex gap-2 text-sm">
                           <span className="w-10 text-muted-foreground">Paid:</span>
                           <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs</span>
                         </div>
                       </div>
                       
-                      {/* Lunch Badge - Compact indicator */}
-                      {hasLunch && (
-                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs">
-                          <CheckSquare className="h-3 w-3" />
-                          <span>{entry.lunch_duration_minutes}m</span>
-                        </div>
-                      )}
-                      
-                      {isLongShiftNoLunch && (
-                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs">
-                          <AlertTriangle className="h-3 w-3" />
-                          <span>No lunch</span>
-                        </div>
+                      {/* Lunch Status - ALWAYS show */}
+                      {!isPTO && (
+                        hasLunch ? (
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs">
+                            <CheckSquare className="h-3 w-3" />
+                            <span>{entry.lunch_duration_minutes}m</span>
+                          </div>
+                        ) : (entry.gross_hours && entry.gross_hours > 6) ? (
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs">
+                            <AlertTriangle className="h-3 w-3" />
+                            <span>No lunch</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs">
+                            <span>No lunch</span>
+                          </div>
+                        )
                       )}
                     </div>
                   </div>
